@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stravision IoT Platform - 总体架构图</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #334155;
+            --border-color: #000000;
+            
+            /* Layer Colors (Pastel/Light) */
+            --c-access: #e0f2fe; /* Light Blue */
+            --c-gateway: #ffedd5; /* Light Orange */
+            --c-business: #f1f5f9; /* Light Gray/White */
+            --c-infra: #dcfce7; /* Light Green */
+            --c-data-layer: #fff7ed; /* Very Light Orange */
+            --c-storage: #e0e7ff; /* Light Indigo */
+            --c-vertical: #fee2e2; /* Light Red */
+            
+            /* Item Colors */
+            --item-bg: #ffffff;
+            --item-border: #1e293b;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            color: #0f172a;
+        }
+
+        .diagram-container {
+            display: grid;
+            grid-template-columns: 120px 1fr 60px; /* Labels | Main Content | Vertical Side */
+            gap: 15px;
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* Left Side Labels */
+        .layer-label {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #64748b;
+            text-align: right;
+        }
+
+        /* Main Content Layers */
+        .layer-box {
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+
+        .layer-row {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Specific Layer Styles */
+        .l-access { background-color: var(--c-access); }
+        .l-gateway { background-color: var(--c-gateway); }
+        .l-business { background-color: var(--c-business); }
+        .l-infra { background-color: var(--c-infra); }
+        .l-data { background-color: var(--c-data-layer); }
+        .l-storage { background-color: var(--c-storage); }
+
+        /* Inner Item Boxes */
+        .item {
+            background-color: var(--item-bg);
+            border: 2px solid var(--item-border);
+            border-radius: 4px;
+            padding: 12px 20px;
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95em;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .item-group {
+            border: 1px dashed #94a3b8;
+            padding: 10px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.5);
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Vertical Right Side */
+        .vertical-column {
+            grid-column: 3;
+            grid-row: 1 / span 6; /* Span all layers */
+            background-color: var(--c-vertical);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            writing-mode: vertical-lr;
+            text-align: center;
+            padding: 20px 0;
+            font-weight: bold;
+            font-size: 1.2em;
+            letter-spacing: 5px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Dashed Separators */
+        .separator {
+            grid-column: 1 / -1;
+            border-bottom: 1px dashed #cbd5e1;
+            margin: 5px 0;
+            height: 1px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .diagram-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Stravision IoT Platform 系统架构图</h1>
+
+    <div class="diagram-container">
+        
+        <!-- Row 1: Access -->
+        <div class="layer-label">接入终端</div>
+        <div class="layer-box l-access">
+            <div class="layer-row">
+                <div class="item">Web 管理端 (Next.js)</div>
+                <div class="item">移动 App (iOS)</div>
+                <div class="item">移动 App (Android)</div>
+                <div class="item">IoT 设备终端 (ESP32)</div>
+            </div>
+        </div>
+        <div class="vertical-column">安全与运维保障体系</div>
+
+        <!-- Row 2: Gateway -->
+        <div class="layer-label">API 网关层</div>
+        <div class="layer-box l-gateway">
+            <div class="layer-row">
+                <div class="item">API 网关 (Route Handlers)</div>
+                <div class="item">身份认证 (JWT/Auth)</div>
+                <div class="item">流量控制 (Rate Limit)</div>
+                <div class="item">消息网关 (MQTT/SSE)</div>
+            </div>
+        </div>
+
+        <!-- Row 3: Business -->
+        <div class="layer-label">业务服务层</div>
+        <div class="layer-box l-business">
+            <div class="layer-row">
+                <div class="item-group">
+                    <div class="item">设备管理</div>
+                    <div class="item">状态监控</div>
+                </div>
+                <div class="item-group">
+                    <div class="item">用户中心</div>
+                    <div class="item">权限管理</div>
+                </div>
+                <div class="item-group">
+                    <div class="item">即时通讯</div>
+                    <div class="item">AI 助手</div>
+                </div>
+                <div class="item">数据大屏</div>
+            </div>
+        </div>
+
+        <!-- Row 4: Infrastructure -->
+        <div class="layer-label">基础服务层</div>
+        <div class="layer-box l-infra">
+            <div class="layer-row">
+                <div class="item">MQTT Broker 服务</div>
+                <div class="item">端到端加密引擎 (E2EE)</div>
+                <div class="item">任务调度 (Cron)</div>
+                <div class="item">文件存储服务</div>
+                <div class="item">通知服务</div>
+            </div>
+        </div>
+
+        <!-- Row 5: Data Access -->
+        <div class="layer-label">数据处理层</div>
+        <div class="layer-box l-data">
+            <div class="layer-row">
+                <div class="item">数据缓存 (SWR)</div>
+                <div class="item">事务处理</div>
+                <div class="item">ORM 映射</div>
+                <div class="item">数据校验 (Zod)</div>
+            </div>
+        </div>
+
+        <!-- Row 6: Storage -->
+        <div class="layer-label">数据存储层</div>
+        <div class="layer-box l-storage">
+            <div class="layer-row">
+                <div class="item" style="flex: 0 0 100px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 5c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
+                    </svg>
+                    &nbsp;SQLite
+                </div>
+                <div class="item" style="flex: 0 0 100px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 5c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
+                    </svg>
+                    &nbsp;IndexedDB
+                </div>
+                <div class="item" style="flex: 0 0 120px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    &nbsp;File System
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
