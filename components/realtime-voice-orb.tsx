@@ -582,37 +582,41 @@ export function RealtimeVoiceOrb({
     }
   }, []);
 
+  const hasTriggeredGreetingRef = useRef(false);
+
   // Initialize session after connection
   const initSession = useCallback(() => {
-    console.log('[RealtimeVoiceOrb] Initializing session with voice:', voice);
-    sendMessage({
-      event_id: createEventId(),
-      type: "session.update",
-      session: {
-        modalities: ["text", "audio"],
-        voice: voice,
-        input_audio_format: "pcm16",
-        output_audio_format: "pcm24",  // qwen3-omni-flash-realtime only supports pcm24
-        instructions: enhancedInstructions,
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.5,
-          silence_duration_ms: 800
-        },
-        input_audio_transcription: {
-          model: "gummy-realtime-v1"
-        }
-      }
-    });
-    // Reset pending commands
-    pendingCommandsRef.current = "";
-  }, [sendMessage, voice, enhancedInstructions]);
+    // ...
+  }, []);
 
   // Handle server events
   const handleServerEvent = useCallback((event: any) => {
     switch (event.type) {
       case 'session.created':
         console.log('[RealtimeVoiceOrb] Session created');
+        // Session created, now we can start capturing audio and trigger greeting
+        startCapture();
+        
+        // Trigger initial greeting if provided and not triggered yet
+        if (initialGreeting && !hasTriggeredGreetingRef.current) {
+          console.log('[RealtimeVoiceOrb] Triggering initial greeting:', initialGreeting);
+          hasTriggeredGreetingRef.current = true;
+          
+          // Small delay to ensure session is fully ready
+          setTimeout(() => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              const responseCreateMsg = {
+                event_id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`,
+                type: "response.create",
+                response: {
+                  modalities: ["text", "audio"],
+                  instructions: `请直接朗读以下内容：${initialGreeting}`
+                }
+              };
+              wsRef.current.send(JSON.stringify(responseCreateMsg));
+            }
+          }, 200);
+        }
         break;
         
       case 'session.updated':
@@ -996,23 +1000,6 @@ export function RealtimeVoiceOrb({
         console.log('[RealtimeVoiceOrb] Sending session.update with voice:', voice);
         ws.send(JSON.stringify(sessionUpdateMsg));
         pendingCommandsRef.current = "";
-
-        // Trigger initial greeting if provided
-        if (initialGreeting) {
-          console.log('[RealtimeVoiceOrb] Triggering initial greeting:', initialGreeting);
-          // Wait a bit for session update to process
-          setTimeout(() => {
-            const responseCreateMsg = {
-              event_id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`,
-              type: "response.create",
-              response: {
-                modalities: ["text", "audio"],
-                instructions: `请直接朗读以下内容：${initialGreeting}`
-              }
-            };
-            ws.send(JSON.stringify(responseCreateMsg));
-          }, 500);
-        }
       };
 
       ws.onmessage = async (event) => {
