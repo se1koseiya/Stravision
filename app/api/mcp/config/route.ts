@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { verifySession } from "@/lib/auth/session"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("session")?.value
-    
-    if (!sessionCookie) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "未授权" }, { status: 401 })
-    }
-
-    const session = await verifySession(sessionCookie)
-    if (!session) {
-      return NextResponse.json({ error: "会话无效" }, { status: 401 })
     }
 
     // 从数据库或文件系统读取用户的MCP配置
@@ -30,16 +23,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("session")?.value
-    
-    if (!sessionCookie) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "未授权" }, { status: 401 })
-    }
-
-    const session = await verifySession(sessionCookie)
-    if (!session) {
-      return NextResponse.json({ error: "会话无效" }, { status: 401 })
     }
 
     const body = await req.json()
@@ -60,16 +46,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("session")?.value
-    
-    if (!sessionCookie) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "未授权" }, { status: 401 })
-    }
-
-    const session = await verifySession(sessionCookie)
-    if (!session) {
-      return NextResponse.json({ error: "会话无效" }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
