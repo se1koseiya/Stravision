@@ -142,6 +142,15 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
+          onClick={() => router.push("/my-mcp")}
+        >
+          <svg className="mr-2 size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <span>我的 MCP</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
           onClick={() => router.push("/help")}
         >
           <QuestionMarkCircleIcon className="mr-2 size-4" />

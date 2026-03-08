@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
   try {
     await initDB()
-    const { content } = await req.json()
+    const { content, type = 'text' } = await req.json()
     if (!content) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
     }
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
             }
 
             await client.query(
-              "INSERT INTO messages (sender_id, receiver_id, content, type, created_at) VALUES ($1, $2, $3, 'text', $4)",
-              [bot.id, recipient.id, content, now]
+              "INSERT INTO messages (sender_id, receiver_id, content, type, created_at) VALUES ($1, $2, $3, $4, $5)",
+              [bot.id, recipient.id, typeof content === 'string' ? content : JSON.stringify(content), type, now]
             )
         }
     })

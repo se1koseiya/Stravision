@@ -41,6 +41,7 @@ import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import Image from "next/image"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { MobileBackground } from "@/components/mobile-background"
+import { ChangelogCard } from "@/components/chat/changelog-card"
 
 interface User {
   id: number
@@ -1148,6 +1149,8 @@ export default function ChatPage() {
                                           <img src={msg.file_url || msg.content} alt="Image" className="max-w-full rounded-lg" />
                                       ) : msg.type === 'audio' ? (
                                           <audio controls src={msg.file_url || msg.content} className="max-w-full" />
+                                      ) : msg.type === 'changelog' ? (
+                                          <ChangelogCard content={msg.content} />
                                       ) : (
                                           <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                                       )}

@@ -22,7 +22,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AnnouncementSender } from "@/components/admin/announcement-sender"
+import { ChangelogSender } from "@/components/admin/changelog-sender"
 import { MaintenanceSettings } from "@/components/admin/maintenance-settings"
+import { MCPMarketManager } from "@/components/admin/mcp-market-manager"
 
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -204,6 +206,12 @@ export default function AdminPage() {
               >
                 System Settings
               </TabsTrigger>
+              <TabsTrigger 
+                value="mcp-market" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                MCP Market
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="users" className="mt-0 outline-none animate-in fade-in-50">
@@ -317,8 +325,11 @@ export default function AdminPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="announcement" className="mt-0 outline-none animate-in fade-in-50">
-              <AnnouncementSender />
+            <TabsContent value="announcement" className="mt-0 outline-none animate-in fade-in-50 space-y-8">
+              <div className="grid gap-8 lg:grid-cols-2">
+                <AnnouncementSender />
+                <ChangelogSender />
+              </div>
             </TabsContent>
 
             <TabsContent value="settings" className="mt-0 outline-none animate-in fade-in-50 space-y-8">
@@ -326,6 +337,10 @@ export default function AdminPage() {
                 <RateLimitSettings />
                 <MaintenanceSettings />
               </div>
+            </TabsContent>
+
+            <TabsContent value="mcp-market" className="mt-0 outline-none animate-in fade-in-50">
+              <MCPMarketManager />
             </TabsContent>
           </Tabs>
       </main>

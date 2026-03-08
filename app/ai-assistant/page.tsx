@@ -5,6 +5,21 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone } from "lucide-react";
+import { AtSign } from "@/components/animate-ui/icons/at-sign";
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
+const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
+const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
+})
+
+const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-zinc-400">Loading chart...</div>
+})
+
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
@@ -24,17 +39,6 @@ import remarkGfm from "remark-gfm"
 import * as htmlToImage from 'html-to-image'
 import jsPDF from "jspdf"
 import { toast } from "sonner"
-
-const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
-const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
-  ssr: false,
-  loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
-})
-
-const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
-  ssr: false,
-  loading: () => <div className="p-4 text-xs text-zinc-400">Loading chart...</div>
-})
 
 import {
   DropdownMenu,
@@ -80,7 +84,10 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { PageNavigation } from "@/components/page-navigation"
 import { VoiceChatModal } from "@/components/ai/voice-chat-modal"
 import { CalendarTrigger } from "@/components/ai/calendar-trigger"
+import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
 
+
+import { BrowserActivity } from "@/components/ai/browser-activity"
 
 interface Citation {
   number: string
@@ -252,6 +259,75 @@ export default function AIAssistantPage() {
   const [showPlanDialog, setShowPlanDialog] = useState(false)
   const [greeting, setGreeting] = useState("晚上好")
   
+  // MCP Tool Mention State
+  const [availableTools, setAvailableTools] = useState<{name: string, description: string, displayName?: string}[]>([])
+  const [mentionOpen, setMentionOpen] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState("")
+  
+  // Browser Activity State
+  const [browsingUrl, setBrowsingUrl] = useState<string | null>(null)
+
+  // Load MCP Tools
+  useEffect(() => {
+    try {
+      const installedStr = localStorage.getItem('mcp-installed-servers')
+      if (installedStr) {
+        const serverIds = JSON.parse(installedStr)
+        const tools: any[] = []
+        
+        serverIds.forEach((id: string) => {
+          const configStr = localStorage.getItem(`mcp-config-${id}`)
+          const enabled = localStorage.getItem(`mcp-enabled-${id}`) !== "false"
+          
+          if (configStr && enabled) {
+            const config = JSON.parse(configStr)
+            // 这里我们模拟一些常见的工具列表，实际上应该从后端或定义文件中获取
+            // 暂时根据 config.name 来推断工具
+            if (config.name === 'caiyun-weather') {
+                tools.push({ name: 'mcp_caiyun_weather', displayName: '彩云天气', description: '查询实时天气和预报' })
+            } else if (config.name === 'gaode-weather') {
+                tools.push({ name: 'mcp_gaode_weather', displayName: '高德天气', description: '查询实时天气' })
+            } else if (config.name === 'hefeng-weather') {
+                tools.push({ name: 'mcp_hefeng_weather', displayName: '和风天气', description: '查询全球天气' })
+            } else if (config.name === 'amap-route') {
+                tools.push({ name: 'mcp_amap_route', displayName: '高德路径规划', description: '驾车/步行/骑行路线规划' })
+            } else if (config.name === 'brave-search') {
+                tools.push({ name: 'mcp_brave_search', displayName: 'Brave 搜索', description: '联网搜索最新信息' })
+            } else if (config.name === 'exa-search') {
+                tools.push({ name: 'mcp_exa_search', displayName: 'Exa 搜索', description: '深度语义搜索技术文章与论文' })
+            } else if (config.name === 'firecrawl') {
+                tools.push({ name: 'mcp_firecrawl_scrape', displayName: '网页抓取', description: '抓取网页内容' })
+            } else if (config.name === 'soil-sensor') {
+                tools.push({ name: 'mcp_soil_sensor_query', displayName: '土壤传感器', description: '查询土壤墒情数据' })
+            } else if (config.name === 'crop-disease') {
+                tools.push({ name: 'mcp_crop_disease_diagnose', displayName: '病害诊断', description: '作物病虫害识别与防治' })
+            } else if (config.name === 'irrigation-system') {
+                tools.push({ name: 'mcp_irrigation_query', displayName: '灌溉系统', description: '智能灌溉控制与查询' })
+            } else if (config.name === 'farm-data') {
+                tools.push({ name: 'mcp_farm_data_query', displayName: '农场数据', description: '农场运营数据分析' })
+            }
+          }
+        })
+        setAvailableTools(tools)
+      }
+    } catch (e) {
+      console.error('Failed to load MCP tools:', e)
+    }
+  }, [])
+
+  const handleInsertTool = (toolName: string) => {
+    const mentionText = `@${toolName} `
+    // 如果是通过输入 @ 触发的，替换掉 @
+    // 如果是点击按钮触发的，直接追加
+    if (input.endsWith('@')) {
+        setInput(prev => prev + toolName + ' ')
+    } else {
+        setInput(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + mentionText)
+    }
+    setMentionOpen(false)
+    textareaRefChat.current?.focus()
+  }
+
   // Agent 状态指示器
   const [agentStatus, setAgentStatus] = useState<string>("")
   
@@ -527,7 +603,7 @@ export default function AIAssistantPage() {
     showNotice("操作已强制终止", "AI 生成与设备控制已中断", "error")
   }
 
-  const executeCommands = async (commands: any[]) => {
+  const executeCommands = async (commands: any[], originalContent?: string) => {
     if (!commands || commands.length === 0) return
     if (isStoppedRef.current) return // 如果已停止，直接不执行
     
@@ -744,15 +820,26 @@ export default function AIAssistantPage() {
         // 如果是自动执行模式，则继续发送反馈给 AI 进行下一步判断
         // 如果是手动模式，则不自动发送，等待用户手动操作，避免死循环
         if (autoExecuteCommands) {
+            // 提取上下文中的任务列表，防止 AI 遗忘进度
+            let taskContext = "";
+            if (originalContent) {
+                 const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
+                 if (match) {
+                     // 压缩 JSON 字符串以节省 Token (可选)
+                     taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。`;
+                 }
+            }
+
             handleSend(`指令已执行完毕。
 
 请根据系统提供的【当前最新数据】判断执行效果，并决定下一步操作。
-
+${taskContext}
 **重要提示：**
 1. 我已开启【自动托管模式】，请不要停下来等待我确认。
 2. 请直接生成下一步的控制指令 JSON。
 3. 如果当前任务因环境反应慢而未达标，但已执行过指令，请判定为“超时/已尽力”，自动跳过并执行下一个任务。
-4. 直到所有任务完成或失败，再做最终总结。`)
+4. **严禁**重复执行相同的指令。如果环境数据未变，请增加等待时间或尝试其他手段，不要死循环。
+5. 直到所有任务完成或失败，再做最终总结。`, [], true) // Add isFeedback=true flag
         } else {
             setAgentStatus("") // 清除状态
             // 手动模式下，我们可以添加一条系统提示消息到界面上（这里简化处理，直接结束加载状态）
@@ -764,7 +851,7 @@ export default function AIAssistantPage() {
     feedbackTimeoutIdsRef.current.push(t1)
   }
 
-  const handleSend = async (overrideText?: any, overrideAttachments?: string[]) => {
+  const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false) => {
     // 重置停止状态
     isStoppedRef.current = false
     
@@ -778,8 +865,8 @@ export default function AIAssistantPage() {
     if (!isAutoTrigger && !text.trim() && currentAttachments.length === 0) return
     if (isLoading) return
     
-    // 模拟感知阶段（仅当是用户主动发送或Agent自动闭环时）
-    if (!agentStatus) {
+    // 模拟感知阶段（仅当是用户主动发送或Agent自动闭环时，且不是简单的反馈重试）
+    if (!agentStatus && !isFeedback) {
       setAgentStatus("正在建立安全握手...")
       await new Promise(r => setTimeout(r, 200))
       if (isStoppedRef.current) return
@@ -798,6 +885,9 @@ export default function AIAssistantPage() {
       setAgentStatus("注入上下文向量 & 系统提示词...")
       await new Promise(r => setTimeout(r, 400))
       if (isStoppedRef.current) return
+    } else if (isFeedback) {
+        // 反馈模式下，不显示感知状态，直接显示"正在重新分析"
+        setAgentStatus("正在根据反馈重新分析...")
     }
     
     const isSystemMode = !aiSettings?.apiKey && !aiSettings?.apiUrl;
@@ -858,6 +948,9 @@ export default function AIAssistantPage() {
     setAttachments([])
 
     try {
+      // 确保流结束时关闭浏览器
+      setBrowsingUrl(null)
+      
       if (ensuredSessionId) {
         const current = sessions.find((s) => s.id === ensuredSessionId)
         if (current && current.title && current.title.startsWith("新会话")) {
@@ -891,6 +984,38 @@ export default function AIAssistantPage() {
         effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动托管模式 (Auto-Pilot Mode)。\n严禁提问！严禁等待用户确认！\n必须直接输出控制指令 JSON。\n如果遇到问题，请自行尝试解决或跳过。";
       }
 
+      // 获取 MCP 配置
+      let mcpConfigs = []
+      try {
+        const installedStr = localStorage.getItem('mcp-installed-servers')
+        if (installedStr) {
+          const serverIds = JSON.parse(installedStr)
+          mcpConfigs = serverIds
+            .map((id: string) => {
+              const configStr = localStorage.getItem(`mcp-config-${id}`)
+              const enabled = localStorage.getItem(`mcp-enabled-${id}`) !== "false"
+              
+              if (configStr && enabled) {
+                const config = JSON.parse(configStr)
+                // 从 envVars 中提取 API Key
+                const apiKey = config.envVars ? Object.values(config.envVars)[0] : null
+                return {
+                  id: config.id,
+                  name: config.name,
+                  displayName: config.displayName || config.name,
+                  enabled: true,
+                  apiKey: apiKey,
+                  description: config.description || ''
+                }
+              }
+              return null
+            })
+            .filter(Boolean)
+        }
+      } catch (e) {
+        console.error('Failed to load MCP configs:', e)
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -905,7 +1030,8 @@ export default function AIAssistantPage() {
           enableSearch,
           enableReasoning,
           deviceData: deviceDataRef.current,
-          weatherData: weatherDataRef.current
+          weatherData: weatherDataRef.current,
+          mcpConfigs // 添加 MCP 配置
         })
       })
       
@@ -935,24 +1061,81 @@ export default function AIAssistantPage() {
       const startTs = Date.now()
       setMessages(prev => [...prev, assistantMsg])
 
+      const decoder = new TextDecoder()
+      let buffer = ""
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const chunk = new TextDecoder().decode(value)
-        const lines = chunk.split("\n")
+        
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
+          const trimmedLine = line.trim()
+          if (!trimmedLine || trimmedLine === "data: [DONE]") continue
+          
+          if (trimmedLine.startsWith("data: ")) {
             try {
-              const data = JSON.parse(line.slice(6))
+              const data = JSON.parse(trimmedLine.slice(6))
+              
+              // Handle explicit error from backend
+              if (data.error) {
+                 assistantMsg.content = `⚠️ Error: ${data.error}`
+                 setMessages(prev => {
+                    const newMsgs = [...prev]
+                    newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+                    return newMsgs
+                 })
+                 continue
+              }
+
+              // Handle tool calls feedback
+              if (data.tool_calls) {
+                const toolNames = data.tool_calls.map((t: any) => t.function.name).join(", ")
+                setAgentStatus(`正在使用工具: ${toolNames}...`)
+
+                // 检查是否有网页抓取工具，如果有则显示浏览器动效
+                // 支持 Firecrawl 和 Exa (虽然 Exa 通常不是直接抓取，但为了视觉反馈，也可以显示搜索状态)
+                const crawlerCall = data.tool_calls.find((t: any) => t.function.name === 'mcp_firecrawl_scrape' || t.function.name === 'mcp_exa_search')
+                if (crawlerCall) {
+                    try {
+                        const args = JSON.parse(crawlerCall.function.arguments)
+                        // 如果是 Exa 搜索，可能没有 url 参数，只有 query。
+                        // 此时我们可以构造一个虚拟 URL 来展示 "正在搜索: xxx"
+                        if (args.url) {
+                            setBrowsingUrl(args.url)
+                        } else if (args.query) {
+                            // 对于 Exa 搜索，显示搜索关键词作为"虚拟网页"
+                            setBrowsingUrl(`https://exa.ai/search?q=${encodeURIComponent(args.query)}`)
+                        }
+                    } catch (e) { console.error("Failed to parse crawler args", e) }
+                }
+
+                continue
+              }
+
               const content = data.choices?.[0]?.delta?.content ?? data.content
               if (typeof content === "string") {
-                assistantMsg.content = (typeof assistantMsg.content === "string" ? assistantMsg.content : "") + content
+                // 如果开始收到内容，关闭浏览器动效（或者保留直到完成？这里选择保留一会或者在 done 时关闭）
+                // 为了效果，我们让它继续显示直到流结束
+                
+                // Update assistant message content
+                if (typeof assistantMsg.content === "string") {
+                    assistantMsg.content += content
+                } else {
+                    assistantMsg.content = content
+                }
+                
                 // Simplified reasoning parsing
-                const combined = typeof assistantMsg.content === "string" ? assistantMsg.content : ""
+                const combined = assistantMsg.content as string
+                // ... reasoning logic ...
                 if (reasoningStart === -1) {
                   const sIdx = combined.indexOf("<REASONING>")
                   if (sIdx !== -1) reasoningStart = sIdx
                 }
+                
                 let display = combined
                 if (reasoningStart !== -1) {
                   const endIdx = combined.indexOf("</REASONING>", reasoningStart)
@@ -971,18 +1154,22 @@ export default function AIAssistantPage() {
                     role: "assistant",
                     content: display,
                     reasoning: { text: reasoningText, durationMs: Date.now() - startTs },
-                    model: selectedModel || aiSettings?.model // 保存使用的模型
+                    model: selectedModel || aiSettings?.model
                   }
                   return newMsgs
                 })
               }
-            } catch { }
+            } catch (e) { 
+                console.error("Error parsing stream chunk", e)
+            }
           }
         }
       }
 
+      // 确保流结束时关闭浏览器
+      setBrowsingUrl(null)
       if (ensuredSessionId) {
-        const lastMsg = { 
+        const lastMsg = {  
           ...assistantMsg, 
           reasoning: { text: reasoningText, durationMs: Date.now() - startTs },
           model: selectedModel || aiSettings?.model // 保存使用的模型
@@ -1016,7 +1203,7 @@ export default function AIAssistantPage() {
           if (commands.length > 0) {
             // 再次检查是否已停止
             if (isStoppedRef.current) return;
-            await executeCommands(commands)
+            await executeCommands(commands, assistantMsg.content as string)
           }
         }
       }
@@ -1746,6 +1933,13 @@ export default function AIAssistantPage() {
               <span>搜索</span>
             </button>
             <button
+              onClick={() => router.push('/mcp-store')}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
+            >
+              <Zap size={16} className="text-zinc-400 group-hover:text-zinc-600" />
+              <span>MCP 商店</span>
+            </button>
+            <button
               onClick={() => router.push('/dashboard')}
               className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
             >
@@ -1823,7 +2017,10 @@ export default function AIAssistantPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="start" side="top">
               <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setSettingsOpen(true)}>
-                <Settings size={14} /> 设置
+                <Settings size={14} /> AI 设置
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/my-mcp')}>
+                <Zap size={14} /> MCP 设置
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer gap-2 text-red-600" onClick={() => router.push('/login')}>
                 <LogOut size={14} /> 退出登录
@@ -2017,6 +2214,7 @@ export default function AIAssistantPage() {
 
                   <div className="flex items-center justify-between mt-1 px-3 pb-2">
                     <div className="flex items-center gap-1">
+                      <MCPStatusIndicator />
                        <button
                         onClick={() => fileInputRef.current?.click()}
                         className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
@@ -2262,8 +2460,23 @@ export default function AIAssistantPage() {
                         <textarea
                         ref={textareaRefChat}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                        onChange={(e) => {
+                            const val = e.target.value
+                            setInput(val)
+                            if (val.endsWith('@')) {
+                                setMentionOpen(true)
+                            }
+                        }}
+                        onKeyDown={(e) => { 
+                            if (e.key === 'Enter' && !e.shiftKey) { 
+                                e.preventDefault(); 
+                                handleSend() 
+                            }
+                            // 如果删除了 @，关闭弹窗
+                            if (e.key === 'Backspace' && input.endsWith('@')) {
+                                setMentionOpen(false)
+                            }
+                        }}
                         onPaste={handlePaste}
                         placeholder="发消息给 AI 助手..."
                         className="w-full bg-transparent border-0 focus:ring-0 resize-none text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400/80 text-[15px] leading-relaxed py-3 min-h-[44px] max-h-[200px] font-medium"
@@ -2298,6 +2511,51 @@ export default function AIAssistantPage() {
                     {/* Bottom Tools Row */}
                     <div id="ai-input-tools" className="flex items-center justify-between px-2 pb-1">
                       <div className="flex items-center gap-1">
+                        <MCPStatusIndicator />
+                        
+                        <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
+                            <PopoverTrigger asChild>
+                                <button
+                                onClick={() => setMentionOpen(true)}
+                                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 group relative"
+                                title="提及工具 (@)"
+                                >
+                                <AtSign size={18} strokeWidth={2} />
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="p-0 w-[280px] md:w-[320px]" side="top" align="start" sideOffset={10}>
+                                <Command>
+                                    <CommandInput placeholder="搜索工具..." value={mentionQuery} onValueChange={setMentionQuery} />
+                                    <CommandList>
+                                        <CommandEmpty>未找到相关工具</CommandEmpty>
+                                        <CommandGroup heading="已安装的 MCP 工具">
+                                            {availableTools.map((tool) => (
+                                                <CommandItem 
+                                                    key={tool.name} 
+                                                    value={tool.name}
+                                                    onSelect={() => handleInsertTool(tool.name)}
+                                                    className="flex flex-col items-start py-2.5 px-3 cursor-pointer"
+                                                >
+                                                    <div className="flex items-center gap-2 w-full">
+                                                        <div className="size-6 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                            <Zap size={12} />
+                                                        </div>
+                                                        <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100">{tool.displayName || tool.name}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 ml-8 line-clamp-1">{tool.description}</span>
+                                                </CommandItem>
+                                            ))}
+                                            {availableTools.length === 0 && (
+                                                <div className="p-4 text-center text-xs text-zinc-500">
+                                                    暂无已启用的 MCP 工具，请前往商店安装
+                                                </div>
+                                            )}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 group relative"
@@ -2489,6 +2747,9 @@ export default function AIAssistantPage() {
            </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 浏览器活动窗口 */}
+      <BrowserActivity url={browsingUrl || ""} isOpen={!!browsingUrl} onClose={() => setBrowsingUrl(null)} />
 
       <AISettingsDialog
         open={settingsOpen}

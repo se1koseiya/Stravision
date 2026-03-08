@@ -164,7 +164,7 @@ export function BannedIPsManager() {
                     <TableCell className="text-xs">{ip.reason || "-"}</TableCell>
                     <TableCell className="text-zinc-500 text-xs font-mono">{ip.banned_by}</TableCell>
                     <TableCell className="text-zinc-500 text-xs font-mono">
-                      {format(new Date(ip.created_at), "yyyy-MM-dd HH:mm")}
+                      {format(new Date(Number(ip.created_at)), "yyyy-MM-dd HH:mm")}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

@@ -11,6 +11,8 @@ import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service'
+import { getMCPToolDefinitions } from '@/lib/mcp/mcp-tool-definitions'
+import { executeMCPToolCall } from '@/lib/mcp/mcp-tool-executor'
 
 export async function POST(req: Request) {
   try {
@@ -20,7 +22,7 @@ export async function POST(req: Request) {
     }
 
     await initDB()
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs } =
       await req.json()
 
     const stripWrappingQuotes = (value: unknown) => {
@@ -48,34 +50,34 @@ export async function POST(req: Request) {
 
     let apiKey = stripWrappingQuotes(rawApiKey)
     let targetUrl = normalizeOpenAIChatCompletionsUrl(rawApiUrl)
-    
+
     // 检查是否使用系统托管 Key
     const useSystemKey = !apiKey && !rawApiUrl;
-    
+
     if (useSystemKey) {
-        // 1. 检查配额
-        const quota = await getUserAiQuota(user.id as number)
-        if (!quota.can_use) {
-            const reason = quota.reason === 'limit_reached' ? '今日免费额度已用完' : '余额不足'
-            return Response.json(
-                { error: `${reason}，请明天再来或联系管理员充值。` },
-                { status: 403 }
-            )
-        }
-        
-        // 2. 注入系统 Key
-        apiKey = process.env.SYSTEM_OPENAI_API_KEY || ""
-        const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ""
-        if (systemBaseUrl) {
-            targetUrl = normalizeOpenAIChatCompletionsUrl(systemBaseUrl)
-        }
-        
-        if (!apiKey) {
-             return Response.json(
-                { error: "System AI service is not configured. Please contact admin." },
-                { status: 503 }
-            )
-        }
+      // 1. 检查配额
+      const quota = await getUserAiQuota(user.id as number)
+      if (!quota.can_use) {
+        const reason = quota.reason === 'limit_reached' ? '今日免费额度已用完' : '余额不足'
+        return Response.json(
+          { error: `${reason}，请明天再来或联系管理员充值。` },
+          { status: 403 }
+        )
+      }
+
+      // 2. 注入系统 Key
+      apiKey = process.env.SYSTEM_OPENAI_API_KEY || ""
+      const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ""
+      if (systemBaseUrl) {
+        targetUrl = normalizeOpenAIChatCompletionsUrl(systemBaseUrl)
+      }
+
+      if (!apiKey) {
+        return Response.json(
+          { error: "System AI service is not configured. Please contact admin." },
+          { status: 503 }
+        )
+      }
     }
 
     if (!apiKey) {
@@ -87,6 +89,79 @@ export async function POST(req: Request) {
 
     // 构建增强的系统提示词，包含当前设备和天气数据
     const enhancedSystemPrompt = getEnhancedSystemPrompt(systemPrompt)
+
+    // === MCP Function Calling 集成 ===
+    // 根据用户启用的 MCP 服务，生成 AI 可调用的工具定义
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const mcpToolDefs = getMCPToolDefinitions(mcpConfigs || [])
+    
+    // 提取最后一条用户消息文本，用于意图识别优化
+    const lastUserMessageObj = messages.slice().reverse().find((m: any) => m.role === 'user')
+    const lastUserContent = lastUserMessageObj?.content
+    const lastUserText = typeof lastUserContent === 'string' ? lastUserContent : 
+                         (Array.isArray(lastUserContent) ? lastUserContent.find((c:any) => c.type === 'text')?.text || "" : "")
+    
+    // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
+    // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
+    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析"]
+    const hasToolKeyword = toolKeywords.some(k => lastUserText.toLowerCase().includes(k))
+    const hasToolMention = /@[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(lastUserText)
+    const hasToolImage = Array.isArray(lastUserContent) && lastUserContent.some((c:any) => c.type === 'image_url')
+    
+    const shouldPreflight = mcpToolDefs.length > 0 && (hasToolKeyword || hasToolMention || hasToolImage)
+
+    // 检查用户消息是否包含 @工具名 的强制调用指令
+    let forcedToolPrompt = ""
+    if (mcpToolDefs.length > 0) {
+        console.log('[MCP] Enabled function calling tools:', mcpToolDefs.map(t => t.function.name))
+        console.log(`[MCP] Heuristic check: keyword=${hasToolKeyword}, mention=${hasToolMention}, image=${hasToolImage} => shouldPreflight=${shouldPreflight}`)
+        
+        if (typeof lastUserContent === 'string') {
+             // 提取 @xxx 模式
+             const mentionMatch = lastUserContent.match(/@([\w\u4e00-\u9fa5]+)/)
+             if (mentionMatch) {
+                 const mentionedName = mentionMatch[1].toLowerCase()
+                 
+                 // 在已启用的工具中查找匹配项
+                 const matchedTool = mcpToolDefs.find(t => {
+                     const toolName = t.function.name.toLowerCase()
+                     if (toolName.includes(mentionedName)) return true
+                     
+                     // 匹配配置名称
+                     const config = mcpConfigs?.find((c: any) => {
+                         return (c.displayName?.toLowerCase().includes(mentionedName) || c.name?.toLowerCase().includes(mentionedName))
+                     })
+                     
+                     if (t.function.description.toLowerCase().includes(mentionedName)) return true
+                     return false
+                 })
+                 
+                 if (matchedTool) {
+                     console.log(`[MCP] User explicitly mentioned @${mentionedName}, forcing usage of tool: ${matchedTool.function.name}`)
+                     forcedToolPrompt = `\n\n**重要指令：**\n用户在消息中显式使用了 "@${mentionedName}" 标记。\n你必须**优先**调用与 "${mentionedName}" 相关的工具（如 \`${matchedTool.function.name}\`）来回答用户的请求。\n不要拒绝调用，即使你认为没有必要。请直接执行工具调用。`
+                 }
+             } else {
+                 // 自动触发逻辑：根据用户意图自动选择工具
+                 const lowerMsg = lastUserContent.toLowerCase()
+                 
+                 // 自动触发网页抓取
+                 if ((lowerMsg.includes('搜索') || lowerMsg.includes('查一下') || lowerMsg.includes('找一下')) && !lowerMsg.includes('@')) {
+                     // 检查并按优先级选择工具：1. Firecrawl 2. Exa 3. Brave
+                     const firecrawl = mcpToolDefs.find(t => t.function.name === 'mcp_firecrawl_scrape')
+                     const exa = mcpToolDefs.find(t => t.function.name === 'mcp_exa_search')
+                     const brave = mcpToolDefs.find(t => t.function.name === 'mcp_brave_search')
+                     
+                     const bestTool = firecrawl || exa || brave
+                     
+                     if (bestTool) {
+                         console.log(`[MCP] Detected search intent, suggesting best available tool: ${bestTool.function.name}`)
+                         forcedToolPrompt = `\n\n**重要提示：**\n用户想要搜索或查找信息。你拥有能够联网搜索或抓取网页的工具（如 \`${bestTool.name}\`）。\n如果你的内部知识库中没有该信息的最新数据，请**主动**调用该工具来获取准确答案，而不要拒绝或凭空猜测。\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。' : (exa ? '优先使用 Exa 进行语义搜索。' : '')}`
+                     }
+                 }
+             }
+        }
+    }
+    // === MCP Function Calling 集成结束 ===
 
     // 格式化设备数据（将需要除以10的数据转换为正确的小数）
     const formattedDeviceData = deviceData ? {
@@ -118,7 +193,8 @@ export async function POST(req: Request) {
     } else {
       contextInfo += `\n\n## 当前设备数据\n目前系统未能获取到最新的传感器数据。请告知用户数据连接可能中断，或设备处于离线状态。\n`
     }
-    
+
+    // 天气数据（MCP 天气工具已改为 function calling 方式，由 AI 主动调用）
     if (weatherData) {
       contextInfo += `\n\n## 当前天气信息\n\`\`\`json\n${JSON.stringify({
         location: weatherData.location?.name || "未知位置",
@@ -134,13 +210,13 @@ export async function POST(req: Request) {
         }))
       }, null, 2)}\n\`\`\`\n`
     } else {
-        contextInfo += `\n\n## 当前天气信息\n暂时无法获取天气数据。\n`
+      contextInfo += `\n\n## 当前天气信息\n暂时无法获取天气数据。\n`
     }
 
     // 注入当前定时任务列表
     try {
-      const tasks = getAllTasks()
-      const tasksContext = tasks.map(t => ({
+      const tasks = await getAllTasks()
+      const tasksContext = tasks.map((t: any) => ({
         id: t.id,
         title: t.title,
         cron: t.cron_expression,
@@ -149,13 +225,13 @@ export async function POST(req: Request) {
         device_id: t.device_id,
         active: t.is_active === 1
       }))
-      
+
       contextInfo += `\n\n## 当前系统中的定时任务（这是真实的数据库记录，以此为准）\n\`\`\`json\n${JSON.stringify(tasksContext, null, 2)}\n\`\`\`\n`
     } catch (e) {
       console.error("Failed to fetch tasks for context:", e)
     }
 
-    const finalSystemPrompt = enhancedSystemPrompt + contextInfo
+    const finalSystemPrompt = enhancedSystemPrompt + contextInfo + forcedToolPrompt
 
     const deviceControlInstruction =
       "## 设备控制能力与 Agent 交互规范\n" +
@@ -220,24 +296,33 @@ export async function POST(req: Request) {
       "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
     const monitorInstruction =
       "当用户询问监控、摄像头、直播流或想要查看实时画面时，请直接在回复中插入 <MONITOR></MONITOR> 标签（标签内不需要任何内容）。"
-    const controlBentoInstruction = 
+    const controlBentoInstruction =
       "当用户要求查看设备控制、调节设备状态或你建议进行设备调控时，请在回复中包含 <CONTROL_BENTO></CONTROL_BENTO> 标签（标签内不需要任何内容）。然后，必须在标签之后简要说明你的调控建议或理由。如果用户明确表达了“是”、“确认”、“执行”等意图，或者你非常有把握需要执行某些操作，请务必同时输出 JSON 格式的控制命令，以便系统自动执行。"
     const taskListInstruction =
       "当用户要求查看、管理或删除定时任务列表时，请在回复中包含 <SCHEDULED_TASKS></SCHEDULED_TASKS> 标签（标签内不需要任何内容）。这将在前端渲染一个交互式的真实任务列表组件。重要：因为你已经输出了 <SCHEDULED_TASKS> 标签，请不要再用文本重复列出任务内容，也不要描述“列表为空”或“包含X个任务”（除非你是在分析任务的合理性），因为你的文本描述可能与组件实时渲染的真实状态不一致。只需输出标签即可，让组件负责展示。"
-    const bentoInstruction = 
+    const bentoInstruction =
       "当用户询问设备状态、环境数据、传感器读数或想要查看当前概况时，请直接在回复中插入 <DEVICE_BENTO></DEVICE_BENTO> 标签（标签内不需要任何内容）。然后，基于这些数据对当前环境状况进行简要的分析（例如：温湿度是否适宜，是否需要开启设备等）。请务必在 <DEVICE_BENTO> 标签之后输出分析内容，不要只输出标签。"
     const axisInstruction =
       "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
 
+    // MCP 工具说明 — 引导 AI 主动使用 Function Calling
+    const mcpToolsInstruction = mcpToolDefs.length > 0
+      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力，请在合适的时机**主动**调用它们：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**重要规则：**\n- 当用户询问天气、搜索、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据，而不是凭记忆回答。\n- 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n- 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n- 不需要询问用户是否调用工具，直接调用即可。`
+      : ""
+
     // 检测是否使用DashScope API
+    // 注意：如果 URL 指向本地 (localhost/127.0.0.1)，即使模型名包含 qwen 也不是 DashScope
+    const isLocal = targetUrl?.includes("localhost") || targetUrl?.includes("127.0.0.1")
     const isDashScope =
-      targetUrl?.includes("dashscope.aliyuncs.com") ||
-      model?.startsWith("qwen")
+      !isLocal && (
+        targetUrl?.includes("dashscope.aliyuncs.com") ||
+        model?.startsWith("qwen")
+      )
     const isCompatibleMode = targetUrl?.includes("compatible-mode/v1") ?? false
     const isDashScopeAppCall = /\/api\/v1\/apps\/[^/]+\/completion(\?|$)/.test(targetUrl || "")
 
-    let fullMessages
-    let requestBody
+    let fullMessages: any[] = []
+    let requestBody: any = {}
     // let targetUrl = apiUrl || "" // Already set above
     const hasImageContent = Array.isArray(messages) && messages.some((m: any) => {
       const c = m?.content
@@ -245,24 +330,25 @@ export async function POST(req: Request) {
       return false
     })
 
-    // 如果是DashScope且包含图片，强制使用兼容模式（因为Native API不支持Base64图片）
+    // 如果是DashScope且包含图片或启用了MCP工具，强制使用兼容模式
+    // 这是因为 Native API 处理图片和标准 OpenAI Function Calling 比较困难
     let useCompatibleMode = isCompatibleMode
-    if (isDashScope && hasImageContent && !isCompatibleMode) {
+    if (isDashScope && !isCompatibleMode && (hasImageContent || mcpToolDefs.length > 0)) {
       useCompatibleMode = true
       targetUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     }
 
     // 智能模式 (Auto) 模型选择逻辑
     let effectiveModel = model || ''
-    
+
     if (effectiveModel === 'auto') {
-        if (enableReasoning) {
-            effectiveModel = 'deepseek-r1' // 优先使用推理模型
-        } else if (hasImageContent) {
-            effectiveModel = 'qwen-vl-max' // 优先使用视觉模型
-        } else {
-            effectiveModel = 'qwen-plus' // 默认使用通用增强模型
-        }
+      if (enableReasoning) {
+        effectiveModel = 'deepseek-r1' // 优先使用推理模型
+      } else if (hasImageContent) {
+        effectiveModel = 'qwen-vl-max' // 优先使用视觉模型
+      } else {
+        effectiveModel = 'qwen-plus' // 默认使用通用增强模型
+      }
     }
 
     const modelLower = String(effectiveModel).toLowerCase()
@@ -273,7 +359,7 @@ export async function POST(req: Request) {
       modelLower.includes('qvq')
     )
 
-    if (hasImageContent) {
+    if (hasImageContent && !isLocal) {
       if (!isVLMModel) {
         // 如果用户发了图但选了纯文本模型，强制切换到视觉模型
         effectiveModel = 'qwen-vl-plus'
@@ -297,7 +383,7 @@ export async function POST(req: Request) {
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}`,
+          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}${mcpToolsInstruction}`,
         },
         ...messages,
       ]
@@ -311,7 +397,7 @@ export async function POST(req: Request) {
       }
     } else if (isDashScope) {
       // DashScope 原生API格式
-      const systemMessage = `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}`
+      const systemMessage = `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}${mcpToolsInstruction}`
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
@@ -350,7 +436,21 @@ export async function POST(req: Request) {
         targetUrl = targetUrl.replace("/aigc/text-generation/", "/aigc/multimodal-generation/")
       }
     } else {
-      // ... OpenAI ...
+      // OpenAI 兼容模式
+      fullMessages = [
+        {
+          role: "system",
+          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}${mcpToolsInstruction}`,
+        },
+        ...messages,
+      ]
+
+      requestBody = {
+        model: effectiveModel || "gpt-4o-mini",
+        messages: fullMessages,
+        stream: true,
+        temperature: 0.7,
+      }
     }
 
     // 调用AI API
@@ -369,6 +469,268 @@ export async function POST(req: Request) {
       headers["Authorization"] = `Bearer ${apiKey}`
     }
 
+    // === MCP Tool Call Resolution (Function Calling 预检) ===
+    // 对于 OpenAI 兼容模式，先做一次非流式请求以检测 AI 是否要调用工具
+    // 如果有 tool_calls，执行工具后再做流式请求生成最终回复
+    // 优化：使用 heuristic (shouldPreflight) 避免对所有消息都进行预检，显著降低普通对话延迟
+    if (shouldPreflight && !isDashScopeAppCall && (useCompatibleMode || !isDashScope)) {
+      try {
+        const preflightBody = {
+          ...requestBody,
+          stream: false,
+          tools: mcpToolDefs,
+        }
+        
+        // Ollama 特殊处理：Ollama 的 stream: false 模式下，tools 支持可能不完善，
+        // 或者返回结构与 OpenAI 不完全一致。
+        // 但根据报错信息 "cannot unmarshal object into Go struct field Message.messages.reasoning of type string"，
+        // 这似乎是因为我们的 requestBody 中的 messages 包含了一些 Ollama 不认识的字段（如 reasoning）。
+        // 我们需要清理一下 messages 中的字段。
+
+        // 清理 requestBody.messages 中的额外字段
+        if (preflightBody.messages) {
+            preflightBody.messages = preflightBody.messages.map((m: any) => {
+                const { role, content, name, tool_calls, tool_call_id } = m
+                // 只保留标准字段
+                const cleanMsg: any = { role, content }
+                if (name) cleanMsg.name = name
+                if (tool_calls) cleanMsg.tool_calls = tool_calls
+                if (tool_call_id) cleanMsg.tool_call_id = tool_call_id
+                return cleanMsg
+            })
+        }
+
+        // 对于 DashScope 原生模式的非流式请求，不需要 SSE header
+        const preflightHeaders = { ...headers }
+        delete preflightHeaders["X-DashScope-SSE"]
+
+        console.log('[MCP] Making preflight call to detect tool_calls...')
+        const preflightRes = await fetch(targetUrl, {
+          method: "POST",
+          headers: preflightHeaders,
+          body: JSON.stringify(preflightBody),
+        })
+
+        if (preflightRes.ok) {
+          const preflightData = await preflightRes.json()
+          const choice = preflightData.choices?.[0]
+
+          if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
+            // AI 决定调用工具！
+            console.log('[MCP] AI requested tool calls:', choice.message.tool_calls.map((tc: any) => tc.function.name))
+
+            // 将 AI 的 tool_call 消息加入会话
+            fullMessages.push(choice.message)
+
+            // 构造 ReadableStream 以便立即给前端反馈
+            const encoder = new TextEncoder()
+            const stream = new ReadableStream({
+              async start(controller) {
+                // Keep-Alive Interval to prevent timeout during long tool execution
+                const keepAliveInterval = setInterval(() => {
+                    try {
+                        controller.enqueue(encoder.encode(": keep-alive\n\n"))
+                    } catch (e) {
+                        clearInterval(keepAliveInterval)
+                    }
+                }, 5000)
+
+                try {
+                  // 1. 立即推送工具调用状态
+                  const toolStatusPayload = {
+                    id: `tool-status-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    tool_calls: choice.message.tool_calls
+                  }
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolStatusPayload)}\n\n`))
+
+                  // 2. 执行工具调用
+                  for (const toolCall of choice.message.tool_calls) {
+                    const fnName = toolCall.function.name
+                    let fnArgs: Record<string, any> = {}
+                    try { fnArgs = JSON.parse(toolCall.function.arguments || '{}') } catch { }
+
+                    console.log(`[MCP] Executing tool: ${fnName}`, fnArgs)
+                    const result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
+                    console.log(`[MCP] Tool ${fnName} result:`, result.success ? 'success' : result.error)
+
+                    // 将工具结果加入会话
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCall.id,
+                      content: JSON.stringify(result.success ? result.data : { error: result.error })
+                    })
+                  }
+
+                  // 停止心跳
+                  clearInterval(keepAliveInterval)
+
+                  // 3. 检查工具执行结果，如果失败发送警告，并尝试自动重试 (Simple Retry Logic)
+                  const toolResults = fullMessages.filter(m => m.role === 'tool')
+                  
+                  // 针对网页抓取的自动重试逻辑
+                  // 如果抓取失败，且是 Firecrawl，尝试提示 AI 换一个 URL 或使用 Exa
+                  const failedScrapes = toolResults.filter(m => {
+                      try {
+                          const c = JSON.parse(m.content as string)
+                          return c.error && m.tool_call_id
+                      } catch { return false }
+                  })
+
+                  if (failedScrapes.length > 0) {
+                      console.log('[MCP] Detected failed tool calls, injecting retry instruction...')
+                      // 查找失败的 tool call 原始请求
+                      const failedCallIds = failedScrapes.map(m => m.tool_call_id)
+                      const originalCalls = choice.message.tool_calls.filter((tc: any) => failedCallIds.includes(tc.id))
+                      
+                      const isScrapeFailure = originalCalls.some((tc: any) => tc.function.name === 'mcp_firecrawl_scrape')
+                      
+                      if (isScrapeFailure) {
+                          // 注入系统消息，告知 AI 抓取失败，建议重试其他来源
+                          // 修改逻辑：优先建议换一个 URL 继续尝试 Firecrawl，其次才建议 Exa
+                          fullMessages.push({
+                              role: 'system',
+                              content: `⚠️ 上一次网页抓取失败 (可能是反爬虫或网络原因)。\n请**不要**放弃！请尝试以下步骤：\n1. **优先**：尝试使用 \`mcp_brave_search\` 或 \`mcp_exa_search\` 搜索该主题，找到**另一个不同的 URL**，然后再次调用 \`mcp_firecrawl_scrape\` 抓取那个新 URL。\n2. 如果依然失败，再直接使用 Exa 或 Brave 的搜索结果摘要回答。\n请务必获取到有效信息后再回答用户，直到成功为止。`
+                          })
+                      }
+                  }
+
+                  const failedTools = toolResults.filter(m => {
+                    try {
+                      const c = JSON.parse(m.content as string)
+                      return c.error
+                    } catch { return false }
+                  })
+
+                  if (failedTools.length > 0) {
+                    const warningContent = "\n\n> ⚠️ 部分工具调用失败，正在尝试自动重试或寻找替代方案...\n\n"
+                    const warningPayload = {
+                      id: `tool-warning-${Date.now()}`,
+                      object: "chat.completion.chunk",
+                      created: Date.now(),
+                      model: effectiveModel,
+                      choices: [{ index: 0, delta: { content: warningContent }, finish_reason: null }]
+                    }
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(warningPayload)}\n\n`))
+                  }
+
+                  // 4. 发起最终 AI 请求
+                  console.log('[MCP] Tool results injected, starting final stream...')
+                  requestBody = {
+                    model: (requestBody as any).model || effectiveModel || 'qwen-plus',
+                    messages: fullMessages,
+                    stream: true,
+                    temperature: 0.7,
+                  }
+
+                  // 清理 requestBody.messages 中的额外字段 (针对 Ollama 等严格后端)
+                  if (requestBody.messages) {
+                      requestBody.messages = requestBody.messages.map((m: any) => {
+                          const { role, content, name, tool_calls, tool_call_id } = m
+                          const cleanMsg: any = { role, content }
+                          if (name) cleanMsg.name = name
+                          if (tool_calls) cleanMsg.tool_calls = tool_calls
+                          if (tool_call_id) cleanMsg.tool_call_id = tool_call_id
+                          return cleanMsg
+                      })
+                  }
+
+                  const finalResponse = await fetch(targetUrl, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify(requestBody),
+                  })
+
+                  if (!finalResponse.ok) {
+                    const errorMsg = `Final AI response failed: ${finalResponse.status}`
+                    console.error(errorMsg)
+                    controller.enqueue(encoder.encode(`data: {"error": "${errorMsg}"}\n\n`))
+                    controller.close()
+                    return
+                  }
+
+                  // 5. 转发 AI 的流式响应
+                  if (finalResponse.body) {
+                    const reader = finalResponse.body.getReader()
+                    while (true) {
+                      const { done, value } = await reader.read()
+                      if (done) break
+                      controller.enqueue(value)
+                    }
+                  }
+
+                  // 6. 扣除配额
+                  if (useSystemKey) {
+                    try { await incrementAiUsage(user.id as number) } catch (e) { }
+                  }
+
+                  controller.close()
+                } catch (err: any) {
+                  clearInterval(keepAliveInterval)
+                  console.error('[MCP Stream Error]', err)
+                  controller.enqueue(encoder.encode(`data: {"error": "Stream error: ${err.message}"}\n\n`))
+                  controller.close()
+                }
+              }
+            })
+
+            return new Response(stream, {
+              headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+              }
+            })
+
+          } else if (choice?.message?.content) {
+            // AI 没有调用工具，直接返回内容（转为 SSE 流）
+            console.log('[MCP] No tool calls needed, returning preflight content as SSE')
+            const content = choice.message.content
+            const encoder = new TextEncoder()
+            const payload = {
+              id: preflightData.id || `${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: Date.now(),
+              model: effectiveModel,
+              choices: [{ index: 0, delta: { content }, finish_reason: "stop" }],
+            }
+            const sseBody = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`
+
+            // 扣除系统 Key 配额
+            if (useSystemKey) {
+              try { await incrementAiUsage(user.id as number) } catch (e) { console.error("Failed to increment AI usage:", e) }
+            }
+
+            return new Response(sseBody, {
+              headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
+            })
+          }
+          // 如果既无 tool_calls 也无 content（罕见情况），继续走正常流式路径
+        } else {
+          console.warn('[MCP] Preflight call failed (status:', preflightRes.status, '), falling back to streaming without tools')
+        }
+      } catch (preflightError) {
+        console.error('[MCP] Preflight error, falling back to normal streaming:', preflightError)
+      }
+    }
+    // === MCP Tool Call Resolution 结束 ===
+
+    console.log('[MCP] Making final streaming request to AI...')
+    
+    // 同样清理 final requestBody 的 messages
+    if (requestBody.messages) {
+        requestBody.messages = requestBody.messages.map((m: any) => {
+            const { role, content, name, tool_calls, tool_call_id } = m
+            const cleanMsg: any = { role, content }
+            if (name) cleanMsg.name = name
+            if (tool_calls) cleanMsg.tool_calls = tool_calls
+            if (tool_call_id) cleanMsg.tool_call_id = tool_call_id
+            return cleanMsg
+        })
+    }
+
     const response = await fetch(targetUrl, {
       method: "POST",
       headers,
@@ -376,10 +738,10 @@ export async function POST(req: Request) {
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      return Response.json(
-        { error: `API Error: ${response.status} - ${error}` },
-        { status: response.status }
+      console.error(`[Chat API] Error from AI provider: ${response.status}`, await response.text().catch(() => ''))
+      return new Response(
+        JSON.stringify({ error: `API Error: ${response.status}` }),
+        { status: response.status, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
@@ -418,18 +780,18 @@ export async function POST(req: Request) {
                         // 百炼应用 SSE 默认通常返回增量，但也取决于具体配置
                         // 如果 acc 逻辑导致无法输出，说明 content 是增量而非全量
                         // 这里尝试自适应：如果 content 长度小于 acc 长度，可能是增量（或重新开始），或者 content 就是 delta
-                        
+
                         // 观察发现百炼应用 SSE 返回的 text 通常是全量（accumulated）
                         // 但为了保险，我们可以检查 content 是否包含 acc 前缀
                         let next = ""
                         if (content.startsWith(acc)) {
-                           next = content.slice(acc.length)
-                           acc = content
+                          next = content.slice(acc.length)
+                          acc = content
                         } else {
-                           // 如果不以 acc 开头，可能 content 本身就是 delta，或者发生了跳跃
-                           // 假设是 delta
-                           next = content
-                           acc += content 
+                          // 如果不以 acc 开头，可能 content 本身就是 delta，或者发生了跳跃
+                          // 假设是 delta
+                          next = content
+                          acc += content
                         }
 
                         if (next) {
@@ -481,7 +843,7 @@ export async function POST(req: Request) {
           let accReasoning = ""
           let reasoningClosed = false
           let buffer = "" // 添加缓冲区
-          
+
           if (!reader) {
             controller.close()
             return
@@ -504,29 +866,29 @@ export async function POST(req: Request) {
 
                   try {
                     const json = JSON.parse(data)
-                    
+
                     // Handle Search Citations
                     if (json.output?.choices?.[0]?.finish_reason === "stop" && json.output?.choices?.[0]?.message?.content) {
-                       const searchInfo = json.output?.search_info
-                       if (searchInfo && Array.isArray(searchInfo.search_results) && searchInfo.search_results.length > 0) {
-                          const sources = searchInfo.search_results.map((item: any, idx: number) => ({
-                             number: idx + 1,
-                             title: item.title,
-                             url: item.url,
-                             description: item.snippet || "",
-                             quote: ""
-                          }))
-                          
-                          const sourcesTag = `\n\n<SOURCES> ${JSON.stringify(sources)} </SOURCES>`
-                          const openaiFormat = {
-                            id: json.request_id,
-                            object: "chat.completion.chunk",
-                            created: Date.now(),
-                            model: model,
-                            choices: [{ index: 0, delta: { content: sourcesTag }, finish_reason: null }]
-                          }
-                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
-                       }
+                      const searchInfo = json.output?.search_info
+                      if (searchInfo && Array.isArray(searchInfo.search_results) && searchInfo.search_results.length > 0) {
+                        const sources = searchInfo.search_results.map((item: any, idx: number) => ({
+                          number: idx + 1,
+                          title: item.title,
+                          url: item.url,
+                          description: item.snippet || "",
+                          quote: ""
+                        }))
+
+                        const sourcesTag = `\n\n<SOURCES> ${JSON.stringify(sources)} </SOURCES>`
+                        const openaiFormat = {
+                          id: json.request_id,
+                          object: "chat.completion.chunk",
+                          created: Date.now(),
+                          model: model,
+                          choices: [{ index: 0, delta: { content: sourcesTag }, finish_reason: null }]
+                        }
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
+                      }
                     }
 
                     // Handle Reasoning Content (DeepSeek-R1 style via DashScope)
@@ -535,26 +897,26 @@ export async function POST(req: Request) {
                     if (typeof rawReasoning === "string" && rawReasoning.length > 0) {
                       let nextReasoning = ""
                       if (rawReasoning.startsWith(accReasoning)) {
-                         nextReasoning = rawReasoning.slice(accReasoning.length)
-                         accReasoning = rawReasoning
+                        nextReasoning = rawReasoning.slice(accReasoning.length)
+                        accReasoning = rawReasoning
                       } else {
-                         nextReasoning = rawReasoning
-                         accReasoning += rawReasoning
+                        nextReasoning = rawReasoning
+                        accReasoning += rawReasoning
                       }
 
                       if (nextReasoning) {
                         // If this is the start of reasoning, prepend <think>
                         const prefix = accReasoning.length === nextReasoning.length ? "<think>" : ""
-                        
+
                         const openaiFormat = {
                           id: json.request_id,
                           object: "chat.completion.chunk",
                           created: Date.now(),
                           model: model,
-                          choices: [{ 
-                            index: 0, 
-                            delta: { content: prefix + nextReasoning }, 
-                            finish_reason: null 
+                          choices: [{
+                            index: 0,
+                            delta: { content: prefix + nextReasoning },
+                            finish_reason: null
                           }]
                         }
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
@@ -566,19 +928,19 @@ export async function POST(req: Request) {
                     if (typeof raw === "string") {
                       let next = ""
                       if (raw.startsWith(acc)) {
-                         next = raw.slice(acc.length)
-                         acc = raw
+                        next = raw.slice(acc.length)
+                        acc = raw
                       } else {
-                         next = raw
-                         acc += raw
+                        next = raw
+                        acc += raw
                       }
 
                       if (next) {
                         // If we were reasoning and haven't closed it, close it now
                         let prefix = ""
                         if (accReasoning.length > 0 && !reasoningClosed) {
-                           prefix = "</think>\n\n"
-                           reasoningClosed = true
+                          prefix = "</think>\n\n"
+                          reasoningClosed = true
                         }
 
                         const openaiFormat = {
@@ -599,18 +961,18 @@ export async function POST(req: Request) {
                         )
                       }
                     }
-                    
+
                     // If finished and reasoning still open, close it
                     if (json.output?.finish_reason === "stop" && accReasoning.length > 0 && !reasoningClosed) {
-                       const openaiFormat = {
-                          id: json.request_id,
-                          object: "chat.completion.chunk",
-                          created: Date.now(),
-                          model: model,
-                          choices: [{ index: 0, delta: { content: "</think>\n\n" }, finish_reason: null }]
-                       }
-                       controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
-                       reasoningClosed = true
+                      const openaiFormat = {
+                        id: json.request_id,
+                        object: "chat.completion.chunk",
+                        created: Date.now(),
+                        model: model,
+                        choices: [{ index: 0, delta: { content: "</think>\n\n" }, finish_reason: null }]
+                      }
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
+                      reasoningClosed = true
                     }
 
                   } catch (e) {
@@ -621,14 +983,14 @@ export async function POST(req: Request) {
             }
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
-            
+
             // 成功完成后，扣除配额（如果使用了系统 Key）
             if (useSystemKey) {
-                try {
-                    await incrementAiUsage(user.id as number)
-                } catch (e) {
-                    console.error("Failed to increment AI usage:", e)
-                }
+              try {
+                await incrementAiUsage(user.id as number)
+              } catch (e) {
+                console.error("Failed to increment AI usage:", e)
+              }
             }
           } catch (error) {
             controller.error(error)
@@ -644,23 +1006,30 @@ export async function POST(req: Request) {
         },
       })
     } else {
-      // OpenAI格式直接返回
-      // 成功响应后，扣除配额（如果使用了系统 Key）
-      // 注意：流式响应可能无法精确判断是否完整，但只要开始传输就算一次调用
-      if (useSystemKey) {
-          try {
-              await incrementAiUsage(user.id as number)
-          } catch (e) {
-              console.error("Failed to increment AI usage:", e)
-          }
+      // OpenAI格式安全直通转发 (修复 Controller closed 问题)
+      let directStream = response.body
+
+      // 如果使用了系统 Key，记录配额消耗
+      if (useSystemKey && user) {
+        try {
+          // 不等待，后台记录
+          incrementAiUsage(user.id as number).catch(e => console.error("Failed to increment AI usage:", e))
+        } catch (e) { }
       }
 
-      return new Response(response.body, {
+      if (!directStream) {
+        return new Response('No response body from API', { status: 500 })
+      }
+
+      return new Response(directStream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
-          Connection: "keep-alive",
+          "Connection": "keep-alive",
+          // 为了流稳定性，最好从原始返回里抄一些头
+          ...(response.headers.get("Transfer-Encoding") ? { "Transfer-Encoding": response.headers.get("Transfer-Encoding")! } : {})
         },
+        status: response.status
       })
     }
   } catch (error: unknown) {

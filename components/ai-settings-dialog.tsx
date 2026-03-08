@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Box, CheckCircle2, Globe, Mic } from "lucide-react";
+import { Box, CheckCircle2, Globe, Mic, Laptop } from "lucide-react";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { Bot } from "@/components/animate-ui/icons/bot";
 import { Sparkles } from "@/components/animate-ui/icons/sparkles";
@@ -82,7 +82,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
     externalVoiceSettings || { enabled: true, voice: 'Mochi' }
   )
 
-  const [apiType, setApiType] = useState<"dashscope" | "openai" | "system">("system")
+  const [apiType, setApiType] = useState<"dashscope" | "openai" | "system" | "ollama">("system")
   const [isSaving, setIsSaving] = useState(false)
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null)
 
@@ -122,6 +122,8 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
               setApiType("system")
           } else if (effective.apiUrl?.includes("dashscope") || effective.model?.startsWith("qwen")) {
             setApiType("dashscope")
+          } else if (effective.apiUrl?.includes("localhost") || effective.apiKey === "ollama") {
+            setApiType("ollama")
           } else {
             setApiType("openai")
           }
@@ -133,6 +135,8 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
             setSettings(parsed)
             if (parsed.apiUrl?.includes("dashscope") || parsed.model?.startsWith("qwen")) {
               setApiType("dashscope")
+            } else if (parsed.apiUrl?.includes("localhost") || parsed.apiKey === "ollama") {
+              setApiType("ollama")
             } else {
               setApiType("openai")
             }
@@ -236,7 +240,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                     {/* API Type Selector */}
                     <div className="space-y-4">
                       <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">服务提供商</Label>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 gap-3">
                         <ProviderCard 
                           active={apiType === "system"} 
                           onClick={() => {
@@ -278,6 +282,21 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                           title="OpenAI"
                           desc="自定义 Key，GPT系列"
                         />
+                        <ProviderCard 
+                          active={apiType === "ollama"} 
+                          onClick={() => {
+                            setApiType("ollama")
+                            setSettings({
+                              ...settings,
+                              apiKey: "ollama",
+                              apiUrl: "http://localhost:11434/v1",
+                              model: "llama3",
+                            })
+                          }}
+                          icon={Laptop}
+                          title="Ollama (本地)"
+                          desc="本地运行 LLM，隐私安全"
+                        />
                       </div>
                     </div>
 
@@ -306,7 +325,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                                 <Input 
                                     value={settings.apiKey} 
                                     onChange={(e) => setSettings({...settings, apiKey: e.target.value})} 
-                                    placeholder="sk-..." 
+                                    placeholder={apiType === "ollama" ? "任意字符 (Ollama 不需要 Key)" : "sk-..."}
                                     type="password"
                                 />
                             </div>
@@ -315,7 +334,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                                 <Input 
                                     value={settings.apiUrl} 
                                     onChange={(e) => setSettings({...settings, apiUrl: e.target.value})} 
-                                    placeholder="https://..." 
+                                    placeholder={apiType === "ollama" ? "http://localhost:11434/v1" : "https://..."} 
                                 />
                             </div>
                             <div className="space-y-2">
@@ -323,8 +342,17 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                                 <Input 
                                     value={settings.model} 
                                     onChange={(e) => setSettings({...settings, model: e.target.value})} 
-                                    placeholder={apiType === "dashscope" ? "qwen-plus" : "gpt-3.5-turbo"} 
+                                    placeholder={
+                                        apiType === "dashscope" ? "qwen-plus" : 
+                                        apiType === "ollama" ? "llama3, mistral, qwen2.5" : 
+                                        "gpt-3.5-turbo"
+                                    } 
                                 />
+                                {apiType === "ollama" && (
+                                    <p className="text-xs text-zinc-500">
+                                        请确保本地 Ollama 已启动 (<code>ollama serve</code>) 且已下载该模型。
+                                    </p>
+                                )}
                             </div>
                         </>
                     )}

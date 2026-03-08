@@ -62,6 +62,7 @@ interface RealtimeVoiceOrbProps {
   autoConnect?: boolean;
   deviceData?: DeviceData | null;
   autoExecuteCommands?: boolean;
+  initialGreeting?: string;
 }
 
 // Fetch user quota
@@ -377,6 +378,7 @@ export function RealtimeVoiceOrb({
   autoConnect = false,
   deviceData,
   autoExecuteCommands = true,
+  initialGreeting,
 }: RealtimeVoiceOrbProps) {
   const [status, setStatus] = useState<VoiceStatus>('idle');
   const [transcript, setTranscript] = useState<string>("");
@@ -994,6 +996,23 @@ export function RealtimeVoiceOrb({
         console.log('[RealtimeVoiceOrb] Sending session.update with voice:', voice);
         ws.send(JSON.stringify(sessionUpdateMsg));
         pendingCommandsRef.current = "";
+
+        // Trigger initial greeting if provided
+        if (initialGreeting) {
+          console.log('[RealtimeVoiceOrb] Triggering initial greeting:', initialGreeting);
+          // Wait a bit for session update to process
+          setTimeout(() => {
+            const responseCreateMsg = {
+              event_id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`,
+              type: "response.create",
+              response: {
+                modalities: ["text", "audio"],
+                instructions: `请直接朗读以下内容：${initialGreeting}`
+              }
+            };
+            ws.send(JSON.stringify(responseCreateMsg));
+          }, 500);
+        }
       };
 
       ws.onmessage = async (event) => {

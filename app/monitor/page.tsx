@@ -888,7 +888,8 @@ export default function MonitorPage() {
             <RealtimeVoiceOrb 
               size={64}
               autoConnect={true}
-              instructions={`请用温暖、亲切的语气说："${greetingText}"。说完这句话后请保持安静，不要再多说话。`}
+              instructions="你是莓小智，一个专业、友好的AI语音助手。用中文简洁回答问题。"
+              initialGreeting={greetingText}
               voice="Cherry"
               onStatusChange={(status) => {
                  if (status === 'error') setShowGreeting(false)
