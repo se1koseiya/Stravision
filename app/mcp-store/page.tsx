@@ -8,7 +8,7 @@ import {
   Database, Globe, FileText, Code, MessageSquare, Calendar, Github, Slack, 
   Info, Plus, Activity, Sprout, ShieldCheck, ArrowRight, Settings, Grid, Layout
 } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,7 @@ import { CustomMCPDialog } from "@/components/mcp/custom-mcp-dialog"
 import { CapsuleNavigation } from "@/components/capsule-navigation"
 import { TopNavLinks } from "@/components/top-nav-links"
 import { MCP_SERVERS, type MCPServer } from "@/lib/data/mcp-servers"
+import { CustomCursor } from "@/components/custom-cursor"
 
 // --- Animations ---
 const fadeInUp = {
@@ -101,7 +102,7 @@ export default function MCPStorePage() {
       const matchesCategory = selectedCategory === "all" || server.category === selectedCategory
       return matchesSearch && matchesCategory
     })
-    .sort((a, b) => b.popularity - a.popularity)
+    // 不需要再排序，因为我们已经在 MCP_SERVERS 中把 Stravision 放到了第一位，且移除了 sort 调用
 
   const handleInstall = async (server: MCPServer, config?: Record<string, string>) => {
     setInstalling(server.id)
@@ -174,8 +175,15 @@ export default function MCPStorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
+    <div className="min-h-screen bg-[#050505] text-white font-jinbuti selection:bg-emerald-500/30 selection:text-emerald-50 cursor-none">
+      <CustomCursor />
       
+      {/* Background Elements - Matching Main Site */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+      </div>
+
       {/* Navigation */}
       <motion.nav 
         initial={false}
@@ -185,23 +193,21 @@ export default function MCPStorePage() {
           left: "50%",
           x: "-50%",
           padding: "8px 24px",
-          borderRadius: "9999px",
-          backgroundColor: "rgba(10, 10, 10, 0.8)",
+          backgroundColor: "rgba(10, 10, 10, 0.9)",
           backdropFilter: "blur(16px)",
-          border: "1px solid rgba(255, 255, 255, 0.1)"
+          border: "1px solid rgba(16, 185, 129, 0.3)"
         } : {
           width: "100%",
           top: 0,
           left: 0,
           x: 0,
           padding: "20px 48px",
-          borderRadius: "0px",
-          backgroundColor: "rgba(255, 255, 255, 0)", // transparent initially
+          backgroundColor: "rgba(5, 5, 5, 0)", // transparent initially
           backdropFilter: "blur(0px)",
           border: "1px solid rgba(255, 255, 255, 0)"
         }}
         transition={{ type: "spring", stiffness: 200, damping: 30 }}
-        className="fixed flex items-center justify-between z-50 shadow-2xl shadow-black/20"
+        className="fixed flex items-center justify-between z-50 shadow-2xl shadow-emerald-900/10"
         style={{ maxWidth: isScrolled ? '90vw' : '100%' }}
       >
         <div className="flex items-center gap-2">
@@ -217,11 +223,11 @@ export default function MCPStorePage() {
              <Button 
                variant="ghost" 
                size="sm" 
-               className="text-white/60 hover:text-white hover:bg-white/10 h-8 px-2 gap-2"
+               className="text-white/60 hover:text-emerald-400 hover:bg-emerald-500/10 h-8 px-2 gap-2 font-jinbuti rounded-none border border-transparent hover:border-emerald-500/30"
                onClick={() => router.push('/ai-assistant')}
              >
                <ArrowLeft className="size-4" />
-               <span className="hidden sm:inline-block font-medium">AI Assistant</span>
+               <span className="hidden sm:inline-block">AI Assistant</span>
              </Button>
            </motion.div>
 
@@ -239,7 +245,7 @@ export default function MCPStorePage() {
                 style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
                 transition={{ duration: 0.3 }}
               >
-                <span className="text-xs font-bold tracking-[0.2em] uppercase opacity-40">Stravision OS</span>
+                <span className="text-xs font-bold tracking-[0.2em] uppercase opacity-40 font-jinbuti">Stravision OS</span>
               </motion.div>
            </div>
         </div>
@@ -272,7 +278,7 @@ export default function MCPStorePage() {
            <Button
              variant="ghost"
              size="icon"
-             className="text-zinc-400 hover:text-white hover:bg-white/10 rounded-full size-9"
+             className="text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-none border border-transparent hover:border-emerald-500/30 size-9"
              onClick={() => router.push('/my-mcp')}
              title="Settings"
            >
@@ -289,15 +295,16 @@ export default function MCPStorePage() {
              transition={{ duration: 0.3 }}
              className="flex items-center gap-2 mr-2"
            >
-              <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10 shrink-0">
-                 <div className="size-6 rounded-full bg-white text-black flex items-center justify-center text-[10px] font-bold">EN</div>
-                 <div className="size-6 rounded-full flex items-center justify-center text-white/40"><Globe className="size-3" /></div>
+              <div className="flex items-center gap-1 bg-white/5 p-1 border border-white/10 shrink-0">
+                 <div className="size-6 bg-white text-black flex items-center justify-center text-[10px] font-bold">EN</div>
+                 <div className="size-6 flex items-center justify-center text-white/40"><Globe className="size-3" /></div>
               </div>
            </motion.div>
 
            <Button 
-             className="rounded-full px-4 h-9 bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"
+             className="rounded-none px-4 h-9 bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 font-jinbuti tracking-wide border border-emerald-500/50 clip-path-slant"
              onClick={() => setCustomDialogOpen(true)}
+             style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
            >
              <Plus className="size-3.5 mr-1.5" />
              <span className="font-bold text-xs">添加自定义</span>
@@ -306,7 +313,7 @@ export default function MCPStorePage() {
       </motion.nav>
 
       {/* Hero Header */}
-      <header className="pt-32 pb-16 px-8 md:px-12 bg-black border-b border-white/10 relative overflow-hidden">
+      <header className="pt-32 pb-16 px-8 md:px-12 relative overflow-hidden">
          <div className="max-w-7xl mx-auto relative z-10 flex flex-col items-center text-center">
             <motion.div 
                initial="hidden" 
@@ -316,38 +323,61 @@ export default function MCPStorePage() {
             >
                <motion.div variants={fadeInUp} className="mb-6">
                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <span className="h-px w-8 bg-white/20"></span>
-                    <span className="text-xs font-medium tracking-[0.2em] text-white/60 uppercase">MCP 广场</span>
-                    <span className="h-px w-8 bg-white/20"></span>
+                    <span className="h-px w-8 bg-emerald-500/50"></span>
+                    <span className="text-xs font-medium tracking-[0.2em] text-emerald-400 uppercase font-mono">MCP MARKETPLACE</span>
+                    <span className="h-px w-8 bg-emerald-500/50"></span>
                  </div>
-                 <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
-                    探索海量可用的 MCP Servers
-                 </h1>
-                 <p className="text-lg text-white/60 mb-10">
-                    当前已收录 <span className="text-white font-bold">{MCP_SERVERS.length}</span> 个，持续更新中...
+                 <div className="relative inline-block">
+                    <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-white mb-6 font-jinbuti mix-blend-difference">
+                        探索 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">莓小智</span> 的<br/>超级工具箱
+                    </h1>
+                     {/* Meixiaozhi Character */}
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.5, type: "spring" }}
+                        className="absolute -right-32 -top-24 w-48 h-48 hidden md:block pointer-events-none"
+                    >
+                        <Image 
+                            src="/ip/草莓头IP-跳跃姿势.png" 
+                            alt="Meixiaozhi" 
+                            width={192} 
+                            height={192} 
+                            className="object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                        />
+                    </motion.div>
+                 </div>
+                 <p className="text-lg text-white/40 mb-10 font-light max-w-2xl mx-auto">
+                    我是您的AI助手莓小智，这是我的百宝箱。当前已收录 <span className="text-emerald-400 font-bold">{MCP_SERVERS.length}</span> 个组件，让我们一起构建智能生态！
                  </p>
                </motion.div>
 
                <motion.div variants={fadeInUp} className="relative max-w-2xl mx-auto group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative flex items-center bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm overflow-hidden focus-within:ring-1 focus-within:ring-white/20 focus-within:bg-white/10 transition-all">
-                     <Search className="absolute left-4 size-5 text-white/40" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative flex items-center bg-white/5 border border-white/10 backdrop-blur-sm overflow-hidden focus-within:ring-1 focus-within:ring-emerald-500/50 focus-within:bg-white/10 transition-all">
+                     <Search className="absolute left-4 size-5 text-emerald-500/60" />
                      <Input 
-                       placeholder="输入关键词或者使用深度搜索输入需求，获取你想要的MCP Servers" 
+                       placeholder="输入关键词，探索智能组件..." 
                        value={searchQuery}
                        onChange={(e) => setSearchQuery(e.target.value)}
-                       className="pl-12 h-14 bg-transparent border-0 text-white placeholder:text-white/30 focus-visible:ring-0 text-base"
+                       className="pl-12 h-14 bg-transparent border-0 text-white placeholder:text-white/20 focus-visible:ring-0 text-base font-jinbuti tracking-wide rounded-none"
                      />
                      <Button 
-                       className="mr-2 h-10 px-6 bg-white/10 hover:bg-white/20 text-white border-0"
+                       className="mr-2 h-10 px-6 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 font-jinbuti rounded-none"
                      >
                        搜索
                      </Button>
                   </div>
+                  {/* Decorative corners for search bar */}
+                  <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-emerald-500/50" />
+                  <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-emerald-500/50" />
+                  <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-emerald-500/50" />
+                  <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-emerald-500/50" />
+                  
                   <div className="absolute left-0 -bottom-12 flex gap-3">
-                     <Button size="sm" variant="outline" className="h-8 bg-transparent border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-xs">
+                     <Button size="sm" variant="outline" className="h-8 bg-transparent border-emerald-500/20 text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-500/5 text-xs font-mono rounded-none">
                         <Sparkles className="size-3 mr-1.5" />
-                        深度搜索
+                        AI 深度搜索
                      </Button>
                   </div>
                </motion.div>
@@ -355,24 +385,29 @@ export default function MCPStorePage() {
          </div>
          
          {/* Background Elements */}
-         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
-         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
-         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
       </header>
 
       {/* Content Area */}
-      <main className="min-h-screen bg-black text-white relative">
+      <main className="relative z-10 pb-24">
          <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-12">
             <div className="flex flex-col lg:flex-row gap-10">
             
             {/* Sidebar Navigation / Filters */}
             <aside className="w-full lg:w-64 shrink-0 space-y-6">
-               <div className="sticky top-24 space-y-6">
+               <div className="sticky top-32 space-y-6">
                   {/* Stats Card */}
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                  <div className="bg-white/5 border border-white/10 p-4 mb-6 backdrop-blur-sm relative">
+                     {/* Corner Accents */}
+                     <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-emerald-500/30" />
+                     <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-emerald-500/30" />
+                     <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-emerald-500/30" />
+                     <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-emerald-500/30" />
+
                      <div className="flex justify-between items-center text-sm text-white/60 mb-1">
-                        <span className="flex items-center gap-2"><Grid className="size-4" /> 全部</span>
-                        <span>{MCP_SERVERS.length}</span>
+                        <span className="flex items-center gap-2 font-jinbuti"><Grid className="size-4 text-emerald-500" /> 全部组件</span>
+                        <span className="font-mono text-emerald-400">{MCP_SERVERS.length}</span>
                      </div>
                   </div>
 
@@ -380,43 +415,43 @@ export default function MCPStorePage() {
                      <button 
                         onClick={() => setSelectedCategory("all")}
                         className={cn(
-                           "w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between group",
+                           "w-full text-left px-4 py-3 text-sm font-medium transition-all duration-200 flex items-center justify-between group border-l-2",
                            selectedCategory === "all" 
-                             ? "bg-white/10 text-white" 
-                             : "text-white/60 hover:bg-white/5 hover:text-white"
+                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500" 
+                             : "text-white/40 border-transparent hover:bg-white/5 hover:text-white hover:border-white/20"
                         )}
                      >
-                        <span className="flex items-center gap-3">
+                        <span className="flex items-center gap-3 font-jinbuti">
                            <Grid className="size-4" />
                            全部
                         </span>
-                        <span className="text-xs opacity-50">{MCP_SERVERS.length}</span>
+                        <span className="text-xs opacity-50 font-mono">{MCP_SERVERS.length}</span>
                      </button>
-                     <button className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-white/60 hover:bg-white/5 hover:text-white transition-all duration-200 flex items-center justify-between">
-                        <span className="flex items-center gap-3">
+                     <button className="w-full text-left px-4 py-3 text-sm font-medium text-white/40 border-l-2 border-transparent hover:bg-white/5 hover:text-white hover:border-white/20 transition-all duration-200 flex items-center justify-between">
+                        <span className="flex items-center gap-3 font-jinbuti">
                            <Sparkles className="size-4" />
                            平台精选
                         </span>
-                        <span className="text-xs opacity-50">24</span>
+                        <span className="text-xs opacity-50 font-mono">24</span>
                      </button>
-                     <button className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-white/60 hover:bg-white/5 hover:text-white transition-all duration-200 flex items-center justify-between">
-                        <span className="flex items-center gap-3">
+                     <button className="w-full text-left px-4 py-3 text-sm font-medium text-white/40 border-l-2 border-transparent hover:bg-white/5 hover:text-white hover:border-white/20 transition-all duration-200 flex items-center justify-between">
+                        <span className="flex items-center gap-3 font-jinbuti">
                            <Activity className="size-4" />
                            站内最热
                         </span>
-                        <span className="text-xs opacity-50">237</span>
+                        <span className="text-xs opacity-50 font-mono">237</span>
                      </button>
-                     <button className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-white/60 hover:bg-white/5 hover:text-white transition-all duration-200 flex items-center justify-between">
-                        <span className="flex items-center gap-3">
+                     <button className="w-full text-left px-4 py-3 text-sm font-medium text-white/40 border-l-2 border-transparent hover:bg-white/5 hover:text-white hover:border-white/20 transition-all duration-200 flex items-center justify-between">
+                        <span className="flex items-center gap-3 font-jinbuti">
                            <Calendar className="size-4" />
                            最近更新
                         </span>
-                        <span className="text-xs opacity-50">5134</span>
+                        <span className="text-xs opacity-50 font-mono">5134</span>
                      </button>
                   </div>
 
                   <div className="pt-6 border-t border-white/10">
-                     <p className="px-4 text-xs font-bold text-white/40 uppercase tracking-wider mb-3">功能分类</p>
+                     <p className="px-4 text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest mb-3 font-mono">CATEGORIES</p>
                      <div className="space-y-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
                         {CATEGORIES.filter(c => c.id !== 'all').map((cat) => {
                            const Icon = cat.icon
@@ -425,17 +460,17 @@ export default function MCPStorePage() {
                                 key={cat.id}
                                 onClick={() => setSelectedCategory(cat.id)}
                                 className={cn(
-                                   "w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors duration-200 flex items-center justify-between",
+                                   "w-full text-left px-4 py-2.5 text-sm transition-colors duration-200 flex items-center justify-between font-jinbuti border-l-2",
                                    selectedCategory === cat.id 
-                                     ? "text-white bg-white/10" 
-                                     : "text-white/60 hover:text-white hover:bg-white/5"
+                                     ? "text-emerald-400 bg-emerald-500/10 border-emerald-500" 
+                                     : "text-white/40 border-transparent hover:text-white hover:bg-white/5 hover:border-white/20"
                                 )}
                              >
                                 <span className="flex items-center gap-3">
                                    <Icon className="size-4 opacity-70" />
                                    {cat.name}
                                 </span>
-                                <span className="text-xs opacity-30">{MCP_SERVERS.filter(s => s.category === cat.id).length}</span>
+                                <span className="text-xs opacity-30 font-mono">{MCP_SERVERS.filter(s => s.category === cat.id).length}</span>
                              </button>
                            )
                         })}
@@ -454,53 +489,72 @@ export default function MCPStorePage() {
                   className="min-h-[60vh]"
                >
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                     {filteredServers.map((server) => {
+                     {filteredServers.map((server, index) => {
                        const isInstalled = installedServers.has(server.id)
                        const isInstalling = installing === server.id
+                       // Special styling for Stravision Spectrum MCP (first item)
+                       const isStravision = server.id === 'spectrum-stravision';
                        
                        return (
-                          <div key={server.id} className="group relative bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-[240px]">
+                          <div 
+                            key={server.id} 
+                            className={cn(
+                              "group relative bg-[#0A0A0A]/80 backdrop-blur-sm border border-white/5 overflow-hidden hover:border-emerald-500/30 transition-all duration-500 flex flex-col h-[240px]",
+                              isStravision ? "ring-1 ring-emerald-500/50 bg-emerald-950/10" : "hover:bg-white/5"
+                            )}
+                          >
+                             {/* Corner Accents */}
+                             <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-white/10 group-hover:border-emerald-500/50 transition-colors" />
+                             <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-white/10 group-hover:border-emerald-500/50 transition-colors" />
+                             <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-white/10 group-hover:border-emerald-500/50 transition-colors" />
+                             <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-white/10 group-hover:border-emerald-500/50 transition-colors" />
+
+                             {/* Stravision Glow Effect */}
+                             {isStravision && (
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent opacity-50 pointer-events-none" />
+                             )}
+
                              {/* Card Header */}
-                             <div className="p-5 flex items-start justify-between">
+                             <div className="p-5 flex items-start justify-between relative z-10">
                                 <div className="flex items-center gap-4">
-                                   <div className={cn("size-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white/5", server.iconBg)}>
+                                   <div className={cn("size-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden bg-white/5 border border-white/5 shadow-lg shadow-emerald-900/20", server.iconBg)}>
                                      <img src={server.icon} alt={server.name} className="size-full object-cover" onError={(e) => {
                                         e.currentTarget.style.display = 'none'
                                         e.currentTarget.parentElement!.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box text-white"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>`
                                      }} />
                                    </div>
                                    <div>
-                                      <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">{server.displayName}</h3>
-                                      <div className="flex items-center gap-2 text-xs text-white/40 mt-0.5">
+                                      <h3 className={cn("text-lg font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 font-jinbuti", isStravision ? "text-emerald-400" : "")}>{server.displayName}</h3>
+                                      <div className="flex items-center gap-2 text-xs text-white/40 mt-0.5 font-mono">
                                          <span>By {server.provider}</span>
                                          {server.official && (
-                                            <span className="flex items-center gap-1 text-indigo-400 bg-indigo-500/10 px-1.5 py-px rounded border border-indigo-500/20">
-                                               <ShieldCheck className="size-3" /> 平台精选
+                                            <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-1.5 py-px border border-emerald-500/20">
+                                               <ShieldCheck className="size-3" /> OFFICIAL
                                             </span>
                                          )}
                                       </div>
                                    </div>
                                 </div>
-                                <a href="#" className="text-white/20 hover:text-white transition-colors">
+                                <a href="#" className="text-white/20 hover:text-emerald-400 transition-colors">
                                    <Github className="size-5" />
                                 </a>
                              </div>
                              
                              {/* Card Body */}
-                             <div className="px-5 pb-4 flex-1">
-                                <p className="text-sm text-white/60 line-clamp-2 leading-relaxed">
+                             <div className="px-5 pb-4 flex-1 relative z-10">
+                                <p className="text-sm text-white/60 line-clamp-2 leading-relaxed font-light">
                                    {server.description}
                                 </p>
                              </div>
 
                              {/* Card Footer */}
-                             <div className="px-5 pb-5 mt-auto flex items-center justify-between border-t border-white/5 pt-4">
+                             <div className="px-5 pb-5 mt-auto flex items-center justify-between border-t border-white/5 pt-4 relative z-10">
                                 <div className="flex gap-2">
-                                   <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-white/60 border-0 rounded-md text-[10px] h-6 px-2 font-normal">
-                                      A- 优质
+                                   <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-white/40 border-0 text-[10px] h-6 px-2 font-mono font-normal tracking-wide rounded-none">
+                                      A- TIER
                                    </Badge>
-                                   <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-white/60 border-0 rounded-md text-[10px] h-6 px-2 font-normal">
-                                      {server.category === 'web' ? '网页抓取' : server.category === 'database' ? '数据库' : '本地部署'}
+                                   <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-white/40 border-0 text-[10px] h-6 px-2 font-mono font-normal tracking-wide rounded-none">
+                                      {server.category.toUpperCase()}
                                    </Badge>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-white/40 font-mono">
@@ -510,7 +564,7 @@ export default function MCPStorePage() {
                                       <Button 
                                         size="sm" 
                                         variant="ghost"
-                                        className="h-7 px-3 text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300"
+                                        className="h-7 px-3 text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 font-jinbuti rounded-none border border-emerald-500/20"
                                         onClick={() => { setSelectedServer(server); setDetailDialogOpen(true); }}
                                       >
                                          已安装
@@ -518,7 +572,7 @@ export default function MCPStorePage() {
                                    ) : (
                                       <Button 
                                         size="sm" 
-                                        className="h-7 px-3 text-xs bg-white text-black hover:bg-white/90"
+                                        className="h-7 px-3 text-xs bg-white text-black hover:bg-emerald-400 hover:text-black font-jinbuti transition-colors rounded-none border border-white hover:border-emerald-400"
                                         onClick={() => handleQuickInstall(server)}
                                         disabled={isInstalling}
                                       >

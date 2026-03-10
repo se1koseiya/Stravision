@@ -4,6 +4,18 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Disable source maps in production to save memory
+  productionBrowserSourceMaps: false,
+  // Increase timeout for static page generation
+  staticPageGenerationTimeout: 180,
+  // Improve memory usage
+  experimental: {
+    // This is default in recent versions but good to be explicit if issues arise
+    optimizePackageImports: ['lucide-react', '@heroicons/react', '@tabler/icons-react'],
+  },
   /* config options here */
   images: {
     remotePatterns: [

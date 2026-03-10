@@ -20,6 +20,35 @@ export interface MCPServer {
 
 export const MCP_SERVERS: MCPServer[] = [
   {
+    id: "spectrum-stravision",
+    name: "spectrum-stravision",
+    displayName: "Stravision光谱传感器",
+    description: "连接Stravision光谱传感器。获取指定通道的光谱值或全波段数据，用于物质分析和环境监测。",
+    category: "agriculture",
+    icon: "/icon.png",
+    iconBg: "bg-purple-600",
+    provider: "Stravision",
+    requiresApiKey: false,
+    apiKeyUrl: "#",
+    apiKeyInstructions: "无需 API Key，通过 HTTP 端点直接访问",
+    command: "uvx",
+    args: ["mcp-server-spectrum-stravision"],
+    envVars: { 
+        "SPECTRUM_API_URL": "http://8.153.175.190:8000/spectrum-stravision",
+        "MCP_TRANSPORT": "stdio",
+        "MQTT_PORT": "8883",
+        "MQTT_TOPIC": "meimeifarm/Spectrum",
+        "MQTT_BROKER": "be18721454da4600b14a92424bb1181c.s1.eu.hivemq.cloud",
+        "PORT": "8000",
+        "MQTT_USER": "meimeifarm",
+        "HTTP_PORT": "8080",
+        "MQTT_PASSWORD": "Meimei83036666"
+    },
+    features: ["单通道数据", "全波段扫描", "实时采集", "光谱分析", "设备状态"],
+    popularity: 99,
+    official: true
+  },
+  {
     id: "firecrawl",
     name: "firecrawl",
     displayName: "Firecrawl",
@@ -571,25 +600,6 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "FARM_DATA_API_URL": "", "FARM_DATA_API_KEY": "" },
     features: ["数据整合", "实时监控", "历史分析", "报表生成", "预警通知"],
     popularity: 79,
-    official: false
-  },
-  {
-    id: "spectrum-mcp",
-    name: "spectrum-mcp",
-    displayName: "光谱传感器",
-    description: "连接光谱传感器。获取指定通道的光谱值或全波段数据，用于物质分析和环境监测。",
-    category: "agriculture",
-    icon: "https://cdn-icons-png.flaticon.com/512/3616/3616552.png",
-    iconBg: "bg-purple-600",
-    provider: "Spectrum Lab",
-    requiresApiKey: false,
-    apiKeyUrl: "#",
-    apiKeyInstructions: "无需 API Key，通过 HTTP 端点直接访问",
-    command: "npx",
-    args: ["-y", "spectrum-mcp"],
-    envVars: { "SPECTRUM_API_URL": "http://stravision.cheesestrawberry.top:8080/sse" },
-    features: ["单通道数据", "全波段扫描", "实时采集", "光谱分析", "设备状态"],
-    popularity: 85,
     official: false
   }
 ]

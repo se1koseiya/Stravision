@@ -291,21 +291,23 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
     }
   ],
 
-  'spectrum-mcp': [
+  // === 光谱传感器 ===
+  'spectrum-stravision': [
     {
       type: 'function',
       function: {
         name: 'get_channel',
-        description: '获取光谱传感器指定通道的数值。',
+        description: '获取光谱传感器的特定通道值。',
         parameters: {
           type: 'object',
           properties: {
-            channel: {
+            name: {
               type: 'string',
-              description: '通道名称或编号，例如 "ch1", "450nm"'
+              description: '要查询的通道名称，例如 "410", "435"... "940"',
+              enum: ["410", "435", "460", "485", "510", "535", "560", "585", "610", "645", "680", "705", "730", "760", "810", "860", "900", "940"]
             }
           },
-          required: ['channel']
+          required: ['name']
         }
       }
     },
@@ -313,16 +315,17 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
       type: 'function',
       function: {
         name: 'get_all_spectrum',
-        description: '获取光谱传感器所有通道的完整光谱数据。',
+        description: '获取光谱传感器的所有通道数据，返回完整的 18 通道光谱值数组。',
         parameters: {
           type: 'object',
-          properties: {}
+          properties: {},
+          required: []
         }
       }
     }
   ],
 
-  // === 通用工具（简化版，不需要实际执行外部命令的） ===
+  // === AI 增强 ===
   'sequential-thinking': [
     {
       type: 'function',

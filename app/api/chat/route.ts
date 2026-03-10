@@ -155,7 +155,7 @@ export async function POST(req: Request) {
                      
                      if (bestTool) {
                          console.log(`[MCP] Detected search intent, suggesting best available tool: ${bestTool.function.name}`)
-                         forcedToolPrompt = `\n\n**重要提示：**\n用户想要搜索或查找信息。你拥有能够联网搜索或抓取网页的工具（如 \`${bestTool.name}\`）。\n如果你的内部知识库中没有该信息的最新数据，请**主动**调用该工具来获取准确答案，而不要拒绝或凭空猜测。\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。' : (exa ? '优先使用 Exa 进行语义搜索。' : '')}`
+                         forcedToolPrompt = `\n\n**重要提示：**\n用户想要搜索或查找信息。你拥有能够联网搜索或抓取网页的工具（如 \`${bestTool.function.name}\`）。\n如果你的内部知识库中没有该信息的最新数据，请**主动**调用该工具来获取准确答案，而不要拒绝或凭空猜测。\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。' : (exa ? '优先使用 Exa 进行语义搜索。' : '')}`
                      }
                  }
              }
@@ -163,36 +163,12 @@ export async function POST(req: Request) {
     }
     // === MCP Function Calling 集成结束 ===
 
-    // 格式化设备数据（将需要除以10的数据转换为正确的小数）
-    const formattedDeviceData = deviceData ? {
-      ...deviceData,
-      temperature: (deviceData.temperature !== undefined && deviceData.temperature !== null) ? deviceData.temperature.toFixed(1) + '°C' : "暂无数据 (UNKNOWN)",
-      humidity: (deviceData.humidity !== undefined && deviceData.humidity !== null) ? deviceData.humidity.toFixed(1) + '%' : "暂无数据 (UNKNOWN)",
-      earth_temp: (deviceData.earth_temp !== undefined && deviceData.earth_temp !== null) ? deviceData.earth_temp.toFixed(1) + '°C' : "暂无数据 (UNKNOWN)",
-      light: (deviceData.light !== undefined && deviceData.light !== null) ? deviceData.light + ' lux' : "暂无数据 (UNKNOWN)",
-      co2: (deviceData.co2 !== undefined && deviceData.co2 !== null) ? deviceData.co2 + ' ppm' : "暂无数据 (UNKNOWN)",
-      earth_water: (deviceData.earth_water !== undefined && deviceData.earth_water !== null) ? deviceData.earth_water.toFixed(1) + '%' : "暂无数据 (UNKNOWN)",
-      earth_ec: (deviceData.earth_ec !== undefined && deviceData.earth_ec !== null) ? deviceData.earth_ec + ' μS/cm' : "暂无数据 (UNKNOWN)",
-      earth_n: (deviceData.earth_n !== undefined && deviceData.earth_n !== null) ? deviceData.earth_n + ' mg/kg' : "暂无数据 (UNKNOWN)",
-      earth_p: (deviceData.earth_p !== undefined && deviceData.earth_p !== null) ? deviceData.earth_p + ' mg/kg' : "暂无数据 (UNKNOWN)",
-      earth_k: (deviceData.earth_k !== undefined && deviceData.earth_k !== null) ? deviceData.earth_k + ' mg/kg' : "暂无数据 (UNKNOWN)",
-      relay5: deviceData.relay5 === 1 ? '【开启】（水泵）' : (deviceData.relay5 === 0 ? '【关闭】（水泵）' : "状态未知"),
-      relay6: deviceData.relay6 === 1 ? '【开启】（风扇）' : (deviceData.relay6 === 0 ? '【关闭】（风扇）' : "状态未知"),
-      relay7: deviceData.relay7 === 1 ? '【开启】（补光灯）' : (deviceData.relay7 === 0 ? '【关闭】（补光灯）' : "状态未知"),
-      relay8: deviceData.relay8 === 1 ? '【开启】（白灯）' : (deviceData.relay8 === 0 ? '【关闭】（白灯）' : "状态未知"),
-      led1: deviceData.led1 !== undefined ? `${deviceData.led1} (红色)` : "未知",
-      led2: deviceData.led2 !== undefined ? `${deviceData.led2} (绿色)` : "未知",
-      led3: deviceData.led3 !== undefined ? `${deviceData.led3} (蓝色)` : "未知",
-      timestamp: deviceData.timestamp ? new Date(deviceData.timestamp).toLocaleString('zh-CN') : "未知时间"
-    } : null
-
     // 添加当前数据上下文
     let contextInfo = ''
-    if (formattedDeviceData) {
-      contextInfo += `\n\n## 当前设备数据（这是唯一真实的数据源。注意：如果这里显示【开启】，那就是开启，不管你是否发送了关闭指令！严禁编造设备已关闭。）\n\`\`\`json\n${JSON.stringify(formattedDeviceData, null, 2)}\n\`\`\`\n`
-    } else {
-      contextInfo += `\n\n## 当前设备数据\n目前系统未能获取到最新的传感器数据。请告知用户数据连接可能中断，或设备处于离线状态。\n`
-    }
+    
+    // 移除直接的设备数据注入，让 AI 通过 MCP 工具获取
+    // 这样更符合 MCP 的设计理念，也能确保数据的实时性
+    contextInfo += `\n\n## 设备数据获取方式\n当需要获取设备数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n`
 
     // 天气数据（MCP 天气工具已改为 function calling 方式，由 AI 主动调用）
     if (weatherData) {
@@ -305,9 +281,21 @@ export async function POST(req: Request) {
     const axisInstruction =
       "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
 
+    const toolUsageInstruction =
+      "## 工具使用可视化指示\n" +
+      "当你使用任何 MCP 工具时，请在回复中包含 <TOOL_USED> 标签来显示工具使用情况：\n" +
+      "```\n" +
+      "<TOOL_USED toolName=\"工具名称\" description=\"工具描述\" result=\"success|error|loading\" executionTime=\"执行时间(毫秒)\" details=\"详细信息或错误信息\"></TOOL_USED>\n" +
+      "```\n" +
+      "示例：\n" +
+      "- 成功调用：<TOOL_USED toolName=\"get_all_spectrum\" description=\"获取18通道光谱数据\" result=\"success\" executionTime=\"1200\"></TOOL_USED>\n" +
+      "- 调用失败：<TOOL_USED toolName=\"mcp_weather\" description=\"查询天气信息\" result=\"error\" details=\"API密钥无效\"></TOOL_USED>\n" +
+      "- 正在调用：<TOOL_USED toolName=\"mcp_brave_search\" description=\"搜索最新信息\" result=\"loading\"></TOOL_USED>\n" +
+      "这些标签会在前端渲染为可视化的工具使用指示器，让用户清楚地看到你使用了哪些工具。"
+
     // MCP 工具说明 — 引导 AI 主动使用 Function Calling
     const mcpToolsInstruction = mcpToolDefs.length > 0
-      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力，请在合适的时机**主动**调用它们：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**重要规则：**\n- 当用户询问天气、搜索、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据，而不是凭记忆回答。\n- 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n- 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n- 不需要询问用户是否调用工具，直接调用即可。`
+      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力，请在合适的时机**主动**调用它们：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**重要规则：**\n- 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n- 当用户询问天气、搜索、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据，而不是凭记忆回答。\n- 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n- 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n- 不需要询问用户是否调用工具，直接调用即可。\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
       : ""
 
     // 检测是否使用DashScope API
@@ -383,7 +371,7 @@ export async function POST(req: Request) {
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}${mcpToolsInstruction}`,
+          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
         },
         ...messages,
       ]
@@ -397,7 +385,7 @@ export async function POST(req: Request) {
       }
     } else if (isDashScope) {
       // DashScope 原生API格式
-      const systemMessage = `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}${mcpToolsInstruction}`
+      const systemMessage = `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
@@ -440,7 +428,7 @@ export async function POST(req: Request) {
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}${mcpToolsInstruction}`,
+          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
         },
         ...messages,
       ]

@@ -85,6 +85,7 @@ import { PageNavigation } from "@/components/page-navigation"
 import { VoiceChatModal } from "@/components/ai/voice-chat-modal"
 import { CalendarTrigger } from "@/components/ai/calendar-trigger"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
+import ToolUsageIndicator from "@/components/ui/tool-usage-indicator"
 
 
 import { BrowserActivity } from "@/components/ai/browser-activity"
@@ -305,6 +306,9 @@ export default function AIAssistantPage() {
                 tools.push({ name: 'mcp_irrigation_query', displayName: '灌溉系统', description: '智能灌溉控制与查询' })
             } else if (config.name === 'farm-data') {
                 tools.push({ name: 'mcp_farm_data_query', displayName: '农场数据', description: '农场运营数据分析' })
+            } else if (config.name === 'spectrum-stravision') {
+                tools.push({ name: 'get_channel', displayName: '光谱通道', description: '获取指定波长光谱值' })
+                tools.push({ name: 'get_all_spectrum', displayName: '全波段光谱', description: '获取所有18通道数据' })
             }
           }
         })
@@ -1490,12 +1494,13 @@ ${taskContext}
   const renderTextContent = (content: string) => {
     // TaskList extraction moved to renderMessageContent to ensure correct scope
     
-    // Split content by CHART, REASONING, and SOURCES tags
+    // Split content by CHART, REASONING, SOURCES, and TOOL_USED tags
     // Improved regex to handle multiline content correctly using [\s\S]*? non-greedy match
     // Updated to handle streaming REASONING tags (open tag without close tag yet)
     // Updated to handle spaces in tags (e.g. < TASK_LIST >)
     // Added SCHEDULED_TASKS for legacy/scheduled tasks list
-    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>)))/g)
+    // Added TOOL_USED for tool usage indicators
+    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>))/g)
 
     return (
       <>
@@ -1508,6 +1513,42 @@ ${taskContext}
                 </div>
               </div>
             )
+          }
+
+          if (part.match(/^<\s*TOOL_USED/)) {
+            try {
+              // Parse TOOL_USED tag attributes
+              const toolUsedMatch = part.match(/<\s*TOOL_USED\s+([^>]*?)(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)/)
+              if (!toolUsedMatch) return null
+              
+              const attributesStr = toolUsedMatch[1]
+              const attributes: Record<string, string> = {}
+              
+              // Parse attributes like toolName="value" description="value" etc.
+              const attrMatches = attributesStr.matchAll(/(\w+)="([^"]*)"/g)
+              for (const match of attrMatches) {
+                attributes[match[1]] = match[2]
+              }
+              
+              const { toolName, description, result, executionTime, details } = attributes
+              
+              if (!toolName) return null
+              
+              return (
+                <div key={index} className="my-3">
+                  <ToolUsageIndicator
+                    toolName={toolName}
+                    toolDescription={description}
+                    result={result as 'success' | 'error' | 'loading'}
+                    executionTime={executionTime ? parseInt(executionTime) : undefined}
+                    details={details}
+                  />
+                </div>
+              )
+            } catch (e) {
+              console.error("TOOL_USED parsing error", e)
+              return null
+            }
           }
 
           if (part.match(/^<\s*SCHEDULED_TASKS/)) {

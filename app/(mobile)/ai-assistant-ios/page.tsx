@@ -43,6 +43,7 @@ import { ScheduleCard } from "@/components/ai/schedule-card"
 import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { MobileBackground } from "@/components/mobile-background"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
+import ToolUsageIndicator from "@/components/ui/tool-usage-indicator"
 
 // ... (Interfaces)
 interface Citation {
@@ -536,11 +537,46 @@ export default function AIAssistantIOSPage() {
   }
 
   const renderTextContent = (content: string) => {
-    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TASK_LIST\s*(?:>[\s\S]*?(?:<\/\s*TASK_LIST\s*>|$)|(?:\/>)))/g)
+    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TASK_LIST\s*(?:>[\s\S]*?(?:<\/\s*TASK_LIST\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>))/g)
 
     return (
       <>
         {parts.map((part, index) => {
+          if (part.match(/^<\s*TOOL_USED/)) {
+            try {
+              // Parse TOOL_USED tag attributes
+              const toolUsedMatch = part.match(/<\s*TOOL_USED\s+([^>]*?)(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)/)
+              if (!toolUsedMatch) return null
+              
+              const attributesStr = toolUsedMatch[1]
+              const attributes: Record<string, string> = {}
+              
+              // Parse attributes like toolName="value" description="value" etc.
+              const attrMatches = attributesStr.matchAll(/(\w+)="([^"]*)"/g)
+              for (const match of attrMatches) {
+                attributes[match[1]] = match[2]
+              }
+              
+              const { toolName, description, result, executionTime, details } = attributes
+              
+              if (!toolName) return null
+              
+              return (
+                <div key={index} className="my-3">
+                  <ToolUsageIndicator
+                    toolName={toolName}
+                    toolDescription={description}
+                    result={result as 'success' | 'error' | 'loading'}
+                    executionTime={executionTime ? parseInt(executionTime) : undefined}
+                    details={details}
+                  />
+                </div>
+              )
+            } catch (e) {
+              console.error("TOOL_USED parsing error", e)
+              return null
+            }
+          }
           if (part.match(/^<\s*TASK_LIST/)) return <div key={index} className="my-6"><ScheduledTasksList /></div>
           if (part.match(/^<\s*CONTROL_BENTO/)) return <div key={index} className="my-6"><ControlBentoGrid /></div>
           if (part.match(/^<\s*DEVICE_BENTO/)) return <div key={index} className="my-6"><DeviceBentoGrid /></div>

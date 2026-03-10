@@ -130,10 +130,10 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[#0A0A0A] border-white/10 text-white font-jinbuti">
         <DialogHeader>
-          <DialogTitle>添加自定义 MCP 服务器</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">添加自定义 MCP 服务器</DialogTitle>
+          <DialogDescription className="text-white/40">
             配置你自己的 MCP 服务器。支持任何符合 MCP 协议的服务器。
           </DialogDescription>
         </DialogHeader>
@@ -141,11 +141,11 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
         <div className="space-y-6 py-4">
           {/* 基本信息 */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">基本信息</h3>
+            <h3 className="font-semibold text-sm text-white/60">基本信息</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">
+                <Label htmlFor="name" className="text-white/60">
                   服务器名称 <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -153,12 +153,13 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                   placeholder="例如: my-custom-server"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
                 />
-                <p className="text-xs text-zinc-500">用于配置文件的标识符</p>
+                <p className="text-xs text-white/40">用于配置文件的标识符</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="displayName">
+                <Label htmlFor="displayName" className="text-white/60">
                   显示名称 <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -166,12 +167,13 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                   placeholder="例如: My Custom Server"
                   value={formData.displayName}
                   onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">
+              <Label htmlFor="description" className="text-white/60">
                 描述 <span className="text-red-500">*</span>
               </Label>
               <Textarea
@@ -180,17 +182,18 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">分类</Label>
+                <Label htmlFor="category" className="text-white/60">分类</Label>
                 <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-emerald-500/50 focus:border-emerald-500">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#0A0A0A] border-white/10 text-white">
                     <SelectItem value="agriculture">农业</SelectItem>
                     <SelectItem value="web">网络工具</SelectItem>
                     <SelectItem value="development">开发工具</SelectItem>
@@ -207,36 +210,39 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="provider">提供商</Label>
+                <Label htmlFor="provider" className="text-white/60">提供商</Label>
                 <Input
                   id="provider"
                   placeholder="例如: My Company"
                   value={formData.provider}
                   onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="icon">图标 URL</Label>
+                <Label htmlFor="icon" className="text-white/60">图标 URL</Label>
                 <Input
                   id="icon"
                   placeholder="https://example.com/icon.png"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="iconBg">图标背景色</Label>
+                <Label htmlFor="iconBg" className="text-white/60">图标背景色</Label>
                 <Select value={formData.iconBg} onValueChange={(value) => setFormData({ ...formData, iconBg: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-emerald-500/50 focus:border-emerald-500">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#0A0A0A] border-white/10 text-white">
                     <SelectItem value="bg-blue-500">蓝色</SelectItem>
                     <SelectItem value="bg-green-500">绿色</SelectItem>
+                    <SelectItem value="bg-emerald-500">祖母绿</SelectItem>
                     <SelectItem value="bg-red-500">红色</SelectItem>
                     <SelectItem value="bg-yellow-500">黄色</SelectItem>
                     <SelectItem value="bg-purple-500">紫色</SelectItem>
@@ -251,19 +257,19 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
 
           {/* 安装命令 */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
+            <h3 className="font-semibold text-sm flex items-center gap-2 text-white/60">
               安装命令
-              <HelpCircle className="size-4 text-zinc-400" />
+              <HelpCircle className="size-4 text-white/40" />
             </h3>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="command">命令</Label>
+                <Label htmlFor="command" className="text-white/60">命令</Label>
                 <Select value={formData.command} onValueChange={(value) => setFormData({ ...formData, command: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-emerald-500/50 focus:border-emerald-500">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#0A0A0A] border-white/10 text-white">
                     <SelectItem value="npx">npx</SelectItem>
                     <SelectItem value="node">node</SelectItem>
                     <SelectItem value="python">python</SelectItem>
@@ -273,20 +279,21 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
               </div>
 
               <div className="col-span-2 space-y-2">
-                <Label htmlFor="args">参数</Label>
+                <Label htmlFor="args" className="text-white/60">参数</Label>
                 <Input
                   id="args"
                   placeholder="例如: -y @my-org/my-mcp-server"
                   value={formData.args}
                   onChange={(e) => setFormData({ ...formData, args: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
                 />
-                <p className="text-xs text-zinc-500">用空格分隔多个参数</p>
+                <p className="text-xs text-white/40">用空格分隔多个参数</p>
               </div>
             </div>
 
-            <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
-              <p className="text-xs text-zinc-500 mb-1">完整命令预览：</p>
-              <code className="text-sm text-zinc-700 dark:text-zinc-300">
+            <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+              <p className="text-xs text-white/40 mb-1">完整命令预览：</p>
+              <code className="text-sm text-emerald-400 font-mono">
                 {formData.command} {formData.args || "[参数]"}
               </code>
             </div>
@@ -294,7 +301,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
 
           {/* 功能特性 */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">功能特性</h3>
+            <h3 className="font-semibold text-sm text-white/60">功能特性</h3>
             
             <div className="flex gap-2">
               <Input
@@ -302,8 +309,9 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                 value={currentFeature}
                 onChange={(e) => setCurrentFeature(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleAddFeature()}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
               />
-              <Button type="button" onClick={handleAddFeature} size="icon">
+              <Button type="button" onClick={handleAddFeature} size="icon" className="bg-emerald-600 hover:bg-emerald-500 text-white">
                 <Plus className="size-4" />
               </Button>
             </div>
@@ -311,11 +319,11 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
             {formData.features.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {formData.features.map((feature, index) => (
-                  <Badge key={index} variant="secondary" className="gap-1">
+                  <Badge key={index} variant="secondary" className="gap-1 bg-white/10 text-white border-white/10">
                     {feature}
                     <button
                       onClick={() => handleRemoveFeature(index)}
-                      className="ml-1 hover:text-red-500"
+                      className="ml-1 hover:text-red-400 text-white/60"
                     >
                       <X className="size-3" />
                     </button>
@@ -327,21 +335,23 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
 
           {/* 环境变量 */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">环境变量（可选）</h3>
+            <h3 className="font-semibold text-sm text-white/60">环境变量（可选）</h3>
             
             <div className="grid grid-cols-2 gap-2">
               <Input
                 placeholder="变量名（如 API_KEY）"
                 value={currentEnvKey}
                 onChange={(e) => setCurrentEnvKey(e.target.value)}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
               />
               <div className="flex gap-2">
                 <Input
                   placeholder="默认值（可选）"
                   value={currentEnvValue}
                   onChange={(e) => setCurrentEnvValue(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500"
                 />
-                <Button type="button" onClick={handleAddEnvVar} size="icon">
+                <Button type="button" onClick={handleAddEnvVar} size="icon" className="bg-emerald-600 hover:bg-emerald-500 text-white shrink-0">
                   <Plus className="size-4" />
                 </Button>
               </div>
@@ -350,14 +360,14 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
             {Object.keys(formData.envVars).length > 0 && (
               <div className="space-y-2">
                 {Object.entries(formData.envVars).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                  <div key={key} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/10">
                     <div className="flex-1">
-                      <code className="text-sm font-mono">{key}</code>
-                      {value && <span className="text-xs text-zinc-500 ml-2">= {value}</span>}
+                      <code className="text-sm font-mono text-white">{key}</code>
+                      {value && <span className="text-xs text-white/40 ml-2">= {value}</span>}
                     </div>
                     <button
                       onClick={() => handleRemoveEnvVar(key)}
-                      className="text-zinc-400 hover:text-red-500"
+                      className="text-white/40 hover:text-red-400"
                     >
                       <X className="size-4" />
                     </button>
@@ -368,11 +378,11 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="border-t border-white/10 pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/10 bg-transparent text-white hover:bg-white/5">
             取消
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-500 text-white">
             保存并安装
           </Button>
         </DialogFooter>

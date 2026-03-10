@@ -543,82 +543,232 @@ async function executeFarmDataQuery(args: Record<string, any>, config: MCPConfig
 }
 
 async function executeSpectrumTool(toolName: string, args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
-    // 根据用户配置，使用 SSE (Server-Sent Events) 协议
-    // 通常 SSE 用于连接建立，但 MCP over SSE 需要先连接获取 endpoint，然后 POST
-    // 但如果用户给的是 /sse，可能是一个标准的 MCP SSE 入口。
-    // 在 Web 环境下直接连接 SSE 比较复杂，特别是如果只是为了做一次工具调用。
-    // 这里我们假设如果 URL 包含 /sse，则尝试探测其关联的 POST endpoint，或者使用 HTTP fallback。
-    
-    // 观察用户提供的截图配置：
-    // "url": "http://stravision.cheesestrawberry.top:8080/sse"
-    // "transport": "sse"
-    
-    // 标准 MCP SSE 流程：
-    // 1. Client 连接 GET /sse
-    // 2. Server 发送 endpoint 事件 (e.g. /messages)
-    // 3. Client 发送 POST /messages (JSON-RPC)
-    
-    // 由于我们是在服务端环境 (Next.js API Route) 执行，我们可以简化这个流程。
-    // 我们尝试直接 POST 到 /messages (假设它是标准的 MCP 实现)
-    // 或者，我们可以尝试直接 POST 到 /mcp (如果它是基于 HTTP 的)
-    
-    const sseUrl = config.envVars?.SPECTRUM_API_URL || "http://stravision.cheesestrawberry.top:8080/sse"
-    // 尝试推断 POST endpoint。通常是 sseUrl 替换 /sse 为 /messages
-    const postEndpoint = sseUrl.replace(/\/sse\/?$/, '/messages')
-    
-    console.log(`[MCP] Executing Spectrum Tool: ${toolName}`)
-    console.log(`[MCP] SSE URL: ${sseUrl}, Inferring POST Endpoint: ${postEndpoint}`)
+    console.log(`[MCP] Executing Spectrum Tool: ${toolName}`, args)
 
-    const body = {
-        jsonrpc: "2.0",
-        method: toolName,
-        params: args,
-        id: Date.now()
-    }
+    // 直接连接到 Supergateway，不使用代理 API
+    // 在服务端环境中，我们可以直接处理 SSE 连接
+    const sseUrl = 'http://8.153.175.190:8000/spectrum-stravision'
 
     try {
-        // 尝试直接 POST 到 inferred endpoint
-        const res = await fetchWithTimeout(postEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        }, 15000)
+        console.log(`[MCP] Connecting to Supergateway: ${sseUrl}`)
 
-        if (res.ok) {
-            // MCP over HTTP/SSE 的响应通常是空的 (202 Accepted) 或包含结果
-            // 如果是 202，结果会通过 SSE 推送回来... 这在短连接 API 中很难处理。
-            // 但很多实现为了兼容性，POST 请求会直接返回结果。
+        // 建立 SSE 连接
+        const sseRes = await fetchWithTimeout(sseUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'text/event-stream',
+                'Cache-Control': 'no-cache'
+            }
+        }, 10000)
+
+        if (!sseRes.ok || !sseRes.body) {
+            return { success: false, error: `无法连接到光谱服务器: ${sseRes.status}` }
+        }
+
+        // 解析 SSE 流获取 endpoint
+        const reader = sseRes.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let postEndpoint = ''
+
+        // 读取直到获取 endpoint 事件
+        const startTime = Date.now()
+        while (Date.now() - startTime < 5000) {
+            const { value, done } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+
+            const eventMatch = buffer.match(/event:\s*endpoint[\s\S]*?data:\s*([^\n\r]+)/)
+            if (eventMatch && eventMatch[1]) {
+                const endpointPath = eventMatch[1].trim().replace(/^["']|["']$/g, '')
+                postEndpoint = `http://8.153.175.190:8000${endpointPath}`
+                console.log(`[MCP] Got endpoint: ${postEndpoint}`)
+                break
+            }
+        }
+
+        if (!postEndpoint) {
+            await reader.cancel()
+            return { success: false, error: '无法从 SSE 获取端点' }
+        }
+
+        // === MCP 协议握手：必须先发送 initialize 请求 ===
+        console.log(`[MCP] Step 1: Sending initialize request`)
+        
+        const initBody = {
+            jsonrpc: "2.0",
+            method: "initialize",
+            params: {
+                protocolVersion: "2024-11-05",
+                capabilities: {
+                    roots: { listChanged: false },
+                    sampling: {}
+                },
+                clientInfo: {
+                    name: "stravision-iot-platform",
+                    version: "1.0.0"
+                }
+            },
+            id: Date.now()
+        }
+        
+        console.log(`[MCP] Initialize body:`, JSON.stringify(initBody))
+        
+        await fetchWithTimeout(postEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(initBody)
+        }, 5000)
+        
+        // 等待 initialize 响应
+        console.log(`[MCP] Waiting for initialize response...`)
+        let initResponse: any = null
+        buffer = ''
+        
+        const initStartTime = Date.now()
+        while (Date.now() - initStartTime < 5000) {
+            const { value, done } = await reader.read()
+            if (done) break
             
-            const text = await res.text()
-            try {
-                if (!text) return { success: true, data: { status: 'Request sent', note: 'Command executed via SSE transport' } }
-                
-                const data = JSON.parse(text)
-                if (data.result) return { success: true, data: data.result }
-                if (data.error) return { success: false, error: data.error.message }
-                return { success: true, data }
-            } catch (e) {
-                // 非 JSON 响应
-                return { success: true, data: { response: text } }
+            buffer += decoder.decode(value, { stream: true })
+            
+            const messageMatch = buffer.match(/event:\s*message[\s\S]*?data:\s*({[\s\S]*?})\n\n/)
+            if (messageMatch && messageMatch[1]) {
+                try {
+                    initResponse = JSON.parse(messageMatch[1])
+                    console.log(`[MCP] Initialize response received`)
+                    break
+                } catch (e) {
+                    console.error(`[MCP] Failed to parse init response:`, e)
+                }
             }
         }
         
-        // 如果 inferred endpoint 失败，尝试 fallback 到原 URL (有些实现支持直接 POST 到 SSE URL)
-        console.log(`[MCP] POST to ${postEndpoint} failed (${res.status}), retrying with original URL...`)
+        if (!initResponse || initResponse.error) {
+            await reader.cancel()
+            return { success: false, error: `初始化失败: ${initResponse?.error?.message || '超时'}` }
+        }
         
-        const resFallback = await fetchWithTimeout(sseUrl, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify(body)
-        }, 15000)
+        // 发送 initialized 通知
+        console.log(`[MCP] Step 2: Sending initialized notification`)
         
-        if (resFallback.ok) {
-             const data = await resFallback.json()
-             return { success: true, data: data.result || data }
+        const initializedBody = {
+            jsonrpc: "2.0",
+            method: "notifications/initialized",
+            params: {}
+        }
+        
+        await fetchWithTimeout(postEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(initializedBody)
+        }, 5000)
+        
+        // 清空缓冲区，准备接收工具调用响应
+        buffer = ''
+        
+        // === 现在可以发送工具调用请求了 ===
+        console.log(`[MCP] Step 3: Sending tool call request`)
+
+        // 发送工具调用请求
+        // 尝试使用 resources/read 而不是 tools/call
+        // 因为 get_all_spectrum 也被定义为 resource
+        const useResource = toolName === 'get_all_spectrum'
+        
+        const requestBody: any = {
+            jsonrpc: "2.0",
+            method: useResource ? "resources/read" : "tools/call",
+            params: useResource ? {
+                uri: "spectrum://channels"  // 使用 resource URI
+            } : {
+                name: toolName
+            },
+            id: Date.now()
+        }
+        
+        // 只有当使用 tools/call 且有参数时才添加 arguments
+        if (!useResource && args && typeof args === 'object' && Object.keys(args).length > 0) {
+            requestBody.params.arguments = args
+            console.log(`[MCP] Including arguments:`, args)
+        } else {
+            console.log(`[MCP] No arguments (using ${useResource ? 'resource' : 'tool'})`)
+        }
+        
+        console.log(`[MCP] Request body:`, JSON.stringify(requestBody))
+        console.log(`[MCP] Sending request to ${postEndpoint}`)
+
+        await fetchWithTimeout(postEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        }, 5000)
+
+        // 等待响应（通过 SSE 流）
+        let responseData: any = null
+        buffer = ''
+
+        const responseStartTime = Date.now()
+        while (Date.now() - responseStartTime < 15000) {
+            const { value, done } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+
+            // 解析 message 事件
+            const messageMatch = buffer.match(/event:\s*message[\s\S]*?data:\s*({[\s\S]*?})\n\n/)
+            if (messageMatch && messageMatch[1]) {
+                try {
+                    responseData = JSON.parse(messageMatch[1])
+                    console.log(`[MCP] Got response from SSE`)
+                    break
+                } catch (e) {
+                    console.error(`[MCP] Failed to parse response:`, e)
+                }
+            }
         }
 
-        return { success: false, error: `光谱服务请求失败: ${res.status} (Endpoint: ${postEndpoint})` }
+        // 关闭 SSE 连接
+        await reader.cancel()
+
+        if (!responseData) {
+            return { success: false, error: 'MCP 服务器无响应（超时）' }
+        }
+
+        // 解析 JSON-RPC 响应
+        if (responseData.result) {
+            // 提取 content
+            if (responseData.result.content && Array.isArray(responseData.result.content)) {
+                const textContent = responseData.result.content.find((c: any) => c.type === 'text')
+                if (textContent) {
+                    try {
+                        const data = JSON.parse(textContent.text)
+                        return { success: true, data }
+                    } catch {
+                        return { success: true, data: textContent.text }
+                    }
+                }
+            }
+            return { success: true, data: responseData.result }
+        }
+
+        if (responseData.error) {
+            return { success: false, error: responseData.error.message || 'Unknown error' }
+        }
+
+        return { success: true, data: responseData }
+
     } catch (e: any) {
+        console.error(`[MCP] Spectrum tool error:`, e)
         return { success: false, error: `光谱服务连接错误: ${e.message}` }
     }
 }
