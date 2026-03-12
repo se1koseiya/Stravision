@@ -4,7 +4,9 @@ import { Suspense, useRef, useMemo, useState, useCallback, useEffect } from "rea
 import { Canvas, useThree, useFrame, invalidate } from "@react-three/fiber"
 import { OrbitControls, useGLTF, Html } from "@react-three/drei"
 import * as THREE from "three"
-import { Video, Thermometer, Droplets, Fan, Lightbulb, Sun, X, Plus, Bot, Sparkles, Send } from "lucide-react"
+import { Video, Thermometer, Droplets, Fan, Lightbulb, Sun, X, Plus, Bot, Sparkles, Send, Activity } from "lucide-react"
+import { SpectralCard } from "@/components/dashboard/spectral-card"
+import type { DeviceData } from "@/lib/hooks/use-device-data"
 
 interface LightState {
   rgbLight: { r: number; g: number; b: number; intensity: number }
@@ -25,6 +27,17 @@ interface GreenhouseModelProps {
     led2?: number
     led3?: number
     led4?: number
+    channel1?: number
+    channel2?: number
+    channel3?: number
+    channel4?: number
+    channel5?: number
+    channel6?: number
+    channel7?: number
+    channel8?: number
+    channel9?: number
+    channel10?: number
+    channel11?: number
   } | null
   onToggleRelay?: (relay: 5 | 6 | 7 | 8, current: number) => void
   onUpdateLEDs?: (r: number, g: number, b: number, w: number) => void
@@ -40,7 +53,7 @@ const DEVICE_MARKERS = [
     label: "摄像头 A",
     position: [-2.5, 1.2, -1.5] as [number, number, number],
     cameraTarget: [-2.5, 1, -1.5] as [number, number, number],
-    cameraPosition: [0, 3, 3] as [number, number, number],
+    cameraPosition: [1, 4, 5] as [number, number, number],
     color: "#84cc16",
     icon: Video
   },
@@ -50,7 +63,7 @@ const DEVICE_MARKERS = [
     label: "摄像头 B",
     position: [1.5, 1.5, -2] as [number, number, number],
     cameraTarget: [1.5, 1.3, -2] as [number, number, number],
-    cameraPosition: [3, 3, 2] as [number, number, number],
+    cameraPosition: [4, 4, 4] as [number, number, number],
     color: "#84cc16",
     icon: Video
   },
@@ -60,7 +73,7 @@ const DEVICE_MARKERS = [
     label: "温度传感器",
     position: [0, 0.8, 0] as [number, number, number],
     cameraTarget: [0, 0.6, 0] as [number, number, number],
-    cameraPosition: [4, 3, 4] as [number, number, number],
+    cameraPosition: [5, 4, 5] as [number, number, number],
     color: "#a78bfa",
     icon: Thermometer
   },
@@ -71,7 +84,7 @@ const DEVICE_MARKERS = [
     label: "灌溉系统",
     position: [-2, 0.3, 1] as [number, number, number],
     cameraTarget: [-2, 0.2, 1] as [number, number, number],
-    cameraPosition: [1, 2.5, 4] as [number, number, number],
+    cameraPosition: [2, 4, 5] as [number, number, number],
     color: "#38bdf8",
     icon: Droplets
   },
@@ -82,7 +95,7 @@ const DEVICE_MARKERS = [
     label: "通风系统",
     position: [2.5, 0.3, 1.5] as [number, number, number],
     cameraTarget: [2.5, 0.2, 1.5] as [number, number, number],
-    cameraPosition: [4, 2.5, 4] as [number, number, number],
+    cameraPosition: [5, 4, 5] as [number, number, number],
     color: "#38bdf8",
     icon: Fan
   },
@@ -92,7 +105,7 @@ const DEVICE_MARKERS = [
     label: "RGB补光灯",
     position: [-1, 2.2, 0] as [number, number, number],
     cameraTarget: [-1, 2, 0] as [number, number, number],
-    cameraPosition: [2, 3.5, 3] as [number, number, number],
+    cameraPosition: [3, 5, 5] as [number, number, number],
     color: "#f472b6",
     icon: Lightbulb
   },
@@ -102,9 +115,19 @@ const DEVICE_MARKERS = [
     label: "白光补光灯",
     position: [1, 2.2, 0] as [number, number, number],
     cameraTarget: [1, 2, 0] as [number, number, number],
-    cameraPosition: [3, 3.5, 3] as [number, number, number],
+    cameraPosition: [4, 5, 5] as [number, number, number],
     color: "#fbbf24",
     icon: Sun
+  },
+  { 
+    id: "spectrometer", 
+    type: "spectrometer", 
+    label: "光谱仪",
+    position: [2, 1, -0.5] as [number, number, number],
+    cameraTarget: [2, 0.8, -0.5] as [number, number, number],
+    cameraPosition: [5, 4, 4] as [number, number, number],
+    color: "#ec4899",
+    icon: Activity
   },
   { 
     id: "ai-assistant", 
@@ -112,7 +135,7 @@ const DEVICE_MARKERS = [
     label: "莓界AI助手",
     position: [0, 1.8, 2] as [number, number, number],
     cameraTarget: [0, 1.6, 2] as [number, number, number],
-    cameraPosition: [2, 3, 5] as [number, number, number],
+    cameraPosition: [3, 5, 7] as [number, number, number],
     color: "#10b981",
     icon: Bot
   },
@@ -201,6 +224,85 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
   const contentBg = isDark ? "bg-white/5" : "bg-black/5"
   const subText = isDark ? "text-slate-400" : "text-slate-500"
 
+  // Process spectrum data if available
+  const spectrumData = useMemo(() => {
+    // If no device data at all, return null
+    if (!deviceData) return null
+    
+    // Check if we have any spectral data (non-zero)
+    const hasSpectrum = [
+      deviceData.channel1, deviceData.channel2, deviceData.channel3,
+      deviceData.channel4, deviceData.channel5, deviceData.channel6,
+      deviceData.channel7, deviceData.channel8, deviceData.channel9
+    ].some(val => val !== undefined && val > 0)
+
+    if (!hasSpectrum) return null
+
+    // Normalize channels (assuming 16-bit raw values, 0-65535)
+    // Map to 0-100% for visualization
+    const maxVal = Math.max(
+      deviceData.channel1 || 0, deviceData.channel2 || 0, deviceData.channel3 || 0, 
+      deviceData.channel4 || 0, deviceData.channel5 || 0, deviceData.channel6 || 0, 
+      deviceData.channel7 || 0, deviceData.channel8 || 0, deviceData.channel9 || 0
+    ) || 1
+
+    const channels = [
+      deviceData.channel1 || 0, // 415nm
+      deviceData.channel2 || 0, // 445nm
+      deviceData.channel3 || 0, // 480nm
+      deviceData.channel4 || 0, // 515nm
+      deviceData.channel5 || 0, // 555nm
+      deviceData.channel6 || 0, // 590nm
+      deviceData.channel7 || 0, // 630nm
+      deviceData.channel8 || 0, // 680nm (Red)
+      deviceData.channel9 || 0, // NIR
+    ]
+
+    return channels.map(val => (val / maxVal) * 100)
+  }, [deviceData])
+
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    if (!deviceData?.channel8 || !deviceData?.channel9) return null
+    
+    // Simple SPAD proxy: NIR / Red ratio
+    // SPAD correlates with Chlorophyll content
+    // Chlorophyll absorbs Red (680nm) strongly, reflects NIR
+    // Higher SPAD -> More Chlorophyll -> More Red absorption -> Lower Red signal -> Higher NIR/Red ratio
+    const red = deviceData.channel8 || 1
+    const nir = deviceData.channel9 || 1
+    const spad = (nir / red) * 10 // Arbitrary scaling factor for display
+    
+    // Nitrogen correlates with SPAD
+    const nitrogen = spad * 0.05 // Simplified correlation
+    
+    return {
+      spad: spad.toFixed(1),
+      nitrogen: nitrogen.toFixed(2)
+    }
+  }, [deviceData])
+
+  if (marker.type === "spectrometer") {
+    return (
+      <Html
+        position={[marker.position[0], marker.position[1] + 0.8, marker.position[2]]}
+        center
+        distanceFactor={6}
+        style={{ pointerEvents: "auto" }}
+      >
+        <div className="relative w-[380px] h-[280px] animate-in fade-in zoom-in-95 duration-300">
+          <SpectralCard data={deviceData as DeviceData} />
+          <button 
+            onClick={onClose} 
+            className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-xs z-10 ${isDark ? "bg-black/20 hover:bg-black/40 text-white" : "bg-black/5 hover:bg-black/10 text-slate-900"}`}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </Html>
+    )
+  }
+
   return (
     <Html
       position={[marker.position[0], marker.position[1] + 0.8, marker.position[2]]}
@@ -229,7 +331,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
             <div>
               <h3 className="font-bold text-sm">{marker.label}</h3>
               <p className={`text-xs ${subText}`}>
-                {marker.type === "camera" ? "监控设备" : marker.type === "sensor" ? "传感器" : marker.type === "ai-assistant" ? "智能助手" : marker.type.startsWith("light") ? "补光设备" : "控制设备"}
+                {marker.type === "camera" ? "监控设备" : marker.type === "sensor" ? "传感器" : marker.type === "ai-assistant" ? "智能助手" : marker.type === "spectrometer" ? "光谱分析" : marker.type.startsWith("light") ? "补光设备" : "控制设备"}
               </p>
             </div>
           </div>

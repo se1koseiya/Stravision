@@ -86,6 +86,7 @@ import { VoiceChatModal } from "@/components/ai/voice-chat-modal"
 import { CalendarTrigger } from "@/components/ai/calendar-trigger"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
 import ToolUsageIndicator from "@/components/ui/tool-usage-indicator"
+import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 
 
 import { BrowserActivity } from "@/components/ai/browser-activity"
@@ -405,7 +406,6 @@ export default function AIAssistantPage() {
     fetchQuota()
   }, [isLoading]) // isLoading 变为 false 时（即对话结束时）刷新配额
 
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRefInitial = useRef<HTMLTextAreaElement>(null)
@@ -420,7 +420,6 @@ export default function AIAssistantPage() {
     adjustHeight(textareaRefInitial.current)
     adjustHeight(textareaRefChat.current)
   }, [input])
-  const [autoScroll, setAutoScroll] = useState(true)
   const { deviceData } = useDeviceData()
   const { weatherData } = useWeatherContext()
   
@@ -563,16 +562,16 @@ export default function AIAssistantPage() {
       })()
   }, [sessionId])
 
-  // Scroll to bottom
-  useEffect(() => {
-    if (autoScroll && scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current
-      scrollContainer.scrollTo({
-        top: scrollContainer.scrollHeight,
-        behavior: "smooth"
-      })
-    }
-  }, [messages, isLoading, autoScroll])
+  // Scroll to bottom - Let ConversationContent handle scrolling internally
+  // useEffect(() => {
+  //   if (autoScroll && scrollAreaRef.current) {
+  //     const scrollContainer = scrollAreaRef.current
+  //     scrollContainer.scrollTo({
+  //       top: scrollContainer.scrollHeight,
+  //       behavior: "smooth"
+  //     })
+  //   }
+  // }, [messages, isLoading, autoScroll])
 
   const isStoppedRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -947,7 +946,6 @@ ${taskContext}
     const newMessages: Message[] = [...messages, { role: "user", content: userMessageContent }]
     setMessages(newMessages)
     setIsLoading(true)
-    setAutoScroll(true)
     // currentAttachments 已在函数开头定义，这里不需要重复
     setAttachments([])
 
@@ -2378,7 +2376,6 @@ ${taskContext}
               <Conversation className="flex-1 h-full min-h-0 overflow-hidden">
                 <ConversationContent 
                   id="ai-chat-area" 
-                  ref={scrollAreaRef} 
                   className="p-0 max-w-4xl mx-auto w-full custom-scrollbar"
                 >
                   <div className="flex flex-col pb-48 pt-10 space-y-8 px-4 md:px-0">
@@ -2497,7 +2494,27 @@ ${taskContext}
                     )}
 
                     {/* Input Area */}
-                    <div className="flex items-end gap-2 px-2">
+                    <div className="space-y-2">
+                      {/* Voice Input */}
+                      <div className="px-2">
+                        <QwenVoiceInput
+                          onTranscript={(text) => {
+                            setInput(prev => prev + (prev ? ' ' : '') + text)
+                            // 自动聚焦到输入框
+                            setTimeout(() => {
+                              textareaRefChat.current?.focus()
+                            }, 100)
+                          }}
+                          onError={(error) => {
+                            showNotice("语音识别失败", error, "error")
+                          }}
+                          className="w-full"
+                          placeholder="支持普通话、粤语、吴语(含台州话)等多种方言识别"
+                        />
+                      </div>
+                      
+                      {/* Text Input */}
+                      <div className="flex items-end gap-2 px-2">
                         <textarea
                         ref={textareaRefChat}
                         value={input}
@@ -2547,6 +2564,7 @@ ${taskContext}
                                 </button>
                             )}
                         </div>
+                      </div>
                     </div>
 
                     {/* Bottom Tools Row */}

@@ -235,14 +235,25 @@ export const Conversation = React.forwardRef<HTMLDivElement, ConversationProps>(
     const [containerEl, setContainerEl] = React.useState<HTMLDivElement | null>(null)
     const [atBottom, setAtBottom] = React.useState(true)
 
-    const scrollToBottom = (behavior: ScrollBehaviorType = initialScrollBehavior) => {
+    const scrollToBottom = React.useCallback((behavior: ScrollBehaviorType = initialScrollBehavior) => {
       const el = containerEl
       if (!el) return
       el.scrollTo({ top: el.scrollHeight, behavior })
-    }
+    }, [containerEl, initialScrollBehavior])
+
+    // Memoize the context value to prevent unnecessary re-renders
+    const contextValue = React.useMemo(() => ({
+      containerEl,
+      setContainerEl,
+      atBottom,
+      setAtBottom,
+      initialScrollBehavior,
+      resizeScrollBehavior,
+      scrollToBottom
+    }), [containerEl, atBottom, initialScrollBehavior, resizeScrollBehavior, scrollToBottom])
 
     return (
-      <ConversationContext.Provider value={{ containerEl, setContainerEl, atBottom, setAtBottom, initialScrollBehavior, resizeScrollBehavior, scrollToBottom }}>
+      <ConversationContext.Provider value={contextValue}>
         <div ref={ref} className={cn("relative h-full", className)} {...props} />
       </ConversationContext.Provider>
     )
@@ -254,33 +265,63 @@ export const ConversationContent = React.forwardRef<HTMLDivElement, React.HTMLAt
   ({ className, ...props }, ref) => {
     const ctx = React.useContext(ConversationContext)
     const localRef = React.useRef<HTMLDivElement>(null)
+    const isInitializedRef = React.useRef(false)
+
+    // Use useCallback to prevent ref callback from changing on every render
+    const refCallback = React.useCallback((node: HTMLDivElement | null) => {
+      localRef.current = node
+      
+      // Only set containerEl once when the component mounts, not on every render
+      if (ctx && node && !isInitializedRef.current) {
+        ctx.setContainerEl(node)
+        isInitializedRef.current = true
+      } else if (ctx && !node && isInitializedRef.current) {
+        // Clean up when component unmounts
+        ctx.setContainerEl(null)
+        isInitializedRef.current = false
+      }
+      
+      if (typeof ref === "function") ref(node as HTMLDivElement)
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node as HTMLDivElement
+    }, [ctx, ref])
+
+    // Auto-scroll to bottom when content changes and user is at bottom
+    React.useEffect(() => {
+      const el = localRef.current
+      if (!el || !ctx || !ctx.atBottom) return
+      
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+      })
+    })
 
     React.useEffect(() => {
       const el = ctx?.containerEl
       if (!el || !ctx) return
       const ro = new ResizeObserver(() => {
-        // 取消自动滚动：仅更新尺寸观察，不触发滚动
+        // Auto-scroll on resize if at bottom
+        if (ctx.atBottom) {
+          requestAnimationFrame(() => {
+            el.scrollTo({ top: el.scrollHeight, behavior: "auto" })
+          })
+        }
       })
       ro.observe(el)
       return () => ro.disconnect()
     }, [ctx])
 
-    const handleScroll = () => {
+    const handleScroll = React.useCallback(() => {
       const el = ctx?.containerEl
       if (!el || !ctx) return
       const threshold = SCROLL_CONFIG.BOTTOM_THRESHOLD
       const atBottomNow = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold
       ctx.setAtBottom(atBottomNow)
-    }
+    }, [ctx])
 
     return (
       <div
-        ref={(node) => {
-          localRef.current = node as HTMLDivElement | null
-          if (ctx) ctx.setContainerEl(node as HTMLDivElement | null)
-          if (typeof ref === "function") ref(node as HTMLDivElement)
-          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node as HTMLDivElement
-        }}
+        ref={refCallback}
         onScroll={handleScroll}
         className={cn("h-full", className)}
         style={{ overflowY: 'auto' }}

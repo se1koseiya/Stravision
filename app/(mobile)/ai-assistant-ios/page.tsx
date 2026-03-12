@@ -44,6 +44,7 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { MobileBackground } from "@/components/mobile-background"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
 import ToolUsageIndicator from "@/components/ui/tool-usage-indicator"
+import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 
 // ... (Interfaces)
 interface Citation {
@@ -1112,13 +1113,28 @@ export default function AIAssistantIOSPage() {
                   </PopoverContent>
                </Popover>
 
-               <input 
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="输入关于草莓种植的问题..."
-                  className="bg-transparent border-0 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 flex-1 text-base px-2 h-10 font-medium"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-               />
+               {/* Voice Input and Text Input */}
+               <div className="flex-1 space-y-2">
+                 <QwenVoiceInput
+                   onTranscript={(text) => {
+                     setInput(prev => prev + (prev ? ' ' : '') + text)
+                   }}
+                   onError={(error) => {
+                     console.error('Voice recognition error:', error)
+                   }}
+                   className="w-full"
+                   placeholder="支持台州话等多种方言识别"
+                 />
+                 
+                 <input 
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="输入关于草莓种植的问题..."
+                    className="bg-transparent border-0 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 w-full text-base px-2 h-10 font-medium"
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                 />
+               </div>
+               
                <button 
                  onClick={() => handleSend()} 
                  className={cn(
