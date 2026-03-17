@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stravision IoT Platform - 逻辑架构图</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --primary-blue: #3b82f6;
+            --primary-dark: #1e40af;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 40px;
+            color: var(--text-dark);
+            letter-spacing: 1px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .sidebar-item {
+            background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            color: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            min-height: 100px;
+        }
+        
+        .sidebar-item:nth-child(4n+1) { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); }
+        .sidebar-item:nth-child(4n+3) { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+
+        .content-area {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .sub-group {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            border: 1px dashed #cbd5e1;
+            position: relative;
+        }
+
+        .sub-group-title {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: #f8fafc;
+            padding: 0 8px;
+            color: #3b82f6;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .items-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: flex-start;
+        }
+
+        .item-box {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: var(--text-dark);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 0.95em;
+            min-width: 100px;
+            text-align: center;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            font-weight: 500;
+        }
+
+        .item-box:hover {
+            border-color: #93c5fd;
+            color: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .full-width-container {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+        }
+        
+        .footer-item {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 15px;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: bold;
+            border: 1px solid #e2e8f0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Stravision IoT Platform 逻辑架构图</h1>
+
+    <div class="main-container">
+        
+        <!-- Row 1: Presentation -->
+        <div class="sidebar-item">
+            表现层<br>Presentation
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <div class="item-box">Web 管理平台 (Dashboard)</div>
+                <div class="item-box">移动端应用 (Mobile App)</div>
+                <div class="item-box">数据可视化 (Data Vis)</div>
+            </div>
+        </div>
+
+        <!-- Row 2: Gateway -->
+        <div class="sidebar-item">
+            接入网关层<br>Gateway
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <div class="item-box">API 网关 (RESTful)</div>
+                <div class="item-box">认证鉴权 (Auth)</div>
+                <div class="item-box">限流熔断 (Rate Limit)</div>
+                <div class="item-box">消息网关 (MQTT/SSE)</div>
+            </div>
+        </div>
+
+        <!-- Row 3: Business Logic -->
+        <div class="sidebar-item">
+            业务逻辑层<br>Business Logic
+        </div>
+        <div class="content-area">
+            <div class="items-row" style="align-items: stretch;">
+                <!-- Core Modules -->
+                <div class="sub-group" style="flex: 1;">
+                    <span class="sub-group-title">核心业务模块</span>
+                    <div class="items-row">
+                        <div class="item-box">用户中心</div>
+                        <div class="item-box">设备管理</div>
+                        <div class="item-box">任务调度</div>
+                        <div class="item-box">权限控制</div>
+                    </div>
+                </div>
+
+                <!-- Intelligent Modules -->
+                <div class="sub-group" style="flex: 1;">
+                    <span class="sub-group-title">智能与交互模块</span>
+                    <div class="items-row">
+                        <div class="item-box">AI 智能服务</div>
+                        <div class="item-box">即时通讯 (IM)</div>
+                        <div class="item-box">智能告警</div>
+                        <div class="item-box">数据分析</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4: Data Layer -->
+        <div class="sidebar-item">
+            数据层<br>Data Layer
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <div class="item-box">关系型数据 (SQLite)</div>
+                <div class="item-box">时序数据 (Sensor Logs)</div>
+                <div class="item-box">非结构化存储 (Files)</div>
+                <div class="item-box">向量数据 (Embeddings)</div>
+            </div>
+        </div>
+
+        <!-- Bottom: Security & Monitor -->
+        <div class="full-width-container">
+            <div class="footer-item">
+                全链路监控与安全保障体系 (End-to-End Security & Monitoring)
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

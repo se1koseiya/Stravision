@@ -1,0 +1,120 @@
+
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { getSensorHistory } from '@/lib/db/device-service';
+import { incrementAiUsage, getUserAiQuota } from '@/lib/db/ai-quota-service';
+import OpenAI from 'openai';
+
+// Force dynamic to prevent caching of the AI response
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check Quota
+    const quota = await getUserAiQuota(user.id as number);
+    if (!quota.can_use) {
+      return NextResponse.json({ 
+        insight: "今日 AI 免费额度已用完", 
+        recommendation: "请充值或明天再来", 
+        riskLevel: "low",
+        error: "Quota Exceeded"
+      }, { status: 403 });
+    }
+
+    // 1. Fetch last 24h data for key metrics
+    // We fetch a few key metrics to give the AI context
+    const [tempData, humidityData, co2Data, lightData] = await Promise.all([
+      getSensorHistory('temperature', '1d'),
+      getSensorHistory('humidity', '1d'),
+      getSensorHistory('co2', '1d'),
+      getSensorHistory('light', '1d')
+    ]);
+
+    // 2. Prepare data summary for AI
+    // We don't want to send thousands of points, just a summary
+    const summarize = (data: any[], name: string) => {
+      if (!data || data.length === 0) return `${name}: 无数据`;
+      const values = data.map(d => d.value);
+      const min = Math.min(...values).toFixed(1);
+      const max = Math.max(...values).toFixed(1);
+      const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+      const current = values[values.length - 1].toFixed(1);
+      return `${name}: 当前${current}, 均值${avg}, 最低${min}, 最高${max}`;
+    };
+
+    const dataContext = [
+      summarize(tempData, '温度(°C)'),
+      summarize(humidityData, '湿度(%)'),
+      summarize(co2Data, 'CO2(ppm)'),
+      summarize(lightData, '光照(Lux)')
+    ].join('\n');
+
+    // 3. Call AI
+    // Use system-configured API Key (not user provided)
+    const apiKey = process.env.SYSTEM_OPENAI_API_KEY || process.env.DASHSCOPE_API_KEY;
+    const baseUrl = process.env.SYSTEM_OPENAI_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+    
+    if (!apiKey) {
+      return NextResponse.json({ 
+        insight: "系统 AI 服务未配置，无法生成分析报告。",
+        recommendation: "请联系管理员配置系统环境变量。",
+        riskLevel: "low"
+      });
+    }
+
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      baseURL: baseUrl,
+    });
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.SYSTEM_OPENAI_MODEL || 'qwen-plus',
+      messages: [
+        {
+          role: 'system',
+          content: `你是一个专业的智慧农业 AI 助手。请根据提供的最近24小时大棚环境数据，生成一份简短的"每日洞察报告"。
+          
+你的输出必须是 JSON 格式，包含以下字段：
+1. insight (string): 对过去24小时环境状况的简要总结（不超过50字），语气专业且亲切。
+2. recommendation (string): 基于数据给出的一条关键种植建议（如需操作设备，请明确指出）。
+3. riskLevel (string): "low" | "medium" | "high"。综合评估当前环境对草莓生长的风险等级。
+   - High: 温度>35 或 <5，湿度>90 或 <30
+   - Medium: 数据略微偏离最佳区间
+   - Low: 数据正常
+
+草莓最佳生长环境参考：
+- 温度：20-25°C
+- 湿度：60-80%
+- CO2：400-1000ppm
+- 光照：适中`
+        },
+        {
+          role: 'user',
+          content: `环境数据摘要：\n${dataContext}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+    // Deduct Quota
+    await incrementAiUsage(user.id as number);
+
+    return NextResponse.json(result);
+
+  } catch (error) {
+    console.error('Failed to generate daily insight:', error);
+    return NextResponse.json({ 
+      insight: "生成报告时发生错误", 
+      recommendation: "请稍后重试", 
+      riskLevel: "low" 
+    }, { status: 500 });
+  }
+}

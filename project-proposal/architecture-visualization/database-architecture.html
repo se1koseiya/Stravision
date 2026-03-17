@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stravision IoT Platform - 数据库架构图</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --primary-blue: #3b82f6;
+            --primary-dark: #1e40af;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --table-header-bg: #eff6ff;
+            --pk-color: #eab308;
+            --fk-color: #f97316;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 40px;
+            color: var(--text-dark);
+            letter-spacing: 1px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .sidebar-item {
+            background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            color: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            min-height: 100px;
+        }
+        
+        .sidebar-item:nth-child(4n+1) { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); }
+        .sidebar-item:nth-child(4n+3) { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+
+        .content-area {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .items-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+
+        /* Database Table Card Style */
+        .db-table {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 240px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+            flex: 1 1 240px;
+            max-width: 300px;
+        }
+
+        .db-table:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+            border-color: #93c5fd;
+        }
+
+        .table-header {
+            background: var(--table-header-bg);
+            padding: 10px 15px;
+            font-weight: bold;
+            color: #1e3a8a;
+            border-bottom: 1px solid #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-name {
+            font-size: 1em;
+        }
+
+        .table-body {
+            padding: 0;
+            font-size: 0.85em;
+        }
+
+        .field-row {
+            padding: 6px 15px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .field-row:last-child {
+            border-bottom: none;
+        }
+
+        .field-name {
+            color: #334155;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .field-type {
+            color: #94a3b8;
+            font-size: 0.9em;
+        }
+
+        .pk-badge {
+            color: var(--pk-color);
+            margin-right: 4px;
+            font-size: 0.8em;
+        }
+        
+        .fk-badge {
+            color: var(--fk-color);
+            margin-right: 4px;
+            font-size: 0.8em;
+        }
+
+        .full-width-container {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+        }
+        
+        .footer-item {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 15px;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: bold;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .footer-tag {
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #334155;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Stravision IoT Platform 数据库架构图</h1>
+
+    <div class="main-container">
+
+        <!-- Row 1: User & Auth -->
+        <div class="sidebar-item">
+            用户与权限<br>User & Auth
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <!-- Users Table -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">users</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">username</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">email</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">role</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">wechat_openid</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">wework_userid</span><span class="field-type">TEXT</span></div>
+                    </div>
+                </div>
+                
+                <!-- Login Tickets Table -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">login_tickets</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>ticket</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">jwt</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">created_at</span><span class="field-type">INT</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: IoT Core -->
+        <div class="sidebar-item">
+            设备与任务<br>IoT Core
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <!-- Sensor Readings -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">sensor_readings</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">device_id</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">temperature</span><span class="field-type">REAL</span></div>
+                        <div class="field-row"><span class="field-name">humidity</span><span class="field-type">REAL</span></div>
+                        <div class="field-row"><span class="field-name">co2</span><span class="field-type">REAL</span></div>
+                        <div class="field-row"><span class="field-name">soil_moisture</span><span class="field-type">REAL</span></div>
+                    </div>
+                </div>
+
+                <!-- Scheduled Tasks -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">scheduled_tasks</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">title</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">cron_expression</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">action_type</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">is_active</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">params</span><span class="field-type">JSON</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Logs & Audit -->
+        <div class="sidebar-item">
+            日志与审计<br>Logs & Audit
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <!-- Device Logs -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">device_logs</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">device_name</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">action</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">operator</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">details</span><span class="field-type">TEXT</span></div>
+                    </div>
+                </div>
+
+                <!-- Access Logs -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">access_logs</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">path</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">status</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">duration</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name"><i class="fk-badge">FK</i>user_id</span><span class="field-type">INT</span></div>
+                    </div>
+                </div>
+
+                <!-- Login Logs -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">login_logs</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name"><i class="fk-badge">FK</i>user_id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">ip</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">region</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">device_type</span><span class="field-type">TEXT</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4: Security & Config -->
+        <div class="sidebar-item">
+            安全与配置<br>Security
+        </div>
+        <div class="content-area">
+            <div class="items-row">
+                <!-- System Settings -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">system_settings</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>key</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">value</span><span class="field-type">JSON</span></div>
+                        <div class="field-row"><span class="field-name">updated_at</span><span class="field-type">INT</span></div>
+                    </div>
+                </div>
+
+                <!-- Banned IPs -->
+                <div class="db-table">
+                    <div class="table-header">
+                        <span class="table-name">banned_ips</span>
+                    </div>
+                    <div class="table-body">
+                        <div class="field-row"><span class="field-name"><i class="pk-badge">PK</i>id</span><span class="field-type">INT</span></div>
+                        <div class="field-row"><span class="field-name">ip</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">reason</span><span class="field-type">TEXT</span></div>
+                        <div class="field-row"><span class="field-name">expires_at</span><span class="field-type">INT</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Storage Engine -->
+        <div class="full-width-container">
+            <div class="footer-item">
+                <span>Storage Engine: <strong>SQLite 3</strong></span>
+                <span class="footer-tag">Journal: WAL</span>
+                <span class="footer-tag">Foreign Keys: ON</span>
+                <span class="footer-tag">File: /data/users.db</span>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
