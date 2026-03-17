@@ -32,20 +32,20 @@ const nextConfig: NextConfig = {
   async headers() {
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com;
-      script-src-elem 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com;
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com https://o.alicdn.com;
+      script-src-elem 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com https://o.alicdn.com;
       worker-src 'self' blob:;
-      style-src 'self' 'unsafe-inline';
-      style-src-elem 'self' 'unsafe-inline';
-      img-src 'self' blob: data: https: https://images.unsplash.com https://plus.unsplash.com;
+      style-src 'self' 'unsafe-inline' https://o.alicdn.com;
+      style-src-elem 'self' 'unsafe-inline' https://o.alicdn.com;
+      img-src 'self' blob: data: https: https://images.unsplash.com https://plus.unsplash.com https://o.alicdn.com;
       media-src 'self' blob:;
       font-src 'self' data:;
-      connect-src 'self' blob: data: https://*.alipay.com https://*.qq.com https://*.weixin.qq.com https://api.ipify.org ws: wss:;
+      connect-src 'self' blob: data: https://*.alipay.com https://*.qq.com https://*.weixin.qq.com https://api.ipify.org ws: wss: https://o.alicdn.com;
       object-src 'none';
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      frame-src 'self' https://challenges.cloudflare.com https://*.alipay.com https://*.qq.com;
+      frame-src 'self' https://challenges.cloudflare.com https://*.alipay.com https://*.qq.com https://o.alicdn.com;
     `.replace(/\s{2,}/g, ' ').trim()
 
     return [
