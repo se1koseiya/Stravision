@@ -57,8 +57,18 @@ const GreenhouseModel = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="relative w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
+            <div className="relative w-16 h-16 mx-auto">
+              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+                <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl opacity-20" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center text-2xl">🏡</div>
+            </div>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">加载 3D 模型中...</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -519,8 +529,23 @@ export default function MonitorPage() {
 
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen w-screen bg-[#F2F4F8] flex items-center justify-center">
-        <div className="text-muted-foreground animate-pulse">加载中...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="animate-in fade-in duration-500">
+          <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50" />
+          <div className="p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="h-8 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
+              <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-8" />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                <div className="space-y-4">
+                  <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                  <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

@@ -38,9 +38,9 @@ const nextConfig: NextConfig = {
       style-src 'self' 'unsafe-inline' https://o.alicdn.com;
       style-src-elem 'self' 'unsafe-inline' https://o.alicdn.com;
       img-src 'self' blob: data: https: https://images.unsplash.com https://plus.unsplash.com https://o.alicdn.com;
-      media-src 'self' blob:;
+      media-src 'self' blob: data:;
       font-src 'self' data:;
-      connect-src 'self' blob: data: https://*.alipay.com https://*.qq.com https://*.weixin.qq.com https://api.ipify.org ws: wss: https://o.alicdn.com;
+      connect-src 'self' blob: data: https://*.alipay.com https://*.qq.com https://*.weixin.qq.com https://api.ipify.org ws: wss: https://o.alicdn.com https://*.cheesestrawberry.top wss://*.cheesestrawberry.top;
       object-src 'none';
       base-uri 'self';
       form-action 'self';

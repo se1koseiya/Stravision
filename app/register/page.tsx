@@ -225,7 +225,11 @@ export default function RegisterPage() {
                 disabled={sendingCode || countdown > 0 || !email}
               >
                 {sendingCode ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <div className="flex gap-0.5">
+                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
                 ) : countdown > 0 ? (
                   `${countdown}s`
                 ) : codeSent ? (
@@ -345,7 +349,11 @@ export default function RegisterPage() {
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <div className="flex gap-1 mr-2">
+                <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
               <span className="font-jinbuti">创建账户中...</span>
             </>
           ) : "注册账户"}

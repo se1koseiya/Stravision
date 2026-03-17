@@ -216,7 +216,16 @@ export default function TestWeatherPage() {
             disabled={!location || loading}
             className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? '加载中...' : '刷新天气'}
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span>刷新中</span>
+              </div>
+            ) : '刷新天气'}
           </button>
         </div>
       </div>

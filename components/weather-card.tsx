@@ -224,7 +224,16 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                 {weatherData?.current ? Math.round(weatherData.current.temp_c) : '--'}°c
               </div>
               <div className="text-xl text-muted-foreground">
-                {weatherData?.current?.condition?.text || '加载中...'}
+                {weatherData?.current?.condition?.text || (
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span>获取天气中</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex-shrink-0">

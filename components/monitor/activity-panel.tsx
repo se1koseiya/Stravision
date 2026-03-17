@@ -139,8 +139,19 @@ export function ActivityPanel() {
           </div>
         ))}
         {logs.length === 0 && (
-          <div className="text-center text-xs text-gray-400 py-8">
-            {isLoading ? "加载中..." : "无活动记录"}
+          <div className="text-center py-8">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-xs text-gray-400">加载活动记录</span>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-400">无活动记录</span>
+            )}
           </div>
         )}
       </div>

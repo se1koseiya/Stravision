@@ -7,6 +7,7 @@ import { OrbitControls, useGLTF, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { Video, Thermometer, Droplets, Fan, Lightbulb, Sun, X, Plus, Bot, Sparkles, Send, Activity } from "lucide-react"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
 
 interface LightState {
@@ -1318,25 +1319,90 @@ export function GreenhouseModel({ className, theme = "light", deviceData, onTogg
   return (
     <div ref={containerRef} className={className}>
       <ModelErrorBoundary>
-        <Canvas
-          camera={{ position: [6, 4, 6], fov: 45 }}
-          style={{ background: "transparent" }}
-          frameloop={isVisible ? "demand" : "never"}
-          gl={{ 
-            alpha: true, 
-            antialias: true,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: isDark ? 1.1 : 1.3,
-            powerPreference: "high-performance",
-            precision: "mediump"
-          }}
-          shadows="soft"
-          dpr={[1, 1.5]}
-          performance={{ min: 0.5 }}
-        >
-          <Scene isDark={isDark} deviceData={deviceData} onToggleRelay={onToggleRelay} onUpdateLEDs={onUpdateLEDs} filter={filter} onViewCamera={onViewCamera} />
-        </Canvas>
+        <Suspense fallback={<Model3DLoadingSkeleton isDark={isDark} />}>
+          <Canvas
+            camera={{ position: [6, 4, 6], fov: 45 }}
+            style={{ background: "transparent" }}
+            frameloop={isVisible ? "demand" : "never"}
+            gl={{ 
+              alpha: true, 
+              antialias: true,
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: isDark ? 1.1 : 1.3,
+              powerPreference: "high-performance",
+              precision: "mediump"
+            }}
+            shadows="soft"
+            dpr={[1, 1.5]}
+            performance={{ min: 0.5 }}
+          >
+            <Scene isDark={isDark} deviceData={deviceData} onToggleRelay={onToggleRelay} onUpdateLEDs={onUpdateLEDs} filter={filter} onViewCamera={onViewCamera} />
+          </Canvas>
+        </Suspense>
       </ModelErrorBoundary>
+    </div>
+  )
+}
+
+// 3D 模型加载骨架屏
+function Model3DLoadingSkeleton({ isDark }: { isDark: boolean }) {
+  return (
+    <div className="relative w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl overflow-hidden">
+      {/* Loading Animation */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
+          {/* Animated 3D Cube */}
+          <div className="relative w-24 h-24 mx-auto">
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+              <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl opacity-20" />
+            </div>
+            <div className="absolute inset-2 animate-pulse">
+              <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-blue-600 rounded-xl opacity-40" />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-4xl">🏡</div>
+            </div>
+          </div>
+          
+          {/* Loading Text */}
+          <div className="space-y-2">
+            <p className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              正在加载 3D 模型...
+            </p>
+            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+              首次加载可能需要几秒钟
+            </p>
+          </div>
+
+          {/* Loading Dots */}
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Device Markers Skeleton */}
+      <div className="absolute top-4 left-4 animate-pulse">
+        <Skeleton className="h-11 w-11 rounded-full" />
+      </div>
+      <div className="absolute top-1/4 right-8 animate-pulse" style={{ animationDelay: '200ms' }}>
+        <Skeleton className="h-11 w-11 rounded-full" />
+      </div>
+      <div className="absolute bottom-1/4 left-1/3 animate-pulse" style={{ animationDelay: '400ms' }}>
+        <Skeleton className="h-11 w-11 rounded-full" />
+      </div>
+      <div className="absolute bottom-8 right-1/4 animate-pulse" style={{ animationDelay: '600ms' }}>
+        <Skeleton className="h-11 w-11 rounded-full" />
+      </div>
+
+      {/* Progress Bar */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-64">
+        <div className="h-1 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+        </div>
+      </div>
     </div>
   )
 }

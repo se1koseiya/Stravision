@@ -102,8 +102,35 @@ export default function AIAgentTestPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#FAFAFA] dark:bg-[#050505]">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 animate-pulse flex items-center justify-center">
+                <span className="text-2xl">🤖</span>
+              </div>
+              <div>
+                <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
+                <div className="h-5 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Content Grid Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-800/50 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${i * 100}ms` }}>
+                <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-4" />
+                <div className="space-y-3">
+                  <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-32 w-full bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

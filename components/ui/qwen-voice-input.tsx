@@ -243,7 +243,11 @@ export default function QwenVoiceInput({
           )}
         >
           {isProcessing ? (
-            <Loader2 size={14} className="animate-spin mr-1" />
+            <div className="flex gap-0.5 mr-1">
+              <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
           ) : isRecording ? (
             <MicOff size={14} className="mr-1" />
           ) : (

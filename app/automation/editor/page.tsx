@@ -756,7 +756,15 @@ function AutomationEditor() {
                         <span className="text-slate-600 dark:text-slate-300 font-bold">
                           {quotaInfo.balance > 0 ? quotaInfo.balance : (quotaInfo.daily_limit - quotaInfo.daily_usage)} 次
                         </span>
-                      ) : '加载中...'}
+                      ) : (
+                        <div className="inline-flex items-center gap-1">
+                          <div className="flex gap-0.5">
+                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        </div>
+                      )}
                     </span>
                     <span className="opacity-60 underline cursor-help">配额说明</span>
                   </div>

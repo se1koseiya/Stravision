@@ -232,8 +232,25 @@ export default function DashboardPage() {
   // Show loading state while checking authentication
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen w-screen h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="text-muted-foreground">加载中...</div>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="animate-in fade-in duration-500">
+          <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50" />
+          <div className="p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="h-12 w-80 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
+              <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-8" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                <div className="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

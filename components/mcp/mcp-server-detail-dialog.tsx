@@ -250,7 +250,11 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
           >
             {isInstalling ? (
               <div className="flex items-center gap-2">
-                <div className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
                 <span>处理中...</span>
               </div>
             ) : (

@@ -315,8 +315,21 @@ export default function DeviceControlPage() {
   // Show loading state while checking authentication
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen w-screen h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground animate-pulse">加载中...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="animate-in fade-in duration-500">
+          <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50" />
+          <div className="p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="h-10 w-80 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
+              <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-8" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="h-48 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" style={{ animationDelay: `${i * 50}ms` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -363,7 +376,16 @@ export default function DeviceControlPage() {
                 <ScrollArea className="h-[calc(100vh-80px)] mt-4 pr-4">
                   <div className="space-y-4">
                     {loadingLogs ? (
-                      <div className="text-center text-muted-foreground py-8">加载中...</div>
+                      <div className="text-center py-8">
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                          <span className="text-sm text-muted-foreground">加载操作记录</span>
+                        </div>
+                      </div>
                     ) : logs.length === 0 ? (
                       <div className="text-center text-muted-foreground py-8">暂无操作记录</div>
                     ) : (
