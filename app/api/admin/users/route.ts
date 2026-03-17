@@ -9,6 +9,7 @@ const createUserSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   role: z.enum(["user", "admin", "super_admin"]).optional(),
+  membership: z.enum(["free", "pro", "plus"]).optional(),
   permissions: z.any().optional(),
   avatar_url: avatarUrlSchema,
 });

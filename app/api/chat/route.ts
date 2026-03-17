@@ -25,6 +25,9 @@ export async function POST(req: Request) {
     const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs } =
       await req.json()
 
+    // 兼容前端传来的 deviceData 字段
+    const deviceStatus = deviceData;
+
     const stripWrappingQuotes = (value: unknown) => {
       const s = String(value ?? "").trim()
       return s.replace(/^[`"']+/, "").replace(/[`"']+$/, "").trim()
@@ -68,6 +71,10 @@ export async function POST(req: Request) {
       // 2. 注入系统 Key
       apiKey = process.env.SYSTEM_OPENAI_API_KEY || ""
       const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ""
+      
+      // 强制兼容性：如果使用了 DashScope (Qwen)，确保 URL 正确
+      // 对于 Qwen 模型，我们通常使用兼容模式的 endpoint
+      
       if (systemBaseUrl) {
         targetUrl = normalizeOpenAIChatCompletionsUrl(systemBaseUrl)
       }
@@ -145,7 +152,7 @@ export async function POST(req: Request) {
                  const lowerMsg = lastUserContent.toLowerCase()
                  
                  // 自动触发网页抓取
-                 if ((lowerMsg.includes('搜索') || lowerMsg.includes('查一下') || lowerMsg.includes('找一下')) && !lowerMsg.includes('@')) {
+                 if ((lowerMsg.includes('搜索') || lowerMsg.includes('查一下') || lowerMsg.includes('找一下') || lowerMsg.includes('抓取')) && !lowerMsg.includes('@')) {
                      // 检查并按优先级选择工具：1. Firecrawl 2. Exa 3. Brave
                      const firecrawl = mcpToolDefs.find(t => t.function.name === 'mcp_firecrawl_scrape')
                      const exa = mcpToolDefs.find(t => t.function.name === 'mcp_exa_search')
@@ -155,7 +162,7 @@ export async function POST(req: Request) {
                      
                      if (bestTool) {
                          console.log(`[MCP] Detected search intent, suggesting best available tool: ${bestTool.function.name}`)
-                         forcedToolPrompt = `\n\n**重要提示：**\n用户想要搜索或查找信息。你拥有能够联网搜索或抓取网页的工具（如 \`${bestTool.function.name}\`）。\n如果你的内部知识库中没有该信息的最新数据，请**主动**调用该工具来获取准确答案，而不要拒绝或凭空猜测。\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。' : (exa ? '优先使用 Exa 进行语义搜索。' : '')}`
+                         forcedToolPrompt = `\n\n**重要提示：**\n用户想要搜索或查找信息。你拥有能够联网搜索或抓取网页的工具（如 \`${bestTool.function.name}\`）。\n如果你的内部知识库中没有该信息的最新数据，请**主动**调用该工具来获取准确答案，而不要拒绝或凭空猜测。\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。如果抓取失败或返回内容为空，请立即尝试使用 Exa/Brave 进行搜索作为备选。' : (exa ? '优先使用 Exa 进行语义搜索。' : '')}`
                      }
                  }
              }
@@ -166,9 +173,82 @@ export async function POST(req: Request) {
     // 添加当前数据上下文
     let contextInfo = ''
     
-    // 移除直接的设备数据注入，让 AI 通过 MCP 工具获取
-    // 这样更符合 MCP 的设计理念，也能确保数据的实时性
-    contextInfo += `\n\n## 设备数据获取方式\n当需要获取设备数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n`
+    // 注入当前时间上下文
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentHour = now.getHours();
+    const currentSeason = currentMonth >= 3 && currentMonth <= 5 ? '春季' : 
+                          currentMonth >= 6 && currentMonth <= 8 ? '夏季' : 
+                          currentMonth >= 9 && currentMonth <= 11 ? '秋季' : '冬季';
+    const timeOfDay = currentHour >= 6 && currentHour < 12 ? '早晨' :
+                      currentHour >= 12 && currentHour < 18 ? '下午' :
+                      currentHour >= 18 && currentHour < 22 ? '晚上' : '深夜';
+
+    contextInfo += `\n\n## 当前时间上下文\n- 日期：${now.toLocaleDateString('zh-CN')}\n- 季节：${currentSeason}\n- 时段：${timeOfDay} (${currentHour}点)\n`;
+
+    // 只将光谱数据获取推给 MCP，恢复基础设备状态的直接注入
+    contextInfo += `\n\n## 光谱数据获取方式\n当需要获取光谱数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n`
+
+    contextInfo += `\n\n【任务规划器指令】
+当用户下达复杂或多步骤任务时（特别是农业自动化、分析或控制），你必须使用 <TASK_LIST> 标签输出任务计划。
+请遵循“SOP 标准作业程序”：
+1. **搜寻标准**：先根据【当前季节/月份】搜索最佳农业实践（如：“${currentMonth}月 草莓大棚 温湿度管理标准”）。
+2. **分析差距**：对比搜索到的标准值与当前设备传感器数据。
+3. **制定策略**：基于差距生成调控指令。
+
+格式如下：
+<TASK_LIST>
+{
+  "status": "in_progress",
+  "tasks": [
+    {
+      "title": "搜索${currentSeason}草莓种植标准",
+      "status": "in_progress",
+      "subActions": [
+        { "text": "正在调用搜索工具获取${currentMonth}月管理要点...", "status": "in_progress" }
+      ]
+    },
+    {
+      "title": "分析环境数据差距",
+      "status": "pending",
+      "subActions": []
+    },
+    {
+      "title": "执行环境调控",
+      "status": "pending",
+      "subActions": []
+    }
+  ]
+}
+</TASK_LIST>
+
+【MCP工具调用指令】
+你是农业平台智能助手。请积极使用系统提供的 MCP 工具。
+**重要规则：**
+1. **禁止搜索设备指令**：严禁搜索“打开水泵”、“如何开关灯”等设备操作指令。设备控制是你自带的能力。
+2. **搜索农业知识**：当用户要求“调控环境”时，你应该搜索“作物生长标准”、“最佳温湿度范围”、“病害防治方法”等知识。
+3. **上下文感知搜索**：搜索关键词必须包含当前的【月份】、【季节】或【作物生长阶段】。例如搜索 \`"${currentMonth}月 草莓大棚 通风 策略"\` 而不是简单的 \`"大棚通风"\`。
+4. **基于结果调控**：获取到搜索结果（如“白天适宜25度”）后，再对比当前温度，如果当前是30度，则生成“开启风扇”的建议。`
+
+    // 直接注入基础设备状态和环境数据
+    if (deviceStatus) {
+      contextInfo += `\n\n## 当前环境和设备状态 (直接数据，无需调用工具)\n\`\`\`json\n${JSON.stringify({
+        environment: {
+          temperature: deviceStatus.temperature !== undefined ? deviceStatus.temperature + "°C" : "未知",
+          humidity: deviceStatus.humidity !== undefined ? deviceStatus.humidity + "%" : "未知",
+          co2: deviceStatus.co2 !== undefined ? deviceStatus.co2 + "ppm" : "未知",
+          tvoc: deviceStatus.tvoc !== undefined ? deviceStatus.tvoc + "ppb" : "未知",
+          light_lux: deviceStatus.light !== undefined ? deviceStatus.light + "lux" : "未知"
+        },
+        devices: {
+          water_pump: deviceStatus.relay5 === 1 ? "开启" : "关闭",
+          fan: deviceStatus.relay6 === 1 ? "开启" : "关闭",
+          grow_light_power: deviceStatus.relay7 === 1 ? "开启" : "关闭",
+          white_light: deviceStatus.relay8 === 1 ? "开启" : "关闭",
+          rgb_light: deviceStatus.rgb_status ? `R:${deviceStatus.rgb_status.r} G:${deviceStatus.rgb_status.g} B:${deviceStatus.rgb_status.b}` : "未知"
+        }
+      }, null, 2)}\n\`\`\`\n`
+    }
 
     // 天气数据（MCP 天气工具已改为 function calling 方式，由 AI 主动调用）
     if (weatherData) {
@@ -273,7 +353,7 @@ export async function POST(req: Request) {
     const monitorInstruction =
       "当用户询问监控、摄像头、直播流或想要查看实时画面时，请直接在回复中插入 <MONITOR></MONITOR> 标签（标签内不需要任何内容）。"
     const controlBentoInstruction =
-      "当用户要求查看设备控制、调节设备状态或你建议进行设备调控时，请在回复中包含 <CONTROL_BENTO></CONTROL_BENTO> 标签（标签内不需要任何内容）。然后，必须在标签之后简要说明你的调控建议或理由。如果用户明确表达了“是”、“确认”、“执行”等意图，或者你非常有把握需要执行某些操作，请务必同时输出 JSON 格式的控制命令，以便系统自动执行。"
+      "当用户要求查看设备控制、调节设备状态或你建议进行设备调控时，请在回复中包含 <CONTROL_BENTO></CONTROL_BENTO> 标签（标签内不需要任何内容）。然后，必须在标签之后简要说明你的调控建议或理由。如果用户明确表达了“是”、“确认”、“执行”等意图，或者你非常有把握需要执行某些操作，请务必同时输出 JSON 格式的控制命令（仅限 IoT 设备控制，如开关灯、继电器等），以便系统自动执行。"
     const taskListInstruction =
       "当用户要求查看、管理或删除定时任务列表时，请在回复中包含 <SCHEDULED_TASKS></SCHEDULED_TASKS> 标签（标签内不需要任何内容）。这将在前端渲染一个交互式的真实任务列表组件。重要：因为你已经输出了 <SCHEDULED_TASKS> 标签，请不要再用文本重复列出任务内容，也不要描述“列表为空”或“包含X个任务”（除非你是在分析任务的合理性），因为你的文本描述可能与组件实时渲染的真实状态不一致。只需输出标签即可，让组件负责展示。"
     const bentoInstruction =
@@ -295,7 +375,7 @@ export async function POST(req: Request) {
 
     // MCP 工具说明 — 引导 AI 主动使用 Function Calling
     const mcpToolsInstruction = mcpToolDefs.length > 0
-      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力，请在合适的时机**主动**调用它们：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**重要规则：**\n- 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n- 当用户询问天气、搜索、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据，而不是凭记忆回答。\n- 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n- 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n- 不需要询问用户是否调用工具，直接调用即可。\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
+      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力。请注意：对于这些工具，**必须使用原生 Function Calling (tool_calls)**，严禁使用 JSON 文本格式输出！\n\n可用工具列表：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**重要规则：**\n1. **严禁**在回复中直接输出类似 \`{"action": "xxx"}\` 的 JSON 来调用这些工具。必须使用系统提供的 tool_calls 接口。\n2. 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n3. 当用户询问天气、搜索、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据，而不是凭记忆回答。\n4. 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n5. 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n6. 不需要询问用户是否调用工具，直接调用即可。\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
       : ""
 
     // 检测是否使用DashScope API
@@ -331,11 +411,11 @@ export async function POST(req: Request) {
 
     if (effectiveModel === 'auto') {
       if (enableReasoning) {
-        effectiveModel = 'deepseek-r1' // 优先使用推理模型
+        effectiveModel = 'deepseek-v3.2' // 优先使用推理模型
       } else if (hasImageContent) {
-        effectiveModel = 'qwen-vl-max' // 优先使用视觉模型
+        effectiveModel = 'qwen3.5-plus' // 优先使用视觉模型
       } else {
-        effectiveModel = 'qwen-plus' // 默认使用通用增强模型
+        effectiveModel = 'qwen3.5-plus' // 默认使用通用增强模型
       }
     }
 
@@ -344,7 +424,8 @@ export async function POST(req: Request) {
       modelLower.includes('vision') ||
       modelLower.includes('-vl-') ||
       /qwen\d*-vl/.test(modelLower) ||
-      modelLower.includes('qvq')
+      modelLower.includes('qvq') ||
+      modelLower.includes('qwen3.5') // Qwen3.5 系列支持视觉
     )
 
     if (hasImageContent && !isLocal) {
@@ -376,12 +457,18 @@ export async function POST(req: Request) {
         ...messages,
       ]
 
+      const isAudioModel = effectiveModel?.includes('omni') || effectiveModel?.includes('audio');
+
       requestBody = {
         model: effectiveModel || "qwen-plus",
         messages: fullMessages,
         stream: true,
         temperature: 0.7,
         ...(enableSearch ? { enable_search: true } : {}),
+        ...(isAudioModel ? {
+            modalities: ["text", "audio"],
+            audio: { voice: "Cherry", format: "wav" }
+        } : {})
       }
     } else if (isDashScope) {
       // DashScope 原生API格式
@@ -544,11 +631,31 @@ export async function POST(req: Request) {
                     const result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
                     console.log(`[MCP] Tool ${fnName} result:`, result.success ? 'success' : result.error)
 
+                    // 将工具结果发送给前端，以便在工作室侧边栏展示
+                    const toolResultPayload = {
+                      id: `tool-result-${Date.now()}`,
+                      object: "chat.completion.chunk",
+                      created: Date.now(),
+                      model: effectiveModel,
+                      tool_result: {
+                        name: fnName,
+                        args: fnArgs,
+                        result: result.success ? result.data : { error: result.error }
+                      }
+                    }
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolResultPayload)}\n\n`))
+
                     // 将工具结果加入会话
+                    // 限制内容长度，防止爆 Context (尤其是网页抓取内容可能非常大)
+                    let toolContent = JSON.stringify(result.success ? result.data : { error: result.error })
+                    if (toolContent.length > 50000) {
+                        toolContent = toolContent.slice(0, 50000) + "\n...[Content Truncated due to length]..."
+                    }
+
                     fullMessages.push({
                       role: 'tool',
                       tool_call_id: toolCall.id,
-                      content: JSON.stringify(result.success ? result.data : { error: result.error })
+                      content: toolContent
                     })
                   }
 
@@ -606,6 +713,13 @@ export async function POST(req: Request) {
 
                   // 4. 发起最终 AI 请求
                   console.log('[MCP] Tool results injected, starting final stream...')
+                  
+                  // 强制注入 System 指令，确保 AI 根据工具结果进行总结，而不是重复输出 JSON
+                  fullMessages.push({
+                    role: 'system',
+                    content: `[SYSTEM] Tool execution completed. The results are provided in the 'tool' messages above. \nPlease use these results to provide a comprehensive and helpful response to the user. \nDo NOT output raw JSON or tool calls again unless necessary.`
+                  })
+
                   requestBody = {
                     model: (requestBody as any).model || effectiveModel || 'qwen-plus',
                     messages: fullMessages,
@@ -708,6 +822,11 @@ export async function POST(req: Request) {
     console.log('[MCP] Making final streaming request to AI...')
     
     // 同样清理 final requestBody 的 messages
+    // 确保 requestBody.messages 不为空，防止 undefined 错误
+    if (!requestBody.messages || requestBody.messages.length === 0) {
+        requestBody.messages = fullMessages.length > 0 ? fullMessages : messages;
+    }
+
     if (requestBody.messages) {
         requestBody.messages = requestBody.messages.map((m: any) => {
             const { role, content, name, tool_calls, tool_call_id } = m

@@ -230,6 +230,12 @@ export async function initDB(): Promise<void> {
       }
 
       try {
+        await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS membership TEXT DEFAULT 'free'")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding membership:', error.message)
+      }
+
+      try {
         await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0")
       } catch (error: any) {
         // 忽略列已存在的错误

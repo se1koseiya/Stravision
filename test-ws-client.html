@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WebSocket Client</title>
+</head>
+<body>
+    <h1>DashScope Realtime API Test</h1>
+    <button id="connect">Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+    <div id="status">Not connected</div>
+    <div id="log" style="margin-top: 20px; font-family: monospace; white-space: pre-wrap;"></div>
+
+    <script>
+        let ws = null;
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        const connectBtn = document.getElementById('connect');
+        const disconnectBtn = document.getElementById('disconnect');
+
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function createEventId() {
+            return `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+        }
+
+        connectBtn.onclick = () => {
+            if (ws) return;
+
+            status.textContent = 'Connecting...';
+            addLog('Connecting to ws://localhost:3002...');
+
+            ws = new WebSocket('ws://localhost:3002?model=qwen3-omni-flash');
+
+            ws.onopen = () => {
+                status.textContent = 'Connected';
+                status.style.color = 'green';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                addLog('✓ WebSocket connected');
+
+                // Send session.update immediately
+                const sessionUpdate = {
+                    event_id: createEventId(),
+                    type: "session.update",
+                    session: {
+                        modalities: ["text", "audio"],
+                        voice: "Cherry",
+                        input_audio_format: "pcm16",
+                        output_audio_format: "pcm24",
+                        instructions: "你是一个友好的AI助手",
+                        turn_detection: {
+                            type: "server_vad",
+                            threshold: 0.5,
+                            silence_duration_ms: 800
+                        },
+                        input_audio_transcription: {
+                            model: "gummy-realtime-v1"
+                        }
+                    }
+                };
+
+                addLog('→ Sending session.update');
+                ws.send(JSON.stringify(sessionUpdate));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    addLog(`← Received: ${data.type}`);
+                    if (data.type === 'session.created') {
+                        addLog('  ✓ Session created successfully!');
+                    } else if (data.type === 'session.updated') {
+                        addLog('  ✓ Session updated successfully!');
+                    } else if (data.type === 'error') {
+                        addLog(`  ✗ Error: ${JSON.stringify(data.error)}`);
+                    }
+                } catch (e) {
+                    addLog(`← Received non-JSON: ${event.data.substring(0, 100)}`);
+                }
+            };
+
+            ws.onerror = (error) => {
+                addLog(`✗ WebSocket error: ${error}`);
+                status.textContent = 'Error';
+                status.style.color = 'red';
+            };
+
+            ws.onclose = (event) => {
+                addLog(`✗ WebSocket closed: ${event.code} ${event.reason}`);
+                status.textContent = 'Disconnected';
+                status.style.color = 'gray';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                ws = null;
+            };
+        };
+
+        disconnectBtn.onclick = () => {
+            if (ws) {
+                ws.close();
+            }
+        };
+    </script>
+</body>
+</html>

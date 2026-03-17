@@ -28,14 +28,14 @@ console.log('Proxy starting with API Key:', DASHSCOPE_API_KEY.substring(0, 8) + 
 const wss = new WebSocket.Server({ port: PORT });
 
 console.log(`WebSocket Proxy Server running on ws://localhost:${PORT}`);
-console.log('Target: wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3-omni-flash-realtime');
+console.log('Target: wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3-omni-flash');
 
 wss.on('connection', (ws, req) => {
   console.log('Client connected');
 
   // Extract model from query params (simple parsing)
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  const model = url.searchParams.get('model') || 'qwen3-omni-flash-realtime';
+  const model = url.searchParams.get('model') || 'qwen3-omni-flash';
 
   const targetUrl = `wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=${model}`;
   console.log(`Connecting to upstream: ${targetUrl}`);

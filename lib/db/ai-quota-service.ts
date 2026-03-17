@@ -18,7 +18,7 @@ export interface UserAiQuota {
 export async function getUserAiQuota(userId: number): Promise<UserAiQuota> {
   await initDB()
   const user = await queryOne<any>(
-    `SELECT daily_ai_limit, daily_ai_usage, last_ai_usage_date, ai_balance
+    `SELECT daily_ai_limit, daily_ai_usage, last_ai_usage_date, ai_balance, membership
      FROM users WHERE id = $1`,
     [userId]
   )
@@ -30,22 +30,30 @@ export async function getUserAiQuota(userId: number): Promise<UserAiQuota> {
   const today = new Date().toISOString().split('T')[0]
   let currentUsage = user.daily_ai_usage
   
+  // Enforce membership limits
+  // Free users have 0 daily limit unless they have balance
+  // Pro/Plus limits are handled by daily_ai_limit in DB, but we can enforce defaults here too
+  let effectiveLimit = user.daily_ai_limit;
+  if (user.membership === 'free' || !user.membership) {
+    effectiveLimit = 0;
+  } else if (user.membership === 'plus') {
+    effectiveLimit = 999999;
+  }
+
   // 检查是否需要重置每日配额
   if (user.last_ai_usage_date !== today) {
     currentUsage = 0
-    // 可以在这里异步更新 DB，或者等扣费时再更新，为了准确展示，我们这里先假装重置了
-    // 实际 DB 更新发生在 incrementAiUsage 中
   }
 
-  const hasDailyQuota = currentUsage < user.daily_ai_limit
+  const hasDailyQuota = currentUsage < effectiveLimit
   const hasBalance = user.ai_balance > 0
 
   return {
-    daily_limit: user.daily_ai_limit,
+    daily_limit: effectiveLimit,
     daily_usage: currentUsage,
     balance: user.ai_balance,
     can_use: hasDailyQuota || hasBalance,
-    reason: !hasDailyQuota && !hasBalance ? (currentUsage >= user.daily_ai_limit ? 'limit_reached' : 'no_balance') : undefined
+    reason: !hasDailyQuota && !hasBalance ? (currentUsage >= effectiveLimit ? 'limit_reached' : 'no_balance') : undefined
   }
 }
 
@@ -57,7 +65,7 @@ export async function getUserAiQuota(userId: number): Promise<UserAiQuota> {
 export async function incrementAiUsage(userId: number): Promise<boolean> {
   await initDB()
   const user = await queryOne<any>(
-    `SELECT daily_ai_limit, daily_ai_usage, last_ai_usage_date, ai_balance
+    `SELECT daily_ai_limit, daily_ai_usage, last_ai_usage_date, ai_balance, membership
      FROM users WHERE id = $1`,
     [userId]
   )
@@ -67,13 +75,21 @@ export async function incrementAiUsage(userId: number): Promise<boolean> {
   const today = new Date().toISOString().split('T')[0]
   let newUsage = user.daily_ai_usage
   
+  // Enforce membership limits
+  let effectiveLimit = user.daily_ai_limit;
+  if (user.membership === 'free' || !user.membership) {
+    effectiveLimit = 0;
+  } else if (user.membership === 'plus') {
+    effectiveLimit = 999999;
+  }
+  
   // 如果日期变更，重置今日用量
   if (user.last_ai_usage_date !== today) {
     newUsage = 0
   }
 
   // 1. 尝试扣除每日免费额度
-  if (newUsage < user.daily_ai_limit) {
+  if (newUsage < effectiveLimit) {
     await execute(
       `UPDATE users
        SET daily_ai_usage = $1, last_ai_usage_date = $2

@@ -123,7 +123,7 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
       }, 60 * 1000);
 
       const rawModel = Array.isArray(req.query.model) ? req.query.model[0] : req.query.model;
-      const model = rawModel && rawModel !== 'default' ? rawModel : 'qwen3-omni-flash-realtime';
+      const model = rawModel && rawModel !== 'default' ? rawModel : 'qwen3-omni-flash';
       const dashScopeUrl = `wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=${encodeURIComponent(model)}`;
 
       console.log(`Connecting to DashScope: ${dashScopeUrl}`);

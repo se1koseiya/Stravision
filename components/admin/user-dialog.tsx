@@ -36,6 +36,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
     email: "",
     password: "",
     role: "user",
+    membership: "free",
     avatar_url: "",
     allowedControls: [] as string[],
     daily_ai_limit: 10,
@@ -49,6 +50,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
         email: user.email,
         password: "", // Password not retrieved
         role: user.role,
+        membership: user.membership || 'free',
         avatar_url: user.avatar_url || "",
         allowedControls: user.permissions?.allowedControls || [],
         // @ts-expect-error - backend returns these fields
@@ -62,6 +64,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
         email: "",
         password: "",
         role: "user",
+        membership: "free",
         avatar_url: "",
         allowedControls: [],
         daily_ai_limit: 10,
@@ -81,6 +84,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
       const body: any = {
         username: formData.username,
         role: formData.role,
+        membership: formData.membership,
         permissions: {
           allowedControls: formData.allowedControls
         },
@@ -197,6 +201,34 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
               </SelectContent>
             </Select>
             {!canEditRole && <p className="text-xs text-muted-foreground">Only Super Admin can change roles.</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="membership">Membership</Label>
+            <Select
+              value={formData.membership}
+              onValueChange={val => {
+                let limit = formData.daily_ai_limit;
+                if (val === 'free') limit = 0;
+                else if (val === 'pro') limit = 70;
+                else if (val === 'plus') limit = 999999;
+                
+                setFormData(prev => ({ 
+                    ...prev, 
+                    membership: val,
+                    daily_ai_limit: limit
+                }))
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select membership" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="plus">Plus</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

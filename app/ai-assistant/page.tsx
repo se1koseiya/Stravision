@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -35,6 +35,7 @@ import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Switch } from "@/components/ui/switch"
 import remarkGfm from "remark-gfm"
 import * as htmlToImage from 'html-to-image'
 import jsPDF from "jspdf"
@@ -91,6 +92,8 @@ import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 
 import { BrowserActivity } from "@/components/ai/browser-activity"
 
+import { DeviceControlCard } from "@/components/ai/device-control-card"
+
 interface Citation {
   number: string
   title: string
@@ -133,9 +136,22 @@ function isVLMModel(model: string | undefined): boolean {
 
 interface SessionMeta { id: string; title: string; createdAt: number; updatedAt: number }
 
-// 任务列表组件 (Dynamic Task Planner) - 提取到组件外部以防止重新渲染闪烁
-const DynamicTaskPlanner = ({ content }: { content: string }) => {
+// 任务列表组件 (Dynamic Task Planner) - 参考设计实现
+const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: { content: string, onOpenStudio?: () => void, isPaused?: boolean, onTogglePause?: (paused: boolean) => void }) => {
   const [isVisible, setIsVisible] = useState(true)
+  const [elapsedTime, setElapsedTime] = useState(0)
+
+  useEffect(() => {
+    if (!isVisible || isPaused) return
+    const timer = setInterval(() => setElapsedTime(p => p + 1), 1000)
+    return () => clearInterval(timer)
+  }, [isVisible, isPaused])
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0')
+    const s = (seconds % 60).toString().padStart(2, '0')
+    return `${m}:${s}`
+  }
   
   if (!isVisible) return null
 
@@ -147,84 +163,139 @@ const DynamicTaskPlanner = ({ content }: { content: string }) => {
     const data = JSON.parse(match[1])
     if (!data || !data.tasks) return null
 
-    return (
-      <div className="my-4 w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {/* Close Button */}
-        <button 
-          onClick={() => setIsVisible(false)}
-          className="absolute top-2 right-2 size-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-red-500 opacity-0 group-hover/planner:opacity-100 transition-all flex items-center justify-center z-10"
-          title="移除此计划"
-        >
-          <X size={14} />
-        </button>
+    const tasks = data.tasks
+    const activeIndex = tasks.findIndex((t: any) => t.status === 'in_progress')
+    const currentIndex = activeIndex !== -1 ? activeIndex : tasks.length - 1
+    const activeTask = tasks[currentIndex] || tasks[0]
 
+    // 模拟子任务/工具调用列表，如果数据里没有的话
+    const getMockSubActions = (title: string) => [
+      { icon: <Globe size={14} />, text: `正在通过 MCP 工具搜索 "${title}" 相关的最佳实践...`, status: 'completed' },
+      { icon: <Activity size={14} />, text: `正在调用大棚传感器获取实时环境数据...`, status: 'completed' },
+      { icon: <Zap size={14} />, text: `正在生成控制指令流...`, status: 'in_progress' }
+    ]
+    const subActions = activeTask.subActions || getMockSubActions(activeTask.title || "任务")
+
+    return (
+      <div className="my-6 w-full max-w-2xl bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans dark:bg-[#1C1C1E] dark:border-white/10">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "size-2 rounded-full animate-pulse",
-              data.status === 'completed' ? "bg-emerald-500" :
-              data.status === 'failed' ? "bg-red-500" :
-              "bg-blue-500"
-            )} />
-            <span className="font-semibold text-sm text-zinc-800 dark:text-zinc-200">{data.title || "任务执行计划"}</span>
+        <div className="px-5 py-3 flex items-center justify-between border-b border-zinc-100 dark:border-white/5">
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-md">
+            <span>已用时: {formatTime(elapsedTime)}</span>
           </div>
-          <span className={cn(
-            "text-xs px-2 py-0.5 rounded-full font-medium",
-            data.status === 'completed' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-            data.status === 'failed' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-            "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-          )}>
-            {data.status === 'completed' ? "已完成" :
-             data.status === 'failed' ? "执行失败" :
-             "执行中"}
-          </span>
+          
+          <button 
+            onClick={onOpenStudio}
+            className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            <Zap size={14} />
+            <span>工作室</span>
+            <ArrowUpRight size={14} />
+          </button>
         </div>
         
-        {/* Task List */}
-        <div className="p-2 space-y-1">
-          {data.tasks.map((task: any, idx: number) => (
-            <div key={idx} className={cn(
-              "group flex items-start gap-3 p-2.5 rounded-lg transition-all",
-              task.status === 'in_progress' ? "bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-            )}>
-              {/* Status Icon */}
-              <div className="mt-0.5 shrink-0">
-                {task.status === 'completed' ? (
-                  <div className="size-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                    <CheckCircle2 size={12} strokeWidth={3} />
-                  </div>
-                ) : task.status === 'in_progress' ? (
-                  <div className="size-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                ) : task.status === 'failed' ? (
-                   <div className="size-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center">
-                    <X size={12} strokeWidth={3} />
-                  </div>
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-200 dark:border-zinc-700" />
-                )}
-              </div>
+        {/* Body */}
+        <div className="flex flex-col sm:flex-row min-h-[280px]">
+          {/* Left: Stepper */}
+          <div className="w-full sm:w-1/3 border-r border-zinc-100 dark:border-white/5 p-5 space-y-6 bg-zinc-50/50 dark:bg-[#111111]/50">
+            {tasks.map((task: any, idx: number) => {
+              const isActive = idx === currentIndex
+              const isPast = idx < currentIndex || task.status === 'completed'
               
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className={cn(
-                    "text-sm font-medium truncate",
-                    task.status === 'completed' ? "text-zinc-500 line-through decoration-zinc-400" : 
-                    task.status === 'in_progress' ? "text-blue-700 dark:text-blue-400" :
-                    "text-zinc-700 dark:text-zinc-300"
+              return (
+                <div key={idx} className="flex items-start gap-3 relative">
+                  {idx !== tasks.length - 1 && (
+                    <div className="absolute left-3 top-7 bottom-[-20px] w-px bg-zinc-200 dark:bg-zinc-800" />
+                  )}
+                  
+                  <div className={cn(
+                    "relative z-10 flex items-center justify-center shrink-0 w-6 h-6 rounded-full text-xs font-bold transition-colors",
+                    isActive ? "bg-white text-blue-600 shadow-sm border border-blue-100 dark:bg-zinc-800 dark:text-blue-400 dark:border-blue-900/50" : 
+                    isPast ? "bg-transparent text-zinc-400 dark:text-zinc-500" : "bg-transparent text-zinc-300 dark:text-zinc-600"
+                  )}>
+                    {isActive ? (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-blue-600 dark:text-blue-400">{idx + 1}</span>
+                        <span className="text-zinc-300 dark:text-zinc-600">/{tasks.length}</span>
+                      </div>
+                    ) : (
+                      idx + 1
+                    )}
+                  </div>
+                  
+                  <div className={cn(
+                    "flex-1 pt-0.5 text-sm font-medium leading-relaxed transition-colors",
+                    isActive ? "text-zinc-900 dark:text-white" : 
+                    isPast ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
                   )}>
                     {task.title}
-                  </span>
+                  </div>
                 </div>
-                {task.desc && (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
-                    {task.desc}
-                  </p>
-                )}
-              </div>
+              )
+            })}
+          </div>
+
+          {/* Right: Current Actions */}
+          <div className="w-full sm:w-2/3 p-6 bg-white dark:bg-[#1C1C1E] flex flex-col">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-6">
+              {activeTask?.title || "正在处理"}
+            </h3>
+            
+            <div className="flex-1 space-y-4 relative">
+              {/* Timeline line */}
+              <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100 dark:bg-zinc-800" />
+              
+              {subActions.map((action: any, idx: number) => {
+                const isSubActive = action.status === 'in_progress'
+                return (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "flex items-center gap-3 relative z-10 p-2.5 rounded-xl transition-all",
+                      isSubActive ? "bg-blue-50/50 border border-blue-100/50 dark:bg-blue-900/10 dark:border-blue-900/30" : ""
+                    )}
+                  >
+                    <div className={cn(
+                      "flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 shadow-sm border",
+                      isSubActive ? "border-blue-200 text-blue-500 dark:border-blue-800 dark:text-blue-400" : "border-zinc-200 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500"
+                    )}>
+                      {action.icon}
+                    </div>
+                    <span className={cn(
+                      "text-sm flex-1 truncate",
+                      isSubActive ? "text-blue-700 dark:text-blue-300 font-medium" : "text-zinc-600 dark:text-zinc-400"
+                    )}>
+                      {action.text}
+                    </span>
+                    {isSubActive && (
+                      <Loader2 size={14} className="animate-spin text-blue-500" />
+                    )}
+                  </div>
+                )
+              })}
             </div>
-          ))}
+            
+            {/* Footer Buttons */}
+            <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-white/5">
+              {isPaused ? (
+                 <button 
+                   onClick={() => onTogglePause?.(false)}
+                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors shadow-emerald-600/20"
+                 >
+                   <Play size={16} className="fill-current" />
+                   继续执行
+                 </button>
+              ) : (
+                 <button 
+                   onClick={() => onTogglePause?.(true)}
+                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-lg transition-colors dark:text-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700"
+                 >
+                   <Pause size={16} className="fill-current" />
+                   暂停任务
+                 </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -249,7 +320,7 @@ export default function AIAssistantPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
   const [enableReasoning, setEnableReasoning] = useState(false)
-  const [autoExecuteCommands, setAutoExecuteCommands] = useState(false) // AI自动执行设备控制
+  const [autoExecuteCommands, setAutoExecuteCommands] = useState(true) // AI自动执行设备控制
   const [isExecutingControl, setIsExecutingControl] = useState(false) // 正在执行设备控制（用于发光动效）
   const [executingDeviceName, setExecutingDeviceName] = useState<string>("") // 正在操作的设备名称
   const [devicePillExpanded, setDevicePillExpanded] = useState(false) // 控制胶囊展开动画
@@ -268,6 +339,21 @@ export default function AIAssistantPage() {
   
   // Browser Activity State
   const [browsingUrl, setBrowsingUrl] = useState<string | null>(null)
+  
+  // Studio Panel State
+  const [studioOpen, setStudioOpen] = useState(false)
+  const [studioData, setStudioData] = useState<any[]>([]) // 存储真实的工具执行结果
+  const [currentBrowserUrl, setCurrentBrowserUrl] = useState<string | null>(null) // 工作室内部的浏览器URL
+  const [browserScreenshot, setBrowserScreenshot] = useState<string | null>(null) // 新增：浏览器截图数据
+
+  // 全局任务暂停状态 (Real Execution Pause)
+  const [isTaskPaused, setIsTaskPaused] = useState(false)
+  const isTaskPausedRef = useRef(false)
+
+  // 同步 Ref 以便在异步循环中即时访问
+  useEffect(() => {
+      isTaskPausedRef.current = isTaskPaused
+  }, [isTaskPaused])
 
   // Load MCP Tools
   useEffect(() => {
@@ -586,7 +672,6 @@ export default function AIAssistantPage() {
     
     // 2. 标记停止，阻止后续执行
     isStoppedRef.current = true
-    setAutoExecuteCommands(false) // 强制关闭自动模式
     
     // 清除所有未执行的反馈回调
     feedbackTimeoutIdsRef.current.forEach(id => clearTimeout(id))
@@ -689,6 +774,13 @@ export default function AIAssistantPage() {
 
       try {
         if (cmd.action === "set_led") {
+          // 循环检测暂停状态
+          while (isTaskPausedRef.current) {
+            if (isStoppedRef.current) break
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          if (isStoppedRef.current) break
+
           // 先显示小圆点，再展开
           setExecutingDeviceName("RGB补光灯")
           setTimeout(() => setDevicePillExpanded(true), 150)
@@ -705,6 +797,13 @@ export default function AIAssistantPage() {
             showNotice("调控失败", err || `请求错误 ${res.status}`, "error")
           }
         } else if (cmd.action === "toggle_relay") {
+          // 循环检测暂停状态
+          while (isTaskPausedRef.current) {
+            if (isStoppedRef.current) break
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          if (isStoppedRef.current) break
+
           const devName = deviceNames[String(cmd.device)] || `设备${cmd.device}`
           // 先显示小圆点，再展开
           setExecutingDeviceName(devName)
@@ -726,6 +825,13 @@ export default function AIAssistantPage() {
             showNotice("开关执行失败", err || `请求错误 ${res.status}`, "error")
           }
         } else if (cmd.action === "control_camera") {
+          // 循环检测暂停状态
+          while (isTaskPausedRef.current) {
+            if (isStoppedRef.current) break
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          if (isStoppedRef.current) break
+
           // 摄像头云台控制
           const directionNames = ['停止', '左移', '右移']
           const dirName = directionNames[cmd.direction ?? 0] || '控制'
@@ -812,23 +918,44 @@ export default function AIAssistantPage() {
     if (isStoppedRef.current) return;
     setAgentStatus("等待下位机响应: ESP32-S3 (超时 5000ms)...")
     
-    const t1 = setTimeout(() => {
-      if (isStoppedRef.current) return;
-      setAgentStatus("重新采样: DHT11, BH1750, MH-Z19...")
-      
-      const t2 = setTimeout(() => {
-        if (isStoppedRef.current) return;
+    // 异步执行反馈循环，以便可以被暂停
+    const feedbackLoop = async () => {
+        // Step 1: 等待设备响应
+        const step1Start = Date.now()
+        while (Date.now() - step1Start < 1500) {
+            if (isStoppedRef.current) return
+            while (isTaskPausedRef.current) {
+                if (isStoppedRef.current) return
+                await new Promise(r => setTimeout(r, 500))
+                setAgentStatus("任务已暂停: 等待恢复...")
+            }
+            await new Promise(r => setTimeout(r, 100))
+        }
+        if (isStoppedRef.current) return
+        
+        setAgentStatus("重新采样: DHT11, BH1750, MH-Z19...")
+
+        // Step 2: 等待重新采样
+        const step2Start = Date.now()
+        while (Date.now() - step2Start < 3500) {
+            if (isStoppedRef.current) return
+            while (isTaskPausedRef.current) {
+                if (isStoppedRef.current) return
+                await new Promise(r => setTimeout(r, 500))
+                setAgentStatus("任务已暂停: 等待恢复...")
+            }
+            await new Promise(r => setTimeout(r, 100))
+        }
+        if (isStoppedRef.current) return
+
         setAgentStatus("正在分析闭环控制反馈...")
         
         // 如果是自动执行模式，则继续发送反馈给 AI 进行下一步判断
-        // 如果是手动模式，则不自动发送，等待用户手动操作，避免死循环
         if (autoExecuteCommands) {
-            // 提取上下文中的任务列表，防止 AI 遗忘进度
             let taskContext = "";
             if (originalContent) {
                  const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
                  if (match) {
-                     // 压缩 JSON 字符串以节省 Token (可选)
                      taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。`;
                  }
             }
@@ -842,16 +969,14 @@ ${taskContext}
 2. 请直接生成下一步的控制指令 JSON。
 3. 如果当前任务因环境反应慢而未达标，但已执行过指令，请判定为“超时/已尽力”，自动跳过并执行下一个任务。
 4. **严禁**重复执行相同的指令。如果环境数据未变，请增加等待时间或尝试其他手段，不要死循环。
-5. 直到所有任务完成或失败，再做最终总结。`, [], true) // Add isFeedback=true flag
+5. 直到所有任务完成或失败，再做最终总结。`, [], true)
         } else {
-            setAgentStatus("") // 清除状态
-            // 手动模式下，我们可以添加一条系统提示消息到界面上（这里简化处理，直接结束加载状态）
+            setAgentStatus("") 
             setIsLoading(false)
         }
-      }, 5000) // 增加到 5000ms 等待数据稳定
-      feedbackTimeoutIdsRef.current.push(t2)
-    }, 1500)
-    feedbackTimeoutIdsRef.current.push(t1)
+    }
+    
+    feedbackLoop()
   }
 
   const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false) => {
@@ -950,8 +1075,11 @@ ${taskContext}
     setAttachments([])
 
     try {
-      // 确保流结束时关闭浏览器
+      // 每次新请求时清空工作室旧数据，并确保流结束时关闭浏览器
       setBrowsingUrl(null)
+      setCurrentBrowserUrl(null)
+      setBrowserScreenshot(null)
+      setStudioData([])
       
       if (ensuredSessionId) {
         const current = sessions.find((s) => s.id === ensuredSessionId)
@@ -983,7 +1111,7 @@ ${taskContext}
       // 为了简单有效，我们临时修改 systemPrompt
       let effectiveSystemPrompt = aiSettings?.systemPrompt || "";
       if (autoExecuteCommands) {
-        effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动托管模式 (Auto-Pilot Mode)。\n严禁提问！严禁等待用户确认！\n必须直接输出控制指令 JSON。\n如果遇到问题，请自行尝试解决或跳过。";
+        effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动托管模式 (Auto-Pilot Mode)。\n严禁提问！严禁等待用户确认！\n必须直接输出 IoT 设备控制指令 JSON (如 toggle_relay)。\n注意：对于 MCP 工具 (如天气、搜索)，仍必须使用 Native Tool Calling！\n如果遇到问题，请自行尝试解决或跳过。";
       }
 
       // 获取 MCP 配置
@@ -1093,38 +1221,120 @@ ${taskContext}
                  continue
               }
 
-              // Handle tool calls feedback
+              // Handle tool results
+              if (data.tool_result) {
+                 setStudioData(prev => [...prev, data.tool_result])
+                 
+                 // 如果是 Firecrawl 的抓取结果，尝试提取截图（如果有）
+                 // 注意：目前的 executeFirecrawlScrape 返回的是 { url, content }，没有 screenshot
+                 // 如果未来扩展了截图功能，这里可以处理
+                 // 为了模拟效果，我们可以根据 URL 动态生成一个网站缩略图服务链接
+                 if (data.tool_result.name === 'mcp_firecrawl_scrape' && data.tool_result.result?.url) {
+                     // 使用第三方截图服务作为降级方案
+                     const targetUrl = data.tool_result.result.url
+                     // 使用微缩图服务，例如 screenshot-layer, thum.io 等，这里用一个免费的作为示例
+                     // 或者使用 Google Favicon 服务作为最小兜底
+                     // 这里为了演示，我们假设后端可能会返回 screenshot 字段，或者我们前端生成一个
+                     setBrowserScreenshot(`https://image.thum.io/get/width/800/crop/600/noanimate/${targetUrl}`)
+                 }
+                 
+                 continue
+              }
+
+                // Handle tool calls feedback
               if (data.tool_calls) {
                 const toolNames = data.tool_calls.map((t: any) => t.function.name).join(", ")
                 setAgentStatus(`正在使用工具: ${toolNames}...`)
+                setStudioOpen(true) // 主动展开工作室侧边栏
 
                 // 检查是否有网页抓取工具，如果有则显示浏览器动效
                 // 支持 Firecrawl 和 Exa (虽然 Exa 通常不是直接抓取，但为了视觉反馈，也可以显示搜索状态)
-                const crawlerCall = data.tool_calls.find((t: any) => t.function.name === 'mcp_firecrawl_scrape' || t.function.name === 'mcp_exa_search')
+                const crawlerCall = data.tool_calls.find((t: any) => t.function.name === 'mcp_firecrawl_scrape' || t.function.name === 'mcp_exa_search' || t.function.name === 'mcp_brave_search')
                 if (crawlerCall) {
                     try {
                         const args = JSON.parse(crawlerCall.function.arguments)
-                        // 如果是 Exa 搜索，可能没有 url 参数，只有 query。
-                        // 此时我们可以构造一个虚拟 URL 来展示 "正在搜索: xxx"
+                        let url = null
                         if (args.url) {
-                            setBrowsingUrl(args.url)
+                            url = args.url
                         } else if (args.query) {
-                            // 对于 Exa 搜索，显示搜索关键词作为"虚拟网页"
-                            setBrowsingUrl(`https://exa.ai/search?q=${encodeURIComponent(args.query)}`)
+                            // 对于 Exa/Brave 搜索，显示搜索关键词作为"虚拟网页"
+                            url = `https://search.engine/search?q=${encodeURIComponent(args.query)}`
+                        }
+                        
+                        if (url) {
+                             setBrowsingUrl(url)
+                             setCurrentBrowserUrl(url) // 同步到工作室内部浏览器状态
+                             setStudioOpen(true) // 确保工作室打开
                         }
                     } catch (e) { console.error("Failed to parse crawler args", e) }
+                } else if (data.tool_calls.some((t: any) => t.function.name.includes('scrape') || t.function.name.includes('search'))) {
+                    // 兜底：如果没匹配到上面的 crawlerCall 但依然是抓取或搜索类工具，也打开工作室
+                    setStudioOpen(true)
                 }
+
+                // 构造一个临时的 TASK_LIST 以便让用户看到真实的规划器进度
+                const tempTasks = data.tool_calls.map((t: any) => {
+                    let title = '执行工具调用'
+                    if (t.function.name.includes('search') || t.function.name.includes('scrape')) title = '搜索并分析外部知识'
+                    else if (t.function.name.includes('weather')) title = '获取实时天气数据'
+                    else if (t.function.name.includes('spectrum')) title = '读取并分析光谱传感器'
+                    
+                    return {
+                        title: title,
+                        status: 'in_progress',
+                        subActions: [
+                            { text: `正在调用 ${t.function.name}...`, status: 'in_progress' }
+                        ]
+                    }
+                })
+                const tempTaskListStr = `\n<TASK_LIST>\n${JSON.stringify({ status: 'in_progress', tasks: tempTasks })}\n</TASK_LIST>\n`
+
+                // 添加临时的 TASK_LIST 和 TOOL_USED 标记
+                if (typeof assistantMsg.content === "string") {
+                    if (!assistantMsg.content.includes('<TASK_LIST>')) {
+                        assistantMsg.content += tempTaskListStr
+                    }
+                }
+
+                data.tool_calls.forEach((t: any) => {
+                    // 获取中文描述
+                    let desc = "正在执行..."
+                    if (t.function.name.includes('search')) desc = "搜索最新信息"
+                    else if (t.function.name.includes('weather')) desc = "查询天气"
+                    else if (t.function.name.includes('scrape')) desc = "读取网页内容"
+                    
+                    const loadingTag = `<TOOL_USED toolName="${t.function.name}" description="${desc}" result="loading" />`
+                    
+                    if (typeof assistantMsg.content === "string") {
+                         // 避免重复添加相同的 loading tag
+                         if (!assistantMsg.content.includes(`toolName="${t.function.name}"`) || !assistantMsg.content.includes(`result="loading"`)) {
+                            assistantMsg.content += loadingTag
+                         }
+                    }
+                })
+                
+                // 更新 UI
+                setMessages(prev => {
+                  const newMsgs = [...prev]
+                  newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+                  return newMsgs
+                })
 
                 continue
               }
 
               const content = data.choices?.[0]?.delta?.content ?? data.content
               if (typeof content === "string") {
-                // 如果开始收到内容，关闭浏览器动效（或者保留直到完成？这里选择保留一会或者在 done 时关闭）
-                // 为了效果，我们让它继续显示直到流结束
-                
                 // Update assistant message content
                 if (typeof assistantMsg.content === "string") {
+                    // 当 LLM 开始生成最终回复时，移除临时的加载标记
+                    if (content.trim()) {
+                        assistantMsg.content = assistantMsg.content.replace(/<TOOL_USED[^>]*result="loading"[^>]*\/>/g, '')
+                        // 如果有临时的 TASK_LIST，也将其移除，以便被 AI 真实的 TASK_LIST 覆盖
+                        if (assistantMsg.content.includes('"subActions":[{"text":"正在调用')) {
+                            assistantMsg.content = assistantMsg.content.replace(/<TASK_LIST>[\s\S]*?<\/TASK_LIST>/g, '')
+                        }
+                    }
                     assistantMsg.content += content
                 } else {
                     assistantMsg.content = content
@@ -1425,8 +1635,8 @@ ${taskContext}
 
 
 
-  const renderMessageContent = (msg: Message) => {
-    const content = msg.content
+  const renderMessageContent = (msg: Message, onOpenStudio?: () => void) => {
+    let content = msg.content
     
     // 渲染思考过程（如果存在）
     const reasoningElement = msg.reasoning?.text ? (
@@ -1449,14 +1659,26 @@ ${taskContext}
     
     // 1. 先提取 TaskList 内容 (Dynamic Task Planner)
     let dynamicTaskContent = "";
-    let mainContent = content;
-
+    
+    // 预处理 content，如果是 string 类型
     if (typeof content === 'string') {
+        // 移除原始的 tool_call 标签，防止泄露到 UI
+        content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "");
+        
+        // 增强过滤：仅移除看起来像工具调用的 JSON 参数（通常在抓取或搜索时出现）
+        // 我们需要小心，不要误删了设备控制指令
+        // 只有包含 firecrawl, exa, search 等关键字的 JSON 块才会被移除
+        content = content.replace(/```json\s*\{\s*"action":\s*"(?:mcp_firecrawl_scrape|mcp_exa_search|mcp_brave_search|mcp_weather|scrape|search|find)"[\s\S]*?\}\s*```/g, "");
+        content = content.replace(/```json\s*\{\s*"function":\s*"(?:mcp_firecrawl_scrape|mcp_exa_search|mcp_brave_search|mcp_weather|scrape|search|find)"[\s\S]*?\}\s*```/g, "");
+        
+        // 移除孤立的工具调用 JSON 文本
+        content = content.replace(/^\s*\{\s*"action":\s*"(?:mcp_firecrawl_scrape|mcp_exa_search|mcp_brave_search|mcp_weather|scrape|search|find)"[\s\S]*?\}\s*$/gm, "");
+
         const taskListMatch = content.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
         if (taskListMatch) {
           dynamicTaskContent = taskListMatch[0];
           // 从正文中移除 TaskList，稍后手动添加到最底部
-          mainContent = content.replace(/<TASK_LIST>[\s\S]*?<\/TASK_LIST>/g, "");
+          content = content.replace(/<TASK_LIST>[\s\S]*?<\/TASK_LIST>/g, "");
         }
     }
 
@@ -1475,16 +1697,16 @@ ${taskContext}
             </div>
           ))}
           {/* Render DynamicTaskPlanner at the very bottom if it exists */}
-          {dynamicTaskContent && <DynamicTaskPlanner content={dynamicTaskContent} />}
+          {dynamicTaskContent && <DynamicTaskPlanner content={dynamicTaskContent} onOpenStudio={onOpenStudio} />}
         </div>
       )
     }
     return (
       <>
         {reasoningElement}
-        {renderTextContent(typeof mainContent === 'string' ? mainContent : "")}
+        {renderTextContent(typeof content === 'string' ? content : "")}
         {/* Render DynamicTaskPlanner at the very bottom if it exists */}
-        {dynamicTaskContent && <DynamicTaskPlanner content={dynamicTaskContent} />}
+        {dynamicTaskContent && <DynamicTaskPlanner content={dynamicTaskContent} onOpenStudio={onOpenStudio} />}
       </>
     )
   }
@@ -1498,11 +1720,42 @@ ${taskContext}
     // Updated to handle spaces in tags (e.g. < TASK_LIST >)
     // Added SCHEDULED_TASKS for legacy/scheduled tasks list
     // Added TOOL_USED for tool usage indicators
-    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>))/g)
+    // Also split by JSON code blocks to render them as DeviceControlCard
+    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|```json\s*[\s\S]*?```)/g)
 
     return (
       <>
         {parts.map((part, index) => {
+          if (part.startsWith('```json')) {
+            try {
+              const jsonContent = part.replace(/^```json\s*/, '').replace(/```$/, '').trim()
+              // Try to parse to see if it's an IoT command
+              if (jsonContent.startsWith('{') || jsonContent.startsWith('[')) {
+                 const parsed = JSON.parse(jsonContent)
+                 const isIoTCommand = (obj: any) => obj.action && (
+                    obj.action === 'toggle_relay' || 
+                    obj.action === 'set_led' || 
+                    obj.action === 'control_camera'
+                 )
+                 
+                 const commands = Array.isArray(parsed) ? parsed : [parsed]
+                 if (commands.some(isIoTCommand)) {
+                    return (
+                        <div key={index} className="my-4 space-y-3">
+                            {commands.map((cmd: any, i: number) => (
+                                isIoTCommand(cmd) ? (
+                                    <DeviceControlCard key={i} command={cmd} />
+                                ) : null
+                            ))}
+                        </div>
+                    )
+                 }
+              }
+            } catch (e) {
+                // Not valid JSON or not IoT command, fall through to default rendering
+            }
+          }
+
           if (part.match(/^<\s*SPECTRAL/)) {
             return (
               <div key={index} className="flex justify-center my-4 w-full">
@@ -2107,18 +2360,15 @@ ${taskContext}
                 <Sparkles size={14} className="text-purple-500" />
                 <span className="text-zinc-600 dark:text-zinc-400 font-medium text-sm">{
                   (selectedModel || aiSettings?.model) === 'auto' ? "智能模式" : 
+                  (selectedModel || aiSettings?.model) === 'qwen3.5-plus' ? "Qwen3.5 Plus" :
+                  (selectedModel || aiSettings?.model) === 'qwen3.5-flash' ? "Qwen3.5 Flash" :
                   (selectedModel || aiSettings?.model) === 'qwen3-vl-plus' ? "Qwen3 VL Plus" :
                   (selectedModel || aiSettings?.model) === 'qwen3-vl-flash' ? "Qwen3 VL Flash" :
                   (selectedModel || aiSettings?.model) === 'qwen3-max' ? "Qwen3 Max" :
                   (selectedModel || aiSettings?.model) === 'qwen3-max-2026-01-23' ? "Qwen3 Max (推理)" :
-                  (selectedModel || aiSettings?.model) === 'qwen-flash' ? "Qwen Flash" :
-                  (selectedModel || aiSettings?.model) === 'qwen-plus' ? "Qwen Plus" :
-                  (selectedModel || aiSettings?.model) === 'qwen-plus-2025-12-01' ? "Qwen Plus (推理)" :
-                  (selectedModel || aiSettings?.model) === 'qwen-max' ? "Qwen Max" :
-                  (selectedModel || aiSettings?.model) === 'qwen-turbo' ? "Qwen Turbo" :
                   (selectedModel || aiSettings?.model) === 'qwen-long' ? "Qwen Long" :
                   (selectedModel || aiSettings?.model) === 'deepseek-v3.2' ? "DeepSeek V3.2" :
-                  (selectedModel || aiSettings?.model || "Qwen Plus")
+                  (selectedModel || aiSettings?.model || "Qwen3.5 Plus")
                 }</span>
                 <ChevronDown size={14} className="text-zinc-400 ml-1" />
               </PromptInputModelSelectTrigger>
@@ -2130,9 +2380,9 @@ ${taskContext}
                     <span>智能模式 (Auto)</span>
                   </span>
                 </PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen-plus">
+                <PromptInputModelSelectItem value="qwen3.5-plus">
                   <span className="flex items-center justify-between w-full">
-                    <span>Qwen Plus</span>
+                    <span>Qwen3.5 Plus</span>
                     <span className="text-xs text-emerald-500">推荐</span>
                   </span>
                 </PromptInputModelSelectItem>
@@ -2141,12 +2391,6 @@ ${taskContext}
                 <PromptInputModelSelectItem value="qwen3-max-2026-01-23">
                   <span className="flex items-center justify-between w-full">
                     <span>Qwen3 Max (2026-01-23)</span>
-                    <span className="text-xs text-purple-500">推理</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen-plus-2025-12-01">
-                  <span className="flex items-center justify-between w-full">
-                    <span>Qwen Plus (2025-12-01)</span>
                     <span className="text-xs text-purple-500">推理</span>
                   </span>
                 </PromptInputModelSelectItem>
@@ -2164,20 +2408,20 @@ ${taskContext}
                     <span className="text-xs text-orange-500">最强</span>
                   </span>
                 </PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen-flash">
+                <PromptInputModelSelectItem value="qwen3.5-flash">
                   <span className="flex items-center justify-between w-full">
-                    <span>Qwen Flash</span>
+                    <span>Qwen3.5 Flash</span>
                     <span className="text-xs text-blue-500">快速</span>
                   </span>
                 </PromptInputModelSelectItem>
                 
                 <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2">👁️ 视觉理解</div>
+                <PromptInputModelSelectItem value="qwen3.5-plus">Qwen3.5 Plus</PromptInputModelSelectItem>
+                <PromptInputModelSelectItem value="qwen3.5-flash">Qwen3.5 Flash</PromptInputModelSelectItem>
                 <PromptInputModelSelectItem value="qwen3-vl-plus">Qwen3 VL Plus</PromptInputModelSelectItem>
                 <PromptInputModelSelectItem value="qwen3-vl-flash">Qwen3 VL Flash</PromptInputModelSelectItem>
                 
                 <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2">🔧 其他</div>
-                <PromptInputModelSelectItem value="qwen-max">Qwen Max</PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen-turbo">Qwen Turbo</PromptInputModelSelectItem>
                 <PromptInputModelSelectItem value="qwen-long">Qwen Long (长文本)</PromptInputModelSelectItem>
               </PromptInputModelSelectContent>
             </PromptInputModelSelect>
@@ -2277,7 +2521,7 @@ ${taskContext}
                           if (newReasoning) {
                             const reasoningModels = [
                               'qwen3-max-2026-01-23',
-                              'qwen-plus-2025-12-01', 
+                              'qwen3.5-plus', 
                               'deepseek-v3.2'
                             ]
                             const randomModel = reasoningModels[Math.floor(Math.random() * reasoningModels.length)]
@@ -2296,6 +2540,40 @@ ${taskContext}
                       >
                         <Sparkles size={20} />
                       </button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            className={cn(
+                              "p-2 rounded-lg transition-colors",
+                              autoExecuteCommands
+                                ? "text-violet-500 bg-violet-50 dark:bg-violet-900/20"
+                                : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                            )}
+                            title={autoExecuteCommands ? "AI自动托管已开启" : "手动确认执行设备控制"}
+                          >
+                            <Zap size={20} className={autoExecuteCommands ? "fill-current" : ""} />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-3" align="start" sideOffset={10}>
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm flex items-center gap-2">
+                              <Zap size={16} className="text-violet-500 fill-current" />
+                              AI 自动托管模式
+                            </h4>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                              开启后，AI 将获得执行指令的权限，可以自动控制设备、调节环境，无需您再次确认。
+                            </p>
+                            <div className="flex items-center justify-between pt-2">
+                              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">启用自动执行</span>
+                              <Switch 
+                                checked={autoExecuteCommands}
+                                onCheckedChange={setAutoExecuteCommands}
+                                className="data-[state=checked]:bg-violet-600"
+                              />
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="text-xs text-zinc-400 font-medium">
                         {input.length}/2000
@@ -2402,23 +2680,20 @@ ${taskContext}
                               <Sparkles size={12} className="text-purple-500" />
                               <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                                 {msg.model === 'auto' ? '智能模式' :
+                                 msg.model === 'qwen3.5-plus' ? 'Qwen3.5 Plus' :
+                                 msg.model === 'qwen3.5-flash' ? 'Qwen3.5 Flash' :
                                  msg.model === 'qwen3-vl-plus' ? 'Qwen3 VL Plus' :
                                  msg.model === 'qwen3-vl-flash' ? 'Qwen3 VL Flash' :
                                  msg.model === 'qwen3-max' ? 'Qwen3 Max' :
                                  msg.model === 'qwen3-max-2026-01-23' ? 'Qwen3 Max (推理)' :
-                                 msg.model === 'qwen-flash' ? 'Qwen Flash' :
-                                 msg.model === 'qwen-plus' ? 'Qwen Plus' :
-                                 msg.model === 'qwen-plus-2025-12-01' ? 'Qwen Plus (推理)' :
-                                 msg.model === 'qwen-max' ? 'Qwen Max' :
-                                 msg.model === 'qwen-turbo' ? 'Qwen Turbo' :
-                                 msg.model === 'qwen-long' ? 'Qwen Long' :
                                  msg.model === 'deepseek-v3.2' ? 'DeepSeek V3.2' :
+                                 msg.model === 'qwen-long' ? 'Qwen Long' :
                                  msg.model}
                               </span>
                             </div>
                           )}
                           <div id={`message-content-${i}`} className="prose prose-zinc dark:prose-invert max-w-none break-words">
-                            {renderMessageContent(msg)}
+                            {renderMessageContent(msg, () => setStudioOpen(true))}
                           </div>
 
                           {msg.role === "assistant" && (
@@ -2495,26 +2770,8 @@ ${taskContext}
 
                     {/* Input Area */}
                     <div className="space-y-2">
-                      {/* Voice Input */}
-                      <div className="px-2">
-                        <QwenVoiceInput
-                          onTranscript={(text) => {
-                            setInput(prev => prev + (prev ? ' ' : '') + text)
-                            // 自动聚焦到输入框
-                            setTimeout(() => {
-                              textareaRefChat.current?.focus()
-                            }, 100)
-                          }}
-                          onError={(error) => {
-                            showNotice("语音识别失败", error, "error")
-                          }}
-                          className="w-full"
-                          placeholder="支持普通话、粤语、吴语(含台州话)等多种方言识别"
-                        />
-                      </div>
-                      
                       {/* Text Input */}
-                      <div className="flex items-end gap-2 px-2">
+                      <div className="flex items-end gap-2 px-2 pt-2">
                         <textarea
                         ref={textareaRefChat}
                         value={input}
@@ -2623,14 +2880,6 @@ ${taskContext}
                           <Paperclip size={18} strokeWidth={2} />
                         </button>
 
-                        <button
-                          onClick={() => setVoiceChatOpen(true)}
-                          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 group relative"
-                          title="语音对话"
-                        >
-                          <Phone size={18} strokeWidth={2} />
-                        </button>
-
                         <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
 
                         <button
@@ -2670,31 +2919,51 @@ ${taskContext}
                               }
                             }
                           }}
-                        className={cn(
-                          "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium select-none group",
-                          enableReasoning
-                            ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-                            : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                        )}
-                        title="深度思考 - 自动切换到推理模型"
-                      >
-                        <Sparkles size={14} className={enableReasoning ? "text-purple-500" : ""} />
-                        <span>思考</span>
-                      </button>
+                          className={cn(
+                            "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors group relative",
+                            enableReasoning
+                              ? "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20"
+                              : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          )}
+                          title="深度思考 - 自动切换到推理模型"
+                        >
+                          <Sparkles size={18} strokeWidth={2} className={enableReasoning ? "text-purple-500" : ""} />
+                        </button>
 
-                      <button
-                        onClick={() => setAutoExecuteCommands(!autoExecuteCommands)}
-                        className={cn(
-                          "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium select-none group",
-                          autoExecuteCommands
-                            ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"
-                            : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                        )}
-                        title={autoExecuteCommands ? "AI自动执行设备控制" : "手动确认执行设备控制"}
-                      >
-                        <Zap size={14} className={autoExecuteCommands ? "text-orange-500" : ""} />
-                        <span>{autoExecuteCommands ? "自动" : "手动"}</span>
-                      </button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              className={cn(
+                                "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors group relative",
+                                autoExecuteCommands
+                                  ? "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20"
+                                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                              )}
+                              title={autoExecuteCommands ? "AI自动托管已开启" : "手动确认执行设备控制"}
+                            >
+                              <Zap size={18} strokeWidth={2} className={autoExecuteCommands ? "fill-current" : ""} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-3" align="start" sideOffset={10}>
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm flex items-center gap-2">
+                                <Zap size={16} className="text-violet-500 fill-current" />
+                                AI 自动托管模式
+                              </h4>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                                开启后，AI 将获得执行指令的权限，可以自动控制设备、调节环境，无需您再次确认。
+                              </p>
+                              <div className="flex items-center justify-between pt-2">
+                                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">启用自动执行</span>
+                                <Switch 
+                                  checked={autoExecuteCommands}
+                                  onCheckedChange={setAutoExecuteCommands}
+                                  className="data-[state=checked]:bg-violet-600"
+                                />
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -2730,6 +2999,177 @@ ${taskContext}
             <CircleHelp size={18} />
           </button>
         </div>
+      </div>
+
+      {/* Right Studio Panel */}
+      <div className={cn(
+        "relative flex-shrink-0 bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20",
+        studioOpen ? "w-[400px] lg:w-[480px] xl:w-[550px] translate-x-0" : "w-0 translate-x-full opacity-0"
+      )}>
+        {studioOpen && (
+          <div className="w-full h-full flex flex-col overflow-hidden">
+            {/* Studio Header */}
+            <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Zap size={18} className="animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-zinc-900 dark:text-white">工作室</h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                    {studioData.length > 0 && studioData[studioData.length - 1].name.includes('weather') ? <Sun size={12} /> : 
+                     studioData.length > 0 && studioData[studioData.length - 1].name.includes('spectrum') ? <Activity size={12} /> : 
+                     <Globe size={12} />}
+                    {studioData.length > 0 ? `正在处理: ${studioData[studioData.length - 1].name}...` : '等待工具执行...'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setStudioOpen(false)}
+                  className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <PanelLeftOpen size={18} className="rotate-180" />
+                </button>
+                <button 
+                  onClick={() => setStudioOpen(false)}
+                  className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Studio Content */}
+            <div className="flex-1 overflow-y-auto p-6 bg-zinc-50 dark:bg-[#09090B]">
+              <div className="space-y-6">
+                {/* 如果正在浏览网页，显示浏览器预览 */}
+                {currentBrowserUrl && (
+                    <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 mb-4">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
+                            <div className="flex gap-1.5">
+                                <div className="size-2.5 rounded-full bg-red-400" />
+                                <div className="size-2.5 rounded-full bg-amber-400" />
+                                <div className="size-2.5 rounded-full bg-green-400" />
+                            </div>
+                            <div className="flex-1 flex items-center justify-center">
+                                <div className="bg-white dark:bg-zinc-800 rounded px-2 py-0.5 text-[10px] text-zinc-400 flex items-center gap-1.5 w-full max-w-[200px]">
+                                    <Globe size={10} />
+                                    <span className="truncate flex-1 text-center">{currentBrowserUrl}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="aspect-video bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center relative overflow-hidden group cursor-pointer" onClick={() => setBrowsingUrl(null)}>
+                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/10 to-transparent pointer-events-none" />
+                            {/* 为了演示效果，我们使用一个通用的网页骨架屏，但如果能支持 iframe 更好 */}
+                            {/* 尝试使用 iframe 渲染真实内容，如果被 CSP 拦截则降级显示骨架屏或截图 */}
+                            {currentBrowserUrl && !currentBrowserUrl.includes('search.engine') ? (
+                                <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-800 flex flex-col items-center justify-center">
+                                    {/* 1. 优先尝试 iframe */}
+                                    <iframe 
+                                        src={currentBrowserUrl} 
+                                        className="w-full h-full bg-transparent pointer-events-none opacity-0 grayscale hover:grayscale-0 transition-all duration-700 absolute inset-0 z-10"
+                                        sandbox="allow-same-origin allow-scripts"
+                                        title="Web Preview"
+                                        onLoad={(e) => {
+                                            // 如果加载成功，显示 iframe
+                                            (e.target as HTMLIFrameElement).style.opacity = '0.8';
+                                        }}
+                                    />
+                                    
+                                    {/* 2. 如果有截图，作为背景显示 (当 iframe 失败或被拦截时，截图会作为兜底) */}
+                                    {browserScreenshot && (
+                                        <div className="absolute inset-0 z-0">
+                                            <Image 
+                                                src={browserScreenshot} 
+                                                alt="Web Screenshot" 
+                                                fill 
+                                                className="object-cover object-top opacity-90"
+                                                unoptimized
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    {/* 3. 最后的兜底图标 (当没有截图且 iframe 失败时) */}
+                                    {!browserScreenshot && (
+                                        <div className="z-0 flex flex-col items-center justify-center text-zinc-400 opacity-50 pointer-events-none absolute inset-0">
+                                            <Globe size={48} strokeWidth={1} className="mb-2" />
+                                            <span className="text-[10px]">正在访问外部链接...</span>
+                                        </div>
+                                    )}
+
+                                    {/* Overlay to ensure pointer-events-none but allow clicking through the parent container */}
+                                    <div className="absolute inset-0 bg-transparent z-20" />
+                                    
+                                    <div className="absolute bottom-2 right-2 z-30 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[8px] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        预览模式 (部分内容受限)
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="w-[90%] h-[90%] bg-white dark:bg-zinc-800 shadow-lg rounded-lg p-4 space-y-3 opacity-80 scale-95 group-hover:scale-100 transition-transform duration-500">
+                                    <div className="h-4 bg-zinc-100 dark:bg-zinc-700 rounded w-1/3 animate-pulse" />
+                                    <div className="space-y-2">
+                                        <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded w-full animate-pulse delay-75" />
+                                        <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded w-5/6 animate-pulse delay-100" />
+                                        <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded w-4/6 animate-pulse delay-150" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 mt-4">
+                                        <div className="h-20 bg-zinc-100 dark:bg-zinc-700 rounded animate-pulse delay-200" />
+                                        <div className="h-20 bg-zinc-100 dark:bg-zinc-700 rounded animate-pulse delay-300" />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* 如果想支持点击全屏，可以恢复此遮罩，或者保留当前仅作为展示 */}
+                            {/* 
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 backdrop-blur-[1px]">
+                                <span className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-medium flex items-center gap-1.5">
+                                    <ArrowUpRight size={12} />
+                                    查看详情
+                                </span>
+                            </div> 
+                            */}
+                        </div>
+                    </div>
+                )}
+
+                {studioData.length > 0 ? (
+                   studioData.map((data, idx) => (
+                     <div key={idx} className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="size-6 rounded bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
+                            {data.name.includes('weather') ? <Sun size={14} /> : 
+                             data.name.includes('spectrum') ? <Activity size={14} /> : 
+                             data.name.includes('search') || data.name.includes('scrape') ? <Globe size={14} /> :
+                             <Zap size={14} />}
+                          </div>
+                          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                            {data.name.includes('weather') ? '天气查询结果' :
+                             data.name.includes('search') ? '网络搜索结果' :
+                             data.name.includes('scrape') ? '网页分析结果' :
+                             data.name.includes('spectrum') ? '光谱数据分析' : '工具执行结果'}
+                          </h3>
+                        </div>
+                        
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 max-h-[300px] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words">
+                          {data.result?.error ? (
+                            <span className="text-red-500">执行失败: {data.result.error}</span>
+                          ) : (
+                            typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2)
+                          )}
+                        </div>
+                     </div>
+                   ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-600 pt-20">
+                     <Loader2 size={24} className="animate-spin mb-4" />
+                     <p className="text-sm">等待工具执行结果...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
@@ -2807,8 +3247,8 @@ ${taskContext}
         </DialogContent>
       </Dialog>
 
-      {/* 浏览器活动窗口 */}
-      <BrowserActivity url={browsingUrl || ""} isOpen={!!browsingUrl} onClose={() => setBrowsingUrl(null)} />
+      {/* 浏览器活动窗口 - 仅在全屏模式下渲染，小窗口预览不需要此组件 */}
+      <BrowserActivity url={browsingUrl || ""} isOpen={!!browsingUrl && !studioOpen} onClose={() => setBrowsingUrl(null)} />
 
       <AISettingsDialog
         open={settingsOpen}

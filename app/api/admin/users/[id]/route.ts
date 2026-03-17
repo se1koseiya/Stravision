@@ -8,6 +8,7 @@ const updateUserSchema = z.object({
   username: usernameSchema.optional(),
   password: passwordSchema.optional().or(z.literal("")),
   role: z.enum(["user", "admin", "super_admin"]).optional(),
+  membership: z.enum(["free", "pro", "plus"]).optional(),
   permissions: z.any().optional(),
   avatar_url: avatarUrlSchema,
   daily_ai_limit: z.number().min(0).optional(),

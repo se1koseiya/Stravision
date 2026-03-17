@@ -1,18 +1,22 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, Rocket, Plus, Trash2, Sparkles, Bug, Loader2 } from "lucide-react"
+import { Send, Rocket, Plus, Trash2, Sparkles, Bug, Loader2, Image as ImageIcon, X } from "lucide-react"
+import Image from "next/image"
 
 export function ChangelogSender() {
   const [version, setVersion] = useState("v2.5.0")
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [title, setTitle] = useState("系统更新公告：MCP 工具与智能托管优化")
+  const [imageUrl, setImageUrl] = useState("")
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [features, setFeatures] = useState<string[]>([
     "新增光谱 MCP (Spectrum MCP) 工具，支持获取指定通道光谱值和全波段数据",
@@ -36,6 +40,43 @@ export function ChangelogSender() {
   const [actionUrl, setActionUrl] = useState("/mcp-store")
   
   const [loading, setLoading] = useState(false)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("图片大小不能超过 5MB")
+      return
+    }
+
+    setUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const res = await fetch("/api/chat/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error("上传失败")
+
+      const data = await res.json()
+      if (data.success) {
+        setImageUrl(data.url)
+        toast.success("图片上传成功")
+      } else {
+        toast.error(data.error || "上传失败")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("图片上传出错")
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
 
   const addItem = (setter: React.Dispatch<React.SetStateAction<string[]>>, list: string[]) => {
     setter([...list, ""])
@@ -63,6 +104,7 @@ export function ChangelogSender() {
       version,
       date,
       title,
+      imageUrl: imageUrl.trim() || undefined,
       features: features.filter(i => i.trim()),
       improvements: improvements.filter(i => i.trim()),
       fixes: fixes.filter(i => i.trim()),
@@ -94,6 +136,7 @@ export function ChangelogSender() {
         toast.success("更新日志推送成功")
         // Reset form
         setVersion("")
+        setImageUrl("")
         setFeatures([])
         setImprovements([])
         setFixes([])
@@ -174,6 +217,44 @@ export function ChangelogSender() {
         <div className="space-y-2">
             <Label>标题 (Title)</Label>
             <Input placeholder="系统更新公告" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+
+        <div className="space-y-2">
+            <Label>封面图片 (Cover Image)</Label>
+            <div className="flex gap-4 items-start">
+              {imageUrl ? (
+                <div className="relative w-full h-40 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
+                  <Image src={imageUrl} alt="Cover" fill className="object-cover" />
+                  <button 
+                    onClick={() => setImageUrl("")}
+                    className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-24 border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+                  ) : (
+                    <>
+                      <ImageIcon className="h-6 w-6 text-zinc-400 mb-2" />
+                      <span className="text-xs text-zinc-500">点击上传封面图片 (Max 5MB)</span>
+                    </>
+                  )}
+                </div>
+              )}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+              />
+            </div>
         </div>
 
         <div className="space-y-6 pt-2">

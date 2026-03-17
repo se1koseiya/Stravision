@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Volume2, Loader2, Sparkles } from "lucide-react";
+import { Mic, Volume2, Loader2, Sparkles, Lightbulb, Fan, Droplets, Video, Calendar, ArrowRight, Zap, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SiriOrb from "@/components/smoothui/siri-orb";
@@ -16,6 +16,7 @@ export interface QuotaInfo {
   daily_usage: number;
   balance: number;
   can_use: boolean;
+  membership?: 'free' | 'pro' | 'plus';
 }
 
 export interface DeviceCommand {
@@ -47,6 +48,12 @@ export interface ScheduleTaskCommand {
 
 export type AICommand = DeviceCommand | ScheduleTaskCommand | NavigateCommand;
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface RealtimeVoiceOrbProps {
   className?: string;
   size?: number;
@@ -62,7 +69,6 @@ interface RealtimeVoiceOrbProps {
   autoConnect?: boolean;
   deviceData?: DeviceData | null;
   autoExecuteCommands?: boolean;
-  initialGreeting?: string;
 }
 
 // Fetch user quota
@@ -71,7 +77,11 @@ async function fetchQuota(): Promise<QuotaInfo | null> {
     const res = await fetch('/api/user/settings');
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.quota || null;
+    if (!data?.quota) return null;
+    return {
+      ...data.quota,
+      membership: data.user?.membership
+    };
   } catch {
     return null;
   }
@@ -94,6 +104,115 @@ const PAGE_NAMES: Record<string, string> = {
   'profile': '个人中心',
   'settings': '设置'
 };
+
+function extractCommands(content: string) {
+  const commands: AICommand[] = [];
+  let cleanText = content;
+
+  // Regex for JSON objects containing "action"
+  // We use a non-greedy match for the content inside braces
+  const jsonRegex = /\{[^{}]*"action"\s*:\s*"[^"]+"[^{}]*\}/g;
+  const matches = [...content.matchAll(jsonRegex)];
+
+  for (const match of matches) {
+    try {
+      const cmd = JSON.parse(match[0]);
+      commands.push(cmd);
+      // Remove the JSON string from the text
+      cleanText = cleanText.replace(match[0], "");
+    } catch (e) {
+      console.error("Failed to parse command JSON:", match[0], e);
+    }
+  }
+
+  return { text: cleanText.trim(), commands };
+}
+
+function CommandCard({ command }: { command: AICommand }) {
+  if (command.action === 'toggle_relay') {
+    const deviceName = DEVICE_NAMES[String(command.device)] || `设备${command.device}`;
+    const isOn = command.value === 1;
+    const Icon = command.device === 5 ? Droplets : command.device === 6 ? Fan : (command.device === 7 || command.device === 8) ? Lightbulb : Zap;
+    
+    return (
+      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
+        <div className={cn("flex items-center justify-center w-10 h-10 rounded-full", isOn ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400")}>
+          <Icon size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white/90 truncate">{deviceName}</div>
+          <div className="text-xs text-white/60 truncate">{isOn ? "已开启" : "已关闭"}</div>
+        </div>
+        <div className={cn("w-2 h-2 rounded-full mr-2", isOn ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-500")} />
+      </div>
+    );
+  }
+
+  if (command.action === 'set_led') {
+    return (
+      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/20 text-orange-400">
+          <Lightbulb size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white/90 truncate">RGB氛围灯</div>
+          <div className="text-xs text-white/60 truncate">颜色已调整</div>
+        </div>
+        <div 
+          className="w-6 h-6 rounded-full border-2 border-white/20 shadow-sm mr-1"
+          style={{ backgroundColor: `rgb(${command.r},${command.g},${command.b})` }}
+        />
+      </div>
+    );
+  }
+  
+  if (command.action === 'control_camera') {
+    const direction = command.direction === 1 ? "左转" : command.direction === 2 ? "右转" : "停止";
+    return (
+      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/20 text-blue-400">
+          <Video size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white/90 truncate">摄像头云台</div>
+          <div className="text-xs text-white/60 truncate">正在{direction}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (command.action === 'schedule_task') {
+    return (
+      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-500/20 text-purple-400">
+          <Calendar size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white/90 truncate">定时任务已创建</div>
+          <div className="text-xs text-white/60 truncate">{command.title}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (command.action === 'navigate') {
+     const pageName = PAGE_NAMES[command.page] || command.page;
+     return (
+      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm cursor-pointer hover:bg-white/20 transition-colors overflow-hidden">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400">
+          <Navigation size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white/90 truncate">页面跳转</div>
+          <div className="text-xs text-white/60 truncate">前往 {pageName}</div>
+        </div>
+        <ArrowRight size={16} className="text-white/40 mr-1" />
+      </div>
+    );
+  }
+
+  return null;
+}
 
 // Execute device control command
 async function executeDeviceCommand(cmd: DeviceCommand): Promise<{ success: boolean; message: string }> {
@@ -378,10 +497,10 @@ export function RealtimeVoiceOrb({
   autoConnect = false,
   deviceData,
   autoExecuteCommands = true,
-  initialGreeting,
 }: RealtimeVoiceOrbProps) {
   const [status, setStatus] = useState<VoiceStatus>('idle');
   const [transcript, setTranscript] = useState<string>("");
+  const [history, setHistory] = useState<ChatMessage[]>([]); // Chat history
   const [isUserSpeaking, setIsUserSpeaking] = useState<boolean>(true); // Track if current transcript is from user
   const [isExecutingCommand, setIsExecutingCommand] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState<QuotaInfo | null>(null);
@@ -572,21 +691,9 @@ export function RealtimeVoiceOrb({
 
   // Send WebSocket message
   const sendMessage = useCallback((message: object) => {
-    console.log('[RealtimeVoiceOrb] sendMessage called, readyState:', wsRef.current?.readyState, 'type:', (message as any).type);
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      const msgStr = JSON.stringify(message);
-      console.log('[RealtimeVoiceOrb] Sending message:', (message as any).type);
-      wsRef.current.send(msgStr);
-    } else {
-      console.warn('[RealtimeVoiceOrb] WebSocket not open, cannot send:', (message as any).type);
+      wsRef.current.send(JSON.stringify(message));
     }
-  }, []);
-
-  const hasTriggeredGreetingRef = useRef(false);
-
-  // Initialize session after connection
-  const initSession = useCallback(() => {
-    // ...
   }, []);
 
   // Handle server events
@@ -594,45 +701,53 @@ export function RealtimeVoiceOrb({
     switch (event.type) {
       case 'session.created':
         console.log('[RealtimeVoiceOrb] Session created');
-        // Session created, now we can start capturing audio and trigger greeting
-        startCapture();
-        
-        // Trigger initial greeting if provided and not triggered yet
-        if (initialGreeting && !hasTriggeredGreetingRef.current) {
-          console.log('[RealtimeVoiceOrb] Triggering initial greeting:', initialGreeting);
-          hasTriggeredGreetingRef.current = true;
-          
-          // Small delay to ensure session is fully ready
-          setTimeout(() => {
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              const responseCreateMsg = {
-                event_id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`,
-                type: "response.create",
-                response: {
-                  modalities: ["text", "audio"],
-                  instructions: `请直接朗读以下内容：${initialGreeting}`
-                }
-              };
-              wsRef.current.send(JSON.stringify(responseCreateMsg));
+        // Session created, now we send session.update
+        const sessionUpdateMsg = {
+          event_id: createEventId(),
+          type: "session.update",
+          session: {
+            modalities: ["text", "audio"],
+            voice: voice,
+            input_audio_format: "pcm16",
+            output_audio_format: "pcm24",
+            instructions: enhancedInstructions,
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.8,
+              silence_duration_ms: 1200
             }
-          }, 200);
+          }
+        };
+        sendMessage(sessionUpdateMsg);
+        
+        // Then start capturing audio and trigger greeting
+        if (audioCaptureRef.current) {
+          audioCaptureRef.current.start();
+        } else {
+          const capture = new AudioCapture((base64) => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({
+                event_id: createEventId(),
+                type: 'input_audio_buffer.append',
+                audio: base64
+              }));
+            }
+          });
+          audioCaptureRef.current = capture;
+          capture.start();
         }
         break;
         
       case 'session.updated':
-        console.log('[RealtimeVoiceOrb] Session updated, voice:', event.session?.voice);
+        console.log('[RealtimeVoiceOrb] Session updated');
         updateStatus('listening');
         break;
         
       case 'input_audio_buffer.speech_started':
         console.log('[RealtimeVoiceOrb] User started speaking');
-        // Cancel any pending transcript clear
-        if (clearTranscriptTimeoutRef.current) {
-          clearTimeout(clearTranscriptTimeoutRef.current);
-          clearTranscriptTimeoutRef.current = null;
-        }
         updateStatus('listening');
         setIsUserSpeaking(true);
+        // Clear streaming transcript when new speech starts
         setTranscript("");
         audioPlayerRef.current?.clear();
         break;
@@ -646,73 +761,40 @@ export function RealtimeVoiceOrb({
           setIsUserSpeaking(true);
           setTranscript(event.transcript);
           
-          // 存储最后的用户转录
-          lastUserTranscriptRef.current = event.transcript;
-          
-          // 检查是否是特殊命令（如截图分析）- 使用同步检查
-          const text = event.transcript.toLowerCase().trim();
-          const snapshotKeywords = [
-            '看看大棚',
-            '查看大棚',
-            '大棚情况',
-            '草莓长得怎么样',
-            '草莓生长',
-            '监控画面',
-            '截图分析',
-            '拍个照',
-            '看一下大棚',
-            '大棚里',
-            '草莓',
-            '长势',
-            '生长情况',
-          ];
-          
-          const isSnapshotCommand = snapshotKeywords.some(keyword => text.includes(keyword));
-          
-          console.log('[RealtimeVoiceOrb] Transcript:', event.transcript);
-          console.log('[RealtimeVoiceOrb] Is snapshot command:', isSnapshotCommand);
-          
-          if (isSnapshotCommand) {
-            console.log('[RealtimeVoiceOrb] Snapshot command detected:', event.transcript);
+          // Store user transcript in history immediately
+          // But only if it's not empty
+          const text = event.transcript.trim();
+          if (text) {
+            lastUserTranscriptRef.current = text;
             
-            // 立即取消当前的 AI 响应，防止 AI 生成设备控制命令
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({
-                type: 'response.cancel'
-              }));
-              wsRef.current.send(JSON.stringify({
-                type: 'input_audio_buffer.clear'
-              }));
-            }
+            // Check for special commands
+            const snapshotKeywords = ['看看大棚', '查看大棚', '大棚情况', '草莓长得怎么样', '草莓生长', '监控画面', '截图分析', '拍个照', '看一下大棚', '大棚里', '草莓', '长势', '生长情况'];
+            const isSnapshotCommand = snapshotKeywords.some(keyword => text.toLowerCase().includes(keyword));
             
-            // 异步处理特殊命令
-            (async () => {
-              try {
-                const { processVoiceCommand } = await import('@/lib/xiaozhi/voice-commands');
-                const result = await processVoiceCommand(event.transcript);
-                
-                if (result.recognized && result.response) {
-                  setIsUserSpeaking(false);
-                  setTranscript(result.response);
-                  onTranscript?.(result.response, false);
-                  
-                  // 清除文本
-                  setTimeout(() => {
-                    setTranscript("");
-                    updateStatus('listening');
-                  }, 3000);
+            if (isSnapshotCommand) {
+              // Cancel AI response
+              sendMessage({ type: 'response.cancel' });
+              sendMessage({ type: 'input_audio_buffer.clear' });
+              
+              // Add to history
+              setHistory(prev => [...prev, { id: createEventId(), role: 'user', content: text }]);
+              
+              // Handle special command logic (async)
+              (async () => {
+                try {
+                  const { processVoiceCommand } = await import('@/lib/xiaozhi/voice-commands');
+                  const result = await processVoiceCommand(text);
+                  if (result.recognized && result.response) {
+                    setHistory(prev => [...prev, { id: createEventId(), role: 'assistant', content: result.response }]);
+                  }
+                } catch (error) {
+                  console.error('Special command error:', error);
                 }
-              } catch (error) {
-                console.error('[RealtimeVoiceOrb] Special command error:', error);
-                setTranscript("抱歉，执行命令时出现错误");
-                setTimeout(() => {
-                  setTranscript("");
-                  updateStatus('listening');
-                }, 2000);
-              }
-            })();
-            
-            return; // 不继续处理
+              })();
+              
+              setTranscript(""); // Clear active transcript since it's now in history
+              return;
+            }
           }
           
           onTranscript?.(event.transcript, true);
@@ -720,61 +802,22 @@ export function RealtimeVoiceOrb({
         break;
         
       case 'response.created':
-        // 再次检查是否是特殊命令（双重保护）
-        const lastTranscript = lastUserTranscriptRef.current;
-        if (lastTranscript) {
-          const text = lastTranscript.toLowerCase().trim();
-          const snapshotKeywords = [
-            '看看大棚', '查看大棚', '大棚情况',
-            '草莓长得怎么样', '草莓生长',
-            '监控画面', '截图分析', '拍个照', '看一下大棚',
-            '大棚里', '草莓', '长势', '生长情况',
-          ];
-          
-          const isSnapshotCommand = snapshotKeywords.some(keyword => text.includes(keyword));
-          
-          if (isSnapshotCommand) {
-            console.log('[RealtimeVoiceOrb] Cancelling response in response.created');
-            // 立即取消
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({ type: 'response.cancel' }));
-            }
-            
-            // 处理特殊命令
-            (async () => {
-              try {
-                const { processVoiceCommand } = await import('@/lib/xiaozhi/voice-commands');
-                const result = await processVoiceCommand(lastTranscript);
-                
-                if (result.recognized && result.response) {
-                  setIsUserSpeaking(false);
-                  setTranscript(result.response);
-                  onTranscript?.(result.response, false);
-                  
-                  setTimeout(() => {
-                    setTranscript("");
-                    updateStatus('listening');
-                  }, 3000);
-                }
-              } catch (error) {
-                console.error('[RealtimeVoiceOrb] Special command error:', error);
-              }
-            })();
-            
-            return;
-          }
+        // User turn ended, AI turn starting. 
+        // Move current user transcript to history if it hasn't been moved yet
+        // (Though usually we rely on input_audio_transcription.completed)
+        if (isUserSpeaking && transcript) {
+           setHistory(prev => [...prev, { id: createEventId(), role: 'user', content: transcript }]);
+           setTranscript(""); // Clear active transcript
         }
         
         updateStatus('processing');
         setIsUserSpeaking(false);
-        setTranscript("");
         break;
         
       case 'response.audio_transcript.delta':
         if (event.delta) {
           setIsUserSpeaking(false);
           setTranscript(prev => prev + event.delta);
-          // Accumulate for command detection
           pendingCommandsRef.current += event.delta;
         }
         break;
@@ -782,8 +825,6 @@ export function RealtimeVoiceOrb({
       case 'response.audio_transcript.done':
         if (event.transcript) {
           onTranscript?.(event.transcript, false);
-          // Don't overwrite pendingCommandsRef - it already has the accumulated transcript
-          // Only set if it's empty (fallback)
           if (!pendingCommandsRef.current) {
             pendingCommandsRef.current = event.transcript;
           }
@@ -793,126 +834,82 @@ export function RealtimeVoiceOrb({
       case 'response.audio.delta':
         if (event.delta) {
           updateStatus('speaking');
-          // pcm24 means 24kHz sample rate, still 16-bit depth
           audioPlayerRef.current?.playPCM16(event.delta);
         }
         break;
         
       case 'response.done':
         console.log('[RealtimeVoiceOrb] Response complete');
-        console.log('[RealtimeVoiceOrb] Pending commands text:', pendingCommandsRef.current);
         updateStatus('listening');
         
-        // Check for commands in the response
+        // Add AI response to history
+        if (transcript) {
+           setHistory(prev => [...prev, { id: createEventId(), role: 'assistant', content: transcript }]);
+           setTranscript(""); // Clear active transcript
+        }
+        
+        // Execute commands
         if (autoExecuteCommands && pendingCommandsRef.current) {
-          // Match device control commands (including control_camera)
-          const deviceMatches = [...pendingCommandsRef.current.matchAll(/\{[^{}]*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera)"[^{}]*\}/g)];
-          // Match schedule task commands (more complex, may have nested objects)
-          const scheduleMatches = [...pendingCommandsRef.current.matchAll(/\{[^{}]*"action"\s*:\s*"schedule_task"[^}]*\}/g)];
-          // Match navigate commands
-          const navigateMatches = [...pendingCommandsRef.current.matchAll(/\{[^{}]*"action"\s*:\s*"navigate"[^{}]*\}/g)];
-          
-          console.log('[RealtimeVoiceOrb] Device matches:', deviceMatches.length, 'Schedule matches:', scheduleMatches.length, 'Navigate matches:', navigateMatches.length);
+          const commandsText = pendingCommandsRef.current;
+          // ... (Command parsing logic same as before) ...
+          const deviceMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera)"[^{}]*\}/g)];
+          const scheduleMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"schedule_task"[^}]*\}/g)];
+          const navigateMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"navigate"[^{}]*\}/g)];
           
           if (deviceMatches.length > 0 || scheduleMatches.length > 0 || navigateMatches.length > 0) {
             (async () => {
               setIsExecutingCommand(true);
-              
-              // Execute device commands
+              // Execute all found commands
               for (const match of deviceMatches) {
                 try {
                   const cmd = JSON.parse(match[0]) as DeviceCommand;
-                  console.log('[RealtimeVoiceOrb] Executing device command:', cmd);
                   onDeviceCommand?.(cmd);
                   const result = await executeDeviceCommand(cmd);
-                  if (result.success) {
-                    toast.success(result.message);
-                  } else {
-                    toast.error(`执行失败: ${result.message}`);
-                  }
-                  await new Promise(r => setTimeout(r, 500));
-                } catch (e) {
-                  console.error('[RealtimeVoiceOrb] Device command parse error:', e);
-                }
+                  if (result.success) toast.success(result.message);
+                  else toast.error(`执行失败: ${result.message}`);
+                } catch {}
               }
-              
-              // Execute schedule task commands
               for (const match of scheduleMatches) {
                 try {
-                  // Try to parse, handling potential nested params
                   let jsonStr = match[0];
-                  // If params is present but not closed, try to find the full object
                   if (jsonStr.includes('"params"') && !jsonStr.includes('}}')) {
-                    const startIdx = pendingCommandsRef.current.indexOf(match[0]);
-                    const endIdx = pendingCommandsRef.current.indexOf('}}', startIdx);
-                    if (endIdx > startIdx) {
-                      jsonStr = pendingCommandsRef.current.slice(startIdx, endIdx + 2);
-                    }
+                    const start = commandsText.indexOf(match[0]);
+                    const end = commandsText.indexOf('}}', start);
+                    if (end > start) jsonStr = commandsText.slice(start, end + 2);
                   }
                   const cmd = JSON.parse(jsonStr) as ScheduleTaskCommand;
-                  console.log('[RealtimeVoiceOrb] Creating schedule task:', cmd);
                   onScheduleTask?.(cmd);
                   const result = await executeScheduleTask(cmd);
-                  if (result.success) {
-                    toast.success(result.message);
-                  } else {
-                    toast.error(`创建失败: ${result.message}`);
-                  }
-                  await new Promise(r => setTimeout(r, 500));
-                } catch (e) {
-                  console.error('[RealtimeVoiceOrb] Schedule task parse error:', e);
-                }
+                  if (result.success) toast.success(result.message);
+                  else toast.error(`创建失败: ${result.message}`);
+                } catch {}
               }
-              
-              // Execute navigate commands
               for (const match of navigateMatches) {
                 try {
                   const cmd = JSON.parse(match[0]) as NavigateCommand;
-                  console.log('[RealtimeVoiceOrb] Executing navigate command:', cmd);
-                  const pageName = PAGE_NAMES[cmd.page] || cmd.page;
-                  toast.success(`正在跳转到${pageName}...`);
+                  toast.success(`正在跳转...`);
                   onNavigate?.(cmd);
-                  await new Promise(r => setTimeout(r, 500));
-                } catch (e) {
-                  console.error('[RealtimeVoiceOrb] Navigate command parse error:', e);
-                }
+                } catch {}
               }
-              
               setIsExecutingCommand(false);
             })();
           }
           pendingCommandsRef.current = "";
         }
         
-        // Delay clearing transcript so user can read the full response
-        if (clearTranscriptTimeoutRef.current) {
-          clearTimeout(clearTranscriptTimeoutRef.current);
-        }
-        clearTranscriptTimeoutRef.current = setTimeout(() => {
-          setTranscript("");
-          clearTranscriptTimeoutRef.current = null;
-        }, 2500);
-        
-        // Refresh quota after response
         refreshQuota();
         break;
         
       case 'quota_warning':
-        // Server notifies that quota is exhausted after this response
-        console.log('[RealtimeVoiceOrb] Quota warning:', event.message);
         toast.warning('语音对话额度即将用完');
-        if (event.quota) {
-          setQuotaInfo(event.quota);
-        }
+        if (event.quota) setQuotaInfo(event.quota);
         break;
         
       case 'error':
-        // Check if it's a quota error
         const errorMsg = event?.error?.message || event?.message || 'Unknown error';
         if (errorMsg.includes('Quota')) {
           toast.error('语音对话额度已用完');
           onQuotaExceeded?.();
-          // Close connection
           if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
@@ -923,16 +920,19 @@ export function RealtimeVoiceOrb({
         }
         break;
     }
-  }, [updateStatus, onTranscript, onDeviceCommand, onScheduleTask, onNavigate, handleError, autoExecuteCommands, refreshQuota, onQuotaExceeded]);
+  }, [updateStatus, onTranscript, onDeviceCommand, onScheduleTask, onNavigate, handleError, autoExecuteCommands, refreshQuota, onQuotaExceeded, sendMessage, voice, enhancedInstructions, transcript, isUserSpeaking]);
 
-  // Connect to WebSocket
+  // Connect logic
   const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
     
-    // Check quota before connecting
     const quota = await refreshQuota();
     if (quota && !quota.can_use) {
-      toast.error('今日语音对话额度已用完，请明天再来');
+      if (quota.membership === 'free') {
+        toast.error('AI助手功能仅限Pro及以上会员使用');
+      } else {
+        toast.error('今日语音对话额度已用完，请明天再来');
+      }
       onQuotaExceeded?.();
       return;
     }
@@ -940,156 +940,82 @@ export function RealtimeVoiceOrb({
     updateStatus('connecting');
     
     try {
-      // Initialize audio player
-      if (!audioPlayerRef.current) {
-        audioPlayerRef.current = new AudioPlayer();
-      }
+      if (!audioPlayerRef.current) audioPlayerRef.current = new AudioPlayer();
       audioPlayerRef.current.init();
 
-      // Build WebSocket URL - always use standalone WS server for stability
       const model = 'qwen3-omni-flash-realtime-2025-12-01';
       let wsUrl: string;
-      
-      // Check for explicit proxy URL first
       const explicitProxy = process.env.NEXT_PUBLIC_XIAOZHI_WS_PROXY?.trim();
       
       if (explicitProxy) {
         wsUrl = `${explicitProxy}?model=${encodeURIComponent(model)}`;
       } else {
-        // Use standalone WebSocket server (works for both dev and prod)
-        // In production, nginx proxies /ws/voice to the WS server
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = window.location.host;
-        
         if (window.location.protocol === 'http:') {
-          // Development: direct connection to port 3002
           wsUrl = `ws://${window.location.hostname}:3002?model=${encodeURIComponent(model)}`;
         } else {
-          // Production: use nginx proxy path
           wsUrl = `${wsProtocol}//${wsHost}/ws/voice?model=${encodeURIComponent(model)}`;
         }
       }
 
       console.log('[RealtimeVoiceOrb] Connecting to:', wsUrl);
-      
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[RealtimeVoiceOrb] Connected successfully!');
-        // Send session.update directly here to avoid stale closure issues
-        const sessionUpdateMsg = {
-          event_id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`,
-          type: "session.update",
-          session: {
-            modalities: ["text", "audio"],
-            voice: voice,
-            input_audio_format: "pcm16",
-            output_audio_format: "pcm24",
-            instructions: enhancedInstructions,
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              silence_duration_ms: 800
-            },
-            input_audio_transcription: {
-              model: "gummy-realtime-v1"
-            }
-          }
-        };
-        console.log('[RealtimeVoiceOrb] Sending session.update with voice:', voice);
-        ws.send(JSON.stringify(sessionUpdateMsg));
-        pendingCommandsRef.current = "";
+        // Wait for session.created from server
       };
 
       ws.onmessage = async (event) => {
         try {
-          let data = event.data;
-          if (data instanceof Blob) {
-            data = await data.text();
-          }
-          const json = JSON.parse(data);
-          console.log('[RealtimeVoiceOrb] Received:', json.type);
-          handleServerEvent(json);
+          const data = JSON.parse(event.data);
+          handleServerEvent(data);
         } catch (e) {
           console.error('[RealtimeVoiceOrb] Parse error:', e);
         }
       };
 
-      ws.onclose = (event) => {
-        console.log('[RealtimeVoiceOrb] Disconnected:', event.code, event.reason);
-        updateStatus('idle');
-        stopCapture();
-      };
-
       ws.onerror = (e) => {
-        console.error('[RealtimeVoiceOrb] WebSocket error event:', e);
-        // Get more details
-        console.error('[RealtimeVoiceOrb] WebSocket readyState:', ws.readyState);
-        console.error('[RealtimeVoiceOrb] WebSocket url:', ws.url);
-        handleError('连接失败');
+        console.error('[RealtimeVoiceOrb] WebSocket error:', e);
+        handleError('连接错误，请检查网络');
       };
 
-    } catch (error: any) {
-      handleError(error.message || '连接失败');
+      ws.onclose = (e) => {
+        console.log('[RealtimeVoiceOrb] WebSocket closed:', e.code, e.reason);
+        if (status !== 'idle' && status !== 'error') {
+          updateStatus('idle');
+        }
+        audioCaptureRef.current?.stop();
+      };
+    } catch (e) {
+      handleError('初始化失败');
     }
-  }, [updateStatus, initSession, handleServerEvent, handleError, refreshQuota, onQuotaExceeded]);
+  }, [refreshQuota, updateStatus, handleError, onQuotaExceeded, handleServerEvent, status]);
 
-  // Start audio capture
-  const startCapture = useCallback(async () => {
-    if (audioCaptureRef.current) return;
-    
-    try {
-      audioCaptureRef.current = new AudioCapture((base64) => {
-        sendMessage({
-          event_id: createEventId(),
-          type: "input_audio_buffer.append",
-          audio: base64
-        });
-      });
-      
-      await audioCaptureRef.current.start();
-      console.log('[RealtimeVoiceOrb] Audio capture started');
-    } catch (error: any) {
-      handleError(`麦克风错误: ${error.message}`);
-    }
-  }, [sendMessage, handleError]);
-
-  // Stop audio capture
-  const stopCapture = useCallback(() => {
-    if (audioCaptureRef.current) {
-      audioCaptureRef.current.stop();
-      audioCaptureRef.current = null;
-    }
-  }, []);
-
-  // Disconnect
+  // Disconnect logic
   const disconnect = useCallback(() => {
-    stopCapture();
-    
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.stop();
-    }
-    
+    audioCaptureRef.current?.stop();
+    audioPlayerRef.current?.stop();
     updateStatus('idle');
-  }, [stopCapture, updateStatus]);
+    setTranscript("");
+    setHistory([]); // Optional: clear history on disconnect? Maybe keep it.
+  }, [updateStatus]);
 
   // Toggle connection
   const toggleConnection = useCallback(async () => {
     if (status === 'idle' || status === 'error') {
       await connect();
-      await startCapture();
     } else {
       disconnect();
     }
-  }, [status, connect, startCapture, disconnect]);
+  }, [status, connect, disconnect]);
 
-  // Interrupt current response
+  // Interrupt
   const interrupt = useCallback(() => {
     sendMessage({ type: "response.cancel" });
     sendMessage({ type: "input_audio_buffer.clear" });
@@ -1097,84 +1023,37 @@ export function RealtimeVoiceOrb({
     updateStatus('listening');
   }, [sendMessage, updateStatus]);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       disconnect();
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (clearTranscriptTimeoutRef.current) {
-        clearTimeout(clearTranscriptTimeoutRef.current);
-      }
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (clearTranscriptTimeoutRef.current) clearTimeout(clearTranscriptTimeoutRef.current);
     };
   }, [disconnect]);
 
-  // Auto connect if enabled
+  // Auto connect
   useEffect(() => {
     if (autoConnect && status === 'idle') {
-      connect().then(() => startCapture());
+      connect();
     }
   }, [autoConnect]);
 
-  // Orb colors based on status
+  // Orb colors
   const orbConfig = useMemo(() => {
     switch (status) {
       case 'listening':
-        return {
-          colors: {
-            bg: "oklch(95% 0.02 30)",
-            c1: "oklch(65% 0.25 30)",
-            c2: "oklch(70% 0.2 50)",
-            c3: "oklch(60% 0.25 0)",
-          },
-          duration: 5
-        };
+        return { colors: { bg: "oklch(95% 0.02 30)", c1: "oklch(65% 0.25 30)", c2: "oklch(70% 0.2 50)", c3: "oklch(60% 0.25 0)" }, duration: 5 };
       case 'speaking':
-        return {
-          colors: {
-            bg: "oklch(95% 0.02 140)",
-            c1: "oklch(70% 0.2 140)",
-            c2: "oklch(75% 0.15 160)",
-            c3: "oklch(80% 0.2 130)",
-          },
-          duration: 8
-        };
+        return { colors: { bg: "oklch(95% 0.02 140)", c1: "oklch(70% 0.2 140)", c2: "oklch(75% 0.15 160)", c3: "oklch(80% 0.2 130)" }, duration: 8 };
       case 'processing':
-        return {
-          colors: {
-            bg: "oklch(95% 0.02 260)",
-            c1: "oklch(70% 0.15 200)",
-            c2: "oklch(60% 0.2 250)",
-            c3: "oklch(50% 0.2 280)",
-          },
-          duration: 2
-        };
+        return { colors: { bg: "oklch(95% 0.02 260)", c1: "oklch(70% 0.15 200)", c2: "oklch(60% 0.2 250)", c3: "oklch(50% 0.2 280)" }, duration: 2 };
       case 'connecting':
-        return {
-          colors: {
-            bg: "oklch(95% 0.02 60)",
-            c1: "oklch(75% 0.2 60)",
-            c2: "oklch(70% 0.15 80)",
-            c3: "oklch(65% 0.2 40)",
-          },
-          duration: 3
-        };
+        return { colors: { bg: "oklch(95% 0.02 60)", c1: "oklch(75% 0.2 60)", c2: "oklch(70% 0.15 80)", c3: "oklch(65% 0.2 40)" }, duration: 3 };
       case 'error':
-        return {
-          colors: {
-            bg: "oklch(95% 0.02 0)",
-            c1: "oklch(55% 0.25 0)",
-            c2: "oklch(50% 0.2 20)",
-            c3: "oklch(45% 0.25 350)",
-          },
-          duration: 10
-        };
+        return { colors: { bg: "oklch(95% 0.02 0)", c1: "oklch(55% 0.25 0)", c2: "oklch(50% 0.2 20)", c3: "oklch(45% 0.25 350)" }, duration: 10 };
       default:
-        return {
-          colors: undefined,
-          duration: 20
-        };
+        return { colors: undefined, duration: 20 };
     }
   }, [status]);
 
@@ -1192,7 +1071,7 @@ export function RealtimeVoiceOrb({
   const isActive = status !== 'idle' && status !== 'error';
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("fixed bottom-6 left-6 z-50 font-sans", className)}>
       {/* Main Orb */}
       <motion.div
         className="relative cursor-pointer"
@@ -1216,30 +1095,15 @@ export function RealtimeVoiceOrb({
         <div className="absolute inset-0 flex items-center justify-center">
           <AnimatePresence mode="wait">
             {status === 'connecting' ? (
-              <motion.div
-                key="connecting"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-              >
+              <motion.div key="connecting" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                 <Loader2 className="w-8 h-8 text-white/80 animate-spin" />
               </motion.div>
             ) : status === 'speaking' ? (
-              <motion.div
-                key="speaking"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-              >
+              <motion.div key="speaking" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                 <Volume2 className="w-8 h-8 text-white/80" />
               </motion.div>
             ) : isActive ? (
-              <motion.div
-                key="active"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-              >
+              <motion.div key="active" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                 <Mic className="w-8 h-8 text-white/80" />
               </motion.div>
             ) : null}
@@ -1249,22 +1113,10 @@ export function RealtimeVoiceOrb({
         {/* Status Ring */}
         {isActive && (
           <motion.div
-            className={cn(
-              "absolute inset-0 rounded-full border-2",
-              status === 'listening' && "border-red-400/50",
-              status === 'processing' && "border-blue-400/50",
-              status === 'speaking' && "border-green-400/50"
-            )}
+            className={cn("absolute inset-0 rounded-full border-2", status === 'listening' && "border-red-400/50", status === 'processing' && "border-blue-400/50", status === 'speaking' && "border-green-400/50")}
             initial={{ scale: 1, opacity: 0.5 }}
-            animate={{ 
-              scale: [1, 1.1, 1],
-              opacity: [0.5, 0.2, 0.5]
-            }}
-            transition={{ 
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+            animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.2, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
       </motion.div>
@@ -1281,124 +1133,117 @@ export function RealtimeVoiceOrb({
             style={{ top: `${size + 12}px` }}
           >
             <span className={cn(
-              "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-md shadow-sm",
-              status === 'listening' && "bg-red-500/20 text-red-200 border border-red-500/30",
-              status === 'processing' && "bg-blue-500/20 text-blue-200 border border-blue-500/30",
-              status === 'speaking' && "bg-green-500/20 text-green-200 border border-green-500/30",
-              status === 'connecting' && "bg-yellow-500/20 text-yellow-200 border border-yellow-500/30",
-              status === 'error' && "bg-red-500/30 text-red-300 border border-red-500/40"
+              "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-md shadow-sm border",
+              status === 'listening' && "bg-red-100/80 text-red-600 border-red-200",
+              status === 'processing' && "bg-blue-100/80 text-blue-600 border-blue-200",
+              status === 'speaking' && "bg-green-100/80 text-green-600 border-green-200",
+              status === 'connecting' && "bg-yellow-100/80 text-yellow-600 border-yellow-200",
+              status === 'error' && "bg-red-100/90 text-red-700 border-red-300",
+              (status === 'idle') && "bg-white/80 text-gray-600 border-gray-200"
             )}>
-              {status === 'listening' && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
-              {status === 'processing' && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
-              {status === 'speaking' && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
               {statusText}
             </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Quota Display - show when idle */}
-      <AnimatePresence>
-        {status === 'idle' && quotaInfo && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            transition={{ duration: 0.15 }}
-            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
-            style={{ top: `${size + 12}px` }}
-          >
-            <span className={cn(
-              "inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm",
-              quotaInfo.can_use 
-                ? "bg-white/10 text-white/60 border border-white/10" 
-                : "bg-red-500/20 text-red-300 border border-red-500/30"
-            )}>
-              {quotaInfo.can_use 
-                ? `今日 ${quotaInfo.daily_usage}/${quotaInfo.daily_limit}` 
-                : '额度已用完'}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Chat History Container */}
+      <div 
+        className="absolute left-0 bottom-full mb-6 w-[90vw] md:w-[400px] flex flex-col justify-end pointer-events-none gap-3 z-40"
+        style={{ maxHeight: '60vh' }}
+      >
+        <AnimatePresence initial={false}>
+          {history.map((msg) => {
+            const { text, commands } = extractCommands(msg.content);
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className={cn(
+                  "flex w-full pointer-events-auto",
+                  msg.role === 'user' ? "justify-end" : "justify-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "relative max-w-[85%] px-5 py-3 rounded-3xl border backdrop-blur-xl shadow-lg transition-all",
+                    msg.role === 'user' 
+                      ? "bg-blue-600/90 border-blue-500/50 text-white rounded-br-none shadow-blue-500/20" 
+                      : "bg-white/80 border-white/40 text-gray-800 rounded-bl-none shadow-black/5"
+                  )}
+                >
+                  <div className="text-[15px] leading-relaxed break-words whitespace-pre-wrap font-medium tracking-wide">
+                    {text}
+                  </div>
+                  {commands.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-bold opacity-60 mb-2 ml-1 flex items-center gap-1">
+                        <Sparkles size={12} />
+                        执行指令
+                      </div>
+                      <div className="space-y-2">
+                        {commands.map((cmd, i) => (
+                          <CommandCard key={i} command={cmd} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
 
-      {/* Transcript Bubble - visionOS style */}
-      <AnimatePresence>
-        {transcript && isActive && (
-          <motion.div
-            key={isUserSpeaking ? 'user' : 'ai'}
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed z-50 pointer-events-none"
-            style={{ 
-              bottom: `${size + 100}px`,
-              right: '24px',
-            }}
-          >
-            {/* visionOS glass container */}
-            <div
-              style={{
-                position: 'relative',
-                background: 'rgba(30, 30, 35, 0.75)',
-                backdropFilter: 'blur(50px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(50px) saturate(180%)',
-                borderRadius: '20px',
-                border: '0.5px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 8px 40px rgba(0,0,0,0.35), inset 0 0.5px 0 rgba(255,255,255,0.1)',
-                padding: '12px 16px',
-                width: '280px',
-                maxWidth: '280px',
-              }}
+          {/* Current Streaming Transcript */}
+          {transcript && isActive && (
+            <motion.div
+              key="current-transcript"
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className={cn(
+                "flex w-full pointer-events-auto",
+                isUserSpeaking ? "justify-end" : "justify-start"
+              )}
             >
-              {/* Speaker label */}
-              <div 
-                style={{ 
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  color: isUserSpeaking ? 'rgba(255,255,255,0.45)' : 'rgba(120,220,180,0.9)',
-                  marginBottom: '6px',
-                  letterSpacing: '0.02em'
-                }}
+              <div
+                className={cn(
+                  "relative max-w-[85%] px-5 py-3 rounded-3xl border backdrop-blur-xl shadow-lg",
+                  isUserSpeaking
+                    ? "bg-blue-600/90 border-blue-500/50 text-white rounded-br-none shadow-blue-500/20" 
+                    : "bg-white/80 border-white/40 text-gray-800 rounded-bl-none shadow-black/5"
+                )}
               >
-                {isUserSpeaking ? "你" : "莓小智"}
+                <div className="text-[15px] leading-relaxed break-words whitespace-pre-wrap font-medium tracking-wide flex items-end gap-1">
+                  {(() => {
+                    const { text, commands } = extractCommands(transcript);
+                    return (
+                      <div className="w-full">
+                        <span>{text}</span>
+                        {!isUserSpeaking && <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-600 animate-pulse mb-1 ml-1" />}
+                        {commands.length > 0 && (
+                          <div className="mt-3">
+                            <div className="text-xs font-bold opacity-60 mb-2 ml-1 flex items-center gap-1">
+                              <Sparkles size={12} />
+                              执行指令
+                            </div>
+                            <div className="space-y-2">
+                              {commands.map((cmd, i) => (
+                                <CommandCard key={i} command={cmd} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
-              
-              {/* Bubble content */}
-              <div 
-                style={{ 
-                  fontSize: '15px',
-                  lineHeight: 1.55,
-                  color: 'rgba(255,255,255,0.9)',
-                  fontWeight: 400,
-                  wordBreak: 'break-word',
-                  overflowWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {transcript}
-              </div>
-              
-              {/* Tail */}
-              <div 
-                style={{
-                  position: 'absolute',
-                  right: '24px',
-                  bottom: '-6px',
-                  width: '12px',
-                  height: '12px',
-                  background: 'rgba(30, 30, 35, 0.75)',
-                  borderRadius: '2px',
-                  transform: 'rotate(45deg)',
-                  borderRight: '0.5px solid rgba(255,255,255,0.12)',
-                  borderBottom: '0.5px solid rgba(255,255,255,0.12)',
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

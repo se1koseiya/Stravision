@@ -383,33 +383,62 @@ async function executeFirecrawlScrape(args: Record<string, any>, config: MCPConf
     if (!apiKey) return { success: false, error: 'Firecrawl API Key 未配置' }
 
     const { url } = args
+    const maxRetries = 2
+    let lastError: any
 
-    try {
-        const res = await fetchWithTimeout('https://api.firecrawl.dev/v1/scrape', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                url,
-                formats: ['markdown'],
-                onlyMainContent: true
-            })
-        }, 120000) // 爬虫可能较慢，给120秒超时
+    for (let i = 0; i <= maxRetries; i++) {
+        try {
+            const res = await fetchWithTimeout('https://api.firecrawl.dev/v1/scrape', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    url,
+                    formats: ['markdown'],
+                    onlyMainContent: true
+                })
+            }, 120000) // 爬虫可能较慢，给120秒超时
 
-        if (res.ok) {
-            const data = await res.json()
-            const markdown = data.data?.markdown || data.data?.content || ''
-            // 截断过长内容，避免超出上下文窗口
-            const truncated = markdown.length > 3000 ? markdown.slice(0, 3000) + '\n\n... (内容已截断)' : markdown
-            return { success: true, data: { url, content: truncated } }
-        } else {
-            return { success: false, error: `Firecrawl 抓取失败: ${res.status}` }
+            if (res.ok) {
+                const data = await res.json()
+                const markdown = data.data?.markdown || data.data?.content || ''
+                
+                if (!markdown) {
+                     // 如果内容为空，且还有重试次数，则重试
+                     throw new Error('Firecrawl 返回内容为空')
+                }
+
+                // 截断过长内容，避免超出上下文窗口
+                const truncated = markdown.length > 15000 ? markdown.slice(0, 15000) + '\n\n... (内容已截断)' : markdown
+                return { success: true, data: { url, content: truncated } }
+            } else {
+                const errText = await res.text()
+                let errMsg = `Firecrawl 抓取失败: ${res.status}`
+                try {
+                    const errJson = JSON.parse(errText)
+                    if (errJson.error) errMsg += ` - ${errJson.error}`
+                } catch {}
+                
+                throw new Error(errMsg)
+            }
+        } catch (e: any) {
+            lastError = e
+            console.warn(`Firecrawl scrape attempt ${i + 1} failed:`, e.message)
+            
+            // 如果是 URL 无效等 4xx 错误，通常重试也没用，直接返回
+            if (e.message.includes('400') || e.message.includes('404')) {
+                return { success: false, error: e.message }
+            }
+
+            if (i < maxRetries) {
+                await new Promise(r => setTimeout(r, 2000)) // Wait 2s before retry
+            }
         }
-    } catch (e: any) {
-        return { success: false, error: `Firecrawl 请求失败: ${e.message}` }
     }
+    
+    return { success: false, error: `Firecrawl 请求失败 (已重试 ${maxRetries} 次): ${lastError?.message || '未知错误'}` }
 }
 
 // ===== 农业专用工具 =====

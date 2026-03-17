@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import { Edit, Save, Wifi, WifiOff, Droplets, Sun, Wind, Leaf, LayoutGrid, Monitor, BarChart3, Grid } from "lucide-react"
+import { Edit, Save, Wifi, WifiOff, Droplets, Sun, Wind, Leaf, LayoutGrid, Monitor, BarChart3, Grid, Sparkles, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ import {
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useRouter } from "next/navigation"
-import type { UserPublic } from "@/lib/db/user-service"
+import type { UserPublic, MembershipTier } from "@/lib/db/user-service"
 import { useState, useEffect } from "react"
 import GridLayout, { Layout } from "react-grid-layout"
 import "react-grid-layout/css/styles.css"
@@ -25,13 +25,18 @@ import "react-resizable/css/styles.css"
 import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card"
+import { MembershipCard } from "@/components/dashboard/membership-card"
 import { toast } from "sonner"
+
+interface UserPublicWithMembership extends UserPublic {
+  membership?: MembershipTier
+}
 
 export default function DashboardPage() {
   const router = useRouter()
 
   // User authentication state
-  const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
+  const [currentUser, setCurrentUser] = useState<UserPublicWithMembership | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
 
   // Connect to SSE for real-time device data
@@ -65,34 +70,26 @@ export default function DashboardPage() {
     fetchAllHistory()
   }, [])
 
-  const defaultLayout = [
-    { i: "ai-insight", x: 0, y: 0, w: 12, h: 2 }, // AI Insight at the top
-    { i: "humidity", x: 0, y: 2, w: 3, h: 2 },
-    { i: "temperature", x: 3, y: 2, w: 3, h: 2 },
-    { i: "light", x: 6, y: 2, w: 3, h: 2 },
-    { i: "co2", x: 9, y: 2, w: 3, h: 2 },
-    { i: "soilMoisture", x: 0, y: 4, w: 3, h: 2 },
-    { i: "fertility", x: 3, y: 4, w: 3, h: 2 },
-    { i: "nitrogen", x: 6, y: 4, w: 3, h: 2 },
-    { i: "phosphorus", x: 9, y: 4, w: 3, h: 2 },
-    { i: "potassium", x: 0, y: 6, w: 3, h: 2 },
-    { i: "spectral", x: 3, y: 6, w: 6, h: 2 },
-    { i: "rainfall", x: 9, y: 6, w: 3, h: 2 },
+  const defaultLayout: Layout[] = [
+    { i: "membership", x: 0, y: 0, w: 3, h: 4 },
+    { i: "temperature", x: 3, y: 0, w: 3, h: 4 },
+    { i: "humidity", x: 6, y: 0, w: 3, h: 4 },
+    { i: "soilMoisture", x: 9, y: 0, w: 3, h: 4 },
+    { i: "ai-insight", x: 0, y: 4, w: 8, h: 6 },
+    { i: "light", x: 8, y: 4, w: 4, h: 6 },
+    { i: "spectral", x: 0, y: 10, w: 6, h: 6 },
+    { i: "co2", x: 6, y: 10, w: 6, h: 6 },
   ]
 
-  const compactLayout = [
-    { i: "ai-insight", x: 0, y: 0, w: 12, h: 2 },
-    { i: "humidity", x: 0, y: 2, w: 2, h: 2 },
-    { i: "temperature", x: 2, y: 2, w: 2, h: 2 },
-    { i: "light", x: 4, y: 2, w: 2, h: 2 },
-    { i: "co2", x: 6, y: 2, w: 2, h: 2 },
-    { i: "soilMoisture", x: 8, y: 2, w: 2, h: 2 },
-    { i: "fertility", x: 10, y: 2, w: 2, h: 2 },
-    { i: "nitrogen", x: 0, y: 4, w: 2, h: 2 },
-    { i: "phosphorus", x: 2, y: 4, w: 2, h: 2 },
-    { i: "potassium", x: 4, y: 4, w: 2, h: 2 },
-    { i: "rainfall", x: 6, y: 4, w: 2, h: 2 },
-    { i: "spectral", x: 8, y: 4, w: 4, h: 2 },
+  const compactLayout: Layout[] = [
+    { i: "membership", x: 0, y: 0, w: 2, h: 4 },
+    { i: "temperature", x: 2, y: 0, w: 2, h: 4 },
+    { i: "humidity", x: 4, y: 0, w: 2, h: 4 },
+    { i: "soilMoisture", x: 6, y: 0, w: 2, h: 4 },
+    { i: "light", x: 8, y: 0, w: 2, h: 4 },
+    { i: "co2", x: 10, y: 0, w: 2, h: 4 },
+    { i: "ai-insight", x: 0, y: 4, w: 6, h: 6 },
+    { i: "spectral", x: 6, y: 4, w: 6, h: 6 },
   ]
 
   const dataFirstLayout = [
@@ -288,91 +285,108 @@ export default function DashboardPage() {
               <PageNavigation />
             </div>
 
-            {/* 布局编辑按钮和连接状态 */}
-            <div className="ml-auto flex items-center gap-3">
-              {connectionStatus.connected ? (
-                <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
-                  <Wifi className="size-3 mr-1" />
-                  已连接
-                </Badge>
-              ) : (
-                <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
-                  <WifiOff className="size-3 mr-1" />
-                  {connectionStatus.error || '未连接'}
-                </Badge>
-              )}
-              {connectionStatus.lastUpdate && (
-                <span className="text-xs text-muted-foreground/60">
-                  更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
-                </span>
-              )}
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 rounded-full px-3 gap-2 hover:bg-green-50 hover:text-green-900 dark:hover:bg-green-900/20 dark:hover:text-green-100 hover:border-green-200 dark:hover:border-green-800">
-                    <LayoutGrid className="size-4" />
-                    <span className="hidden sm:inline">布局</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>布局操作</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={handleEditMode} className="justify-between cursor-pointer focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><Edit className="size-4" /> {isEditMode ? '完成编辑' : '调整布局'}</span>
-                    {isEditMode && <span className="text-green-500 text-xs">编辑中</span>}
-                  </DropdownMenuItem>
-                  {isEditMode && (
-                    <DropdownMenuItem onClick={handleSaveLayout} className="justify-between cursor-pointer focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><Save className="size-4" /> 保存布局</span>
-                    </DropdownMenuItem>
+              {/* 布局编辑按钮和连接状态 */}
+              <div className="ml-auto flex items-center gap-3">
+                <div className="hidden md:flex">
+                  {currentUser?.membership && currentUser.membership !== 'free' && (
+                    <Badge 
+                      className={`
+                        ${currentUser.membership === 'plus' 
+                          ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-indigo-500/20' 
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-orange-500/20'} 
+                        border-0 text-white shadow-lg flex items-center gap-1 px-3 py-1 mr-3
+                      `}
+                    >
+                      {currentUser.membership === 'plus' ? <Crown className="size-3.5 fill-current" /> : <Sparkles className="size-3.5 fill-current" />}
+                      {currentUser.membership === 'plus' ? 'PLUS' : 'PRO'}
+                    </Badge>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel>切换视图预设</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handlePresetChange("default")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><LayoutGrid className="size-4" /> 默认视图</span>
-                    {currentPreset === "default" && <span className="text-green-500 text-xs">当前</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePresetChange("compact")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><Grid className="size-4" /> 紧凑视图</span>
-                    {currentPreset === "compact" && <span className="text-green-500 text-xs">当前</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePresetChange("dataFirst")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><BarChart3 className="size-4" /> 数据优先</span>
-                    {currentPreset === "dataFirst" && <span className="text-green-500 text-xs">当前</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePresetChange("monitor")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><Monitor className="size-4" /> 监控大屏</span>
-                    {currentPreset === "monitor" && <span className="text-green-500 text-xs">当前</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePresetChange("environment")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><Wind className="size-4" /> 环境监测</span>
-                    {currentPreset === "environment" && <span className="text-green-500 text-xs">当前</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePresetChange("soil")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                    <span className="flex items-center gap-2"><Leaf className="size-4" /> 土壤监测</span>
-                    {currentPreset === "soil" && <span className="text-green-500 text-xs">当前</span>}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
 
-              {isEditMode ? (
-                <Button
-                  onClick={handleSaveLayout}
-                  className="h-9 rounded-full px-5 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Save className="mr-2" size={18} /> 保存布局
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleEditMode}
-                  variant="ghost"
-                  className="h-9 rounded-full px-5 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                >
-                  <Edit className="mr-2" size={18} /> 编辑布局
-                </Button>
-              )}
-              <UserAvatarMenu user={currentUser} />
-            </div>
+                  {connectionStatus.connected ? (
+                    <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30 mr-3">
+                      <Wifi className="size-3 mr-1" />
+                      已连接
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 mr-3">
+                      <WifiOff className="size-3 mr-1" />
+                      {connectionStatus.error || '未连接'}
+                    </Badge>
+                  )}
+                  {connectionStatus.lastUpdate && (
+                    <span className="text-xs text-muted-foreground/60 mr-3 hidden lg:inline">
+                      更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-green-50 hover:text-green-900 dark:hover:bg-green-900/20 dark:hover:text-green-100">
+                      <LayoutGrid className="size-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>布局操作</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleEditMode} className="justify-between cursor-pointer focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><Edit className="size-4" /> {isEditMode ? '完成编辑' : '调整布局'}</span>
+                      {isEditMode && <span className="text-green-500 text-xs">编辑中</span>}
+                    </DropdownMenuItem>
+                    {isEditMode && (
+                      <DropdownMenuItem onClick={handleSaveLayout} className="justify-between cursor-pointer focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                        <span className="flex items-center gap-2"><Save className="size-4" /> 保存布局</span>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>切换视图预设</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handlePresetChange("default")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><LayoutGrid className="size-4" /> 默认视图</span>
+                      {currentPreset === "default" && <span className="text-green-500 text-xs">当前</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePresetChange("compact")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><Grid className="size-4" /> 紧凑视图</span>
+                      {currentPreset === "compact" && <span className="text-green-500 text-xs">当前</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePresetChange("dataFirst")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><BarChart3 className="size-4" /> 数据优先</span>
+                      {currentPreset === "dataFirst" && <span className="text-green-500 text-xs">当前</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePresetChange("monitor")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><Monitor className="size-4" /> 监控大屏</span>
+                      {currentPreset === "monitor" && <span className="text-green-500 text-xs">当前</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePresetChange("environment")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><Wind className="size-4" /> 环境监测</span>
+                      {currentPreset === "environment" && <span className="text-green-500 text-xs">当前</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handlePresetChange("soil")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                      <span className="flex items-center gap-2"><Leaf className="size-4" /> 土壤监测</span>
+                      {currentPreset === "soil" && <span className="text-green-500 text-xs">当前</span>}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {isEditMode ? (
+                  <Button
+                    onClick={handleSaveLayout}
+                    size="icon"
+                    className="h-9 w-9 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Save size={18} />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleEditMode}
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                  >
+                    <Edit size={18} />
+                  </Button>
+                )}
+                <UserAvatarMenu user={currentUser} />
+              </div>
           </div>
 
           {/* Dashboard Content */}
@@ -411,8 +425,13 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                {/* 温度 */}
-                <div key="temperature">
+                {/* 会员卡片 */}
+              <div key="membership">
+                <MembershipCard />
+              </div>
+              
+              {/* 温度 */}
+              <div key="temperature">
                   <DashboardChartCard
                     title="温度"
                     value={deviceData ? deviceData.temperature.toFixed(1) : '--'}

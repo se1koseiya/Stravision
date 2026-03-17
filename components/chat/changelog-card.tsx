@@ -10,6 +10,7 @@ interface ChangelogData {
   version: string
   date: string
   title?: string
+  imageUrl?: string
   features: string[]
   improvements: string[]
   fixes: string[]
@@ -49,6 +50,17 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
           {data.title || "系统更新公告"}
         </h3>
       </div>
+
+      {/* Optional Image */}
+      {data.imageUrl && (
+        <div className="w-full h-48 relative overflow-hidden bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-100 dark:border-zinc-800">
+          <img 
+            src={data.imageUrl} 
+            alt={data.title || "Update Image"} 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       
       {/* Content */}
       <CardContent className="p-5 space-y-6">

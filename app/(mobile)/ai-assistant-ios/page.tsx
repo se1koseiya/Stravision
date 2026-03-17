@@ -1062,11 +1062,12 @@ export default function AIAssistantIOSPage() {
                             <span>{selectedModel === "auto" || !selectedModel ? "智能模式" : selectedModel}</span>
                             <ArrowUp size={10} className="opacity-50" />
                         </PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectContent align="center" className="w-[200px]">
+                        <PromptInputModelSelectContent align="center" className="w-[240px]">
                             <PromptInputModelSelectItem value="auto"><span className="flex items-center gap-2"><Sparkles className="size-3 text-purple-500" /> 智能模式 (Auto)</span></PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="qwen-turbo"><span className="flex items-center gap-2">⚡ Qwen Turbo</span></PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="qwen-plus"><span className="flex items-center gap-2">🚀 Qwen Plus</span></PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="qwen-max"><span className="flex items-center gap-2">🧠 Qwen Max</span></PromptInputModelSelectItem>
+                            <PromptInputModelSelectItem value="qwen3.5-plus"><span className="flex items-center gap-2">🚀 Qwen3.5 Plus</span></PromptInputModelSelectItem>
+                            <PromptInputModelSelectItem value="qwen3.5-flash"><span className="flex items-center gap-2">⚡ Qwen3.5 Flash</span></PromptInputModelSelectItem>
+                            <PromptInputModelSelectItem value="qwen3-max-2026-01-23"><span className="flex items-center gap-2">🧠 Qwen3 Max</span></PromptInputModelSelectItem>
+                            <PromptInputModelSelectItem value="deepseek-v3.2"><span className="flex items-center gap-2">🤖 DeepSeek V3.2</span></PromptInputModelSelectItem>
                         </PromptInputModelSelectContent>
                     </PromptInputModelSelect>
                 </div>

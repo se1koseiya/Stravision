@@ -15,6 +15,7 @@ async function ensureDB() {
 }
 
 export type UserRole = 'user' | 'admin' | 'super_admin';
+export type MembershipTier = 'free' | 'pro' | 'plus';
 
 /**
  * 完整的用户数据模型(包含敏感字段)
@@ -27,6 +28,7 @@ export interface User {
   username: string
   avatar_url: string | null
   role: UserRole
+  membership: MembershipTier
   permissions: string
   notification_settings: string
   wechat_openid?: string | null
@@ -61,6 +63,7 @@ export interface UserPublic {
   username: string
   avatar_url: string | null
   role: UserRole
+  membership: MembershipTier
   permissions: UserPermissions
   notification_settings: NotificationSettings
   created_at: number
@@ -74,6 +77,7 @@ export interface CreateUserInput {
   password: string
   username: string
   role?: UserRole
+  membership?: MembershipTier
   permissions?: UserPermissions
   notification_settings?: NotificationSettings
 }
@@ -86,8 +90,11 @@ export interface UpdateUserInput {
   avatar_url?: string | null
   password?: string
   role?: UserRole
+  membership?: MembershipTier
   permissions?: UserPermissions
   notification_settings?: NotificationSettings
+  daily_ai_limit?: number
+  ai_balance?: number
 }
 
 /**
@@ -120,6 +127,10 @@ export function toPublicUser(user: User): UserPublic {
     ? user.role 
     : 'user') as UserRole;
 
+  const membership: MembershipTier = (['free', 'pro', 'plus'].includes(user.membership)
+    ? user.membership
+    : 'free') as MembershipTier;
+
   return {
     id: user.id,
     uid: user.uid,
@@ -127,6 +138,7 @@ export function toPublicUser(user: User): UserPublic {
     username: user.username,
     avatar_url: user.avatar_url,
     role: role,
+    membership: membership,
     permissions: permissions,
     notification_settings,
     created_at: user.created_at,
@@ -197,6 +209,8 @@ export async function createUser(input: CreateUserInput): Promise<UserPublic> {
   // 哈希密码
   const password_hash = await bcrypt.hash(input.password, 10)
   const role = input.role || 'user';
+  const membership = input.membership || 'free';
+  const daily_ai_limit = membership === 'plus' ? 999999 : (membership === 'pro' ? 70 : 0);
   const permissions = JSON.stringify(input.permissions || {});
   const notification_settings = JSON.stringify(input.notification_settings || {
     alerts: true,
@@ -222,10 +236,10 @@ export async function createUser(input: CreateUserInput): Promise<UserPublic> {
   // 插入新用户
   const insertUser = async (uidValue: string) => {
     const row = await queryOne<{ id: number }>(
-      `INSERT INTO users (email, password_hash, username, role, permissions, notification_settings, uid, avatar_url, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO users (email, password_hash, username, role, membership, permissions, notification_settings, uid, avatar_url, created_at, updated_at, daily_ai_limit)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id`,
-      [input.email, password_hash, input.username, role, permissions, notification_settings, uidValue, avatar_url, now, now]
+      [input.email, password_hash, input.username, role, membership, permissions, notification_settings, uidValue, avatar_url, now, now, daily_ai_limit]
     )
     if (!row) {
       throw new Error("创建用户后无法获取用户信息")
@@ -349,6 +363,21 @@ export async function updateUser(id: number, input: UpdateUserInput): Promise<Us
   if (input.role !== undefined) {
     updates.push(`role = $${values.length + 1}`)
     values.push(input.role)
+  }
+
+  if (input.membership !== undefined) {
+    updates.push(`membership = $${values.length + 1}`)
+    values.push(input.membership)
+    
+    // Auto-update daily_ai_limit based on membership if not explicitly provided
+    if (input.daily_ai_limit === undefined) {
+       let limit = 0;
+       if (input.membership === 'pro') limit = 70;
+       else if (input.membership === 'plus') limit = 999999;
+       
+       updates.push(`daily_ai_limit = $${values.length + 1}`)
+       values.push(limit)
+    }
   }
 
   if (input.permissions !== undefined) {

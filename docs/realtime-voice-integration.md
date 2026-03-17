@@ -62,7 +62,7 @@ const client = new RealtimeClient({
 }, {
   voice: 'Cherry',
   instructions: '你是AI助手',
-  model: 'qwen3-omni-flash-realtime',
+  model: 'qwen3-omni-flash',
 });
 
 await client.connect();

@@ -26,10 +26,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import type { UserPublic } from "@/lib/db/user-service"
+import type { UserPublic, MembershipTier } from "@/lib/db/user-service"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { clearAlertExpirations, getIgnoredAlerts } from "@/components/environment-alert"
 import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { Sparkles, Crown } from "lucide-react"
+
+// Membership Badge Component
+function MembershipBadge({ membership }: { membership?: string }) {
+  if (membership === 'plus') {
+    return (
+      <Badge className="bg-gradient-to-r from-violet-600 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-500/20 px-3 py-1 flex items-center gap-1">
+        <Crown className="w-3.5 h-3.5 fill-current" />
+        PLUS 会员
+      </Badge>
+    )
+  }
+  if (membership === 'pro') {
+    return (
+      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 border-0 text-white shadow-lg shadow-orange-500/20 px-3 py-1 flex items-center gap-1">
+        <Sparkles className="w-3.5 h-3.5 fill-current" />
+        PRO 会员
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant="outline" className="text-zinc-500 border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3 py-1">
+      普通用户
+    </Badge>
+  )
+}
 
 // --- Animations ---
 const fadeInUp = {
@@ -52,9 +79,15 @@ const staggerContainer = {
   }
 }
 
+interface UserPublicWithMembership extends UserPublic {
+  membership?: MembershipTier
+}
+
+import { MembershipCard } from "@/components/dashboard/membership-card"
+
 export default function ProfilePage() {
   const router = useRouter()
-  const [user, setUser] = useState<UserPublic | null>(null)
+  const [user, setUser] = useState<UserPublicWithMembership | null>(null)
   const [loading, setLoading] = useState(true)
   const [ignoredAlerts, setIgnoredAlerts] = useState<{ type: string; expiry: number }[]>([])
   const { connectionStatus } = useDeviceData()
@@ -170,8 +203,11 @@ export default function ProfilePage() {
                   </motion.div>
                   
                   <motion.div variants={fadeInUp} className="mb-2">
-                     <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-zinc-900 dark:text-white mb-2">
+                     <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-zinc-900 dark:text-white mb-2 flex items-center gap-4">
                         {user.username}
+                        <div className="scale-75 origin-left">
+                           <MembershipBadge membership={user.membership} />
+                        </div>
                      </h1>
                      <div className="flex items-center gap-4 text-zinc-500 dark:text-zinc-400 font-mono text-sm">
                         <span>{user.email}</span>
@@ -268,6 +304,65 @@ export default function ProfilePage() {
                >
                   {activeTab === 'overview' && (
                      <div className="space-y-16">
+                        {/* Membership Section */}
+                        <section>
+                           <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-8">会员权益</h3>
+                           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-none">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                                 <div>
+                                    <h4 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                                       当前计划: 
+                                       <span className={cn(
+                                          "bg-clip-text text-transparent bg-gradient-to-r",
+                                          user.membership === 'plus' ? "from-violet-600 to-indigo-600" :
+                                          user.membership === 'pro' ? "from-amber-600 to-orange-600" :
+                                          "from-zinc-600 to-zinc-800"
+                                       )}>
+                                          {user.membership === 'plus' ? 'PLUS 尊享会员' : user.membership === 'pro' ? 'PRO 专业会员' : '普通用户'}
+                                       </span>
+                                    </h4>
+                                    <p className="text-zinc-500 mb-6 leading-relaxed">
+                                       {user.membership === 'plus' ? '您正在享受最高级别的全能 AI 托管服务，无限量使用所有高级功能。' : 
+                                        user.membership === 'pro' ? '您拥有专业的 AI 辅助决策能力，每日充足的对话额度满足日常管理需求。' : 
+                                        '升级您的账户以解锁 AI 智能助手、自动化托管和更高级的数据分析功能。'}
+                                    </p>
+                                    <div className="h-64">
+                                       <MembershipCard className="shadow-none border-0 bg-transparent p-0" />
+                                    </div>
+                                 </div>
+                                 <div className="space-y-6 border-l border-zinc-100 dark:border-zinc-800 pl-0 md:pl-12">
+                                    <div className="flex items-start gap-4">
+                                       <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                                          <Sparkles className="size-6 text-zinc-900 dark:text-white" />
+                                       </div>
+                                       <div>
+                                          <h5 className="font-bold mb-1">AI 智能助手</h5>
+                                          <p className="text-sm text-zinc-500">基于通义千问大模型的语音交互，实时控制设备与查询数据。</p>
+                                       </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                       <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                                          <Activity className="size-6 text-zinc-900 dark:text-white" />
+                                       </div>
+                                       <div>
+                                          <h5 className="font-bold mb-1">深度数据分析</h5>
+                                          <p className="text-sm text-zinc-500">多维度环境数据报表，智能生成种植建议与预警。</p>
+                                       </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                       <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                                          <ShieldCheck className="size-6 text-zinc-900 dark:text-white" />
+                                       </div>
+                                       <div>
+                                          <h5 className="font-bold mb-1">全天候托管</h5>
+                                          <p className="text-sm text-zinc-500">自动化策略执行，异常情况自动处理与通知。</p>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </section>
+
                         {/* Quick Actions */}
                         <section>
                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-8">快速访问</h3>
