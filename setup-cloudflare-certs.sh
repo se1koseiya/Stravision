@@ -33,14 +33,13 @@ echo -e "${GRAY}   (内容应该包含 -----BEGIN CERTIFICATE----- 及 -----END 
 echo -e "${RED}   粘贴完成后，请按下回车，在此新行输入 EOF 并按回车结束输入：${NC}"
 
 CERT_CONTENT=""
-while true; do
-    read -r line
-    if [[ "${line^^}" == "EOF" ]]; then
+while IFS= read -r line || [ -n "$line" ]; do
+    # 强制去除回车符并转换为大写进行判断
+    clean_line=$(echo "$line" | tr -d '\r')
+    if [ "$(echo "$clean_line" | tr '[:lower:]' '[:upper:]')" = "EOF" ]; then
         break
     fi
-    if [[ -n "$line" ]]; then
-        CERT_CONTENT+="$line"$'\n'
-    fi
+    CERT_CONTENT+="$line"$'\n'
 done
 
 if [ -z "$CERT_CONTENT" ]; then
@@ -58,14 +57,12 @@ echo -e "${GRAY}   (内容应该包含 -----BEGIN PRIVATE KEY----- 及 -----END 
 echo -e "${RED}   粘贴完成后，请按下回车，在此新行输入 EOF 并按回车结束输入：${NC}"
 
 KEY_CONTENT=""
-while true; do
-    read -r line
-    if [[ "${line^^}" == "EOF" ]]; then
+while IFS= read -r line || [ -n "$line" ]; do
+    clean_line=$(echo "$line" | tr -d '\r')
+    if [ "$(echo "$clean_line" | tr '[:lower:]' '[:upper:]')" = "EOF" ]; then
         break
     fi
-    if [[ -n "$line" ]]; then
-        KEY_CONTENT+="$line"$'\n'
-    fi
+    KEY_CONTENT+="$line"$'\n'
 done
 
 if [ -z "$KEY_CONTENT" ]; then
