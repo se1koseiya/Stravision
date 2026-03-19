@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
-    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析"]
+    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我查", "帮我搜", "我想知道", "查一下", "搜一下", "找一下", "抓取", "获取", "bilibili", "视频", "链接", "网站", "网页"]
     const hasToolKeyword = toolKeywords.some(k => lastUserText.toLowerCase().includes(k))
     const hasToolMention = /@[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(lastUserText)
     const hasToolImage = Array.isArray(lastUserContent) && lastUserContent.some((c:any) => c.type === 'image_url')
@@ -151,8 +151,16 @@ export async function POST(req: Request) {
                  // 自动触发逻辑：根据用户意图自动选择工具
                  const lowerMsg = lastUserContent.toLowerCase()
                  
-                 // 自动触发网页抓取
-                 if ((lowerMsg.includes('搜索') || lowerMsg.includes('查一下') || lowerMsg.includes('找一下') || lowerMsg.includes('抓取')) && !lowerMsg.includes('@')) {
+                 // 扩展搜索触发条件
+                 const searchTriggers = [
+                     '搜索', '查一下', '找一下', '抓取', '帮我查', '帮我搜', '我想知道', 
+                     '查找', '搜一下', '找找', '获取', '查询', '寻找', 'bilibili', 
+                     '视频', '链接', '网站', '网页', '资料', '信息', '内容'
+                 ]
+                 
+                 const hasSearchIntent = searchTriggers.some(trigger => lowerMsg.includes(trigger))
+                 
+                 if (hasSearchIntent && !lowerMsg.includes('@')) {
                      // 检查并按优先级选择工具：1. Firecrawl 2. Exa 3. Brave
                      const firecrawl = mcpToolDefs.find(t => t.function.name === 'mcp_firecrawl_scrape')
                      const exa = mcpToolDefs.find(t => t.function.name === 'mcp_exa_search')
@@ -161,8 +169,8 @@ export async function POST(req: Request) {
                      const bestTool = firecrawl || exa || brave
                      
                      if (bestTool) {
-                         console.log(`[MCP] Detected search intent, suggesting best available tool: ${bestTool.function.name}`)
-                         forcedToolPrompt = `\n\n**重要提示：**\n用户想要搜索或查找信息。你拥有能够联网搜索或抓取网页的工具（如 \`${bestTool.function.name}\`）。\n如果你的内部知识库中没有该信息的最新数据，请**主动**调用该工具来获取准确答案，而不要拒绝或凭空猜测。\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。如果抓取失败或返回内容为空，请立即尝试使用 Exa/Brave 进行搜索作为备选。' : (exa ? '优先使用 Exa 进行语义搜索。' : '')}`
+                         console.log(`[MCP] Detected search intent, forcing usage of tool: ${bestTool.function.name}`)
+                         forcedToolPrompt = `\n\n**🚨 强制搜索指令：**\n用户的请求包含搜索意图："${lastUserContent}"\n\n你**必须立即**调用搜索工具（如 \`${bestTool.function.name}\`）来获取真实信息。\n\n**严禁行为：**\n- ❌ 不能凭记忆回答\n- ❌ 不能编造任何链接或信息\n- ❌ 不能猜测或推测内容\n\n**必须行为：**\n- ✅ 立即调用 \`${bestTool.function.name}\` 工具\n- ✅ 基于真实搜索结果回答\n- ✅ 提供真实的链接和信息\n\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。如果抓取失败或返回内容为空，请立即尝试使用 Exa/Brave 进行搜索作为备选。' : (exa ? '优先使用 Exa 进行语义搜索。' : '使用 Brave 进行网络搜索。')}`
                      }
                  }
              }
@@ -332,7 +340,8 @@ export async function POST(req: Request) {
       "5. 如果使用引用，在回复正文中使用 [n] 进行内联引用标注，并在回复末尾使用 <SOURCES> 与 </SOURCES> 包裹一个 JSON 数组\n" +
       "6. **重要：绝对不要在 Markdown 表格内使用 [n] 引用标记，这会破坏表格渲染。表格中的数据不需要引用标记。**\n" +
       "7. JSON 数组项必须包含：number、title、url、description、quote 字段\n" +
-      "8. 不要在正文中直接展开 JSON"
+      "8. 不要在正文中直接展开 JSON\n" +
+      "9. **🚨 严禁编造任何链接、网址或引用信息！所有链接必须来自真实的工具调用结果！**"
     const reasoningInstruction =
       "**重要：必须在回答之前先展示思考过程！**\n" +
       "1. 在生成最终答案之前，必须先输出你的思考过程\n" +
@@ -375,7 +384,7 @@ export async function POST(req: Request) {
 
     // MCP 工具说明 — 引导 AI 主动使用 Function Calling
     const mcpToolsInstruction = mcpToolDefs.length > 0
-      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力。请注意：对于这些工具，**必须使用原生 Function Calling (tool_calls)**，严禁使用 JSON 文本格式输出！\n\n可用工具列表：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**重要规则：**\n1. **严禁**在回复中直接输出类似 \`{"action": "xxx"}\` 的 JSON 来调用这些工具。必须使用系统提供的 tool_calls 接口。\n2. 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n3. 当用户询问天气、搜索、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据，而不是凭记忆回答。\n4. 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n5. 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n6. 不需要询问用户是否调用工具，直接调用即可。\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
+      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力。请注意：对于这些工具，**必须使用原生 Function Calling (tool_calls)**，严禁使用 JSON 文本格式输出！\n\n可用工具列表：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**🚨 严格执行规则：**\n1. **严禁**在回复中直接输出类似 \`{"action": "xxx"}\` 的 JSON 来调用这些工具。必须使用系统提供的 tool_calls 接口。\n2. **严禁编造、虚构或猜测任何信息**！当用户询问需要搜索的内容时，你**必须**主动调用搜索工具获取真实数据。\n3. **搜索类请求强制调用**：当用户说"帮我查"、"帮我搜"、"我想知道"、"找一下"、"搜索"等时，你**必须立即**调用相应的搜索工具，**绝对不能**凭记忆或编造答案。\n4. **禁止编造链接**：严禁编造任何网址、链接或引用。所有链接必须来自真实的工具调用结果。\n5. 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n6. 当用户询问天气、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据。\n7. 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n8. 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n9. 不需要询问用户是否调用工具，直接调用即可。\n\n**⚠️ 特别警告：**\n- 如果你没有调用工具就回答了需要搜索的问题，这是严重错误！\n- 如果你编造了任何链接或信息，这是严重违规！\n- 必须先调用工具获取真实数据，再基于结果回答用户。\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
       : ""
 
     // 检测是否使用DashScope API
@@ -756,11 +765,28 @@ export async function POST(req: Request) {
                   // 5. 转发 AI 的流式响应
                   if (finalResponse.body) {
                     const reader = finalResponse.body.getReader()
+                    const decoder = new TextDecoder()
+                    let buffer = ""
+                    
                     while (true) {
                       const { done, value } = await reader.read()
                       if (done) break
+                      
+                      // 检查是否包含 [DONE] 标记
+                      const chunk = decoder.decode(value, { stream: true })
+                      buffer += chunk
+                      
+                      // 直接转发数据
                       controller.enqueue(value)
                     }
+                    
+                    // 确保发送 [DONE] 标记
+                    if (!buffer.includes("data: [DONE]")) {
+                      controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+                    }
+                  } else {
+                    // 如果没有响应体，发送 [DONE] 标记
+                    controller.enqueue(encoder.encode("data: [DONE]\n\n"))
                   }
 
                   // 6. 扣除配额

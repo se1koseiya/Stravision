@@ -75,6 +75,8 @@ import { AISettingsDialog } from "@/components/ai-settings-dialog"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
+import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai/reasoning"
 import { MonitorCard } from "@/components/ai/monitor-card"
 import { DeviceBentoGrid } from "@/components/ai/device-bento-grid"
@@ -86,11 +88,12 @@ import { PageNavigation } from "@/components/page-navigation"
 import { VoiceChatModal } from "@/components/ai/voice-chat-modal"
 import { CalendarTrigger } from "@/components/ai/calendar-trigger"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
-import ToolUsageIndicator from "@/components/ui/tool-usage-indicator"
+import { MCPToolDisplay } from "@/components/ai/mcp-tool-display"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 
 
 import { BrowserActivity } from "@/components/ai/browser-activity"
+import { WebPreview, WebPreviewNavigation, WebPreviewNavigationButton, WebPreviewUrl, WebPreviewBody } from "@/components/ai/web-preview"
 
 import { DeviceControlCard } from "@/components/ai/device-control-card"
 
@@ -186,7 +189,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
           
           <button 
             onClick={onOpenStudio}
-            className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             <Zap size={14} />
             <span>工作室</span>
@@ -308,6 +311,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
 export default function AIAssistantPage() {
   const router = useRouter()
   const [user, setUser] = useState<UserPublic | null>(null)
+  const { isElderFriendlyMode } = useElderFriendly()
   const [loadingUser, setLoadingUser] = useState(true)
 
   // Chat State
@@ -1204,7 +1208,14 @@ ${taskContext}
 
         for (const line of lines) {
           const trimmedLine = line.trim()
-          if (!trimmedLine || trimmedLine === "data: [DONE]") continue
+          if (!trimmedLine) continue
+          
+          if (trimmedLine === "data: [DONE]") {
+            // 流结束时，确保清理所有状态
+            setAgentStatus("")
+            setBrowsingUrl(null)
+            continue
+          }
           
           if (trimmedLine.startsWith("data: ")) {
             try {
@@ -1325,6 +1336,11 @@ ${taskContext}
 
               const content = data.choices?.[0]?.delta?.content ?? data.content
               if (typeof content === "string") {
+                // 当开始接收AI的文本回复时，清理工具调用状态
+                if (content.trim() && agentStatus.includes("正在使用工具")) {
+                  setAgentStatus("")
+                }
+                
                 // Update assistant message content
                 if (typeof assistantMsg.content === "string") {
                     // 当 LLM 开始生成最终回复时，移除临时的加载标记
@@ -1781,18 +1797,20 @@ ${taskContext}
                 attributes[match[1]] = match[2]
               }
               
-              const { toolName, description, result, executionTime, details } = attributes
+              const { toolName, description, result, executionTime, details, input, output } = attributes
               
               if (!toolName) return null
               
               return (
                 <div key={index} className="my-3">
-                  <ToolUsageIndicator
+                  <MCPToolDisplay
                     toolName={toolName}
                     toolDescription={description}
                     result={result as 'success' | 'error' | 'loading'}
                     executionTime={executionTime ? parseInt(executionTime) : undefined}
-                    details={details}
+                    input={input ? JSON.parse(input) : undefined}
+                    output={output ? JSON.parse(output) : undefined}
+                    errorText={result === 'error' ? details : undefined}
                   />
                 </div>
               )
@@ -1841,7 +1859,7 @@ ${taskContext}
                         <h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">{task.title}</h3>
                         <div className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide",
-                          task.status === 'completed' ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
+                          task.status === 'completed' ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :
                             task.status === 'in_progress' ? "bg-emerald-100 dark:bg-blue-900/30 text-emerald-700 dark:text-blue-500" :
                               "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                         )}>
@@ -1852,7 +1870,7 @@ ${taskContext}
                         {task.items.map((item, j) => (
                           <div key={j} className="flex items-start gap-3 px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
                             <div className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500">
-                              {item.type === 'file' ? <FileText size={16} /> : <CheckCircle2 size={16} className={cn(task.status === 'completed' ? "text-green-500" : "")} />}
+                              {item.type === 'file' ? <FileText size={16} /> : <CheckCircle2 size={16} className={cn(task.status === 'completed' ? "text-emerald-500" : "")} />}
                             </div>
                             <div className="flex-1 text-sm text-zinc-600 dark:text-zinc-300">
                               {item.text}
@@ -2073,7 +2091,7 @@ ${taskContext}
                   h1: ({ children }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-zinc-900 dark:text-zinc-100">{children}</h1>,
                   h2: ({ children }: any) => <h2 className="text-xl font-bold mt-5 mb-3 text-zinc-900 dark:text-zinc-100 pb-2 border-b border-zinc-100 dark:border-zinc-800">{children}</h2>,
                   h3: ({ children }: any) => <h3 className="text-lg font-bold mt-4 mb-2 text-zinc-900 dark:text-zinc-100">{children}</h3>,
-                  a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-blue-500 hover:underline decoration-emerald-300 dark:decoration-blue-300 underline-offset-2">{children}</a>
+                  a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-500 hover:underline decoration-emerald-300 dark:decoration-emerald-300 underline-offset-2">{children}</a>
                 }}
               >
                 {part}
@@ -2124,7 +2142,8 @@ ${taskContext}
     <div
       className={cn(
         "relative fixed inset-0 w-full h-full text-zinc-900 dark:text-zinc-100 overflow-hidden flex font-sans selection:bg-emerald-500/20 selection:text-emerald-700",
-        isExecutingControl && "ai-control-active"
+        isExecutingControl && "ai-control-active",
+        isElderFriendlyMode && "elder-friendly-text"
       )}
     >
       {/* Background - Minimal & Clean */}
@@ -2203,6 +2222,7 @@ ${taskContext}
               <Image src="/icon.png" alt="Logo" fill className="object-cover" />
             </div>
             <span className="font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">莓小智</span>
+            <ElderFriendlyToggle showButton={false} className="ml-auto" />
           </div>
 
           <div className="space-y-2">
@@ -2337,6 +2357,8 @@ ${taskContext}
                 <PanelLeftClose size={20} />
               </button>
             )}
+
+            <ElderFriendlyToggle showBadge={false} className="ml-2" />
 
             <div id="ai-model-selector-nav">
             <PromptInputModelSelect value={selectedModel || aiSettings?.model || "qwen-vl-plus"} onValueChange={(val) => {
@@ -3011,7 +3033,7 @@ ${taskContext}
             {/* Studio Header */}
             <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <Zap size={18} className="animate-pulse" />
                 </div>
                 <div>
@@ -3045,120 +3067,47 @@ ${taskContext}
               <div className="space-y-6">
                 {/* 如果正在浏览网页，显示浏览器预览 */}
                 {currentBrowserUrl && (
-                    <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 mb-4">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
-                            <div className="flex gap-1.5">
-                                <div className="size-2.5 rounded-full bg-red-400" />
-                                <div className="size-2.5 rounded-full bg-amber-400" />
-                                <div className="size-2.5 rounded-full bg-green-400" />
-                            </div>
-                            <div className="flex-1 flex items-center justify-center">
-                                <div className="bg-white dark:bg-zinc-800 rounded px-2 py-0.5 text-[10px] text-zinc-400 flex items-center gap-1.5 w-full max-w-[200px]">
-                                    <Globe size={10} />
-                                    <span className="truncate flex-1 text-center">{currentBrowserUrl}</span>
+                    <div className="animate-in fade-in slide-in-from-bottom-2 mb-4">
+                        <WebPreview 
+                            defaultUrl={currentBrowserUrl}
+                            className="h-[400px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-sm"
+                        >
+                            <WebPreviewNavigation className="bg-zinc-50 dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
+                                <div className="flex gap-1.5 mr-3">
+                                    <div className="size-2.5 rounded-full bg-red-400" />
+                                    <div className="size-2.5 rounded-full bg-amber-400" />
+                                    <div className="size-2.5 rounded-full bg-green-400" />
                                 </div>
-                            </div>
-                        </div>
-                        <div className="aspect-video bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center relative overflow-hidden group cursor-pointer" onClick={() => setBrowsingUrl(null)}>
-                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/10 to-transparent pointer-events-none" />
-                            {/* 为了演示效果，我们使用一个通用的网页骨架屏，但如果能支持 iframe 更好 */}
-                            {/* 尝试使用 iframe 渲染真实内容，如果被 CSP 拦截则降级显示骨架屏或截图 */}
-                            {currentBrowserUrl && !currentBrowserUrl.includes('search.engine') ? (
-                                <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-800 flex flex-col items-center justify-center">
-                                    {/* 1. 优先尝试 iframe */}
-                                    <iframe 
-                                        src={currentBrowserUrl} 
-                                        className="w-full h-full bg-transparent pointer-events-none opacity-0 grayscale hover:grayscale-0 transition-all duration-700 absolute inset-0 z-10"
-                                        sandbox="allow-same-origin allow-scripts"
-                                        title="Web Preview"
-                                        onLoad={(e) => {
-                                            // 如果加载成功，显示 iframe
-                                            (e.target as HTMLIFrameElement).style.opacity = '0.8';
-                                        }}
-                                    />
-                                    
-                                    {/* 2. 如果有截图，作为背景显示 (当 iframe 失败或被拦截时，截图会作为兜底) */}
-                                    {browserScreenshot && (
-                                        <div className="absolute inset-0 z-0">
-                                            <Image 
-                                                src={browserScreenshot} 
-                                                alt="Web Screenshot" 
-                                                fill 
-                                                className="object-cover object-top opacity-90"
-                                                unoptimized
-                                            />
-                                        </div>
-                                    )}
-                                    
-                                    {/* 3. 最后的兜底图标 (当没有截图且 iframe 失败时) */}
-                                    {!browserScreenshot && (
-                                        <div className="z-0 flex flex-col items-center justify-center text-zinc-400 opacity-50 pointer-events-none absolute inset-0">
-                                            <Globe size={48} strokeWidth={1} className="mb-2" />
-                                            <span className="text-[10px]">正在访问外部链接...</span>
-                                        </div>
-                                    )}
-
-                                    {/* Overlay to ensure pointer-events-none but allow clicking through the parent container */}
-                                    <div className="absolute inset-0 bg-transparent z-20" />
-                                    
-                                    <div className="absolute bottom-2 right-2 z-30 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[8px] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        预览模式 (部分内容受限)
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="w-[90%] h-[90%] bg-white dark:bg-zinc-800 shadow-lg rounded-lg p-4 space-y-3 opacity-80 scale-95 group-hover:scale-100 transition-transform duration-500">
-                                    <div className="h-4 bg-zinc-100 dark:bg-zinc-700 rounded w-1/3 animate-pulse" />
-                                    <div className="space-y-2">
-                                        <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded w-full animate-pulse delay-75" />
-                                        <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded w-5/6 animate-pulse delay-100" />
-                                        <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded w-4/6 animate-pulse delay-150" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3 mt-4">
-                                        <div className="h-20 bg-zinc-100 dark:bg-zinc-700 rounded animate-pulse delay-200" />
-                                        <div className="h-20 bg-zinc-100 dark:bg-zinc-700 rounded animate-pulse delay-300" />
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* 如果想支持点击全屏，可以恢复此遮罩，或者保留当前仅作为展示 */}
-                            {/* 
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 backdrop-blur-[1px]">
-                                <span className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-medium flex items-center gap-1.5">
-                                    <ArrowUpRight size={12} />
-                                    查看详情
-                                </span>
-                            </div> 
-                            */}
-                        </div>
+                                <WebPreviewUrl 
+                                    value={currentBrowserUrl}
+                                    className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
+                                    readOnly
+                                />
+                                <WebPreviewNavigationButton 
+                                    tooltip="在新标签页打开"
+                                    onClick={() => window.open(currentBrowserUrl, '_blank')}
+                                >
+                                    <ArrowUpRight className="size-4" />
+                                </WebPreviewNavigationButton>
+                            </WebPreviewNavigation>
+                            <WebPreviewBody 
+                                src={currentBrowserUrl}
+                            />
+                        </WebPreview>
                     </div>
                 )}
 
                 {studioData.length > 0 ? (
                    studioData.map((data, idx) => (
-                     <div key={idx} className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="size-6 rounded bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
-                            {data.name.includes('weather') ? <Sun size={14} /> : 
-                             data.name.includes('spectrum') ? <Activity size={14} /> : 
-                             data.name.includes('search') || data.name.includes('scrape') ? <Globe size={14} /> :
-                             <Zap size={14} />}
-                          </div>
-                          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                            {data.name.includes('weather') ? '天气查询结果' :
-                             data.name.includes('search') ? '网络搜索结果' :
-                             data.name.includes('scrape') ? '网页分析结果' :
-                             data.name.includes('spectrum') ? '光谱数据分析' : '工具执行结果'}
-                          </h3>
-                        </div>
-                        
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 max-h-[300px] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words">
-                          {data.result?.error ? (
-                            <span className="text-red-500">执行失败: {data.result.error}</span>
-                          ) : (
-                            typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2)
-                          )}
-                        </div>
-                     </div>
+                     <MCPToolDisplay
+                       key={idx}
+                       toolName={data.name}
+                       result={data.result?.error ? 'error' : 'success'}
+                       input={data.input}
+                       output={data.result?.error ? undefined : data.result}
+                       errorText={data.result?.error}
+                       className="mb-4"
+                     />
                    ))
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-600 pt-20">
@@ -3218,8 +3167,8 @@ ${taskContext}
                  </div>
                  <div className="w-full h-px bg-zinc-200/50 dark:bg-zinc-700/50" />
                  <div className="flex items-center gap-3.5">
-                    <div className="size-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
-                       <Zap size={14} className="text-blue-600 dark:text-blue-400" />
+                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
+                       <Zap size={14} className="text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div className="flex-1">
                        <span className="text-sm font-semibold text-zinc-900 dark:text-white block">高级 AI 模型</span>

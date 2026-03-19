@@ -169,7 +169,7 @@
 
   --sidebar: oklch(0.98 0.01 240);
   --sidebar-foreground: oklch(0.2 0.02 240);
-  --sidebar-primary: oklch(0.55 0.15 240);
+  --sidebar-primary: oklch(0.59 0.16 163);
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.95 0.03 240);
   --sidebar-accent-foreground: oklch(0.3 0.05 240);
@@ -196,8 +196,8 @@
   --popover: #1F2937;
   --popover-foreground: oklch(0.985 0 0);
 
-  --primary: #2563EB;
-  /* Button Color - Blue 600 */
+  --primary: oklch(0.65 0.15 163);
+  /* Emerald Green for Dark Mode */
   --primary-foreground: oklch(0.985 0 0);
 
   --secondary: #1F2937;
@@ -218,7 +218,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: #2563EB;
+  --ring: oklch(0.65 0.15 163);
 
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -228,12 +228,12 @@
 
   --sidebar: #111827;
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #2563EB;
+  --sidebar-primary: oklch(0.65 0.15 163);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: #1F2937;
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #2563EB;
+  --sidebar-ring: oklch(0.65 0.15 163);
 }
 
 @layer base {
@@ -247,6 +247,26 @@
 
   body {
     @apply bg-background text-foreground transition-colors duration-500 ease-in-out;
+  }
+
+  /* Force emerald focus states */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="textbox"]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--ring) !important;
+  }
+
+  /* Override any blue focus states */
+  *:focus-visible {
+    outline-color: var(--ring) !important;
+  }
+
+  /* Ensure ring color is emerald */
+  .focus\:ring-2:focus,
+  .focus-visible\:ring-2:focus-visible {
+    --tw-ring-color: var(--ring) !important;
   }
 }
 
@@ -429,5 +449,106 @@
 
   .page-transition-mask.active {
     opacity: 1;
+  }
+
+  /* 长辈友好模式样式 */
+  .elder-friendly-text {
+    /* 增大所有文字大小 */
+  }
+
+  .elder-friendly-text .text-xs {
+    @apply text-sm;
+  }
+
+  .elder-friendly-text .text-sm {
+    @apply text-base;
+  }
+
+  .elder-friendly-text .text-base {
+    @apply text-lg;
+  }
+
+  .elder-friendly-text .text-lg {
+    @apply text-xl;
+  }
+
+  .elder-friendly-text .text-xl {
+    @apply text-2xl;
+  }
+
+  .elder-friendly-text .text-2xl {
+    @apply text-3xl;
+  }
+
+  .elder-friendly-text .text-3xl {
+    @apply text-4xl;
+  }
+
+  .elder-friendly-text .text-4xl {
+    @apply text-5xl;
+  }
+
+  .elder-friendly-text .text-5xl {
+    @apply text-6xl;
+  }
+
+  .elder-friendly-text .text-6xl {
+    @apply text-7xl;
+  }
+
+  /* 增强对比度和可读性 */
+  .elder-friendly-text {
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  .elder-friendly-text .font-medium {
+    @apply font-semibold;
+  }
+
+  .elder-friendly-text .font-semibold {
+    @apply font-bold;
+  }
+
+  .elder-friendly-text .font-bold {
+    @apply font-extrabold;
+  }
+
+  /* 增大图标尺寸 */
+  .elder-friendly-text .w-3 {
+    @apply w-4;
+  }
+
+  .elder-friendly-text .h-3 {
+    @apply h-4;
+  }
+
+  .elder-friendly-text .w-4 {
+    @apply w-5;
+  }
+
+  .elder-friendly-text .h-4 {
+    @apply h-5;
+  }
+
+  .elder-friendly-text .w-5 {
+    @apply w-6;
+  }
+
+  .elder-friendly-text .h-5 {
+    @apply h-6;
+  }
+
+  /* 增大间距 */
+  .elder-friendly-text .gap-1 {
+    @apply gap-2;
+  }
+
+  .elder-friendly-text .gap-2 {
+    @apply gap-3;
+  }
+
+  .elder-friendly-text .gap-3 {
+    @apply gap-4;
   }
 }

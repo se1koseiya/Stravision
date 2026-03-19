@@ -55,8 +55,15 @@ export async function getSensorHistory(type: string, range: string) {
   let interval = 0 // 聚合间隔（秒），0表示不聚合
   
   switch (range) {
+    case '10m':
+      startTime -= 10 * 60 * 1000
+      break
     case '1h':
       startTime -= 60 * 60 * 1000
+      break
+    case '7h':
+      startTime -= 7 * 60 * 60 * 1000
+      interval = 5 * 60 // 5分钟聚合一次
       break
     case '1d':
       startTime -= 24 * 60 * 60 * 1000

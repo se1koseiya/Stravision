@@ -4,14 +4,29 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DeviceData } from "@/lib/hooks/use-device-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { IOSWidgetCard } from "./ios-style/ios-widget-card"
 
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false })
 
 interface SpectralCardProps {
   data: DeviceData | null
+  className?: string
+  isEditing?: boolean
+  widgetId?: string
+  onRemove?: (id: string) => void
+  onContextMenu?: (e: React.MouseEvent, id: string) => void
+  onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
 }
 
-export function SpectralCard({ data }: SpectralCardProps) {
+export function SpectralCard({ 
+  data, 
+  className,
+  isEditing,
+  widgetId,
+  onRemove,
+  onContextMenu,
+  onLongPress
+}: SpectralCardProps) {
   const [timeRange, setTimeRange] = useState("1h")
 
   // Define spectral channels configuration
@@ -80,7 +95,7 @@ export function SpectralCard({ data }: SpectralCardProps) {
           const channel = channels[param.dataIndex]
           return `
             <div class="font-bold">${channel.label} (${channel.name}nm)</div>
-            <div>Value: ${param.value}</div>
+            <div>数值: ${param.value}</div>
           `
         }
       },
@@ -137,8 +152,16 @@ export function SpectralCard({ data }: SpectralCardProps) {
   }
 
   return (
-    <Card className="h-full border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-slate-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] transition-all duration-200 cursor-move flex flex-col">
-      <CardContent className="p-6 flex-1 flex flex-col justify-between">
+    <IOSWidgetCard 
+      size="large"
+      className="h-full border-0 bg-white text-slate-900 shadow-sm"
+      isEditing={isEditing}
+      widgetId={widgetId}
+      onRemove={onRemove}
+      onContextMenu={onContextMenu}
+      onLongPress={onLongPress}
+    >
+      <div className="flex-1 flex flex-col justify-between">
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="text-5xl font-bold text-foreground mb-2">
@@ -151,7 +174,7 @@ export function SpectralCard({ data }: SpectralCardProps) {
               </Badge>
               <Select value={timeRange} onValueChange={setTimeRange}>
                 <SelectTrigger className="h-6 w-[80px] text-xs bg-transparent border-none focus:ring-0 p-0 text-muted-foreground hover:text-foreground">
-                    <SelectValue placeholder="Range" />
+                    <SelectValue placeholder="范围" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="1h">1 小时</SelectItem>
@@ -174,7 +197,7 @@ export function SpectralCard({ data }: SpectralCardProps) {
             opts={{ renderer: 'svg' }}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </IOSWidgetCard>
   )
 }

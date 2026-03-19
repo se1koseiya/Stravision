@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { ModeToggle } from "@/components/mode-toggle"
+import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import {
   Sheet,
   SheetContent,
@@ -172,6 +174,7 @@ function SliderRow({
 
 export default function DeviceControlPage() {
   const router = useRouter()
+  const { isElderFriendlyMode } = useElderFriendly()
   const [r, setR] = useState(0)
   const [g, setG] = useState(0)
   const [b, setB] = useState(0)
@@ -340,7 +343,10 @@ export default function DeviceControlPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
+    <div className={cn(
+      "relative min-h-screen w-screen h-screen overflow-hidden text-foreground",
+      isElderFriendlyMode && "elder-friendly-text"
+    )}>
       <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-[#0B1220]" />
       <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:hidden" />
       <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
@@ -358,11 +364,13 @@ export default function DeviceControlPage() {
               </div>
               <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
             </div>
+            <ElderFriendlyToggle showButton={false} className="ml-2" />
           </div>
           <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
             <PageNavigation />
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <ElderFriendlyToggle showBadge={false} />
             <Sheet onOpenChange={(open) => { if (open) fetchLogs() }}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -435,7 +443,7 @@ export default function DeviceControlPage() {
         <div className="relative px-8 pb-8 pt-6 overflow-hidden h-full w-full">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 h-full">
             {/* Left: Device Cards */}
-            <div 
+            <div
               className="space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-16"
               data-lenis-prevent
             >
@@ -598,8 +606,8 @@ export default function DeviceControlPage() {
                         <div className="flex items-center gap-2">
                           <Camera className="size-12 text-indigo-500 opacity-70" strokeWidth={1.5} />
                           <span className="text-sm text-muted-foreground">
-                            {deviceData?.stepper_direction === 1 ? '正在左移...' : 
-                             deviceData?.stepper_direction === 2 ? '正在右移...' : '已停止'}
+                            {deviceData?.stepper_direction === 1 ? '正在左移...' :
+                              deviceData?.stepper_direction === 2 ? '正在右移...' : '已停止'}
                           </span>
                         </div>
                       </div>

@@ -1304,7 +1304,7 @@ function CameraSettingsForm({
             <button
               type="button"
               onClick={() => setShowAuth(true)}
-              className="text-xs text-blue-500 hover:text-blue-600"
+              className="text-xs text-emerald-500 hover:text-emerald-600"
             >
               + 添加认证信息
             </button>

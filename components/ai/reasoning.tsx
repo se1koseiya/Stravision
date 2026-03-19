@@ -33,7 +33,7 @@ const Reasoning = React.forwardRef<React.ElementRef<typeof Collapsible>, Reasoni
         open={open}
         onOpenChange={setOpen}
         className={cn(
-          "border-l-2 border-emerald-200 dark:border-blue-800 pl-4 group/reasoning rounded-lg bg-emerald-50/30 dark:bg-blue-950/20 py-2",
+          "border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 group/reasoning",
           className
         )}
         {...props}
@@ -52,7 +52,7 @@ const ReasoningTrigger = React.forwardRef<
   <CollapsibleTrigger
     ref={ref}
     className={cn(
-      "flex items-center justify-between w-full text-sm font-medium text-emerald-700 dark:text-blue-400 hover:text-emerald-900 dark:hover:text-blue-300 transition-colors py-1 cursor-pointer",
+      "flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer",
       className
     )}
     {...props}
@@ -60,8 +60,8 @@ const ReasoningTrigger = React.forwardRef<
     {children || (
       <>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 animate-pulse" />
-          <span className="font-semibold">AI 思考过程</span>
+          <Sparkles className="h-4 w-4" />
+          <span>AI 思考过程</span>
         </div>
         <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/reasoning:rotate-180" />
       </>
@@ -77,12 +77,12 @@ const ReasoningContent = React.forwardRef<
   <CollapsibleContent
     ref={ref}
     className={cn(
-      "text-sm text-gray-600 dark:text-gray-300 overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down mt-2",
+      "text-sm text-zinc-600 dark:text-zinc-400 overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down",
       className
     )}
     {...props}
   >
-    <div className="pb-2 pt-2 border-t border-emerald-100 dark:border-blue-900/50">{children}</div>
+    <div className="px-4 pb-4 pt-0 border-t border-zinc-100 dark:border-zinc-800">{children}</div>
   </CollapsibleContent>
 ))
 ReasoningContent.displayName = "ReasoningContent"

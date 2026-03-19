@@ -65,10 +65,12 @@ interface RealtimeVoiceOrbProps {
   onNavigate?: (command: NavigateCommand) => void;
   onQuotaExceeded?: () => void;
   instructions?: string;
+  systemPrompt?: string;
   voice?: string;
   autoConnect?: boolean;
   deviceData?: DeviceData | null;
   autoExecuteCommands?: boolean;
+  bubblePosition?: 'bottom' | 'top' | 'left' | 'right';
 }
 
 // Fetch user quota
@@ -493,10 +495,12 @@ export function RealtimeVoiceOrb({
   onNavigate,
   onQuotaExceeded,
   instructions = "你是莓小智，一个专业、友好的AI语音助手。用中文简洁回答问题。重要：当你需要输出JSON命令时（如设备控制、定时任务、页面导航），请将JSON放在回复末尾，但在语音朗读时完全跳过JSON部分，只朗读自然语言描述。绝不要朗读任何包含大括号、引号、冒号等JSON符号的内容。",
+  systemPrompt,
   voice = "Mochi",
   autoConnect = false,
   deviceData,
   autoExecuteCommands = true,
+  bubblePosition = 'bottom',
 }: RealtimeVoiceOrbProps) {
   const [status, setStatus] = useState<VoiceStatus>('idle');
   const [transcript, setTranscript] = useState<string>("");
@@ -526,6 +530,9 @@ export function RealtimeVoiceOrb({
 
   // Build enhanced instructions with device data
   const enhancedInstructions = useMemo(() => {
+    // Use systemPrompt if provided, otherwise use default instructions
+    const baseInstructions = systemPrompt || instructions;
+    
     let deviceInfo = "";
     
     if (deviceData) {
@@ -639,8 +646,8 @@ export function RealtimeVoiceOrb({
 对于这些命令，系统会自动截图并跳转到AI助手进行分析，你**不需要**也**不应该**做任何响应。`;
     }
 
-    return `${instructions}${deviceInfo}`;
-  }, [instructions, deviceData]);
+    return `${baseInstructions}${deviceInfo}`;
+  }, [instructions, systemPrompt, deviceData]);
 
   // Track previous device relay states to detect changes
   const prevRelayStatesRef = useRef<string>("");
@@ -1071,7 +1078,7 @@ export function RealtimeVoiceOrb({
   const isActive = status !== 'idle' && status !== 'error';
 
   return (
-    <div className={cn("fixed bottom-6 left-6 z-50 font-sans", className)}>
+    <div className={cn("relative font-sans", className)}>
       {/* Main Orb */}
       <motion.div
         className="relative cursor-pointer"
@@ -1129,7 +1136,7 @@ export function RealtimeVoiceOrb({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
+            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap z-10"
             style={{ top: `${size + 12}px` }}
           >
             <span className={cn(
@@ -1149,7 +1156,13 @@ export function RealtimeVoiceOrb({
 
       {/* Chat History Container */}
       <div 
-        className="absolute left-0 bottom-full mb-6 w-[90vw] md:w-[400px] flex flex-col justify-end pointer-events-none gap-3 z-40"
+        className={cn(
+          "absolute w-[90vw] md:w-[400px] flex flex-col pointer-events-none gap-3 z-40",
+          bubblePosition === 'bottom' && "left-0 bottom-full mb-6 justify-end",
+          bubblePosition === 'top' && "left-0 top-full mt-6 justify-start",
+          bubblePosition === 'left' && "right-full mr-6 top-0 justify-start",
+          bubblePosition === 'right' && "left-full ml-6 top-0 justify-start"
+        )}
         style={{ maxHeight: '60vh' }}
       >
         <AnimatePresence initial={false}>

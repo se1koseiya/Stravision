@@ -1,5 +1,5 @@
 "use client"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { PageNavigation } from "@/components/page-navigation"
@@ -14,9 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useDeviceData } from "@/lib/hooks/use-device-data"
+import { useDeviceData, type DeviceData } from "@/lib/hooks/use-device-data"
+import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 import type { UserPublic, MembershipTier } from "@/lib/db/user-service"
 import { useState, useEffect } from "react"
 import GridLayout, { Layout } from "react-grid-layout"
@@ -24,136 +26,81 @@ import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
 import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
-import { AiInsightCard } from "@/components/dashboard/ai-insight-card"
 import { MembershipCard } from "@/components/dashboard/membership-card"
+import {
+  TemperatureWidget,
+  HumidityWidget,
+  LightWidget,
+  CO2Widget,
+  SoilWidget,
+  WeatherWidget,
+  AIInsightWidget,
+  NutrientWidget,
+  IOSWidgetCard,
+  TopBanner
+} from "@/components/dashboard/ios-style"
+import { LAYOUT_PRESETS, getWidgetSize } from "@/lib/dashboard-layouts"
 import { toast } from "sonner"
-
-interface UserPublicWithMembership extends UserPublic {
-  membership?: MembershipTier
-}
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Minus, Plus, Settings2, AppWindow, Eye, EyeOff } from "lucide-react"
+import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
+import { PageHeader } from "@/components/page-header"
+import { WidgetLibraryDialog } from "@/components/dashboard/widget-library-dialog"
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { isElderFriendlyMode, toggleElderFriendlyMode } = useElderFriendly()
 
   // User authentication state
-  const [currentUser, setCurrentUser] = useState<UserPublicWithMembership | null>(null)
+  const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
 
   // Connect to SSE for real-time device data
   const { deviceData, connectionStatus } = useDeviceData()
+
+  // Device control functions
+  const { toggleRelay, setLEDs } = useDeviceControl()
 
   // Use shared weather data from context
   const { weatherData } = useWeatherContext()
 
   // Batched history data fetching for optimization
   const [historyDataMap, setHistoryDataMap] = useState<Record<string, any[]>>({})
-  
+
   useEffect(() => {
     const fetchAllHistory = async () => {
-        try {
-            // List of all types used in the dashboard
-            const types = [
-                'humidity', 'temperature', 'light', 'co2',
-                'soilMoisture', 'fertility', 'nitrogen', 
-                'phosphorus', 'potassium', 'rainfall'
-            ].join(',')
-            
-            const res = await fetch(`/api/device-history?types=${types}&range=1h`)
-            const data = await res.json()
-            if (data.success) {
-                setHistoryDataMap(data.data)
-            }
-        } catch (e) {
-            console.error("Failed to fetch dashboard history:", e)
+      try {
+        // List of all types used in the dashboard
+        const types = [
+          'humidity', 'temperature', 'light', 'co2',
+          'soilMoisture', 'fertility', 'nitrogen',
+          'phosphorus', 'potassium', 'rainfall'
+        ].join(',')
+
+        const res = await fetch(`/api/device-history?types=${types}&range=1h`)
+        const data = await res.json()
+        if (data.success) {
+          setHistoryDataMap(data.data)
         }
+      } catch (e) {
+        console.error("Failed to fetch dashboard history:", e)
+      }
     }
     fetchAllHistory()
   }, [])
 
-  const defaultLayout: Layout[] = [
-    { i: "membership", x: 0, y: 0, w: 3, h: 4 },
-    { i: "temperature", x: 3, y: 0, w: 3, h: 4 },
-    { i: "humidity", x: 6, y: 0, w: 3, h: 4 },
-    { i: "soilMoisture", x: 9, y: 0, w: 3, h: 4 },
-    { i: "ai-insight", x: 0, y: 4, w: 8, h: 6 },
-    { i: "light", x: 8, y: 4, w: 4, h: 6 },
-    { i: "spectral", x: 0, y: 10, w: 6, h: 6 },
-    { i: "co2", x: 6, y: 10, w: 6, h: 6 },
-  ]
-
-  const compactLayout: Layout[] = [
-    { i: "membership", x: 0, y: 0, w: 2, h: 4 },
-    { i: "temperature", x: 2, y: 0, w: 2, h: 4 },
-    { i: "humidity", x: 4, y: 0, w: 2, h: 4 },
-    { i: "soilMoisture", x: 6, y: 0, w: 2, h: 4 },
-    { i: "light", x: 8, y: 0, w: 2, h: 4 },
-    { i: "co2", x: 10, y: 0, w: 2, h: 4 },
-    { i: "ai-insight", x: 0, y: 4, w: 6, h: 6 },
-    { i: "spectral", x: 6, y: 4, w: 6, h: 6 },
-  ]
-
-  const dataFirstLayout = [
-    { i: "ai-insight", x: 0, y: 0, w: 12, h: 2 },
-    { i: "spectral", x: 0, y: 2, w: 8, h: 4 },
-    { i: "humidity", x: 8, y: 2, w: 4, h: 2 },
-    { i: "temperature", x: 8, y: 4, w: 4, h: 2 },
-    { i: "light", x: 0, y: 6, w: 3, h: 2 },
-    { i: "co2", x: 3, y: 6, w: 3, h: 2 },
-    { i: "soilMoisture", x: 6, y: 4, w: 3, h: 2 },
-    { i: "rainfall", x: 9, y: 4, w: 3, h: 2 },
-    { i: "fertility", x: 0, y: 6, w: 3, h: 2 },
-    { i: "nitrogen", x: 3, y: 6, w: 3, h: 2 },
-    { i: "phosphorus", x: 6, y: 6, w: 3, h: 2 },
-    { i: "potassium", x: 9, y: 6, w: 3, h: 2 },
-  ]
-
-  const monitorLayout = [
-    { i: "humidity", x: 0, y: 0, w: 6, h: 3 },
-    { i: "temperature", x: 6, y: 0, w: 6, h: 3 },
-    { i: "light", x: 0, y: 3, w: 4, h: 2 },
-    { i: "co2", x: 4, y: 3, w: 4, h: 2 },
-    { i: "soilMoisture", x: 8, y: 3, w: 4, h: 2 },
-    { i: "spectral", x: 0, y: 5, w: 12, h: 3 },
-    { i: "fertility", x: 0, y: 8, w: 3, h: 2 },
-    { i: "nitrogen", x: 3, y: 8, w: 3, h: 2 },
-    { i: "phosphorus", x: 6, y: 8, w: 3, h: 2 },
-    { i: "potassium", x: 9, y: 8, w: 3, h: 2 },
-    { i: "rainfall", x: 0, y: 10, w: 12, h: 2 },
-  ]
-
-  const environmentLayout = [
-    { i: "ai-insight", x: 0, y: 0, w: 12, h: 2 },
-    { i: "humidity", x: 0, y: 2, w: 6, h: 3 }, // Large Humidity
-    { i: "temperature", x: 6, y: 2, w: 6, h: 3 }, // Large Temperature
-    { i: "co2", x: 0, y: 5, w: 4, h: 2 },
-    { i: "light", x: 4, y: 5, w: 4, h: 2 },
-    { i: "rainfall", x: 8, y: 5, w: 4, h: 2 },
-    { i: "soilMoisture", x: 0, y: 7, w: 3, h: 2 },
-    { i: "fertility", x: 3, y: 7, w: 3, h: 2 },
-    { i: "nitrogen", x: 6, y: 7, w: 2, h: 2 },
-    { i: "phosphorus", x: 8, y: 7, w: 2, h: 2 },
-    { i: "potassium", x: 10, y: 7, w: 2, h: 2 },
-    { i: "spectral", x: 0, y: 9, w: 12, h: 3 },
-  ]
-
-  const soilLayout = [
-    { i: "ai-insight", x: 0, y: 0, w: 12, h: 2 },
-    { i: "soilMoisture", x: 0, y: 2, w: 6, h: 3 }, // Large Soil Moisture
-    { i: "fertility", x: 6, y: 2, w: 6, h: 3 }, // Large Fertility
-    { i: "nitrogen", x: 0, y: 5, w: 4, h: 2 },
-    { i: "phosphorus", x: 4, y: 5, w: 4, h: 2 },
-    { i: "potassium", x: 8, y: 5, w: 4, h: 2 },
-    { i: "humidity", x: 0, y: 7, w: 3, h: 2 },
-    { i: "temperature", x: 3, y: 7, w: 3, h: 2 },
-    { i: "light", x: 6, y: 7, w: 3, h: 2 },
-    { i: "co2", x: 9, y: 7, w: 3, h: 2 },
-    { i: "spectral", x: 0, y: 9, w: 12, h: 3 },
-    { i: "rainfall", x: 0, y: 12, w: 12, h: 2 },
-  ]
+  const defaultLayout = LAYOUT_PRESETS.default.layout
+  const compactLayout = LAYOUT_PRESETS.compact.layout
+  const dataFirstLayout = LAYOUT_PRESETS.dataFirst.layout
+  const monitorLayout = LAYOUT_PRESETS.monitor.layout
+  const environmentLayout = LAYOUT_PRESETS.environment.layout
+  const soilLayout = LAYOUT_PRESETS.soil.layout
 
   const [layout, setLayout] = useState(defaultLayout)
   const [currentPreset, setCurrentPreset] = useState("default")
   const [isEditMode, setIsEditMode] = useState(false)
+  const [showWidgetLibrary, setShowWidgetLibrary] = useState(false)
 
   const handlePresetChange = (preset: string) => {
     setCurrentPreset(preset)
@@ -199,7 +146,7 @@ export default function DashboardPage() {
     const savedLayout = localStorage.getItem('dashboard-layout')
     const savedPreset = localStorage.getItem('dashboard-layout-preset')
     if (savedPreset) {
-        setCurrentPreset(savedPreset)
+      setCurrentPreset(savedPreset)
     }
     if (savedLayout) {
       try {
@@ -209,6 +156,80 @@ export default function DashboardPage() {
       }
     }
   }, [])
+
+  const handleRemoveWidget = (id: string) => {
+    toast.custom((t) => (
+      <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-white/60 p-5 flex flex-col gap-4 min-w-[320px] max-w-[360px] pointer-events-auto">
+        <div className="flex flex-col gap-1">
+          <div className="font-bold text-slate-900 text-lg">移除组件</div>
+          <div className="text-sm text-slate-500 font-medium">确定要隐藏这个小组件吗？</div>
+        </div>
+        <div className="flex justify-end gap-3 mt-2">
+          <Button variant="ghost" className="rounded-full font-semibold hover:bg-slate-100" onClick={() => toast.dismiss(t)}>取消</Button>
+          <Button className="rounded-full bg-red-500 hover:bg-red-600 text-white font-semibold shadow-md shadow-red-500/20" onClick={() => {
+            setLayout(prev => {
+              const newLayout = prev.filter(l => l.i !== id)
+              localStorage.setItem('dashboard-layout', JSON.stringify(newLayout))
+              return newLayout
+            })
+            toast.dismiss(t)
+            toast.success("已移除小组件", {
+              className: "rounded-full backdrop-blur-md bg-white/90 border-white/60 shadow-lg"
+            })
+          }}>确定移除</Button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      position: 'top-center',
+      unstyled: true,
+      className: "!bg-transparent !border-none !p-0 !shadow-none !backdrop-blur-none",
+      style: { background: 'transparent', border: 'none', boxShadow: 'none', padding: 0, minWidth: 'auto', backdropFilter: 'none' }
+    })
+  }
+
+  const handleWidgetContextMenu = (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    // Trigger context menu via state/popover
+    setContextMenuState({ x: e.clientX, y: e.clientY, widgetId: id })
+  }
+
+  const handleWidgetLongPress = (e: React.TouchEvent | React.MouseEvent, id: string) => {
+    if (isEditMode) return
+
+    // For touch devices, simulate context menu opening
+    let clientX = 0, clientY = 0
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX
+      clientY = e.touches[0].clientY
+    } else {
+      clientX = e.clientX
+      clientY = e.clientY
+    }
+    setContextMenuState({ x: clientX, y: clientY, widgetId: id })
+  }
+
+  const handleResizeWidget = (id: string, size: 'small' | 'medium' | 'large') => {
+    setLayout(prev => {
+      const newLayout = prev.map(item => {
+        if (item.i === id) {
+          // Adjust dimensions based on requested size
+          let newW = item.w, newH = item.h
+          if (size === 'small') { newW = 2; newH = 2; }
+          else if (size === 'medium') { newW = 4; newH = 2; }
+          else if (size === 'large') { newW = 4; newH = 4; }
+          return { ...item, w: newW, h: newH }
+        }
+        return item
+      })
+      // Save size changes immediately
+      localStorage.setItem('dashboard-layout', JSON.stringify(newLayout))
+      return newLayout
+    })
+    setContextMenuState(null)
+  }
+
+  const [contextMenuState, setContextMenuState] = useState<{ x: number, y: number, widgetId: string } | null>(null)
 
   const onLayoutChange = (newLayout: Layout[]) => {
     if (isEditMode) {
@@ -227,6 +248,59 @@ export default function DashboardPage() {
 
   const handleEditMode = () => {
     setIsEditMode(!isEditMode)
+  }
+
+  const handleAddWidget = (widgetId: string, size: 'small' | 'medium' | 'large') => {
+    // Check if widget already exists
+    if (layout.find(l => l.i === widgetId)) {
+      toast.error('该小组件已存在')
+      return
+    }
+
+    // Calculate dimensions based on size
+    let w = 2, h = 2
+    if (size === 'medium') { w = 4; h = 2; }
+    else if (size === 'large') { w = 4; h = 4; }
+
+    // Find a good position for the new widget (top-left available space)
+    let x = 0, y = 0
+    const maxY = Math.max(...layout.map(l => l.y + l.h), 0)
+
+    // Try to place at the end
+    y = maxY
+
+    const newItem = {
+      i: widgetId,
+      x,
+      y,
+      w,
+      h,
+      minW: 2,
+      minH: 2
+    }
+
+    const newLayout = [...layout, newItem]
+    setLayout(newLayout)
+    localStorage.setItem('dashboard-layout', JSON.stringify(newLayout))
+
+    toast.success('小组件已添加', {
+      description: '您可以拖动调整位置和大小',
+      duration: 3000,
+    })
+  }
+
+  const getCurrentWidgetSize = (id: string): 'small' | 'medium' | 'large' => {
+    const item = layout.find(l => l.i === id)
+    if (!item) return getWidgetSize(id)
+
+    // Logic based on grid units (12 cols total)
+    // Small: usually width 2 (2/12 = 1/6 of screen, ~ square-ish on wide screen)
+    // Medium: width 4 (1/3 of screen)
+    // Large: width 4 and height 4
+
+    if (item.w >= 4 && item.h >= 4) return 'large'
+    if (item.w >= 4) return 'medium'
+    return 'small'
   }
 
   // Show loading state while checking authentication
@@ -282,135 +356,174 @@ export default function DashboardPage() {
         .animate-grow-bar { animation: grow-bar 0.8s ease-out; }
       `}</style>
       <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
-        <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-[#0B1220]" />
-        <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:hidden" />
+        <div className="absolute inset-0 bg-[#F5F7FA] dark:bg-[#0B1220]" />
+        <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.8),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(240,253,244,0.6),transparent_55%)] dark:hidden" />
         <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
+
+        {/* Global click to close context menu */}
+        {contextMenuState && (
+          <div
+            className="fixed inset-0 z-40 bg-black/5 backdrop-blur-[1px]"
+            onClick={() => setContextMenuState(null)}
+          />
+        )}
 
         <div className="relative grid grid-rows-[72px_1fr] h-full w-full">
           {/* Header */}
-          <div className="relative flex items-center px-8 border-b border-black/5 dark:border-white/10 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50">
-            <div className="flex items-center gap-4 text-foreground">
-            <div className="relative size-12 shrink-0">
-              <Image src="/icon.png" alt="logo" fill className="object-contain" />
-            </div>
-            <div className="leading-tight">
-                <div className="text-base font-bold tracking-wide">STRAVISION</div>
-                <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
-              </div>
-            </div>
-            <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-              <PageNavigation />
+          <PageHeader user={currentUser}>
+            <div className="hidden md:flex">
+              {currentUser?.membership && currentUser.membership !== 'free' && (
+                <Badge
+                  className={`
+                    ${currentUser.membership === 'plus'
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-indigo-500/20'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-orange-500/20'} 
+                    border-0 text-white shadow-lg flex items-center gap-1 px-3 py-1 mr-3
+                  `}
+                >
+                  {currentUser.membership === 'plus' ? <Crown className="size-3.5 fill-current" /> : <Sparkles className="size-3.5 fill-current" />}
+                  {currentUser.membership === 'plus' ? 'PLUS' : 'PRO'}
+                </Badge>
+              )}
+
+              {connectionStatus.connected ? (
+                <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30 mr-3">
+                  <Wifi className="size-3 mr-1" />
+                  已连接
+                </Badge>
+              ) : (
+                <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 mr-3">
+                  <WifiOff className="size-3 mr-1" />
+                  {connectionStatus.error || '未连接'}
+                </Badge>
+              )}
+              {connectionStatus.lastUpdate && (
+                <span className="text-xs text-muted-foreground/60 mr-3 hidden lg:inline">
+                  更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
+                </span>
+              )}
             </div>
 
-              {/* 布局编辑按钮和连接状态 */}
-              <div className="ml-auto flex items-center gap-3">
-                <div className="hidden md:flex">
-                  {currentUser?.membership && currentUser.membership !== 'free' && (
-                    <Badge 
-                      className={`
-                        ${currentUser.membership === 'plus' 
-                          ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-indigo-500/20' 
-                          : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-orange-500/20'} 
-                        border-0 text-white shadow-lg flex items-center gap-1 px-3 py-1 mr-3
-                      `}
-                    >
-                      {currentUser.membership === 'plus' ? <Crown className="size-3.5 fill-current" /> : <Sparkles className="size-3.5 fill-current" />}
-                      {currentUser.membership === 'plus' ? 'PLUS' : 'PRO'}
-                    </Badge>
-                  )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-green-50 hover:text-green-900 dark:hover:bg-green-900/20 dark:hover:text-green-100">
+                  <LayoutGrid className="size-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>切换视图预设</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handlePresetChange("default")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                  <span className="flex items-center gap-2"><LayoutGrid className="size-4" /> 默认视图</span>
+                  {currentPreset === "default" && <span className="text-green-500 text-xs">当前</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePresetChange("compact")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                  <span className="flex items-center gap-2"><Grid className="size-4" /> 紧凑视图</span>
+                  {currentPreset === "compact" && <span className="text-green-500 text-xs">当前</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePresetChange("dataFirst")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                  <span className="flex items-center gap-2"><BarChart3 className="size-4" /> 数据优先</span>
+                  {currentPreset === "dataFirst" && <span className="text-green-500 text-xs">当前</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePresetChange("monitor")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                  <span className="flex items-center gap-2"><Monitor className="size-4" /> 监控大屏</span>
+                  {currentPreset === "monitor" && <span className="text-green-500 text-xs">当前</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePresetChange("environment")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                  <span className="flex items-center gap-2"><Wind className="size-4" /> 环境监测</span>
+                  {currentPreset === "environment" && <span className="text-green-500 text-xs">当前</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePresetChange("soil")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
+                  <span className="flex items-center gap-2"><Leaf className="size-4" /> 土壤监测</span>
+                  {currentPreset === "soil" && <span className="text-green-500 text-xs">当前</span>}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-                  {connectionStatus.connected ? (
-                    <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30 mr-3">
-                      <Wifi className="size-3 mr-1" />
-                      已连接
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 mr-3">
-                      <WifiOff className="size-3 mr-1" />
-                      {connectionStatus.error || '未连接'}
-                    </Badge>
-                  )}
-                  {connectionStatus.lastUpdate && (
-                    <span className="text-xs text-muted-foreground/60 mr-3 hidden lg:inline">
-                      更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
-                    </span>
-                  )}
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-green-50 hover:text-green-900 dark:hover:bg-green-900/20 dark:hover:text-green-100">
-                      <LayoutGrid className="size-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>布局操作</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={handleEditMode} className="justify-between cursor-pointer focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><Edit className="size-4" /> {isEditMode ? '完成编辑' : '调整布局'}</span>
-                      {isEditMode && <span className="text-green-500 text-xs">编辑中</span>}
-                    </DropdownMenuItem>
-                    {isEditMode && (
-                      <DropdownMenuItem onClick={handleSaveLayout} className="justify-between cursor-pointer focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                        <span className="flex items-center gap-2"><Save className="size-4" /> 保存布局</span>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>切换视图预设</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handlePresetChange("default")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><LayoutGrid className="size-4" /> 默认视图</span>
-                      {currentPreset === "default" && <span className="text-green-500 text-xs">当前</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePresetChange("compact")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><Grid className="size-4" /> 紧凑视图</span>
-                      {currentPreset === "compact" && <span className="text-green-500 text-xs">当前</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePresetChange("dataFirst")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><BarChart3 className="size-4" /> 数据优先</span>
-                      {currentPreset === "dataFirst" && <span className="text-green-500 text-xs">当前</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePresetChange("monitor")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><Monitor className="size-4" /> 监控大屏</span>
-                      {currentPreset === "monitor" && <span className="text-green-500 text-xs">当前</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePresetChange("environment")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><Wind className="size-4" /> 环境监测</span>
-                      {currentPreset === "environment" && <span className="text-green-500 text-xs">当前</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handlePresetChange("soil")} className="justify-between focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100">
-                      <span className="flex items-center gap-2"><Leaf className="size-4" /> 土壤监测</span>
-                      {currentPreset === "soil" && <span className="text-green-500 text-xs">当前</span>}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {isEditMode ? (
+            {isEditMode ? (
+              <Button
+                onClick={handleSaveLayout}
+                size="sm"
+                className="h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-md transition-all font-medium px-4 ml-2"
+              >
+                完成编辑
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
-                    onClick={handleSaveLayout}
-                    size="icon"
-                    className="h-9 w-9 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Save size={18} />
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleEditMode}
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                    className="h-9 w-9 rounded-full hover:bg-green-50 hover:text-green-900 dark:hover:bg-green-900/20 dark:hover:text-green-100 ml-1"
+                    title="编辑仪表盘"
                   >
-                    <Edit size={18} />
+                    <Edit className="size-5" />
                   </Button>
-                )}
-                <UserAvatarMenu user={currentUser} />
-              </div>
-          </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onClick={() => setShowWidgetLibrary(true)}
+                    className="focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100"
+                  >
+                    <AppWindow className="size-4 mr-2" />
+                    添加小组件
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleEditMode}
+                    className="focus:bg-green-50 dark:focus:bg-green-900/20 focus:text-green-900 dark:focus:text-green-100"
+                  >
+                    <Edit className="size-4 mr-2" />
+                    编辑布局
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      // Reset to default layout
+                      setLayout(defaultLayout)
+                      setCurrentPreset("default")
+                      localStorage.setItem('dashboard-layout', JSON.stringify(defaultLayout))
+                      localStorage.setItem('dashboard-layout-preset', 'default')
+                      toast.success('已恢复默认布局')
+                    }}
+                    className="focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-900 dark:focus:text-red-100"
+                  >
+                    <Settings2 className="size-4 mr-2" />
+                    恢复默认布局
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </PageHeader>
 
           {/* Dashboard Content */}
-          <div 
+          <div
             className="relative px-8 pb-8 pt-6 overflow-y-auto h-full w-full custom-scrollbar"
             data-lenis-prevent
           >
+            <div className="w-full max-w-[1600px] mx-auto mb-6">
+              <TopBanner
+                userName={currentUser.username || currentUser.email || "用户"}
+                deviceData={deviceData}
+                onDeviceCommand={(command) => {
+                  // Handle device commands from voice assistant
+                  if (command.action === 'toggle_relay' && command.device !== undefined) {
+                    // Get current state from deviceData
+                    const relayKey = `relay${command.device}` as 'relay5' | 'relay6' | 'relay7' | 'relay8'
+                    const currentState = (deviceData?.[relayKey] as number) || 0
+                    toggleRelay(command.device, currentState)
+                  } else if (command.action === 'set_led' && command.r !== undefined) {
+                    // Convert RGB to LED values (assuming r=led1, g=led2, b=led3)
+                    setLEDs(
+                      command.r || 0,
+                      command.g || 0,
+                      command.b || 0,
+                      0 // led4 not used in RGB commands
+                    )
+                  }
+                }}
+              />
+            </div>
+
             <div id="dashboard-charts" className="w-full min-h-full">
               <GridLayout
                 className="layout"
@@ -421,236 +534,349 @@ export default function DashboardPage() {
                 onLayoutChange={onLayoutChange}
                 isDraggable={isEditMode}
                 isResizable={isEditMode}
+                draggableCancel=".cancel-drag"
                 compactType={null}
                 preventCollision={true}
                 margin={[16, 16]}
               >
-                <div key="ai-insight">
-                  <AiInsightCard />
-                </div>
-                {/* 湿度 */}
-                <div key="humidity">
-                  <DashboardChartCard
-                    title="湿度"
-                    value={deviceData ? deviceData.humidity.toFixed(1) : '--'}
-                    unit="%"
-                    icon={<Droplets className="size-10 text-blue-400" />}
-                    type="humidity"
-                    color="blue"
-                    gradientColor="#60a5fa"
-                    initialHistoryData={historyDataMap['humidity']}
-                  />
-                </div>
+                {layout.find(l => l.i === 'ai-insight') && (
+                  <div key="ai-insight">
+                    <AIInsightWidget
+                      size={getCurrentWidgetSize('ai-insight')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="ai-insight"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+                {layout.find(l => l.i === 'humidity') && (
+                  <div key="humidity">
+                    <HumidityWidget
+                      value={deviceData ? deviceData.humidity : 0}
+                      size={getCurrentWidgetSize('humidity')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="humidity"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
 
                 {/* 会员卡片 */}
-              <div key="membership">
-                <MembershipCard />
-              </div>
-              
-              {/* 温度 */}
-              <div key="temperature">
-                  <DashboardChartCard
-                    title="温度"
-                    value={deviceData ? deviceData.temperature.toFixed(1) : '--'}
-                    unit="°C"
-                    icon={<Sun className="size-10 text-orange-400" />}
-                    type="temperature"
-                    color="orange"
-                    gradientColor="#fb923c"
-                    initialHistoryData={historyDataMap['temperature']}
-                  />
-                </div>
+                {layout.find(l => l.i === 'membership') && (
+                  <div key="membership">
+                    <MembershipCard
+                      size={getCurrentWidgetSize('membership')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="membership"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+
+                {/* 温度 */}
+                {layout.find(l => l.i === 'temperature') && (
+                  <div key="temperature">
+                    <TemperatureWidget
+                      value={deviceData ? deviceData.temperature : 0}
+                      trend={deviceData ? 'stable' : 'stable'}
+                      size={getCurrentWidgetSize('temperature')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="temperature"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
 
                 {/* 光照 */}
-                <div key="light">
-                  <DashboardChartCard
-                    title="光照强度"
-                    value={deviceData ? deviceData.light : '--'}
-                    unit="lux"
-                    icon={<Sun className="size-10 text-yellow-400" strokeWidth={1.5} />}
-                    type="light"
-                    color="yellow"
-                    gradientColor="#facc15"
-                    initialHistoryData={historyDataMap['light']}
-                  />
-                </div>
+                {layout.find(l => l.i === 'light') && (
+                  <div key="light">
+                    <LightWidget
+                      value={deviceData ? deviceData.light : 0}
+                      size={getCurrentWidgetSize('light')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="light"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
 
                 {/* CO2 */}
-                <div key="co2">
-                  <DashboardChartCard
-                    title="CO₂浓度"
-                    value={deviceData ? deviceData.co2 : '--'}
-                    unit="ppm"
-                    icon={<Wind className="size-10 text-gray-500" />}
-                    type="co2"
-                    color="gray"
-                    gradientColor="#9ca3af"
-                    initialHistoryData={historyDataMap['co2']}
-                  />
-                </div>
+                {layout.find(l => l.i === 'co2') && (
+                  <div key="co2">
+                    <CO2Widget
+                      value={deviceData ? deviceData.co2 : 400}
+                      size={getCurrentWidgetSize('co2')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="co2"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
 
                 {/* 土壤湿度 */}
-                <div key="soilMoisture">
-                  <DashboardChartCard
-                    title="土壤湿度"
-                    value={deviceData ? (deviceData.earth_water).toFixed(0) : '--'}
-                    unit="%"
-                    icon={<Droplets className="size-10 text-cyan-400" />}
-                    type="soilMoisture"
-                    color="cyan"
-                    gradientColor="#22d3ee"
-                    initialHistoryData={historyDataMap['soilMoisture']}
-                  />
-                </div>
-
-                {/* 土壤肥力 */}
-                <div key="fertility">
-                  <DashboardChartCard
-                    title="土壤肥力"
-                    value={(() => {
-                        if (!deviceData) return '--'
+                {layout.find(l => l.i === 'soil') && (
+                  <div key="soil">
+                    <SoilWidget
+                      moisture={deviceData ? deviceData.earth_water : 0}
+                      fertility={(() => {
+                        if (!deviceData) return 0
                         // Calculate fertility based on NPK values
-                        // N: 0-200 mg/kg -> 0-100%
                         const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
-                        // P: 0-100 mg/kg -> 0-100%
                         const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
-                        // K: 0-300 mg/kg -> 0-100%
                         const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
-                        
-                        const fertility = (nScore + pScore + kScore) / 3
-                        return fertility.toFixed(1)
-                    })()}
-                    unit="%"
-                    icon={<Leaf className="size-10 text-green-500" />}
-                    type="fertility"
-                    color="green"
-                    gradientColor="#4ade80"
-                    initialHistoryData={historyDataMap['fertility']}
-                  />
-                </div>
+                        return (nScore + pScore + kScore) / 3
+                      })()}
+                      size={getCurrentWidgetSize('soil')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="soil"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
 
-                {/* 氮含量 */}
-                <div key="nitrogen">
-                  <DashboardChartCard
-                    title="氮含量 (N)"
-                    value={deviceData ? deviceData.earth_n : '--'}
-                    unit="mg/kg"
-                    icon={<div className="size-10 rounded-full bg-purple-400 flex items-center justify-center text-white font-bold text-xl">N</div>}
-                    type="nitrogen"
-                    color="purple"
-                    gradientColor="#c084fc"
-                    initialHistoryData={historyDataMap['nitrogen']}
-                  />
-                </div>
-
-                {/* 磷含量 */}
-                <div key="phosphorus">
-                  <DashboardChartCard
-                    title="磷含量 (P)"
-                    value={deviceData ? deviceData.earth_p : '--'}
-                    unit="mg/kg"
-                    icon={<div className="size-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold text-xl">P</div>}
-                    type="phosphorus"
-                    color="pink"
-                    gradientColor="#f472b6"
-                    initialHistoryData={historyDataMap['phosphorus']}
-                  />
-                </div>
-
-                {/* 钾含量 */}
-                <div key="potassium">
-                  <DashboardChartCard
-                    title="钾含量 (K)"
-                    value={deviceData ? deviceData.earth_k : '--'}
-                    unit="mg/kg"
-                    icon={<div className="size-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-xl">K</div>}
-                    type="potassium"
-                    color="amber"
-                    gradientColor="#fbbf24"
-                    initialHistoryData={historyDataMap['potassium']}
-                  />
-                </div>
-
-                {/* 光谱分析 */}
-                <div key="spectral">
-                  <SpectralCard data={deviceData} />
-                </div>
-
-                {/* 降雨量 */}
-                <div key="rainfall">
-                  {(() => {
-                    const todayPrecip = weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0
-                    const isRaining = todayPrecip > 0
-
-                    return (
-                      <Card className={`h-full rounded-3xl border overflow-hidden shadow-2xl transition-all cursor-move relative ${isRaining
-                        ? 'bg-gradient-to-br from-blue-600/20 via-cyan-600/15 to-blue-700/20 border-blue-400/30 hover:shadow-blue-500/20'
-                        : 'glass border-border hover:shadow-3xl'
-                        }`}>
-                        {/* 雨滴动画效果 */}
-                        {isRaining && (
-                          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                            {Array.from({ length: 15 }).map((_, i) => (
-                              <div
-                                key={i}
-                                className="absolute w-0.5 h-3 bg-blue-300/30 animate-rain-dashboard"
-                                style={{
-                                  left: `${Math.random() * 100}%`,
-                                  animationDelay: `${Math.random() * 2}s`,
-                                  animationDuration: `${0.8 + Math.random() * 0.4}s`
-                                }}
-                              />
-                            ))}
+                {/* 土壤肥力 - 使用 IOSWidgetCard 模拟统一风格 */}
+                {layout.find(l => l.i === 'fertility') && (
+                  <div key="fertility">
+                    <IOSWidgetCard
+                      size={getCurrentWidgetSize('fertility')}
+                      className="h-full bg-white text-slate-900 shadow-sm border-0"
+                      isEditing={isEditMode}
+                      widgetId="fertility"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                      header={
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-full bg-emerald-50">
+                            <Leaf className="w-4 h-4 text-emerald-500" />
+                          </div>
+                          {getCurrentWidgetSize('fertility') !== 'small' && <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">土壤肥力</span>}
+                        </div>
+                      }
+                    >
+                      <div className="flex flex-col h-full justify-between">
+                        {getCurrentWidgetSize('fertility') === 'small' ? (
+                          <>
+                            <div className="mt-auto">
+                              <div className="flex items-start">
+                                <span className="text-3xl font-bold tracking-tighter text-slate-900">
+                                  {(() => {
+                                    if (!deviceData) return '--'
+                                    const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
+                                    const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
+                                    const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
+                                    const fertility = (nScore + pScore + kScore) / 3
+                                    return fertility.toFixed(0)
+                                  })()}
+                                </span>
+                                <span className="text-xs font-medium mt-1 text-slate-400 ml-1">%</span>
+                              </div>
+                              <div className="text-xs font-medium text-slate-500 mt-1 truncate">
+                                肥力指数
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-5xl font-bold tracking-tighter text-slate-900">
+                                {(() => {
+                                  if (!deviceData) return '--'
+                                  const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
+                                  const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
+                                  const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
+                                  const fertility = (nScore + pScore + kScore) / 3
+                                  return fertility.toFixed(1)
+                                })()}
+                              </span>
+                              <span className="text-xl text-slate-400 ml-1">%</span>
+                              <div className="text-sm text-slate-500 mt-1">综合健康度</div>
+                            </div>
                           </div>
                         )}
+                      </div>
+                    </IOSWidgetCard>
+                  </div>
+                )}
 
-                        <CardContent className="p-6 h-full flex flex-col justify-between relative z-10">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="text-5xl font-bold text-foreground mb-2 animate-fade-in-dashboard">
-                                {weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm?.toFixed(1) || '--'}
-                                <span className="text-2xl font-normal text-muted-foreground">mm</span>
-                              </div>
-                              <Badge className={`${isRaining ? 'bg-blue-400/30 text-blue-200 border-blue-400/40' : 'bg-blue-500/20 text-blue-600 border-blue-500/30'}`}>
-                                今日降雨量
-                              </Badge>
-                            </div>
-                            <Droplets className={`size-10 transition-all ${isRaining ? 'text-blue-300 animate-bounce' : 'text-blue-400'}`} />
-                          </div>
-                          <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                            {weatherData?.forecast?.forecastday?.slice(0, 7).map((day, i) => {
-                              const maxPrecip = Math.max(...(weatherData.forecast.forecastday.slice(0, 7).map(d => d.day.totalprecip_mm || 0)), 1)
-                              const height = ((day.day.totalprecip_mm || 0) / maxPrecip) * 100
-                              const hasRain = (day.day.totalprecip_mm || 0) > 0
-                              return (
-                                <div
-                                  key={i}
-                                  className={`flex-1 rounded-t-lg transition-all duration-500 ${hasRain
-                                    ? 'bg-gradient-to-t from-blue-400 to-blue-300 hover:from-blue-500 hover:to-blue-400 animate-grow-bar'
-                                    : 'bg-gradient-to-t from-blue-400/20 to-blue-300/20 hover:from-blue-400/30 hover:to-blue-300/30'
-                                    }`}
-                                  style={{
-                                    height: `${Math.max(height, 5)}%`,
-                                    animationDelay: `${i * 0.1}s`
-                                  }}
-                                  title={`${day.date}: ${day.day.totalprecip_mm?.toFixed(1) || 0}mm`}
-                                />
-                              )
-                            }) || [40, 60, 35, 70, 45, 55, 50].map((height, i) => (
-                              <div key={i} className="flex-1 bg-gradient-to-t from-blue-400/30 to-blue-300/30 rounded-t-lg" style={{ height: `${height}%` }} />
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })()}
-                </div>
+                {/* 氮含量 */}
+                {layout.find(l => l.i === 'nitrogen') && (
+                  <div key="nitrogen">
+                    <NutrientWidget
+                      type="N"
+                      value={deviceData ? deviceData.earth_n : '--'}
+                      size={getCurrentWidgetSize('nitrogen')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="nitrogen"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+
+                {/* 磷含量 */}
+                {layout.find(l => l.i === 'phosphorus') && (
+                  <div key="phosphorus">
+                    <NutrientWidget
+                      type="P"
+                      value={deviceData ? deviceData.earth_p : '--'}
+                      size={getCurrentWidgetSize('phosphorus')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="phosphorus"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+
+                {/* 钾含量 */}
+                {layout.find(l => l.i === 'potassium') && (
+                  <div key="potassium">
+                    <NutrientWidget
+                      type="K"
+                      value={deviceData ? deviceData.earth_k : '--'}
+                      size={getCurrentWidgetSize('potassium')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="potassium"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+
+                {/* 光谱分析 */}
+                {layout.find(l => l.i === 'spectral') && (
+                  <div key="spectral">
+                    <SpectralCard
+                      data={deviceData}
+                      isEditing={isEditMode}
+                      widgetId="spectral"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+
+                {/* 天气信息 */}
+                {layout.find(l => l.i === 'weather') && (
+                  <div key="weather">
+                    <WeatherWidget
+                      temperature={deviceData?.temperature || weatherData?.current?.temp_c || 0}
+                      condition={weatherData?.current?.condition?.text || '晴朗'}
+                      humidity={deviceData?.humidity || weatherData?.current?.humidity || 0}
+                      windSpeed={Number((weatherData?.current?.wind_kph ? weatherData.current.wind_kph / 3.6 : 0).toFixed(1))}
+                      size={getCurrentWidgetSize('weather')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="weather"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
 
               </GridLayout>
+
+              {/* Context Menu Overlay */}
+              {contextMenuState && (
+                <div
+                  className="fixed z-50 animate-in fade-in zoom-in-95 duration-200"
+                  style={{
+                    top: contextMenuState.y,
+                    left: contextMenuState.x,
+                    transform: 'translate(0, 10px)'
+                  }}
+                >
+                  <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-3xl rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-white/60 dark:border-white/10 p-2 min-w-[220px] flex flex-col">
+                    {/* Size Selector */}
+                    <div className="flex items-center justify-between p-2 bg-slate-100/40 dark:bg-slate-800/40 rounded-2xl mb-2 backdrop-blur-md">
+                      <button
+                        className={`p-3 rounded-xl flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? 'bg-white shadow-sm scale-105' : 'hover:bg-white/50'}`}
+                        onClick={() => handleResizeWidget(contextMenuState.widgetId, 'small')}
+                      >
+                        <div className="w-5 h-5 border-[1.5px] border-slate-400 rounded-[8px]" />
+                      </button>
+                      <button
+                        className={`p-3 rounded-xl flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'bg-white shadow-sm scale-105' : 'hover:bg-white/50'}`}
+                        onClick={() => handleResizeWidget(contextMenuState.widgetId, 'medium')}
+                      >
+                        <div className="w-8 h-5 border-[1.5px] border-slate-400 rounded-[8px]" />
+                      </button>
+                      <button
+                        className={`p-3 rounded-xl flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'bg-white shadow-sm scale-105' : 'hover:bg-white/50'}`}
+                        onClick={() => handleResizeWidget(contextMenuState.widgetId, 'large')}
+                      >
+                        <div className="w-8 h-8 border-[1.5px] border-slate-400 rounded-[12px]" />
+                      </button>
+                    </div>
+
+                    <button
+                      className="flex items-center gap-3 p-3 px-4 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-2xl transition-colors text-left w-full text-slate-700 dark:text-slate-200 font-medium text-sm"
+                      onClick={() => {
+                        setIsEditMode(true)
+                        setContextMenuState(null)
+                      }}
+                    >
+                      <AppWindow className="w-4 h-4 text-slate-500" />
+                      编辑主屏幕
+                    </button>
+
+                    <div className="h-px w-[calc(100%-2rem)] mx-auto bg-slate-200/60 dark:bg-slate-700/50 my-1" />
+
+                    <button
+                      className="flex items-center gap-3 p-3 px-4 hover:bg-red-50/50 dark:hover:bg-red-950/30 rounded-2xl transition-colors text-left w-full text-red-500 font-medium text-sm"
+                      onClick={() => {
+                        handleRemoveWidget(contextMenuState.widgetId)
+                        setContextMenuState(null)
+                      }}
+                    >
+                      <Minus className="w-4 h-4" />
+                      移除小组件
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Widget Library Dialog */}
+      <WidgetLibraryDialog
+        open={showWidgetLibrary}
+        onOpenChange={setShowWidgetLibrary}
+        onAddWidget={handleAddWidget}
+        existingWidgets={layout.map(l => l.i)}
+      />
 
     </>
   )

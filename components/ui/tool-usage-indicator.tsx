@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { 
   WrenchScrewdriverIcon, 
-  EyeIcon, 
   MagnifyingGlassIcon,
   CloudIcon,
   MapIcon,
@@ -59,32 +58,6 @@ const getToolDisplayName = (toolName: string) => {
   return displayNames[toolName] || toolName
 }
 
-const getResultColor = (result?: string) => {
-  switch (result) {
-    case 'success':
-      return 'text-green-600 bg-green-50 border-green-200'
-    case 'error':
-      return 'text-red-600 bg-red-50 border-red-200'
-    case 'loading':
-      return 'text-blue-600 bg-blue-50 border-blue-200'
-    default:
-      return 'text-gray-600 bg-gray-50 border-gray-200'
-  }
-}
-
-const getResultIcon = (result?: string) => {
-  switch (result) {
-    case 'success':
-      return '✅'
-    case 'error':
-      return '❌'
-    case 'loading':
-      return '⏳'
-    default:
-      return '🔧'
-  }
-}
-
 export default function ToolUsageIndicator({ 
   toolName, 
   toolDescription, 
@@ -97,52 +70,109 @@ export default function ToolUsageIndicator({
   
   const displayName = getToolDisplayName(toolName)
   const icon = getToolIcon(toolName)
-  const colorClass = getResultColor(result)
-  const resultIcon = getResultIcon(result)
+  
+  // 根据结果状态设置样式
+  const getStatusStyles = () => {
+    switch (result) {
+      case 'success':
+        return {
+          bg: 'bg-emerald-50/80 dark:bg-emerald-950/20',
+          border: 'border-emerald-200/60 dark:border-emerald-800/40',
+          text: 'text-emerald-700 dark:text-emerald-400',
+          icon: 'text-emerald-600 dark:text-emerald-500',
+          iconBg: 'bg-emerald-100 dark:bg-emerald-900/30'
+        }
+      case 'error':
+        return {
+          bg: 'bg-red-50/80 dark:bg-red-950/20',
+          border: 'border-red-200/60 dark:border-red-800/40',
+          text: 'text-red-700 dark:text-red-400',
+          icon: 'text-red-600 dark:text-red-500',
+          iconBg: 'bg-red-100 dark:bg-red-900/30'
+        }
+      case 'loading':
+        return {
+          bg: 'bg-blue-50/80 dark:bg-blue-950/20',
+          border: 'border-blue-200/60 dark:border-blue-800/40',
+          text: 'text-blue-700 dark:text-blue-400',
+          icon: 'text-blue-600 dark:text-blue-500',
+          iconBg: 'bg-blue-100 dark:bg-blue-900/30'
+        }
+      default:
+        return {
+          bg: 'bg-slate-50/80 dark:bg-slate-950/20',
+          border: 'border-slate-200/60 dark:border-slate-800/40',
+          text: 'text-slate-700 dark:text-slate-400',
+          icon: 'text-slate-600 dark:text-slate-500',
+          iconBg: 'bg-slate-100 dark:bg-slate-900/30'
+        }
+    }
+  }
+  
+  const styles = getStatusStyles()
   
   return (
-    <div className={`border rounded-lg p-3 mb-3 ${colorClass} ${className}`}>
+    <div className={`rounded-xl border ${styles.border} ${styles.bg} backdrop-blur-sm transition-all duration-200 hover:shadow-md ${className}`}>
       <div 
-        className="flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
+        className={`flex items-center gap-3 p-3 cursor-pointer ${details ? 'hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
+        onClick={() => details && setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center space-x-2">
-          {icon}
-          <span className="font-medium">{resultIcon} {displayName}</span>
-          {executionTime && (
-            <span className="text-xs opacity-75">
-              ({executionTime}ms)
-            </span>
+        {/* 图标 */}
+        <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${styles.iconBg} ${styles.icon} shrink-0`}>
+          {result === 'loading' ? (
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : result === 'success' ? (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : result === 'error' ? (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            icon
           )}
         </div>
         
-        <div className="flex items-center space-x-2">
-          {result === 'loading' && (
-            <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-          )}
-          {details && (
-            <button className="p-1 hover:bg-black/5 rounded">
-              {isExpanded ? (
-                <ChevronDownIcon className="w-4 h-4" />
-              ) : (
-                <ChevronRightIcon className="w-4 h-4" />
-              )}
-            </button>
+        {/* 内容 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`font-medium text-sm ${styles.text}`}>
+              {displayName}
+            </span>
+            {executionTime && (
+              <span className={`text-xs ${styles.text} opacity-60`}>
+                ({executionTime}ms)
+              </span>
+            )}
+          </div>
+          {toolDescription && (
+            <p className={`text-xs ${styles.text} opacity-70 mt-0.5`}>
+              {toolDescription}
+            </p>
           )}
         </div>
+        
+        {/* 展开按钮 */}
+        {details && (
+          <button className={`p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${styles.icon}`}>
+            {isExpanded ? (
+              <ChevronDownIcon className="w-4 h-4" />
+            ) : (
+              <ChevronRightIcon className="w-4 h-4" />
+            )}
+          </button>
+        )}
       </div>
       
-      {toolDescription && (
-        <p className="text-sm opacity-75 mt-1 ml-6">
-          {toolDescription}
-        </p>
-      )}
-      
+      {/* 详情展开区域 */}
       {isExpanded && details && (
-        <div className="mt-3 ml-6 p-2 bg-black/5 rounded text-xs">
-          <pre className="whitespace-pre-wrap overflow-x-auto">
-            {typeof details === 'string' ? details : JSON.stringify(details, null, 2)}
-          </pre>
+        <div className={`px-3 pb-3 border-t ${styles.border}`}>
+          <div className="mt-3 p-3 bg-black/5 dark:bg-white/5 rounded-lg">
+            <pre className={`text-xs ${styles.text} whitespace-pre-wrap overflow-x-auto font-mono`}>
+              {typeof details === 'string' ? details : JSON.stringify(details, null, 2)}
+            </pre>
+          </div>
         </div>
       )}
     </div>

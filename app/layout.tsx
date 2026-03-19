@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { WeatherProvider } from "@/lib/contexts/weather-context";
 import { DeviceProvider } from "@/lib/contexts/device-context";
+import { ElderFriendlyProvider } from "@/lib/contexts/elder-friendly-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SchedulerInit } from "@/components/scheduler-init";
 import { PageTransition } from "@/components/page-transition";
@@ -15,6 +16,7 @@ import NextTopLoader from "nextjs-toploader";
 import { SWRegister } from "@/components/sw-register";
 import { DesktopInstallPrompt } from "@/components/desktop-install-prompt";
 import { FloatingXiaozhi } from "@/components/xiaozhi/FloatingXiaozhi";
+import { FeatureAnnouncementDialog } from "@/components/dashboard/feature-announcement-dialog";
 import Script from "next/script";
 
 export const metadata: Metadata = {
@@ -37,55 +39,55 @@ export default async function RootLayout({
   const headersList = await headers();
   const forwardedFor = headersList.get("x-forwarded-for");
   const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
-  
+
   const banDetails = await getBanDetails(ip);
   if (banDetails) {
-     // Record access attempt
-     await recordAccessLog({
-       ip,
-       method: "GET",
-       path: "layout",
-       status: 403,
-       duration: 0,
-       user_agent: headersList.get("user-agent") || ""
-     });
-     
-     return (
-       <html lang="en">
-         <body>
-           <div style={{ 
-             display: 'flex', 
-             justifyContent: 'center', 
-             alignItems: 'center', 
-             height: '100vh', 
-             flexDirection: 'column',
-             fontFamily: 'system-ui, sans-serif',
-             padding: '20px',
-             textAlign: 'center'
-           }}>
-             <h1 style={{ color: '#e11d48', fontSize: '2rem', marginBottom: '1rem' }}>Access Denied</h1>
-             <p style={{ marginBottom: '1rem' }}>Your IP address ({ip}) has been banned from accessing this system.</p>
-             {banDetails.reason && (
-               <div style={{ 
-                 backgroundColor: '#fef2f2', 
-                 border: '1px solid #fee2e2', 
-                 color: '#b91c1c', 
-                 padding: '1rem', 
-                 borderRadius: '0.5rem',
-                 maxWidth: '400px'
-               }}>
-                 <strong>Reason:</strong> {banDetails.reason}
-               </div>
-             )}
-             {banDetails.expires_at && (
-                <p style={{ marginTop: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
-                  Expires: {new Date(banDetails.expires_at).toLocaleString()}
-                </p>
-             )}
-           </div>
-         </body>
-       </html>
-     );
+    // Record access attempt
+    await recordAccessLog({
+      ip,
+      method: "GET",
+      path: "layout",
+      status: 403,
+      duration: 0,
+      user_agent: headersList.get("user-agent") || ""
+    });
+
+    return (
+      <html lang="en">
+        <body>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            flexDirection: 'column',
+            fontFamily: 'system-ui, sans-serif',
+            padding: '20px',
+            textAlign: 'center'
+          }}>
+            <h1 style={{ color: '#e11d48', fontSize: '2rem', marginBottom: '1rem' }}>Access Denied</h1>
+            <p style={{ marginBottom: '1rem' }}>Your IP address ({ip}) has been banned from accessing this system.</p>
+            {banDetails.reason && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fee2e2',
+                color: '#b91c1c',
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                maxWidth: '400px'
+              }}>
+                <strong>Reason:</strong> {banDetails.reason}
+              </div>
+            )}
+            {banDetails.expires_at && (
+              <p style={{ marginTop: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                Expires: {new Date(banDetails.expires_at).toLocaleString()}
+              </p>
+            )}
+          </div>
+        </body>
+      </html>
+    );
   }
 
   // Record normal access (optional, but requested "record every visiting ip")
@@ -126,22 +128,25 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SchedulerInit />
-          <WeatherProvider>
-            <DeviceProvider>
-            <EnvironmentAlert />
-            <SmoothScroll>
-              <PageTransition>
-                  {children}
-                </PageTransition>
-                <ToasterWrapper />
-                <MessageNotificationListener />
-                <SWRegister />
-                <DesktopInstallPrompt />
-                <FloatingXiaozhi />
-              </SmoothScroll>
-            </DeviceProvider>
-          </WeatherProvider>
+          <ElderFriendlyProvider>
+            <SchedulerInit />
+            <WeatherProvider>
+              <DeviceProvider>
+                <EnvironmentAlert />
+                <SmoothScroll>
+                  <PageTransition>
+                    {children}
+                  </PageTransition>
+                  <ToasterWrapper />
+                  <MessageNotificationListener />
+                  <SWRegister />
+                  <DesktopInstallPrompt />
+                  <FloatingXiaozhi />
+                  <FeatureAnnouncementDialog autoFetch />
+                </SmoothScroll>
+              </DeviceProvider>
+            </WeatherProvider>
+          </ElderFriendlyProvider>
         </ThemeProvider>
       </body>
     </html>

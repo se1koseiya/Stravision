@@ -7,6 +7,7 @@ import { OrbitControls, useGLTF, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { Video, Thermometer, Droplets, Fan, Lightbulb, Sun, X, Plus, Bot, Sparkles, Send, Activity } from "lucide-react"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
+import { SpectralPopup } from "@/components/monitor/spectral-popup"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
 
@@ -315,6 +316,21 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
   }, [deviceData])
 
   if (marker.type === "spectrometer") {
+    // Use actual device data only, no mock data
+    const spectralData = {
+      channel1: deviceData?.channel1,
+      channel2: deviceData?.channel2,
+      channel3: deviceData?.channel3,
+      channel4: deviceData?.channel4,
+      channel5: deviceData?.channel5,
+      channel6: deviceData?.channel6,
+      channel7: deviceData?.channel7,
+      channel8: deviceData?.channel8,
+      channel9: deviceData?.channel9,
+      channel10: deviceData?.channel10,
+      channel11: deviceData?.channel11,
+    }
+
     return (
       <Html
         position={[marker.position[0], marker.position[1] + 0.8, marker.position[2]]}
@@ -323,7 +339,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
         style={{ pointerEvents: "auto" }}
       >
         <div className="relative w-[380px] h-[280px] animate-in fade-in zoom-in-95 duration-300">
-          <SpectralCard data={deviceData as DeviceData} />
+          <SpectralPopup data={spectralData} />
           <button 
             onClick={onClose} 
             className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-xs z-10 ${isDark ? "bg-black/20 hover:bg-black/40 text-white" : "bg-black/5 hover:bg-black/10 text-slate-900"}`}

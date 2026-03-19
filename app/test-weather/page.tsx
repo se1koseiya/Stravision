@@ -89,7 +89,7 @@ export default function TestWeatherPage() {
           )}
           <button
             onClick={getLocation}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+            className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition"
           >
             重新获取位置
           </button>

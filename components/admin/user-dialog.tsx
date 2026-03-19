@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { UserPublic } from "@/lib/db/user-service"
 import { toast } from "sonner"
+import { Plus } from "lucide-react"
 
 interface UserDialogProps {
   open: boolean
@@ -99,7 +100,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
       if (formData.password) {
         body.password = formData.password
       }
-      
+
       if (formData.avatar_url) {
         body.avatar_url = formData.avatar_url
       }
@@ -177,12 +178,46 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
           </div>
 
           <div className="space-y-2">
-             <Label htmlFor="avatar">Avatar URL</Label>
-             <Input
-               id="avatar"
-               value={formData.avatar_url}
-               onChange={e => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
-             />
+            <Label htmlFor="avatar">Avatar URL</Label>
+            <div className="flex gap-2">
+              <Input
+                id="avatar"
+                value={formData.avatar_url}
+                onChange={e => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
+                className="flex-1"
+              />
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    try {
+                      const res = await fetch('/api/admin/upload', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        setFormData(prev => ({ ...prev, avatar_url: data.url }));
+                        toast.success("Avatar uploaded");
+                      } else {
+                        toast.error(data.error || "Upload failed");
+                      }
+                    } catch (err) {
+                      toast.error("Network error");
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -212,11 +247,11 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
                 if (val === 'free') limit = 0;
                 else if (val === 'pro') limit = 70;
                 else if (val === 'plus') limit = 999999;
-                
-                setFormData(prev => ({ 
-                    ...prev, 
-                    membership: val,
-                    daily_ai_limit: limit
+
+                setFormData(prev => ({
+                  ...prev,
+                  membership: val,
+                  daily_ai_limit: limit
                 }))
               }}
             >

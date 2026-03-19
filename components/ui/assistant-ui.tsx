@@ -180,7 +180,7 @@ export interface ActionProps extends React.ComponentProps<typeof Button> {
 }
 
 export const Action = React.forwardRef<HTMLButtonElement, ActionProps>(
-  ({ className, label, tooltip, variant = "ghost", size = "icon-sm", children, ...props }, ref) => {
+  ({ className, label, tooltip, variant = "ghost", size = "icon", children, ...props }, ref) => {
     const btn = (
       <Button
         ref={ref}
@@ -553,7 +553,7 @@ export const PromptInputSubmit = React.forwardRef<HTMLButtonElement, PromptInput
     type="submit"
     size="icon"
     disabled={disabled || status === "loading"}
-    className={cn("size-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700", className)}
+    className={cn("size-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700", className)}
     {...props}
   >
     {status === "loading" ? <Loader size={20} /> : <ArrowUpIcon className="size-4" />}
@@ -716,7 +716,7 @@ export const BranchPrevious = React.forwardRef<HTMLButtonElement, React.Componen
     const ctx = React.useContext(BranchContext)
     const disabled = !ctx || ctx.index <= 0
     return (
-      <Button ref={ref} variant="ghost" size="icon-sm" disabled={disabled} className={cn("rounded-full", className)}
+      <Button ref={ref} variant="ghost" size="icon" disabled={disabled} className={cn("rounded-full", className)}
         onClick={() => ctx && ctx.setIndex(ctx.index - 1)} {...props}>
         <span aria-hidden>◀</span>
       </Button>
@@ -730,7 +730,7 @@ export const BranchNext = React.forwardRef<HTMLButtonElement, React.ComponentPro
     const ctx = React.useContext(BranchContext)
     const disabled = !ctx || ctx.index >= Math.max(0, ctx.count - 1)
     return (
-      <Button ref={ref} variant="ghost" size="icon-sm" disabled={disabled} className={cn("rounded-full", className)}
+      <Button ref={ref} variant="ghost" size="icon" disabled={disabled} className={cn("rounded-full", className)}
         onClick={() => ctx && ctx.setIndex(ctx.index + 1)} {...props}>
         <span aria-hidden>▶</span>
       </Button>
@@ -901,7 +901,14 @@ export const SourcesTrigger = React.forwardRef<HTMLButtonElement, SourcesTrigger
         ref={ref}
         variant="ghost"
         size="sm"
-        className={cn("h-6 px-2 rounded-full text-xs", className)}
+        className={cn(
+          "h-6 px-2 rounded-md text-xs font-medium transition-all",
+          "bg-zinc-100 hover:bg-zinc-200",
+          "dark:bg-zinc-800 dark:hover:bg-zinc-700",
+          "text-zinc-600 dark:text-zinc-400",
+          "border-0",
+          className
+        )}
         onClick={() => ctx?.setOpen?.(!ctx.open)}
         {...props}
       >
@@ -921,15 +928,13 @@ export const SourcesContent = React.forwardRef<HTMLDivElement, React.HTMLAttribu
         ref={ref}
         className={cn(
           "overflow-hidden transition-all",
-          ctx?.open ? "max-h-[280px] opacity-100" : "max-h-0 opacity-0",
+          ctx?.open ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0",
           className
         )}
         {...props}
       >
-        <div className="rounded-2xl bg-muted/50 text-foreground/80 text-xs p-3 border border-border">
-          <div className="flex flex-col gap-2">
-            {children}
-          </div>
+        <div className="mt-2 space-y-2">
+          {children}
         </div>
       </div>
     )
@@ -958,24 +963,23 @@ export const Source = React.forwardRef<HTMLAnchorElement, SourceProps>(({ classN
     return (
       <div
         ref={ref as any}
-        className={cn("group block rounded-md p-2 sm:p-2.5 -mx-1 min-h-[44px] bg-muted/30 border border-border/50", className)}
+        className={cn(
+          "block rounded-lg p-3 transition-all",
+          "bg-zinc-50 dark:bg-zinc-900",
+          "border border-zinc-200 dark:border-zinc-800",
+          className
+        )}
         {...props as any}
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3">
+          {number ? (
+            <span className="shrink-0 size-5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-xs font-medium flex items-center justify-center">
+              {number}
+            </span>
+          ) : null}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {number ? <span className="text-xs text-muted-foreground/70">[{number}]</span> : null}
-              <span className="text-sm font-medium text-foreground truncate">{title || "未知来源"}</span>
-            </div>
-            {description ? <div className="mt-1 text-xs text-foreground/90 break-words">{description}</div> : null}
-            {quote ? (
-              <div className="mt-1 rounded-md border border-border bg-muted/50 p-2">
-                <div className="flex items-start gap-1.5">
-                  <Quote className="size-3 shrink-0 text-muted-foreground/70" />
-                  <span className="text-xs text-foreground/80 break-words">{quote}</span>
-                </div>
-              </div>
-            ) : null}
+            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">{title || "未知来源"}</div>
+            {description ? <div className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2">{description}</div> : null}
           </div>
         </div>
       </div>
@@ -989,28 +993,34 @@ export const Source = React.forwardRef<HTMLAnchorElement, SourceProps>(({ classN
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className={cn("group block rounded-md p-2 sm:p-2.5 -mx-1 min-h-[44px] hover:bg-accent active:bg-accent/80 focus:outline-none focus:ring-2 focus:ring-ring", className)}
+      className={cn(
+        "group block rounded-lg p-3 transition-all",
+        "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800",
+        "border border-zinc-200 dark:border-zinc-800",
+        "hover:border-zinc-300 dark:hover:border-zinc-700",
+        className
+      )}
       aria-label={label}
       {...props}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3">
+        {number ? (
+          <span className="shrink-0 size-5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 text-xs font-medium flex items-center justify-center">
+            {number}
+          </span>
+        ) : null}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {number ? <span className="text-xs text-muted-foreground/70">[{number}]</span> : null}
-            <span className="text-sm font-medium text-foreground truncate">{title ?? href}</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+              {title ?? href}
+            </span>
+            <ExternalLink className="size-3 shrink-0 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
           </div>
-          {host ? <div className="text-xs text-muted-foreground/70 truncate">{host}</div> : null}
-          {description ? <div className="mt-1 text-xs text-foreground/90 break-words">{description}</div> : null}
-          {quote ? (
-            <div className="mt-1 rounded-md border border-border bg-muted/50 p-2">
-              <div className="flex items-start gap-1.5">
-                <Quote className="size-3 shrink-0 text-muted-foreground/70" />
-                <span className="text-xs text-foreground/80 break-words">{quote}</span>
-              </div>
-            </div>
+          {host ? (
+            <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-1 truncate">{host}</div>
           ) : null}
+          {description ? <div className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2">{description}</div> : null}
         </div>
-        <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-foreground" />
       </div>
     </a>
   )
@@ -1163,7 +1173,7 @@ export const TaskTrigger = React.forwardRef<HTMLButtonElement, TaskTriggerProps>
       >
         <ChevronDown className={cn("mr-1 size-3 transition-transform", ctx?.open ? "rotate-180" : "rotate-0")} />
         <span className={cn("mr-1 inline-block size-2 rounded-full",
-          status === "completed" ? "bg-green-400" : status === "in_progress" ? "bg-yellow-400" : "bg-white/40"
+          status === "completed" ? "bg-emerald-400" : status === "in_progress" ? "bg-yellow-400" : "bg-white/40"
         )} />
         <span>{title}</span>
       </Button>

@@ -4,9 +4,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Disable source maps in production to save memory
   productionBrowserSourceMaps: false,
   // Increase timeout for static page generation
@@ -45,7 +42,7 @@ const nextConfig: NextConfig = {
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      frame-src 'self' https://challenges.cloudflare.com https://*.alipay.com https://*.qq.com https://o.alicdn.com;
+      frame-src 'self' https: https://challenges.cloudflare.com https://*.alipay.com https://*.qq.com https://o.alicdn.com;
     `.replace(/\s{2,}/g, ' ').trim()
 
     return [

@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Globe, Lock, RotateCw, X, ChevronLeft, ChevronRight, ExternalLink, Loader2 } from "lucide-react"
+import { Globe, Lock, RotateCw, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { WebPreview } from "@/components/ui/web-preview"
 
 interface BrowserActivityProps {
   url: string
@@ -14,22 +14,11 @@ interface BrowserActivityProps {
 export function BrowserActivity({ url, isOpen, onClose }: BrowserActivityProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [displayUrl, setDisplayUrl] = useState(url)
-  const [iframeKey, setIframeKey] = useState(0)
 
   useEffect(() => {
     setDisplayUrl(url)
     setIsLoading(true)
-    setIframeKey(prev => prev + 1)
   }, [url])
-
-  // 提取域名用于标题
-  const getDomain = (u: string) => {
-    try {
-      return new URL(u).hostname
-    } catch {
-      return u
-    }
-  }
 
   return (
     <AnimatePresence>
@@ -73,10 +62,7 @@ export function BrowserActivity({ url, isOpen, onClose }: BrowserActivityProps) 
                     <RotateCw 
                         size={12} 
                         className="text-zinc-400 hover:text-zinc-600 cursor-pointer" 
-                        onClick={() => {
-                            setIsLoading(true)
-                            setIframeKey(prev => prev + 1)
-                        }}
+                        onClick={() => setIsLoading(true)}
                     />
                  )}
               </div>
@@ -84,51 +70,14 @@ export function BrowserActivity({ url, isOpen, onClose }: BrowserActivityProps) 
           </div>
 
           {/* Browser Content Area */}
-          <div className="flex-1 relative bg-white dark:bg-zinc-950 relative group">
-            {/* Background Placeholder with Domain Info */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-400">
-                <Globe size={48} className="mb-3 opacity-20" />
-                <div className="text-sm font-medium opacity-50">{getDomain(url)}</div>
-                <div className="text-xs opacity-30 mt-1">正在加载预览...</div>
-            </div>
-
-            {/* Try using Microlink API for better screenshots */}
-            <img
-              key={iframeKey}
-              src={`https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url`}
-              alt="Page Preview"
-              className="absolute inset-0 w-full h-full object-cover object-top opacity-0 transition-opacity duration-500"
-              onLoad={(e) => {
-                  setIsLoading(false);
-                  (e.target as HTMLImageElement).classList.remove('opacity-0');
-              }}
-              onError={(e) => {
-                  // Fallback to Google Favicon + Domain Card if screenshot fails
-                  setIsLoading(false);
-                  e.currentTarget.style.display = 'none';
-              }}
-            />
+          <div className="flex-1 relative bg-white dark:bg-zinc-950">
+            <WebPreview url={url} className="w-full h-full" />
             
             {/* "AI is Reading" Overlay Effect */}
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-blue-500/5 to-transparent opacity-50" />
             
             {/* Scanning Line Animation */}
             <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-scan" />
-            
-            {/* Interactive Overlay */}
-            <div className="absolute inset-0 bg-transparent group-hover:bg-black/5 transition-colors" />
-
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto transform translate-y-2 group-hover:translate-y-0 duration-200">
-                <a 
-                    href={url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 bg-zinc-900/90 hover:bg-black text-white text-xs px-4 py-2 rounded-full backdrop-blur-md shadow-lg transition-all hover:scale-105 active:scale-95"
-                >
-                    <ExternalLink size={12} />
-                    在浏览器中打开
-                </a>
-            </div>
           </div>
           
           <style jsx>{`

@@ -1,12 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { Sparkles, Crown, Zap, Check, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { IOSWidgetCard } from "./ios-style/ios-widget-card"
 
 interface QuotaInfo {
   daily_limit: number
@@ -15,7 +14,25 @@ interface QuotaInfo {
   can_use: boolean
 }
 
-export function MembershipCard({ className }: { className?: string }) {
+interface MembershipCardProps {
+  className?: string
+  size?: 'small' | 'medium' | 'large'
+  isEditing?: boolean
+  widgetId?: string
+  onRemove?: (id: string) => void
+  onContextMenu?: (e: React.MouseEvent, id: string) => void
+  onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
+}
+
+export function MembershipCard({ 
+  className, 
+  size = 'medium',
+  isEditing,
+  widgetId,
+  onRemove,
+  onContextMenu,
+  onLongPress
+}: MembershipCardProps) {
   const [quota, setQuota] = useState<QuotaInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
@@ -37,121 +54,135 @@ export function MembershipCard({ className }: { className?: string }) {
   }, [])
 
   if (loading) return (
-    <Card className={cn("h-full border-0 shadow-sm bg-muted/20 animate-pulse", className)}>
-       <CardHeader><div className="h-6 w-1/3 bg-muted rounded"></div></CardHeader>
-       <CardContent><div className="h-20 bg-muted rounded"></div></CardContent>
-    </Card>
+    <IOSWidgetCard 
+      size={size} 
+      className={cn("animate-pulse bg-slate-100", className)}
+      isEditing={isEditing}
+      widgetId={widgetId}
+      onRemove={onRemove}
+      onContextMenu={onContextMenu}
+      onLongPress={onLongPress}
+    >
+       <div className="h-full flex flex-col justify-center items-center">
+          <div className="h-6 w-1/3 bg-slate-200 rounded mb-4"></div>
+          <div className="h-10 w-2/3 bg-slate-200 rounded"></div>
+       </div>
+    </IOSWidgetCard>
   )
 
   const membership = user?.membership || 'free'
   const isPlus = membership === 'plus'
   const isPro = membership === 'pro'
   const isFree = membership === 'free'
+  const isSmall = size === 'small'
+
+  // Update styles to match the White/Emerald theme
+  const cardStyle = isPlus 
+      ? "bg-white border-2 border-violet-100 text-slate-900" 
+      : isPro 
+      ? "bg-white border-2 border-amber-100 text-slate-900" 
+      : "bg-white text-slate-900"
+
+  const iconBg = isPlus ? "bg-violet-50 text-violet-600" : isPro ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-600"
+
+  const Header = (
+    <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          <div className={cn("p-2 rounded-full", iconBg)}>
+            {isPlus ? <Crown className="size-4 fill-current" /> :
+             isPro ? <Sparkles className="size-4 fill-current" /> :
+             <Zap className="size-4" />}
+          </div>
+          {!isSmall && (
+            <span className="font-bold tracking-tight text-slate-900">
+                {isPlus ? 'PLUS 会员' : isPro ? 'PRO 会员' : '免费计划'}
+            </span>
+          )}
+        </div>
+        {!isSmall && (
+            <Link href="/profile" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-0.5 transition-colors pointer-events-auto z-50 relative">
+            详情 <ChevronRight className="size-3" />
+            </Link>
+        )}
+    </div>
+  )
 
   return (
-    <Card className={cn("relative overflow-hidden h-full border-0 shadow-md group hover:shadow-lg transition-all duration-300", className)}>
-      {/* Background Gradients */}
-      <div className={cn(
-        "absolute inset-0 z-0 opacity-10 transition-opacity duration-500",
-        isPlus ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-600 via-indigo-400 to-transparent" :
-        isPro ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-500 via-orange-400 to-transparent" :
-        "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-zinc-300 via-zinc-100 to-transparent dark:from-zinc-700 dark:via-zinc-800"
-      )} />
-      
-      <CardHeader className="relative z-10 flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-bold flex items-center gap-2">
-          <div className={cn("p-1.5 rounded-lg", 
-            isPlus ? "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300" : 
-            isPro ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300" : 
-            "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-          )}>
-            {isPlus ? <Crown className="size-5 fill-current" /> :
-             isPro ? <Sparkles className="size-5 fill-current" /> :
-             <Zap className="size-5" />}
-          </div>
-          
-          <span className={cn(
-            "bg-clip-text text-transparent bg-gradient-to-r font-extrabold tracking-tight",
-            isPlus ? "from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400" :
-            isPro ? "from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400" :
-            "from-zinc-600 to-zinc-800 dark:from-zinc-400 dark:to-zinc-200"
-          )}>
-            {isPlus ? 'PLUS 尊享会员' : isPro ? 'PRO 专业会员' : '普通用户'}
-          </span>
-        </CardTitle>
-        <Link href="/profile" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5 transition-colors">
-          详情 <ChevronRight className="size-3" />
-        </Link>
-      </CardHeader>
+    <IOSWidgetCard 
+        size={size} 
+        className={cn("shadow-sm border-0", cardStyle, className)}
+        header={Header}
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+    >
+      <div className="flex flex-col h-full justify-between">
+         {/* Small Size */}
+         {isSmall && (
+             <>
+                <div className="mt-auto">
+                    <div className="text-2xl font-bold text-slate-900">
+                        {isPlus ? 'PLUS' : isPro ? 'PRO' : '基础'}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                        {isPlus ? '无限制' : `${quota?.daily_usage || 0}/${quota?.daily_limit || 0}`} 次AI调用
+                    </div>
+                </div>
+             </>
+         )}
 
-      <CardContent className="relative z-10 space-y-5">
-        {/* Quota Usage */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm items-end">
-            <span className="text-muted-foreground font-medium text-xs uppercase tracking-wider">今日 AI 额度</span>
-            <span className={cn("font-bold text-lg", 
-               isPlus ? "text-violet-600 dark:text-violet-400" : 
-               isPro ? "text-amber-600 dark:text-amber-400" : 
-               "text-zinc-600 dark:text-zinc-400"
-            )}>
-              {isPlus ? '∞ 无限' : `${quota?.daily_usage || 0} / ${quota?.daily_limit || 0}`}
-            </span>
-          </div>
-          {!isPlus && (
-            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-secondary">
-              <div 
-                 className={cn("h-full transition-all duration-500 ease-out rounded-full",
-                    isPro ? "bg-gradient-to-r from-amber-500 to-orange-500" : "bg-zinc-500"
-                 )}
-                 style={{ width: `${Math.min(100, quota?.daily_limit ? ((quota.daily_usage / quota.daily_limit) * 100) : 0)}%` }}
-              />
-            </div>
-          )}
-          {isPlus && (
-             <div className="h-2.5 w-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-500 opacity-20 animate-pulse" />
-          )}
-        </div>
+         {/* Medium/Large Size */}
+         {!isSmall && (
+             <div className="flex flex-col h-full">
+                <div className="flex-1 flex flex-col justify-center">
+                    <div className="flex justify-between items-end mb-2">
+                        <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">每日 AI 额度</span>
+                        <span className="font-bold text-2xl text-slate-900">
+                        {isPlus ? '∞' : `${quota?.daily_usage || 0} / ${quota?.daily_limit || 0}`}
+                        </span>
+                    </div>
+                    
+                    {!isPlus && (
+                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div 
+                            className={cn("h-full transition-all duration-500 ease-out rounded-full", isPro ? "bg-amber-500" : "bg-slate-800")}
+                            style={{ width: `${Math.min(100, quota?.daily_limit ? ((quota.daily_usage / quota.daily_limit) * 100) : 0)}%` }}
+                        />
+                        </div>
+                    )}
+                    {isPlus && (
+                        <div className="h-2 w-full rounded-full bg-violet-100 animate-pulse" />
+                    )}
+                </div>
 
-        {/* Benefits List */}
-        <div className="space-y-3 pt-1">
-          {isFree && (
-            <div className="grid grid-cols-1 gap-2">
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
-                 <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" /> 基础设备监控
-              </div>
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
-                 <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" /> 有限历史数据
-              </div>
-            </div>
-          )}
-          {isPro && (
-            <div className="grid grid-cols-1 gap-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300">
-                 <Check className="size-3.5 text-amber-500" /> 每日 70 次 AI 对话
-              </div>
-              <div className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300">
-                 <Check className="size-3.5 text-amber-500" /> 智能农业分析报告
-              </div>
-            </div>
-          )}
-          {isPlus && (
-            <div className="grid grid-cols-1 gap-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-violet-700 dark:text-violet-300">
-                 <Check className="size-3.5 text-violet-500" /> 无限 AI 对话次数
-              </div>
-              <div className="flex items-center gap-2 text-xs font-medium text-violet-700 dark:text-violet-300">
-                 <Check className="size-3.5 text-violet-500" /> 全天候智能托管
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {isFree && (
-           <Button size="sm" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 shadow-md hover:shadow-lg hover:from-amber-600 hover:to-orange-700 transition-all">
-             升级解锁 AI 功能 <Sparkles className="ml-1 size-3.5 fill-white/20" />
-           </Button>
-        )}
-      </CardContent>
-    </Card>
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-2">
+                        {isFree ? (
+                            <>
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400" /> 基础监测
+                                </div>
+                                <Button size="sm" variant="secondary" className="w-full h-8 text-xs bg-slate-900 text-white hover:bg-slate-800 shadow-none col-span-2 mt-1 rounded-full">
+                                    升级 <Sparkles className="ml-1 size-3" />
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <Check className={cn("size-3", isPlus ? "text-violet-500" : "text-amber-500")} /> {isPlus ? '无限制 AI' : '70次 AI/天'}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <Check className={cn("size-3", isPlus ? "text-violet-500" : "text-amber-500")} /> {isPlus ? '全天候自动' : '数据分析'}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+             </div>
+         )}
+      </div>
+    </IOSWidgetCard>
   )
 }

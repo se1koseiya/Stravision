@@ -357,6 +357,7 @@ function FloatingXiaozhiContent() {
                 onQuotaExceeded={handleQuotaExceeded}
                 deviceData={deviceData}
                 autoExecuteCommands={true}
+                className="fixed bottom-0 right-0" // added fixed class back here just for floating version
                 instructions={`你是莓小智，是"莓界智慧农业平台"的大棚智能管家。你的职责是帮助用户管理智能大棚、分析环境数据、控制设备。
 
 ## 你的性格
@@ -429,11 +430,11 @@ export function FloatingXiaozhi() {
     '/ai-assistant', 
     '/monitor', 
     '/device-control', 
-    '/chat',
-    '/dashboard'
+    '/chat'
+    // removed dashboard
   ];
   
-  const isAllowed = pathname && allowedPaths.some(path => pathname.startsWith(path));
+  const isAllowed = pathname && allowedPaths.some(path => pathname.startsWith(path)) && !pathname.startsWith('/dashboard');
 
   if (!isAllowed) return null;
 
