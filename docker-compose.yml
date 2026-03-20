@@ -98,6 +98,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
       - ./nginx/html:/usr/share/nginx/html:ro
+      - ./public/uploads:/app/public/uploads:ro
     depends_on:
       - web
     restart: always
