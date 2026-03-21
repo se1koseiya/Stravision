@@ -1,0 +1,39 @@
+{
+  "演示说明": "这个文件展示了后端中间件如何注入数据到 AI 提示词中",
+  
+  "设备数据示例": {
+    "temperature": 32.5,
+    "humidity": 55,
+    "light": 12000,
+    "co2": 380,
+    "earth_temp": 28.2,
+    "earth_water": 35,
+    "earth_ec": 1.8,
+    "earth_n": 120,
+    "earth_p": 45,
+    "earth_k": 180,
+    "relay5": 0,
+    "relay6": 0,
+    "relay7": 0,
+    "relay8": 0,
+    "led1": 100,
+    "led2": 50,
+    "led3": 150
+  },
+  
+  "天气数据示例": {
+    "condition": "晴",
+    "temperature": 35,
+    "humidity": 50,
+    "wind_speed": 12,
+    "precipitation": 0
+  },
+  
+  "注入后的提示词效果": "## 当前设备数据\n- 室内温度：32.5°C\n- 室内湿度：55%\n- 光照强度：12000 lux\n...",
+  
+  "演示步骤": [
+    "1. 修改此 JSON 中的设备数据值",
+    "2. 观察 AI 助手回复的变化",
+    "3. 展示数据注入的实时性"
+  ]
+}

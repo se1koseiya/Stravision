@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 
 export interface ControlCommand {
-  type: 'relay' | 'led' | 'stepper'
+  type: 'relay' | 'led' | 'stepper' | 'stepper_reset'
   relayNum?: number
   newState?: number
   led1?: number
@@ -17,6 +17,7 @@ export interface ControlCommand {
   led4?: number
   // 步进电机控制参数 (摄像头云台)
   stepper_direction?: number   // 运行方向: 0=停止, 1=正转/左移, 2=反转/右移
+  stepper_pulses?: number      // 脉冲数 (决定移动距离)
   stepper_mode?: number        // 工作模式: 6=通讯控制模式
   stepper_accel?: number       // 加速系数: 100-10000
   stepper_decel?: number       // 减速系数: 100-10000
@@ -113,11 +114,19 @@ export function useDeviceControl() {
   }, [sendCommand])
 
   // 步进电机控制 (摄像头云台)
-  const controlStepper = useCallback(async (direction: number): Promise<boolean> => {
+  const controlStepper = useCallback(async (direction: number, pulses?: number): Promise<boolean> => {
     // direction: 0=停止, 1=正转/左移, 2=反转/右移
     return sendCommand({
       type: 'stepper',
-      stepper_direction: direction
+      stepper_direction: direction,
+      stepper_pulses: pulses
+    })
+  }, [sendCommand])
+
+  // 步进电机复位到正中间
+  const resetStepperPosition = useCallback(async (): Promise<boolean> => {
+    return sendCommand({
+      type: 'stepper_reset'
     })
   }, [sendCommand])
 
@@ -126,6 +135,7 @@ export function useDeviceControl() {
     sendCommand,
     toggleRelay,
     setLEDs,
-    controlStepper
+    controlStepper,
+    resetStepperPosition
   }
 }

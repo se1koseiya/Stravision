@@ -10,6 +10,7 @@ import { AutomationRule } from "@/lib/db/automation-service";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageNavigation } from "@/components/page-navigation";
+import { PageHeader } from "@/components/page-header";
 import { UserAvatarMenu } from "@/components/user-avatar-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -98,37 +99,17 @@ export default function AutomationPage() {
 
       <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
         {/* Header */}
-        <div className="relative flex items-center px-8 border-b border-black/5 dark:border-white/10 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50">
-          <div className="flex items-center gap-4 text-foreground">
-            <div className="relative size-12 shrink-0 hidden md:block">
-              <Image src="/icon.png" alt="logo" fill className="object-contain" />
-            </div>
-            <div className="leading-tight hidden md:block">
-              <div className="text-base font-bold tracking-wide">STRAVISION</div>
-              <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
-            </div>
-
-            {/* Mobile Title */}
-            <div className="md:hidden text-lg font-bold">Automation</div>
+        <PageHeader user={currentUser}>
+          <div className="relative hidden md:block mr-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="搜索规则..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-[200px] bg-white/40 dark:bg-slate-900/40 backdrop-blur border-slate-200/50 dark:border-slate-800/50 focus:w-[260px] transition-all h-9 rounded-full text-sm"
+            />
           </div>
-
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-            <PageNavigation />
-          </div>
-
-          <div className="ml-auto flex items-center gap-3">
-            <div className="relative hidden md:block mr-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="搜索规则..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-[200px] bg-white/40 dark:bg-slate-900/40 backdrop-blur border-slate-200/50 dark:border-slate-800/50 focus:w-[260px] transition-all h-9 rounded-full text-sm"
-              />
-            </div>
-            {currentUser && <UserAvatarMenu user={currentUser} />}
-          </div>
-        </div>
+        </PageHeader>
 
         {/* Content Area */}
         <div className="relative container mx-auto py-6 md:py-10 space-y-8 overflow-y-auto h-full scrollbar-hide px-4 md:px-6" data-lenis-prevent>

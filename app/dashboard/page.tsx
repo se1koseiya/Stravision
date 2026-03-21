@@ -371,14 +371,14 @@ export default function DashboardPage() {
         <div className="relative grid grid-rows-[72px_1fr] h-full w-full">
           {/* Header */}
           <PageHeader user={currentUser}>
-            <div className="hidden md:flex">
+            <div className="hidden md:flex items-center gap-3">
               {currentUser?.membership && currentUser.membership !== 'free' && (
                 <Badge
                   className={`
                     ${currentUser.membership === 'plus'
                       ? 'bg-gradient-to-r from-violet-600 to-indigo-600 shadow-indigo-500/20'
                       : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-orange-500/20'} 
-                    border-0 text-white shadow-lg flex items-center gap-1 px-3 py-1 mr-3
+                    border-0 text-white shadow-lg flex items-center gap-1 px-3 py-1
                   `}
                 >
                   {currentUser.membership === 'plus' ? <Crown className="size-3.5 fill-current" /> : <Sparkles className="size-3.5 fill-current" />}
@@ -387,18 +387,18 @@ export default function DashboardPage() {
               )}
 
               {connectionStatus.connected ? (
-                <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30 mr-3">
+                <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
                   <Wifi className="size-3 mr-1" />
                   已连接
                 </Badge>
               ) : (
-                <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 mr-3">
+                <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
                   <WifiOff className="size-3 mr-1" />
                   {connectionStatus.error || '未连接'}
                 </Badge>
               )}
               {connectionStatus.lastUpdate && (
-                <span className="text-xs text-muted-foreground/60 mr-3 hidden lg:inline">
+                <span className="text-xs text-muted-foreground/60 hidden lg:inline">
                   更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
                 </span>
               )}

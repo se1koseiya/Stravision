@@ -20,7 +20,7 @@ export interface QuotaInfo {
 }
 
 export interface DeviceCommand {
-  action: 'toggle_relay' | 'set_led' | 'control_camera';
+  action: 'toggle_relay' | 'set_led' | 'control_camera' | 'reset_camera';
   device?: number;
   value?: number;
   r?: number;
@@ -183,6 +183,20 @@ function CommandCard({ command }: { command: AICommand }) {
     );
   }
 
+  if (command.action === 'reset_camera') {
+    return (
+      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/20 text-blue-400">
+          <Video size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white/90 truncate">摄像头云台</div>
+          <div className="text-xs text-white/60 truncate">正在复位居中</div>
+        </div>
+      </div>
+    );
+  }
+
   if (command.action === 'schedule_task') {
     return (
       <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
@@ -236,6 +250,9 @@ async function executeDeviceCommand(cmd: DeviceCommand): Promise<{ success: bool
         deviceName = '摄像头云台';
         const directionNames = ['停止', '左移', '右移'];
         actionDesc = directionNames[cmd.direction ?? 0] || '控制';
+      } else if (cmd.action === 'reset_camera') {
+        deviceName = '摄像头云台';
+        actionDesc = '复位居中';
       } else {
         deviceName = DEVICE_NAMES[String(cmd.device)] || `设备${cmd.device}`;
         actionDesc = `已${cmd.value === 1 ? '开启' : '关闭'}`;
@@ -581,6 +598,12 @@ export function RealtimeVoiceOrb({
 - direction: 0=停止, 1=左移, 2=右移
 - 用于调整摄像头监控视角
 
+4. 摄像头云台复位居中（步进电机）:
+\`\`\`json
+{"action":"reset_camera"}
+\`\`\`
+- 将摄像头云台移动到正中间位置
+
 ## 定时任务能力
 你可以创建定时任务，当用户说"每天8点开启风扇"或"5分钟后关闭水泵"时，输出以下格式：
 
@@ -859,7 +882,7 @@ export function RealtimeVoiceOrb({
         if (autoExecuteCommands && pendingCommandsRef.current) {
           const commandsText = pendingCommandsRef.current;
           // ... (Command parsing logic same as before) ...
-          const deviceMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera)"[^{}]*\}/g)];
+          const deviceMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera|reset_camera)"[^{}]*\}/g)];
           const scheduleMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"schedule_task"[^}]*\}/g)];
           const navigateMatches = [...commandsText.matchAll(/\{[^{}]*"action"\s*:\s*"navigate"[^{}]*\}/g)];
           

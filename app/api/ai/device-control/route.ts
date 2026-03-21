@@ -247,6 +247,44 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now()
       })
       
+    } else if (action === 'reset_camera') {
+      // 权限检查
+      if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+        const permissions = typeof currentUser.permissions === 'string' 
+          ? JSON.parse(currentUser.permissions || '{}') 
+          : currentUser.permissions || {};
+        const allowedControls = permissions.allowedControls || [];
+        
+        if (!allowedControls.includes('stepper')) {
+          return NextResponse.json(
+            { success: false, error: 'Permission denied: You cannot control the camera pan' },
+            { status: 403 }
+          );
+        }
+      }
+
+      // 调用 MQTT Service 控制步进电机复位
+      const mqttPayload = {
+        type: 'stepper_reset' as const
+      }
+      console.log('[AI Device Control] Calling MQTT Service with:', mqttPayload)
+      
+      await mqttService.sendControlCommand(mqttPayload)
+      
+      // Log action
+      await logDeviceAction(
+        '摄像头云台', 
+        '复位居中', 
+        currentUser.username || 'AI Assistant',
+        `AI 将丝杆滑台复位到正中间`
+      )
+
+      return NextResponse.json({
+        success: true,
+        message: `Camera reset command sent successfully`,
+        timestamp: Date.now()
+      })
+      
     } else {
       return NextResponse.json(
         { success: false, error: `Unknown action: ${action}` },
@@ -307,6 +345,15 @@ export async function GET() {
         example: {
           action: "control_camera",
           direction: 1
+        }
+      },
+      reset_camera: {
+        description: "将摄像头云台（步进电机）复位到正中间",
+        parameters: {
+          action: "reset_camera"
+        },
+        example: {
+          action: "reset_camera"
         }
       }
     }

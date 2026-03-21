@@ -55,7 +55,7 @@ function log(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: any): voi
  * Defines the structure of incoming control command requests
  */
 interface ControlRequest {
-  type: 'relay' | 'led' | 'stepper'
+  type: 'relay' | 'led' | 'stepper' | 'stepper_reset'
   relayNum?: number       // Relay number (5-8)
   newState?: number       // Relay state (0/1)
   led1?: number           // LED 1 brightness (0-255)
@@ -64,6 +64,7 @@ interface ControlRequest {
   led4?: number           // LED 4 brightness (0-255)
   // 步进电机控制参数
   stepper_direction?: number   // 运行方向: 0=停止, 1=正转, 2=反转
+  stepper_pulses?: number      // 脉冲数
   stepper_mode?: number        // 模式设置: 1-26
   stepper_accel?: number       // 加速频率: 1-65535
   stepper_decel?: number       // 减速频率: 1-65535
@@ -89,8 +90,8 @@ interface ControlResponse {
  */
 function validateControlRequest(data: ControlRequest): string | null {
   // Validate type field
-  if (!data.type || (data.type !== 'relay' && data.type !== 'led' && data.type !== 'stepper')) {
-    return 'Invalid or missing type field. Must be "relay", "led", or "stepper"'
+  if (!data.type || (data.type !== 'relay' && data.type !== 'led' && data.type !== 'stepper' && data.type !== 'stepper_reset')) {
+    return 'Invalid or missing type field. Must be "relay", "led", "stepper" or "stepper_reset"'
   }
   
   if (data.type === 'relay') {
@@ -237,7 +238,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (body.led4 !== undefined && !allowedControls.includes('led4')) {
            return NextResponse.json({ success: false, message: "Permission denied: You cannot control LED 4", timestamp: Date.now() }, { status: 403 });
         }
-      } else if (body.type === 'stepper') {
+      } else if (body.type === 'stepper' || body.type === 'stepper_reset') {
         // 步进电机权限检查
         if (!allowedControls.includes('stepper')) {
            log('WARN', 'Permission denied for stepper control', { user: currentUser.username });
@@ -301,6 +302,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         led4: body.led4,
         // 步进电机参数
         stepper_direction: body.stepper_direction,
+        stepper_pulses: body.stepper_pulses,
         stepper_mode: body.stepper_mode,
         stepper_accel: body.stepper_accel,
         stepper_decel: body.stepper_decel,
@@ -323,11 +325,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         deviceName = 'RGB Light'
         actionStr = 'Adjust Color'
         detailsStr = `R:${body.led1} G:${body.led2} B:${body.led3}`
-      } else if (body.type === 'stepper') {
+      } else if (body.type === 'stepper' || body.type === 'stepper_reset') {
         deviceName = '摄像头云台'
         const directionNames = ['停止', '左移', '右移']
-        actionStr = directionNames[body.stepper_direction!] || '控制'
-        detailsStr = `摄像头云台${actionStr}`
+        actionStr = body.type === 'stepper_reset' ? '复位居中' : (directionNames[body.stepper_direction!] || '控制')
+        detailsStr = body.type === 'stepper_reset' ? '将丝杆滑台复位到正中间' : `摄像头云台${actionStr}`
       } else {
         deviceName = 'Unknown'
         actionStr = 'Unknown'

@@ -35,6 +35,7 @@ export interface DeviceData {
   timestamp?: number
   // 步进电机状态 (摄像头云台)
   stepper_direction?: number  // 运行方向: 0=停止, 1=正转/左移, 2=反转/右移
+  stepper_position?: number   // 当前软件记位脉冲数系统同步 (用于UI显示)
 }
 
 export interface ConnectionStatus {

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stravision AI Studio Pro - Ultimate MG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'DingTalkJinBuTi';
+            src: url('./public/fonts/DingTalkJinBuTi.ttf') format('truetype');
+            font-weight: normal; font-style: normal; font-display: swap;
+        }
+
+        :root {
+            --primary: #10b981;
+            --primary-bg: #f0fdf4;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-mono: #475569;
+            --font-jinbuti: 'DingTalkJinBuTi', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #1a202c;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: var(--font-jinbuti);
+        }
+
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: 60% 40%;
+            height: 100vh;
+            background: var(--border);
+            gap: 1px;
+        }
+
+        .left-main { background: #fff; display: flex; flex-direction: column; }
+        .right-studio { background: #fbfcfd; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Navigation */
+        .nav {
+            height: 64px;
+            padding: 0 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Task Chain Component */
+        .task-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            margin: 20px 40px;
+            padding: 24px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .task-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 12px 0;
+            position: relative;
+        }
+
+        .task-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 40px;
+            bottom: 0px;
+            width: 1px;
+            background: #e2e8f0;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: #94a3b8;
+            z-index: 1;
+        }
+
+        .step-num.active { background: var(--primary); color: #fff; box-shadow: 0 0 10px var(--primary); }
+        .step-num.done { background: var(--primary-bg); color: var(--primary); border: 1px solid var(--primary); }
+
+        /* MCP Terminal */
+        .studio-terminal {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            height: 200px;
+            overflow-y: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            opacity: 0;
+        }
+
+        .terminal-line { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 8px; }
+        .cmd { color: #38bdf8; }
+        .success { color: #4ade80; }
+        .json-key { color: #f472b6; }
+        .json-val { color: #fbbf24; }
+
+        /* Browser Frame */
+        .browser-container {
+            flex-grow: 1;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.02);
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .browser-tabs {
+            height: 40px;
+            background: #f8fafc;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .browser-url {
+            flex-grow: 1;
+            height: 24px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 0 12px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            color: #64748b;
+        }
+
+        .search-res { padding: 16px; border-bottom: 1px solid #f1f5f9; opacity: 0; transform: scale(0.98); }
+
+        /* Global Spinner */
+        .spin {
+            animation: rotate 1s linear infinite;
+        }
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
+
+        /* Final Slogan */
+        .curtain {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="showcase-grid">
+        <!-- LEFT PANEL -->
+        <div class="left-main">
+            <div class="nav">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500 overflow-hidden">
+                    <img src="/api/placeholder/32/32" class="w-full h-full object-cover">
+                </div>
+                <div class="text-sm font-bold tracking-tight">Stravision <span class="text-zinc-400">DeepSeek v3.2</span></div>
+            </div>
+
+            <div class="flex-grow flex flex-col p-10 justify-center">
+                <div class="bg-black text-white px-6 py-4 rounded-3xl self-end mb-8 text-lg font-medium shadow-xl opacity-0 translate-y-4" id="user-q">
+                    分析未来三天徐州的天气对大棚草莓的影响并给出建议。
+                </div>
+
+                <div class="task-card" id="task-card">
+                    <div class="flex items-center justify-between mb-8 border-b border-zinc-50 pb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-lg">MCP 任务链</span>
+                            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] uppercase font-black">Running</span>
+                        </div>
+                        <div class="text-xs text-zinc-300 font-mono">ID: STRA-EXE-8821</div>
+                    </div>
+                    
+                    <div class="task-chain">
+                        <div class="task-step" id="step1">
+                            <div class="step-num" id="n1">1</div>
+                            <div class="flex-grow">
+                                <div class="font-bold text-sm">语义分析与意图提取</div>
+                                <div class="text-[11px] text-zinc-400 mt-1">提取关键词：[徐州], [草莓], [气象模型]</div>
+                            </div>
+                        </div>
+                        <div class="task-step" id="step2">
+                            <div class="step-num" id="n2">2</div>
+                            <div class="flex-grow">
+                                <div class="font-bold text-sm">MCP [Exa Search] 获取精准气象</div>
+                                <div class="text-[11px] text-zinc-400 mt-1">正在检索：徐州未来72小时风速、湿度、光照...</div>
+                            </div>
+                        </div>
+                        <div class="task-step" id="step3">
+                            <div class="step-num" id="n3">3</div>
+                            <div class="flex-grow">
+                                <div class="font-bold text-sm">智能模型匹配与策略合并</div>
+                                <div class="text-[11px] text-zinc-400 mt-1">调用草莓生长模型进行数据重合校验</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 border-t border-zinc-50 pt-6">
+                        <button class="w-full py-4 border border-zinc-100 rounded-2xl text-xs font-bold text-zinc-400 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2">
+                           <svg class="w-3 h-3 spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="3" d="M12 22a10 10 0 100-20 10 10 0 000 20z" stroke-dasharray="2 4"/></svg>
+                           停止任务执行
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL (STUDIO) -->
+        <div class="right-studio">
+            <div class="h-16 px-8 flex items-center justify-between border-b border-zinc-100 bg-white">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-emerald-500 rounded-lg text-white">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 12h3v9h6v-6h4v6h6v-9h3L12 2z"/></svg>
+                    </div>
+                    <span class="font-bold text-sm">工作室 (Studio)</span>
+                </div>
+                <div class="text-xs text-zinc-300 font-mono">DEBUG_MODE / TOOL_ATTACHED</div>
+            </div>
+
+            <div class="p-8 flex-grow flex flex-col">
+                <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-4">MCP 输出详情 / Tool Call Output</span>
+                
+                <div class="studio-terminal" id="terminal">
+                    <div class="terminal-line"><span class="cmd">$</span> mcp tool call <span class="success">exa_search</span></div>
+                    <div class="terminal-line"><span class="json-key">"query"</span>: <span class="json-val">"徐州未来三天精准气象 降水 湿度"</span></div>
+                    <div class="terminal-line"><span class="json-key">"results_limit"</span>: <span class="json-val">3</span></div>
+                    <div class="terminal-line"><span class="success">>> [STATUS: 200 OK] 数据包已接收 (1.2MB)</span></div>
+                    <div class="terminal-line"><span class="cmd">$</span> mcp tool call <span class="success">strawberry_growth_model</span></div>
+                    <div class="terminal-line"><span class="json-key">"stage"</span>: <span class="json-val">"bloom_phase"</span></div>
+                    <div class="terminal-line"><span class="success">>> [ANALYSIS COMPLETE] 生成 4 条核心建议</span></div>
+                </div>
+
+                <div class="browser-container" id="browser">
+                    <div class="browser-tabs">
+                        <div class="flex gap-1.5 mr-4"><div class="w-2.5 h-2.5 rounded-full bg-zinc-200"></div><div class="w-2.5 h-2.5 rounded-full bg-zinc-200"></div></div>
+                        <div class="browser-url">https://search.exa.ai/results?q=xuzhou_strawberry_weather</div>
+                    </div>
+                    <div class="flex-grow overflow-y-auto" id="results-box">
+                        <!-- Items populated via GSAP -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="curtain" id="curtain">
+        <h1 class="text-7xl font-bold tracking-tighter">定义<span class="text-emerald-500">智能</span>未来</h1>
+        <p class="text-zinc-400 text-xl tracking-[0.4em] mt-4">STRAVISION / THE ULTIMATE AI STUDIO</p>
+    </div>
+
+    <script>
+        gsap.registerPlugin(TextPlugin);
+        const tl = gsap.timeline({ repeat: -1 });
+
+        // -- Setup --
+        tl.set("#results-box", { innerHTML: "" });
+
+        // -- 1. User Message --
+        tl.to("#user-q", { opacity: 1, y: 0, duration: 1, ease: "expo.out" }, "+=0.5");
+        tl.to({}, { duration: 0.5 });
+
+        // -- 2. Task Card --
+        tl.to("#task-card", { opacity: 1, y: 0, duration: 0.8, ease: "back.out(1.7)" });
+
+        // -- 3. Step 1 Active --
+        tl.to("#n1", { className: "+=active", duration: 0.3 });
+        tl.to({}, { duration: 1 });
+        tl.to("#n1", { className: "-=active", className: "+=done", duration: 0.3 });
+
+        // -- 4. Step 2 Active & Terminal Output --
+        tl.to("#n2", { className: "+=active", duration: 0.3 });
+        tl.to("#terminal", { opacity: 1, duration: 0.5 });
+        
+        // Terminal Typing Sequence
+        const lines = document.querySelectorAll('.terminal-line');
+        lines.forEach((line, i) => {
+            tl.from(line, { opacity: 0, x: -10, duration: 0.2 }, "+=0.2");
+        });
+
+        tl.to({}, { duration: 1 });
+
+        // -- 5. Browser & Search Results --
+        tl.to("#browser", { opacity: 1, y: 0, duration: 1, ease: "expo.out" });
+        
+        const resData = [
+            { t: "徐州未来3天气象分析专报", snippet: "受冷空气影响，22日将有明显降雨..." },
+            { t: "早春红颜草莓花期管理方案", snippet: "湿度建议维持在60%-65%，光照补足需求开启..." },
+            { t: "大棚灰霉病预警通报 (徐州区)", snippet: "阴雨天气频发，感染风险等级：高。" }
+        ];
+
+        resData.forEach((d, i) => {
+            tl.add(() => {
+                const item = document.createElement('div');
+                item.className = 'search-res';
+                item.innerHTML = `<div class="font-bold text-blue-600 text-sm">${d.t}</div><div class="text-[11px] text-zinc-500 mt-1">${d.snippet}</div>`;
+                document.getElementById('results-box').appendChild(item);
+                gsap.to(item, { opacity: 1, scale: 1, duration: 0.5 });
+            }, "+=0.5");
+        });
+
+        // -- 6. Finish Steps --
+        tl.to("#n2", { className: "-=active", className: "+=done", duration: 0.3 }, "+=1");
+        tl.to("#n3", { className: "+=active", duration: 0.3 });
+        tl.to({}, { duration: 1.5 });
+        tl.to("#n3", { className: "-=active", className: "+=done", duration: 0.3 });
+
+        tl.to({}, { duration: 2 });
+
+        // -- 7. Final Curtain --
+        tl.to("#curtain", { autoAlpha: 1, duration: 1.5, ease: "expo.inOut" });
+        tl.from("#curtain h1", { scale: 0.8, opacity: 0, duration: 2, ease: "expo.out" }, "-=0.5");
+        tl.to({}, { duration: 4 });
+
+    </script>
+</body>
+</html>

@@ -16,10 +16,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Square,
+  RotateCcw,
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { PageNavigation } from "@/components/page-navigation"
+import { PageHeader } from "@/components/page-header"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { WeatherCard } from "@/components/weather-card"
 import { motion } from "framer-motion"
@@ -179,6 +182,7 @@ export default function DeviceControlPage() {
   const [g, setG] = useState(0)
   const [b, setB] = useState(0)
   const [w, setW] = useState(0)
+  const [stepPulses, setStepPulses] = useState(1600) // Default 10mm
 
   // Logs state
   const [logs, setLogs] = useState<any[]>([])
@@ -192,7 +196,7 @@ export default function DeviceControlPage() {
   const { deviceData, connectionStatus } = useDeviceData()
 
   // Control hook for sending commands
-  const { status: controlStatus, toggleRelay, setLEDs, controlStepper } = useDeviceControl()
+  const { status: controlStatus, toggleRelay, setLEDs, controlStepper, resetStepperPosition } = useDeviceControl()
 
   // Fetch current user on mount
   useEffect(() => {
@@ -305,13 +309,26 @@ export default function DeviceControlPage() {
   // Handle stepper motor control (摄像头云台)
   const handleStepperControl = async (direction: number) => {
     // direction: 0=停止, 1=正转/左移, 2=反转/右移
-    const success = await controlStepper(direction)
+    const pulses = direction === 0 ? undefined : stepPulses
+    const success = await controlStepper(direction, pulses)
 
     if (success) {
       const directionNames = ['停止', '左移', '右移']
-      createLog("摄像头云台", directionNames[direction], `步进电机${directionNames[direction]}`)
+      createLog("摄像头云台", directionNames[direction], 
+        direction === 0 ? '步进电机停止' : `步进电机${directionNames[direction]} ${pulses! / 160}mm`)
+      if (direction !== 0) {
+        toast.success(`指令发送成功: ${direction === 1 ? '开始左移' : '开始右移'} ${pulses! / 160}mm`)
+      }
     } else {
       console.error('Failed to control stepper motor')
+    }
+  }
+
+  const handleResetStepper = async () => {
+    const success = await resetStepperPosition()
+    if (success) {
+      createLog("摄像头云台", "复位居中", "将丝杆滑台复位到正中间")
+      toast.success('已发送复位居中指令')
     }
   }
 
@@ -353,91 +370,72 @@ export default function DeviceControlPage() {
 
       <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
         {/* Header */}
-        <div className="relative flex items-center px-8 border-b border-black/5 dark:border-white/10 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50 z-20">
-          <div className="flex items-center gap-4">
-            <div className="relative size-12 shrink-0">
-              <Image src="/icon.png" alt="logo" fill className="object-contain" />
-            </div>
-            <div className="leading-tight">
-              <div className="text-base font-bold tracking-wide">
-                STRAVISION
-              </div>
-              <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
-            </div>
-            <ElderFriendlyToggle showButton={false} className="ml-2" />
-          </div>
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-            <PageNavigation />
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <ElderFriendlyToggle showBadge={false} />
-            <Sheet onOpenChange={(open) => { if (open) fetchLogs() }}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <History className="size-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>设备控制历史</SheetTitle>
-                </SheetHeader>
-                <ScrollArea className="h-[calc(100vh-80px)] mt-4 pr-4">
-                  <div className="space-y-4">
-                    {loadingLogs ? (
-                      <div className="text-center py-8">
-                        <div className="flex items-center justify-center gap-3">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                          <span className="text-sm text-muted-foreground">加载操作记录</span>
+        <PageHeader user={currentUser}>
+          <Sheet onOpenChange={(open) => { if (open) fetchLogs() }}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                <History className="size-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>设备控制历史</SheetTitle>
+              </SheetHeader>
+              <ScrollArea className="h-[calc(100vh-80px)] mt-4 pr-4">
+                <div className="space-y-4">
+                  {loadingLogs ? (
+                    <div className="text-center py-8">
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
+                        <span className="text-sm text-muted-foreground">加载操作记录</span>
                       </div>
-                    ) : logs.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8">暂无操作记录</div>
-                    ) : (
-                      logs.map((log) => (
-                        <div key={log.id} className="flex flex-col gap-1 p-3 rounded-lg bg-muted/50 border border-border">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-foreground">{log.device_name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(log.created_at).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={log.action === "开启" ? "default" : "secondary"} className="text-xs">
-                              {log.action}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">操作人: {log.operator}</span>
-                          </div>
-                          {log.details && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {log.details}
-                            </div>
-                          )}
+                    </div>
+                  ) : logs.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">暂无操作记录</div>
+                  ) : (
+                    logs.map((log) => (
+                      <div key={log.id} className="flex flex-col gap-1 p-3 rounded-lg bg-muted/50 border border-border">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">{log.device_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(log.created_at).toLocaleString()}
+                          </span>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-            <ModeToggle />
-            {connectionStatus.connected ? (
-              <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
-                <Wifi className="size-3 mr-1" />
-                已连接
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
-                <WifiOff className="size-3 mr-1" />
-                {connectionStatus.error || '未连接'}
-              </Badge>
-            )}
-            <UserAvatarMenu user={currentUser} />
-          </div>
-        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={log.action === "开启" ? "default" : "secondary"} className="text-xs">
+                            {log.action}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">操作人: {log.operator}</span>
+                        </div>
+                        {log.details && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {log.details}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+          <ModeToggle />
+          {connectionStatus.connected ? (
+            <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+              <Wifi className="size-3 mr-1" />
+              已连接
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+              <WifiOff className="size-3 mr-1" />
+              {connectionStatus.error || '未连接'}
+            </Badge>
+          )}
+        </PageHeader>
 
         {/* Content */}
         <div className="relative px-8 pb-8 pt-6 overflow-hidden h-full w-full">
@@ -594,50 +592,98 @@ export default function DeviceControlPage() {
                             variant="outline"
                             className="bg-background/40 backdrop-blur-sm mb-3"
                           >
-                            步进电机控制
+                            步进电机控制 (700mm 量程)
                           </Badge>
                           <h3 className="text-foreground text-2xl font-bold">
                             摄像头云台
                           </h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            控制摄像头左右移动，用于调整监控视角
-                          </p>
+                          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                            <span>当前位置:</span>
+                            <span className="font-mono text-indigo-500 font-bold">
+                              {((deviceData?.stepper_position || 0) / 160).toFixed(1)} mm
+                            </span>
+                            <span className="text-xs opacity-60">
+                              ({deviceData?.stepper_position || 0} p)
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Camera className="size-12 text-indigo-500 opacity-70" strokeWidth={1.5} />
+                          <Camera className="size-10 text-indigo-500 opacity-70" strokeWidth={1.5} />
                           <span className="text-sm text-muted-foreground">
                             {deviceData?.stepper_direction === 1 ? '正在左移...' :
                               deviceData?.stepper_direction === 2 ? '正在右移...' : '已停止'}
                           </span>
                         </div>
+                        
+                        <div className="pt-2 space-y-3">
+                          <label className="text-xs font-medium text-muted-foreground block">
+                            单次移动距离: {stepPulses / 160} mm
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="range" 
+                              min="160" max="16000" step="160"
+                              value={stepPulses}
+                              onChange={(e) => setStepPulses(Number(e.target.value))}
+                              className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                            />
+                            <div className="flex gap-1">
+                              {[1600, 8000, 16000].map(v => (
+                                <Button 
+                                  key={v}
+                                  variant="outline" 
+                                  size="sm" 
+                                  className={`h-7 px-2 text-[10px] ${stepPulses === v ? 'bg-indigo-500 text-white' : ''}`}
+                                  onClick={() => setStepPulses(v)}
+                                >
+                                  {v/160}mm
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="flex items-center gap-4">
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="h-16 w-16 rounded-xl border-2 hover:bg-blue-500/10 hover:border-blue-500/50"
+                            onClick={() => handleStepperControl(1)}
+                            disabled={controlStatus.loading || !connectionStatus.connected}
+                          >
+                            <ChevronLeft className="size-8 text-foreground" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="h-16 w-16 rounded-xl border-2 bg-red-500/10 hover:bg-red-500/20 border-red-500/30 hover:border-red-500/50"
+                            onClick={() => handleStepperControl(0)}
+                            disabled={controlStatus.loading || !connectionStatus.connected}
+                          >
+                            <Square className="size-6 fill-red-500 text-red-500" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="h-16 w-16 rounded-xl border-2 hover:bg-blue-500/10 hover:border-blue-500/50"
+                            onClick={() => handleStepperControl(2)}
+                            disabled={controlStatus.loading || !connectionStatus.connected}
+                          >
+                            <ChevronRight className="size-8 text-foreground" />
+                          </Button>
+                        </div>
+                        
                         <Button
-                          variant="outline"
-                          size="lg"
-                          className="h-16 w-16 rounded-xl border-2 hover:bg-blue-500/10 hover:border-blue-500/50"
-                          onClick={() => handleStepperControl(1)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
+                          onClick={handleResetStepper}
                           disabled={controlStatus.loading || !connectionStatus.connected}
                         >
-                          <ChevronLeft className="size-8 text-foreground" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="h-16 w-16 rounded-xl border-2 bg-red-500/10 hover:bg-red-500/20 border-red-500/30 hover:border-red-500/50"
-                          onClick={() => handleStepperControl(0)}
-                          disabled={controlStatus.loading || !connectionStatus.connected}
-                        >
-                          <Square className="size-6 fill-red-500 text-red-500" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="h-16 w-16 rounded-xl border-2 hover:bg-blue-500/10 hover:border-blue-500/50"
-                          onClick={() => handleStepperControl(2)}
-                          disabled={controlStatus.loading || !connectionStatus.connected}
-                        >
-                          <ChevronRight className="size-8 text-foreground" />
+                          <RotateCcw className="size-3 mr-1" />
+                          复位到中间
                         </Button>
                       </div>
                     </div>

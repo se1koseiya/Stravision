@@ -73,3 +73,26 @@ export async function updateGreenhouseCameraUrls(urls: GreenhouseCameraUrls): Pr
     ["greenhouse_camera_urls", JSON.stringify(urls), now]
   )
 }
+
+/**
+ * Stepper Motor Position Control
+ * Track current position of the camera slide (lead screw) in pulses.
+ */
+export async function getStepperPosition(): Promise<number> {
+  await initDB()
+  const row = await queryOne<{ value: string }>("SELECT value FROM system_settings WHERE key = $1", ["stepper_position_pulses"])
+  
+  if (!row) return 0 // Default to 0 (home)
+  return parseInt(row.value) || 0
+}
+
+export async function updateStepperPosition(pulses: number): Promise<void> {
+  await initDB()
+  const now = Date.now()
+  await execute(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ["stepper_position_pulses", String(pulses), now]
+  )
+}

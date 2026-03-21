@@ -27,7 +27,7 @@ import { Search } from "@/components/animate-ui/icons/search"
 import { MapPin } from "@/components/animate-ui/icons/map-pin"
 import { Trash2 } from "@/components/animate-ui/icons/trash-2"
 import { cn } from "@/lib/utils"
-import { PageNavigation } from "@/components/page-navigation"
+import { PageHeader } from "@/components/page-header"
 import { ModeToggle } from "@/components/mode-toggle"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import Image from "next/image"
@@ -695,24 +695,9 @@ export default function ChatPage() {
       <div className="relative z-10 flex flex-col flex-1 w-full overflow-hidden">
         {/* Header */}
         {!isMobile && (
-          <div className="relative flex items-center px-8 border-b border-black/5 dark:border-white/10 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50 h-[72px] shrink-0">
-            <div className="flex items-center gap-4 text-foreground">
-              <div className="relative size-12 shrink-0">
-                <Image src="/icon.png" alt="logo" fill className="object-contain" />
-              </div>
-              <div className="leading-tight">
-                <div className="text-base font-bold tracking-wide">STRAVISION</div>
-                <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
-              </div>
-            </div>
-            <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-              <PageNavigation />
-            </div>
-            <div className="ml-auto flex items-center gap-3">
-              <ModeToggle />
-              {currentUser && <UserAvatarMenu user={currentUser as any} />}
-            </div>
-          </div>
+          <PageHeader user={currentUser as any}>
+            <ModeToggle />
+          </PageHeader>
         )}
 
         {/* Main Content - 3 Column Layout Simulation */}

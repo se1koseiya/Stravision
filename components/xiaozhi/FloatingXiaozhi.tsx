@@ -129,6 +129,8 @@ function FloatingXiaozhiContent() {
     } else if (cmd.action === 'control_camera') {
       const directionNames = ['停止', '左移', '右移'];
       deviceName = `摄像头云台${directionNames[cmd.direction ?? 0] || ''}`;
+    } else if (cmd.action === 'reset_camera') {
+      deviceName = '摄像头云台复位居中';
     } else {
       deviceName = DEVICE_NAMES[String(cmd.device)] || `设备${cmd.device}`;
     }

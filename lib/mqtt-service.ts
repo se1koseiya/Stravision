@@ -13,6 +13,7 @@ import { AutomationEngine, AutomationContext } from './automation/engine'
 import { getActiveRules, recordRuleExecution } from '@/lib/db/automation-service'
 import { ChatService } from '@/lib/db/chat-service'
 import { queryOne } from '@/lib/db/database'
+import { getStepperPosition, updateStepperPosition } from './db/settings-service'
 
 /**
  * Device Data Interface
@@ -58,6 +59,7 @@ export interface DeviceData {
   stepper_wait_time?: number   // 切换等待时间 (node0808)
   stepper_run_time?: number    // 运行时间: 100=1秒 (node0809)
   stepper_loop_count?: number  // 循环次数: 0=无限 (node0810)
+  stepper_position?: number    // 当前软件记位脉冲数系统同步 (用于UI显示)
 }
 
 /**
@@ -65,7 +67,7 @@ export interface DeviceData {
  * Represents control commands to be sent to devices
  */
 export interface ControlCommand {
-  type: 'relay' | 'led' | 'stepper'
+  type: 'relay' | 'led' | 'stepper' | 'stepper_reset'
   relayNum?: number       // Relay number (5-8)
   newState?: number       // New relay state (0/1)
   led1?: number           // LED 1 brightness (0-255)
@@ -74,6 +76,7 @@ export interface ControlCommand {
   led4?: number           // LED 4 brightness (0-255)
   // Stepper Motor Control (步进电机控制)
   stepper_direction?: number   // 运行方向: 0=停止, 1=正转, 2=反转
+  stepper_pulses?: number      // 运行脉冲数 (决定距离 - node0817)
   stepper_mode?: number        // 模式设置: 1-26
   stepper_accel?: number       // 加速频率: 1-65535
   stepper_decel?: number       // 减速频率: 1-65535
@@ -101,12 +104,29 @@ export class MQTTService {
   private lastNotificationTime: Map<string, number> = new Map()
   private readonly NOTIFICATION_COOLDOWN = 30 * 60 * 1000 // 30 minutes
   private readonly ALERT_TIMEZONE = process.env.ALERT_TIMEZONE || 'Asia/Shanghai'
+  
+  // Lead Screw Slider Constants (丝杆滑台参数)
+  private readonly STEPPER_MAX_RANGE_MM = 700
+  private readonly STEPPER_PULSES_PER_10MM = 1600
+  private readonly STEPPER_MAX_PULSES = (700 / 10) * 1600 // 112000 pulses
+  private readonly STEPPER_DEFAULT_STEP = 1600 // 10mm default
+  private cachedStepperPosition = 0
+
+  private stepperInactivityTimer: NodeJS.Timeout | null = null
+  private readonly STEPPER_AUTO_RESET_DELAY_MS = 5 * 60 * 1000 // 5分钟无操作自动复位到中间
 
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
     this.config = getValidatedMQTTConfig()
+    // Load initial stepper position from DB
+    getStepperPosition().then(pos => {
+      this.cachedStepperPosition = pos
+      if (this.latestData) this.latestData.stepper_position = pos
+    }).catch(err => {
+      console.error('[MQTT] Failed to load initial stepper position:', err)
+    })
   }
 
   /**
@@ -263,6 +283,30 @@ export class MQTTService {
   }
 
   /**
+   * Reset the stepper inactivity timer
+   */
+  private resetStepperInactivityTimer(): void {
+    if (this.stepperInactivityTimer) {
+      clearTimeout(this.stepperInactivityTimer)
+    }
+    this.stepperInactivityTimer = setTimeout(() => {
+      this.autoResetStepper()
+    }, this.STEPPER_AUTO_RESET_DELAY_MS)
+  }
+
+  /**
+   * Automatically reset stepper to middle position after inactivity
+   */
+  private async autoResetStepper(): Promise<void> {
+    this.log('INFO', 'Stepper inactivity timeout reached, auto-resetting to middle position.')
+    try {
+      await this.sendControlCommand({ type: 'stepper_reset' })
+    } catch (err) {
+      this.log('ERROR', `Auto-reset failed: ${err}`)
+    }
+  }
+
+  /**
    * Send control command to device
    * 
    * Constructs device protocol payload and publishes to MQTT broker.
@@ -277,9 +321,89 @@ export class MQTTService {
     }
 
     try {
-      const payload = this.buildControlPayload(command)
-      const payloadString = JSON.stringify(payload)
+      // Pre-processing for specific command types
+      if (command.type === 'stepper_reset') {
+        const currentPos = await getStepperPosition()
+        const middlePos = this.STEPPER_MAX_PULSES / 2 // 56000 pulses
+        
+        if (currentPos === middlePos) {
+          this.log('INFO', 'Stepper already at middle position, ignoring reset command')
+          return
+        }
 
+        let direction = 0
+        let pulses = 0
+
+        if (currentPos < middlePos) {
+          direction = 1 // Forward/Left to increase position
+          pulses = middlePos - currentPos
+        } else {
+          direction = 2 // Reverse/Right to decrease position
+          pulses = currentPos - middlePos
+        }
+
+        this.log('INFO', `Stepper reset to middle: Moving from ${currentPos} to ${middlePos} (${pulses} pulses in direction ${direction})`)
+        
+        // Convert to a stepper move command
+        command.type = 'stepper'
+        command.stepper_direction = direction
+        command.stepper_pulses = pulses
+      }
+
+      // Build payload after potential type conversion for stepper_reset
+      const payload = this.buildControlPayload(command)
+      
+      // Handle Stepper Position Tracking logic
+      if (command.type === 'stepper') {
+        this.resetStepperInactivityTimer() // Reset timer on any stepper action
+
+        const currentPos = await getStepperPosition()
+        const direction = command.stepper_direction || 0
+        const delta = command.stepper_pulses !== undefined ? command.stepper_pulses : this.STEPPER_DEFAULT_STEP
+        
+        let targetPulses = delta
+        let newPos = currentPos
+        
+        if (direction === 1) { // Forward/Left
+          if (currentPos >= this.STEPPER_MAX_PULSES) {
+            this.log('WARN', `Stepper at max position (${currentPos}). Command ignored.`)
+            throw new Error('已经到达最大量程 (700mm)')
+          }
+          // Clamp target move
+          if (currentPos + delta > this.STEPPER_MAX_PULSES) {
+            targetPulses = this.STEPPER_MAX_PULSES - currentPos
+            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid over-limit.`)
+          }
+          newPos = currentPos + targetPulses
+        } else if (direction === 2) { // Reverse/Right
+          if (currentPos <= 0) {
+            this.log('WARN', `Stepper at min position (${currentPos}). Command ignored.`)
+            throw new Error('已经到达原点 (0mm)')
+          }
+          // Clamp target move
+          if (currentPos - delta < 0) {
+            targetPulses = currentPos
+            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid over-limit.`)
+          }
+          newPos = currentPos - targetPulses
+        }
+        
+        // Update the payload with adjusted pulses
+        const stepperPayload = payload as any
+        if (stepperPayload.rw_prot && stepperPayload.rw_prot.w_data) {
+          // Insert node0817 (Pulse Number)
+          if (direction !== 0) {
+            stepperPayload.rw_prot.w_data.push({ name: 'node0817', value: String(targetPulses) })
+          }
+        }
+        
+        // Persist new position
+        await updateStepperPosition(newPos)
+        this.cachedStepperPosition = newPos
+        if (this.latestData) this.latestData.stepper_position = newPos
+      }
+
+      const payloadString = JSON.stringify(payload)
       this.log('INFO', `Sending control command: ${command.type}`, command)
 
       return new Promise((resolve, reject) => {
@@ -298,8 +422,8 @@ export class MQTTService {
           }
         )
       })
-    } catch (error) {
-      this.log('ERROR', `Error building control command: ${error}`, error)
+    } catch (error: any) {
+      this.log('ERROR', `Error sending control command: ${error?.message || error}`, error)
       throw error
     }
   }
@@ -471,7 +595,8 @@ export class MQTTService {
           earth_n: 0, earth_p: 0, earth_k: 0,
           relay5: 0, relay6: 0, relay7: 0, relay8: 0,
           led1: 0, led2: 0, led3: 0, led4: 0,
-          stepper_direction: 0
+          stepper_direction: 0,
+          stepper_position: this.cachedStepperPosition
         }
       }
 
@@ -500,6 +625,7 @@ export class MQTTService {
           channel9: getChannelValue(rawData.channel9) || this.latestData?.channel9 || 0,
           channel10: getChannelValue(rawData.channel10) || this.latestData?.channel10 || 0,
           channel11: getChannelValue(rawData.channel11) || this.latestData?.channel11 || 0,
+          stepper_position: this.cachedStepperPosition,
           timestamp: Date.now()
         }
       } else {
@@ -524,6 +650,7 @@ export class MQTTService {
           led2: this.parseNumber(rawData.led2, this.latestData?.led2 ?? 0),
           led3: this.parseNumber(rawData.led3, this.latestData?.led3 ?? 0),
           led4: this.parseNumber(rawData.led4, this.latestData?.led4 ?? 0),
+          stepper_position: this.cachedStepperPosition,
           timestamp: Date.now()
         }
 
