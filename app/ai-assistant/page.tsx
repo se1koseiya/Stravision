@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -71,7 +71,7 @@ import {
   Source,
 } from "@/components/ui/assistant-ui"
 
-import { AISettingsDialog } from "@/components/ai-settings-dialog"
+import { AISettingsDialog, getVoiceSettings } from "@/components/ai-settings-dialog"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
@@ -324,6 +324,114 @@ export default function AIAssistantPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
   const [enableReasoning, setEnableReasoning] = useState(false)
+  const [isTTSEnabled, setIsTTSEnabled] = useState(true) // TTS Toggle
+  const [isTtsPaused, setIsTtsPaused] = useState(false) // 真正的播放暂停
+  
+  const ttsQueueRef = useRef<string[]>([])
+  const ttsAudioQueueRef = useRef<{url: string, text: string}[]>([]) // 声音缓冲池
+  const isFetchingTtsRef = useRef(false)
+  const isPlayingTtsRef = useRef(false)
+  const audioContextRef = useRef<HTMLAudioElement | null>(null)
+  const isTtsPausedRef = useRef(false)
+
+  // 1. 生产者：后台无缝预加载声音片段
+  const fetchNextTts = async () => {
+    if (isFetchingTtsRef.current || isStoppedRef.current) return
+    isFetchingTtsRef.current = true
+
+    // 维持缓冲池里始终有3句话在准备，消除网络请求等待带来的顿挫感
+    while (ttsQueueRef.current.length > 0 && ttsAudioQueueRef.current.length < 3 && !isStoppedRef.current && isTTSEnabled) {
+      const text = ttsQueueRef.current.shift()
+      if (!text) continue
+
+      try {
+        const voiceConfig = getVoiceSettings()
+        const res = await fetch('/api/ai/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text,
+            voice: voiceConfig?.voice || "Cherry"
+          })
+        })
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          ttsAudioQueueRef.current.push({ url, text })
+          
+          // 如果系统闲置，立马打火播放
+          if (!isPlayingTtsRef.current) {
+            playNextTtsAudio()
+          }
+        }
+      } catch (e) {
+        console.error('TTS Fetch Error:', e)
+      }
+    }
+
+    isFetchingTtsRef.current = false
+  }
+
+  // 2. 消费者：毫秒级无缝播放缓冲好的声音
+  const playNextTtsAudio = async () => {
+    if (isPlayingTtsRef.current || ttsAudioQueueRef.current.length === 0 || isStoppedRef.current || !isTTSEnabled) return
+    isPlayingTtsRef.current = true
+    
+    const item = ttsAudioQueueRef.current.shift()
+    if (!item) {
+       isPlayingTtsRef.current = false
+       return
+    }
+
+    try {
+      const audio = new window.Audio(item.url)
+      audioContextRef.current = audio
+      
+      await new Promise<void>((resolve) => {
+        // 当这个音频播放完时立刻 Resolve，下个音频秒接
+        audio.onended = () => resolve()
+        audio.onerror = () => resolve()
+        
+        let wasPaused = false
+        const interval = setInterval(() => {
+          if (isStoppedRef.current || !isTTSEnabled) {
+            audio.pause()
+            clearInterval(interval)
+            resolve()
+            return
+          }
+          
+          if (isTtsPausedRef.current && !wasPaused) {
+             audio.pause()
+             wasPaused = true
+          } else if (!isTtsPausedRef.current && wasPaused) {
+             audio.play().catch(resolve)
+             wasPaused = false
+          }
+        }, 80) // 高频扫描停止与暂停信号
+        
+        if (!isTtsPausedRef.current) {
+           audio.play().catch(resolve)
+        } else {
+           wasPaused = true
+        }
+      })
+      
+      URL.revokeObjectURL(item.url)
+      audioContextRef.current = null
+    } catch (e) {
+      console.error('TTS Play Error:', e)
+    }
+    
+    isPlayingTtsRef.current = false
+    
+    // 队列空出一个位置，通知生产者可以继续拉取网络请求
+    fetchNextTts()
+    
+    // 自旋播放下一个
+    playNextTtsAudio()
+  }
+
   const [autoExecuteCommands, setAutoExecuteCommands] = useState(true) // AI自动执行设备控制
   const [isExecutingControl, setIsExecutingControl] = useState(false) // 正在执行设备控制（用于发光动效）
   const [executingDeviceName, setExecutingDeviceName] = useState<string>("") // 正在操作的设备名称
@@ -581,6 +689,21 @@ export default function AIAssistantPage() {
     setNotices(prev => prev.map(n => n.id === id ? { ...n, expanded: !n.expanded } : n))
   }
 
+  // Cleanup TTS on unmount
+  useEffect(() => {
+    return () => {
+      isStoppedRef.current = true
+      if (audioContextRef.current) {
+        audioContextRef.current.pause()
+        audioContextRef.current = null
+      }
+      ttsQueueRef.current = []
+      ttsAudioQueueRef.current = []
+      isPlayingTtsRef.current = false
+      isFetchingTtsRef.current = false
+    }
+  }, [])
+
   // Fetch User
   useEffect(() => {
     let mounted = true
@@ -674,6 +797,15 @@ export default function AIAssistantPage() {
       abortControllerRef.current = null
     }
     
+    // Stop TTS
+    if (audioContextRef.current) {
+      audioContextRef.current.pause()
+      audioContextRef.current = null
+    }
+    ttsQueueRef.current = []
+    ttsAudioQueueRef.current = []
+    isPlayingTtsRef.current = false
+
     // 2. 标记停止，阻止后续执行
     isStoppedRef.current = true
     
@@ -984,6 +1116,17 @@ ${taskContext}
   }
 
   const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false) => {
+    // 立即打断当前正在进行的 TTS 语音播报
+    if (audioContextRef.current) {
+      audioContextRef.current.pause()
+      audioContextRef.current = null
+    }
+    ttsQueueRef.current = []
+    ttsAudioQueueRef.current = []
+    isPlayingTtsRef.current = false
+    setIsTtsPaused(false)
+    isTtsPausedRef.current = false
+
     // 重置停止状态
     isStoppedRef.current = false
     
@@ -1197,6 +1340,7 @@ ${taskContext}
 
       const decoder = new TextDecoder()
       let buffer = ""
+      let ttsProcessedLength = 0
 
       while (true) {
         const { done, value } = await reader.read()
@@ -1355,6 +1499,57 @@ ${taskContext}
                 } else {
                     assistantMsg.content = content
                 }
+
+                // TTS 增量片段解析与阅读：自动忽略所有的代码块与特定 XML 元素(如 task)包含的内容
+                if (isTTSEnabled) {
+                    const getTTSableText = (text: string) => {
+                      if (!text) return ""
+                      let s = text
+                      // Remove reasoning blocks and markdown code blocks completely
+                      s = s.replace(/```[\s\S]*?(?:```|$)/g, '')
+                      // Remove block tags like task, device_control, chart, TASK_LIST completely along with inner payload
+                      s = s.replace(/<(task|device_control|chart|TASK_LIST|TOOL_USED|REASONING|analyze|plan)(?:[\s>][\s\S]*?(?:<\/\1>|$)|$)/gi, '')
+                      // Remove incomplete typing of these tags specifically so it doesn't accidentally read them before parsing finishes
+                      s = s.replace(/<\/?(?:t|ta|tas|task|d|de|dev|devi|devic|device|device_|device_c|device_co|device_con|device_cont|device_contr|device_contro|device_control|c|ch|cha|char|chart|T|TA|TAS|TASK|TASK_|TASK_L|TASK_LI|TASK_LIS|TASK_LIST|R|RE|REA|REAS|REASO|REASON|REASONI|REASONIN|REASONING|a|an|ana|anal|analy|analyz|analyze|p|pl|pla|plan)$/i, '')
+                      // Only strip generic styling tags like <b> themselves but keep their inner text reading
+                      s = s.replace(/<\/?(?:b|i|strong|em|p|div|span|h[1-6]|ul|li|ol|br|hr|a|img)[^>]*>/gi, '')
+                      return s
+                    }
+
+                    const cleanContent = getTTSableText(assistantMsg.content as string)
+                    const unprocessed = cleanContent.slice(ttsProcessedLength)
+                    
+                    const splitRegex = /([^.!?。；！？\n]+[.!?。；！？\n]+)/g
+                    let match
+                    let lastMatchEnd = 0
+                    
+                    const normalizeIoTUnitsForTTS = (text: string) => {
+                      if (!text) return "";
+                      return text
+                        .replace(/°C/gi, '摄氏度')
+                        .replace(/\blux\b/gi, '勒克斯')
+                        .replace(/\bppm\b/gi, 'P P M')
+                        .replace(/CO[2₂]/gi, '二氧化碳')
+                        .replace(/\bmg\/m3\b/gi, '毫克每立方米')
+                        .replace(/\bmg\/l\b/gi, '毫克每升')
+                        .replace(/\bm\/s\b/gi, '米每秒')
+                        .replace(/\+([0-9.]+)/g, '上升$1')
+                    }
+
+                    while ((match = splitRegex.exec(unprocessed)) !== null) {
+                      const sentence = match[0].trim()
+                      // 经过上面的处理去除了业务标签，最后再安全过滤所有遗漏HTML避免读出尖括号
+                      // 重点优化：剥离感叹号强制转为句号，压制 Qwen3 语音模型容易过于激昂的情绪
+                      // 专门优化 IoT 单位发音
+                      const spokenSentence = normalizeIoTUnitsForTTS(sentence.replace(/<[^>]+>/g, '').replace(/[！!]/g, '。').trim())
+                      if (spokenSentence.length > 1 && !spokenSentence.includes('"action":')) {
+                         ttsQueueRef.current.push(spokenSentence)
+                         fetchNextTts()
+                      }
+                      lastMatchEnd = match.index + match[0].length
+                    }
+                    ttsProcessedLength += lastMatchEnd
+                }
                 
                 // Simplified reasoning parsing
                 const combined = assistantMsg.content as string
@@ -1392,6 +1587,38 @@ ${taskContext}
             }
           }
         }
+      }
+
+      // Read remaining buffer if any
+      if (isTTSEnabled) {
+         const getTTSableText = (text: string) => {
+             if (!text) return ""
+             let s = text
+             s = s.replace(/```[\s\S]*?(?:```|$)/g, '')
+             s = s.replace(/<(task|device_control|chart|TASK_LIST|TOOL_USED|REASONING|analyze|plan)(?:[\s>][\s\S]*?(?:<\/\1>|$)|$)/gi, '')
+             s = s.replace(/<\/?(?:t|ta|tas|task|d|de|dev|devi|devic|device|device_|device_c|device_co|device_con|device_cont|device_contr|device_contro|device_control|c|ch|cha|char|chart|T|TA|TAS|TASK|TASK_|TASK_L|TASK_LI|TASK_LIS|TASK_LIST|R|RE|REA|REAS|REASO|REASON|REASONI|REASONIN|REASONING|a|an|ana|anal|analy|analyz|analyze|p|pl|pla|plan)$/i, '')
+             s = s.replace(/<\/?(?:b|i|strong|em|p|div|span|h[1-6]|ul|li|ol|br|hr|a|img)[^>]*>/gi, '')
+             return s
+         }
+         const cleanContent = getTTSableText(assistantMsg.content as string)
+         const normalizeIoTUnitsForTTS = (text: string) => {
+             if (!text) return "";
+             return text
+                 .replace(/°C/gi, '摄氏度')
+                 .replace(/\blux\b/gi, '勒克斯')
+                 .replace(/\bppm\b/gi, 'P P M')
+                 .replace(/CO[2₂]/gi, '二氧化碳')
+                 .replace(/\bmg\/m3\b/gi, '毫克每立方米')
+                 .replace(/\bmg\/l\b/gi, '毫克每升')
+                 .replace(/\bm\/s\b/gi, '米每秒')
+                 .replace(/\+([0-9.]+)/g, '上升$1')
+         }
+         const unprocessed = cleanContent.slice(ttsProcessedLength)
+         const remaining = normalizeIoTUnitsForTTS(unprocessed.replace(/<[^>]+>/g, '').replace(/[！!]/g, '。').trim())
+         if (remaining.length > 2) {
+            ttsQueueRef.current.push(remaining)
+            fetchNextTts()
+         }
       }
 
       // 确保流结束时关闭浏览器
@@ -2450,14 +2677,50 @@ ${taskContext}
             </div>
           </div>
 
-          <div className="pointer-events-auto flex items-center gap-3">
+          <div className="pointer-events-auto flex items-center gap-2 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-700/50 px-2 py-1.5 rounded-full shadow-sm">
             <CalendarTrigger />
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-             <button
+            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
+            <button
               onClick={() => setVoiceChatOpen(true)}
-              className="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+              className="p-1.5 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+              title="实时语音对话"
             >
-              <Phone size={18} />
+              <Phone size={16} />
+            </button>
+            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
+            <button
+              onClick={() => {
+                const newState = !isTtsPaused
+                setIsTtsPaused(newState)
+                isTtsPausedRef.current = newState
+              }}
+              className={cn(
+                "p-1.5 transition-colors rounded-full",
+                isTtsPaused 
+                  ? "text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10" 
+                  : "text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10"
+              )}
+              title={isTtsPaused ? "继续播报" : "暂停当前播报"}
+            >
+              {isTtsPaused ? <Play size={16} /> : <Pause size={16} />}
+            </button>
+            <button
+              onClick={() => {
+                const newState = !isTTSEnabled
+                setIsTTSEnabled(newState)
+                if (!newState && audioContextRef.current) {
+                  audioContextRef.current.pause()
+                }
+              }}
+              className={cn(
+                "p-1.5 transition-colors rounded-full",
+                isTTSEnabled 
+                  ? "text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" 
+                  : "text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10"
+              )}
+              title={isTTSEnabled ? "全局播报已开启" : "全局播报已静音"}
+            >
+              {isTTSEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
           </div>
         </div>

@@ -111,6 +111,7 @@ interface EnvironmentControl {
 
 import { useDailyGreeting } from "@/lib/hooks/use-daily-greeting"
 import { RealtimeVoiceOrb } from "@/components/realtime-voice-orb"
+import { DailyBriefingIsland } from "@/components/daily-briefing-island"
 
 export default function MonitorPage() {
   // Layout adjustments for monitor page
@@ -125,40 +126,6 @@ export default function MonitorPage() {
   //   username: currentUser?.username,
   //   enabled: !!currentUser 
   // })
-  
-  // Qwen Omni Greeting Logic
-  const [showGreeting, setShowGreeting] = useState(false)
-  const [greetingText, setGreetingText] = useState("")
-
-  useEffect(() => {
-    if (!currentUser?.username) return
-    
-    const today = new Date().toISOString().split('T')[0]
-    const storageKey = `last_greeting_qwen_${currentUser.username}`
-    const lastGreetDate = localStorage.getItem(storageKey)
-    
-    if (lastGreetDate !== today) {
-       // Determine greeting based on time of day
-       const hour = new Date().getHours()
-       let timeGreeting = ''
-       if (hour < 6) timeGreeting = '夜深了'
-       else if (hour < 9) timeGreeting = '早上好'
-       else if (hour < 12) timeGreeting = '上午好'
-       else if (hour < 14) timeGreeting = '中午好'
-       else if (hour < 18) timeGreeting = '下午好'
-       else timeGreeting = '晚上好'
-
-       const text = `${timeGreeting}，${currentUser.username}。我是您的智能管家莓小智，很高兴见到您。`
-       setGreetingText(text)
-       setShowGreeting(true)
-       
-       // Mark as greeted
-       localStorage.setItem(storageKey, today)
-       
-       // Auto-hide after 20 seconds
-       setTimeout(() => setShowGreeting(false), 20000)
-    }
-  }, [currentUser])
 
   // Local state
   const [filter, setFilter] = useState<"all" | "active" | "offline">("all")
@@ -582,6 +549,13 @@ export default function MonitorPage() {
       <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:hidden" />
       <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
       
+      {/* Daily Briefing Dynamic Island */}
+      <DailyBriefingIsland
+        username={currentUser?.username}
+        deviceData={deviceData}
+        enabled={!!currentUser}
+      />
+      
       {/* Logo - 左上角固定 */}
       <div className="fixed top-4 left-6 z-50 flex items-center gap-4">
         <div className="relative size-12 shrink-0">
@@ -903,26 +877,7 @@ export default function MonitorPage() {
       </div>
       </div>
 
-      {/* Greeting Orb */}
-      {showGreeting && (
-        <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-center gap-3 pointer-events-none animate-in slide-in-from-bottom-10 fade-in duration-500">
-          <div className="bg-black/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/10 shadow-lg mb-2">
-            正在为您播报每日问候...
-          </div>
-          <div className="pointer-events-auto">
-            <RealtimeVoiceOrb 
-              size={64}
-              autoConnect={true}
-              instructions="你是莓小智，一个专业、友好的AI语音助手。用中文简洁回答问题。"
-              initialGreeting={greetingText}
-              voice="Cherry"
-              onStatusChange={(status) => {
-                 if (status === 'error') setShowGreeting(false)
-              }}
-            />
-          </div>
-        </div>
-      )}
+
 
       {/* 设备管理对话框 */}
       <Dialog open={deviceDialogOpen} onOpenChange={setDeviceDialogOpen}>

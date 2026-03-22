@@ -47,6 +47,7 @@ import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import { PageHeader } from "@/components/page-header"
 import { WidgetLibraryDialog } from "@/components/dashboard/widget-library-dialog"
+import { DailyBriefingIsland } from "@/components/daily-briefing-island"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -359,6 +360,14 @@ export default function DashboardPage() {
         <div className="absolute inset-0 bg-[#F5F7FA] dark:bg-[#0B1220]" />
         <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.8),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(240,253,244,0.6),transparent_55%)] dark:hidden" />
         <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
+
+        {/* Daily Briefing Dynamic Island */}
+        <DailyBriefingIsland
+          username={currentUser?.username}
+          deviceData={deviceData}
+          weatherData={weatherData}
+          enabled={!!currentUser}
+        />
 
         {/* Global click to close context menu */}
         {contextMenuState && (

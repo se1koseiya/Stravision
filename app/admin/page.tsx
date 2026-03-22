@@ -341,6 +341,41 @@ export default function AdminPage() {
               <RateLimitSettings />
               <MaintenanceSettings />
             </div>
+
+            {/* Daily Briefing Reset */}
+            <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Activity className="size-4 text-emerald-500" />
+                  每日智能播报
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  每日播报基于灵动岛样式，在用户首次进入 /monitor 或 /dashboard 时自动触发一次。
+                  点击下方按钮可重置今日播报状态，使所有用户在下次访问时重新收到播报。
+                </p>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    className="rounded-lg border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    onClick={() => {
+                      const keys = Object.keys(localStorage).filter(k => k.startsWith('daily_briefing_'))
+                      keys.forEach(k => localStorage.removeItem(k))
+                      toast.success(`已重置今日播报`, {
+                        description: `清除了 ${keys.length} 条播报记录，下次进入监控/仪表盘将重新播报`,
+                      })
+                    }}
+                  >
+                    <Settings className="size-4 mr-2" />
+                    重置今日播报
+                  </Button>
+                  <span className="text-xs text-zinc-400 font-mono">
+                    {typeof window !== 'undefined' ? Object.keys(localStorage).filter(k => k.startsWith('daily_briefing_')).length : 0} 条记录
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="mcp-market" className="mt-0 outline-none animate-in fade-in-50">
