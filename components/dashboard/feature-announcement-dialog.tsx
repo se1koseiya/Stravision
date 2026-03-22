@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ChevronRight, ChevronLeft } from "lucide-react"
+import { X, ChevronRight, ChevronLeft, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
 
@@ -39,6 +39,8 @@ export function FeatureAnnouncementDialog({
 
     const [currentIndex, setCurrentIndex] = useState(0)
     const [direction, setDirection] = useState(1)
+    const [isMuted, setIsMuted] = useState(false)
+    const videoRef = useRef<HTMLVideoElement | null>(null)
 
     // Resolve controlled vs uncontrolled
     const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -180,14 +182,42 @@ export function FeatureAnnouncementDialog({
                                     className="absolute inset-0 flex items-center justify-center w-full h-full"
                                 >
                                     {currentFeature.mediaType === "video" ? (
+                                        <>
                                         <video
+                                            ref={videoRef}
                                             src={currentFeature.mediaUrl}
                                             autoPlay
                                             loop
-                                            muted
+                                            muted={isMuted}
                                             playsInline
                                             className="w-full h-full object-cover"
+                                            onLoadedData={(e) => {
+                                                const video = e.currentTarget
+                                                // Try to play with sound; if browser blocks it, fallback to muted
+                                                video.muted = false
+                                                video.play().catch(() => {
+                                                    video.muted = true
+                                                    setIsMuted(true)
+                                                    video.play().catch(() => {})
+                                                })
+                                            }}
                                         />
+                                        {/* Mute/Unmute toggle */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                const next = !isMuted
+                                                setIsMuted(next)
+                                                if (videoRef.current) {
+                                                    videoRef.current.muted = next
+                                                }
+                                            }}
+                                            className="absolute bottom-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
+                                        >
+                                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                        </button>
+                                        </>
+
                                     ) : (
                                         <img
                                             src={currentFeature.mediaUrl}
