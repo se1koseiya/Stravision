@@ -240,6 +240,13 @@ export async function POST(req: Request) {
 
     // 直接注入基础设备状态和环境数据
     if (deviceStatus) {
+      // 计算丝杆滑台位置信息
+      const stepperPos = deviceStatus.stepper_position || 0
+      const stepperPosMM = (stepperPos / 160).toFixed(1)
+      const canMoveLeftMM = ((112000 - stepperPos) / 160).toFixed(1)
+      const canMoveRightMM = (stepperPos / 160).toFixed(1)
+      const stepperDir = deviceStatus.stepper_direction === 1 ? '正在左移' : deviceStatus.stepper_direction === 2 ? '正在右移' : '已停止'
+
       contextInfo += `\n\n## 当前环境和设备状态 (直接数据，无需调用工具)\n\`\`\`json\n${JSON.stringify({
         environment: {
           temperature: deviceStatus.temperature !== undefined ? deviceStatus.temperature + "°C" : "未知",
@@ -254,8 +261,28 @@ export async function POST(req: Request) {
           grow_light_power: deviceStatus.relay7 === 1 ? "开启" : "关闭",
           white_light: deviceStatus.relay8 === 1 ? "开启" : "关闭",
           rgb_light: deviceStatus.rgb_status ? `R:${deviceStatus.rgb_status.r} G:${deviceStatus.rgb_status.g} B:${deviceStatus.rgb_status.b}` : "未知"
+        },
+        stepper_motor: {
+          stepper_position: stepperPos + " 脉冲",
+          stepper_position_mm: stepperPosMM + "mm",
+          stepper_direction: stepperDir,
+          remaining_left_travel: canMoveLeftMM + "mm",
+          remaining_right_travel: canMoveRightMM + "mm",
+          total_range: "700mm (112000 脉冲)",
+          warning: Number(canMoveLeftMM) < 20 ? "⚠️ 接近左端极限，请勿继续左移" : Number(canMoveRightMM) < 20 ? "⚠️ 接近右端极限（原点），请勿继续右移" : "正常"
         }
       }, null, 2)}\n\`\`\`\n`
+    }
+
+    // 注入摄像头可用性信息
+    try {
+      const { getGreenhouseCameraUrls } = await import('@/lib/db/settings-service')
+      const cameraUrls = await getGreenhouseCameraUrls()
+      const hasCamA = !!cameraUrls?.cameraAUrl?.trim()
+      const hasCamB = !!cameraUrls?.cameraBUrl?.trim()
+      contextInfo += `\n## 摄像头可用性\n- 温室摄像头A: ${hasCamA ? '✅ 已配置可用' : '❌ 未配置'}\n- 温室摄像头B: ${hasCamB ? '✅ 已配置可用' : '❌ 未配置'}\n${!hasCamA && !hasCamB ? '**注意：当前未配置任何摄像头，无法使用 move_camera_and_look 视觉巡检功能。**\n' : '你可以使用 move_camera_and_look 指令进行视觉巡检。\n'}`
+    } catch (e) {
+      // Silently ignore camera URL fetch errors
     }
 
     // 天气数据（MCP 天气工具已改为 function calling 方式，由 AI 主动调用）

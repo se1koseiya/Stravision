@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -115,6 +115,7 @@ interface Message {
   reasoning?: { text: string; durationMs?: number }
   tasks?: TaskModel[]
   model?: string // 添加模型字段
+  isSilent?: boolean // 是否在 UI 中隐藏
 }
 
 interface AISettings {
@@ -180,123 +181,156 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
     const subActions = activeTask.subActions || getMockSubActions(activeTask.title || "任务")
 
     return (
-      <div className="my-6 w-full max-w-2xl bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans dark:bg-[#1C1C1E] dark:border-white/10">
+      <div className="my-8 w-full max-w-2xl bg-white/70 backdrop-blur-xl rounded-[28px] border border-zinc-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans dark:bg-[#1C1C1E]/80 dark:border-white/5">
         {/* Header */}
-        <div className="px-5 py-3 flex items-center justify-between border-b border-zinc-100 dark:border-white/5">
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-md">
-            <span>已用时: {formatTime(elapsedTime)}</span>
+        <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-100/80 dark:border-white/5 bg-white/30 dark:bg-black/20">
+          <div className="flex items-center gap-3">
+             <div className="size-2 rounded-full bg-blue-500 animate-pulse" />
+             <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
+               <span>执行用时: {formatTime(elapsedTime)}</span>
+             </div>
           </div>
           
           <button 
             onClick={onOpenStudio}
-            className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="group/btn flex items-center gap-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all px-4 py-2 rounded-full bg-zinc-100 hover:bg-blue-50 dark:bg-zinc-800 dark:hover:bg-blue-900/20 border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30"
           >
-            <Zap size={14} />
-            <span>工作室</span>
-            <ArrowUpRight size={14} />
+            <Zap size={14} className="fill-current group-hover/btn:scale-110 transition-transform" />
+            <span>打开工作室</span>
+            <ArrowUpRight size={14} className="opacity-50 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
           </button>
         </div>
         
         {/* Body */}
-        <div className="flex flex-col sm:flex-row min-h-[280px]">
-          {/* Left: Stepper */}
-          <div className="w-full sm:w-1/3 border-r border-zinc-100 dark:border-white/5 p-5 space-y-6 bg-zinc-50/50 dark:bg-[#111111]/50">
+        <div className="flex flex-col sm:flex-row">
+          {/* Left: Professional Stepper */}
+          <div className="w-full sm:w-[200px] md:w-[240px] border-r border-zinc-100 dark:border-white/5 p-6 space-y-7 bg-zinc-50/30 dark:bg-black/10">
             {tasks.map((task: any, idx: number) => {
               const isActive = idx === currentIndex
               const isPast = idx < currentIndex || task.status === 'completed'
+              const isFailed = task.status === 'failed'
               
               return (
-                <div key={idx} className="flex items-start gap-3 relative">
+                <div key={idx} className="flex items-start gap-4 relative group/item">
                   {idx !== tasks.length - 1 && (
-                    <div className="absolute left-3 top-7 bottom-[-20px] w-px bg-zinc-200 dark:bg-zinc-800" />
+                    <div className={cn(
+                        "absolute left-[11px] top-8 bottom-[-28px] w-[1.5px] transition-colors duration-500",
+                        isPast ? "bg-blue-500/30 dark:bg-blue-500/20" : "bg-zinc-100 dark:bg-zinc-800"
+                    )} />
                   )}
                   
                   <div className={cn(
-                    "relative z-10 flex items-center justify-center shrink-0 w-6 h-6 rounded-full text-xs font-bold transition-colors",
-                    isActive ? "bg-white text-blue-600 shadow-sm border border-blue-100 dark:bg-zinc-800 dark:text-blue-400 dark:border-blue-900/50" : 
-                    isPast ? "bg-transparent text-zinc-400 dark:text-zinc-500" : "bg-transparent text-zinc-300 dark:text-zinc-600"
+                    "relative z-10 flex items-center justify-center shrink-0 size-6 rounded-full text-[10px] font-black transition-all duration-500",
+                    isActive ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] scale-110" : 
+                    isPast ? "bg-emerald-500 text-white" : 
+                    isFailed ? "bg-red-500 text-white" :
+                    "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-700"
                   )}>
-                    {isActive ? (
-                      <div className="flex items-center gap-0.5">
-                        <span className="text-blue-600 dark:text-blue-400">{idx + 1}</span>
-                        <span className="text-zinc-300 dark:text-zinc-600">/{tasks.length}</span>
-                      </div>
-                    ) : (
-                      idx + 1
-                    )}
+                    {isPast ? <CheckCircle2 size={12} strokeWidth={3} /> : isFailed ? <X size={12} strokeWidth={3} /> : idx + 1}
                   </div>
                   
-                  <div className={cn(
-                    "flex-1 pt-0.5 text-sm font-medium leading-relaxed transition-colors",
-                    isActive ? "text-zinc-900 dark:text-white" : 
-                    isPast ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
-                  )}>
-                    {task.title}
+                  <div className="flex-1 min-w-0">
+                    <div className={cn(
+                      "text-xs font-bold leading-tight transition-all duration-500 truncate",
+                      isActive ? "text-zinc-900 dark:text-white translate-x-1" : 
+                      isPast ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
+                    )}>
+                      {task.title}
+                    </div>
+                    {isActive && (
+                        <div className="text-[10px] text-blue-500 dark:text-blue-400 font-medium mt-1 truncate animate-in fade-in slide-in-from-left-1 duration-500">
+                            正在处理任务...
+                        </div>
+                    )}
                   </div>
                 </div>
               )
             })}
           </div>
-
-          {/* Right: Current Actions */}
-          <div className="w-full sm:w-2/3 p-6 bg-white dark:bg-[#1C1C1E] flex flex-col">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-6">
-              {activeTask?.title || "正在处理"}
-            </h3>
+ 
+          {/* Right: Modern Activity Feed */}
+          <div className="flex-1 p-7 bg-white/20 dark:bg-[#1C1C1E]/20">
+            <div className="flex items-center justify-between mb-8">
+                <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider">
+                  {activeTask?.title || "核心进程"}
+                </h3>
+                <div className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">步骤 {currentIndex + 1}/{tasks.length}</span>
+                </div>
+            </div>
             
-            <div className="flex-1 space-y-4 relative">
-              {/* Timeline line */}
-              <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100 dark:bg-zinc-800" />
-              
+            <div className="space-y-4">
               {subActions.map((action: any, idx: number) => {
                 const isSubActive = action.status === 'in_progress'
+                const isSubPast = action.status === 'completed'
                 return (
                   <div 
                     key={idx} 
                     className={cn(
-                      "flex items-center gap-3 relative z-10 p-2.5 rounded-xl transition-all",
-                      isSubActive ? "bg-blue-50/50 border border-blue-100/50 dark:bg-blue-900/10 dark:border-blue-900/30" : ""
+                      "group/action flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border border-transparent",
+                      isSubActive ? "bg-white dark:bg-zinc-800/80 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border-zinc-200/50 dark:border-white/5 ring-1 ring-blue-500/10 scale-[1.02]" : "hover:bg-zinc-100/50 dark:hover:bg-white/5"
                     )}
                   >
                     <div className={cn(
-                      "flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 shadow-sm border",
-                      isSubActive ? "border-blue-200 text-blue-500 dark:border-blue-800 dark:text-blue-400" : "border-zinc-200 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500"
+                      "flex items-center justify-center size-9 rounded-xl transition-all duration-500",
+                      isSubActive ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : 
+                      isSubPast ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-500" :
+                      "bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-600"
                     )}>
-                      {action.icon}
+                      {isSubActive ? <Loader2 size={18} className="animate-spin" /> : React.cloneElement(action.icon as React.ReactElement, { size: 18 })}
                     </div>
-                    <span className={cn(
-                      "text-sm flex-1 truncate",
-                      isSubActive ? "text-blue-700 dark:text-blue-300 font-medium" : "text-zinc-600 dark:text-zinc-400"
-                    )}>
-                      {action.text}
-                    </span>
-                    {isSubActive && (
-                      <Loader2 size={14} className="animate-spin text-blue-500" />
+                    
+                    <div className="flex-1 min-w-0">
+                        <div className={cn(
+                          "text-[13px] transition-colors truncate",
+                          isSubActive ? "text-zinc-900 dark:text-white font-bold" : "text-zinc-600 dark:text-zinc-400 font-medium"
+                        )}>
+                          {action.text}
+                        </div>
+                        {isSubActive && (
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-blue-500/80 font-bold uppercase tracking-tighter">
+                                <span className="animate-pulse">Active Process</span>
+                                <span className="size-1 rounded-full bg-blue-500 animate-bounce" />
+                            </div>
+                        )}
+                    </div>
+                    
+                    {isSubPast && (
+                      <div className="size-5 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-500">
+                        <CheckCircle2 size={12} strokeWidth={3} />
+                      </div>
                     )}
                   </div>
                 )
               })}
             </div>
             
-            {/* Footer Buttons */}
-            <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-white/5">
-              {isPaused ? (
-                 <button 
-                   onClick={() => onTogglePause?.(false)}
-                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors shadow-emerald-600/20"
-                 >
-                   <Play size={16} className="fill-current" />
-                   继续执行
-                 </button>
-              ) : (
-                 <button 
-                   onClick={() => onTogglePause?.(true)}
-                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-lg transition-colors dark:text-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700"
-                 >
-                   <Pause size={16} className="fill-current" />
-                   暂停任务
-                 </button>
-              )}
+            {/* Elegant Execution Controls */}
+            <div className="mt-10 flex items-center justify-between pt-6 border-t border-zinc-100/80 dark:border-white/5">
+              <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 flex items-center gap-2">
+                  <Activity size={12} />
+                  <span>实时自动化执行流已锁定</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {isPaused ? (
+                   <button 
+                     onClick={() => onTogglePause?.(false)}
+                     className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                   >
+                     <Play size={14} className="fill-current" />
+                     继续流水线
+                   </button>
+                ) : (
+                   <button 
+                     onClick={() => onTogglePause?.(true)}
+                     className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-zinc-700 bg-white border border-zinc-200/50 hover:bg-zinc-50 rounded-2xl transition-all shadow-sm hover:shadow-md active:scale-95 dark:text-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700"
+                   >
+                     <Pause size={14} className="fill-current" />
+                     挂起任务
+                   </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -333,6 +367,11 @@ export default function AIAssistantPage() {
   const isPlayingTtsRef = useRef(false)
   const audioContextRef = useRef<HTMLAudioElement | null>(null)
   const isTtsPausedRef = useRef(false)
+
+  // 视觉巡检状态
+  const [isInspecting, setIsInspecting] = useState(false);
+  const [inspectionCamera, setInspectionCamera] = useState<'a' | 'b'>('a');
+  const [inspectionStatus, setInspectionStatus] = useState<string>('');
 
   // 1. 生产者：后台无缝预加载声音片段
   const fetchNextTts = async () => {
@@ -793,7 +832,7 @@ export default function AIAssistantPage() {
   const handleStop = () => {
     // 1. 中止网络请求
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
+      abortControllerRef.current.abort("Task terminated by user")
       abortControllerRef.current = null
     }
     
@@ -976,7 +1015,7 @@ export default function AIAssistantPage() {
           const res = await fetch('/api/ai/device-control', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'control_camera', direction: cmd.direction })
+            body: JSON.stringify({ action: 'control_camera', direction: cmd.direction, pulses: cmd.pulses })
           })
           if (res.ok) {
             showNotice("云台控制成功 ✅", `摄像头云台${dirName}`, "success")
@@ -984,6 +1023,198 @@ export default function AIAssistantPage() {
             let err = ''
             try { const j = await res.json(); err = j?.error || '' } catch { }
             showNotice("云台控制失败", err || `请求错误 ${res.status}`, "error")
+          }
+        } else if (cmd.action === "move_camera_and_look") {
+          // AI 视觉巡检：移动云台 + 截图 + 发送VLM分析
+          while (isTaskPausedRef.current) {
+            if (isStoppedRef.current) break
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          if (isStoppedRef.current) break
+
+          setExecutingDeviceName("视觉巡检")
+          setTimeout(() => setDevicePillExpanded(true), 150)
+          
+          const direction = cmd.direction ?? 0
+          const pulses = cmd.pulses ?? 1600
+          const cameraId = (cmd.camera || 'a') as 'a' | 'b'
+          const query = cmd.query || '请描述你在画面中看到的内容'
+
+          setIsInspecting(true)
+          setInspectionCamera(cameraId)
+          setInspectionStatus("初始化巡检任务...")
+
+          // Step 1: 移动云台（如果direction不为0）
+          if (direction !== 0) {
+            const moveMsg = `正在将摄像头云台${direction === 1 ? '左移' : '右移'} ${(pulses / 160).toFixed(1)}mm...`;
+            setInspectionStatus(moveMsg);
+            showNotice("🔄 视觉巡检", moveMsg, "loading")
+            try {
+              const moveRes = await fetch('/api/ai/device-control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'control_camera', direction, pulses })
+              })
+              if (!moveRes.ok) {
+                const errData = await moveRes.json().catch(() => ({}))
+                showNotice("云台移动失败", errData?.error || '未知错误', "error")
+                // 即使移动失败，仍然尝试拍照
+              }
+            } catch (e) {
+              console.error('Stepper move failed:', e)
+            }
+            // 等待电机运动完成
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            if (isStoppedRef.current) break
+          }
+
+          // Step 2: 获取摄像头 URL
+          setInspectionStatus("正在建立摄像头连接...");
+          showNotice("📷 视觉巡检", "正在连接摄像头...", "loading")
+          let cameraUrl = ''
+          try {
+            const camRes = await fetch('/api/ai/camera-capture')
+            if (camRes.ok) {
+              const camData = await camRes.json()
+              const cam = cameraId === 'b' ? camData.cameras?.b : camData.cameras?.a
+              if (cam?.available && cam?.url) {
+                cameraUrl = cam.url
+              }
+            }
+          } catch (e) {
+            console.error('Failed to get camera URL:', e)
+          }
+
+          if (!cameraUrl) {
+            setIsInspecting(false);
+            showNotice("❌ 视觉巡检失败", "摄像头未配置或不可用", "error")
+            // 告知 AI 摄像头不可用
+            handleSend(`【系统反馈】视觉巡检失败：摄像头${cameraId === 'b' ? 'B' : 'A'}未配置或不可用。管理员尚未在后台设置摄像头地址。请告知用户无法进行视觉巡检，并使用传感器数据替代。`, [], true, true)
+            break
+          }
+
+          // Step 3: 加载视频流并截图
+          setInspectionStatus(`正在捕捉 ${cameraId === 'b' ? 'B' : 'A'} 摄像头实时画面...`);
+          showNotice("📷 视觉巡检", "正在加载摄像头画面，请稍候...", "loading")
+          
+          let capturedImageBase64 = ''
+          try {
+            // 创建隐藏的 video 元素来加载流
+            const proxyUrl = `/api/stream-proxy?url=${encodeURIComponent(cameraUrl)}`
+            
+            capturedImageBase64 = await new Promise<string>((resolve, reject) => {
+              const video = document.createElement('video')
+              video.crossOrigin = 'anonymous'
+              video.muted = true
+              video.playsInline = true
+              video.autoplay = true
+              video.style.position = 'fixed'
+              video.style.top = '-9999px'
+              video.style.left = '-9999px'
+              video.style.width = '640px'
+              video.style.height = '480px'
+              document.body.appendChild(video)
+
+              const cleanup = () => {
+                try {
+                  video.pause()
+                  video.src = ''
+                  video.load()
+                  document.body.removeChild(video)
+                } catch {}
+              }
+
+              // 超时 15 秒
+              const timeout = setTimeout(() => {
+                cleanup()
+                reject(new Error('摄像头画面加载超时 (15s)'))
+              }, 15000)
+
+              const checkFrame = setInterval(() => {
+                if (video.readyState >= 3 && video.videoWidth > 0) {
+                  // 画面已就绪且有尺寸，再给 2 秒稳定时间
+                  clearInterval(checkFrame)
+                  setInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
+                  
+                  setTimeout(() => {
+                    try {
+                      const canvas = document.createElement('canvas')
+                      canvas.width = video.videoWidth || 640
+                      canvas.height = video.videoHeight || 480
+                      const ctx = canvas.getContext('2d')
+                      if (ctx) {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+                        clearTimeout(timeout)
+                        cleanup()
+                        resolve(dataUrl)
+                      } else {
+                        throw new Error('Canvas context 创建失败')
+                      }
+                    } catch (err: any) {
+                      clearTimeout(timeout)
+                      cleanup()
+                      reject(err)
+                    }
+                  }, 2000)
+                }
+              }, 500)
+
+              video.src = proxyUrl
+              video.play().catch(() => {
+                // 自动播放可能被阻止，通常不影响 canvas 截图
+              })
+            })
+          } catch (err: any) {
+            console.error('Camera capture failed:', err)
+            setIsInspecting(false)
+            showNotice("❌ 截图失败", err?.message || '未知错误', "error")
+            // 告知 AI 截图失败
+            handleSend(`【系统反馈】视觉巡检截图失败：${err?.message || '未知错误'}。摄像头画面可能尚未加载完成或网络问题。请告知用户截图失败，并建议稍后重试或使用传感器数据。严禁编造画面内容。`, [], true, true)
+            break
+          }
+
+          if (!capturedImageBase64) {
+            setIsInspecting(false)
+            showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
+            handleSend('【系统反馈】视觉巡检截图为空，摄像头可能未正常工作。严禁编造画面内容。', [], true, true)
+            break
+          }
+
+          // Step 4: 发送截图给 AI (VLM 多模态消息)
+          showNotice("🧠 视觉巡检", "正在让 AI 分析画面...", "loading")
+          
+          const visionMessage = [
+            { type: "image_url", image_url: { url: capturedImageBase64 } },
+            { type: "text", text: `这是从摄像头 ${cameraId === 'b' ? 'B' : 'A'} 捕获的实时画面。请基于该图片回答问题：${query}` }
+          ]
+
+          // 直接调用 handleSend 发送多模态消息 (bypass loading guard via isSilent=true)
+          await handleSend(visionMessage as any, [], true, true)
+          setInspectionStatus("完成巡检分析。");
+          setTimeout(() => setIsInspecting(false), 2000);
+          showNotice("✅ 视觉巡检", "画面已发送给 AI 分析", "success")
+        } else if (cmd.action === "reset_camera") {
+          // 摄像头云台复位到中间
+          while (isTaskPausedRef.current) {
+            if (isStoppedRef.current) break
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          if (isStoppedRef.current) break
+
+          setExecutingDeviceName("云台复位")
+          setTimeout(() => setDevicePillExpanded(true), 150)
+          const res = await fetch('/api/ai/device-control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reset_camera' })
+          })
+          if (res.ok) {
+            showNotice("云台复位成功 ✅", "丝杆滑台已复位到正中间", "success")
+          } else {
+            let err = ''
+            try { const j = await res.json(); err = j?.error || '' } catch { }
+            showNotice("云台复位失败", err || `请求错误 ${res.status}`, "error")
           }
         }
         // Add a small delay between commands to avoid flooding
@@ -1046,6 +1277,8 @@ export default function AIAssistantPage() {
 - CO2: ${co2}
 - 补光灯(Relay7): ${relay7}
 - LED光谱(RGB): R:${led1} G:${led2} B:${led3}
+- 丝杆滑台位置: ${snapshot.stepper_position !== undefined ? (snapshot.stepper_position / 160).toFixed(1) + 'mm (' + snapshot.stepper_position + '脉冲)' : '未知'}
+- 丝杆滑台状态: ${snapshot.stepper_direction === 1 ? '正在左移' : snapshot.stepper_direction === 2 ? '正在右移' : '已停止'}
 `;
     }
 
@@ -1096,7 +1329,7 @@ export default function AIAssistantPage() {
                  }
             }
 
-            handleSend(`指令已执行完毕。
+            await handleSend(`指令已执行完毕。
 
 请根据系统提供的【当前最新数据】判断执行效果，并决定下一步操作。
 ${taskContext}
@@ -1105,7 +1338,7 @@ ${taskContext}
 2. 请直接生成下一步的控制指令 JSON。
 3. 如果当前任务因环境反应慢而未达标，但已执行过指令，请判定为“超时/已尽力”，自动跳过并执行下一个任务。
 4. **严禁**重复执行相同的指令。如果环境数据未变，请增加等待时间或尝试其他手段，不要死循环。
-5. 直到所有任务完成或失败，再做最终总结。`, [], true)
+5. 直到所有任务完成或失败，再做最终总结。`, [], true, true)
         } else {
             setAgentStatus("") 
             setIsLoading(false)
@@ -1115,7 +1348,7 @@ ${taskContext}
     feedbackLoop()
   }
 
-  const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false) => {
+  const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false, isSilent: boolean = false) => {
     // 立即打断当前正在进行的 TTS 语音播报
     if (audioContextRef.current) {
       audioContextRef.current.pause()
@@ -1138,7 +1371,9 @@ ${taskContext}
     
     // 只有在非自动触发且无输入时才拦截
     if (!isAutoTrigger && !text.trim() && currentAttachments.length === 0) return
-    if (isLoading) return
+    // 允许内部触发的消息（isFeedback/isSilent）在加载状态下发送，防止巡检回路中断导致“抽搐”
+    if (isLoading && !isFeedback && !isSilent) return
+    setIsLoading(true) // 立即锁定，防止重复发送导致“抽搐”
     
     // 模拟感知阶段（仅当是用户主动发送或Agent自动闭环时，且不是简单的反馈重试）
     if (!agentStatus && !isFeedback) {
@@ -1215,9 +1450,8 @@ ${taskContext}
       return
     }
 
-    const newMessages: Message[] = [...messages, { role: "user", content: userMessageContent }]
+    const newMessages: Message[] = [...messages, { role: "user", content: userMessageContent, isSilent }]
     setMessages(newMessages)
-    setIsLoading(true)
     // currentAttachments 已在函数开头定义，这里不需要重复
     setAttachments([])
 
@@ -1667,10 +1901,19 @@ ${taskContext}
       console.error("Chat error:", e)
       setMessages(prev => [...prev, { role: "assistant", content: "抱歉，发生了一些错误，请稍后再试。" }])
     } finally {
-      // Ensure loading state is cleared
-      setAgentStatus("")
-      setIsLoading(false)
-      setTimeout(() => setIsLoading(false), 100)
+      // 只有在非静默/非反馈模式下，或者没有正在进行的后续任务时才清除状态
+      // 避免内部触发的消息（如巡检反馈）在回复还没开始时就被父级的 finally 清除了状态，导致界面“抽搐”
+      if (!isFeedback && !isSilent) {
+        setAgentStatus("")
+        setIsLoading(false)
+        // 额外延迟清理一次，确保彻底结束
+        setTimeout(() => {
+          if (!isStoppedRef.current) {
+            setAgentStatus("")
+            setIsLoading(false)
+          }
+        }, 100)
+      }
     }
   }
 
@@ -1978,7 +2221,9 @@ ${taskContext}
                  const isIoTCommand = (obj: any) => obj.action && (
                     obj.action === 'toggle_relay' || 
                     obj.action === 'set_led' || 
-                    obj.action === 'control_camera'
+                    obj.action === 'control_camera' ||
+                    obj.action === 'reset_camera' ||
+                    obj.action === 'move_camera_and_look'
                  )
                  
                  const commands = Array.isArray(parsed) ? parsed : [parsed]
@@ -2256,7 +2501,13 @@ ${taskContext}
           for (const match of matches) {
             try {
               const json = JSON.parse(match[1])
-              if (json.action === 'toggle_relay' || json.action === 'set_led' || json.action === 'control_camera') {
+              if (
+                json.action === 'toggle_relay' || 
+                json.action === 'set_led' || 
+                json.action === 'control_camera' ||
+                json.action === 'reset_camera' ||
+                json.action === 'move_camera_and_look'
+              ) {
                 commands.push(json)
               }
             } catch { }
@@ -2430,6 +2681,11 @@ ${taskContext}
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
+        @keyframes scan {
+          0%, 100% { top: 0%; opacity: 0; }
+          10%, 90% { opacity: 1; }
+          50% { top: 100%; }
+        }
         .animate-gradient-x {
           background-size: 200% 200%;
           animation: gradient-x 3s ease infinite;
@@ -2571,6 +2827,55 @@ ${taskContext}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full relative z-0">
+        {/* 视觉巡检覆盖层 / Viewfinder */}
+        {isInspecting && (
+          <div className="absolute inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-500 overflow-hidden">
+            <div className="relative size-64 md:size-80 border-2 border-white/20 rounded-full flex items-center justify-center">
+              {/* 四个角的取景器标识 */}
+              <div className="absolute top-0 left-0 size-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl" />
+              <div className="absolute top-0 right-0 size-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl" />
+              <div className="absolute bottom-0 left-0 size-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl" />
+              <div className="absolute bottom-0 right-0 size-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl" />
+              
+              {/* 中心扫描线 */}
+              <div className="absolute inset-4 rounded-full overflow-hidden">
+                <div className="w-full h-1 bg-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.8)] absolute top-0 animate-[scan_3s_ease-in-out_infinite]" />
+              </div>
+
+              {/* 核心内容 */}
+              <div className="text-center space-y-4">
+                <div className="relative">
+                  <Camera className="size-16 text-white/90 mx-auto animate-pulse" />
+                  <div className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full animate-ping" />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-white font-bold text-lg tracking-widest uppercase">REC • CAM {inspectionCamera.toUpperCase()}</div>
+                  <div className="text-emerald-400 font-mono text-sm h-5">{inspectionStatus}</div>
+                </div>
+              </div>
+
+              {/* 环境装饰线 */}
+              <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_20s_linear_infinite]" />
+              <div className="absolute -inset-16 border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+            </div>
+            
+            <div className="mt-12 text-zinc-500 font-mono text-xs uppercase tracking-[0.3em] flex items-center gap-4">
+               <span>LATENCY: 48MS</span>
+               <span className="w-px h-3 bg-zinc-800" />
+               <span>ISO: 800</span>
+               <span className="w-px h-3 bg-zinc-800" />
+               <span>RESOLUTION: 1080P</span>
+            </div>
+            
+            <button 
+              onClick={() => setIsInspecting(false)}
+              className="mt-12 px-6 py-2 border border-white/20 text-white/60 hover:text-white hover:border-white/50 rounded-full text-xs transition-all tracking-widest uppercase"
+            >
+              取消巡检
+            </button>
+          </div>
+        )}
+
         {/* Top Bar - Floating & Minimal */}
         <div className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-20 pointer-events-none">
           <div className="pointer-events-auto flex items-center gap-2">
@@ -2942,7 +3247,9 @@ ${taskContext}
                   className="p-0 max-w-4xl mx-auto w-full custom-scrollbar"
                 >
                   <div className="flex flex-col pb-48 pt-10 space-y-8 px-4 md:px-0">
-                    {messages.map((msg, i) => (
+                    {messages.map((msg, i) => {
+                      if (msg.isSilent) return null;
+                      return (
                       <div key={i} className={cn(
                         "group w-full flex gap-5 transition-all duration-300",
                         msg.role === "user" ? "justify-end" : "justify-start"
@@ -2990,7 +3297,8 @@ ${taskContext}
                           )}
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
 
                     {/* Inline Agent Status Bubble */}
                     {(isLoading || agentStatus) && (

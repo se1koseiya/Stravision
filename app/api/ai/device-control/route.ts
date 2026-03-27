@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       
     } else if (action === 'control_camera') {
       // 摄像头云台控制（步进电机）
-      const { direction } = body
+      const { direction, pulses } = body
       
       if (direction === undefined || direction === null) {
         return NextResponse.json(
@@ -224,9 +224,13 @@ export async function POST(request: NextRequest) {
       }
       
       // 调用 MQTT Service 控制步进电机
-      const mqttPayload = {
-        type: 'stepper' as const,
+      const mqttPayload: { type: 'stepper', stepper_direction: number, stepper_pulses?: number } = {
+        type: 'stepper',
         stepper_direction: direction
+      }
+      
+      if (pulses !== undefined && typeof pulses === 'number') {
+        mqttPayload.stepper_pulses = pulses;
       }
       console.log('[AI Device Control] Calling MQTT Service with:', mqttPayload)
       

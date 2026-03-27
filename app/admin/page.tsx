@@ -26,6 +26,7 @@ import { ChangelogSender } from "@/components/admin/changelog-sender"
 import { MaintenanceSettings } from "@/components/admin/maintenance-settings"
 import { MCPMarketManager } from "@/components/admin/mcp-market-manager"
 import { FeatureAnnouncementAdmin } from "@/components/dashboard/feature-announcement-admin"
+import { CameraSettings } from "@/components/admin/camera-settings"
 
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -341,6 +342,8 @@ export default function AdminPage() {
               <RateLimitSettings />
               <MaintenanceSettings />
             </div>
+            
+            <CameraSettings />
 
             {/* Daily Briefing Reset */}
             <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
@@ -388,6 +391,7 @@ export default function AdminPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         user={selectedUser}
+        currentUserRole={currentUser?.role || 'user'}
         onSuccess={handleSuccess}
       />
     </div>

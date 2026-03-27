@@ -364,26 +364,31 @@ export class MQTTService {
         let targetPulses = delta
         let newPos = currentPos
         
+        // --- 物理限位与安全冗余保护 (卡壳预防逻辑) ---
+        // 我们在物理极限的基础上保留 400 脉冲 (约 2.5mm) 的安全间隙
+        const SOFT_MAX_PULSES = this.STEPPER_MAX_PULSES - 400
+        const SOFT_MIN_PULSES = 400
+
         if (direction === 1) { // Forward/Left
-          if (currentPos >= this.STEPPER_MAX_PULSES) {
-            this.log('WARN', `Stepper at max position (${currentPos}). Command ignored.`)
-            throw new Error('已经到达最大量程 (700mm)')
+          if (currentPos >= SOFT_MAX_PULSES) {
+            this.log('WARN', `Stepper at soft max position (${currentPos}). Command ignored to prevent jamming.`)
+            throw new Error(`已经到达左侧物理终点 (700mm 附近)。当前位置为 ${currentPos} 脉冲，严禁进一步左移。`)
           }
           // Clamp target move
-          if (currentPos + delta > this.STEPPER_MAX_PULSES) {
-            targetPulses = this.STEPPER_MAX_PULSES - currentPos
-            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid over-limit.`)
+          if (currentPos + delta > SOFT_MAX_PULSES) {
+            targetPulses = SOFT_MAX_PULSES - currentPos
+            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid jamming.`)
           }
           newPos = currentPos + targetPulses
         } else if (direction === 2) { // Reverse/Right
-          if (currentPos <= 0) {
-            this.log('WARN', `Stepper at min position (${currentPos}). Command ignored.`)
-            throw new Error('已经到达原点 (0mm)')
+          if (currentPos <= SOFT_MIN_PULSES) {
+            this.log('WARN', `Stepper at soft min position (${currentPos}). Command ignored to prevent jamming.`)
+            throw new Error(`已经到达右侧原点 (0mm 附近)。当前位置为 ${currentPos} 脉冲，严禁进一步右移。`)
           }
           // Clamp target move
-          if (currentPos - delta < 0) {
-            targetPulses = currentPos
-            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid over-limit.`)
+          if (currentPos - delta < SOFT_MIN_PULSES) {
+            targetPulses = currentPos - SOFT_MIN_PULSES
+            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid jamming.`)
           }
           newPos = currentPos - targetPulses
         }

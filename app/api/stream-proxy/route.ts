@@ -2,12 +2,6 @@ import { NextResponse } from "next/server"
 
 export const runtime = "nodejs"
 
-function isAllowedHost(host: string) {
-  const h = host.toLowerCase()
-  if (h === "localhost" || h === "127.0.0.1") return false
-  return h.endsWith(".xstrive.com") || h.endsWith(".cloud.xstrive.com") || h === "xstrive.com"
-}
-
 function rewriteM3u8(content: string, baseUrl: string) {
   const base = new URL(baseUrl)
   const lines = content.split(/\r?\n/)
@@ -36,11 +30,58 @@ function rewriteM3u8(content: string, baseUrl: string) {
   return rewritten.join("\n")
 }
 
+function extractRealStreamUrl(url: string): string {
+  if (!/player\.xstrive\.com\/video\/live/i.test(url)) return url
+  try {
+    const safeDecode = (value: string) => {
+      try { return decodeURIComponent(value) } catch { return value }
+    }
+    const qIndex = url.indexOf("?")
+    if (qIndex < 0) return url
+    const query = url.slice(qIndex + 1)
+    const lower = query.toLowerCase()
+    let start = lower.indexOf("videourl=")
+    
+    // 修正索引逻辑：start 是相对于 query 的索引
+    while (start !== -1 && start > 0 && query[start - 1] !== "&") {
+      start = lower.indexOf("videourl=", start + 1)
+    }
+    
+    if (start === -1) return url
+    const valueStart = start + "videourl=".length
+    const after = query.slice(valueStart)
+    const parts = after.split("&")
+    
+    // xstrive 播放器特定的停顿参数
+    const stopKeys = new Set(["islive", "ismute", "aspect", "lang", "autoplay", "from", "player", "t", "ts"])
+    const videoParts: string[] = []
+    for (let i = 0; i < parts.length; i++) {
+        const p = parts[i]
+        const eq = p.indexOf("=")
+        const key = eq >= 0 ? p.slice(0, eq).toLowerCase() : ""
+        if (i > 0 && key && stopKeys.has(key)) break
+        videoParts.push(p)
+    }
+    const realStreamUrl = safeDecode(videoParts.join("&"))
+    console.log(`[Stream Proxy] Unwrapped URL: ${realStreamUrl}`)
+    return realStreamUrl
+  } catch { return url }
+}
+
+function isAllowedHost(host: string) {
+  const h = host.toLowerCase()
+  if (h === "localhost" || h === "127.0.0.1") return false
+  // 允许所有非本地 host, 因为视频流源可能非常多样
+  return true
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const raw = searchParams.get("url") ?? ""
-  if (!raw) return NextResponse.json({ error: "Missing url" }, { status: 400 })
+  const rawUrl = searchParams.get("url") ?? ""
+  if (!rawUrl) return NextResponse.json({ error: "Missing url" }, { status: 400 })
 
+  const raw = extractRealStreamUrl(rawUrl)
+  
   let target: URL
   try {
     target = new URL(raw)

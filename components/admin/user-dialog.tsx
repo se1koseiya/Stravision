@@ -20,14 +20,15 @@ interface UserDialogProps {
 }
 
 const CONTROLS = [
-  { id: 'relay5', label: 'Relay 5' },
-  { id: 'relay6', label: 'Relay 6' },
-  { id: 'relay7', label: 'Relay 7' },
-  { id: 'relay8', label: 'Relay 8' },
-  { id: 'led1', label: 'LED 1' },
-  { id: 'led2', label: 'LED 2' },
-  { id: 'led3', label: 'LED 3' },
-  { id: 'led4', label: 'LED 4' },
+  { id: 'relay5', label: 'Relay 5 (水泵)' },
+  { id: 'relay6', label: 'Relay 6 (风扇)' },
+  { id: 'relay7', label: 'Relay 7 (补光灯)' },
+  { id: 'relay8', label: 'Relay 8 (白灯)' },
+  { id: 'led1', label: 'LED 1 (红)' },
+  { id: 'led2', label: 'LED 2 (绿)' },
+  { id: 'led3', label: 'LED 3 (蓝)' },
+  { id: 'led4', label: 'LED 4 (白/亮度)' },
+  { id: 'stepper', label: '丝杆滑台 (摄像头云台)' },
 ]
 
 export function UserDialog({ open, onOpenChange, user, currentUserRole, onSuccess }: UserDialogProps) {
