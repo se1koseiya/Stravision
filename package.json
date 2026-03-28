@@ -11,8 +11,7 @@
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:email": "tsx scripts/test-email-service.ts",
-    "check:email": "tsx scripts/check-email-config.ts",
-    "preinstall": "node scripts/verify-install.js"
+    "check:email": "tsx scripts/check-email-config.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.76",
