@@ -63,6 +63,7 @@ export function SpectralCard({ data }: SpectralCardProps) {
     })
 
     return {
+      animation: false,
       grid: {
         top: 5,
         right: 0,
@@ -163,6 +164,8 @@ export function SpectralCard({ data }: SpectralCardProps) {
             option={getOption()} 
             style={{ height: '100%', width: '100%' }} 
             opts={{ renderer: 'svg' }}
+            notMerge={true}
+            lazyUpdate={false}
           />
         </div>
       </CardContent>

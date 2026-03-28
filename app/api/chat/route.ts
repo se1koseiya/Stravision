@@ -233,7 +233,7 @@ export async function POST(req: Request) {
 【MCP工具调用指令】
 你是农业平台智能助手。请积极使用系统提供的 MCP 工具。
 **重要规则：**
-1. **禁止搜索设备指令**：严禁搜索“打开水泵”、“如何开关灯”等设备操作指令。设备控制是你自带的能力。
+1. **禁止搜索设备指令**：严禁搜索“打开水泵”、“如何开关灯”、“截取摄像头”、“查看监控”等设备操作指令。设备控制、视觉巡检和获取截图是你自带的能力，请直接输出相应的 JSON 控制指令。
 2. **搜索农业知识**：当用户要求“调控环境”时，你应该搜索“作物生长标准”、“最佳温湿度范围”、“病害防治方法”等知识。
 3. **上下文感知搜索**：搜索关键词必须包含当前的【月份】、【季节】或【作物生长阶段】。例如搜索 \`"${currentMonth}月 草莓大棚 通风 策略"\` 而不是简单的 \`"大棚通风"\`。
 4. **基于结果调控**：获取到搜索结果（如“白天适宜25度”）后，再对比当前温度，如果当前是30度，则生成“开启风扇”的建议。`
@@ -325,19 +325,19 @@ export async function POST(req: Request) {
     const finalSystemPrompt = enhancedSystemPrompt + contextInfo + forcedToolPrompt
 
     const deviceControlInstruction =
-      "## 设备控制能力与 Agent 交互规范\n" +
-      "你不仅仅是一个聊天机器人，你是一个能够感知环境并控制设备的智能体 (Agent)。\n" +
-      "为了确保操作的安全性和有效性，请遵循以下交互流程：\n\n" +
-      "### 1. 分步执行原则 (Step-by-Step Execution)\n" +
-      "- **不要一次性输出所有步骤的命令**。如果一个任务需要多个步骤（例如：先降温，再补水），请一次只建议一个步骤。\n" +
-      "- **等待反馈**：在你输出控制命令后，用户端会显示执行按钮。用户点击执行后，系统会自动发送“指令已执行”的消息给你。收到该消息后，你再根据最新的传感器数据决定下一步操作。\n" +
-      "- **闭环控制**：每次执行完命令后，必须检查传感器数据是否达到了预期效果。如果没有，请调整策略并再次尝试。\n\n" +
-      "### 2. 决策流程\n" +
-      "   a. **感知 (Perceive)**：分析当前传感器数据（temperature, humidity, etc.）和天气信息。\n" +
-      "   b. **思考 (Think)**：使用 <REASONING> 标签输出你的思考过程。判断当前状态与目标状态的差距。\n" +
-      "   c. **行动 (Act)**：如果需要调整，生成**单个步骤**的控制命令 JSON。\n" +
-      "   d. **交互 (Interact)**：向用户解释你的计划，并请求确认（通过输出 JSON 触发前端的执行按钮）。\n\n" +
-      "### 3. 控制命令格式\n" +
+      "## 设备控制能力与 Agent 交互规范 (6-Step SOP)\n" +
+      "你是一个能够感知环境并控制设备的智能体 (Agent)。为了确保操作的安全性和有效性，请严格遵循以下总体流程：\n\n" +
+      "### 核心执行工作流\n" +
+      "1. **任务规划 (Plan)**：接受用户的需求，优先选用合适的 MCP 服务生成并获取背景知识，然后生成明确的任务列表（TASK_LIST）。\n" +
+      "2. **顺序执行 (Execute)**：根据任务列表，一条一条地顺序执行。\n" +
+      "3. **操作前检查 (Pre-check)**：执行具体设备操作前，必须先分析当前的设备状态、环境数据或物理极限（如滑台剩余行程）。\n" +
+      "4. **生成指令 (Command)**：基于分析结果，选择合适的工具并输出单个步骤的 JSON 操作命令。\n" +
+      "5. **操作后验证 (Verify)**：系统执行完毕后会返回反馈，你必须再次获取和分析设备状态，确保设备状态已改变或通过验证。\n" +
+      "6. **推进任务 (Next)**：确保当前任务状态达标后（更新为 completed），思考下一个任务是否有必要操作。如果有必要且在 Agent 托管模式下，请直接继续执行步骤 3-5；如果全部任务完成则进行最终总结。\n\n" +
+      "### 安全与防死循环规则\n" +
+      "- **检查物理极限**：在输出 `control_camera` 或 `move_camera_and_look` 前，必须检查 `remaining_left_travel` 和 `remaining_right_travel`。空间不足严禁移动。\n" +
+      "- **严禁死循环**：如果发现指令无效（如环境数据无变化），不要重复发送相同指令，应标记任务异常并继续后续任务或停止。\n\n" +
+      "### 控制命令格式\n" +
       "仅当确信需要操作时，输出如下 JSON（用代码块包裹）：\n" +
       "```json\n" +
       "{\n" +
@@ -485,12 +485,42 @@ export async function POST(req: Request) {
         targetUrl = `${targetUrl}/chat/completions`
       }
 
+      // 过滤掉历史记录中非 user 角色的图片内容，因为目前多数模型不支持在 assistant 角色中传入 image_url
+      // 如果 assistant 发送了图片，将其简化为纯文本描述
+      const sanitizedMessages = messages.map((m: any) => {
+        // 如果是系统消息（我们刚才为了回传分析发的一条 role="user" 的假装系统反馈，或者是真正的 user 发的图）
+        // 确保如果是刚刚带图片的系统反馈，不要被过滤掉
+        if (m.role === 'assistant' && Array.isArray(m.content)) {
+           const textContents = m.content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
+           return { ...m, content: textContents || '[图片]' }
+        }
+        return m
+      })
+
+      // 修正：确保 user 角色的多模态数组能被正确解析
+      // OpenAI 兼容模式下，DashScope 支持 user 发送 image_url。
+      const finalMessages = sanitizedMessages.map((m: any) => {
+          if (m.role === 'user' && Array.isArray(m.content)) {
+              // 确保格式为标准的 OpenAI 多模态格式
+              return {
+                  ...m,
+                  content: m.content.map((c: any) => {
+                      if (c.type === 'image_url') {
+                          return { type: 'image_url', image_url: { url: c.image_url.url } }
+                      }
+                      return c
+                  })
+              }
+          }
+          return m
+      })
+
       fullMessages = [
         {
           role: "system",
           content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
         },
-        ...messages,
+        ...finalMessages,
       ]
 
       const isAudioModel = effectiveModel?.includes('omni') || effectiveModel?.includes('audio');
@@ -539,7 +569,7 @@ export async function POST(req: Request) {
         },
         parameters: {
           result_format: "message",
-          // incremental_output: true, // 移除 incremental_output 以获取全量文本，确保 acc 逻辑正确
+          incremental_output: true, // 必须开启增量输出才能有打字机效果
           ...(enableSearch ? { enable_search: true } : {}),
         },
       }

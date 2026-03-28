@@ -1059,25 +1059,47 @@ function CameraController({ targetPosition, targetLookAt, enabled, animationKey 
   return null
 }
 
-function Model() {
+function Model({ isUglyMode }: { isUglyMode?: boolean }) {
   const { scene } = useGLTF("/3d_model/scene.gltf")
 
   useMemo(() => {
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh
-        mesh.castShadow = true
-        mesh.receiveShadow = true
-        if (mesh.material instanceof THREE.MeshStandardMaterial) {
-          // 增强材质的物理属性
-          mesh.material.envMapIntensity = 0.6
-          mesh.material.roughness = Math.max(0.3, mesh.material.roughness) // 增加粗糙度，减少过亮反射
-          mesh.material.metalness = Math.min(0.5, mesh.material.metalness) // 限制金属度
-          mesh.material.needsUpdate = true
+        if (isUglyMode) {
+          // Low poly ugly mode
+          mesh.castShadow = false
+          mesh.receiveShadow = false
+          if (mesh.material instanceof THREE.MeshStandardMaterial) {
+            // Flatten material
+            mesh.material.envMapIntensity = 0
+            mesh.material.roughness = 1
+            mesh.material.metalness = 0
+            mesh.material.flatShading = true
+            // Reduce texture quality if possible
+            if (mesh.material.map) {
+               mesh.material.map.generateMipmaps = false
+               mesh.material.map.minFilter = THREE.NearestFilter
+               mesh.material.map.magFilter = THREE.NearestFilter
+            }
+            mesh.material.needsUpdate = true
+          }
+        } else {
+          // High quality mode
+          mesh.castShadow = true
+          mesh.receiveShadow = true
+          if (mesh.material instanceof THREE.MeshStandardMaterial) {
+            // 增强材质的物理属性
+            mesh.material.envMapIntensity = 0.6
+            mesh.material.roughness = Math.max(0.3, mesh.material.roughness) // 增加粗糙度，减少过亮反射
+            mesh.material.metalness = Math.min(0.5, mesh.material.metalness) // 限制金属度
+            mesh.material.flatShading = false
+            mesh.material.needsUpdate = true
+          }
         }
       }
     })
-  }, [scene])
+  }, [scene, isUglyMode])
 
   return <primitive object={scene} scale={0.5} position={[0, -1.5, 0]} />
 }
@@ -1121,13 +1143,14 @@ function RenderController() {
   return null
 }
 
-function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all", onViewCamera }: { 
+function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all", onViewCamera, isUglyMode }: { 
   isDark: boolean
   deviceData: GreenhouseModelProps["deviceData"]
   onToggleRelay: GreenhouseModelProps["onToggleRelay"]
   onUpdateLEDs: GreenhouseModelProps["onUpdateLEDs"]
   filter?: GreenhouseModelProps["filter"]
   onViewCamera?: GreenhouseModelProps["onViewCamera"]
+  isUglyMode?: boolean
 }) {
   const [selectedMarker, setSelectedMarker] = useState<string | null>(null)
 
@@ -1269,14 +1292,14 @@ function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all"
       <GrowLights lightState={lightState} deviceData={deviceData} />
 
       <Suspense fallback={<LoadingFallback />}>
-        <Model />
+        <Model isUglyMode={isUglyMode} />
         <Ground isDark={isDark} />
 
-        {filteredMarkers.map((marker) => (
+        {!isUglyMode && filteredMarkers.map((marker) => (
           <Marker key={marker.id} marker={marker} isSelected={selectedMarker === marker.id} onClick={() => handleMarkerClick(marker)} isDark={isDark} />
         ))}
 
-        {selectedMarker && (
+        {!isUglyMode && selectedMarker && (
           <DeviceCard
             marker={DEVICE_MARKERS.find(m => m.id === selectedMarker)!}
             onClose={handleCloseCard}
@@ -1307,7 +1330,7 @@ function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all"
   )
 }
 
-export function GreenhouseModel({ className, theme = "light", deviceData, onToggleRelay, onUpdateLEDs, filter = "all", onViewCamera }: GreenhouseModelProps) {
+export function GreenhouseModel({ className, theme = "light", deviceData, onToggleRelay, onUpdateLEDs, filter = "all", onViewCamera, isUglyMode = false }: GreenhouseModelProps & { isUglyMode?: boolean }) {
   const isDark = theme === "dark"
   const [isVisible, setIsVisible] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1332,6 +1355,18 @@ export function GreenhouseModel({ className, theme = "light", deviceData, onTogg
     return () => observer.disconnect()
   }, [])
 
+  // Ugly mode completely disables advanced WebGL features
+  const glProps = isUglyMode 
+    ? { alpha: true, antialias: false, powerPreference: "low-power" as const, precision: "lowp" as const }
+    : { 
+        alpha: true, 
+        antialias: true,
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: isDark ? 1.1 : 1.3,
+        powerPreference: "high-performance" as const,
+        precision: "mediump" as const
+      }
+
   return (
     <div ref={containerRef} className={className}>
       <ModelErrorBoundary>
@@ -1340,19 +1375,12 @@ export function GreenhouseModel({ className, theme = "light", deviceData, onTogg
             camera={{ position: [6, 4, 6], fov: 45 }}
             style={{ background: "transparent" }}
             frameloop={isVisible ? "demand" : "never"}
-            gl={{ 
-              alpha: true, 
-              antialias: true,
-              toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: isDark ? 1.1 : 1.3,
-              powerPreference: "high-performance",
-              precision: "mediump"
-            }}
-            shadows="soft"
-            dpr={[1, 1.5]}
+            gl={glProps}
+            shadows={isUglyMode ? false : "soft"}
+            dpr={isUglyMode ? 0.5 : [1, 1.5]} // Low res for ugly mode
             performance={{ min: 0.5 }}
           >
-            <Scene isDark={isDark} deviceData={deviceData} onToggleRelay={onToggleRelay} onUpdateLEDs={onUpdateLEDs} filter={filter} onViewCamera={onViewCamera} />
+            <Scene isDark={isDark} deviceData={deviceData} onToggleRelay={onToggleRelay} onUpdateLEDs={onUpdateLEDs} filter={filter} onViewCamera={onViewCamera} isUglyMode={isUglyMode} />
           </Canvas>
         </Suspense>
       </ModelErrorBoundary>

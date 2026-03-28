@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -97,6 +97,8 @@ import { WebPreview, WebPreviewNavigation, WebPreviewNavigationButton, WebPrevie
 
 import { DeviceControlCard } from "@/components/ai/device-control-card"
 
+import { LiveStreamPlayer } from "@/components/live-stream-player"
+
 interface Citation {
   number: string
   title: string
@@ -145,11 +147,22 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
   const [isVisible, setIsVisible] = useState(true)
   const [elapsedTime, setElapsedTime] = useState(0)
 
+  const tasksData = (() => {
+    try {
+      const match = content.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
+      if (!match) return null
+      return JSON.parse(match[1])
+    } catch { return null }
+  })()
+
+  const tasks = tasksData?.tasks || []
+  const allCompleted = tasks.length > 0 && tasks.every((t: any) => t.status === 'completed');
+
   useEffect(() => {
-    if (!isVisible || isPaused) return
+    if (!isVisible || isPaused || allCompleted) return
     const timer = setInterval(() => setElapsedTime(p => p + 1), 1000)
     return () => clearInterval(timer)
-  }, [isVisible, isPaused])
+  }, [isVisible, isPaused, allCompleted])
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0')
@@ -160,34 +173,35 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
   if (!isVisible) return null
 
   try {
-    // 提取 <TASK_LIST> 标签中的内容
-    const match = content.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
-    if (!match) return null
-    
-    const data = JSON.parse(match[1])
-    if (!data || !data.tasks) return null
-
-    const tasks = data.tasks
     const activeIndex = tasks.findIndex((t: any) => t.status === 'in_progress')
     const currentIndex = activeIndex !== -1 ? activeIndex : tasks.length - 1
     const activeTask = tasks[currentIndex] || tasks[0]
 
     // 模拟子任务/工具调用列表，如果数据里没有的话
-    const getMockSubActions = (title: string) => [
+    const getMockSubActions = (title: string, taskStatus: string) => [
       { icon: <Globe size={14} />, text: `正在通过 MCP 工具搜索 "${title}" 相关的最佳实践...`, status: 'completed' },
       { icon: <Activity size={14} />, text: `正在调用大棚传感器获取实时环境数据...`, status: 'completed' },
-      { icon: <Zap size={14} />, text: `正在生成控制指令流...`, status: 'in_progress' }
+      { icon: <Zap size={14} />, text: `正在生成控制指令流...`, status: (taskStatus === 'completed' || allCompleted) ? 'completed' : 'in_progress' }
     ]
-    const subActions = activeTask.subActions || getMockSubActions(activeTask.title || "任务")
+    
+    // 如果任务已完成，强制所有子任务也标记为完成
+    const subActions = (activeTask?.subActions || getMockSubActions(activeTask?.title || "任务", activeTask?.status)).map((sa: any) => 
+      (allCompleted || activeTask?.status === 'completed') ? { ...sa, status: 'completed' } : sa
+    );
 
     return (
       <div className="my-8 w-full max-w-2xl bg-white/70 backdrop-blur-xl rounded-[28px] border border-zinc-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans dark:bg-[#1C1C1E]/80 dark:border-white/5">
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-100/80 dark:border-white/5 bg-white/30 dark:bg-black/20">
           <div className="flex items-center gap-3">
-             <div className="size-2 rounded-full bg-blue-500 animate-pulse" />
+             <div className={cn(
+               "size-2 rounded-full",
+               allCompleted ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-blue-500 animate-pulse"
+             )} />
              <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
-               <span>执行用时: {formatTime(elapsedTime)}</span>
+               <span>
+                 {allCompleted ? "任务已全部达成" : "执行中"} | 执行用时: {formatTime(elapsedTime)}
+               </span>
              </div>
           </div>
           
@@ -206,7 +220,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
           {/* Left: Professional Stepper */}
           <div className="w-full sm:w-[200px] md:w-[240px] border-r border-zinc-100 dark:border-white/5 p-6 space-y-7 bg-zinc-50/30 dark:bg-black/10">
             {tasks.map((task: any, idx: number) => {
-              const isActive = idx === currentIndex
+              const isActive = idx === currentIndex && !allCompleted
               const isPast = idx < currentIndex || task.status === 'completed'
               const isFailed = task.status === 'failed'
               
@@ -237,9 +251,14 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                     )}>
                       {task.title}
                     </div>
-                    {isActive && (
+                    {isActive && !allCompleted && (
                         <div className="text-[10px] text-blue-500 dark:text-blue-400 font-medium mt-1 truncate animate-in fade-in slide-in-from-left-1 duration-500">
                             正在处理任务...
+                        </div>
+                    )}
+                    {allCompleted && idx === tasks.length - 1 && (
+                        <div className="text-[10px] text-emerald-500 font-medium mt-1 truncate animate-in fade-in slide-in-from-left-1 duration-500">
+                            任务已圆满完成
                         </div>
                     )}
                   </div>
@@ -254,8 +273,16 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                 <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider">
                   {activeTask?.title || "核心进程"}
                 </h3>
-                <div className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">步骤 {currentIndex + 1}/{tasks.length}</span>
+                <div className={cn(
+                  "px-2.5 py-1 rounded-lg",
+                  allCompleted ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-blue-50 dark:bg-blue-900/20"
+                )}>
+                    <span className={cn(
+                      "text-[10px] font-bold",
+                      allCompleted ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
+                    )}>
+                      {allCompleted ? "完成 100%" : `步骤 ${currentIndex + 1}/${tasks.length}`}
+                    </span>
                 </div>
             </div>
             
@@ -309,28 +336,35 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
             <div className="mt-10 flex items-center justify-between pt-6 border-t border-zinc-100/80 dark:border-white/5">
               <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 flex items-center gap-2">
                   <Activity size={12} />
-                  <span>实时自动化执行流已锁定</span>
+                  <span>{allCompleted ? "所有自动化任务已圆满完成" : "实时自动化执行流已锁定"}</span>
               </div>
               
-              <div className="flex items-center gap-3">
-                {isPaused ? (
-                   <button 
-                     onClick={() => onTogglePause?.(false)}
-                     className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
-                   >
-                     <Play size={14} className="fill-current" />
-                     继续流水线
-                   </button>
-                ) : (
-                   <button 
-                     onClick={() => onTogglePause?.(true)}
-                     className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-zinc-700 bg-white border border-zinc-200/50 hover:bg-zinc-50 rounded-2xl transition-all shadow-sm hover:shadow-md active:scale-95 dark:text-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700"
-                   >
-                     <Pause size={14} className="fill-current" />
-                     挂起任务
-                   </button>
-                )}
-              </div>
+              {!allCompleted ? (
+                <div className="flex items-center gap-3">
+                  {isPaused ? (
+                    <button 
+                      onClick={() => onTogglePause?.(false)}
+                      className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                    >
+                      <Play size={14} className="fill-current" />
+                      继续流水线
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => onTogglePause?.(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-zinc-700 bg-white border border-zinc-200/50 hover:bg-zinc-50 rounded-2xl transition-all shadow-sm hover:shadow-md active:scale-95 dark:text-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700"
+                    >
+                      <Pause size={14} className="fill-current" />
+                      挂起任务
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/50 dark:border-emerald-500/20 animate-in zoom-in duration-500">
+                   <CheckCircle2 size={16} className="text-emerald-500" />
+                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">流水线执行完毕</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -343,7 +377,16 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
 }
 
 export default function AIAssistantPage() {
+  return (
+    <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-emerald-400">Loading AI Assistant...</div>}>
+      <AIAssistantContent />
+    </React.Suspense>
+  )
+}
+
+function AIAssistantContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<UserPublic | null>(null)
   const { isElderFriendlyMode } = useElderFriendly()
   const [loadingUser, setLoadingUser] = useState(true)
@@ -372,6 +415,7 @@ export default function AIAssistantPage() {
   const [isInspecting, setIsInspecting] = useState(false);
   const [inspectionCamera, setInspectionCamera] = useState<'a' | 'b'>('a');
   const [inspectionStatus, setInspectionStatus] = useState<string>('');
+  const [inspectionCameraUrl, setInspectionCameraUrl] = useState<string | null>(null);
 
   // 1. 生产者：后台无缝预加载声音片段
   const fetchNextTts = async () => {
@@ -939,6 +983,7 @@ export default function AIAssistantPage() {
     
     setIsExecutingControl(true) // 开启发光动效
     showNotice("正在执行指令...", `共发现 ${commands.length} 个操作`, "loading")
+    let hasSentCustomFeedback = false
 
     for (const cmd of commands) {
       // 检查是否已停止
@@ -1097,45 +1142,92 @@ export default function AIAssistantPage() {
           setInspectionStatus(`正在捕捉 ${cameraId === 'b' ? 'B' : 'A'} 摄像头实时画面...`);
           showNotice("📷 视觉巡检", "正在加载摄像头画面，请稍候...", "loading")
           
+          // 获取与 Monitor 页面一致的可播放 URL
+          const getPlayableUrl = (rawUrl: string) => {
+            const url = rawUrl.trim()
+            if (!url) return ""
+
+            // 如果本来就是代理地址，直接返回
+            if (url.includes('/api/stream-proxy')) return url;
+
+            if (/player\.xstrive\.com\/video\/live/i.test(url)) {
+              const safeDecode = (value: string) => {
+                try {
+                  return decodeURIComponent(value)
+                } catch {
+                  return value
+                }
+              }
+              const extractVideoUrlLoosely = (playerUrl: string) => {
+                const qIndex = playerUrl.indexOf("?")
+                if (qIndex < 0) return ""
+                const query = playerUrl.slice(qIndex + 1)
+                const lower = query.toLowerCase()
+                let start = lower.indexOf("videourl=")
+                while (start !== -1 && start > 0 && query[start - 1] !== "&") {
+                  start = lower.indexOf("videourl=", start + 1)
+                }
+                if (start === -1) return ""
+                const valueStart = start + "videourl=".length
+                const after = query.slice(valueStart)
+                const parts = after.split("&")
+                const stopKeys = new Set(["islive", "ismute", "aspect", "lang", "autoplay", "from", "player", "t", "ts"])
+                const videoParts: string[] = []
+                for (let i = 0; i < parts.length; i++) {
+                  const p = parts[i]
+                  const eq = p.indexOf("=")
+                  const key = eq >= 0 ? p.slice(0, eq).toLowerCase() : ""
+                  if (i > 0 && key && stopKeys.has(key)) break
+                  videoParts.push(p)
+                }
+                return videoParts.join("&")
+              }
+              try {
+                const u = new URL(url)
+                const videoUrl = u.searchParams.get("videoUrl") ?? ""
+                const loose = extractVideoUrlLoosely(url)
+                const picked = loose.length > videoUrl.length ? loose : videoUrl
+                if (!picked) return ""
+                
+                const decoded = safeDecode(picked)
+                // Wrap in proxy for cross-origin issues
+                return `/api/stream-proxy?url=${encodeURIComponent(decoded)}`
+              } catch {
+                const loose = extractVideoUrlLoosely(url)
+                if (!loose) return ""
+                const decoded = safeDecode(loose)
+                return `/api/stream-proxy?url=${encodeURIComponent(decoded)}`
+              }
+            }
+
+            try {
+              const u = new URL(url)
+              if (u.protocol === "http:" || u.protocol === "https:") {
+                return `/api/stream-proxy?url=${encodeURIComponent(url)}`
+              }
+            } catch {}
+
+            return url
+          }
+
+          const playableUrl = getPlayableUrl(cameraUrl)
+          console.log("[AI Vision] Playable URL resolved to:", playableUrl);
+          setInspectionCameraUrl(playableUrl)
+
           let capturedImageBase64 = ''
           try {
-            // 创建隐藏的 video 元素来加载流
-            const proxyUrl = `/api/stream-proxy?url=${encodeURIComponent(cameraUrl)}`
-            
             capturedImageBase64 = await new Promise<string>((resolve, reject) => {
-              const video = document.createElement('video')
-              video.crossOrigin = 'anonymous'
-              video.muted = true
-              video.playsInline = true
-              video.autoplay = true
-              video.style.position = 'fixed'
-              video.style.top = '-9999px'
-              video.style.left = '-9999px'
-              video.style.width = '640px'
-              video.style.height = '480px'
-              document.body.appendChild(video)
-
-              const cleanup = () => {
-                try {
-                  video.pause()
-                  video.src = ''
-                  video.load()
-                  document.body.removeChild(video)
-                } catch {}
-              }
-
-              // 超时 15 秒
               const timeout = setTimeout(() => {
-                cleanup()
-                reject(new Error('摄像头画面加载超时 (15s)'))
-              }, 15000)
+                reject(new Error('摄像头画面加载超时 (20s)，可能原因：网络延迟、摄像头正在初始化、或画面尚未加载完成'))
+              }, 20000)
 
               const checkFrame = setInterval(() => {
-                if (video.readyState >= 3 && video.videoWidth > 0) {
-                  // 画面已就绪且有尺寸，再给 2 秒稳定时间
+                const video = document.getElementById('hidden-ai-camera') as HTMLVideoElement | null
+                if (video && video.readyState >= 3 && video.videoWidth > 0) {
                   clearInterval(checkFrame)
                   setInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
                   
+                  // Wait a bit longer to ensure video is clearly rendering
                   setTimeout(() => {
                     try {
                       const canvas = document.createElement('canvas')
@@ -1146,24 +1238,17 @@ export default function AIAssistantPage() {
                         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
                         clearTimeout(timeout)
-                        cleanup()
                         resolve(dataUrl)
                       } else {
                         throw new Error('Canvas context 创建失败')
                       }
                     } catch (err: any) {
                       clearTimeout(timeout)
-                      cleanup()
                       reject(err)
                     }
-                  }, 2000)
+                  }, 6000) // 增加到 6 秒：给流媒体解码和关键帧渲染留足时间，避免截出黑屏
                 }
               }, 500)
-
-              video.src = proxyUrl
-              video.play().catch(() => {
-                // 自动播放可能被阻止，通常不影响 canvas 截图
-              })
             })
           } catch (err: any) {
             console.error('Camera capture failed:', err)
@@ -1171,29 +1256,253 @@ export default function AIAssistantPage() {
             showNotice("❌ 截图失败", err?.message || '未知错误', "error")
             // 告知 AI 截图失败
             handleSend(`【系统反馈】视觉巡检截图失败：${err?.message || '未知错误'}。摄像头画面可能尚未加载完成或网络问题。请告知用户截图失败，并建议稍后重试或使用传感器数据。严禁编造画面内容。`, [], true, true)
+            hasSentCustomFeedback = true
             break
+          } finally {
+            setInspectionCameraUrl(null)
           }
 
           if (!capturedImageBase64) {
             setIsInspecting(false)
             showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
             handleSend('【系统反馈】视觉巡检截图为空，摄像头可能未正常工作。严禁编造画面内容。', [], true, true)
+            hasSentCustomFeedback = true
             break
           }
 
           // Step 4: 发送截图给 AI (VLM 多模态消息)
           showNotice("🧠 视觉巡检", "正在让 AI 分析画面...", "loading")
           
+          let taskContext = "";
+          if (originalContent && autoExecuteCommands) {
+               const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
+               if (match) {
+                   taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。这是任务驱动式巡检的一部分，请继续生成下一步的指令。`;
+               }
+          }
+
           const visionMessage = [
             { type: "image_url", image_url: { url: capturedImageBase64 } },
-            { type: "text", text: `这是从摄像头 ${cameraId === 'b' ? 'B' : 'A'} 捕获的实时画面。请基于该图片回答问题：${query}` }
+            { type: "text", text: `【系统反馈】这是从摄像头 ${cameraId === 'b' ? 'B' : 'A'} 捕获的实时画面。\n请基于该图片回答问题：${query}${taskContext}\n\n**重要指令**：\n1. 请分析上述画面，并向用户提供最终的总结报告。\n2. **验证与推进**：请评估当前任务是否达成，若达成请将其设为 completed。如果还有下一个任务，请继续思考并输出下一个操作的 JSON 指令；如果所有任务已完成，请停止操作，严禁再次输出任何 JSON 控制指令。` }
           ]
 
-          // 直接调用 handleSend 发送多模态消息 (bypass loading guard via isSilent=true)
-          await handleSend(visionMessage as any, [], true, true)
+          // 如果当前批次中包含视觉巡检，将其标记为 hasSentCustomFeedback = true
+          // 这将阻止 executeCommands 末尾再次发送“指令已执行完毕”的闭环反馈
+          hasSentCustomFeedback = true
+          
           setInspectionStatus("完成巡检分析。");
           setTimeout(() => setIsInspecting(false), 2000);
           showNotice("✅ 视觉巡检", "画面已发送给 AI 分析", "success")
+
+          // 直接调用 handleSend 发送多模态消息 (bypass loading guard via isSilent=true)
+          // 注意：这会触发一次新的 AI 推理循环，必须异步调用不阻塞主线程
+          // isFeedback=true 确保允许穿透 loading 锁
+          // isSilent=true 确保这条包含截图的丑陋 Prompt 消息不会显示在用户的聊天气泡中，仅作为 AI 视角的内部输入
+          setTimeout(() => {
+            handleSend(visionMessage as any, [], true, true)
+          }, 100)
+          
+          // 重要：完成视觉巡检后立即跳出当前指令执行循环，避免后续代码继续触发全局反馈循环
+          break;
+        } else if (cmd.action === "take_camera_snapshot") {
+          while (isTaskPausedRef.current) {
+            if (isStoppedRef.current) break
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          if (isStoppedRef.current) break
+
+          setExecutingDeviceName("获取截图")
+          setTimeout(() => setDevicePillExpanded(true), 150)
+          
+          const cameraId = (cmd.camera || 'a') as 'a' | 'b'
+
+          setIsInspecting(true)
+          setInspectionCamera(cameraId)
+          setInspectionStatus("正在获取摄像头实时画面...")
+          showNotice("📷 获取截图", "正在连接摄像头...", "loading")
+
+          let cameraUrl = ''
+          try {
+            const camRes = await fetch('/api/ai/camera-capture')
+            if (camRes.ok) {
+              const camData = await camRes.json()
+              const cam = cameraId === 'b' ? camData.cameras?.b : camData.cameras?.a
+              if (cam?.available && cam?.url) {
+                cameraUrl = cam.url
+              }
+            }
+          } catch (e) {
+            console.error('Failed to get camera URL:', e)
+          }
+
+          if (!cameraUrl) {
+            setIsInspecting(false);
+            showNotice("❌ 获取截图失败", "摄像头未配置或不可用", "error")
+            handleSend(`【系统反馈】截图失败：摄像头${cameraId === 'b' ? 'B' : 'A'}未配置或不可用。`, [], true, true)
+            break
+          }
+
+          const getPlayableUrl = (rawUrl: string) => {
+            const url = rawUrl.trim()
+            if (!url) return ""
+            if (url.includes('/api/stream-proxy')) return url;
+            if (/player\.xstrive\.com\/video\/live/i.test(url)) {
+              const safeDecode = (value: string) => { try { return decodeURIComponent(value) } catch { return value } }
+              const extractVideoUrlLoosely = (playerUrl: string) => {
+                const qIndex = playerUrl.indexOf("?")
+                if (qIndex < 0) return ""
+                const query = playerUrl.slice(qIndex + 1)
+                const lower = query.toLowerCase()
+                let start = lower.indexOf("videourl=")
+                while (start !== -1 && start > 0 && query[start - 1] !== "&") { start = lower.indexOf("videourl=", start + 1) }
+                if (start === -1) return ""
+                const valueStart = start + "videourl=".length
+                const after = query.slice(valueStart)
+                const parts = after.split("&")
+                const stopKeys = new Set(["islive", "ismute", "aspect", "lang", "autoplay", "from", "player", "t", "ts"])
+                const videoParts: string[] = []
+                for (let i = 0; i < parts.length; i++) {
+                  const p = parts[i]
+                  const eq = p.indexOf("=")
+                  const key = eq >= 0 ? p.slice(0, eq).toLowerCase() : ""
+                  if (i > 0 && key && stopKeys.has(key)) break
+                  videoParts.push(p)
+                }
+                return videoParts.join("&")
+              }
+              try {
+                const u = new URL(url)
+                const videoUrl = u.searchParams.get("videoUrl") ?? ""
+                const loose = extractVideoUrlLoosely(url)
+                const picked = loose.length > videoUrl.length ? loose : videoUrl
+                if (!picked) return ""
+                return `/api/stream-proxy?url=${encodeURIComponent(safeDecode(picked))}`
+              } catch {
+                const loose = extractVideoUrlLoosely(url)
+                if (!loose) return ""
+                return `/api/stream-proxy?url=${encodeURIComponent(safeDecode(loose))}`
+              }
+            }
+            try {
+              const u = new URL(url)
+              if (u.protocol === "http:" || u.protocol === "https:") {
+                return `/api/stream-proxy?url=${encodeURIComponent(url)}`
+              }
+            } catch {}
+            return url
+          }
+
+          const playableUrl = getPlayableUrl(cameraUrl)
+          setInspectionCameraUrl(playableUrl)
+
+          let capturedImageBase64 = ''
+          try {
+            capturedImageBase64 = await new Promise<string>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error('画面加载超时'))
+              }, 20000)
+
+              const checkFrame = setInterval(() => {
+                const video = document.getElementById('hidden-ai-camera') as HTMLVideoElement | null
+                if (video && video.readyState >= 3 && video.videoWidth > 0) {
+                  clearInterval(checkFrame)
+                  setInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
+                  
+                  // Wait a bit longer to ensure video is clearly rendering
+                  setTimeout(() => {
+                    try {
+                      const canvas = document.createElement('canvas')
+                      canvas.width = video.videoWidth || 640
+                      canvas.height = video.videoHeight || 480
+                      const ctx = canvas.getContext('2d')
+                      if (ctx) {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+                        clearTimeout(timeout)
+                        resolve(dataUrl)
+                      } else {
+                        throw new Error('Canvas context 创建失败')
+                      }
+                    } catch (err: any) {
+                      clearTimeout(timeout)
+                      reject(err)
+                    }
+                  }, 6000) // 增加延迟，确保画面不再是黑屏闪烁
+                }
+              }, 500)
+            })
+          } catch (err: any) {
+            console.error('Camera capture failed:', err)
+            setIsInspecting(false)
+            showNotice("❌ 截图失败", err?.message || '未知错误', "error")
+            handleSend(`【系统反馈】截图失败：${err?.message || '未知错误'}。`, [], true, true)
+            hasSentCustomFeedback = true
+            break
+          } finally {
+            // 延迟一点关闭，避免 UI 突然消失造成闪烁
+            setTimeout(() => {
+               setInspectionCameraUrl(null)
+               setIsInspecting(false);
+            }, 1000)
+          }
+
+          if (!capturedImageBase64) {
+            showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
+            handleSend('【系统反馈】截图为空，摄像头可能未正常工作。', [], true, true)
+            hasSentCustomFeedback = true
+            break
+          }
+
+          setInspectionStatus("完成截图。");
+          showNotice("✅ 截图成功", "已获取摄像头画面", "success")
+
+          // 1. 先把图片像以前一样以 assistant 的身份直接显示在对话流里
+          setMessages(prev => {
+             const newMsgs = [...prev, { 
+                 role: "assistant", 
+                 content: [
+                     { type: "text", text: `这是从摄像头 ${cameraId === 'b' ? 'B' : 'A'} 获取的实时截图：` },
+                     { type: "image_url", image_url: { url: capturedImageBase64 } }
+                 ] 
+             } as Message]
+             if (sessionId) {
+                 fetch(`/api/sessions/${sessionId}`, {
+                     method: "PUT",
+                     headers: { "Content-Type": "application/json" },
+                     body: JSON.stringify({ messages: newMsgs })
+                 }).catch(console.error)
+             }
+             return newMsgs
+          })
+
+          // 对于 take_camera_snapshot，原本只是把图片塞给用户看，现在我们也触发一次 AI 内部的思考和总结
+          // 这样用户问“长得咋样”时，AI 除了展示截图，还能紧接着输出分析文本。
+          
+          let taskContext = "";
+          if (originalContent && autoExecuteCommands) {
+               const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
+               if (match) {
+                   taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。`;
+               }
+          }
+
+          // 将系统反馈伪装成一条 user 消息发给 AI，这样 AI 就能通过视觉模型看到图片
+          // 因为只有 user 角色的消息才允许包含多模态图片
+          const snapshotMessage = [
+            { type: "image_url", image_url: { url: capturedImageBase64 } },
+            { type: "text", text: `【系统反馈】这是你刚刚请求获取的摄像头 ${cameraId === 'b' ? 'B' : 'A'} 实时截图。\n刚才图片已经展示给用户看了。现在，请你**仔细观察这张真实的画面，分析其中的作物生长情况、设备状态或任何异常**，并给出专业的分析描述。${taskContext}\n\n**重要指令**：\n1. 你必须真实地描述这张图片里的内容，不要编造！如果画面是黑的或者空的，请如实回答。\n2. **验证与推进**：请评估当前任务是否达成，若达成请将其设为 completed。如果还有下一个任务，请继续思考并输出下一个操作的 JSON 指令；如果所有任务已完成，请停止操作。` }
+          ]
+
+          // 标记已发送闭环反馈，阻止执行队列底部的默认反馈
+          hasSentCustomFeedback = true
+
+          // 静默发送给大模型，让大模型自己输出分析文本
+          // handleSend(overrideText, overrideAttachments, isFeedback, isSilent)
+          setTimeout(() => {
+            handleSend(snapshotMessage as any, [], true, true)
+          }, 100)
+          
+          break;
         } else if (cmd.action === "reset_camera") {
           // 摄像头云台复位到中间
           while (isTaskPausedRef.current) {
@@ -1285,6 +1594,15 @@ export default function AIAssistantPage() {
     // 自动发送反馈消息，形成 Agent 闭环
     // 增加延迟到 5秒，等待设备响应和数据刷新
     if (isStoppedRef.current) return;
+    
+    // 如果该批次指令已经由特定操作（如视觉巡检截图）触发了它自己的 AI 闭环反馈，
+    // 则跳过底部的全局状态反馈，避免产生两个并发对话流从而导致死循环。
+    if (hasSentCustomFeedback) {
+        setAgentStatus("")
+        setIsLoading(false)
+        return;
+    }
+    
     setAgentStatus("等待下位机响应: ESP32-S3 (超时 5000ms)...")
     
     // 异步执行反馈循环，以便可以被暂停
@@ -1329,26 +1647,32 @@ export default function AIAssistantPage() {
                  }
             }
 
+            // 这里触发的是一个普通的闭环查询，isFeedback=true 防止这句提示被当成用户提问
             await handleSend(`指令已执行完毕。
 
 请根据系统提供的【当前最新数据】判断执行效果，并决定下一步操作。
 ${taskContext}
 **重要提示：**
 1. 我已开启【自动托管模式】，请不要停下来等待我确认。
-2. 请直接生成下一步的控制指令 JSON。
-3. 如果当前任务因环境反应慢而未达标，但已执行过指令，请判定为“超时/已尽力”，自动跳过并执行下一个任务。
-4. **严禁**重复执行相同的指令。如果环境数据未变，请增加等待时间或尝试其他手段，不要死循环。
-5. 直到所有任务完成或失败，再做最终总结。`, [], true, true)
+2. **状态验证与推进**：请先分析当前设备状态是否已符合预期。如果符合，请更新任务状态为 completed。
+3. **继续执行**：检查是否还有下一个 pending 的任务。如果有，请先分析该任务对应的设备状态，然后再输出合适的 JSON 控制指令继续执行。
+4. **防死循环**：如果多次执行同一指令环境数据仍未变，请判定为“超时/尽力”，自动跳过并执行下一个任务。
+5. **结束任务**：直到所有任务完成或不可逆失败，再做最终总结并停止输出 JSON。`, [], true, true)
         } else {
             setAgentStatus("") 
             setIsLoading(false)
         }
     }
     
-    feedbackLoop()
+    await feedbackLoop()
   }
 
   const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false, isSilent: boolean = false) => {
+    // 过滤掉可能作为事件对象传入的 overrideText（如 onClick={handleSend}）
+    if (overrideText && typeof overrideText === 'object' && !Array.isArray(overrideText)) {
+      overrideText = undefined;
+    }
+
     // 立即打断当前正在进行的 TTS 语音播报
     if (audioContextRef.current) {
       audioContextRef.current.pause()
@@ -1364,15 +1688,21 @@ ${taskContext}
     isStoppedRef.current = false
     
     // 如果是自动触发的调用（传入了 overrideText），则不需要用户输入
-    const isAutoTrigger = typeof overrideText === "string";
-    const text = isAutoTrigger ? overrideText : input;
+    // 这里不再强制将 overrideText 转换为 string，因为它可能是包含图片的数组
+    const isAutoTrigger = typeof overrideText !== "undefined";
+    const text = isAutoTrigger ? (typeof overrideText === "string" ? overrideText : "【视觉分析请求】") : input;
     
     const currentAttachments = overrideAttachments || attachments
     
     // 只有在非自动触发且无输入时才拦截
     if (!isAutoTrigger && !text.trim() && currentAttachments.length === 0) return
-    // 允许内部触发的消息（isFeedback/isSilent）在加载状态下发送，防止巡检回路中断导致“抽搐”
-    if (isLoading && !isFeedback && !isSilent) return
+    
+    // 强制允许视觉截图等内部反馈消息穿透 loading 拦截
+    if (isLoading && !isFeedback && !isSilent) {
+        console.log("[handleSend] Blocked by isLoading guard")
+        return
+    }
+    
     setIsLoading(true) // 立即锁定，防止重复发送导致“抽搐”
     
     // 模拟感知阶段（仅当是用户主动发送或Agent自动闭环时，且不是简单的反馈重试）
@@ -1428,12 +1758,14 @@ ${taskContext}
       }
     }
 
-    const userMessageContent: Message['content'] = currentAttachments.length > 0
-      ? [
-        { type: "text", text: userMsg },
-        ...currentAttachments.map(url => ({ type: "image_url" as const, image_url: { url } }))
-      ]
-      : userMsg
+    const userMessageContent: Message['content'] = typeof overrideText !== "undefined"
+      ? overrideText // 如果有 overrideText，直接使用它（可能已经是包含图片的数组）
+      : (currentAttachments.length > 0
+        ? [
+          { type: "text", text: userMsg },
+          ...currentAttachments.map(url => ({ type: "image_url" as const, image_url: { url } }))
+        ]
+        : userMsg)
 
     if (userMsg === "是" || userMsg === "执行") {
       const lastAssistantMsg = messages[messages.length - 1]
@@ -1471,10 +1803,31 @@ ${taskContext}
         }
 
         // 保存消息到会话时，确保正确序列化消息内容
-        const messagesToSave = newMessages.map(m => ({
-          role: m.role,
-          content: m.content // 保持原始格式（可能是字符串或数组）
-        }))
+        // 过滤掉可能导致循环引用的对象（比如图片对象中的 DOM 元素引用等）
+        const messagesToSave = newMessages.map(m => {
+          let safeContent = m.content;
+          if (Array.isArray(safeContent)) {
+            // 如果是数组格式的多模态消息，我们需要深拷贝并清理它
+            safeContent = safeContent.map(part => {
+              if (part.type === 'image_url') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url: typeof part.image_url === 'string' ? part.image_url : (part.image_url?.url || '')
+                  }
+                };
+              }
+              return {
+                type: part.type || 'text',
+                text: part.text || ''
+              };
+            });
+          }
+          return {
+            role: m.role,
+            content: safeContent
+          };
+        })
 
         await fetch(`/api/sessions/${ensuredSessionId}`, {
           method: "PUT",
@@ -1601,7 +1954,8 @@ ${taskContext}
               
               // Handle explicit error from backend
               if (data.error) {
-                 assistantMsg.content = `⚠️ Error: ${data.error}`
+                 const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error)
+                 assistantMsg.content = `⚠️ Error: ${errorMsg}`
                  setMessages(prev => {
                     const newMsgs = [...prev]
                     newMsgs[newMsgs.length - 1] = { ...assistantMsg }
@@ -1892,6 +2246,8 @@ ${taskContext}
           if (commands.length > 0) {
             // 再次检查是否已停止
             if (isStoppedRef.current) return;
+            // 重要：如果在这次调用中已经触发了设备执行，标记本次会话不再需要通用反馈
+            // 通过将 hasSentCustomFeedback 置为 true 避免循环嵌套
             await executeCommands(commands, assistantMsg.content as string)
           }
         }
@@ -2049,6 +2405,43 @@ ${taskContext}
     localStorage.setItem("ai-settings", JSON.stringify(settings))
     setSelectedModel(settings.model)
   }
+
+  // Handle initial prompt and image from URL
+  useEffect(() => {
+    const prompt = searchParams.get("prompt")
+    let image = searchParams.get("image")
+    const useSessionImage = searchParams.get("useSessionImage")
+    const autoSend = searchParams.get("autoSend") !== "false" // default true
+
+    if (useSessionImage === "true") {
+      const sessionImage = sessionStorage.getItem("pending_ai_image")
+      if (sessionImage) {
+        image = sessionImage
+        sessionStorage.removeItem("pending_ai_image")
+      }
+    }
+
+    if (prompt && !isLoading && !isInspecting && aiSettings) {
+      // Small timeout to ensure everything is initialized
+      const timer = setTimeout(() => {
+        if (image) {
+          handleSend(prompt, [image])
+        } else {
+          handleSend(prompt)
+        }
+        
+        // Remove params from URL to prevent re-sending on refresh
+        const url = new URL(window.location.href)
+        url.searchParams.delete("prompt")
+        url.searchParams.delete("image")
+        url.searchParams.delete("useSessionImage")
+        url.searchParams.delete("autoSend")
+        window.history.replaceState({}, '', url.toString())
+      }, 500)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams, aiSettings]) // Dependency on aiSettings ensures it fires after settings are loaded
 
   // 语音对话消息处理
   const handleVoiceChatMessage = async (text: string): Promise<string> => {
@@ -2223,7 +2616,8 @@ ${taskContext}
                     obj.action === 'set_led' || 
                     obj.action === 'control_camera' ||
                     obj.action === 'reset_camera' ||
-                    obj.action === 'move_camera_and_look'
+                    obj.action === 'move_camera_and_look' ||
+                    obj.action === 'take_camera_snapshot'
                  )
                  
                  const commands = Array.isArray(parsed) ? parsed : [parsed]
@@ -3077,7 +3471,7 @@ ${taskContext}
                     />
                     {input.trim() && (
                       <button
-                        onClick={handleSend}
+                        onClick={() => handleSend()}
                         className="self-end mb-1.5 p-2.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-sm"
                       >
                         <ArrowUp size={20} strokeWidth={2.5} />
@@ -3401,7 +3795,7 @@ ${taskContext}
                                 </button>
                             ) : (
                                 <button
-                                    onClick={handleSend}
+                                    onClick={() => handleSend()}
                                     disabled={!input.trim() && attachments.length === 0}
                                     className={cn(
                                         "size-9 rounded-xl flex items-center justify-center transition-all duration-200",
@@ -3714,8 +4108,8 @@ ${taskContext}
                  <div className="bg-amber-400 rounded-full p-1">
                    <Zap size={10} className="text-white fill-white" />
                  </div>
+                 </div>
                </div>
-             </div>
 
              <DialogTitle className="text-center text-xl font-bold text-zinc-900 dark:text-white">
                今日额度已耗尽
@@ -3782,6 +4176,88 @@ ${taskContext}
         onSendMessage={handleVoiceChatMessage}
         aiSettings={aiSettings}
       />
+
+      {/* 可见的 LiveStreamPlayer 弹窗用于 AI 视觉巡检截图，参考 Monitor 页面样式 */}
+      {/* 修复闪烁：增加 key 或移除不必要的重新渲染触发条件，并且移除 pointer-events-none 避免在某些设备上被点击穿透导致关闭，但我们需要它不可点击，所以用 pointer-events-none。 闪烁通常是因为 open 状态瞬间变化，或者组件重复挂载。 */}
+      <Dialog open={!!inspectionCameraUrl || isInspecting} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-[1000px] p-0 gap-0 overflow-hidden bg-black border-white/10 shadow-2xl rounded-3xl [&>button]:hidden pointer-events-none duration-300">
+          <DialogTitle className="sr-only">AI 视觉巡检画面</DialogTitle>
+          <div className="relative w-full h-[60vh] bg-black flex flex-col items-center justify-center overflow-hidden">
+            {/* Background Video */}
+            <div className="absolute inset-0 z-0">
+              {/* Keep LiveStreamPlayer mounted always to avoid flicker, just hide it when not ready */}
+              <div className={cn("w-full h-full", inspectionCameraUrl ? "opacity-100" : "opacity-0 absolute")}>
+                {inspectionCameraUrl && (
+                  <LiveStreamPlayer
+                    id="hidden-ai-camera"
+                    sources={[{ src: inspectionCameraUrl }]}
+                    autoplay
+                    muted
+                    controls={false}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              
+              {!inspectionCameraUrl && (
+                <div className="w-full h-full flex items-center justify-center bg-zinc-900 absolute inset-0">
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 mx-auto rounded-full bg-zinc-800/50 flex items-center justify-center border border-white/5">
+                      <Signal className="w-8 h-8 text-zinc-600 animate-pulse" />
+                    </div>
+                    <p className="text-zinc-400 font-medium">连接中...</p>
+                  </div>
+                </div>
+              )}
+              {/* Overlay Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none" />
+            </div>
+
+            {/* Top Bar (Mock) */}
+            <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-start justify-between">
+               {/* Left: Status */}
+               <div className="flex items-center gap-3">
+                  <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-2">
+                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                     <span className="text-xs font-bold text-white tracking-wide">AI Vision</span>
+                  </div>
+               </div>
+
+               {/* Center: Title */}
+               <div className="px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                  <span className="text-sm font-medium text-white">
+                    {inspectionCamera === 'a' ? '温室摄像头 A' : '温室摄像头 B'}
+                  </span>
+               </div>
+            </div>
+
+            {/* Center Loading Indicator */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+              <div className="relative size-32 flex items-center justify-center mb-6">
+                 {/* 扫描线动画 */}
+                 <div className="absolute inset-0 rounded-full border border-emerald-500/30 overflow-hidden relative">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]" style={{ animation: 'scan 2s ease-in-out infinite' }} />
+                 </div>
+                 <div className="size-16 rounded-full bg-emerald-500/20 flex items-center justify-center animate-pulse backdrop-blur-md border border-emerald-500/30">
+                  <Camera className="size-8 text-emerald-400" />
+                 </div>
+              </div>
+              <h3 className="text-white font-bold text-xl mb-2 drop-shadow-md">正在进行视觉巡检</h3>
+              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                 <Loader2 className="size-4 text-emerald-400 animate-spin" />
+                 <p className="text-emerald-400 text-sm font-medium">{inspectionStatus}</p>
+              </div>
+            </div>
+            
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes scan {
+                0% { transform: translateY(-100%); }
+                100% { transform: translateY(32rem); }
+              }
+            `}} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

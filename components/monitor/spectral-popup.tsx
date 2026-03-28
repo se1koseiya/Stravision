@@ -81,6 +81,7 @@ export function SpectralPopup({ data }: SpectralPopupProps) {
     })
 
     return {
+      animation: false,
       grid: {
         top: 5,
         right: 0,
@@ -191,6 +192,8 @@ export function SpectralPopup({ data }: SpectralPopupProps) {
               option={getOption()} 
               style={{ height: '100%', width: '100%' }} 
               opts={{ renderer: 'svg' }}
+              notMerge={true}
+              lazyUpdate={false}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

@@ -96,3 +96,64 @@ export async function updateStepperPosition(pulses: number): Promise<void> {
     ["stepper_position_pulses", String(pulses), now]
   )
 }
+
+export type MonitorPageVersion = 'beautiful' | 'ugly'
+export type DeviceControlVersion = 'full' | 'simplified'
+export type DashboardVersion = 'full' | 'simplified'
+
+export async function getMonitorPageVersion(): Promise<MonitorPageVersion> {
+  await initDB()
+  const row = await queryOne<{ value: string }>("SELECT value FROM system_settings WHERE key = $1", ["monitor_page_version"])
+  
+  if (!row) return 'beautiful'
+  return (row.value === 'ugly' ? 'ugly' : 'beautiful') as MonitorPageVersion
+}
+
+export async function updateMonitorPageVersion(version: MonitorPageVersion): Promise<void> {
+  await initDB()
+  const now = Date.now()
+  await execute(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ["monitor_page_version", version, now]
+  )
+}
+
+export async function getDeviceControlVersion(): Promise<DeviceControlVersion> {
+  await initDB()
+  const row = await queryOne<{ value: string }>("SELECT value FROM system_settings WHERE key = $1", ["device_control_version"])
+  
+  if (!row) return 'full'
+  return (row.value === 'simplified' ? 'simplified' : 'full') as DeviceControlVersion
+}
+
+export async function updateDeviceControlVersion(version: DeviceControlVersion): Promise<void> {
+  await initDB()
+  const now = Date.now()
+  await execute(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ["device_control_version", version, now]
+  )
+}
+
+export async function getDashboardVersion(): Promise<DashboardVersion> {
+  await initDB()
+  const row = await queryOne<{ value: string }>("SELECT value FROM system_settings WHERE key = $1", ["dashboard_version"])
+  
+  if (!row) return 'full'
+  return (row.value === 'simplified' ? 'simplified' : 'full') as DashboardVersion
+}
+
+export async function updateDashboardVersion(version: DashboardVersion): Promise<void> {
+  await initDB()
+  const now = Date.now()
+  await execute(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ["dashboard_version", version, now]
+  )
+}

@@ -457,6 +457,14 @@ export function LiveStreamPlayer({
             flvRef.current.on(window.flvjs.Events.ERROR, (type, details) => {
                 if (cancelled || attemptId !== playAttemptRef.current) return
                 console.error("[LiveStreamPlayer] FLV Error:", type, details)
+                
+                // Fallback to next source on error to prevent being stuck
+                const hasNext = nextIndex + 1 < sequence.length
+                nextIndex = hasNext ? nextIndex + 1 : 0
+                if (retryCount < maxRetry) {
+                  retryCount += 1
+                  setTimeout(() => { void playCurrent() }, 800)
+                }
             })
 
             flvRef.current.attachMediaElement(videoEl)

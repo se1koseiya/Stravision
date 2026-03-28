@@ -27,6 +27,9 @@ import { MaintenanceSettings } from "@/components/admin/maintenance-settings"
 import { MCPMarketManager } from "@/components/admin/mcp-market-manager"
 import { FeatureAnnouncementAdmin } from "@/components/dashboard/feature-announcement-admin"
 import { CameraSettings } from "@/components/admin/camera-settings"
+import { MonitorVersionSettings } from "@/components/admin/monitor-version-settings"
+import { DeviceControlVersionSettings } from "@/components/admin/device-control-version-settings"
+import { DashboardVersionSettings } from "@/components/admin/dashboard-version-settings"
 
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -343,7 +346,14 @@ export default function AdminPage() {
               <MaintenanceSettings />
             </div>
             
-            <CameraSettings />
+            <div className="grid gap-8 md:grid-cols-2">
+              <CameraSettings />
+              <div className="space-y-8">
+                <MonitorVersionSettings />
+                <DeviceControlVersionSettings />
+                <DashboardVersionSettings />
+              </div>
+            </div>
 
             {/* Daily Briefing Reset */}
             <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
