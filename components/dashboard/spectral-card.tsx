@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +27,6 @@ export function SpectralCard({
   onContextMenu,
   onLongPress
 }: SpectralCardProps) {
-  const [timeRange, setTimeRange] = useState("1h")
 
   // Define spectral channels configuration
   const channels = [
@@ -171,18 +170,8 @@ export function SpectralCard({
             </div>
             <div className="flex items-center gap-2">
               <Badge className="bg-pink-500/20 text-pink-600 border-pink-500/30 rounded-full px-3">
-                光谱分析 (Spectral)
+                实时光谱 (Real-time)
               </Badge>
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="h-6 w-[80px] text-xs bg-transparent border-none focus:ring-0 p-0 text-muted-foreground hover:text-foreground">
-                    <SelectValue placeholder="范围" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="1h">1 小时</SelectItem>
-                    <SelectItem value="1d">1 天</SelectItem>
-                    <SelectItem value="7d">7 天</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
           {/* Circular Icon Badge similar to reference */}

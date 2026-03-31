@@ -245,7 +245,7 @@ export default function DeviceControlIOSPage() {
 
             {/* Relay 7: Grow Light */}
             <DeviceCard
-              title="补光灯"
+              title="植物全光谱补光灯"
               subtitle={deviceData?.relay7 === 1 ? "ON" : "OFF"}
               icon={BoltIcon}
               isOn={deviceData?.relay7 === 1}
@@ -256,7 +256,7 @@ export default function DeviceControlIOSPage() {
 
             {/* Relay 8: White Light */}
             <DeviceCard
-              title="白灯"
+              title="光照植物补光灯"
               subtitle={deviceData?.relay8 === 1 ? "ON" : "OFF"}
               icon={SunIcon}
               isOn={deviceData?.relay8 === 1}
@@ -273,7 +273,7 @@ export default function DeviceControlIOSPage() {
                     <LightBulbIcon className="size-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-foreground">补光灯 (RGB)</h3>
+                    <h3 className="text-base font-bold text-foreground"> 植物全光谱补光灯 </h3>
                     <span className="text-xs text-slate-400 font-medium">控制室</span>
                   </div>
                 </div>

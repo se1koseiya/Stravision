@@ -41,7 +41,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
-    apk add --no-cache tzdata su-exec
+    apk add --no-cache tzdata su-exec ffmpeg
 
 COPY --from=builder /app/public ./public
 

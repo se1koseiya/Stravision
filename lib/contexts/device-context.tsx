@@ -105,15 +105,46 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
           if (message.type === 'connected') {
              // connection established message
           } else if (message.type === 'data' && message.data) {
-            // Normalize data (divide specific fields by 10)
-            const normalizedData = {
-              ...message.data,
-              temperature: message.data.temperature !== undefined ? message.data.temperature / 10 : 0,
-              humidity: message.data.humidity !== undefined ? message.data.humidity / 10 : 0,
-              earth_temp: message.data.earth_temp !== undefined ? message.data.earth_temp / 10 : 0,
-              earth_water: message.data.earth_water !== undefined ? message.data.earth_water / 10 : 0
-            }
-            setDeviceData(normalizedData)
+            const rawData = message.data;
+            setDeviceData(prev => {
+                const current = prev || {} as any;
+                
+                // Explicit mapping of only TRUSTED fields to prevent "pollution" from stale/random JSON fields
+                const updatedFields: any = {
+                    ...current, // Start with current stable state
+                    temperature: rawData.temperature !== undefined ? rawData.temperature / 10 : current.temperature,
+                    humidity: rawData.humidity !== undefined ? rawData.humidity / 10 : current.humidity,
+                    earth_temp: rawData.earth_temp !== undefined ? rawData.earth_temp / 10 : current.earth_temp,
+                    earth_water: rawData.earth_water !== undefined ? rawData.earth_water / 10 : current.earth_water,
+                    light: rawData.light !== undefined ? rawData.light : current.light,
+                    co2: rawData.co2 !== undefined ? rawData.co2 : current.co2,
+                    earth_ec: rawData.earth_ec !== undefined ? rawData.earth_ec : current.earth_ec,
+                    earth_n: rawData.earth_n !== undefined ? rawData.earth_n : current.earth_n,
+                    earth_p: rawData.earth_p !== undefined ? rawData.earth_p : current.earth_p,
+                    earth_k: rawData.earth_k !== undefined ? rawData.earth_k : current.earth_k,
+                    relay5: rawData.relay5 !== undefined ? rawData.relay5 : current.relay5,
+                    relay6: rawData.relay6 !== undefined ? rawData.relay6 : current.relay6,
+                    relay7: rawData.relay7 !== undefined ? rawData.relay7 : current.relay7,
+                    relay8: rawData.relay8 !== undefined ? rawData.relay8 : current.relay8,
+                    led1: rawData.led1 !== undefined ? rawData.led1 : current.led1,
+                    led2: rawData.led2 !== undefined ? rawData.led2 : current.led2,
+                    led3: rawData.led3 !== undefined ? rawData.led3 : current.led3,
+                    led4: rawData.led4 !== undefined ? rawData.led4 : current.led4,
+                    stepper_position: rawData.stepper_position !== undefined ? rawData.stepper_position : current.stepper_position,
+                    timestamp: rawData.timestamp || Date.now()
+                };
+
+                // Spectral channels 1-11
+                for (let i = 1; i <= 11; i++) {
+                    const key = `channel${i}`;
+                    if (rawData[key] !== undefined) {
+                        updatedFields[key] = rawData[key];
+                    }
+                }
+
+                return updatedFields;
+            });
+
             setConnectionStatus(prev => ({
               ...prev,
               lastUpdate: new Date()

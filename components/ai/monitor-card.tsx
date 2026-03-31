@@ -39,6 +39,11 @@ export function MonitorCard() {
     if (!rawUrl) return ""
     const url = rawUrl.trim()
     
+    // Handle RTMP protocol → route through FFmpeg proxy
+    if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
+      return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
+    }
+
     // Check if it needs proxying
     if (typeof window !== "undefined") {
       try {

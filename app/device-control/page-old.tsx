@@ -247,7 +247,7 @@ export default function DeviceControlPage() {
 
                 <div key="whiteLight">
                   <DeviceCard
-                    title="白灯"
+                    title="光照植物补光灯"
                     icon={<Sun className="size-12 text-white" strokeWidth={1.5} />}
                     gradient="radial-gradient(800px 800px at 10% 30%, #8A7CF3 0%, transparent 30%)"
                     isDraggable={isEditMode}

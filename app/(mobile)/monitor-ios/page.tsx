@@ -277,6 +277,11 @@ export default function MonitorIOSPage() {
     const url = getStreamUrlFromInput(rawUrl)
     if (!url) return ""
 
+    // Handle RTMP protocol → route through FFmpeg proxy
+    if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
+      return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
+    }
+
     if (typeof window !== "undefined") {
       try {
         const u = new URL(url)
@@ -594,7 +599,7 @@ export default function MonitorIOSPage() {
 
             {/* Relay 8: White Light */}
             <DeviceCard
-              title="白灯"
+              title="光照植物补光灯"
               subtitle={deviceData?.relay8 === 1 ? "ON" : "OFF"}
               icon={SunIcon}
               isOn={deviceData?.relay8 === 1}

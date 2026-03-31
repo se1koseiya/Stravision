@@ -89,8 +89,8 @@ import {
 const AVAILABLE_DEVICES = [
   { id: "relay5", name: "水泵/灌溉", relay: 5 as const, icon: "Droplets", color: { bg: "#E0F2F1", fg: "#009688", gradFrom: "#A7F3D0", gradTo: "#10B981" } },
   { id: "relay6", name: "风扇/通风", relay: 6 as const, icon: "Fan", color: { bg: "#E3F2FD", fg: "#2196F3", gradFrom: "#C7D2FE", gradTo: "#6366F1" } },
-  { id: "relay7", name: "补光灯", relay: 7 as const, icon: "Lightbulb", color: { bg: "#FEF3C7", fg: "#F59E0B", gradFrom: "#FDE68A", gradTo: "#F59E0B" } },
-  { id: "relay8", name: "白灯", relay: 8 as const, icon: "Sun", color: { bg: "#F3E8FF", fg: "#8B5CF6", gradFrom: "#DDD6FE", gradTo: "#8B5CF6" } },
+  { id: "relay7", name: "植物全光谱补光灯", relay: 7 as const, icon: "Lightbulb", color: { bg: "#FEF3C7", fg: "#F59E0B", gradFrom: "#FDE68A", gradTo: "#F59E0B" } },
+  { id: "relay8", name: "光照植物补光灯", relay: 8 as const, icon: "Sun", color: { bg: "#F3E8FF", fg: "#8B5CF6", gradFrom: "#DDD6FE", gradTo: "#8B5CF6" } },
 ]
 
 const ICON_MAP: Record<string, typeof Droplets> = {
@@ -247,6 +247,11 @@ export default function MonitorPage() {
   const getPlayableUrl = useCallback((rawUrl: string) => {
     const url = getStreamUrlFromInput(rawUrl)
     if (!url) return ""
+
+    // Handle RTMP protocol → route through FFmpeg proxy
+    if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
+      return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
+    }
 
     if (typeof window !== "undefined") {
       try {

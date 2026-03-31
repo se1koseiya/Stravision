@@ -83,7 +83,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
     externalVoiceSettings || { enabled: true, voice: 'Mochi' }
   )
 
-  const [apiType, setApiType] = useState<"dashscope" | "openai" | "system" | "ollama">("system")
+  const [apiType, setApiType] = useState<string>("system")
   const [isSaving, setIsSaving] = useState(false)
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null)
 
@@ -123,10 +123,22 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
             setApiType("system")
           } else if (effective.apiUrl?.includes("dashscope") || effective.model?.startsWith("qwen")) {
             setApiType("dashscope")
+          } else if (effective.apiUrl?.includes("deepseek")) {
+            setApiType("deepseek")
+          } else if (effective.apiUrl?.includes("anthropic")) {
+            setApiType("anthropic")
+          } else if (effective.apiUrl?.includes("google")) {
+            setApiType("google")
+          } else if (effective.apiUrl?.includes("moonshot")) {
+            setApiType("moonshot")
+          } else if (effective.apiUrl?.includes("bigmodel")) {
+            setApiType("zhipu")
           } else if (effective.apiUrl?.includes("localhost") || effective.apiKey === "ollama") {
             setApiType("ollama")
-          } else {
+          } else if (effective.apiUrl?.includes("openai.com")) {
             setApiType("openai")
+          } else {
+            setApiType("custom")
           }
         } else {
           // 如果没有服务器配置，尝试本地
@@ -134,12 +146,26 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
           if (saved) {
             const parsed = JSON.parse(saved)
             setSettings(parsed)
-            if (parsed.apiUrl?.includes("dashscope") || parsed.model?.startsWith("qwen")) {
+            if (!parsed.apiKey && !parsed.apiUrl) {
+              setApiType("system")
+            } else if (parsed.apiUrl?.includes("dashscope") || parsed.model?.startsWith("qwen")) {
               setApiType("dashscope")
+            } else if (parsed.apiUrl?.includes("deepseek")) {
+              setApiType("deepseek")
+            } else if (parsed.apiUrl?.includes("anthropic")) {
+              setApiType("anthropic")
+            } else if (parsed.apiUrl?.includes("google")) {
+              setApiType("google")
+            } else if (parsed.apiUrl?.includes("moonshot")) {
+              setApiType("moonshot")
+            } else if (parsed.apiUrl?.includes("bigmodel")) {
+              setApiType("zhipu")
             } else if (parsed.apiUrl?.includes("localhost") || parsed.apiKey === "ollama") {
               setApiType("ollama")
-            } else {
+            } else if (parsed.apiUrl?.includes("openai.com")) {
               setApiType("openai")
+            } else {
+              setApiType("custom")
             }
           } else {
             setApiType("system")
@@ -240,8 +266,13 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
               <div className="space-y-8 max-w-2xl">
                 {/* API Type Selector */}
                 <div className="space-y-4">
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">服务提供商</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">大模型 API 厂商商店</Label>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-full">
+                      由 阿里云百炼 提供基础支持
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <ProviderCard
                       active={apiType === "system"}
                       onClick={() => {
@@ -250,12 +281,13 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                           ...settings,
                           apiKey: "",
                           apiUrl: "",
-                          model: "", // 清空模型，让后端使用默认
+                          model: "",
                         })
                       }}
-                      icon={Box}
-                      title="系统托管"
-                      desc="每日免费额度，无需配置"
+                      icon={Sparkles}
+                      title="阿里云百炼 (预设)"
+                      desc="系统预置，无需配置"
+                      badge="系统默认"
                     />
                     <ProviderCard
                       active={apiType === "dashscope"}
@@ -267,8 +299,21 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                         })
                       }}
                       icon={Sparkles}
-                      title="阿里云百炼"
-                      desc="自定义 Key，Qwen系列"
+                      title="阿里云百炼 (自定义)"
+                      desc="填入个人百炼 Key"
+                    />
+                    <ProviderCard
+                      active={apiType === "deepseek"}
+                      onClick={() => {
+                        setApiType("deepseek")
+                        setSettings({
+                          ...settings,
+                          apiUrl: "https://api.deepseek.com/v1",
+                        })
+                      }}
+                      icon={Bot}
+                      title="DeepSeek"
+                      desc="深度求索 V3/R1"
                     />
                     <ProviderCard
                       active={apiType === "openai"}
@@ -281,7 +326,59 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                       }}
                       icon={Bot}
                       title="OpenAI"
-                      desc="自定义 Key，GPT系列"
+                      desc="GPT 系列模型"
+                    />
+                    <ProviderCard
+                      active={apiType === "anthropic"}
+                      onClick={() => {
+                        setApiType("anthropic")
+                        setSettings({
+                          ...settings,
+                          apiUrl: "https://api.anthropic.com/v1",
+                        })
+                      }}
+                      icon={Box}
+                      title="Anthropic"
+                      desc="Claude 系列模型"
+                    />
+                    <ProviderCard
+                      active={apiType === "google"}
+                      onClick={() => {
+                        setApiType("google")
+                        setSettings({
+                          ...settings,
+                          apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+                        })
+                      }}
+                      icon={Globe}
+                      title="Google"
+                      desc="Gemini 系列模型"
+                    />
+                    <ProviderCard
+                      active={apiType === "moonshot"}
+                      onClick={() => {
+                        setApiType("moonshot")
+                        setSettings({
+                          ...settings,
+                          apiUrl: "https://api.moonshot.cn/v1",
+                        })
+                      }}
+                      icon={Bot}
+                      title="Moonshot"
+                      desc="Kimi 长文本模型"
+                    />
+                    <ProviderCard
+                      active={apiType === "zhipu"}
+                      onClick={() => {
+                        setApiType("zhipu")
+                        setSettings({
+                          ...settings,
+                          apiUrl: "https://open.bigmodel.cn/api/paas/v4",
+                        })
+                      }}
+                      icon={Box}
+                      title="智谱 AI"
+                      desc="GLM 系列模型"
                     />
                     <ProviderCard
                       active={apiType === "ollama"}
@@ -296,7 +393,20 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                       }}
                       icon={Laptop}
                       title="Ollama (本地)"
-                      desc="本地运行 LLM，隐私安全"
+                      desc="本地终端离线运行"
+                    />
+                    <ProviderCard
+                      active={apiType === "custom"}
+                      onClick={() => {
+                        setApiType("custom")
+                        setSettings({
+                          ...settings,
+                          apiUrl: "",
+                        })
+                      }}
+                      icon={Settings}
+                      title="自定义"
+                      desc="兼容 OpenAI 格式"
                     />
                   </div>
                 </div>
@@ -345,8 +455,13 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                         onChange={(e) => setSettings({ ...settings, model: e.target.value })}
                         placeholder={
                           apiType === "dashscope" ? "qwen-plus" :
-                            apiType === "ollama" ? "llama3, mistral, qwen2.5" :
-                              "gpt-3.5-turbo"
+                          apiType === "deepseek" ? "deepseek-chat" :
+                          apiType === "anthropic" ? "claude-3-5-sonnet-20240620" :
+                          apiType === "google" ? "gemini-1.5-pro" :
+                          apiType === "moonshot" ? "moonshot-v1-8k" :
+                          apiType === "zhipu" ? "glm-4" :
+                          apiType === "ollama" ? "llama3, qwen2.5" :
+                          apiType === "openai" ? "gpt-4o-mini" : "例如: gpt-3.5-turbo"
                         }
                       />
                       {apiType === "ollama" && (
@@ -541,7 +656,7 @@ function SidebarItem({ icon: Icon, label, active, onClick, badge }: { icon: any,
   )
 }
 
-function ProviderCard({ active, onClick, icon: Icon, title, desc }: { active: boolean, onClick: () => void, icon: any, title: string, desc: string }) {
+function ProviderCard({ active, onClick, icon: Icon, title, desc, badge }: { active: boolean, onClick: () => void, icon: any, title: string, desc: string, badge?: string }) {
   return (
     <div
       onClick={onClick}
@@ -556,7 +671,10 @@ function ProviderCard({ active, onClick, icon: Icon, title, desc }: { active: bo
         <div className={cn("p-2 rounded-lg", active ? "bg-emerald-100 dark:bg-blue-900/50 text-emerald-600 dark:text-blue-500" : "bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400")}>
           <Icon size={20} />
         </div>
-        {active && <CheckCircle2 size={18} className="text-emerald-500 dark:text-blue-500" />}
+        <div className="flex flex-col items-end gap-1">
+          {badge && <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">{badge}</span>}
+          {active && <CheckCircle2 size={18} className="text-emerald-500 dark:text-blue-500" />}
+        </div>
       </div>
       <div className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-0.5">{title}</div>
       <div className="text-xs text-gray-500 dark:text-gray-400">{desc}</div>

@@ -1142,7 +1142,7 @@ export default function HomePage() {
           disabled={!checkPermission(6) || controlStatus.loading}
         />
         <DeviceCard 
-          title="白灯控制" 
+          title="光照植物补光灯控制" 
           subtitle="照明系统" 
           icon={Lightbulb}
           isOn={!!deviceData?.relay8}

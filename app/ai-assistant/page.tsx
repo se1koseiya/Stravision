@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu } from "lucide-react";
+import { SkillStore } from "@/components/ai/skill-store"
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -40,6 +41,7 @@ import remarkGfm from "remark-gfm"
 import * as htmlToImage from 'html-to-image'
 import jsPDF from "jspdf"
 import { toast } from "sonner"
+import { motion, AnimatePresence } from "framer-motion"
 
 import {
   DropdownMenu,
@@ -71,7 +73,7 @@ import {
   Source,
 } from "@/components/ui/assistant-ui"
 
-import { AISettingsDialog, getVoiceSettings } from "@/components/ai-settings-dialog"
+import { getVoiceSettings } from "@/components/ai-settings-dialog"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
@@ -398,7 +400,6 @@ function AIAssistantContent() {
   const [sessionId, setSessionId] = useState<string>("")
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
   const [enableReasoning, setEnableReasoning] = useState(false)
   const [isTTSEnabled, setIsTTSEnabled] = useState(true) // TTS Toggle
@@ -535,6 +536,50 @@ function AIAssistantContent() {
   // Browser Activity State
   const [browsingUrl, setBrowsingUrl] = useState<string | null>(null)
   
+  // Store State
+  const [storeOpen, setStoreOpen] = useState(false)
+  
+  // Skill State
+  const [mandatorySkillsEnabled, setMandatorySkillsEnabled] = useState(true)
+  const [selectedStoreSkillIds, setSelectedStoreSkillIds] = useState<string[]>([])
+  const [installedStoreSkills, setInstalledStoreSkills] = useState<any[]>([])
+  const [builtinSkills, setBuiltinSkills] = useState<any[]>([])
+
+  const loadSkills = async () => {
+    try {
+      const res = await fetch('/api/skills/user')
+      if (res.ok) {
+        const data = await res.json()
+        const allSkills = data.skills || []
+        const builtins = allSkills.filter((s: any) => s.is_builtin === 1)
+        const stores = allSkills.filter((s: any) => s.is_builtin === 0)
+        
+        setBuiltinSkills(builtins)
+        setInstalledStoreSkills(stores)
+        
+        // Only initialize if empty or if needed. 
+        // Actually, let's keep previous selections if they still exist.
+        setSelectedStoreSkillIds(prev => {
+          const validIds = stores.map((s: any) => s.skill_id)
+          return prev.filter(id => validIds.includes(id))
+        })
+      }
+    } catch (e) {
+      console.error('Failed to load skills:', e)
+    }
+  }
+
+  useEffect(() => {
+    loadSkills()
+  }, [])
+
+  // 每次关闭商店时重新加载已安装技能
+  useEffect(() => {
+    if (!storeOpen) {
+      loadSkills()
+    }
+  }, [storeOpen])
+
   // Studio Panel State
   const [studioOpen, setStudioOpen] = useState(false)
   const [studioData, setStudioData] = useState<any[]>([]) // 存储真实的工具执行结果
@@ -731,7 +776,7 @@ function AIAssistantContent() {
 
   const handleOptimizePrompt = async () => {
     if (!input.trim()) return
-    if (!aiSettings?.apiKey) { setSettingsOpen(true); return }
+    if (!aiSettings?.apiKey) { router.push('/model-store'); return }
     
     setIsOptimizing(true)
     showNotice("正在优化提示词...", "AI 正在思考如何改进您的输入...", "loading")
@@ -917,12 +962,12 @@ function AIAssistantContent() {
     // 重置停止标志
     isStoppedRef.current = false
     
-    // 设备名称映射 (Relay 5=水泵, 6=风扇, 7=补光灯, 8=白灯)
+    // 设备名称映射 (Relay 5=水泵, 6=风扇, 7=补光灯, 8=光照植物补光灯)
     const deviceNames: Record<string, string> = {
       '5': '水泵',
       '6': '风扇', 
       '7': '补光灯',
-      '8': '白灯'
+      '8': '光照植物补光灯'
     }
 
     // --- 客户端防抖与循环检测逻辑 ---
@@ -1002,7 +1047,7 @@ function AIAssistantContent() {
           if (isStoppedRef.current) break
 
           // 先显示小圆点，再展开
-          setExecutingDeviceName("RGB补光灯")
+          setExecutingDeviceName("植物全光谱补光灯")
           setTimeout(() => setDevicePillExpanded(true), 150)
           const res = await fetch('/api/ai/device-control', {
             method: 'POST',
@@ -1148,7 +1193,12 @@ function AIAssistantContent() {
             if (!url) return ""
 
             // 如果本来就是代理地址，直接返回
-            if (url.includes('/api/stream-proxy')) return url;
+            if (url.includes('/api/stream-proxy') || url.includes('/api/stream-rtmp')) return url;
+
+            // Handle RTMP protocol → route through FFmpeg proxy
+            if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
+              return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
+            }
 
             if (/player\.xstrive\.com\/video\/live/i.test(url)) {
               const safeDecode = (value: string) => {
@@ -1345,7 +1395,11 @@ function AIAssistantContent() {
           const getPlayableUrl = (rawUrl: string) => {
             const url = rawUrl.trim()
             if (!url) return ""
-            if (url.includes('/api/stream-proxy')) return url;
+            if (url.includes('/api/stream-proxy') || url.includes('/api/stream-rtmp')) return url;
+            // Handle RTMP protocol → route through FFmpeg proxy
+            if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
+              return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
+            }
             if (/player\.xstrive\.com\/video\/live/i.test(url)) {
               const safeDecode = (value: string) => { try { return decodeURIComponent(value) } catch { return value } }
               const extractVideoUrlLoosely = (playerUrl: string) => {
@@ -1574,6 +1628,7 @@ function AIAssistantContent() {
       const light = snapshot.light !== undefined ? snapshot.light + ' lux' : '未知';
       const co2 = snapshot.co2 !== undefined ? snapshot.co2 + ' ppm' : '未知';
       const relay7 = snapshot.relay7 === 1 ? '开启' : '关闭';
+      const relay8 = snapshot.relay8 === 1 ? '开启' : '关闭';
       const led1 = snapshot.led1 !== undefined ? snapshot.led1 : '未知';
       const led2 = snapshot.led2 !== undefined ? snapshot.led2 : '未知';
       const led3 = snapshot.led3 !== undefined ? snapshot.led3 : '未知';
@@ -1584,7 +1639,8 @@ function AIAssistantContent() {
 - 湿度: ${hum}
 - 光照: ${light}
 - CO2: ${co2}
-- 补光灯(Relay7): ${relay7}
+- 植物全光谱补光灯(Relay7): ${relay7}
+- 光照植物补光灯(Relay8): ${relay8}
 - LED光谱(RGB): R:${led1} G:${led2} B:${led3}
 - 丝杆滑台位置: ${snapshot.stepper_position !== undefined ? (snapshot.stepper_position / 160).toFixed(1) + 'mm (' + snapshot.stepper_position + '脉冲)' : '未知'}
 - 丝杆滑台状态: ${snapshot.stepper_direction === 1 ? '正在左移' : snapshot.stepper_direction === 2 ? '正在右移' : '已停止'}
@@ -1735,12 +1791,12 @@ ${taskContext}
     
     if (!aiSettings || (!isSystemMode && !isCustomMode)) {
         if (!aiSettings) {
-             setSettingsOpen(true); 
+             router.push('/model-store'); 
              return 
         }
     }
     
-    if (!aiSettings) { setSettingsOpen(true); return }
+    if (!aiSettings) { router.push('/model-store'); return }
 
     const userMsg = text.trim()
     setInput("")
@@ -1840,10 +1896,25 @@ ${taskContext}
       const controller = new AbortController()
       abortControllerRef.current = controller
 
-      // 注入自动模式状态到 System Prompt (通过修改 messages 中的 system prompt 或者在请求体中传递)
-      // 这里我们选择直接拼接到用户的最后一条消息中（如果是自动触发的话），或者在 systemPrompt 字段中处理
-      // 为了简单有效，我们临时修改 systemPrompt
+      // 注入自动模式状态到 System Prompt
       let effectiveSystemPrompt = aiSettings?.systemPrompt || "";
+      
+      // 注入技能 (Skills) 数据
+      if (mandatorySkillsEnabled && builtinSkills.length > 0) {
+        const builtinPrompt = builtinSkills
+          .map(s => `[${s.name} 模块]\n${s.content}`)
+          .join('\n\n');
+        effectiveSystemPrompt += `\n\n### 核心系统知识与行为规范 ###\n${builtinPrompt}`;
+      }
+
+      const activeStoreSkills = installedStoreSkills.filter(s => selectedStoreSkillIds.includes(s.skill_id));
+      if (activeStoreSkills.length > 0) {
+        const storePrompt = activeStoreSkills
+          .map(s => `[${s.name} 增强模块]\n${s.content}`)
+          .join('\n\n');
+        effectiveSystemPrompt += `\n\n### 用户扩展功能模块 ###\n${storePrompt}`;
+      }
+
       if (autoExecuteCommands) {
         effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动托管模式 (Auto-Pilot Mode)。\n严禁提问！严禁等待用户确认！\n必须直接输出 IoT 设备控制指令 JSON (如 toggle_relay)。\n注意：对于 MCP 工具 (如天气、搜索)，仍必须使用 Native Tool Calling！\n如果遇到问题，请自行尝试解决或跳过。";
       }
@@ -1895,7 +1966,8 @@ ${taskContext}
           enableReasoning,
           deviceData: deviceDataRef.current,
           weatherData: weatherDataRef.current,
-          mcpConfigs // 添加 MCP 配置
+          mcpConfigs, // 添加 MCP 配置
+          mandatorySkillsEnabled // 传递核心技能开启状态
         })
       })
       
@@ -1985,6 +2057,13 @@ ${taskContext}
               }
 
                 // Handle tool calls feedback
+              // 处理知识模块选取通知 (AI Skill Routing)
+              if (data.skill_selection) {
+                const skillNames = data.skill_selection.map((s: any) => s.name).join(", ")
+                setAgentStatus(`智能识别意图，由 [${skillNames}] 模块提供支持...`)
+                continue
+              }
+
               if (data.tool_calls) {
                 const toolNames = data.tool_calls.map((t: any) => t.function.name).join(", ")
                 setAgentStatus(`正在使用工具: ${toolNames}...`)
@@ -3129,6 +3208,20 @@ ${taskContext}
               <span>MCP 商店</span>
             </button>
             <button
+              onClick={() => setStoreOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
+            >
+              <Library size={16} className="text-zinc-400 group-hover:text-zinc-600" />
+              <span>应用商店</span>
+            </button>
+            <button
+              onClick={() => router.push('/model-store')}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
+            >
+              <Cpu size={16} className="text-zinc-400 group-hover:text-zinc-600" />
+              <span>大模型市场</span>
+            </button>
+            <button
               onClick={() => router.push('/dashboard')}
               className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
             >
@@ -3205,8 +3298,8 @@ ${taskContext}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="start" side="top">
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setSettingsOpen(true)}>
-                <Settings size={14} /> AI 设置
+              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/model-store')}>
+                <Settings size={14} /> 模型市场
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/my-mcp')}>
                 <Zap size={14} /> MCP 设置
@@ -3489,13 +3582,131 @@ ${taskContext}
                       >
                         <Paperclip size={20} />
                       </button>
-                      <button
-                        onClick={() => setEnableSearch(!enableSearch)}
-                        className={cn("p-2 rounded-lg transition-colors", enableSearch ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}
-                        title="联网搜索"
-                      >
-                        <Globe size={20} />
-                      </button>
+                        <button
+                          onClick={() => setEnableSearch(!enableSearch)}
+                          className={cn("p-2 rounded-lg transition-colors", enableSearch ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}
+                          title="联网搜索"
+                        >
+                          <Globe size={20} />
+                        </button>
+
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    className={cn(
+                                        "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors group relative",
+                                        (mandatorySkillsEnabled || selectedStoreSkillIds.length > 0)
+                                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                                            : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                                    )}
+                                    title="技能管理"
+                                >
+                                    <Library size={20} strokeWidth={2} className={cn(
+                                        (mandatorySkillsEnabled || selectedStoreSkillIds.length > 0) && "fill-current"
+                                    )} />
+                                    {(mandatorySkillsEnabled || selectedStoreSkillIds.length > 0) && (
+                                        <span className="absolute -top-0.5 -right-0.5 size-2 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900" />
+                                    )}
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 p-0 rounded-2xl shadow-2xl border-zinc-200 dark:border-zinc-800" align="start" sideOffset={12}>
+                                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h4 className="font-bold text-sm text-zinc-900 dark:text-white">AI 技能中心</h4>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => setStoreOpen(true)}
+                                            className="h-7 px-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        >
+                                            进入商店
+                                        </Button>
+                                    </div>
+                                    <p className="text-[11px] text-zinc-500">管理助手的能力模块与行为逻辑</p>
+                                </div>
+                                <div className="p-2 space-y-4 max-h-[400px] overflow-y-auto">
+                                    {/* Built-in Skills Group */}
+                                    <div className="px-2 pt-2">
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="size-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900">
+                                                    <Zap size={14} className="fill-current" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-[13px] font-bold block leading-none">系统核心技能</span>
+                                                    <span className="text-[10px] text-zinc-500 mt-1 block">身份/风格/农业/设备</span>
+                                                </div>
+                                            </div>
+                                            <Switch 
+                                                checked={mandatorySkillsEnabled}
+                                                onCheckedChange={setMandatorySkillsEnabled}
+                                                className="scale-90 data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-zinc-100"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Downloaded Skills */}
+                                    <div className="px-2 pb-2">
+                                        <div className="flex items-center gap-2 px-2 pb-2">
+                                            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800"></div>
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2">已安装扩展</span>
+                                            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800"></div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            {installedStoreSkills.length > 0 ? installedStoreSkills.map((skill) => (
+                                                <div 
+                                                    key={skill.skill_id}
+                                                    onClick={() => {
+                                                        const isSelected = selectedStoreSkillIds.includes(skill.skill_id)
+                                                        if (isSelected) {
+                                                            setSelectedStoreSkillIds(prev => prev.filter(id => id !== skill.skill_id))
+                                                        } else {
+                                                            setSelectedStoreSkillIds(prev => [...prev, skill.skill_id])
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200",
+                                                        selectedStoreSkillIds.includes(skill.skill_id)
+                                                            ? "bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 shadow-none hover:shadow-sm" 
+                                                            : "hover:bg-zinc-50 dark:hover:bg-zinc-900 border border-transparent"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <div className="text-xl shrink-0 group-hover:scale-110 transition-transform">{skill.icon}</div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className={cn(
+                                                                "text-xs font-bold truncate pr-2",
+                                                                selectedStoreSkillIds.includes(skill.skill_id) ? "text-blue-700 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
+                                                            )}>{skill.name}</span>
+                                                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate pr-2">{skill.description}</span>
+                                                        </div>
+                                                    </div>
+                                                    <Switch 
+                                                        checked={selectedStoreSkillIds.includes(skill.skill_id)}
+                                                        onCheckedChange={(checked) => {
+                                                            if (!checked) {
+                                                                setSelectedStoreSkillIds(prev => prev.filter(id => id !== skill.skill_id))
+                                                            } else {
+                                                                setSelectedStoreSkillIds(prev => [...prev, skill.skill_id])
+                                                            }
+                                                        }}
+                                                        className="scale-[0.8] data-[state=checked]:bg-blue-600 shrink-0"
+                                                    />
+                                                </div>
+                                            )) : (
+                                                <div className="py-8 text-center bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                                                    <Library size={24} className="mx-auto text-zinc-300 dark:text-zinc-700 mb-2 opacity-50" />
+                                                    <p className="text-[10px] text-zinc-400 tracking-tight">前往商店探索更多技能</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800 text-center">
+                                    <p className="text-[9px] text-zinc-400">选择完成后，发送消息将携带相应技能上下文</p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                       <button
                         onClick={() => {
                           const newReasoning = !enableReasoning
@@ -3859,6 +4070,124 @@ ${taskContext}
                             </PopoverContent>
                         </Popover>
 
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    className={cn(
+                                        "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors group relative",
+                                        (mandatorySkillsEnabled || selectedStoreSkillIds.length > 0)
+                                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                                            : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                                    )}
+                                    title="技能管理"
+                                >
+                                    <Library size={18} strokeWidth={2} className={cn(
+                                        (mandatorySkillsEnabled || selectedStoreSkillIds.length > 0) && "fill-current"
+                                    )} />
+                                    {(mandatorySkillsEnabled || selectedStoreSkillIds.length > 0) && (
+                                        <span className="absolute -top-0.5 -right-0.5 size-2 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900" />
+                                    )}
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 p-0 rounded-2xl shadow-2xl border-zinc-200 dark:border-zinc-800" align="start" sideOffset={12}>
+                                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h4 className="font-bold text-sm text-zinc-900 dark:text-white">AI 技能中心</h4>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => setStoreOpen(true)}
+                                            className="h-7 px-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        >
+                                            进入商店
+                                        </Button>
+                                    </div>
+                                    <p className="text-[11px] text-zinc-500">管理助手的能力模块与行为逻辑</p>
+                                </div>
+                                <div className="p-2 space-y-4 max-h-[400px] overflow-y-auto">
+                                    {/* Built-in Skills Group */}
+                                    <div className="px-2 pt-2">
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="size-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900">
+                                                    <Zap size={14} className="fill-current" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-[13px] font-bold block leading-none">系统核心技能</span>
+                                                    <span className="text-[10px] text-zinc-500 mt-1 block">身份/风格/农业/设备</span>
+                                                </div>
+                                            </div>
+                                            <Switch 
+                                                checked={mandatorySkillsEnabled}
+                                                onCheckedChange={setMandatorySkillsEnabled}
+                                                className="scale-90 data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-zinc-100"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Downloaded Skills */}
+                                    <div className="px-2 pb-2">
+                                        <div className="flex items-center gap-2 px-2 pb-2">
+                                            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800"></div>
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2">已安装扩展</span>
+                                            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800"></div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            {installedStoreSkills.length > 0 ? installedStoreSkills.map((skill) => (
+                                                <div 
+                                                    key={skill.skill_id}
+                                                    onClick={() => {
+                                                        const isSelected = selectedStoreSkillIds.includes(skill.skill_id)
+                                                        if (isSelected) {
+                                                            setSelectedStoreSkillIds(prev => prev.filter(id => id !== skill.skill_id))
+                                                        } else {
+                                                            setSelectedStoreSkillIds(prev => [...prev, skill.skill_id])
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200",
+                                                        selectedStoreSkillIds.includes(skill.skill_id)
+                                                            ? "bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 shadow-none hover:shadow-sm" 
+                                                            : "hover:bg-zinc-50 dark:hover:bg-zinc-900 border border-transparent"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <div className="text-xl shrink-0 group-hover:scale-110 transition-transform">{skill.icon}</div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className={cn(
+                                                                "text-xs font-bold truncate pr-2",
+                                                                selectedStoreSkillIds.includes(skill.skill_id) ? "text-blue-700 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
+                                                            )}>{skill.name}</span>
+                                                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate pr-2">{skill.description}</span>
+                                                        </div>
+                                                    </div>
+                                                    <Switch 
+                                                        checked={selectedStoreSkillIds.includes(skill.skill_id)}
+                                                        onCheckedChange={(checked) => {
+                                                            if (!checked) {
+                                                                setSelectedStoreSkillIds(prev => prev.filter(id => id !== skill.skill_id))
+                                                            } else {
+                                                                setSelectedStoreSkillIds(prev => [...prev, skill.skill_id])
+                                                            }
+                                                        }}
+                                                        className="scale-[0.8] data-[state=checked]:bg-blue-600 shrink-0"
+                                                    />
+                                                </div>
+                                            )) : (
+                                                <div className="py-8 text-center bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                                                    <Library size={24} className="mx-auto text-zinc-300 dark:text-zinc-700 mb-2 opacity-50" />
+                                                    <p className="text-[10px] text-zinc-400 tracking-tight">前往商店探索更多技能</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800 text-center">
+                                    <p className="text-[9px] text-zinc-400">选择完成后，发送消息将携带相应技能上下文</p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 group relative"
@@ -4164,12 +4493,6 @@ ${taskContext}
       {/* 浏览器活动窗口 - 仅在全屏模式下渲染，小窗口预览不需要此组件 */}
       <BrowserActivity url={browsingUrl || ""} isOpen={!!browsingUrl && !studioOpen} onClose={() => setBrowsingUrl(null)} />
 
-      <AISettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onSave={handleSettingsSave}
-      />
-
       <VoiceChatModal
         open={voiceChatOpen}
         onClose={() => setVoiceChatOpen(false)}
@@ -4177,6 +4500,34 @@ ${taskContext}
         aiSettings={aiSettings}
       />
 
+      {/* Skill Store Overlay */}
+      <AnimatePresence>
+        {storeOpen && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-[200] bg-white dark:bg-[#09090B] flex flex-col pt-12"
+          >
+            <div className="absolute top-6 left-8 z-[210]">
+               <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setStoreOpen(false)}
+                className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 group"
+               >
+                 <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                 <span className="font-bold tracking-tight">退出商店</span>
+               </Button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+               <SkillStore />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+ 
       {/* 可见的 LiveStreamPlayer 弹窗用于 AI 视觉巡检截图，参考 Monitor 页面样式 */}
       {/* 修复闪烁：增加 key 或移除不必要的重新渲染触发条件，并且移除 pointer-events-none 避免在某些设备上被点击穿透导致关闭，但我们需要它不可点击，所以用 pointer-events-none。 闪烁通常是因为 open 状态瞬间变化，或者组件重复挂载。 */}
       <Dialog open={!!inspectionCameraUrl || isInspecting} onOpenChange={() => {}}>

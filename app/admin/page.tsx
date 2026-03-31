@@ -27,6 +27,7 @@ import { MaintenanceSettings } from "@/components/admin/maintenance-settings"
 import { MCPMarketManager } from "@/components/admin/mcp-market-manager"
 import { FeatureAnnouncementAdmin } from "@/components/dashboard/feature-announcement-admin"
 import { CameraSettings } from "@/components/admin/camera-settings"
+import { SkillManager } from "@/components/admin/skill-manager"
 import { MonitorVersionSettings } from "@/components/admin/monitor-version-settings"
 import { DeviceControlVersionSettings } from "@/components/admin/device-control-version-settings"
 import { DashboardVersionSettings } from "@/components/admin/dashboard-version-settings"
@@ -217,6 +218,12 @@ export default function AdminPage() {
             >
               MCP Market
             </TabsTrigger>
+            <TabsTrigger
+              value="skills"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              Agent Skills
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="mt-0 outline-none animate-in fade-in-50">
@@ -393,6 +400,10 @@ export default function AdminPage() {
 
           <TabsContent value="mcp-market" className="mt-0 outline-none animate-in fade-in-50">
             <MCPMarketManager />
+          </TabsContent>
+
+          <TabsContent value="skills" className="mt-0 outline-none animate-in fade-in-50">
+            <SkillManager />
           </TabsContent>
         </Tabs>
       </main>

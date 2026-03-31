@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   {
     "title": "任务标题",
     "execute_at_time": "HH:MM", // 24小时制时间字符串
-    "device_id": 5, // 5:水泵, 6:风扇, 7:补光灯, 8:白灯
+    "device_id": 5, // 5:水泵, 6:风扇, 7:补光灯, 8:光照植物补光灯
     "action_type": "relay", // 或 "led"
     "params": { "value": 1 } // 1:开启, 0:关闭
   }

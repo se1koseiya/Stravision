@@ -191,7 +191,12 @@ export async function POST(request: NextRequest) {
       
     } else if (action === 'control_camera') {
       // 摄像头云台控制（步进电机）
-      const { direction, pulses } = body
+      let { direction, pulses, distance_mm } = body
+      
+      // 如果 AI 提供了距离（毫米），则根据 160 脉冲/mm 比例转换
+      if (distance_mm !== undefined && typeof distance_mm === 'number' && direction !== 0) {
+        pulses = Math.round(distance_mm * 160)
+      }
       
       if (direction === undefined || direction === null) {
         return NextResponse.json(
@@ -316,7 +321,7 @@ export async function GET() {
         description: "开关继电器设备",
         parameters: {
           action: "toggle_relay",
-          device: "继电器编号 (5=水泵, 6=风扇, 7=补光灯, 8=白灯)",
+          device: "继电器编号 (5=水泵, 6=风扇, 7=补光灯, 8=光照植物补光灯)",
           value: "状态值 (0=关闭, 1=开启)"
         },
         example: {
@@ -348,7 +353,8 @@ export async function GET() {
         },
         example: {
           action: "control_camera",
-          direction: 1
+          direction: 1,
+          distance_mm: 50
         }
       },
       reset_camera: {

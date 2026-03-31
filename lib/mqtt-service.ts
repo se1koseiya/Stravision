@@ -114,6 +114,8 @@ export class MQTTService {
 
   private stepperInactivityTimer: NodeJS.Timeout | null = null
   private readonly STEPPER_AUTO_RESET_DELAY_MS = 5 * 60 * 1000 // 5分钟无操作自动复位到中间
+  private channelUpdateTimes: Map<string, number> = new Map()
+  private lastNotificationTimeVal: number = 0
 
   /**
    * Private constructor to enforce singleton pattern
@@ -123,7 +125,22 @@ export class MQTTService {
     // Load initial stepper position from DB
     getStepperPosition().then(pos => {
       this.cachedStepperPosition = pos
-      if (this.latestData) this.latestData.stepper_position = pos
+      // Initialize latestData immediately so it can be used for control commands
+      if (!this.latestData) {
+        this.latestData = {
+          temperature: 0, humidity: 0, light: 0, co2: 0,
+          earth_temp: 0, earth_water: 0, earth_ec: 0,
+          earth_n: 0, earth_p: 0, earth_k: 0,
+          relay5: 0, relay6: 0, relay7: 0, relay8: 0,
+          led1: 0, led2: 0, led3: 0, led4: 0,
+          channel1: 0, channel2: 0, channel3: 0, channel4: 0, channel5: 0, 
+          channel6: 0, channel7: 0, channel8: 0, channel9: 0, channel10: 0, channel11: 0,
+          stepper_direction: 0,
+          stepper_position: pos
+        }
+      } else {
+        this.latestData.stepper_position = pos
+      }
     }).catch(err => {
       console.error('[MQTT] Failed to load initial stepper position:', err)
     })
@@ -180,7 +197,17 @@ export class MQTTService {
           const topics = [
             this.config.subscribeTopic,
             'meimefarm/Spectrum',
-            'meimefarm/sensor/node0701'
+            'meimefarm/sensor/node0701',
+            'meimefarm/sensor/node0702',
+            'meimefarm/sensor/node0703',
+            'meimefarm/sensor/node0704', 
+            'meimefarm/sensor/node0705',
+            'meimefarm/sensor/node0706',
+            'meimefarm/sensor/node0707',
+            'meimefarm/sensor/node0708',
+            'meimefarm/sensor/node0709',
+            'meimefarm/sensor/node0710',
+            'meimefarm/sensor/node0711'
           ]
 
           // Subscribe to device data topics
@@ -393,11 +420,27 @@ export class MQTTService {
           newPos = currentPos - targetPulses
         }
         
-        // Update the payload with adjusted pulses
+        // Update the payload with adjusted pulses and other necessary nodes
         const stepperPayload = payload as any
         if (stepperPayload.rw_prot && stepperPayload.rw_prot.w_data) {
+          // Ensure node0801 is always "8" for motor control
+          if (!stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0801')) {
+            stepperPayload.rw_prot.w_data.push({ name: 'node0801', value: '8' })
+          }
+          
+          // Reference HTML uses node0814 for direction control (0=stop, 1=fwd, 2=rev)
+          if (!stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0814')) {
+            stepperPayload.rw_prot.w_data.push({ name: 'node0814', value: String(direction) })
+          }
+
+          // Reference HTML uses node0803 for speed (Pulse_Rate)
+          const speed = command.stepper_run_time ? String(command.stepper_run_time) : "10000"
+          if (!stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0803')) {
+            stepperPayload.rw_prot.w_data.push({ name: 'node0803', value: speed })
+          }
+
           // Insert node0817 (Pulse Number)
-          if (direction !== 0) {
+          if (direction !== 0 && !stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0817')) {
             stepperPayload.rw_prot.w_data.push({ name: 'node0817', value: String(targetPulses) })
           }
         }
@@ -405,7 +448,12 @@ export class MQTTService {
         // Persist new position
         await updateStepperPosition(newPos)
         this.cachedStepperPosition = newPos
-        if (this.latestData) this.latestData.stepper_position = newPos
+        if (this.latestData) {
+          this.latestData.stepper_position = newPos
+          this.latestData.stepper_direction = direction
+          // Immediate broadcast for direction state change
+          this.dataListeners.forEach(l => { try { l(this.latestData!) } catch(e){} })
+        }
       }
 
       const payloadString = JSON.stringify(payload)
@@ -422,6 +470,14 @@ export class MQTTService {
               reject(error)
             } else {
               this.log('INFO', `Control command published successfully`)
+              
+              // Notify listeners immediately for local state changes (especially for stepper motor tracking)
+              if (this.latestData) {
+                this.dataListeners.forEach(listener => {
+                  try { listener(this.latestData!) } catch (e) { }
+                })
+              }
+              
               resolve()
             }
           }
@@ -504,65 +560,7 @@ export class MQTTService {
         }
       }
     } else if (command.type === 'stepper') {
-      // 步进电机控制命令 (摄像头云台左右移动)
-      // 根据文档: node0815 (寄存器40084) = 远程控制运行方向 (0=停止, 1=正转/左移, 2=反转/右移)
-      // node0805 = 加速系数, node0806 = 减速系数
-      // node0807 = 工作模式 (M6=6 通讯控制模式)
-      // node0817 = 第一段脉冲数 (决定移动距离)
       const w_data: { name: string; value: string }[] = []
-
-      // 运行方向控制 (必需) - node0815
-      if (command.stepper_direction !== undefined) {
-        if (command.stepper_direction < 0 || command.stepper_direction > 2) {
-          throw new Error('Stepper direction must be 0 (stop), 1 (forward/left), or 2 (reverse/right)')
-        }
-        w_data.push({ name: 'node0815', value: String(command.stepper_direction) })
-      }
-
-      // 工作模式设置 (可选, 默认M6=6通讯控制模式) - node0807
-      if (command.stepper_mode !== undefined) {
-        if (command.stepper_mode < 1 || command.stepper_mode > 26) {
-          throw new Error('Stepper mode must be between 1 and 26')
-        }
-        w_data.push({ name: 'node0807', value: String(command.stepper_mode) })
-      }
-
-      // 加速系数 (可选, 100-10000) - node0805
-      if (command.stepper_accel !== undefined) {
-        if (command.stepper_accel < 100 || command.stepper_accel > 10000) {
-          throw new Error('Stepper acceleration must be between 100 and 10000')
-        }
-        w_data.push({ name: 'node0805', value: String(command.stepper_accel) })
-      }
-
-      // 减速系数 (可选, 100-10000) - node0806
-      if (command.stepper_decel !== undefined) {
-        if (command.stepper_decel < 100 || command.stepper_decel > 10000) {
-          throw new Error('Stepper deceleration must be between 100 and 10000')
-        }
-        w_data.push({ name: 'node0806', value: String(command.stepper_decel) })
-      }
-
-      // 运行时间 (可选, 100=1秒) - node0809
-      if (command.stepper_run_time !== undefined) {
-        if (command.stepper_run_time < 1 || command.stepper_run_time > 65535) {
-          throw new Error('Stepper run time must be between 1 and 65535')
-        }
-        w_data.push({ name: 'node0809', value: String(command.stepper_run_time) })
-      }
-
-      // 循环次数 (可选, 0=无限循环) - node0810
-      if (command.stepper_loop_count !== undefined) {
-        if (command.stepper_loop_count < 0 || command.stepper_loop_count > 65535) {
-          throw new Error('Stepper loop count must be between 0 and 65535')
-        }
-        w_data.push({ name: 'node0810', value: String(command.stepper_loop_count) })
-      }
-
-      if (w_data.length === 0) {
-        throw new Error('Stepper command requires at least stepper_direction')
-      }
-
       return {
         rw_prot: {
           Ver: '1.0.1',
@@ -600,61 +598,105 @@ export class MQTTService {
           earth_n: 0, earth_p: 0, earth_k: 0,
           relay5: 0, relay6: 0, relay7: 0, relay8: 0,
           led1: 0, led2: 0, led3: 0, led4: 0,
+          channel1: 0, channel2: 0, channel3: 0, channel4: 0, channel5: 0, 
+          channel6: 0, channel7: 0, channel8: 0, channel9: 0, channel10: 0, channel11: 0,
           stepper_direction: 0,
           stepper_position: this.cachedStepperPosition
         }
       }
 
       // Update data based on topic or content
-      if (topic === 'meimefarm/Spectrum' || topic === 'meimefarm/sensor/node0701') {
-        // New format: each channel is an object with {id, value}
-        // e.g. {"channel1": {"id": "node0701", "value": 313}, ...}
+      if (topic === 'meimefarm/Spectrum' || topic.startsWith('meimefarm/sensor/node07')) {
+        // New format: each channel is an object with {id, value} or just {value}
         const getChannelValue = (ch: any) => {
-          if (ch && typeof ch === 'object' && 'value' in ch) {
-            return this.parseNumber(ch.value, 0);
+          if (ch === undefined || ch === null) return null;
+          if (typeof ch === 'object' && 'value' in ch) {
+             return this.parseNumber(ch.value, 0);
+          }
+          if (typeof ch === 'object' && 'val' in ch) {
+             return this.parseNumber(ch.val, 0);
           }
           return this.parseNumber(ch, 0);
         };
 
-        // Spectral or specific node data
-        this.latestData = {
-          ...this.latestData,
-          channel1: getChannelValue(rawData.channel1) || this.latestData?.channel1 || 0,
-          channel2: getChannelValue(rawData.channel2) || this.latestData?.channel2 || 0,
-          channel3: getChannelValue(rawData.channel3) || this.latestData?.channel3 || 0,
-          channel4: getChannelValue(rawData.channel4) || this.latestData?.channel4 || 0,
-          channel5: getChannelValue(rawData.channel5) || this.latestData?.channel5 || 0,
-          channel6: getChannelValue(rawData.channel6) || this.latestData?.channel6 || 0,
-          channel7: getChannelValue(rawData.channel7) || this.latestData?.channel7 || 0,
-          channel8: getChannelValue(rawData.channel8) || this.latestData?.channel8 || 0,
-          channel9: getChannelValue(rawData.channel9) || this.latestData?.channel9 || 0,
-          channel10: getChannelValue(rawData.channel10) || this.latestData?.channel10 || 0,
-          channel11: getChannelValue(rawData.channel11) || this.latestData?.channel11 || 0,
-          stepper_position: this.cachedStepperPosition,
-          timestamp: Date.now()
+        // If it's a specific node topic, map it directly to a channel
+        if (topic.startsWith('meimefarm/sensor/node07')) {
+           const nodeNumStr = topic.split('node07')[1]; // e.g. "01", "11"
+           const channelIndex = parseInt(nodeNumStr, 10);
+           if (!isNaN(channelIndex) && channelIndex >= 1 && channelIndex <= 11) {
+              const channelKey = `channel${channelIndex}` as keyof DeviceData;
+              const val = getChannelValue(rawData);
+              if (val !== null) {
+                 this.channelUpdateTimes.set(channelKey, Date.now());
+                 if (channelIndex === 1) {
+                    this.log('INFO', `Individual Node Topic [${topic}] updating channel1 to ${val}`);
+                 }
+                 this.latestData = {
+                    ...this.latestData,
+                    [channelKey]: val,
+                    timestamp: Date.now()
+                 };
+              }
+           }
+        } else {
+          // meimefarm/Spectrum topic (bulk update)
+          // Aggregated scan might contain stale data from individual nodes.
+          // We only apply bulk updates to channels that haven't been updated individually
+          // in the last 2 seconds to prevent "flashing" or jitter.
+          const now = Date.now();
+          const shouldUpdate = (key: string) => {
+             const last = this.channelUpdateTimes.get(key) || 0;
+             // High threshold (10 minutes) for protection.
+             // We want to COMPLETELY trust individual node topics if they are active.
+             return (now - last) > 600000;
+          };
+
+          const oldVal = (this.latestData as any)?.channel1;
+          const newVal = getChannelValue(rawData.channel1) ?? oldVal ?? 0;
+          
+          if (oldVal !== undefined && newVal !== oldVal && newVal === 10270) {
+             this.log('WARN', `Spectral Jumper Alert! Bulk Spectrum topic trying to set channel1 to 10270. shouldUpdate: ${shouldUpdate('channel1')}`);
+          }
+
+          this.latestData = {
+            ...this.latestData,
+            channel1: shouldUpdate('channel1') ? newVal : oldVal ?? 0,
+            channel2: shouldUpdate('channel2') ? (getChannelValue(rawData.channel2) ?? this.latestData?.channel2 ?? 0) : this.latestData?.channel2 ?? 0,
+            channel3: shouldUpdate('channel3') ? (getChannelValue(rawData.channel3) ?? this.latestData?.channel3 ?? 0) : this.latestData?.channel3 ?? 0,
+            channel4: shouldUpdate('channel4') ? (getChannelValue(rawData.channel4) ?? this.latestData?.channel4 ?? 0) : this.latestData?.channel4 ?? 0,
+            channel5: shouldUpdate('channel5') ? (getChannelValue(rawData.channel5) ?? this.latestData?.channel5 ?? 0) : this.latestData?.channel5 ?? 0,
+            channel6: shouldUpdate('channel6') ? (getChannelValue(rawData.channel6) ?? this.latestData?.channel6 ?? 0) : this.latestData?.channel6 ?? 0,
+            channel7: shouldUpdate('channel7') ? (getChannelValue(rawData.channel7) ?? this.latestData?.channel7 ?? 0) : this.latestData?.channel7 ?? 0,
+            channel8: shouldUpdate('channel8') ? (getChannelValue(rawData.channel8) ?? this.latestData?.channel8 ?? 0) : this.latestData?.channel8 ?? 0,
+            channel9: shouldUpdate('channel9') ? (getChannelValue(rawData.channel9) ?? this.latestData?.channel9 ?? 0) : this.latestData?.channel9 ?? 0,
+            channel10: shouldUpdate('channel10') ? (getChannelValue(rawData.channel10) ?? this.latestData?.channel10 ?? 0) : this.latestData?.channel10 ?? 0,
+            channel11: shouldUpdate('channel11') ? (getChannelValue(rawData.channel11) ?? this.latestData?.channel11 ?? 0) : this.latestData?.channel11 ?? 0,
+            timestamp: now
+          };
         }
       } else {
-        // Basic Env Data
+        // Basic Env Data - Strictly sanitized to prevent spectral "pollution"
+        const cleanRawData = this.sanitizeEnvData(rawData);
         this.latestData = {
           ...this.latestData,
-          temperature: this.parseNumber(rawData.temperature, this.latestData?.temperature ?? 0),
-          humidity: this.parseNumber(rawData.humidity, this.latestData?.humidity ?? 0),
-          light: this.parseNumber(rawData.light, this.latestData?.light ?? 0),
-          co2: this.parseNumber(rawData.co2, this.latestData?.co2 ?? 0),
-          earth_temp: this.parseNumber(rawData.earth_temp, this.latestData?.earth_temp ?? 0),
-          earth_water: this.parseNumber(rawData.earth_water, this.latestData?.earth_water ?? 0),
-          earth_ec: this.parseNumber(rawData.earth_ec, this.latestData?.earth_ec ?? 0),
-          earth_n: this.parseNumber(rawData.earth_n, this.latestData?.earth_n ?? 0),
-          earth_p: this.parseNumber(rawData.earth_p, this.latestData?.earth_p ?? 0),
-          earth_k: this.parseNumber(rawData.earth_k, this.latestData?.earth_k ?? 0),
-          relay5: this.parseNumber(rawData.relay5, this.latestData?.relay5 ?? 0),
-          relay6: this.parseNumber(rawData.relay6, this.latestData?.relay6 ?? 0),
-          relay7: this.parseNumber(rawData.relay7, this.latestData?.relay7 ?? 0),
-          relay8: this.parseNumber(rawData.relay8, this.latestData?.relay8 ?? 0),
-          led1: this.parseNumber(rawData.led1, this.latestData?.led1 ?? 0),
-          led2: this.parseNumber(rawData.led2, this.latestData?.led2 ?? 0),
-          led3: this.parseNumber(rawData.led3, this.latestData?.led3 ?? 0),
-          led4: this.parseNumber(rawData.led4, this.latestData?.led4 ?? 0),
+          temperature: this.parseNumber(cleanRawData.temperature, this.latestData?.temperature ?? 0),
+          humidity: this.parseNumber(cleanRawData.humidity, this.latestData?.humidity ?? 0),
+          light: this.parseNumber(cleanRawData.light, this.latestData?.light ?? 0),
+          co2: this.parseNumber(cleanRawData.co2, this.latestData?.co2 ?? 0),
+          earth_temp: this.parseNumber(cleanRawData.earth_temp, this.latestData?.earth_temp ?? 0),
+          earth_water: this.parseNumber(cleanRawData.earth_water, this.latestData?.earth_water ?? 0),
+          earth_ec: this.parseNumber(cleanRawData.earth_ec, this.latestData?.earth_ec ?? 0),
+          earth_n: this.parseNumber(cleanRawData.earth_n, this.latestData?.earth_n ?? 0),
+          earth_p: this.parseNumber(cleanRawData.earth_p, this.latestData?.earth_p ?? 0),
+          earth_k: this.parseNumber(cleanRawData.earth_k, this.latestData?.earth_k ?? 0),
+          relay5: this.parseNumber(cleanRawData.relay5, this.latestData?.relay5 ?? 0),
+          relay6: this.parseNumber(cleanRawData.relay6, this.latestData?.relay6 ?? 0),
+          relay7: this.parseNumber(cleanRawData.relay7, this.latestData?.relay7 ?? 0),
+          relay8: this.parseNumber(cleanRawData.relay8, this.latestData?.relay8 ?? 0),
+          led1: this.parseNumber(cleanRawData.led1, this.latestData?.led1 ?? 0),
+          led2: this.parseNumber(cleanRawData.led2, this.latestData?.led2 ?? 0),
+          led3: this.parseNumber(cleanRawData.led3, this.latestData?.led3 ?? 0),
+          led4: this.parseNumber(cleanRawData.led4, this.latestData?.led4 ?? 0),
           stepper_position: this.cachedStepperPosition,
           timestamp: Date.now()
         }
@@ -664,7 +706,6 @@ export class MQTTService {
         this.checkThresholds(this.latestData)
         
         // Save to database for historical tracking
-        // We only save basic environmental data, not spectral data which comes at high frequency
         saveSensorReading({
           temperature: this.latestData.temperature / 10,
           humidity: this.latestData.humidity / 10,
@@ -674,7 +715,7 @@ export class MQTTService {
           earth_n: this.latestData.earth_n,
           earth_p: this.latestData.earth_p,
           earth_k: this.latestData.earth_k,
-          rainfall: 0 // MQTT data currently doesn't include rainfall
+          rainfall: 0
         }).catch(err => {
           this.log('ERROR', `Failed to save sensor reading to DB: ${err}`)
         })
@@ -711,6 +752,14 @@ export class MQTTService {
         this.log('ERROR', `Failed to execute automation rules: ${err}`);
       }
 
+      const now = Date.now();
+      
+      // DEBOUNCE: Don't notify the UI more than once every 500ms to prevent rapid flashing
+      if (now - this.lastNotificationTimeVal < 500) {
+        return;
+      }
+      this.lastNotificationTimeVal = now;
+
       // Notify all listeners
       this.dataListeners.forEach(listener => {
         try {
@@ -724,6 +773,18 @@ export class MQTTService {
     } catch (error) {
       this.log('ERROR', `Failed to process MQTT message from ${topic}: ${error}`, error)
     }
+  }
+
+  /**
+   * Filter spectral keys from a source object to prevent pollution
+   */
+  private sanitizeEnvData(payload: any): any {
+    const clean: any = { ...payload };
+    // Remove ALL spectral channels from the environment payload
+    for (let i = 1; i <= 11; i++) {
+        delete clean[`channel${i}`];
+    }
+    return clean;
   }
 
   /**

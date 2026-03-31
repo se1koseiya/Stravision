@@ -113,7 +113,7 @@ interface DeviceData {
   relay5: number           // 水泵状态
   relay6: number           // 风扇状态
   relay7: number           // 补光灯状态
-  relay8: number           // 白灯状态
+  relay8: number           // 光照植物补光灯状态
 }
 ```
 
@@ -136,7 +136,7 @@ interface DeviceData {
 - 水泵 (relay5)：{{deviceData.relay5 === 1 ? '开启' : '关闭'}}
 - 风扇 (relay6)：{{deviceData.relay6 === 1 ? '开启' : '关闭'}}
 - 补光灯 (relay7)：{{deviceData.relay7 === 1 ? '开启' : '关闭'}}
-- 白灯 (relay8)：{{deviceData.relay8 === 1 ? '开启' : '关闭'}}
+- 光照植物补光灯 (relay8)：{{deviceData.relay8 === 1 ? '开启' : '关闭'}}
 ```
 
 #### 3.3 添加诊断逻辑

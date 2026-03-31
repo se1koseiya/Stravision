@@ -94,7 +94,7 @@ const DEVICE_NAMES: Record<string, string> = {
   '5': '水泵',
   '6': '风扇',
   '7': '补光灯',
-  '8': '白灯'
+  '8': '光照植物补光灯'
 };
 
 // Page names mapping for navigation
@@ -244,7 +244,7 @@ async function executeDeviceCommand(cmd: DeviceCommand): Promise<{ success: bool
       let actionDesc: string;
       
       if (cmd.action === 'set_led') {
-        deviceName = 'RGB补光灯';
+        deviceName = '植物全光谱补光灯';
         actionDesc = `颜色设置为 R:${cmd.r} G:${cmd.g} B:${cmd.b}`;
       } else if (cmd.action === 'control_camera') {
         deviceName = '摄像头云台';
@@ -254,7 +254,13 @@ async function executeDeviceCommand(cmd: DeviceCommand): Promise<{ success: bool
         deviceName = '摄像头云台';
         actionDesc = '复位居中';
       } else {
-        deviceName = DEVICE_NAMES[String(cmd.device)] || `设备${cmd.device}`;
+        const deviceMap: Record<string, string> = {
+          '5': '水泵',
+          '6': '风扇',
+          '7': '植物全光谱补光灯',
+          '8': '光照植物补光灯'
+        };
+        deviceName = deviceMap[String(cmd.device)] || DEVICE_NAMES[String(cmd.device)] || `设备${cmd.device}`;
         actionDesc = `已${cmd.value === 1 ? '开启' : '关闭'}`;
       }
       return { success: true, message: `${deviceName} ${actionDesc}` };
@@ -571,18 +577,18 @@ export function RealtimeVoiceOrb({
 ## 设备状态
 - 水泵(Relay5): ${relayStatus(deviceData.relay5)}
 - 风扇(Relay6): ${relayStatus(deviceData.relay6)}
-- 补光灯(Relay7): ${relayStatus(deviceData.relay7)}
-- 白灯(Relay8): ${relayStatus(deviceData.relay8)}
+- 植物全光谱补光灯(Relay7): ${relayStatus(deviceData.relay7)}
+- 光照植物补光灯(Relay8): ${relayStatus(deviceData.relay8)}
 - RGB灯: R=${deviceData.led1 ?? 0}, G=${deviceData.led2 ?? 0}, B=${deviceData.led3 ?? 0}
 
 ## 设备控制能力
 你可以控制以下设备，当用户要求控制设备时，请在回复中包含JSON命令：
 
-1. 继电器控制（水泵/风扇/补光灯/白灯）:
+1. 继电器控制（水泵/风扇/植物全光谱补光灯/光照植物补光灯）:
 \`\`\`json
 {"action":"toggle_relay","device":5,"value":1}
 \`\`\`
-- device: 5=水泵, 6=风扇, 7=补光灯, 8=白灯
+- device: 5=水泵, 6=风扇, 7=植物全光谱补光灯, 8=光照植物补光灯
 - value: 1=开启, 0=关闭
 
 2. RGB灯颜色控制:
@@ -616,7 +622,7 @@ export function RealtimeVoiceOrb({
 - cron: Cron表达式（周期任务），格式: 分 时 日 月 周
 - delay_seconds: 延迟秒数（一次性任务，如"5分钟后"用300）
 - task_action: toggle_relay 或 set_led
-- device: 设备ID（5=水泵, 6=风扇, 7=补光灯, 8=白灯）
+- device: 设备ID（5=水泵, 6=风扇, 7=植物全光谱补光灯, 8=光照植物补光灯）
 - value: 1=开启, 0=关闭
 - params: LED参数 {"r":255,"g":0,"b":0}
 

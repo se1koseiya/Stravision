@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
+  { label: "模型市场", path: "/model-store" },
   { label: "MCP 广场", path: "/mcp-store" },
   { label: "我的 MCP", path: "/my-mcp" }
 ]

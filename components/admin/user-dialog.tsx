@@ -22,8 +22,8 @@ interface UserDialogProps {
 const CONTROLS = [
   { id: 'relay5', label: 'Relay 5 (水泵)' },
   { id: 'relay6', label: 'Relay 6 (风扇)' },
-  { id: 'relay7', label: 'Relay 7 (补光灯)' },
-  { id: 'relay8', label: 'Relay 8 (白灯)' },
+  { id: 'relay7', label: 'Relay 7 (植物全光谱补光灯)' },
+  { id: 'relay8', label: 'Relay 8 (光照植物补光灯)' },
   { id: 'led1', label: 'LED 1 (红)' },
   { id: 'led2', label: 'LED 2 (绿)' },
   { id: 'led3', label: 'LED 3 (蓝)' },

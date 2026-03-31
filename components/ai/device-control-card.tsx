@@ -26,9 +26,9 @@ export function DeviceControlCard({ command, timestamp, status = 'executed', cla
     if (command.device === 5) { title = "水泵控制"; Icon = Droplets; deviceName = "water-pump"; }
     else if (command.device === 6) { title = "风扇控制"; Icon = Fan; deviceName = "fan"; }
     else if (command.device === 7) { title = "补光灯电源"; Icon = Zap; deviceName = "grow-light"; }
-    else if (command.device === 8) { title = "白灯控制"; Icon = Lightbulb; deviceName = "white-light"; }
+    else if (command.device === 8) { title = "光照植物补光灯控制"; Icon = Lightbulb; deviceName = "white-light"; }
   } else if (command.action === 'set_led') {
-    title = "RGB补光灯调节";
+    title = "植物全光谱补光灯调节";
     Icon = Lightbulb;
     deviceName = "rgb-light";
   } else if (command.action === 'control_camera') {

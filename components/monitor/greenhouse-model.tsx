@@ -135,7 +135,7 @@ const DEVICE_MARKERS = [
   { 
     id: "rgb-light", 
     type: "light-rgb", 
-    label: "RGB补光灯",
+    label: "植物全光谱补光灯",
     position: [-1, 2.2, 0] as [number, number, number],
     cameraTarget: [-1, 2, 0] as [number, number, number],
     cameraPosition: [3, 5, 5] as [number, number, number],
@@ -145,7 +145,7 @@ const DEVICE_MARKERS = [
   { 
     id: "white-light", 
     type: "light-white", 
-    label: "白光补光灯",
+    label: "光照植物补光灯",
     position: [1, 2.2, 0] as [number, number, number],
     cameraTarget: [1, 2, 0] as [number, number, number],
     cameraPosition: [4, 5, 5] as [number, number, number],
@@ -823,7 +823,7 @@ function AIAssistantCard({
               { label: "灌溉", relay: 5 as const, icon: Droplets, color: "text-cyan-500" },
               { label: "通风", relay: 6 as const, icon: Fan, color: "text-indigo-500" },
               { label: "补光", relay: 7 as const, icon: Lightbulb, color: "text-amber-500" },
-              { label: "白灯", relay: 8 as const, icon: Sun, color: "text-yellow-500" },
+              { label: "光照植物补光灯", relay: 8 as const, icon: Sun, color: "text-yellow-500" },
             ].map(({ label, relay, icon: Icon, color }) => {
               const isOn = deviceData[`relay${relay}`] === 1
               return (
@@ -948,7 +948,7 @@ function GrowLights({ lightState, deviceData }: { lightState: LightState; device
 
   return (
     <>
-      {/* RGB补光灯 */}
+      {/* 植物全光谱补光灯 */}
       {rgbOn && (
         <>
           <pointLight

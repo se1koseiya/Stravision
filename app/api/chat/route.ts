@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     }
 
     await initDB()
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled } =
       await req.json()
 
     // 兼容前端传来的 deviceData 字段
@@ -94,8 +94,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // 构建增强的系统提示词，包含当前设备和天气数据
-    const enhancedSystemPrompt = getEnhancedSystemPrompt(systemPrompt)
+
 
     // === MCP Function Calling 集成 ===
     // 根据用户启用的 MCP 服务，生成 AI 可调用的工具定义
@@ -108,9 +107,12 @@ export async function POST(req: Request) {
     const lastUserText = typeof lastUserContent === 'string' ? lastUserContent : 
                          (Array.isArray(lastUserContent) ? lastUserContent.find((c:any) => c.type === 'text')?.text || "" : "")
     
+    // 构建增强的系统提示词，通过智能路由选择相关技能以节省 Token
+    const { prompt: enhancedSystemPrompt, matchedSkills } = await getEnhancedSystemPrompt(lastUserText, systemPrompt, user.id as number)
+    
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
-    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我查", "帮我搜", "我想知道", "查一下", "搜一下", "找一下", "抓取", "获取", "bilibili", "视频", "链接", "网站", "网页"]
+    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页"]
     const hasToolKeyword = toolKeywords.some(k => lastUserText.toLowerCase().includes(k))
     const hasToolMention = /@[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(lastUserText)
     const hasToolImage = Array.isArray(lastUserContent) && lastUserContent.some((c:any) => c.type === 'image_url')
@@ -155,7 +157,8 @@ export async function POST(req: Request) {
                  const searchTriggers = [
                      '搜索', '查一下', '找一下', '抓取', '帮我查', '帮我搜', '我想知道', 
                      '查找', '搜一下', '找找', '获取', '查询', '寻找', 'bilibili', 
-                     '视频', '链接', '网站', '网页', '资料', '信息', '内容'
+                     '视频', '链接', '网站', '网页', '资料', '信息', '内容',
+                     '调控', '分析', '种植', '专家', '建议', '标准', '参数', '巡检'
                  ]
                  
                  const hasSearchIntent = searchTriggers.some(trigger => lowerMsg.includes(trigger))
@@ -239,7 +242,7 @@ export async function POST(req: Request) {
 4. **基于结果调控**：获取到搜索结果（如“白天适宜25度”）后，再对比当前温度，如果当前是30度，则生成“开启风扇”的建议。`
 
     // 直接注入基础设备状态和环境数据
-    if (deviceStatus) {
+    if (deviceStatus && mandatorySkillsEnabled !== false) {
       // 计算丝杆滑台位置信息
       const stepperPos = deviceStatus.stepper_position || 0
       const stepperPosMM = (stepperPos / 160).toFixed(1)
@@ -256,10 +259,10 @@ export async function POST(req: Request) {
           light_lux: deviceStatus.light !== undefined ? deviceStatus.light + "lux" : "未知"
         },
         devices: {
-          water_pump: deviceStatus.relay5 === 1 ? "开启" : "关闭",
-          fan: deviceStatus.relay6 === 1 ? "开启" : "关闭",
-          grow_light_power: deviceStatus.relay7 === 1 ? "开启" : "关闭",
-          white_light: deviceStatus.relay8 === 1 ? "开启" : "关闭",
+          water_pump_id5: deviceStatus.relay5 === 1 ? "开启" : "关闭",
+          fan_id6: deviceStatus.relay6 === 1 ? "开启" : "关闭",
+          grow_light_id7: deviceStatus.relay7 === 1 ? "开启" : "关闭",
+          white_light_id8: deviceStatus.relay8 === 1 ? "开启" : "关闭",
           rgb_light: deviceStatus.rgb_status ? `R:${deviceStatus.rgb_status.r} G:${deviceStatus.rgb_status.g} B:${deviceStatus.rgb_status.b}` : "未知"
         },
         stepper_motor: {
@@ -325,20 +328,20 @@ export async function POST(req: Request) {
     const finalSystemPrompt = enhancedSystemPrompt + contextInfo + forcedToolPrompt
 
     const deviceControlInstruction =
-      "## 设备控制能力与 Agent 交互规范 (6-Step SOP)\n" +
-      "你是一个能够感知环境并控制设备的智能体 (Agent)。为了确保操作的安全性和有效性，请严格遵循以下总体流程：\n\n" +
-      "### 核心执行工作流\n" +
-      "1. **任务规划 (Plan)**：接受用户的需求，优先选用合适的 MCP 服务生成并获取背景知识，然后生成明确的任务列表（TASK_LIST）。\n" +
-      "2. **顺序执行 (Execute)**：根据任务列表，一条一条地顺序执行。\n" +
-      "3. **操作前检查 (Pre-check)**：执行具体设备操作前，必须先分析当前的设备状态、环境数据或物理极限（如滑台剩余行程）。\n" +
-      "4. **生成指令 (Command)**：基于分析结果，选择合适的工具并输出单个步骤的 JSON 操作命令。\n" +
-      "5. **操作后验证 (Verify)**：系统执行完毕后会返回反馈，你必须再次获取和分析设备状态，确保设备状态已改变或通过验证。\n" +
-      "6. **推进任务 (Next)**：确保当前任务状态达标后（更新为 completed），思考下一个任务是否有必要操作。如果有必要且在 Agent 托管模式下，请直接继续执行步骤 3-5；如果全部任务完成则进行最终总结。\n\n" +
-      "### 安全与防死循环规则\n" +
-      "- **检查物理极限**：在输出 `control_camera` 或 `move_camera_and_look` 前，必须检查 `remaining_left_travel` 和 `remaining_right_travel`。空间不足严禁移动。\n" +
-      "- **严禁死循环**：如果发现指令无效（如环境数据无变化），不要重复发送相同指令，应标记任务异常并继续后续任务或停止。\n\n" +
-      "### 控制命令格式\n" +
-      "仅当确信需要操作时，输出如下 JSON（用代码块包裹）：\n" +
+      "## IoT 设备控制规范与硬件 ID 映射 (必读)\n" +
+      "你是一个能够感知环境并控制设备的智能体 (Agent)。请严格遵循以下规则：\n\n" +
+      "### 🚨 核心硬件 ID 对照表 (必须严格遵守)\n" +
+      "在执行 `toggle_relay` 指令时，你必须且只能使用这几个 `device` 序号：\n" +
+      "- **Device 5**: 水泵 (Water Pump)\n" +
+      "- **Device 6**: 风扇 (Fan)\n" +
+      "- **Device 7**: RGB 补光灯 (Grow Light)\n" +
+      "- **Device 8**: 光照植物补光灯 (White Light / 辅助照明)\n" +
+      "**【极其重要】严禁使用 1, 2, 3, 4 或任何其他序号！**\n\n" +
+      "### 执行工作流\n" +
+      "1. **任务规划**：先生成 <TASK_LIST>。\n" +
+      "2. **分步执行**：基于最新数据生成单步 JSON 命令。\n" +
+      "3. **闭环验证**：执行后对比传感器数据，验证状态已改变。\n\n" +
+      "### 命令 JSON 格式\n" +
       "```json\n" +
       "{\n" +
       '  "action": "toggle_relay",\n' +
@@ -346,17 +349,18 @@ export async function POST(req: Request) {
       '  "value": 1\n' +
       "}\n" +
       "```\n" +
-      "（value: 1 为开启，0 为关闭）\n" +
-      "或调节 LED：\n" +
+      "（value: 1 为开启，0 为关闭）\n\n" +
+      "### 丝杆滑台 (Stepper Slider) 移动控制\n" +
+      "- **Action**: `control_camera` (控制摄像头左右水平移动)\n" +
+      "- **Parameters**:\n" +
+      "  - `direction`: 1 (左移), 2 (右移), 0 (停止)\n" +
+      "  - `distance_mm`: 移动距离 (数字，单位毫米)。滑台总行程 700mm。\n" +
+      "- **Action**: `reset_camera` (将滑台复位到正中间 350mm 处)\n" +
+      "- **示例**:\n" +
       "```json\n" +
-      "{\n" +
-      '  "action": "set_led",\n' +
-      '  "r": 255,\n' +
-      '  "g": 100,\n' +
-      '  "b": 50\n' +
-      "}\n" +
-      "```\n" +
-      "注意：每次回复最多包含一个步骤的命令（可以包含并发的多个指令，只要它们属于同一个逻辑步骤）。不要试图在一个回复中完成跨时间段的任务。\n"
+      '{\n  "action": "control_camera",\n  "direction": 1,\n  "distance_mm": 100\n}\n' +
+      "```\n\n" +
+      "注意：每次回复最多包含一个步骤的命令。如果需要操作多个设备，可在同一个回复中输出多个 JSON 块。不要在一个回复中完成跨时间段的任务。\n"
 
     const citationInstruction =
       "关于引用来源的重要规则：\n" +
@@ -518,7 +522,7 @@ export async function POST(req: Request) {
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
+          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
         },
         ...finalMessages,
       ]
@@ -538,7 +542,7 @@ export async function POST(req: Request) {
       }
     } else if (isDashScope) {
       // DashScope 原生API格式
-      const systemMessage = `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`
+      const systemMessage = `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
@@ -581,7 +585,7 @@ export async function POST(req: Request) {
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${deviceControlInstruction}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
+          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
         },
         ...messages,
       ]
@@ -677,6 +681,17 @@ export async function POST(req: Request) {
                 }, 5000)
 
                 try {
+                  // 0. 发送已选取的知识模块 (AI Skill Routing)
+                  if (matchedSkills && matchedSkills.length > 0) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `skill-selection-${Date.now()}`,
+                      object: "chat.completion.chunk",
+                      created: Date.now(),
+                      model: effectiveModel,
+                      skill_selection: matchedSkills.map(s => ({ id: s.id, name: s.name }))
+                    })}\n\n`))
+                  }
+
                   // 1. 立即推送工具调用状态
                   const toolStatusPayload = {
                     id: `tool-status-${Date.now()}`,
@@ -944,8 +959,19 @@ export async function POST(req: Request) {
         const decoder = new TextDecoder()
         const stream = new ReadableStream({
           async start(controller) {
+            // 0. 发送已选取的知识模块 (AI Skill Routing)
+            if (matchedSkills && matchedSkills.length > 0) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                id: `skill-selection-${Date.now()}`,
+                object: "chat.completion.chunk",
+                created: Date.now(),
+                model: effectiveModel,
+                skill_selection: matchedSkills.map(s => ({ id: s.id, name: s.name }))
+              })}\n\n`))
+            }
+
             let acc = ""
-            let buffer = "" // 添加缓冲区
+            let buffer = "" 
             if (!reader) { controller.close(); return }
             try {
               while (true) {
@@ -954,7 +980,6 @@ export async function POST(req: Request) {
                 const chunk = decoder.decode(value, { stream: true })
                 buffer += chunk
                 const lines = buffer.split("\n")
-                // 保留最后一个可能不完整的行
                 buffer = lines.pop() || ""
 
                 for (const line of lines) {
@@ -963,23 +988,13 @@ export async function POST(req: Request) {
                     if (data === "[DONE]") continue
                     try {
                       const json = JSON.parse(data)
-                      const content =
-                        json.output?.choices?.[0]?.message?.content ||
-                        json.output?.text || ""
+                      const content = json.output?.choices?.[0]?.message?.content || json.output?.text || ""
                       if (typeof content === "string") {
-                        // 百炼应用 SSE 默认通常返回增量，但也取决于具体配置
-                        // 如果 acc 逻辑导致无法输出，说明 content 是增量而非全量
-                        // 这里尝试自适应：如果 content 长度小于 acc 长度，可能是增量（或重新开始），或者 content 就是 delta
-
-                        // 观察发现百炼应用 SSE 返回的 text 通常是全量（accumulated）
-                        // 但为了保险，我们可以检查 content 是否包含 acc 前缀
                         let next = ""
                         if (content.startsWith(acc)) {
                           next = content.slice(acc.length)
                           acc = content
                         } else {
-                          // 如果不以 acc 开头，可能 content 本身就是 delta，或者发生了跳跃
-                          // 假设是 delta
                           next = content
                           acc += content
                         }
@@ -1017,6 +1032,7 @@ export async function POST(req: Request) {
           created: Date.now(),
           model: model,
           choices: [{ index: 0, delta: { content }, finish_reason: "stop" }],
+          skill_selection: matchedSkills?.map(s => ({ id: s.id, name: s.name }))
         }
         const body = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`
         return new Response(body, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" } })
@@ -1029,10 +1045,21 @@ export async function POST(req: Request) {
 
       const stream = new ReadableStream({
         async start(controller) {
+          // 0. 发送已选取的知识模块 (AI Skill Routing)
+          if (matchedSkills && matchedSkills.length > 0) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              id: `skill-selection-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: Date.now(),
+              model: effectiveModel,
+              skill_selection: matchedSkills.map(s => ({ id: s.id, name: s.name }))
+            })}\n\n`))
+          }
+
           let acc = ""
           let accReasoning = ""
           let reasoningClosed = false
-          let buffer = "" // 添加缓冲区
+          let buffer = "" 
 
           if (!reader) {
             controller.close()
@@ -1056,33 +1083,7 @@ export async function POST(req: Request) {
 
                   try {
                     const json = JSON.parse(data)
-
-                    // Handle Search Citations
-                    if (json.output?.choices?.[0]?.finish_reason === "stop" && json.output?.choices?.[0]?.message?.content) {
-                      const searchInfo = json.output?.search_info
-                      if (searchInfo && Array.isArray(searchInfo.search_results) && searchInfo.search_results.length > 0) {
-                        const sources = searchInfo.search_results.map((item: any, idx: number) => ({
-                          number: idx + 1,
-                          title: item.title,
-                          url: item.url,
-                          description: item.snippet || "",
-                          quote: ""
-                        }))
-
-                        const sourcesTag = `\n\n<SOURCES> ${JSON.stringify(sources)} </SOURCES>`
-                        const openaiFormat = {
-                          id: json.request_id,
-                          object: "chat.completion.chunk",
-                          created: Date.now(),
-                          model: model,
-                          choices: [{ index: 0, delta: { content: sourcesTag }, finish_reason: null }]
-                        }
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
-                      }
-                    }
-
-                    // Handle Reasoning Content (DeepSeek-R1 style via DashScope)
-                    // DashScope returns accumulated reasoning_content
+                    // (Handle Reasoning, Content, Citations...)
                     const rawReasoning = json.output?.choices?.[0]?.message?.reasoning_content || ""
                     if (typeof rawReasoning === "string" && rawReasoning.length > 0) {
                       let nextReasoning = ""
@@ -1093,28 +1094,20 @@ export async function POST(req: Request) {
                         nextReasoning = rawReasoning
                         accReasoning += rawReasoning
                       }
-
                       if (nextReasoning) {
-                        // If this is the start of reasoning, prepend <think>
                         const prefix = accReasoning.length === nextReasoning.length ? "<think>" : ""
-
                         const openaiFormat = {
                           id: json.request_id,
                           object: "chat.completion.chunk",
                           created: Date.now(),
                           model: model,
-                          choices: [{
-                            index: 0,
-                            delta: { content: prefix + nextReasoning },
-                            finish_reason: null
-                          }]
+                          choices: [{ index: 0, delta: { content: prefix + nextReasoning }, finish_reason: null }]
                         }
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
                       }
                     }
 
                     const raw = json.output?.choices?.[0]?.message?.content || ""
-
                     if (typeof raw === "string") {
                       let next = ""
                       if (raw.startsWith(acc)) {
@@ -1124,99 +1117,62 @@ export async function POST(req: Request) {
                         next = raw
                         acc += raw
                       }
-
                       if (next) {
-                        // If we were reasoning and haven't closed it, close it now
                         let prefix = ""
                         if (accReasoning.length > 0 && !reasoningClosed) {
                           prefix = "</think>\n\n"
                           reasoningClosed = true
                         }
-
                         const openaiFormat = {
                           id: json.request_id,
                           object: "chat.completion.chunk",
                           created: Date.now(),
                           model: model,
-                          choices: [
-                            {
-                              index: 0,
-                              delta: { content: prefix + next },
-                              finish_reason: json.output?.finish_reason || null,
-                            },
-                          ],
+                          choices: [{ index: 0, delta: { content: prefix + next }, finish_reason: json.output?.finish_reason || null }],
                         }
-                        controller.enqueue(
-                          encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`)
-                        )
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
                       }
                     }
-
-                    // If finished and reasoning still open, close it
-                    if (json.output?.finish_reason === "stop" && accReasoning.length > 0 && !reasoningClosed) {
-                      const openaiFormat = {
-                        id: json.request_id,
-                        object: "chat.completion.chunk",
-                        created: Date.now(),
-                        model: model,
-                        choices: [{ index: 0, delta: { content: "</think>\n\n" }, finish_reason: null }]
-                      }
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
-                      reasoningClosed = true
-                    }
-
-                  } catch (e) {
-                    console.error("Parse error:", e)
-                  }
+                  } catch (e) { }
                 }
               }
             }
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
-
-            // 成功完成后，扣除配额（如果使用了系统 Key）
-            if (useSystemKey) {
-              try {
-                await incrementAiUsage(user.id as number)
-              } catch (e) {
-                console.error("Failed to increment AI usage:", e)
-              }
-            }
-          } catch (error) {
-            controller.error(error)
-          }
+          } catch (error) { controller.error(error) }
         },
       })
 
       return new Response(stream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
       })
     } else {
-      // OpenAI格式安全直通转发 (修复 Controller closed 问题)
-      let directStream = response.body
+      // OpenAI格式直通转发
+      const encoder = new TextEncoder()
+      const directStream = response.body
+      if (!directStream) return new Response('No response body', { status: 500 })
 
-      // 如果使用了系统 Key，记录配额消耗
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            const reader = directStream.getReader()
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              controller.enqueue(value)
+            }
+            controller.close()
+          } catch (e) { controller.error(e) }
+        }
+      })
       if (useSystemKey && user) {
-        try {
-          // 不等待，后台记录
-          incrementAiUsage(user.id as number).catch(e => console.error("Failed to increment AI usage:", e))
-        } catch (e) { }
+        incrementAiUsage(user.id as number).catch(e => console.error("Quota error:", e))
       }
-
-      if (!directStream) {
-        return new Response('No response body from API', { status: 500 })
-      }
-
-      return new Response(directStream, {
+      return new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           "Connection": "keep-alive",
-          // 为了流稳定性，最好从原始返回里抄一些头
           ...(response.headers.get("Transfer-Encoding") ? { "Transfer-Encoding": response.headers.get("Transfer-Encoding")! } : {})
         },
         status: response.status

@@ -21,8 +21,8 @@ export type XiaozhiStatus = VoiceStatus;
 const DEVICE_NAMES: Record<string, string> = {
   '5': '水泵',
   '6': '风扇',
-  '7': '补光灯',
-  '8': '白灯'
+  '7': '植物全光谱补光灯',
+  '8': '光照植物补光灯'
 };
 
 // Storage key for orb position
@@ -125,7 +125,7 @@ function FloatingXiaozhiContent() {
   const handleDeviceCommand = useCallback((cmd: DeviceCommand) => {
     let deviceName: string;
     if (cmd.action === 'set_led') {
-      deviceName = 'RGB补光灯';
+      deviceName = '植物全光谱补光灯';
     } else if (cmd.action === 'control_camera') {
       const directionNames = ['停止', '左移', '右移'];
       deviceName = `摄像头云台${directionNames[cmd.direction ?? 0] || ''}`;
@@ -376,8 +376,8 @@ function FloatingXiaozhiContent() {
 ## 设备说明
 - 水泵(Relay5): 灌溉系统
 - 风扇(Relay6): 通风降温
-- 补光灯(Relay7): RGB补光
-- 白灯(Relay8): 照明
+- 植物全光谱补光灯(Relay7): 植物全光谱补光灯(植物全光谱补光)
+- 光照植物补光灯(Relay8): 光照植物补光灯(照明)
 
 ## 重要：语音输出规则
 当你需要输出JSON命令时（如设备控制、定时任务、页面导航），请将JSON放在回复末尾，但在语音朗读时完全跳过JSON部分，只朗读自然语言描述。绝不要朗读任何包含大括号、引号、冒号等JSON符号的内容。`}

@@ -285,8 +285,8 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
       const deviceNames: Record<number, string> = {
         5: "水泵",
         6: "风扇",
-        7: "补光灯",
-        8: "白灯"
+        7: "植物全光谱补光灯",
+        8: "光照植物补光灯"
       }
       createLog(deviceNames[relayNum] || `Relay ${relayNum}`, newState === 1 ? "开启" : "关闭")
     } else {
@@ -314,7 +314,7 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
 
     if (success) {
       const directionNames = ['停止', '左移', '右移']
-      createLog("摄像头云台", directionNames[direction], 
+      createLog("摄像头云台", directionNames[direction],
         direction === 0 ? '步进电机停止' : `步进电机${directionNames[direction]} ${pulses! / 160}mm`)
       if (direction !== 0) {
         toast.success(`指令发送成功: ${direction === 1 ? '开始左移' : '开始右移'} ${pulses! / 160}mm`)
@@ -471,7 +471,7 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                   disabled={controlStatus.loading || !connectionStatus.connected}
                 />
                 <DeviceCard
-                  title="补光灯 (Relay 7)"
+                  title="植物全光谱补光灯 (Relay 7)"
                   icon={<Lightbulb className="size-16" strokeWidth={1.5} />}
                   gradient="radial-gradient(circle at 30% 30%, rgba(245, 183, 0, 0.4) 0%, transparent 70%)"
                   checked={deviceData?.relay7 === 1}
@@ -483,7 +483,7 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
               {/* Row 2: 1 card + RGB Control */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <DeviceCard
-                  title="白灯 (Relay 8)"
+                  title="光照植物补光灯 (Relay 8)"
                   icon={<Sun className="size-16" strokeWidth={1.5} />}
                   gradient="radial-gradient(circle at 30% 30%, rgba(138, 124, 243, 0.4) 0%, transparent 70%)"
                   checked={deviceData?.relay8 === 1}
@@ -598,14 +598,58 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                             <h3 className="text-foreground text-2xl font-bold">
                               摄像头云台
                             </h3>
-                            <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                              <span>当前位置:</span>
-                              <span className="font-mono text-indigo-500 font-bold">
-                                {((deviceData?.stepper_position || 0) / 160).toFixed(1)} mm
-                              </span>
-                              <span className="text-xs opacity-60">
-                                ({deviceData?.stepper_position || 0} p)
-                              </span>
+                            <div className="space-y-4 mt-4">
+                              <div className="flex items-center justify-between text-xs font-medium">
+                                <span className="text-muted-foreground">位置追踪</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-indigo-500 font-bold font-mono">
+                                    {((deviceData?.stepper_position || 0) / 160).toFixed(1)} <span className="text-[10px] font-normal opacity-70">mm</span>
+                                  </span>
+                                  <span className="text-[10px] opacity-40">({deviceData?.stepper_position || 0} p)</span>
+                                </div>
+                              </div>
+
+                              {/* 滑台轨道视觉化 */}
+                              <div className="relative h-10 w-full group/track">
+                                {/* 轨道背景 */}
+                                <div className="absolute top-1/2 left-0 w-full h-1.5 -translate-y-1/2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div className="absolute top-0 left-0 h-full bg-indigo-500/10 dark:bg-indigo-500/20 w-full" />
+                                </div>
+
+                                {/* 刻度刻度线 */}
+                                <div className="absolute top-1/2 left-0 w-full -translate-y-1/2 flex justify-between px-1 pointer-events-none">
+                                  {[0, 100, 200, 300, 400, 500, 600, 700].map(m => (
+                                    <div key={m} className={cn(
+                                      "w-0.5 h-1.5 bg-slate-300 dark:bg-slate-700",
+                                      m === 0 || m === 700 ? "h-3" : ""
+                                    )} />
+                                  ))}
+                                </div>
+
+                                {/* 移动小车/滑块 */}
+                                <motion.div
+                                  className="absolute top-1/2 -ms-4 -translate-y-1/2 z-20"
+                                  animate={{
+                                    left: `${((deviceData?.stepper_position || 0) / 112000) * 100}%`
+                                  }}
+                                  transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                                >
+                                  <div className="relative group/carrier">
+                                    <div className="size-8 rounded-lg bg-white dark:bg-indigo-600 shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center border border-indigo-100 dark:border-indigo-400/30">
+                                      <Camera className="size-4 text-indigo-500 dark:text-white" />
+                                    </div>
+                                    <div className="absolute -top-1 opacity-0 group-hover/carrier:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] py-0.5 px-2 rounded -translate-y-full whitespace-nowrap left-1/2 -translate-x-1/2">
+                                      {((deviceData?.stepper_position || 0) / 160).toFixed(0)}mm
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              </div>
+
+                              <div className="flex justify-between items-center text-[10px] text-muted-foreground/60 font-mono px-0.5">
+                                <span>0mm</span>
+                                <span>350mm</span>
+                                <span>700mm</span>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -615,14 +659,14 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                                 deviceData?.stepper_direction === 2 ? '正在右移...' : '已停止'}
                             </span>
                           </div>
-                          
+
                           <div className="pt-2 space-y-3">
                             <label className="text-xs font-medium text-muted-foreground block">
                               单次移动距离: {stepPulses / 160} mm
                             </label>
                             <div className="flex items-center gap-3">
-                              <input 
-                                type="range" 
+                              <input
+                                type="range"
                                 min="160" max="16000" step="160"
                                 value={stepPulses}
                                 onChange={(e) => setStepPulses(Number(e.target.value))}
@@ -630,21 +674,21 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                               />
                               <div className="flex gap-1">
                                 {[1600, 8000, 16000].map(v => (
-                                  <Button 
+                                  <Button
                                     key={v}
-                                    variant="outline" 
-                                    size="sm" 
+                                    variant="outline"
+                                    size="sm"
                                     className={`h-7 px-2 text-[10px] ${stepPulses === v ? 'bg-indigo-500 text-white' : ''}`}
                                     onClick={() => setStepPulses(v)}
                                   >
-                                    {v/160}mm
+                                    {v / 160}mm
                                   </Button>
                                 ))}
                               </div>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col items-center gap-4">
                           <div className="flex items-center gap-4">
                             <Button
@@ -675,7 +719,7 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                               <ChevronRight className="size-8 text-foreground" />
                             </Button>
                           </div>
-                          
+
                           <Button
                             variant="ghost"
                             size="sm"

@@ -228,11 +228,20 @@ export function LiveStreamPlayer({
           let actualUrl = inputUrl
           try {
             const u = new URL(inputUrl, typeof window !== "undefined" ? window.location.origin : "http://localhost")
+            // RTMP proxy route outputs FLV
+            if (u.pathname.includes("/api/stream-rtmp")) {
+              return "flv"
+            }
             if (u.pathname.includes("/api/stream-proxy")) {
               const embedded = u.searchParams.get("url")
               if (embedded) actualUrl = embedded
             }
           } catch {}
+
+          // Direct RTMP URL (should be routed through proxy first, but handle gracefully)
+          if (actualUrl.startsWith("rtmp://") || actualUrl.startsWith("rtmps://")) {
+            return "rtmp"
+          }
 
           const urlPath = actualUrl.split("?")[0].toLowerCase()
           const isM3U8 = urlPath.endsWith(".m3u8")
@@ -472,6 +481,19 @@ export function LiveStreamPlayer({
             try { flvRef.current.play() } catch {}
             if (autoplay) {
               try { void videoEl.play() } catch {}
+            }
+          } else if (type === "rtmp") {
+            // RTMP cannot be played directly in the browser.
+            // Route through the server-side FFmpeg proxy which outputs FLV.
+            console.log(`[LiveStreamPlayer] RTMP detected, routing through /api/stream-rtmp proxy...`)
+            const proxyUrl = `/api/stream-rtmp?url=${encodeURIComponent(currentUrl)}`
+            // Replace the current source with the proxied version and mark as FLV
+            sequence[nextIndex] = proxyUrl
+            ;(normalized[nextIndex] as unknown as { type: string }).type = "flv"
+            // Ensure flv.js is loaded, then replay
+            await ensureFlvAvailable()
+            if (!cancelled && attemptId === playAttemptRef.current) {
+              setTimeout(() => { void playCurrent() }, 100)
             }
           } else {
             console.warn(`[LiveStreamPlayer] Unknown stream type or missing library for: ${currentUrl}`)

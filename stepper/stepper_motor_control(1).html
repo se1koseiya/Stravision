@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>丝杆滑台步进电机 MQTT 控制</title>
+    <!-- 引入 Paho MQTT JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; font-size: 24px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-group { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+        button { padding: 10px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; color: #fff; flex: 1; font-weight: bold; }
+        button.connect { background-color: #3498db; }
+        button.forward { background-color: #2ecc71; }
+        button.backward { background-color: #e67e22; }
+        button.stop { background-color: #e74c3c; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        #status { margin-top: 10px; margin-bottom: 20px; padding: 10px; border-radius: 4px; background: #ecf0f1; text-align: center; font-weight: bold; }
+        .status-connected { color: #27ae60 !important; background-color: #eafaf1 !important;}
+        .status-disconnected { color: #c0392b !important; background-color: #fceceb !important;}
+        .log-area { margin-top: 20px; padding: 10px; background: #333; color: #0f0; font-family: monospace; border-radius: 4px; height: 150px; overflow-y: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>丝杆滑台控制面板</h1>
+    
+    <div id="status" class="status-disconnected">状态: 未连接</div>
+
+    <!-- 视频监控区域 -->
+    <div class="video-container" style="margin-bottom: 20px; border-radius: 8px; overflow: hidden; background: #000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <iframe src="https://player.xstrive.com/video/live?videoUrl=https%3A%2F%2Frwen.xstrive.com%2Fhdl%2Fda5915dbefb727d43f9a54588a0f644f%2Flive0%2Fa2838aa8172238f4e11491095684461f.flv&isLive=1&lang=zh-CN" width="100%" height="360" allowfullscreen style="border: none; display: block;"></iframe>
+    </div>
+
+    <div class="form-group">
+        <label>MQTT Broker (HiveMQ Cloud)</label>
+        <input type="text" id="broker" value="be18721454da4600b14a92424bb1181c.s1.eu.hivemq.cloud">
+    </div>
+    <div class="form-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+            <label>端口 (WSS)</label>
+            <input type="number" id="port" value="8884">
+        </div>
+        <div style="flex:2;">
+            <label>下发 Topic</label>
+            <input type="text" id="topic" value="data/set">
+        </div>
+    </div>
+    <div class="form-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+            <label>用户名</label>
+            <input type="text" id="username" value="meimeifarm">
+        </div>
+        <div style="flex:1;">
+            <label>密码</label>
+            <input type="password" id="password" value="Meimei83036666">
+        </div>
+    </div>
+    <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+    <div class="form-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+            <label title="node0817">目标脉冲数 (First_Pulse)</label>
+            <input type="number" id="pulses" value="40000" oninput="calculateDistance()">
+        </div>
+        <div style="flex:1;">
+            <label title="node0803">运行速度 (Pulse_Rate)</label>
+            <input type="number" id="speed" value="10000">
+        </div>
+    </div>
+    
+    <div class="form-group" style="background: #e8f4f8; padding: 10px; border-radius: 4px; border: 1px solid #bce8f1; margin-bottom: 20px;">
+        <h4 style="margin: 0 0 10px 0; color: #31708f;">距离换算辅助</h4>
+        <div style="display:flex; gap:10px; align-items: center;">
+            <div style="flex:1;">
+                <label style="font-weight:normal; font-size:12px;">基准脉冲数</label>
+                <input type="number" id="pulsesPerRev" value="3200" oninput="calculateDistance()" style="padding:4px;">
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:normal; font-size:12px;">对应移动距离 (mm)</label>
+                <input type="number" id="lead" value="20" oninput="calculateDistance()" style="padding:4px;">
+            </div>
+        </div>
+        <div style="margin-top: 10px; font-weight: bold; color: #2c3e50; display:flex; align-items:center; gap:10px;">
+            <div>
+                预计移动距离: <span id="calcDistance" style="color: #e74c3c; font-size: 18px;">125.00</span> mm 
+                <span style="font-size: 12px; color: #7f8c8d; font-weight: normal;">(量程700mm)</span>
+            </div>
+        </div>
+        <div style="margin-top: 10px; display:flex; gap:10px; align-items: center;">
+            <label style="font-size:14px; font-weight:bold;">自定义距离 (mm):</label>
+            <input type="number" id="customDistance" value="100" style="width: 80px; padding:4px;">
+            <button onclick="setCustomDistance()" style="padding: 6px 12px; font-size: 14px; background: #34495e;">计算脉冲</button>
+        </div>
+        <div style="margin-top: 10px; display:flex; gap:5px;">
+            <button onclick="setDistance(10)" style="padding: 5px; font-size: 12px; background: #95a5a6;">移 10mm</button>
+            <button onclick="setDistance(50)" style="padding: 5px; font-size: 12px; background: #95a5a6;">移 50mm</button>
+            <button onclick="setDistance(100)" style="padding: 5px; font-size: 12px; background: #95a5a6;">移 100mm</button>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="connect" id="btnConnect" onclick="toggleConnect()">连接 MQTT</button>
+    </div>
+
+    <div class="btn-group" style="margin-top: 20px;">
+        <button class="stop" id="btnPreset" onclick="sendPreset()" disabled style="background-color: #f39c12;">发送预设参数</button>
+    </div>
+
+    <div class="btn-group" style="margin-top: 10px;">
+        <button class="forward" id="btnForward" onclick="sendControl(1)" disabled>正向移动</button>
+        <button class="stop" id="btnStop" onclick="sendControl(0)" disabled>紧急停止</button>
+        <button class="backward" id="btnBackward" onclick="sendControl(2)" disabled>反向移动</button>
+    </div>
+
+    <div class="log-area" id="logArea">
+        <!-- Logs will appear here -->
+        <div>系统就绪...等待连接</div>
+    </div>
+</div>
+
+<script>
+    let client = null;
+    let isConnected = false;
+
+    // 页面加载时初始化计算
+    window.onload = function() {
+        calculateDistance();
+    };
+
+    function calculateDistance() {
+        const pulses = Number(document.getElementById("pulses").value) || 0;
+        const pulsesPerRev = Number(document.getElementById("pulsesPerRev").value) || 3200;
+        const lead = Number(document.getElementById("lead").value) || 20;
+        
+        if (pulsesPerRev > 0) {
+            // 计算公式： (输入脉冲 / 基准脉冲) * 对应移动的距离
+            const distance = (pulses / pulsesPerRev) * lead;
+            document.getElementById("calcDistance").innerText = distance.toFixed(2);
+            
+            if (distance > 700) {
+                document.getElementById("calcDistance").style.color = "red";
+                document.getElementById("calcDistance").innerText += " (警告: 超出量程!)";
+            } else {
+                document.getElementById("calcDistance").style.color = "#e74c3c";
+            }
+        }
+    }
+
+    function setDistance(targetMm) {
+        const pulsesPerRev = Number(document.getElementById("pulsesPerRev").value) || 3200;
+        const lead = Number(document.getElementById("lead").value) || 20;
+        
+        if (lead > 0) {
+            // 反向计算： (目标距离 / 对应距离) * 基准脉冲
+            const neededPulses = Math.round((targetMm / lead) * pulsesPerRev);
+            document.getElementById("pulses").value = neededPulses;
+            calculateDistance();
+        }
+    }
+
+    function setCustomDistance() {
+        const customDist = Number(document.getElementById("customDistance").value);
+        if (customDist > 0) {
+            setDistance(customDist);
+        } else {
+            alert("请输入有效的距离(>0)");
+        }
+    }
+
+    function log(msg) {
+        const logArea = document.getElementById("logArea");
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement("div");
+        div.innerText = `[${time}] ${msg}`;
+        logArea.appendChild(div);
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function toggleConnect() {
+        if (isConnected) {
+            disconnectMQTT();
+        } else {
+            connectMQTT();
+        }
+    }
+
+    function connectMQTT() {
+        const broker = document.getElementById("broker").value;
+        const port = Number(document.getElementById("port").value);
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const clientId = "web_" + Math.random().toString(16).substr(2, 8);
+
+        log(`正在连接 ${broker}:${port} ...`);
+        
+        // Use path /mqtt for HiveMQ Cloud WSS
+        // Note: HiveMQ Cloud requires secure websockets (wss://) usually on port 8884
+        client = new Paho.MQTT.Client("wss://" + broker + ":" + port + "/mqtt", clientId);
+
+        client.onConnectionLost = onConnectionLost;
+
+        const options = {
+            useSSL: true,
+            userName: username,
+            password: password,
+            timeout: 10,
+            onSuccess: onConnect,
+            onFailure: onFailure,
+            mqttVersion: 4 // Try forcing MQTT v3.1.1 (which is version 4 in Paho)
+        };
+
+        document.getElementById("status").innerText = "状态: 连接中...";
+        client.connect(options);
+    }
+
+    function onConnect() {
+        isConnected = true;
+        document.getElementById("status").innerText = "状态: 已连接";
+        document.getElementById("status").className = "status-connected";
+        document.getElementById("btnConnect").innerText = "断开连接";
+        
+        document.getElementById("btnPreset").disabled = false;
+        document.getElementById("btnForward").disabled = false;
+        document.getElementById("btnBackward").disabled = false;
+        document.getElementById("btnStop").disabled = false;
+        log("MQTT 连接成功！请先发送预设参数，然后再控制正反转。");
+    }
+
+    function onFailure(responseObject) {
+        document.getElementById("status").innerText = "状态: 连接失败";
+        isConnected = false;
+        log("连接失败: " + responseObject.errorMessage);
+        console.error("MQTT Connect Failure:", responseObject);
+    }
+
+    function onConnectionLost(responseObject) {
+        if (responseObject.errorCode !== 0) {
+            document.getElementById("status").innerText = "状态: 连接丢失";
+            log("连接丢失: " + responseObject.errorMessage);
+            console.error("MQTT Connection Lost:", responseObject);
+        } else {
+            document.getElementById("status").innerText = "状态: 未连接";
+        }
+        document.getElementById("status").className = "status-disconnected";
+        isConnected = false;
+        document.getElementById("btnConnect").innerText = "连接 MQTT";
+        
+        document.getElementById("btnPreset").disabled = true;
+        document.getElementById("btnForward").disabled = true;
+        document.getElementById("btnBackward").disabled = true;
+        document.getElementById("btnStop").disabled = true;
+    }
+
+    function disconnectMQTT() {
+        if (client) {
+            client.disconnect();
+            isConnected = false;
+            document.getElementById("status").innerText = "状态: 未连接";
+            document.getElementById("status").className = "status-disconnected";
+            document.getElementById("btnConnect").innerText = "连接 MQTT";
+            
+            document.getElementById("btnPreset").disabled = true;
+            document.getElementById("btnForward").disabled = true;
+            document.getElementById("btnBackward").disabled = true;
+            document.getElementById("btnStop").disabled = true;
+            log("已断开 MQTT 连接。");
+        }
+    }
+
+    function sendPreset() {
+        if (!isConnected) {
+            alert("请先连接 MQTT");
+            return;
+        }
+
+        const topic = document.getElementById("topic").value;
+        const pulses = document.getElementById("pulses").value;
+        const speed = document.getElementById("speed").value;
+
+        // 预设状态：下发速度和脉冲数，同时 node0814 = 0 (停止/预设)
+        const payloadObj = {
+            "rw_prot": {
+                "Ver": "1.0.1",
+                "dir": "down",
+                "id": "motor_rev_stop_0001",
+                "w_data": [
+                    { "name": "node0801", "value": "8" },
+                    { "name": "node0814", "value": "0" },
+                    { "name": "node0817", "value": pulses.toString() },
+                    { "name": "node0803", "value": speed.toString() }
+                ]
+            }
+        };
+
+        const payloadStr = JSON.stringify(payloadObj);
+        const message = new Paho.MQTT.Message(payloadStr);
+        message.destinationName = topic;
+        
+        try {
+            client.send(message);
+            log(`发送 [预设参数] 指令: \n${payloadStr}`);
+        } catch (error) {
+            log(`发送失败: ${error.message}`);
+        }
+    }
+
+    function sendControl(direction) {
+        if (!isConnected) {
+            alert("请先连接 MQTT");
+            return;
+        }
+
+        const topic = document.getElementById("topic").value;
+        
+        // 运行状态：直接发送指令、脉冲和速度
+        const dirStr = direction === 1 ? "正转" : direction === 2 ? "反转" : "停止";
+        const pulses = document.getElementById("pulses").value;
+        const speed = document.getElementById("speed").value;
+        
+        const payloadObj = {
+            "rw_prot": {
+                "Ver": "1.0.1",
+                "dir": "down",
+                "id": "motor_rev_stop_0001",
+                "w_data": [
+                    { "name": "node0801", "value": "8" },
+                    { "name": "node0814", "value": direction.toString() },
+                    { "name": "node0817", "value": pulses.toString() },
+                    { "name": "node0803", "value": speed.toString() }
+                ]
+            }
+        };
+
+        const payloadStr = JSON.stringify(payloadObj);
+        
+        const message = new Paho.MQTT.Message(payloadStr);
+        message.destinationName = topic;
+        
+        try {
+            client.send(message);
+            log(`发送 [${dirStr}] 指令: \n${payloadStr}`);
+        } catch (error) {
+            log(`发送失败: ${error.message}`);
+        }
+    }
+</script>
+</body>
+</html>

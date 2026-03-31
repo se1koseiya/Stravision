@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Key, Link as LinkIcon, Box, MessageSquareText, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Key, Link as LinkIcon, Box, MessageSquareText, CheckCircle2, ShieldCheck, Globe, Laptop } from "lucide-react";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { X } from "@/components/animate-ui/icons/x";
 import { Bot } from "@/components/animate-ui/icons/bot";
@@ -34,7 +34,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
       "你是莓界智慧农业平台的AI助手，专门帮助用户分析农业数据、提供种植建议和解答农业相关问题。请用专业但易懂的语言回答问题。\n\n重要提醒：如果需要提供参考来源，请确保所有链接和信息都是真实存在的，绝对不要编造虚假的网站或来源。如果不确定来源，请直接说明这是基于你的知识库回答，而不是提供虚假引用。",
   })
 
-  const [apiType, setApiType] = useState<"system" | "dashscope" | "openai">("system")
+  const [apiType, setApiType] = useState<string>("system")
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -52,8 +52,22 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             setApiType("system")
           } else if (effective.apiUrl?.includes("dashscope") || effective.model?.startsWith("qwen")) {
             setApiType("dashscope")
-          } else {
+          } else if (effective.apiUrl?.includes("deepseek")) {
+            setApiType("deepseek")
+          } else if (effective.apiUrl?.includes("anthropic")) {
+            setApiType("anthropic")
+          } else if (effective.apiUrl?.includes("google")) {
+            setApiType("google")
+          } else if (effective.apiUrl?.includes("moonshot")) {
+            setApiType("moonshot")
+          } else if (effective.apiUrl?.includes("bigmodel")) {
+            setApiType("zhipu")
+          } else if (effective.apiUrl?.includes("localhost") || effective.apiKey === "ollama") {
+            setApiType("ollama")
+          } else if (effective.apiUrl?.includes("openai.com")) {
             setApiType("openai")
+          } else {
+            setApiType("custom")
           }
         } else {
           const saved = localStorage.getItem("ai-settings")
@@ -64,8 +78,22 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               setApiType("system")
             } else if (parsed.apiUrl?.includes("dashscope") || parsed.model?.startsWith("qwen")) {
               setApiType("dashscope")
-            } else {
+            } else if (parsed.apiUrl?.includes("deepseek")) {
+              setApiType("deepseek")
+            } else if (parsed.apiUrl?.includes("anthropic")) {
+              setApiType("anthropic")
+            } else if (parsed.apiUrl?.includes("google")) {
+              setApiType("google")
+            } else if (parsed.apiUrl?.includes("moonshot")) {
+              setApiType("moonshot")
+            } else if (parsed.apiUrl?.includes("bigmodel")) {
+              setApiType("zhipu")
+            } else if (parsed.apiUrl?.includes("localhost") || parsed.apiKey === "ollama") {
+              setApiType("ollama")
+            } else if (parsed.apiUrl?.includes("openai.com")) {
               setApiType("openai")
+            } else {
+              setApiType("custom")
             }
           }
         }
@@ -79,8 +107,22 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               setApiType("system")
             } else if (parsed.apiUrl?.includes("dashscope") || parsed.model?.startsWith("qwen")) {
               setApiType("dashscope")
-            } else {
+            } else if (parsed.apiUrl?.includes("deepseek")) {
+              setApiType("deepseek")
+            } else if (parsed.apiUrl?.includes("anthropic")) {
+              setApiType("anthropic")
+            } else if (parsed.apiUrl?.includes("google")) {
+              setApiType("google")
+            } else if (parsed.apiUrl?.includes("moonshot")) {
+              setApiType("moonshot")
+            } else if (parsed.apiUrl?.includes("bigmodel")) {
+              setApiType("zhipu")
+            } else if (parsed.apiUrl?.includes("localhost") || parsed.apiKey === "ollama") {
+              setApiType("ollama")
+            } else if (parsed.apiUrl?.includes("openai.com")) {
               setApiType("openai")
+            } else {
+              setApiType("custom")
             }
           } catch {}
         }
@@ -139,69 +181,66 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             
             {/* API Type Selector */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">服务提供商</Label>
-              <div className="grid grid-cols-3 gap-1 p-1.5 bg-gray-100/80 dark:bg-zinc-800/50 rounded-xl border border-gray-200/50 dark:border-white/5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApiType("system")
-                    setSettings({ ...settings, apiKey: "", apiUrl: "", model: "" })
-                  }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] text-xs sm:text-sm font-medium transition-all duration-200",
-                    apiType === "system" 
-                      ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5"
-                  )}
-                >
-                  <ShieldCheck size={16} />
-                  <span>系统托管</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApiType("dashscope")
-                    setSettings({
-                      ...settings,
-                      apiUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-                    })
-                  }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] text-xs sm:text-sm font-medium transition-all duration-200",
-                    apiType === "dashscope" 
-                      ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5"
-                  )}
-                >
-                  <Sparkles size={16} />
-                  <span>阿里云</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApiType("openai")
-                    setSettings({
-                      ...settings,
-                      apiUrl: "https://api.openai.com/v1/chat/completions",
-                    })
-                  }}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] text-xs sm:text-sm font-medium transition-all duration-200",
-                    apiType === "openai" 
-                      ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5"
-                  )}
-                >
-                  <Bot size={16} />
-                  <span>OpenAI</span>
-                </button>
+              <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">大模型厂商选择</Label>
+              <div 
+                className="flex flex-row overflow-x-auto gap-2 pb-2 snap-x snap-mandatory px-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {[
+                  { id: "system", name: "系统预设", icon: ShieldCheck, url: "", desc: "阿里云百炼提供基础AI能力，无需手动配置" },
+                  { id: "dashscope", name: "阿里云", icon: Sparkles, url: "https://dashscope.aliyuncs.com/compatible-mode/v1", desc: "填入自定义阿里云百炼 Key" },
+                  { id: "deepseek", name: "DeepSeek", icon: Bot, url: "https://api.deepseek.com/v1", desc: "深度求索 V3/R1" },
+                  { id: "openai", name: "OpenAI", icon: Globe, url: "https://api.openai.com/v1", desc: "GPT 格式通用接口" },
+                  { id: "anthropic", name: "Anthropic", icon: Box, url: "https://api.anthropic.com/v1", desc: "Claude 系列模型" },
+                  { id: "google", name: "Google", icon: Globe, url: "https://generativelanguage.googleapis.com/v1beta/openai", desc: "Gemini 系列模型" },
+                  { id: "moonshot", name: "Kimi", icon: Bot, url: "https://api.moonshot.cn/v1", desc: "月之暗面长文本模型" },
+                  { id: "zhipu", name: "智谱清言", icon: Box, url: "https://open.bigmodel.cn/api/paas/v4", desc: "GLM 系列大规模预训练模型" },
+                  { id: "ollama", name: "Ollama", icon: Laptop, url: "http://localhost:11434/v1", desc: "本地终端部署离线运行" },
+                  { id: "custom", name: "自定义", icon: Settings, url: "", desc: "兼容 OpenAI 标准的接口URL" }
+                ].map(p => {
+                  const Icon = p.icon;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setApiType(p.id)
+                        setSettings({
+                          ...settings,
+                          ...(p.id === 'system' 
+                            ? { apiKey: "", apiUrl: "", model: "" } 
+                            : { apiUrl: p.url }),
+                          ...(p.id === 'ollama'
+                            ? { apiKey: "ollama", model: settings.model || "llama3" }
+                            : {})
+                        })
+                      }}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap snap-center shrink-0 border",
+                        apiType === p.id 
+                          ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 border-transparent shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
+                          : "text-gray-600 dark:text-gray-400 border-gray-200/50 dark:border-white/5 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5 bg-gray-50/50 dark:bg-zinc-800/20"
+                      )}
+                    >
+                      <Icon size={16} />
+                      <span>{p.name}</span>
+                    </button>
+                  )
+                })}
               </div>
               <p className="text-[10px] text-gray-400 px-1">
-                {apiType === "system"
-                  ? "使用系统提供的免费额度或订阅计划，无需自行配置 API Key。"
-                  : apiType === "dashscope" 
-                  ? "推荐国内用户使用，支持通义千问 Qwen 系列模型，速度快且稳定。" 
-                  : "支持 GPT-3.5, GPT-4 等标准 OpenAI 接口模型。"}
+                {[
+                  { id: "system", desc: "阿里云百炼提供基础AI能力，每日固定免费额度，无需手动配置。" },
+                  { id: "dashscope", desc: "推荐国内用户使用，填入自定义阿里云百炼 Key 即可享用。" },
+                  { id: "deepseek", desc: "支持 DeepSeek V3 / R1 (推理模型)。填入 API 密钥以调用。" },
+                  { id: "openai", desc: "支持 GPT-3.5, GPT-4o 等标准接口。" },
+                  { id: "anthropic", desc: "支持 Claude-3.5-Sonnet 等长上下文理解模型。" },
+                  { id: "google", desc: "Google Gemini 核心模型系列。" },
+                  { id: "moonshot", desc: "月之暗面 Kimi 推理分析及超长文本模型。" },
+                  { id: "zhipu", desc: "智谱 AI 的 GLM 4 系列闭源中文强大基座模型。" },
+                  { id: "ollama", desc: "私有化离线部署，安全保密，建议填写 API URL 为本地 11434 端口。" },
+                  { id: "custom", desc: "填入与 OpenAI Messages 的 API 调用协议兼容的服务端节点链接。" }
+                ].find(p => p.id === apiType)?.desc}
               </p>
             </div>
 
@@ -225,7 +264,16 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                   <Box className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="model" 
-                    placeholder={apiType === "dashscope" ? "例如: qwen-plus" : "例如: gpt-3.5-turbo"} 
+                    placeholder={
+                      apiType === "dashscope" ? "例如: qwen-plus" :
+                      apiType === "deepseek" ? "deepseek-chat" :
+                      apiType === "anthropic" ? "claude-3-5-sonnet-20240620" :
+                      apiType === "google" ? "gemini-1.5-pro" :
+                      apiType === "moonshot" ? "moonshot-v1-8k" :
+                      apiType === "zhipu" ? "glm-4" :
+                      apiType === "ollama" ? "llama3, qwen2.5" :
+                      apiType === "openai" ? "gpt-4o-mini" : "例如: gpt-3.5-turbo"
+                    }
                     value={settings.model} 
                     onChange={(e) => setSettings({ ...settings, model: e.target.value })} 
                     className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all" 
