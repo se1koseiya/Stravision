@@ -73,11 +73,11 @@ export const MessageItem = memo(function MessageItem({
             <span className="text-xs text-muted-foreground ml-1 mb-1">{sender?.username}</span>
           )}
           <div className={cn(
-            "relative px-4 py-3 text-[15px] leading-relaxed shadow-sm min-w-[80px]",
+            "relative text-[16px] leading-[1.6]",
             message.type === 'recalled' && "italic opacity-60",
             isMe
-              ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md shadow-blue-500/20 rounded-2xl rounded-tr-sm"
-              : "bg-white/60 dark:bg-white/10 backdrop-blur-md text-foreground shadow-sm rounded-2xl rounded-tl-sm border border-white/20"
+              ? "bg-[#f4f4f4] dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 rounded-3xl px-5 py-2.5 shadow-none min-w-[80px]"
+              : "bg-transparent text-zinc-800 dark:text-zinc-200 px-2 py-1"
           )}>
             {message.type === 'image' ? (
               <img

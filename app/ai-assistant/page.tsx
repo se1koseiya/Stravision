@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass } from "lucide-react";
 import { SkillStore } from "@/components/ai/skill-store"
+import { UnifiedExplore } from "@/components/explore/unified-explore"
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
-import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
@@ -73,7 +74,7 @@ import {
   Source,
 } from "@/components/ui/assistant-ui"
 
-import { getVoiceSettings } from "@/components/ai-settings-dialog"
+import { getVoiceSettings, AISettingsDialog } from "@/components/ai-settings-dialog"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
@@ -89,15 +90,19 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { PageNavigation } from "@/components/page-navigation"
 import { VoiceChatModal } from "@/components/ai/voice-chat-modal"
 import { CalendarTrigger } from "@/components/ai/calendar-trigger"
+import SiriOrb from "@/components/smoothui/siri-orb"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
 import { MCPToolDisplay } from "@/components/ai/mcp-tool-display"
+import { AgentExecutionChain, type AgentStep } from "@/components/ai/agent-execution-chain"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
-
+import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
+import { AutomationStrategyCard } from '@/components/automation-strategy-card';
 
 import { BrowserActivity } from "@/components/ai/browser-activity"
 import { WebPreview, WebPreviewNavigation, WebPreviewNavigationButton, WebPreviewUrl, WebPreviewBody } from "@/components/ai/web-preview"
 
 import { DeviceControlCard } from "@/components/ai/device-control-card"
+import { HTMLPreviewCard } from "@/components/ai/html-preview-card"
 
 import { LiveStreamPlayer } from "@/components/live-stream-player"
 
@@ -402,8 +407,11 @@ function AIAssistantContent() {
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
   const [enableSearch, setEnableSearch] = useState(false)
   const [enableReasoning, setEnableReasoning] = useState(false)
+  const [agentStatus, setAgentStatus] = useState("")
+  const [agentSteps, setAgentSteps] = useState<AgentStep[]>([])
   const [isTTSEnabled, setIsTTSEnabled] = useState(true) // TTS Toggle
   const [isTtsPaused, setIsTtsPaused] = useState(false) // 真正的播放暂停
+  const [enableMcp, setEnableMcp] = useState(true) // MCP Toggle
   
   const ttsQueueRef = useRef<string[]>([])
   const ttsAudioQueueRef = useRef<{url: string, text: string}[]>([]) // 声音缓冲池
@@ -539,6 +547,12 @@ function AIAssistantContent() {
   // Store State
   const [storeOpen, setStoreOpen] = useState(false)
   
+  // Explore State
+  const [exploreOpen, setExploreOpen] = useState(false)
+  
+  // Settings State
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  
   // Skill State
   const [mandatorySkillsEnabled, setMandatorySkillsEnabled] = useState(true)
   const [selectedStoreSkillIds, setSelectedStoreSkillIds] = useState<string[]>([])
@@ -571,6 +585,11 @@ function AIAssistantContent() {
 
   useEffect(() => {
     loadSkills()
+    
+    // Initialize greeting based on time of day
+    const hour = new Date().getHours()
+    const currentGreeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
+    setGreeting(currentGreeting)
   }, [])
 
   // 每次关闭商店时重新加载已安装技能
@@ -659,8 +678,6 @@ function AIAssistantContent() {
     textareaRefChat.current?.focus()
   }
 
-  // Agent 状态指示器
-  const [agentStatus, setAgentStatus] = useState<string>("")
   
   // 处理从语音助手传来的截图分析请求
   const handleSnapshotAnalysis = async () => {
@@ -1011,8 +1028,12 @@ function AIAssistantContent() {
 但这并没有改变环境状态（可能是传感器延迟或设备故障）。
 
 **强制熔断机制已触发**。
-请立即停止尝试该指令！
-请将当前任务标记为 "failed" (超时/无响应) 或 "completed" (假定已执行)，然后**必须**跳到下一步骤。`);
+请在使用 <TASK_LIST> 推进进度前，向用户寻求指示。告诉用户发生了什么，并将当前任务设为暂停(或者保持不动)，并**直接原样**输出以下代码块（不要做任何修改，它将在前端渲染为按钮），让用户决定是否跳过此任务或继续重试：
+
+<ACTION_PROMPT>
+  <ACTION value="由于设备响应迟缓，跳过重试该任务，直接将当前任务标记为 completed 或 failed，进入下一个步骤">跳过任务，直接执行下一步</ACTION>
+  <ACTION value="忽略系统警告，我认为设备会响应，再次向设备发送刚才的 JSON 控制指令重试">继续执行重试</ACTION>
+</ACTION_PROMPT>`);
                  }, 1000);
             }
             return; // 终止执行
@@ -1762,27 +1783,12 @@ ${taskContext}
     setIsLoading(true) // 立即锁定，防止重复发送导致“抽搐”
     
     // 模拟感知阶段（仅当是用户主动发送或Agent自动闭环时，且不是简单的反馈重试）
+    // 模拟感知阶段（显示简洁的思考状态）
     if (!agentStatus && !isFeedback) {
-      setAgentStatus("正在建立安全握手...")
-      await new Promise(r => setTimeout(r, 200))
-      if (isStoppedRef.current) return
-      
-      // 根据是否有附件判断是否调用视觉模型
-      if (currentAttachments.length > 0) {
-        setAgentStatus("正在加载视觉编码器 (Qwen-VL-Plus)...")
-        await new Promise(r => setTimeout(r, 400))
-        if (isStoppedRef.current) return
-      } else {
-        setAgentStatus("获取遥测数据: DHT11, BH1750, NPK...")
-        await new Promise(r => setTimeout(r, 400))
-        if (isStoppedRef.current) return
-      }
-      
-      setAgentStatus("注入上下文向量 & 系统提示词...")
-      await new Promise(r => setTimeout(r, 400))
+      setAgentStatus("莓小智正在深入思考...")
+      await new Promise(r => setTimeout(r, 600)) // 略微保留一点感知感
       if (isStoppedRef.current) return
     } else if (isFeedback) {
-        // 反馈模式下，不显示感知状态，直接显示"正在重新分析"
         setAgentStatus("正在根据反馈重新分析...")
     }
     
@@ -1921,34 +1927,51 @@ ${taskContext}
 
       // 获取 MCP 配置
       let mcpConfigs = []
-      try {
-        const installedStr = localStorage.getItem('mcp-installed-servers')
-        if (installedStr) {
-          const serverIds = JSON.parse(installedStr)
-          mcpConfigs = serverIds
-            .map((id: string) => {
-              const configStr = localStorage.getItem(`mcp-config-${id}`)
-              const enabled = localStorage.getItem(`mcp-enabled-${id}`) !== "false"
-              
-              if (configStr && enabled) {
-                const config = JSON.parse(configStr)
-                // 从 envVars 中提取 API Key
-                const apiKey = config.envVars ? Object.values(config.envVars)[0] : null
-                return {
-                  id: config.id,
-                  name: config.name,
-                  displayName: config.displayName || config.name,
-                  enabled: true,
-                  apiKey: apiKey,
-                  description: config.description || ''
+      if (enableMcp) {
+        try {
+          const installedStr = localStorage.getItem('mcp-installed-servers')
+          if (installedStr) {
+            const serverIds = JSON.parse(installedStr)
+            mcpConfigs = serverIds
+              .map((id: string) => {
+                const configStr = localStorage.getItem(`mcp-config-${id}`)
+                const enabled = localStorage.getItem(`mcp-enabled-${id}`) !== "false"
+                
+                if (configStr && enabled) {
+                  const config = JSON.parse(configStr)
+                  const apiKey = config.envVars ? Object.values(config.envVars)[0] : null
+                  return {
+                    id: config.id,
+                    name: config.name,
+                    displayName: config.displayName || config.name,
+                    enabled: true,
+                    apiKey: apiKey,
+                    description: config.description || ''
+                  }
                 }
-              }
-              return null
-            })
-            .filter(Boolean)
+                return null
+              })
+              .filter(Boolean)
+          }
+        } catch (e) {
+          console.error('Failed to load MCP configs:', e)
         }
-      } catch (e) {
-        console.error('Failed to load MCP configs:', e)
+      }
+
+      // === 前端感知：检测是否需要上下文压缩 (Frontend Pre-perception) ===
+      const nonMemoryMsgs = newMessages.filter(m => {
+        const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+        return !content.includes('<PAST_MEMORY>')
+      })
+      const overflowStringified = nonMemoryMsgs.map(m => m.role + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n')
+      
+      const historyToSummarizeLength = nonMemoryMsgs.slice(0, Math.max(0, nonMemoryMsgs.length - 4))
+          .map(m => m.role + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+          .join('\n').length
+
+      if (overflowStringified.length > 25000 && nonMemoryMsgs.length > 5 && historyToSummarizeLength > 1000) {
+        setAgentStatus("对话记录过长，莓小智正在提炼并压缩记忆...")
+        await new Promise(r => setTimeout(r, 800)) // 给用户一点看到提示的时间
       }
 
       const res = await fetch("/api/chat", {
@@ -1967,7 +1990,8 @@ ${taskContext}
           deviceData: deviceDataRef.current,
           weatherData: weatherDataRef.current,
           mcpConfigs, // 添加 MCP 配置
-          mandatorySkillsEnabled // 传递核心技能开启状态
+          mandatorySkillsEnabled, // 传递核心技能开启状态
+          enableMcp
         })
       })
       
@@ -1997,9 +2021,23 @@ ${taskContext}
       const startTs = Date.now()
       setMessages(prev => [...prev, assistantMsg])
 
+      // Agent execution chain steps - 初始化第一个“深度思考”步骤
+      const currentAgentSteps: AgentStep[] = [
+        {
+          id: `initial-thinking-${Date.now()}`,
+          type: "thinking",
+          status: "active",
+          title: "正在智能识别用户意图...",
+          detail: "解析上下文并进行模型深度推理",
+          startedAt: Date.now()
+        }
+      ]
+      setAgentSteps(currentAgentSteps)
+
       const decoder = new TextDecoder()
       let buffer = ""
       let ttsProcessedLength = 0
+      let latestHistoryFromBackend: Message[] | null = null
 
       while (true) {
         const { done, value } = await reader.read()
@@ -2036,22 +2074,43 @@ ${taskContext}
                  continue
               }
 
+              // 处理上下文更新事件 (持久化记忆压缩结果)
+              if (data.type === 'context_update' && Array.isArray(data.messages)) {
+                 // 强制同步主消息列表，让历史消息被压缩后的摘要替代
+                 latestHistoryFromBackend = data.messages
+                 setMessages(data.messages)
+                 // 将当前正在生成的回复占位符重新追加回去
+                 setMessages(prev => [...prev, assistantMsg])
+                 continue
+              }
+
               // Handle tool results
               if (data.tool_result) {
                  setStudioData(prev => [...prev, data.tool_result])
                  
-                 // 如果是 Firecrawl 的抓取结果，尝试提取截图（如果有）
-                 // 注意：目前的 executeFirecrawlScrape 返回的是 { url, content }，没有 screenshot
-                 // 如果未来扩展了截图功能，这里可以处理
-                 // 为了模拟效果，我们可以根据 URL 动态生成一个网站缩略图服务链接
                  if (data.tool_result.name === 'mcp_firecrawl_scrape' && data.tool_result.result?.url) {
-                     // 使用第三方截图服务作为降级方案
                      const targetUrl = data.tool_result.result.url
-                     // 使用微缩图服务，例如 screenshot-layer, thum.io 等，这里用一个免费的作为示例
-                     // 或者使用 Google Favicon 服务作为最小兜底
-                     // 这里为了演示，我们假设后端可能会返回 screenshot 字段，或者我们前端生成一个
                      setBrowserScreenshot(`https://image.thum.io/get/width/800/crop/600/noanimate/${targetUrl}`)
                  }
+
+                 // Update execution chain: mark corresponding action as completed, add observation
+                 const actionIdx = currentAgentSteps.findIndex(s => s.type === 'action' && s.status === 'active' && s.toolName === data.tool_result.name)
+                 if (actionIdx !== -1) {
+                   const step = currentAgentSteps[actionIdx]
+                   step.status = 'completed'
+                   step.duration = Date.now() - (step.startedAt || startTs)
+                 }
+
+                 const hasError = data.tool_result.result?.error
+                 currentAgentSteps.push({
+                   id: `obs-${Date.now()}`,
+                   type: "observation",
+                   status: hasError ? "error" : "completed",
+                   title: hasError ? `${data.tool_result.name} 调用失败` : `获取到 ${data.tool_result.name} 结果`,
+                   detail: hasError ? String(data.tool_result.result.error).slice(0, 100) : '数据已注入上下文',
+                   duration: 0
+                 })
+                 setAgentSteps([...currentAgentSteps])
                  
                  continue
               }
@@ -2061,13 +2120,75 @@ ${taskContext}
               if (data.skill_selection) {
                 const skillNames = data.skill_selection.map((s: any) => s.name).join(", ")
                 setAgentStatus(`智能识别意图，由 [${skillNames}] 模块提供支持...`)
+                
+                // Update the initial thinking step
+                const thinkingIdx = currentAgentSteps.findIndex(s => s.type === 'thinking' && s.status === 'active')
+                if (thinkingIdx !== -1) {
+                   currentAgentSteps[thinkingIdx].status = 'completed'
+                   currentAgentSteps[thinkingIdx].title = `意图识别 → ${skillNames}`
+                   currentAgentSteps[thinkingIdx].detail = `智能路由匹配到 ${data.skill_selection.length} 个知识模块`
+                   currentAgentSteps[thinkingIdx].duration = Date.now() - (currentAgentSteps[thinkingIdx].startedAt || startTs)
+                   
+                   // Start a NEW active step for subsequent reasoning
+                   currentAgentSteps.push({
+                      id: `reasoning-${Date.now()}`,
+                      type: "thinking",
+                      status: "active",
+                      title: "莓小智思考中...",
+                      detail: "正在构思后续行动计划",
+                      startedAt: Date.now()
+                   })
+                }
+                
+                setAgentSteps([...currentAgentSteps])
                 continue
               }
 
               if (data.tool_calls) {
                 const toolNames = data.tool_calls.map((t: any) => t.function.name).join(", ")
-                setAgentStatus(`正在使用工具: ${toolNames}...`)
+                const round = data.agent_iteration || 1
+                setAgentStatus(`第 ${round} 轮工具调用: ${toolNames}...`)
                 setStudioOpen(true) // 主动展开工作室侧边栏
+                
+                // 确保之前的 Thinking Step 或上一个 Action 已结束
+                const prevActive = currentAgentSteps.find(s => s.status === 'active')
+                if (prevActive) {
+                   prevActive.status = 'completed'
+                   prevActive.duration = Date.now() - (prevActive.startedAt || startTs)
+                }
+
+                // Add action steps to the execution chain (with round label)
+                for (const tc of data.tool_calls) {
+                  const fnName = tc.function.name
+                  let actionTitle = `调用 ${fnName}`
+                  if (fnName.includes('search')) actionTitle = '搜索外部知识'
+                  else if (fnName.includes('scrape') || fnName.includes('firecrawl')) actionTitle = '抓取网页内容'
+                  else if (fnName.includes('weather')) actionTitle = '查询天气数据'
+                  else if (fnName.includes('spectrum')) actionTitle = '读取光谱传感器'
+                  else if (fnName.includes('route') || fnName.includes('amap')) actionTitle = '路线规划'
+
+                  // 多轮时加上轮次标签
+                  if (round > 1) actionTitle = `[第${round}轮] ${actionTitle}`
+
+                  let argsSummary = ''
+                  try {
+                    const args = JSON.parse(tc.function.arguments || '{}')
+                    if (args.query) argsSummary = `查询: "${args.query}"`
+                    else if (args.url) argsSummary = `URL: ${args.url}`
+                    else if (args.location) argsSummary = `位置: ${args.location}`
+                  } catch {}
+
+                  currentAgentSteps.push({
+                    id: `action-${tc.id || Date.now()}`,
+                    type: "action",
+                    status: "active",
+                    title: actionTitle,
+                    detail: argsSummary || `工具: ${fnName}`,
+                    toolName: fnName,
+                    startedAt: Date.now()
+                  })
+                }
+                setAgentSteps([...currentAgentSteps])
 
                 // 检查是否有网页抓取工具，如果有则显示浏览器动效
                 // 支持 Firecrawl 和 Exa (虽然 Exa 通常不是直接抓取，但为了视觉反馈，也可以显示搜索状态)
@@ -2094,48 +2215,9 @@ ${taskContext}
                     setStudioOpen(true)
                 }
 
-                // 构造一个临时的 TASK_LIST 以便让用户看到真实的规划器进度
-                const tempTasks = data.tool_calls.map((t: any) => {
-                    let title = '执行工具调用'
-                    if (t.function.name.includes('search') || t.function.name.includes('scrape')) title = '搜索并分析外部知识'
-                    else if (t.function.name.includes('weather')) title = '获取实时天气数据'
-                    else if (t.function.name.includes('spectrum')) title = '读取并分析光谱传感器'
-                    
-                    return {
-                        title: title,
-                        status: 'in_progress',
-                        subActions: [
-                            { text: `正在调用 ${t.function.name}...`, status: 'in_progress' }
-                        ]
-                    }
-                })
-                const tempTaskListStr = `\n<TASK_LIST>\n${JSON.stringify({ status: 'in_progress', tasks: tempTasks })}\n</TASK_LIST>\n`
 
-                // 添加临时的 TASK_LIST 和 TOOL_USED 标记
-                if (typeof assistantMsg.content === "string") {
-                    if (!assistantMsg.content.includes('<TASK_LIST>')) {
-                        assistantMsg.content += tempTaskListStr
-                    }
-                }
-
-                data.tool_calls.forEach((t: any) => {
-                    // 获取中文描述
-                    let desc = "正在执行..."
-                    if (t.function.name.includes('search')) desc = "搜索最新信息"
-                    else if (t.function.name.includes('weather')) desc = "查询天气"
-                    else if (t.function.name.includes('scrape')) desc = "读取网页内容"
-                    
-                    const loadingTag = `<TOOL_USED toolName="${t.function.name}" description="${desc}" result="loading" />`
-                    
-                    if (typeof assistantMsg.content === "string") {
-                         // 避免重复添加相同的 loading tag
-                         if (!assistantMsg.content.includes(`toolName="${t.function.name}"`) || !assistantMsg.content.includes(`result="loading"`)) {
-                            assistantMsg.content += loadingTag
-                         }
-                    }
-                })
-                
-                // 更新 UI
+                // ✅ Fix #3: 不再往 content 中注入 TASK_LIST / TOOL_USED 标签
+                // 执行链完全由 agentSteps 状态驱动，消息体保持纯净
                 setMessages(prev => {
                   const newMsgs = [...prev]
                   newMsgs[newMsgs.length - 1] = { ...assistantMsg }
@@ -2147,20 +2229,27 @@ ${taskContext}
 
               const content = data.choices?.[0]?.delta?.content ?? data.content
               if (typeof content === "string") {
-                // 当开始接收AI的文本回复时，清理工具调用状态
-                if (content.trim() && agentStatus.includes("正在使用工具")) {
+                // 当开始接收AI的文本回复时：清理 agentStatus，并在链上加 Final Answer 步骤
+                if (content.trim() && agentStatus) {
                   setAgentStatus("")
+                  // ✅ Fix #1: 添加 Final Answer 步骤到执行链
+                  if (currentAgentSteps.length > 0 && !currentAgentSteps.some(s => s.type === 'answer')) {
+                    currentAgentSteps.push({
+                      id: `answer-${Date.now()}`,
+                      type: "answer",
+                      status: "active",
+                      title: "生成最终回答",
+                      startedAt: Date.now()
+                    })
+                    setAgentSteps([...currentAgentSteps])
+                  }
                 }
                 
-                // Update assistant message content
+                // Update assistant message content - 保持消息体纯净，不再注入 TOOL_USED/TASK_LIST
                 if (typeof assistantMsg.content === "string") {
-                    // 当 LLM 开始生成最终回复时，移除临时的加载标记
+                    // 清理任何残留的临时标记（向后兼容旧会话记录）
                     if (content.trim()) {
                         assistantMsg.content = assistantMsg.content.replace(/<TOOL_USED[^>]*result="loading"[^>]*\/>/g, '')
-                        // 如果有临时的 TASK_LIST，也将其移除，以便被 AI 真实的 TASK_LIST 覆盖
-                        if (assistantMsg.content.includes('"subActions":[{"text":"正在调用')) {
-                            assistantMsg.content = assistantMsg.content.replace(/<TASK_LIST>[\s\S]*?<\/TASK_LIST>/g, '')
-                        }
                     }
                     assistantMsg.content += content
                 } else {
@@ -2288,6 +2377,16 @@ ${taskContext}
          }
       }
 
+      // ✅ Fix #1: 流结束时，标记 Final Answer 步骤完成，并在短暂延迟后清空执行链
+      const answerIdx = currentAgentSteps.findIndex(s => s.type === 'answer')
+      if (answerIdx !== -1) {
+        currentAgentSteps[answerIdx].status = 'completed'
+        currentAgentSteps[answerIdx].duration = Date.now() - (currentAgentSteps[answerIdx].startedAt || startTs)
+        setAgentSteps([...currentAgentSteps])
+      }
+      // 延迟清除执行链，让用户能看到完整流程
+      setTimeout(() => setAgentSteps([]), 3000)
+
       // 确保流结束时关闭浏览器
       setBrowsingUrl(null)
       if (ensuredSessionId) {
@@ -2299,7 +2398,7 @@ ${taskContext}
         await fetch(`/api/sessions/${ensuredSessionId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: [...newMessages, lastMsg] })
+          body: JSON.stringify({ messages: latestHistoryFromBackend ? [...latestHistoryFromBackend, lastMsg] : [...newMessages, lastMsg] })
         })
       }
 
@@ -2678,8 +2777,9 @@ ${taskContext}
     // Updated to handle spaces in tags (e.g. < TASK_LIST >)
     // Added SCHEDULED_TASKS for legacy/scheduled tasks list
     // Added TOOL_USED for tool usage indicators
+    // Added AUTOMATION_STRATEGY for automation strategy cards
     // Also split by JSON code blocks to render them as DeviceControlCard
-    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|```json\s*[\s\S]*?```)/g)
+    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|```json\s*[\s\S]*?```)/g)
 
     return (
       <>
@@ -2705,7 +2805,14 @@ ${taskContext}
                         <div key={index} className="my-4 space-y-3">
                             {commands.map((cmd: any, i: number) => (
                                 isIoTCommand(cmd) ? (
-                                    <DeviceControlCard key={i} command={cmd} />
+                                    <DeviceControlCard 
+                                        key={i} 
+                                        command={cmd} 
+                                        status={autoExecuteCommands ? 'executed' : 'pending'}
+                                        onExecute={async (c) => {
+                                            await executeCommands([c])
+                                        }}
+                                    />
                                 ) : null
                             ))}
                         </div>
@@ -2765,6 +2872,67 @@ ${taskContext}
             }
           }
 
+          if (part.match(/^<\s*ACTION_PROMPT/)) {
+            try {
+              const innerHtml = part.replace(/^<\s*ACTION_PROMPT\s*>/, '').replace(/<\/\s*ACTION_PROMPT\s*>$/, '').trim()
+              const actionRegex = /<\s*ACTION\s+value="([^"]+)"\s*>([\s\S]*?)<\/\s*ACTION\s*>/g;
+              const actions: {value: string, label: string}[] = [];
+              let match;
+              while ((match = actionRegex.exec(innerHtml)) !== null) {
+                 actions.push({ value: match[1], label: match[2].trim() });
+              }
+
+              return (
+                <div key={index} className="my-4 space-y-3">
+                   <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">系统提示：您需要决定下一步操作</div>
+                   <div className="flex flex-col sm:flex-row gap-2">
+                     {actions.map((act, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleSend(act.value)}
+                          className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors shadow-sm text-left flex-1"
+                        >
+                          {act.label}
+                        </button>
+                     ))}
+                   </div>
+                </div>
+              )
+            } catch (e) {
+                console.error("Action Prompt parsing error", e)
+                return null;
+            }
+          }
+
+          if (part.match(/^<\s*CONTEXT_COMPRESSED/)) {
+            return (
+              <div key={index} className="my-2 animate-in fade-in slide-in-from-top-1 duration-500">
+                <div className="flex items-center gap-2 px-3 py-2 bg-zinc-100/50 dark:bg-zinc-800/50 backdrop-blur-sm rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                  <Activity size={12} className="text-emerald-500" />
+                  <span>为了维持响应速度，较早的对话历史已自动提炼并压缩</span>
+                </div>
+              </div>
+            )
+          }
+
+          if (part.match(/^<\s*PAST_MEMORY/)) {
+            const memoryText = part.replace(/^<\s*PAST_MEMORY\s*>/, '').replace(/<\/\s*PAST_MEMORY\s*>/, '').trim()
+            return (
+              <div key={index} className="my-4 p-4 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100/50 dark:border-amber-800/30 rounded-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Library size={48} className="text-amber-600" />
+                </div>
+                <div className="flex items-center gap-2 mb-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+                  <Activity size={14} />
+                  <span>历史记忆摘要 (已折叠)</span>
+                </div>
+                <div className="text-sm text-amber-800/80 dark:text-amber-200/70 leading-relaxed italic pr-8">
+                  {memoryText}
+                </div>
+              </div>
+            )
+          }
+
           if (part.match(/^<\s*SCHEDULED_TASKS/)) {
             return (
               <div key={index} className="my-6">
@@ -2779,6 +2947,37 @@ ${taskContext}
                 <ControlBentoGrid />
               </div>
             )
+          }
+
+          if (part.match(/^<\s*AUTOMATION_STRATEGY/)) {
+            try {
+              const strategyContent = part.replace(/^<\s*AUTOMATION_STRATEGY\s*>/, '').replace(/<\/\s*AUTOMATION_STRATEGY\s*>$/, '').trim();
+              
+              // Extract description if present
+              const descMatch = strategyContent.match(/description="([^"]*)"/);
+              const description = descMatch ? descMatch[1] : undefined;
+              
+              // Extract JSON strategy
+              const jsonMatch = strategyContent.match(/```json\s*([\s\S]*?)\s*```/);
+              if (!jsonMatch) {
+                console.error('No JSON found in AUTOMATION_STRATEGY');
+                return null;
+              }
+              
+              const strategy = JSON.parse(jsonMatch[1]);
+              
+              return (
+                <div key={index}>
+                  <AutomationStrategyCard 
+                    strategy={strategy} 
+                    description={description}
+                  />
+                </div>
+              );
+            } catch (e) {
+              console.error('AUTOMATION_STRATEGY parsing error:', e);
+              return null;
+            }
           }
 
           if (part.match(/^<\s*DEVICE_BENTO/)) {
@@ -3026,6 +3225,10 @@ ${taskContext}
                       }
                     }
 
+                    if (!inline && (language === 'html' || language === 'javascript' || language === 'typescript' || language === 'js' || language === 'ts')) {
+                      return <HTMLPreviewCard code={String(children).replace(/\n$/, '')} language={language} />
+                    }
+
                     return <code className={cn("bg-zinc-100 dark:bg-zinc-800 rounded px-1 font-mono text-sm text-zinc-800 dark:text-zinc-200 font-semibold", className)} {...props}>{children}</code>
                   },
                   pre: ({ node, children, ...props }: any) => <pre className="bg-zinc-50 dark:bg-white/5 p-3 rounded-lg overflow-x-auto my-2 border border-zinc-200 dark:border-white/10" {...props}>{children}</pre>,
@@ -3090,6 +3293,7 @@ ${taskContext}
   const groupOrder = ["Today", "Yesterday", "Previous 7 Days", "Earlier"]
 
   return (
+    <>
     <div
       className={cn(
         "relative fixed inset-0 w-full h-full text-zinc-900 dark:text-zinc-100 overflow-hidden flex font-sans selection:bg-emerald-500/20 selection:text-emerald-700",
@@ -3165,685 +3369,523 @@ ${taskContext}
         }
       `}</style>
 
-      {/* Sidebar */}
+      {/* Refined Minimalist Sidebar (BeeBot Style) */}
       <div className={cn(
-        "relative flex-shrink-0 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-xl flex flex-col transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] border-r border-zinc-200/50 dark:border-zinc-800/50 z-20",
-        sidebarOpen ? "w-[280px] translate-x-0 opacity-100" : "w-0 -translate-x-4 opacity-0 overflow-hidden"
+        "relative flex-shrink-0 bg-[#F9F9F9] dark:bg-[#09090B] border-r border-zinc-200/50 dark:border-zinc-800/50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden z-20 group/sidebar",
+        sidebarOpen ? "w-[260px]" : "w-0 shadow-none border-none"
       )}>
-        {/* Top Nav Items */}
-        <div className="p-4 space-y-4">
-          {/* Logo Section */}
-          <div className="flex items-center gap-3 px-2 mb-2">
-            <div className="relative size-8 shrink-0 rounded-lg overflow-hidden shadow-sm">
-              <Image src="/icon.png" alt="Logo" fill className="object-cover" />
-            </div>
-            <span className="font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">莓小智</span>
-            <ElderFriendlyToggle showButton={false} className="ml-auto" />
-          </div>
-
-          <div className="space-y-2">
-            <button
-              onClick={createNewSession}
-              className="w-full group flex items-center justify-between gap-3 px-3 py-2.5 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 border border-zinc-200/60 dark:border-zinc-700/50 rounded-xl transition-all shadow-sm hover:shadow text-sm font-medium text-zinc-700 dark:text-zinc-200"
-            >
-              <div className="flex items-center gap-2.5">
-                  <Plus size={16} className="text-zinc-400 group-hover:text-zinc-600" />
-                  <span>新会话</span>
-              </div>
-              <span className="text-[10px] bg-zinc-100 dark:bg-zinc-700/50 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">⌘N</span>
-            </button>
-          </div>
-
-          {/* Search & Return */}
-          <div className="space-y-1">
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group">
-              <Search size={16} className="text-zinc-400 group-hover:text-zinc-600" />
-              <span>搜索</span>
-            </button>
-            <button
-              onClick={() => router.push('/mcp-store')}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
-            >
-              <Zap size={16} className="text-zinc-400 group-hover:text-zinc-600" />
-              <span>MCP 商店</span>
-            </button>
-            <button
-              onClick={() => setStoreOpen(true)}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
-            >
-              <Library size={16} className="text-zinc-400 group-hover:text-zinc-600" />
-              <span>应用商店</span>
-            </button>
-            <button
-              onClick={() => router.push('/model-store')}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
-            >
-              <Cpu size={16} className="text-zinc-400 group-hover:text-zinc-600" />
-              <span>大模型市场</span>
-            </button>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors text-left group"
-            >
-              <ArrowLeft size={16} className="text-zinc-400 group-hover:text-zinc-600" />
-              <span>返回看板</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Chat History */}
-        <div 
-          className="flex-1 overflow-y-auto px-4 custom-scrollbar"
-        >
-          <div className="flex flex-col gap-6 pb-4">
-            {groupOrder.map(key => {
-              const group = groupedSessions[key]
-              if (!group || group.length === 0) return null
-              return (
-                <div key={key}>
-                  <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-2">{key === "Today" ? "今天" : key === "Yesterday" ? "昨天" : key === "Previous 7 Days" ? "近期" : "更早"}</div>
-                  <div className="flex flex-col gap-0.5">
-                    {group.map(s => (
-                      <div
-                        key={s.id}
-                        className={cn(
-                          "group flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all text-sm relative",
-                          sessionId === s.id 
-                            ? "bg-zinc-200/60 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium" 
-                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400"
-                        )}
-                        onClick={() => { setSessionId(s.id); if (window.innerWidth < 768) setSidebarOpen(false) }}
-                      >
-                        <div className="flex-1 truncate relative z-10 pr-6">
-                          {s.title}
-                        </div>
-                        {sessionId === s.id && (
-                          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center z-20">
-                            <button onClick={(e) => deleteSession(s.id, e)} className="text-zinc-400 hover:text-red-500 p-1.5 rounded-md transition-colors hover:bg-zinc-200/50"><Trash size={13} /></button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+        <div className="w-[260px] h-full flex flex-col pt-6 pb-4">
+           {/* Logo Section */}
+           <div className="px-6 mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative size-8 shrink-0">
+                  <Image 
+                    src="/icon.png" 
+                    alt="莓小智" 
+                    fill 
+                    className="object-cover rounded-xl shadow-lg shadow-blue-500/20" 
+                  />
                 </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Bottom User/Upgrade */}
-        <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50 mt-auto space-y-3 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
-           <button 
-             onClick={() => router.push('/plans')}
-             className="w-full flex items-center gap-3 px-3 py-2.5 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-xl transition-all shadow-sm group"
-           >
-             <div className="size-8 rounded-lg bg-zinc-800 dark:bg-zinc-200 flex items-center justify-center text-white dark:text-zinc-900 shrink-0 border border-white/10 dark:border-black/10">
-                 <Sparkles size={14} className="text-amber-400" />
+                <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">莓小智</span>
               </div>
-             <div className="flex-1 text-left">
-               <div className="text-sm font-semibold">升级 Pro</div>
-               <div className="text-[10px] opacity-70">解锁高级模型</div>
-             </div>
-           </button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors text-left group">
-                <Avatar className="size-7 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                  <AvatarImage src={user?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-zinc-100 text-zinc-500 text-[10px]">{user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 truncate font-medium text-xs">{user?.username || "User"}</div>
-                <Settings size={14} className="text-zinc-400 group-hover:text-zinc-600 transition-colors" />
+              <button onClick={() => setSidebarOpen(false)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                <PanelLeftClose size={18} />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="start" side="top">
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/model-store')}>
-                <Settings size={14} /> 模型市场
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/my-mcp')}>
-                <Zap size={14} /> MCP 设置
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer gap-2 text-red-600" onClick={() => router.push('/login')}>
-                <LogOut size={14} /> 退出登录
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+           </div>
+
+           {/* Back Button */}
+           <div className="px-3 mb-4">
+              <button
+                onClick={() => router.back()}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-zinc-900 dark:hover:text-zinc-100 group"
+              >
+                <ArrowLeft size={18} className="text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-all group-hover:-translate-x-0.5" />
+                <span>返回上一页</span>
+              </button>
+           </div>
+
+           {/* New Chat Trigger */}
+           <div className="px-3 mb-6">
+              <button
+                onClick={createNewSession}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus size={16} />
+                  <span>新对话</span>
+                </div>
+                <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-zinc-50 border-zinc-200 px-1.5 font-mono text-[10px] font-medium text-zinc-400 dark:bg-zinc-800 dark:border-zinc-700">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </button>
+           </div>
+
+           {/* Navigation Section */}
+           <div className="flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar">
+              {[
+                { icon: <Home size={18} />, text: "主页", id: "home", active: true },
+                { icon: <Compass size={18} />, text: "探索", id: "explore" },
+                { icon: <Library size={18} />, text: "能力库", id: "library" },
+                { icon: <RotateCcw size={18} />, text: "历史", id: "history" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === "explore") {
+                      setExploreOpen(true)
+                    } else if (item.id === "library") {
+                      setStoreOpen(true)
+                    }
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all group",
+                    item.active 
+                      ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-sm" 
+                      : "text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  )}
+                >
+                  <span className={cn(item.active ? "text-blue-600" : "text-zinc-400 group-hover:text-zinc-600 transition-colors")}>{item.icon}</span>
+                  {item.text}
+                </button>
+              ))}
+
+              {/* History placeholder */}
+              <div className="mt-8 px-4 mb-2">
+                 <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">最近会话</h3>
+              </div>
+              <div className="space-y-0.5">
+                {sessions.slice(0, 8).map((session) => (
+                   <button
+                     key={session.id}
+                     onClick={() => {
+                        setSessionId(session.id)
+                        loadSessionMessages(session.id)
+                     }}
+                     className={cn(
+                       "w-full flex items-center gap-3 px-4 py-2 text-[13px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-xl transition-all group truncate",
+                       sessionId === session.id ? "text-zinc-900 dark:text-zinc-100 font-medium" : ""
+                     )}
+                   >
+                     <CircleHelp size={14} className="shrink-0 opacity-40 group-hover:text-blue-500 transition-colors" />
+                     <span className="truncate text-left">{session.title}</span>
+                   </button>
+                ))}
+              </div>
+           </div>
+
+           {/* User Section */}
+           <div className="px-3 pt-4 mt-auto border-t border-zinc-200/50 dark:border-zinc-800/50">
+              <button 
+                onClick={() => setSettingsOpen(true)}
+                className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all text-left group"
+              >
+                <Avatar className="size-8 rounded-lg border border-zinc-200 dark:border-zinc-800 transition-transform group-hover:scale-105">
+                  <AvatarImage src={user?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-blue-600 text-white rounded-lg text-xs font-bold">{user?.username?.[0]?.toUpperCase() || "B"}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate leading-none mb-1">{user?.username || "管理员"}</p>
+                  <p className="text-[10px] text-zinc-400 truncate tracking-tight uppercase font-medium">Pro 订阅用户</p>
+                </div>
+                <Settings size={14} className="text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors" />
+              </button>
+           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative z-0">
-        {/* 视觉巡检覆盖层 / Viewfinder */}
-        {isInspecting && (
-          <div className="absolute inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-500 overflow-hidden">
-            <div className="relative size-64 md:size-80 border-2 border-white/20 rounded-full flex items-center justify-center">
-              {/* 四个角的取景器标识 */}
-              <div className="absolute top-0 left-0 size-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl" />
-              <div className="absolute top-0 right-0 size-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl" />
-              <div className="absolute bottom-0 left-0 size-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl" />
-              <div className="absolute bottom-0 right-0 size-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl" />
-              
-              {/* 中心扫描线 */}
-              <div className="absolute inset-4 rounded-full overflow-hidden">
-                <div className="w-full h-1 bg-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.8)] absolute top-0 animate-[scan_3s_ease-in-out_infinite]" />
-              </div>
-
-              {/* 核心内容 */}
-              <div className="text-center space-y-4">
-                <div className="relative">
-                  <Camera className="size-16 text-white/90 mx-auto animate-pulse" />
-                  <div className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full animate-ping" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-white font-bold text-lg tracking-widest uppercase">REC • CAM {inspectionCamera.toUpperCase()}</div>
-                  <div className="text-emerald-400 font-mono text-sm h-5">{inspectionStatus}</div>
-                </div>
-              </div>
-
-              {/* 环境装饰线 */}
-              <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_20s_linear_infinite]" />
-              <div className="absolute -inset-16 border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-            </div>
-            
-            <div className="mt-12 text-zinc-500 font-mono text-xs uppercase tracking-[0.3em] flex items-center gap-4">
-               <span>LATENCY: 48MS</span>
-               <span className="w-px h-3 bg-zinc-800" />
-               <span>ISO: 800</span>
-               <span className="w-px h-3 bg-zinc-800" />
-               <span>RESOLUTION: 1080P</span>
-            </div>
-            
-            <button 
-              onClick={() => setIsInspecting(false)}
-              className="mt-12 px-6 py-2 border border-white/20 text-white/60 hover:text-white hover:border-white/50 rounded-full text-xs transition-all tracking-widest uppercase"
-            >
-              取消巡检
-            </button>
-          </div>
-        )}
-
-        {/* Top Bar - Floating & Minimal */}
-        <div className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 z-20 pointer-events-none">
-          <div className="pointer-events-auto flex items-center gap-2">
+      {/* Main Interface Content Area */}
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#0C0C0E] transition-colors duration-500 overflow-hidden relative">
+        
+        {/* Stationary Integrated Header (BeeBot style) */}
+        <div className="h-[72px] flex items-center justify-between px-8 shrink-0 z-10 transition-all border-b border-zinc-100 dark:border-zinc-900">
+          <div className="flex items-center gap-4">
             {!sidebarOpen && (
-              <button onClick={() => setSidebarOpen(true)} className="text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-zinc-800 backdrop-blur-md transition-all shadow-sm border border-transparent hover:border-zinc-200/50">
-                <PanelLeftOpen size={20} />
+              <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all text-zinc-500">
+                <PanelLeftOpen size={18} />
               </button>
             )}
-            {sidebarOpen && (
-              <button id="ai-sidebar-toggle" onClick={() => setSidebarOpen(false)} className="text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 p-2 rounded-lg hover:bg-white/50 dark:hover:bg-zinc-800 backdrop-blur-md transition-all md:hidden">
-                <PanelLeftClose size={20} />
-              </button>
-            )}
-
-            <ElderFriendlyToggle showBadge={false} className="ml-2" />
-
-            <div id="ai-model-selector-nav">
-            <PromptInputModelSelect value={selectedModel || aiSettings?.model || "qwen-vl-plus"} onValueChange={(val) => {
-              setSelectedModel(val)
-              if (aiSettings) {
-                const newSettings = { ...aiSettings, model: val }
-                setAiSettings(newSettings)
-                localStorage.setItem("ai-settings", JSON.stringify(newSettings))
-              } else {
-                const defaultSettings = {
-                  apiKey: "",
-                  apiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                  model: val,
-                  systemPrompt: ""
-                }
-                setAiSettings(defaultSettings)
-                localStorage.setItem("ai-settings", JSON.stringify(defaultSettings))
-              }
-            }}>
-              <PromptInputModelSelectTrigger className="bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-700/50 hover:bg-white/80 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 gap-2 px-3 py-1.5 rounded-lg transition-all shadow-sm focus:ring-0 h-auto">
-                <Sparkles size={14} className="text-purple-500" />
-                <span className="text-zinc-600 dark:text-zinc-400 font-medium text-sm">{
-                  (selectedModel || aiSettings?.model) === 'auto' ? "智能模式" : 
-                  (selectedModel || aiSettings?.model) === 'qwen3.5-plus' ? "Qwen3.5 Plus" :
-                  (selectedModel || aiSettings?.model) === 'qwen3.5-flash' ? "Qwen3.5 Flash" :
-                  (selectedModel || aiSettings?.model) === 'qwen3-vl-plus' ? "Qwen3 VL Plus" :
-                  (selectedModel || aiSettings?.model) === 'qwen3-vl-flash' ? "Qwen3 VL Flash" :
-                  (selectedModel || aiSettings?.model) === 'qwen3-max' ? "Qwen3 Max" :
-                  (selectedModel || aiSettings?.model) === 'qwen3-max-2026-01-23' ? "Qwen3 Max (推理)" :
-                  (selectedModel || aiSettings?.model) === 'qwen-long' ? "Qwen Long" :
-                  (selectedModel || aiSettings?.model) === 'deepseek-v3.2' ? "DeepSeek V3.2" :
-                  (selectedModel || aiSettings?.model || "Qwen3.5 Plus")
-                }</span>
-                <ChevronDown size={14} className="text-zinc-400 ml-1" />
-              </PromptInputModelSelectTrigger>
-              <PromptInputModelSelectContent className="w-[280px]">
-                <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">💡 推荐</div>
-                <PromptInputModelSelectItem value="auto">
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="size-3 text-purple-500" /> 
-                    <span>智能模式 (Auto)</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen3.5-plus">
-                  <span className="flex items-center justify-between w-full">
-                    <span>Qwen3.5 Plus</span>
-                    <span className="text-xs text-emerald-500">推荐</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                
-                <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2">🧠 深度思考</div>
-                <PromptInputModelSelectItem value="qwen3-max-2026-01-23">
-                  <span className="flex items-center justify-between w-full">
-                    <span>Qwen3 Max (2026-01-23)</span>
-                    <span className="text-xs text-purple-500">推理</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="deepseek-v3.2">
-                  <span className="flex items-center justify-between w-full">
-                    <span>DeepSeek V3.2</span>
-                    <span className="text-xs text-purple-500">推理</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                
-                <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2">📝 文本生成</div>
-                <PromptInputModelSelectItem value="qwen3-max">
-                  <span className="flex items-center justify-between w-full">
-                    <span>Qwen3 Max</span>
-                    <span className="text-xs text-orange-500">最强</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen3.5-flash">
-                  <span className="flex items-center justify-between w-full">
-                    <span>Qwen3.5 Flash</span>
-                    <span className="text-xs text-blue-500">快速</span>
-                  </span>
-                </PromptInputModelSelectItem>
-                
-                <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2">👁️ 视觉理解</div>
-                <PromptInputModelSelectItem value="qwen3.5-plus">Qwen3.5 Plus</PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen3.5-flash">Qwen3.5 Flash</PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen3-vl-plus">Qwen3 VL Plus</PromptInputModelSelectItem>
-                <PromptInputModelSelectItem value="qwen3-vl-flash">Qwen3 VL Flash</PromptInputModelSelectItem>
-                
-                <div className="px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-2">🔧 其他</div>
-                <PromptInputModelSelectItem value="qwen-long">Qwen Long (长文本)</PromptInputModelSelectItem>
-              </PromptInputModelSelectContent>
-            </PromptInputModelSelect>
-            </div>
+            
+            {(() => {
+              const currentModelId = (selectedModel || aiSettings?.model || "qwen3.6-plus") as string;
+              return (
+                <PromptInputModelSelect value={currentModelId} onValueChange={(val) => {
+                  setSelectedModel(val)
+                  if (aiSettings) {
+                    const newSettings = { ...aiSettings, model: val }
+                    setAiSettings(newSettings)
+                    localStorage.setItem("ai-settings", JSON.stringify(newSettings))
+                  }
+                }}>
+                  <PromptInputModelSelectTrigger className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all font-bold text-xs h-auto shadow-sm focus:ring-0 group">
+                      <div className="size-6 rounded-lg overflow-hidden flex items-center justify-center transition-transform group-hover:scale-110">
+                        {
+                          currentModelId === 'auto' ? <Sparkles size={14} className="text-blue-500" /> :
+                          currentModelId.includes('qwen') ? <Qwen.Color size={16} /> :
+                          currentModelId.includes('deepseek') ? <DeepSeek.Color size={16} /> :
+                          currentModelId.includes('kimi') ? <Moonshot size={16} /> :
+                          <Qwen.Color size={16} />
+                        }
+                      </div>
+                      <span className="text-zinc-700 dark:text-zinc-300 tracking-tight font-black">{
+                        currentModelId === 'auto' ? "智能模式" : 
+                        currentModelId === 'deepseek-v3' ? "DeepSeek-V3" :
+                        currentModelId === 'deepseek-r1' ? "DeepSeek-R1 (推理)" :
+                        currentModelId === 'qwen3.6-plus' ? "Qwen3.6 Plus" :
+                        currentModelId === 'qwen3.5-plus' ? "Qwen3.5 Plus" :
+                        currentModelId === 'qwen3.5-flash' ? "Qwen3.5 Flash" :
+                        currentModelId === 'qwen-max' ? "Qwen Max" :
+                        currentModelId === 'kimi-latest' ? "Kimi Latest" :
+                        currentModelId
+                      }</span>
+                      <ChevronDown size={12} className="text-zinc-400 group-hover:text-zinc-600 transition-all" />
+                  </PromptInputModelSelectTrigger>
+                  <PromptInputModelSelectContent className="w-[320px] p-2 rounded-3xl border-zinc-200/60 dark:border-zinc-800 shadow-2xl backdrop-blur-xl bg-white/95 dark:bg-zinc-900/95">
+                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">精选国产模型</div>
+                    <PromptInputModelSelectItem value="auto" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                          <Sparkles size={18} className="text-blue-500" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">智能模式 (Auto)</span>
+                          <span className="text-[10px] text-zinc-500">根据任务自动选择最佳模型</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <PromptInputModelSelectItem value="deepseek-v3" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                          <DeepSeek.Color size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">DeepSeek-V3</span>
+                          <span className="text-[10px] text-zinc-500">巅峰中文性能与极速响应</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <PromptInputModelSelectItem value="qwen3.6-plus" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                          <Qwen.Color size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen3.6 Plus</span>
+                          <span className="text-[10px] text-zinc-500">阿里通义千问最新视觉增强版</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">深度思考 / 推理</div>
+                    <PromptInputModelSelectItem value="deepseek-r1" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center overflow-hidden">
+                          <DeepSeek size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">DeepSeek-R1</span>
+                          <span className="text-[10px] text-zinc-500">对标 o1 的强力逻辑思考模型</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <PromptInputModelSelectItem value="qwen-max" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center overflow-hidden border border-emerald-500/20">
+                          <Qwen.Color size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen Max</span>
+                          <span className="text-[10px] text-zinc-500">通义千问最强生产力工具</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Alibaba Qwen 系列</div>
+                    <PromptInputModelSelectItem value="qwen3.5-plus" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                          <Qwen.Color size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen3.5 Plus</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <PromptInputModelSelectItem value="qwen3.5-flash" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                          <Qwen size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen3.5 Flash</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">其他国产模型</div>
+                    <PromptInputModelSelectItem value="kimi-latest" className="rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                          <Moonshot size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Kimi Latest</span>
+                          <span className="text-[10px] text-zinc-500">超长上下文支持之王</span>
+                        </div>
+                      </div>
+                    </PromptInputModelSelectItem>
+                  </PromptInputModelSelectContent>
+                </PromptInputModelSelect>
+              )
+            })()}
           </div>
 
-          <div className="pointer-events-auto flex items-center gap-2 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-700/50 px-2 py-1.5 rounded-full shadow-sm">
+          <div className="flex items-center gap-4">
+             <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl">
+                <button className="px-4 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-zinc-200/10 transition-all flex items-center gap-1.5">
+                  <Cpu size={14} /> 助手
+                </button>
+                <button onClick={() => setStudioOpen(true)} className="px-4 py-1.5 text-xs font-bold rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-all flex items-center gap-1.5 group">
+                  <Activity size={14} className="group-hover:text-blue-500 transition-colors" /> 工作室
+                </button>
+             </div>
+            <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800" />
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setVoiceChatOpen(true)}
+                className="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-all rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                title="实时语音对话"
+              >
+                <Phone size={18} />
+              </button>
+
+              <button
+                onClick={() => {
+                  const newState = !isTtsPaused
+                  setIsTtsPaused(newState)
+                  isTtsPausedRef.current = newState
+                }}
+                className={cn(
+                  "p-2 transition-all rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900",
+                  isTtsPaused 
+                    ? "text-amber-500" 
+                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                )}
+                title={isTtsPaused ? "继续播报" : "暂停当前播报"}
+              >
+                {isTtsPaused ? <Play size={18} /> : <Pause size={18} />}
+              </button>
+
+              <button
+                onClick={() => {
+                  const newState = !isTTSEnabled
+                  setIsTTSEnabled(newState)
+                  if (!newState && audioContextRef.current) {
+                    audioContextRef.current.pause()
+                  }
+                }}
+                className={cn(
+                  "p-2 transition-all rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900",
+                  isTTSEnabled 
+                    ? "text-emerald-500" 
+                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                )}
+                title={isTTSEnabled ? "全局播报已开启" : "全局播报已静音"}
+              >
+                {isTTSEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800" />
             <CalendarTrigger />
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
-            <button
-              onClick={() => setVoiceChatOpen(true)}
-              className="p-1.5 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors rounded-full hover:bg-black/5 dark:hover:bg-white/10"
-              title="实时语音对话"
-            >
-              <Phone size={16} />
-            </button>
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
-            <button
-              onClick={() => {
-                const newState = !isTtsPaused
-                setIsTtsPaused(newState)
-                isTtsPausedRef.current = newState
-              }}
-              className={cn(
-                "p-1.5 transition-colors rounded-full",
-                isTtsPaused 
-                  ? "text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10" 
-                  : "text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10"
-              )}
-              title={isTtsPaused ? "继续播报" : "暂停当前播报"}
-            >
-              {isTtsPaused ? <Play size={16} /> : <Pause size={16} />}
-            </button>
-            <button
-              onClick={() => {
-                const newState = !isTTSEnabled
-                setIsTTSEnabled(newState)
-                if (!newState && audioContextRef.current) {
-                  audioContextRef.current.pause()
-                }
-              }}
-              className={cn(
-                "p-1.5 transition-colors rounded-full",
-                isTTSEnabled 
-                  ? "text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" 
-                  : "text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/10"
-              )}
-              title={isTTSEnabled ? "全局播报已开启" : "全局播报已静音"}
-            >
-              {isTTSEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            </button>
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div id="ai-welcome-area" className="flex-1 min-h-0 relative flex flex-col z-0">
-          {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center p-4 min-h-[600px] overflow-y-auto custom-scrollbar">
-              <div className="w-full max-w-4xl flex flex-col items-center m-auto py-20">
-              {/* Header */}
-              <div className="text-center mb-12 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="inline-flex items-center justify-center p-1.5 bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 mb-4">
-                    <div className="relative size-10 rounded-xl overflow-hidden">
-                        <Image src="/icon.png" alt="Logo" fill className="object-cover" />
-                    </div>
+        {/* Chat Content Container */}
+        <div id="ai-chat-main-container" className="flex-1 flex flex-col relative overflow-hidden">
+
+          {/* Chat/Welcome Scrollable Area */}
+          <div id="ai-welcome-area" className="flex-1 overflow-y-auto custom-scrollbar pt-12">
+             {messages.length === 0 ? (
+               <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-4xl mx-auto relative z-10 animate-in fade-in zoom-in-95 duration-1000">
+                {/* Subtle Dynamic Mesh Background Background */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-40 dark:opacity-20 blur-[100px]">
+                  <motion.div 
+                    animate={{ 
+                      x: [0, 50, 0],
+                      y: [0, 30, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                    className="absolute -top-1/4 -left-1/4 size-[150%] bg-gradient-to-br from-blue-500/10 via-transparent to-transparent rounded-full"
+                  />
+                  <motion.div 
+                    animate={{ 
+                      x: [0, -40, 0],
+                      y: [0, -50, 0],
+                      scale: [1, 1.2, 1]
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute -bottom-1/4 -right-1/4 size-[150%] bg-gradient-to-tl from-emerald-500/10 via-transparent to-transparent rounded-full"
+                  />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                  {greeting}，{user?.username || '农场主'}
-                </h1>
-                <p className="text-lg text-zinc-500 dark:text-zinc-400 font-medium">
-                  我是您的智能助手，准备好协助您管理农场了吗？
-                </p>
+
+                {/* Premium Floating Orb */}
+                {/* Siri-style Voice Orb Implementation */}
+                <div className="relative mb-12 pt-8">
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ 
+                      duration: 1.5, 
+                      ease: [0.16, 1, 0.3, 1]
+                    }}
+                    className="relative flex items-center justify-center"
+                  >
+                    <SiriOrb size="200px" className="shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-transform duration-700" />
+                  </motion.div>
+                </div>
+
+              {/* Elegant Greeting Typography */}
+              <div className="text-center space-y-4 mb-16">
+                <motion.h1 
+                  initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}
+                  className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight"
+                >
+                  {greeting}, {user?.username || '农场主'}
+                </motion.h1>
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
+                  className="text-2xl md:text-3xl font-medium text-zinc-500 dark:text-zinc-400"
+                >
+                  我今天能为您 <span className="text-blue-600 dark:text-blue-500 font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">做点什么？</span>
+                </motion.div>
               </div>
 
-              {/* Input Bar in Center for Empty State */}
-              <div className="w-full max-w-3xl relative mb-12 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-                <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-[24px] p-2 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] dark:shadow-none hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] transition-all duration-300 border border-zinc-200/60 dark:border-zinc-800 group ring-1 ring-transparent focus-within:ring-zinc-200 dark:focus-within:ring-zinc-700">
+              {/* Large Centered Input Area (BeeBot v4 Style) */}
+              <div className="w-full max-w-3xl relative animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
+                <div className="bg-white/80 dark:bg-zinc-900/40 backdrop-blur-2xl rounded-[36px] p-4 border border-zinc-200/60 dark:border-zinc-800/80 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.12)] focus-within:shadow-[0_40px_100px_-15px_rgba(0,0,0,0.18)] focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-700">
+                  
                   {attachments.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto py-2 px-3 mb-2">
+                    <div className="flex gap-3 overflow-x-auto py-3 px-4 mb-2 scrollbar-none">
                       {attachments.map((url, i) => (
-                        <div key={i} className="relative w-14 h-14 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 group/img shrink-0">
-                          <Image src={url} alt="upload" fill className="object-cover" />
-                          <button onClick={() => removeAttachment(i)} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white transition-opacity"><X size={16} /></button>
+                        <div key={i} className="relative group/att shrink-0">
+                          <div className="w-16 h-16 rounded-2xl overflow-hidden border border-zinc-200/50 dark:border-zinc-700 shadow-sm transition-transform group-hover/att:scale-105">
+                            <Image src={url} alt="upload" fill className="object-cover" />
+                          </div>
+                          <button onClick={() => removeAttachment(i)} className="absolute -top-2 -right-2 size-6 bg-zinc-900 text-white rounded-full flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-all hover:bg-red-500 shadow-lg border-2 border-white"><X size={12} /></button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-3 px-2">
-                    <textarea
-                      ref={textareaRefInitial}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                      onPaste={handlePaste}
-                      placeholder="询问农场状况、生成报告或控制设备..."
-                      className="w-full bg-transparent border-0 focus:ring-0 resize-none text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 text-lg leading-relaxed py-3 px-2"
-                      rows={1}
-                      style={{ minHeight: '52px', maxHeight: '200px' }}
-                    />
-                    {input.trim() && (
-                      <button
-                        onClick={() => handleSend()}
-                        className="self-end mb-1.5 p-2.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shadow-sm"
-                      >
-                        <ArrowUp size={20} strokeWidth={2.5} />
-                      </button>
-                    )}
-                  </div>
 
-                  <div className="flex items-center justify-between mt-1 px-3 pb-2">
-                    <div className="flex items-center gap-1">
-                      <MCPStatusIndicator />
-                       <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                        title="上传文件"
-                      >
-                        <Paperclip size={20} />
-                      </button>
-                        <button
-                          onClick={() => setEnableSearch(!enableSearch)}
-                          className={cn("p-2 rounded-lg transition-colors", enableSearch ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}
-                          title="联网搜索"
-                        >
-                          <Globe size={20} />
-                        </button>
+                  <textarea
+                    ref={textareaRefInitial}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                    placeholder="输入您的指令，或开启一段深度的农业经营对话..."
+                    className="w-full bg-transparent border-0 focus:ring-0 resize-none text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400/80 text-[19px] leading-relaxed py-8 px-5 min-h-[140px] font-medium"
+                  />
+                  
+                  {/* Bottom Persistent Toolbar */}
+                  <div className="mt-4 flex items-center justify-between px-3 pb-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                       <button onClick={() => fileInputRef.current?.click()} className="p-3.5 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl"><Paperclip size={20} /></button>
+                       
+                       <button onClick={() => setEnableReasoning(!enableReasoning)} className={cn("flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold border border-transparent shadow-none hover:shadow-md", enableReasoning ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}>
+                          <Brain size={18} className={cn("transition-colors", enableReasoning ? "text-purple-500" : "text-zinc-400")} />
+                          深度推理
+                       </button>
 
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <button
-                                    className={cn(
-                                        "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors group relative",
-                                        (mandatorySkillsEnabled || selectedStoreSkillIds.length > 0)
-                                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                                            : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                                    )}
-                                    title="技能管理"
-                                >
-                                    <Library size={20} strokeWidth={2} className={cn(
-                                        (mandatorySkillsEnabled || selectedStoreSkillIds.length > 0) && "fill-current"
-                                    )} />
-                                    {(mandatorySkillsEnabled || selectedStoreSkillIds.length > 0) && (
-                                        <span className="absolute -top-0.5 -right-0.5 size-2 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900" />
-                                    )}
-                                </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-72 p-0 rounded-2xl shadow-2xl border-zinc-200 dark:border-zinc-800" align="start" sideOffset={12}>
-                                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <h4 className="font-bold text-sm text-zinc-900 dark:text-white">AI 技能中心</h4>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            onClick={() => setStoreOpen(true)}
-                                            className="h-7 px-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        >
-                                            进入商店
-                                        </Button>
-                                    </div>
-                                    <p className="text-[11px] text-zinc-500">管理助手的能力模块与行为逻辑</p>
-                                </div>
-                                <div className="p-2 space-y-4 max-h-[400px] overflow-y-auto">
-                                    {/* Built-in Skills Group */}
-                                    <div className="px-2 pt-2">
-                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="size-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900">
-                                                    <Zap size={14} className="fill-current" />
-                                                </div>
-                                                <div>
-                                                    <span className="text-[13px] font-bold block leading-none">系统核心技能</span>
-                                                    <span className="text-[10px] text-zinc-500 mt-1 block">身份/风格/农业/设备</span>
-                                                </div>
-                                            </div>
-                                            <Switch 
-                                                checked={mandatorySkillsEnabled}
-                                                onCheckedChange={setMandatorySkillsEnabled}
-                                                className="scale-90 data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-zinc-100"
-                                            />
-                                        </div>
-                                    </div>
+                       <button onClick={() => handleSend("帮我草莓画一张漫画风格的宣传图")} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                          <ImageIcon size={18} className="text-blue-500" />
+                          生成图像
+                       </button>
 
-                                    {/* Downloaded Skills */}
-                                    <div className="px-2 pb-2">
-                                        <div className="flex items-center gap-2 px-2 pb-2">
-                                            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800"></div>
-                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2">已安装扩展</span>
-                                            <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800"></div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            {installedStoreSkills.length > 0 ? installedStoreSkills.map((skill) => (
-                                                <div 
-                                                    key={skill.skill_id}
-                                                    onClick={() => {
-                                                        const isSelected = selectedStoreSkillIds.includes(skill.skill_id)
-                                                        if (isSelected) {
-                                                            setSelectedStoreSkillIds(prev => prev.filter(id => id !== skill.skill_id))
-                                                        } else {
-                                                            setSelectedStoreSkillIds(prev => [...prev, skill.skill_id])
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        "group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200",
-                                                        selectedStoreSkillIds.includes(skill.skill_id)
-                                                            ? "bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 shadow-none hover:shadow-sm" 
-                                                            : "hover:bg-zinc-50 dark:hover:bg-zinc-900 border border-transparent"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                        <div className="text-xl shrink-0 group-hover:scale-110 transition-transform">{skill.icon}</div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className={cn(
-                                                                "text-xs font-bold truncate pr-2",
-                                                                selectedStoreSkillIds.includes(skill.skill_id) ? "text-blue-700 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
-                                                            )}>{skill.name}</span>
-                                                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate pr-2">{skill.description}</span>
-                                                        </div>
-                                                    </div>
-                                                    <Switch 
-                                                        checked={selectedStoreSkillIds.includes(skill.skill_id)}
-                                                        onCheckedChange={(checked) => {
-                                                            if (!checked) {
-                                                                setSelectedStoreSkillIds(prev => prev.filter(id => id !== skill.skill_id))
-                                                            } else {
-                                                                setSelectedStoreSkillIds(prev => [...prev, skill.skill_id])
-                                                            }
-                                                        }}
-                                                        className="scale-[0.8] data-[state=checked]:bg-blue-600 shrink-0"
-                                                    />
-                                                </div>
-                                            )) : (
-                                                <div className="py-8 text-center bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
-                                                    <Library size={24} className="mx-auto text-zinc-300 dark:text-zinc-700 mb-2 opacity-50" />
-                                                    <p className="text-[10px] text-zinc-400 tracking-tight">前往商店探索更多技能</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800 text-center">
-                                    <p className="text-[9px] text-zinc-400">选择完成后，发送消息将携带相应技能上下文</p>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                      <button
-                        onClick={() => {
-                          const newReasoning = !enableReasoning
-                          setEnableReasoning(newReasoning)
-                          
-                          // 如果开启深度思考，随机选择一个推理模型
-                          if (newReasoning) {
-                            const reasoningModels = [
-                              'qwen3-max-2026-01-23',
-                              'qwen3.5-plus', 
-                              'deepseek-v3.2'
-                            ]
-                            const randomModel = reasoningModels[Math.floor(Math.random() * reasoningModels.length)]
-                            setSelectedModel(randomModel)
-                            
-                            // 同时更新设置
-                            if (aiSettings) {
-                              const newSettings = { ...aiSettings, model: randomModel }
-                              setAiSettings(newSettings)
-                              localStorage.setItem("ai-settings", JSON.stringify(newSettings))
-                            }
-                          }
-                        }}
-                        className={cn("p-2 rounded-lg transition-colors", enableReasoning ? "text-purple-500 bg-purple-50 dark:bg-purple-900/20" : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}
-                        title="深度思考 - 自动切换到推理模型"
-                      >
-                        <Sparkles size={20} />
-                      </button>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            className={cn(
-                              "p-2 rounded-lg transition-colors",
-                              autoExecuteCommands
-                                ? "text-violet-500 bg-violet-50 dark:bg-violet-900/20"
-                                : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                            )}
-                            title={autoExecuteCommands ? "AI自动托管已开启" : "手动确认执行设备控制"}
-                          >
-                            <Zap size={20} className={autoExecuteCommands ? "fill-current" : ""} />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-3" align="start" sideOffset={10}>
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm flex items-center gap-2">
-                              <Zap size={16} className="text-violet-500 fill-current" />
-                              AI 自动托管模式
-                            </h4>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                              开启后，AI 将获得执行指令的权限，可以自动控制设备、调节环境，无需您再次确认。
-                            </p>
-                            <div className="flex items-center justify-between pt-2">
-                              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">启用自动执行</span>
-                              <Switch 
-                                checked={autoExecuteCommands}
-                                onCheckedChange={setAutoExecuteCommands}
-                                className="data-[state=checked]:bg-violet-600"
-                              />
+                       <button onClick={() => setEnableSearch(!enableSearch)} className={cn("flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold border border-transparent shadow-none hover:shadow-md", enableSearch ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}>
+                          <Globe size={18} className={cn("transition-colors", enableSearch ? "text-emerald-500" : "text-zinc-400")} />
+                          全网检索
+                       </button>
+
+                       <Popover>
+                         <PopoverTrigger asChild>
+                           <button className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                              <Settings size={18} className="text-zinc-400" />
+                              工具设置
+                           </button>
+                         </PopoverTrigger>
+                         <PopoverContent className="w-64 p-4 rounded-3xl border-zinc-200/50 dark:border-zinc-800 shadow-2xl backdrop-blur-xl bg-white/90 dark:bg-zinc-900/90" align="start">
+                            <div className="space-y-4">
+                               <div className="font-bold text-zinc-900 dark:text-zinc-100 px-1 py-1">工具配置</div>
+                               
+                               <div className="flex items-center justify-between px-1">
+                                  <div className="flex flex-col">
+                                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">MCP 服务集</span>
+                                     <span className="text-[10px] text-zinc-500">连接外部上下文与数据源</span>
+                                  </div>
+                                  <Switch checked={enableMcp} onCheckedChange={setEnableMcp} />
+                               </div>
+
+                               <div className="flex items-center justify-between px-1">
+                                  <div className="flex flex-col">
+                                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">自动化技能</span>
+                                     <span className="text-[10px] text-zinc-500">执行预设的农场操作脚本</span>
+                                  </div>
+                                  <Switch checked={mandatorySkillsEnabled} onCheckedChange={setMandatorySkillsEnabled} />
+                               </div>
+
+                               <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
+                               
+                               <div className="px-1 pt-2">
+                                  <button onClick={() => setStoreOpen(true)} className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all group">
+                                     <div className="flex items-center gap-2">
+                                        <Library size={16} className="text-blue-500" />
+                                        <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">技能商店</span>
+                                     </div>
+                                     <ArrowRight size={14} className="text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
+                                  </button>
+                               </div>
                             </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                         </PopoverContent>
+                       </Popover>
                     </div>
-                    <div className="text-xs text-zinc-400 font-medium">
-                        {input.length}/2000
-                    </div>
-                  </div>
-                </div>
-                <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.txt,.md" multiple className="hidden" onChange={onSelectFiles} />
-              </div>
-
-              {/* Quick Actions - Bento Style Pills */}
-              <div id="ai-quick-actions" className="flex flex-wrap justify-center gap-3 mb-16 max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                {[
-                  { icon: <Activity size={16} />, text: "分析环境数据", action: "分析当前环境数据", color: "text-blue-500" },
-                  { icon: <Sprout size={16} />, text: "制定灌溉计划", action: "制定今日灌溉计划", color: "text-emerald-500" },
-                  { icon: <Search size={16} />, text: "诊断病虫害", action: "诊断草莓病害", color: "text-amber-500" },
-                  { icon: <Zap size={16} />, text: "检查设备状态", action: "检查设备运行状态", color: "text-purple-500" },
-                ].map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(item.action)}
-                    className="flex items-center gap-2.5 px-5 py-3 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                  >
-                    <span className={item.color}>{item.icon}</span>
-                    {item.text}
-                  </button>
-                ))}
-              </div>
-
-              {/* Widgets Grid - Glass Cards */}
-              <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 px-4">
-                {/* Weather Widget */}
-                <div className="bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-zinc-200/60 dark:border-zinc-800 flex flex-col justify-between h-44 relative overflow-hidden group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
-                  <div className="flex justify-between items-start z-10">
-                    <div>
-                      <div className="flex items-center gap-1.5 text-zinc-500 font-medium mb-1 text-sm">
-                        <span>宁波</span>
-                        <ChevronDown size={12} />
-                      </div>
-                      <div className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-2">
-                        {weatherData?.current?.temp_c || "--"}°
-                      </div>
-                    </div>
-                    <div className="bg-amber-100 dark:bg-amber-900/30 p-2.5 rounded-full text-amber-600 dark:text-amber-500">
-                      <Sun size={20} />
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-end z-10">
-                    <div className="text-zinc-400 text-xs font-medium">
-                      {new Date().toLocaleDateString('zh-CN', { weekday: 'long', month: 'long', day: 'numeric' })}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-amber-500 font-medium text-sm">晴朗</div>
-                      <div className="text-xs text-zinc-400">H:24° L:18°</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Promo Card */}
-                <div className="md:col-span-2 bg-gradient-to-br from-emerald-50/80 to-teal-50/80 dark:from-emerald-950/20 dark:to-teal-950/20 backdrop-blur-md rounded-3xl p-6 border border-emerald-100/50 dark:border-emerald-900/30 relative overflow-hidden group hover:shadow-md transition-all">
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-white/60 dark:bg-black/20 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider border border-emerald-100/50 dark:border-emerald-900/30">New</span>
-                  </div>
-                  <div className="relative z-10 h-full flex flex-col justify-center items-start max-w-lg">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-2">智能种植助手 v2.0</h3>
-                    <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mb-4">
-                      全新升级的推理引擎，能够根据实时传感器数据，自动分析环境状况并提供精准的调控建议。
-                    </p>
-                    <button onClick={() => handleSend("分析当前环境数据")} className="text-emerald-600 dark:text-emerald-500 font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all group-hover:underline">
-                      尝试分析环境 <ArrowUpRight size={16} />
+                    
+                    <button 
+                      onClick={() => handleSend()}
+                      disabled={!input.trim() && attachments.length === 0}
+                      className={cn(
+                        "size-14 rounded-3xl flex items-center justify-center transition-all duration-500 shadow-2xl",
+                        (input.trim() || attachments.length > 0)
+                          ? "bg-blue-600 text-white shadow-blue-500/40 hover:scale-105 active:scale-95" 
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600"
+                      )}
+                    >
+                      <ArrowUp size={24} strokeWidth={3} />
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* Quick Action Bento Chips */}
+              <div id="ai-quick-actions" className="mt-8 flex flex-wrap justify-center gap-4 px-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700">
+                {[
+                  { icon: <Activity size={18} />, text: "环境监测报告", action: "最近一小时的大棚环境数据分析 report", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+                  { icon: <Sprout size={18} />, text: "草莓种植建议", action: "现在这个季节草莓种植需要注意什么？", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                  { icon: <Zap size={18} />, text: "设备巡检", action: "帮我巡检一下所有设备的工作状态", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+                  { icon: <Compass size={18} />, text: "病害诊断", action: "如果草莓叶子发黄该怎么办？", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(item.action)}
+                    className="flex items-center gap-3 px-6 py-3.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800 rounded-2xl hover:bg-white dark:hover:bg-zinc-800 transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group"
+                  >
+                    <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", item.color)}>
+                      {item.icon}
+                    </div>
+                    <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 tracking-tight">{item.text}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            </div>
+
           ) : (
             <>
               <Conversation className="flex-1 h-full min-h-0 overflow-hidden">
@@ -3851,25 +3893,128 @@ ${taskContext}
                   id="ai-chat-area" 
                   className="p-0 max-w-4xl mx-auto w-full custom-scrollbar"
                 >
-                  <div className="flex flex-col pb-48 pt-10 space-y-8 px-4 md:px-0">
+                  <div className="flex flex-col pb-48 pt-10 space-y-8 px-8 md:px-4">
                     {messages.map((msg, i) => {
                       if (msg.isSilent) return null;
+                      
+                      // 根据消息内容判断状态并设置颜色
+                      const getOrbColors = () => {
+                        if (msg.role !== 'assistant') return undefined
+                        
+                        const content = typeof msg.content === 'string' ? msg.content : ''
+                        const isLastMessage = i === messages.length - 1
+                        const isCurrentlyLoading = isLastMessage && isLoading
+                        
+                        // 思考中 - 紫色
+                        if (content.includes('<think>') || content.includes('让我想想') || content.includes('分析')) {
+                          return {
+                            colors: {
+                              c1: '#a855f7',
+                              c2: '#c084fc',
+                              c3: '#d8b4fe',
+                            },
+                            bgColor: 'rgba(168, 85, 247, 0.1)',
+                            status: 'thinking'
+                          }
+                        }
+                        
+                        // 执行中 - 黄色/橙色
+                        if (content.includes('```json') || content.includes('"action"') || content.includes('正在执行')) {
+                          return {
+                            colors: {
+                              c1: '#f59e0b',
+                              c2: '#fbbf24',
+                              c3: '#fcd34d',
+                            },
+                            bgColor: 'rgba(245, 158, 11, 0.1)',
+                            status: 'executing'
+                          }
+                        }
+                        
+                        // 输出中 - 蓝色（正在加载的最后一条消息）
+                        if (isCurrentlyLoading) {
+                          return {
+                            colors: {
+                              c1: '#3b82f6',
+                              c2: '#60a5fa',
+                              c3: '#93c5fd',
+                            },
+                            bgColor: 'rgba(59, 130, 246, 0.1)',
+                            status: 'speaking'
+                          }
+                        }
+                        
+                        // 输出完成 - 绿色
+                        return {
+                          colors: {
+                            c1: '#10b981',
+                            c2: '#34d399',
+                            c3: '#6ee7b7',
+                          },
+                          bgColor: 'rgba(16, 185, 129, 0.08)',
+                          status: 'completed'
+                        }
+                      }
+                      
+                      const orbConfig = msg.role === 'assistant' ? getOrbColors() : null
+                      
                       return (
                       <div key={i} className={cn(
-                        "group w-full flex gap-5 transition-all duration-300",
+                        "group w-full flex gap-4 transition-all duration-300",
                         msg.role === "user" ? "justify-end" : "justify-start"
                       )}>
-                        {msg.role === "assistant" && (
-                          <div className="size-8 flex items-center justify-center shrink-0 mt-1 rounded-lg overflow-hidden bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                            <Image src="/icon.png" alt="AI" width={32} height={32} className="object-cover" />
+                        {/* 助手 Orb 球 */}
+                        {msg.role === "assistant" && orbConfig && (
+                          <div className="relative shrink-0 mt-1.5 w-[48px] h-[32px] flex items-center justify-center">
+                            <style>{`
+                              @keyframes orb-breathe {
+                                0%, 100% { 
+                                  transform: scale(1);
+                                  opacity: 1;
+                                }
+                                50% { 
+                                  transform: scale(1.08);
+                                  opacity: 0.95;
+                                }
+                              }
+                              
+                              @keyframes orb-glow {
+                                0%, 100% { 
+                                  filter: drop-shadow(0 0 4px ${orbConfig.colors.c1}40) drop-shadow(0 0 8px ${orbConfig.colors.c2}20);
+                                }
+                                50% { 
+                                  filter: drop-shadow(0 0 8px ${orbConfig.colors.c1}60) drop-shadow(0 0 12px ${orbConfig.colors.c2}30);
+                                }
+                              }
+                            `}</style>
+                            <div 
+                              className="transition-all duration-700 ease-out"
+                              style={{
+                                animation: orbConfig.status === 'speaking' || orbConfig.status === 'executing' 
+                                  ? `orb-breathe ${orbConfig.status === 'executing' ? '1.2s' : '1.5s'} ease-in-out infinite, orb-glow ${orbConfig.status === 'executing' ? '1.2s' : '1.5s'} ease-in-out infinite`
+                                  : orbConfig.status === 'thinking'
+                                  ? 'orb-glow 2s ease-in-out infinite'
+                                  : 'none'
+                              }}
+                            >
+                              <SiriOrb 
+                                size="32px"
+                                colors={orbConfig.colors}
+                                animationDuration={
+                                  orbConfig.status === 'executing' ? 3 : 
+                                  orbConfig.status === 'thinking' ? 8 : 
+                                  orbConfig.status === 'speaking' ? 4 : 12
+                                }
+                              />
+                            </div>
                           </div>
                         )}
-
+                        
                         <div className={cn(
-                          "relative max-w-[85%] rounded-2xl px-6 py-4 text-[15px] leading-relaxed shadow-sm",
+                          "relative max-w-[85%] text-[16px] leading-[1.6]",
                           msg.role === "user"
-                            ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-tr-sm shadow-md"
-                            : "bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-100 dark:border-zinc-800 rounded-tl-sm"
+                            ? "bg-[#f4f4f4] dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 rounded-3xl px-5 py-2.5"
+                            : "bg-transparent text-zinc-800 dark:text-zinc-200 px-0 py-1"
                         )}>
                           {/* 显示模型标签 */}
                           {msg.role === "assistant" && msg.model && (
@@ -3877,8 +4022,8 @@ ${taskContext}
                               <Sparkles size={12} className="text-purple-500" />
                               <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                                 {msg.model === 'auto' ? '智能模式' :
-                                 msg.model === 'qwen3.5-plus' ? 'Qwen3.5 Plus' :
-                                 msg.model === 'qwen3.5-flash' ? 'Qwen3.5 Flash' :
+                                 msg.model === 'qwen3.6-plus' ? 'Qwen3.6 Plus' :
+                                 msg.model === 'qwen3.6-flash' ? 'Qwen3.6 Flash' :
                                  msg.model === 'qwen3-vl-plus' ? 'Qwen3 VL Plus' :
                                  msg.model === 'qwen3-vl-flash' ? 'Qwen3 VL Flash' :
                                  msg.model === 'qwen3-max' ? 'Qwen3 Max' :
@@ -3905,19 +4050,30 @@ ${taskContext}
                       )
                     })}
 
-                    {/* Inline Agent Status Bubble */}
-                    {(isLoading || agentStatus) && (
-                      <div className="w-full flex gap-5 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-                         <div className="size-8 flex items-center justify-center shrink-0 mt-1 rounded-lg overflow-hidden bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                            <Image src="/icon.png" alt="AI" width={32} height={32} className="object-cover animate-pulse" />
-                          </div>
-                          
-                          <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-800 rounded-2xl rounded-tl-sm px-5 py-3 shadow-sm flex items-center gap-3">
-                            <Loader2 size={16} className="text-emerald-500 animate-spin" />
-                            <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300 animate-pulse">
-                              {agentStatus || "AI 正在思考..."}
-                            </span>
-                          </div>
+                    {/* Agent Execution Chain - Live Status */}
+                    {(agentSteps.length > 0 || agentStatus || isLoading) && (
+                      <div className="w-full flex justify-start px-0 py-0 animate-in fade-in duration-300">
+                          {agentSteps.length > 0 ? (
+                            <AgentExecutionChain steps={agentSteps} isActive={isLoading} />
+                          ) : (
+                            <div className="flex items-center gap-4 px-3 py-6">
+                              <div className="relative flex items-center justify-center">
+                                <span className="absolute inline-flex size-6 animate-ping rounded-full bg-emerald-400 dark:bg-emerald-500 opacity-20"></span>
+                                <span className="absolute inline-flex size-4 animate-pulse rounded-full bg-emerald-500/40"></span>
+                                <span className="relative inline-flex size-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
+                              </div>
+                              {agentStatus && (
+                                <span className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium tracking-tight animate-in fade-in slide-in-from-left-2 duration-700">
+                                  {agentStatus}
+                                  <span className="inline-flex ml-1">
+                                    <span className="animate-[bounce_1.4s_infinite_0ms] opacity-60">.</span>
+                                    <span className="animate-[bounce_1.4s_infinite_200ms] opacity-60">.</span>
+                                    <span className="animate-[bounce_1.4s_infinite_400ms] opacity-60">.</span>
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                       </div>
                     )}
 
@@ -4308,16 +4464,17 @@ ${taskContext}
             </>
           )}
         </div>
-
-        {/* Help Button - Bottom Right */}
-        <div className="absolute bottom-6 right-6 z-20">
-          <button className="size-9 flex items-center justify-center rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 shadow-sm transition-colors">
-            <CircleHelp size={18} />
-          </button>
-        </div>
       </div>
 
-      {/* Right Studio Panel */}
+      {/* Help Button - Bottom Right */}
+      <div className="absolute bottom-6 right-6 z-20">
+        <button className="size-9 flex items-center justify-center rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 shadow-sm transition-colors">
+          <CircleHelp size={18} />
+        </button>
+      </div>
+    </div>
+
+    {/* Right Studio Panel */}
       <div className={cn(
         "relative flex-shrink-0 bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20",
         studioOpen ? "w-[400px] lg:w-[480px] xl:w-[550px] translate-x-0" : "w-0 translate-x-full opacity-0"
@@ -4414,6 +4571,7 @@ ${taskContext}
           </div>
         )}
       </div>
+    </div>
 
       <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
         <DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden p-0 border-0 shadow-2xl bg-white dark:bg-zinc-900">
@@ -4527,6 +4685,22 @@ ${taskContext}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Unified Explore Overlay */}
+      <AnimatePresence>
+        {exploreOpen && (
+          <UnifiedExplore onClose={() => setExploreOpen(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* AI Settings Dialog */}
+      <AISettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onSave={(settings) => {
+          setAiSettings(settings)
+        }}
+      />
  
       {/* 可见的 LiveStreamPlayer 弹窗用于 AI 视觉巡检截图，参考 Monitor 页面样式 */}
       {/* 修复闪烁：增加 key 或移除不必要的重新渲染触发条件，并且移除 pointer-events-none 避免在某些设备上被点击穿透导致关闭，但我们需要它不可点击，所以用 pointer-events-none。 闪烁通常是因为 open 状态瞬间变化，或者组件重复挂载。 */}
@@ -4541,7 +4715,7 @@ ${taskContext}
                 {inspectionCameraUrl && (
                   <LiveStreamPlayer
                     id="hidden-ai-camera"
-                    sources={[{ src: inspectionCameraUrl }]}
+                    sources={[{ src: inspectionCameraUrl || "" }]}
                     autoplay
                     muted
                     controls={false}
@@ -4609,7 +4783,7 @@ ${taskContext}
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 

@@ -45,6 +45,7 @@ import { MobileBackground } from "@/components/mobile-background"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
 import ToolUsageIndicator from "@/components/ui/tool-usage-indicator"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
+import { CitationGroup } from "@/components/ai/citation-group"
 
 // ... (Interfaces)
 interface Citation {
@@ -1062,10 +1063,10 @@ export default function AIAssistantIOSPage() {
                             <span>{selectedModel === "auto" || !selectedModel ? "智能模式" : selectedModel}</span>
                             <ArrowUp size={10} className="opacity-50" />
                         </PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectContent align="center" className="w-[240px]">
+                        <PromptInputModelSelectContent className="w-[240px]">
                             <PromptInputModelSelectItem value="auto"><span className="flex items-center gap-2"><Sparkles className="size-3 text-purple-500" /> 智能模式 (Auto)</span></PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="qwen3.5-plus"><span className="flex items-center gap-2">🚀 Qwen3.5 Plus</span></PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="qwen3.5-flash"><span className="flex items-center gap-2">⚡ Qwen3.5 Flash</span></PromptInputModelSelectItem>
+                            <PromptInputModelSelectItem value="qwen3.6-plus"><span className="flex items-center gap-2">🚀 Qwen3.6 Plus</span></PromptInputModelSelectItem>
+                            <PromptInputModelSelectItem value="qwen3.6-flash"><span className="flex items-center gap-2">⚡ Qwen3.6 Flash</span></PromptInputModelSelectItem>
                             <PromptInputModelSelectItem value="qwen3-max-2026-01-23"><span className="flex items-center gap-2">🧠 Qwen3 Max</span></PromptInputModelSelectItem>
                             <PromptInputModelSelectItem value="deepseek-v3.2"><span className="flex items-center gap-2">🤖 DeepSeek V3.2</span></PromptInputModelSelectItem>
                         </PromptInputModelSelectContent>

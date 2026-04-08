@@ -83,6 +83,7 @@ function AutomationEditor() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ruleId = searchParams.get('id');
+  const fromAiAssistant = searchParams.get('from') === 'ai-assistant';
   
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
@@ -94,6 +95,28 @@ function AutomationEditor() {
   const [isLoading, setIsLoading] = useState(!!ruleId);
 
   const { deviceData } = useDeviceData();
+
+  // Load from AI assistant temporary storage
+  useEffect(() => {
+    if (fromAiAssistant && !ruleId) {
+      try {
+        const tempStrategy = sessionStorage.getItem('temp_automation_strategy');
+        if (tempStrategy) {
+          const strategy = JSON.parse(tempStrategy);
+          if (strategy.nodes) setNodes(strategy.nodes);
+          if (strategy.edges) setEdges(strategy.edges);
+          setRuleName('由 AI 助手生成的自动化策略');
+          // Clear temporary storage
+          sessionStorage.removeItem('temp_automation_strategy');
+          toast.success('已加载 AI 生成的策略', {
+            description: '您可以继续编辑或直接保存'
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load temp strategy:', e);
+      }
+    }
+  }, [fromAiAssistant, ruleId]);
 
   useEffect(() => {
     if (!ruleId) return;
@@ -305,6 +328,13 @@ function AutomationEditor() {
     
     try {
       const flowData = toObject();
+      
+      // Validate flow has nodes
+      if (!flowData.nodes || flowData.nodes.length === 0) {
+        toast.error('执行失败', { description: '自动化流程为空，请先添加节点', id: loadingToast });
+        return;
+      }
+      
       const res = await fetch('/api/automation/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -319,23 +349,56 @@ function AutomationEditor() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '执行失败');
+      
+      if (!res.ok) {
+        toast.error('执行失败', { 
+          description: data.message || data.error || '未知错误', 
+          id: loadingToast,
+          duration: 5000
+        });
+        return;
+      }
 
       if (data.actions && data.actions.length > 0) {
         toast.success(`成功下发 ${data.actions.length} 条指令`, { id: loadingToast });
+        
+        // Voice feedback
+        speak(`成功下发 ${data.actions.length} 条指令。`);
+        
+        // Log execution results if available
+        if (data.executionResults) {
+          const failed = data.executionResults.filter((r: any) => !r.success);
+          if (failed.length > 0) {
+            console.warn('Some actions failed:', failed);
+          }
+        }
       } else {
         const debugInfo = data.debug?.context?.sensorData 
             ? `当前环境数据: 温度 ${data.debug.context.sensorData.temperature}°C, 湿度 ${data.debug.context.sensorData.humidity}%` 
             : '未获取到实时传感器数据';
         
         toast.info('未触发任何操作', { 
-            description: `逻辑条件未满足。\n${debugInfo}`, 
+            description: `${data.message || '逻辑条件未满足'}。\n${debugInfo}`, 
             id: loadingToast,
             duration: 5000 
         });
+        
+        // Voice feedback
+        speak("未触发任何操作，逻辑条件未满足。");
+      }
+      
+      // Log debug info
+      if (data.debug) {
+        console.log('Automation execution debug:', data.debug);
       }
     } catch (e) {
-      toast.error('运行失败', { description: String(e), id: loadingToast });
+      console.error('Run error:', e);
+      toast.error('运行失败', { 
+        description: e instanceof Error ? e.message : '网络错误，请稍后重试', 
+        id: loadingToast,
+        duration: 5000
+      });
+      speak("运行失败，请检查网络连接后重试。");
     } finally {
       setIsRunning(false);
     }
@@ -360,7 +423,10 @@ function AutomationEditor() {
   }, [isAiInputVisible]);
 
   const handleAiGenerate = async () => {
-    if (!aiPrompt.trim()) return;
+    if (!aiPrompt.trim()) {
+      toast.error('请输入需求描述');
+      return;
+    }
     
     setIsAiGenerating(true);
     const loadingToast = toast.loading('AI 正在思考并生成自动化策略...');
@@ -373,27 +439,68 @@ function AutomationEditor() {
       });
       
       const data = await response.json();
+      
       if (!response.ok) {
         if (response.status === 403) {
-          toast.error('配额不足', { description: data.reason || '您的 AI 生成配额已耗尽，请稍后再试或联系管理员', id: loadingToast });
+          toast.error('配额不足', { 
+            description: data.reason || '您的 AI 生成配额已耗尽，请稍后再试或联系管理员', 
+            id: loadingToast,
+            duration: 5000
+          });
         } else {
-          toast.error('生成失败', { description: data.error || '未知错误', id: loadingToast });
+          toast.error('生成失败', { 
+            description: data.error || '未知错误', 
+            id: loadingToast,
+            duration: 5000
+          });
         }
+        speak("抱歉，生成策略失败。" + (data.reason || data.error || ''));
         return;
       }
       
-      setNodes(data.nodes || []);
+      // Validate generated data
+      if (!data.nodes || !Array.isArray(data.nodes) || data.nodes.length === 0) {
+        toast.error('生成失败', { 
+          description: 'AI 生成的策略格式不正确，请重新描述需求', 
+          id: loadingToast,
+          duration: 5000
+        });
+        speak("生成的策略格式不正确，请重新描述需求。");
+        return;
+      }
+      
+      // Ensure all nodes have required fields
+      const validatedNodes = data.nodes.map((node: any, index: number) => ({
+        ...node,
+        id: node.id || `node-${index}`,
+        position: node.position || { x: index * 400, y: 100 },
+        data: {
+          ...node.data,
+          config: node.data?.config || {}
+        }
+      }));
+      
+      setNodes(validatedNodes);
       setEdges(data.edges || []);
-      toast.success('AI 策略生成成功！', { id: loadingToast });
+      
+      toast.success('AI 策略生成成功！', { 
+        description: `已生成 ${validatedNodes.length} 个节点`,
+        id: loadingToast 
+      });
       
       // Voice feedback
-      speak("自动化策略已生成。请检查流程是否符合您的预期。");
+      speak(`自动化策略已生成，包含 ${validatedNodes.length} 个节点。请检查流程是否符合您的预期。`);
 
       setIsAiInputVisible(false);
       setAiPrompt('');
       fetchQuota(); // 刷新配额
     } catch (error) {
-      toast.error('AI 生成失败，请稍后重试', { id: loadingToast });
+      console.error('AI generation error:', error);
+      toast.error('AI 生成失败', { 
+        description: error instanceof Error ? error.message : '网络错误，请稍后重试', 
+        id: loadingToast,
+        duration: 5000
+      });
       speak("抱歉，生成策略时遇到了问题，请稍后重试。");
     } finally {
       setIsAiGenerating(false);

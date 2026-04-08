@@ -127,14 +127,15 @@ export class AutomationEngine {
 
   private static evaluateLogic(node: any, context: AutomationContext): boolean {
     const { type } = node.data;
-    const config = node.data.config || node.data; // Fallback to root data if config missing
+    // Support both config and root data for backward compatibility
+    const config = node.data.config || node.data;
 
     if (type === 'compare') {
         const threshold = parseFloat(config.value || config.threshold || '0');
         const operator = config.operator || 'gt';
         
         // Use the sensor from config (e.g. 'co2', 'temp'), default to 'temperature'
-        const variable = config.sensor || 'temperature';
+        const variable = config.sensor || config.variable || 'temperature';
         
         // Map sensor alias to sensorData keys
         const sensorKeyMap: Record<string, string> = {
@@ -142,19 +143,26 @@ export class AutomationEngine {
             'hum': 'humidity',
             'soil': 'soil_moisture',
             'co2': 'co2',
-            // Add more mappings if needed
+            'light': 'light',
+            'temperature': 'temperature',
+            'humidity': 'humidity',
+            'soil_moisture': 'soil_moisture',
         };
         
         const dataKey = sensorKeyMap[variable] || variable;
-        const val = context.sensorData?.[dataKey] ?? 0;
-
-        // Store evaluation result in context for smart notification usage later if needed
-        // (This simple implementation doesn't pass modified context down, but could be enhanced)
+        
+        // Check if sensor data exists
+        if (!context.sensorData || context.sensorData[dataKey] === undefined) {
+            console.warn(`Sensor data for ${dataKey} not available in context`);
+            return false;
+        }
+        
+        const val = context.sensorData[dataKey];
 
         switch (operator) {
             case 'gt': return val > threshold;
             case 'lt': return val < threshold;
-            case 'eq': return val == threshold; // Loose equality for string/number mix
+            case 'eq': return Math.abs(val - threshold) < 0.01; // Use epsilon for float comparison
             case 'gte': return val >= threshold;
             case 'lte': return val <= threshold;
             default: return false;
@@ -166,7 +174,7 @@ export class AutomationEngine {
         const max = parseFloat(config.max || 'Infinity');
         
         // Use the sensor from config
-        const variable = config.sensor || 'temperature';
+        const variable = config.sensor || config.variable || 'temperature';
         
         // Map sensor alias to sensorData keys
         const sensorKeyMap: Record<string, string> = {
@@ -174,10 +182,21 @@ export class AutomationEngine {
             'hum': 'humidity',
             'soil': 'soil_moisture',
             'co2': 'co2',
+            'light': 'light',
+            'temperature': 'temperature',
+            'humidity': 'humidity',
+            'soil_moisture': 'soil_moisture',
         };
         
         const dataKey = sensorKeyMap[variable] || variable;
-        const val = context.sensorData?.[dataKey] ?? 0;
+        
+        // Check if sensor data exists
+        if (!context.sensorData || context.sensorData[dataKey] === undefined) {
+            console.warn(`Sensor data for ${dataKey} not available in context`);
+            return false;
+        }
+        
+        const val = context.sensorData[dataKey];
         
         return val > min && val < max;
     }

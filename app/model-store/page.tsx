@@ -118,7 +118,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     id: "ollama",
     name: "Ollama 本地引擎",
     provider: "Local Environment",
-    description: "企业隐私数据的终极庇护所。调用本机或局域网中运行的开源模型(如 Llama-3, Qwen3.5)，数据完全不出网，纯粹安全。",
+    description: "企业隐私数据的终极庇护所。调用本机或局域网中运行的开源模型(如 Llama-3, Qwen3.6)，数据完全不出网，纯粹安全。",
     category: "本地部署",
     official: true,
     icon: Laptop,

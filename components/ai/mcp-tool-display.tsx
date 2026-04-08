@@ -62,6 +62,7 @@ export function MCPToolDisplay({
         title={displayName}
         type="tool-invocation" 
         state={state}
+        executionTime={executionTime}
       />
       <ToolContent>
         {input && <ToolInput input={input} />}

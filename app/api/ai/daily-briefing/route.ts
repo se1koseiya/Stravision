@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "qwen3.5-flash",
+        model: "qwen3.6-flash",
         messages: [
           { role: "system", content: "你是莓小智，一个专业可靠的智慧农业AI管家。你对主人毕恭毕敬、专业负责。说话简洁有条理，像一个经验丰富的农业顾问。直接输出播报内容，不要输出思考过程，不要用<think>标签。" },
           { role: "user", content: prompt }

@@ -2,14 +2,24 @@
 
 import type { ToolUIPart } from "ai"
 import {
-  CheckCircleIcon,
-  ChevronDownIcon,
-  CircleIcon,
-  ClockIcon,
-  WrenchIcon,
-  XCircleIcon,
+  CheckCircle2,
+  ChevronDown,
+  CircleDashed,
+  Wrench,
+  XCircle,
+  Clock,
+  TerminalSquare,
+  Zap,
+  Check,
+  Globe,
+  MapPin,
+  CloudLightning,
+  Search,
+  Fingerprint,
+  Cpu,
+  Database
 } from "lucide-react"
-import type { ComponentProps, ReactNode } from "react"
+import { ComponentProps, ReactNode, useState, useEffect } from "react"
 import { isValidElement } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -19,7 +29,13 @@ import { CodeBlock } from "@/components/ui/code-block"
 export type ToolProps = ComponentProps<typeof Collapsible>
 
 export const Tool = ({ className, ...props }: ToolProps) => (
-  <Collapsible className={cn("not-prose mb-4 w-full rounded-md border", className)} {...props} />
+  <Collapsible 
+    className={cn(
+      "group relative my-4 w-full rounded-2xl border border-zinc-200/60 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none transition-all duration-300 hover:shadow-lg hover:border-emerald-500/30 dark:hover:border-emerald-500/30 overflow-hidden", 
+      className
+    )} 
+    {...props} 
+  />
 )
 
 export interface ToolHeaderProps {
@@ -27,70 +43,114 @@ export interface ToolHeaderProps {
   type: ToolUIPart["type"]
   state: ToolUIPart["state"]
   className?: string
+  executionTime?: number
 }
 
-const getStatusBadge = (status: ToolUIPart["state"]) => {
-  const labels: Record<ToolUIPart["state"], string> = {
-    "input-streaming": "Pending",
-    "input-available": "Running",
-    // @ts-expect-error state only available in AI SDK v6
-    "approval-requested": "Awaiting Approval",
-    "approval-responded": "Responded",
-    "output-available": "Completed",
-    "output-error": "Error",
-    "output-denied": "Denied",
-  }
+// Icon mapping based on tool meaning
+const getToolSpecificIcon = (title: string = "") => {
+  const t = title.toLowerCase()
+  if (t.includes('weather') || t.includes('天气')) return <CloudLightning className="size-4" />
+  if (t.includes('route') || t.includes('路线') || t.includes('map') || t.includes('高德')) return <MapPin className="size-4" />
+  if (t.includes('search') || t.includes('搜索') || t.includes('brave') || t.includes('exa')) return <Search className="size-4" />
+  if (t.includes('scrape') || t.includes('抓取') || t.includes('web') || t.includes('网页')) return <Globe className="size-4" />
+  if (t.includes('device') || t.includes('设备') || t.includes('status')) return <Cpu className="size-4" />
+  if (t.includes('spectrum') || t.includes('光谱') || t.includes('channel')) return <Zap className="size-4" />
+  if (t.includes('data') || t.includes('sql') || t.includes('db') || t.includes('数据')) return <Database className="size-4" />
+  return <Wrench className="size-4" />
+}
 
-  const icons: Record<ToolUIPart["state"], ReactNode> = {
-    "input-streaming": <CircleIcon className="size-4" />,
-    "input-available": <ClockIcon className="size-4 animate-pulse" />,
-    // @ts-expect-error state only available in AI SDK v6
-    "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
-    "approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
-    "output-available": <CheckCircleIcon className="size-4 text-emerald-600" />,
-    "output-error": <XCircleIcon className="size-4 text-red-600" />,
-    "output-denied": <XCircleIcon className="size-4 text-orange-600" />,
-  }
-
-  // 为 Completed 状态使用宝石绿色
-  const badgeClassName = status === "output-available" 
-    ? "gap-1.5 rounded-full text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-    : "gap-1.5 rounded-full text-xs"
-
-  const badgeVariant = status === "output-available" ? undefined : "secondary"
+export const ToolHeader = ({ className, title, type, state, executionTime, ...props }: ToolHeaderProps) => {
+  const isCompleted = state === "output-available" || state === "approval-responded"
+  const isRunning = state === "input-available" || state === "input-streaming"
+  const isError = state === "output-error" || state === "output-denied"
+  
+  const displayTitle = title ?? type.split("-").slice(1).join("-")
+  const icon = getToolSpecificIcon(displayTitle)
 
   return (
-    <Badge className={badgeClassName} variant={badgeVariant}>
-      {icons[status]}
-      {labels[status]}
-    </Badge>
+    <CollapsibleTrigger
+      className={cn(
+        "flex w-full items-center justify-between gap-4 p-4 transition-colors hover:bg-zinc-50/50 dark:hover:bg-white/[0.02]", 
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-center gap-3.5">
+        {/* Animated Icon Container */}
+        <div className="relative flex items-center justify-center">
+          {isRunning && (
+            <span className="absolute inset-0 block size-8 rounded-full bg-emerald-500/20 animate-ping" />
+          )}
+          <div className={cn(
+            "relative z-10 flex size-8 items-center justify-center rounded-xl border shadow-sm transition-colors",
+            isCompleted ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
+            isError ? "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400" :
+            "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400"
+          )}>
+            {icon}
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-start">
+          <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 placeholder:tracking-tight">{displayTitle}</span>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={cn(
+              "text-[10px] font-medium uppercase tracking-wider",
+              isCompleted ? "text-emerald-600 dark:text-emerald-400" :
+              isError ? "text-red-500" :
+              "text-blue-500 animate-pulse"
+            )}>
+              {isCompleted ? "Completed" : isError ? "Failed" : "Executing"}
+            </span>
+            
+            {executionTime && isCompleted && (
+              <>
+                <span className="text-zinc-300 dark:text-zinc-700 mx-1">•</span>
+                <span className="flex items-center text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
+                  <Clock className="size-3 mr-1" />
+                  {executionTime}ms
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {/* Status Indicator Icon */}
+        <div className="mr-2">
+           {isCompleted ? (
+             <CheckCircle2 className="size-4 text-emerald-500" />
+           ) : isError ? (
+             <XCircle className="size-4 text-red-500" />
+           ) : (
+             <CircleDashed className="size-4 text-blue-500 animate-spin" />
+           )}
+        </div>
+        <div className="flex size-6 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 group-data-[state=open]:rotate-180 transition-transform duration-300">
+           <ChevronDown className="size-3.5" />
+        </div>
+      </div>
+    </CollapsibleTrigger>
   )
 }
-
-export const ToolHeader = ({ className, title, type, state, ...props }: ToolHeaderProps) => (
-  <CollapsibleTrigger
-    className={cn("flex w-full items-center justify-between gap-4 p-3", className)}
-    {...props}
-  >
-    <div className="flex items-center gap-2">
-      <WrenchIcon className="size-4 text-muted-foreground" />
-      <span className="font-medium text-sm">{title ?? type.split("-").slice(1).join("-")}</span>
-      {getStatusBadge(state)}
-    </div>
-    <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-  </CollapsibleTrigger>
-)
 
 export type ToolContentProps = ComponentProps<typeof CollapsibleContent>
 
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down",
       className,
     )}
     {...props}
-  />
+  >
+    <div className="p-4 pt-0">
+      <div className="border-t border-zinc-100 dark:border-white/5 pt-4 space-y-4">
+        {props.children}
+      </div>
+    </div>
+  </CollapsibleContent>
 )
 
 export type ToolInputProps = ComponentProps<"div"> & {
@@ -98,19 +158,30 @@ export type ToolInputProps = ComponentProps<"div"> & {
 }
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-  <div className={cn("space-y-2 overflow-hidden p-4", className)} {...props}>
-    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-      Parameters
-    </h4>
-    <div className="rounded-md bg-muted/50">
-      <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+  <div className={cn("space-y-2.5", className)} {...props}>
+    <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+      <Fingerprint className="size-3.5" />
+      <h4 className="font-semibold text-xs uppercase tracking-wider">
+        Input Parameters
+      </h4>
+    </div>
+    <div className="rounded-xl border border-zinc-200/50 dark:border-white/10 bg-zinc-50/50 dark:bg-black/40 overflow-hidden relative">
+      {/* Decorative dots for mac-style terminal feel */}
+      <div className="absolute top-0 left-0 right-0 h-6 bg-zinc-100/50 dark:bg-white/5 border-b border-zinc-200/50 dark:border-white/5 flex items-center px-3 gap-1.5">
+        <div className="size-2 rounded-full bg-red-400/80"></div>
+        <div className="size-2 rounded-full bg-amber-400/80"></div>
+        <div className="size-2 rounded-full bg-emerald-400/80"></div>
+      </div>
+      <div className="pt-6 p-2">
+        <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+      </div>
     </div>
   </div>
 )
 
 export type ToolOutputProps = ComponentProps<"div"> & {
   output: ToolUIPart["output"]
-  errorText: ToolUIPart["errorText"]
+  errorText?: ToolUIPart["errorText"]
 }
 
 export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutputProps) => {
@@ -118,7 +189,7 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
     return null
   }
 
-  let Output = <div>{output as ReactNode}</div>
+  let Output = <div className="text-sm">{output as ReactNode}</div>
 
   if (typeof output === "object" && !isValidElement(output)) {
     Output = <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
@@ -127,18 +198,28 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   }
 
   return (
-    <div className={cn("space-y-2 p-4", className)} {...props}>
-      <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        {errorText ? "Error" : "Result"}
-      </h4>
+    <div className={cn("space-y-2.5", className)} {...props}>
+      <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+        <TerminalSquare className="size-3.5" />
+        <h4 className="font-semibold text-xs uppercase tracking-wider">
+          {errorText ? "Error Trace" : "Execution Result"}
+        </h4>
+      </div>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
-          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/50 text-foreground",
+          "overflow-hidden rounded-xl border relative shadow-inner",
+          errorText 
+            ? "border-red-200 bg-red-50/50 dark:border-red-900/30 dark:bg-red-900/10 text-red-600 dark:text-red-400" 
+            : "border-zinc-200/50 bg-zinc-50/50 dark:border-white/10 dark:bg-black/40 text-zinc-800 dark:text-zinc-200",
         )}
       >
-        {errorText && <div>{errorText}</div>}
-        {Output}
+        <div className="p-2">
+          {errorText ? (
+            <div className="p-4 font-mono text-xs whitespace-pre-wrap">{errorText}</div>
+          ) : (
+            Output
+          )}
+        </div>
       </div>
     </div>
   )
@@ -147,9 +228,9 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
 /** Demo component for preview */
 export default function ToolDemo() {
   return (
-    <div className="w-full max-w-2xl p-6">
+    <div className="w-full max-w-2xl p-6 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
       <Tool defaultOpen>
-        <ToolHeader title="Weather Lookup" type="tool-invocation" state="output-available" />
+        <ToolHeader title="Weather Lookup" type="tool-invocation" state="output-available" executionTime={452} />
         <ToolContent>
           <ToolInput
             input={{
@@ -164,9 +245,20 @@ export default function ToolDemo() {
               humidity: 65,
               wind: "12 mph NW",
             }}
-            errorText={undefined}
           />
         </ToolContent>
+      </Tool>
+      
+      <Tool>
+         <ToolHeader title="Data Processor" type="tool-invocation" state="input-available" />
+      </Tool>
+      
+      <Tool>
+         <ToolHeader title="Failed Task" type="tool-invocation" state="output-error" executionTime={120} />
+         <ToolContent>
+            <ToolInput input={{ param: "test" }} />
+            <ToolOutput output={null} errorText={"Timeout Error: Failed to reach the remote server after 120ms."} />
+         </ToolContent>
       </Tool>
     </div>
   )

@@ -429,10 +429,101 @@ export async function POST(req: Request) {
     const isCompatibleMode = targetUrl?.includes("compatible-mode/v1") ?? false
     const isDashScopeAppCall = /\/api\/v1\/apps\/[^/]+\/completion(\?|$)/.test(targetUrl || "")
 
+    let userMessages = [...messages];
+    let contextCompressed = false;
+    let contextUpdateEvent: any = null;
+    
+    // === 自动上下文总结与压缩 (Auto Context Compression) ===
+    const stringifyContent = (content: any) => typeof content === 'string' ? content : JSON.stringify(content)
+    const stringifyMessages = (msgs: any[]) => msgs.map(m => m.role + stringifyContent(m.content)).join('\n')
+    
+    const MAX_CHAR_COUNT = 25000 // 设定一个阈值（约1.5万Token左右的长度）
+    const GRAND_SUMMARY_THRESHOLD = 8000 // 总结如果超过此长度，重新大一统总结一次
+    
+    // 找出之前的记忆标记
+    let existingMemoryIndex = userMessages.findIndex(m => stringifyContent(m.content).includes('<PAST_MEMORY>'))
+    let existingMemoryText = ""
+    let nonMemoryMessages = [...userMessages]
+    
+    if (existingMemoryIndex !== -1) {
+       const match = stringifyContent(userMessages[existingMemoryIndex].content).match(/<PAST_MEMORY>([\s\S]*?)<\/PAST_MEMORY>/)
+       existingMemoryText = match ? match[1] : ""
+       nonMemoryMessages.splice(existingMemoryIndex, 1)
+    }
+
+    const currentOverflowCount = stringifyMessages(nonMemoryMessages).length
+    const messagesToKeep = 4;
+    const historyToSummarize = nonMemoryMessages.slice(0, nonMemoryMessages.length - messagesToKeep)
+    const historyToSummarizeLength = stringifyMessages(historyToSummarize).length
+    
+    if (currentOverflowCount > MAX_CHAR_COUNT && nonMemoryMessages.length > 5 && historyToSummarizeLength > 1000) {
+       console.log(`[Chat API] Context overflow (${currentOverflowCount}), summarizing ${historyToSummarizeLength} chars of history...`)
+       
+       const recentMessages = nonMemoryMessages.slice(nonMemoryMessages.length - messagesToKeep)
+       
+       try {
+           const summarizeTargetUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+           const summarizeKey = process.env.SYSTEM_OPENAI_API_KEY || apiKey
+           
+           // 多级总结逻辑
+           let summaryPrompt = ""
+           let summaryInput = ""
+           
+           if (!existingMemoryText) {
+               // 第一级：首次总结
+               summaryPrompt = "你是一个专门总结并在不丢失核心信息前提下压缩上下文的助手。请用一段极简的语言，提炼出以下截断的对话历史中的核心事实、用户主要意图以及AI已采取的关键行动。你的总结将作为下一轮AI对话的'过去的记忆'提供。"
+               summaryInput = "请压缩以下对话记录：\n" + stringifyMessages(historyToSummarize)
+           } else {
+               // 第二级：增量叠加
+               summaryPrompt = "你是一个专门合并并优化对话记忆的助手。我会给你一段【旧的历史记忆摘要】和一段【新增的对话记录】。请将它们合并在一起，形成一份连贯、精简且包含所有关键信息的【最新历史记忆摘要】。请保持客观叙事风格。"
+               summaryInput = `【旧的历史记忆摘要】\n${existingMemoryText}\n\n【新增的对话记录】\n${stringifyMessages(historyToSummarize)}`
+               
+               // 第三级：如果旧摘要已经很大，要求大一统精简
+               if (existingMemoryText.length > GRAND_SUMMARY_THRESHOLD) {
+                   summaryPrompt += "\n警告：旧摘要已经非常冗长，请在合并时进行深度压缩和去重，只保留最核心的价值信息，将整体长度缩减 40% 以上。"
+               }
+           }
+
+           const summarizeRes = await fetch(summarizeTargetUrl, {
+               method: "POST",
+               headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${summarizeKey}`
+               },
+               body: JSON.stringify({
+                  model: "qwen-plus",
+                  messages: [
+                      { role: "system", content: summaryPrompt },
+                      { role: "user", content: summaryInput }
+                  ],
+                  temperature: 0.1
+               })
+           })
+           
+           if (summarizeRes.ok) {
+               const summarizeData = await summarizeRes.json()
+               const summaryText = summarizeData.choices?.[0]?.message?.content
+               if (summaryText) {
+                   userMessages = [
+                       { role: "assistant", content: `[系统消息：为了节省上下文长度，早期的历史已被提炼如下]\n<PAST_MEMORY>\n${summaryText}\n</PAST_MEMORY>` },
+                       ...recentMessages
+                   ]
+                   contextCompressed = true;
+                   // 准备发送给前端的同步事件，让前端也更新它的 messages 状态
+                   contextUpdateEvent = { type: "context_update", messages: userMessages }
+                   console.log(`[Chat API] Incremental summarization complete. New context length: ${stringifyMessages(userMessages).length}`)
+                }
+           }
+       } catch (err) {
+           console.error("[Chat API] Failed to summarize history", err)
+       }
+    }
+    // ===========================================
+
     let fullMessages: any[] = []
     let requestBody: any = {}
     // let targetUrl = apiUrl || "" // Already set above
-    const hasImageContent = Array.isArray(messages) && messages.some((m: any) => {
+    const hasImageContent = Array.isArray(userMessages) && userMessages.some((m: any) => {
       const c = m?.content
       if (Array.isArray(c)) return c.some((x: any) => x?.type === "image_url" || x?.image_url || x?.image)
       return false
@@ -453,9 +544,9 @@ export async function POST(req: Request) {
       if (enableReasoning) {
         effectiveModel = 'deepseek-v3.2' // 优先使用推理模型
       } else if (hasImageContent) {
-        effectiveModel = 'qwen3.5-plus' // 优先使用视觉模型
+        effectiveModel = 'qwen3.6-plus' // 优先使用视觉模型
       } else {
-        effectiveModel = 'qwen3.5-plus' // 默认使用通用增强模型
+        effectiveModel = 'qwen3.6-plus' // 默认使用通用增强模型
       }
     }
 
@@ -465,7 +556,7 @@ export async function POST(req: Request) {
       modelLower.includes('-vl-') ||
       /qwen\d*-vl/.test(modelLower) ||
       modelLower.includes('qvq') ||
-      modelLower.includes('qwen3.5') // Qwen3.5 系列支持视觉
+      modelLower.includes('qwen3.6') // Qwen3.6 系列支持视觉
     )
 
     if (hasImageContent && !isLocal) {
@@ -480,7 +571,7 @@ export async function POST(req: Request) {
 
     if (isDashScopeAppCall) {
       // ... existing app call logic ...
-      const lastUser = ([...messages] as Array<{ role: string; content: string | any[] }>).reverse().find((m) => m?.role === "user")
+      const lastUser = ([...userMessages] as Array<{ role: string; content: string | any[] }>).reverse().find((m) => m?.role === "user")
       // ...
     } else if (isDashScope && useCompatibleMode) {
       // DashScope 兼容模式（OpenAI形状）
@@ -491,7 +582,7 @@ export async function POST(req: Request) {
 
       // 过滤掉历史记录中非 user 角色的图片内容，因为目前多数模型不支持在 assistant 角色中传入 image_url
       // 如果 assistant 发送了图片，将其简化为纯文本描述
-      const sanitizedMessages = messages.map((m: any) => {
+      const sanitizedMessages = userMessages.map((m: any) => {
         // 如果是系统消息（我们刚才为了回传分析发的一条 role="user" 的假装系统反馈，或者是真正的 user 发的图）
         // 确保如果是刚刚带图片的系统反馈，不要被过滤掉
         if (m.role === 'assistant' && Array.isArray(m.content)) {
@@ -505,7 +596,7 @@ export async function POST(req: Request) {
       // OpenAI 兼容模式下，DashScope 支持 user 发送 image_url。
       const finalMessages = sanitizedMessages.map((m: any) => {
           if (m.role === 'user' && Array.isArray(m.content)) {
-              // 确保格式为标准的 OpenAI 多模态格式
+              // ... map structure
               return {
                   ...m,
                   content: m.content.map((c: any) => {
@@ -519,10 +610,12 @@ export async function POST(req: Request) {
           return m
       })
 
+      const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
+
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
+          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${contextCompressedInstruction}`,
         },
         ...finalMessages,
       ]
@@ -542,12 +635,13 @@ export async function POST(req: Request) {
       }
     } else if (isDashScope) {
       // DashScope 原生API格式
-      const systemMessage = `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`
+      const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
+      const systemMessage = `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${contextCompressedInstruction}`
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
       // OpenAI: { type: "text", text: "..." } -> DashScope: { text: "..." }
-      const dashScopeMessages = messages.map((m: any) => {
+      const dashScopeMessages = userMessages.map((m: any) => {
         if (Array.isArray(m.content)) {
           return {
             role: m.role,
@@ -582,12 +676,14 @@ export async function POST(req: Request) {
       }
     } else {
       // OpenAI 兼容模式
+      const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
+      
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}`,
+          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${contextCompressedInstruction}`,
         },
-        ...messages,
+        ...userMessages,
       ]
 
       requestBody = {
@@ -614,315 +710,206 @@ export async function POST(req: Request) {
       headers["Authorization"] = `Bearer ${apiKey}`
     }
 
-    // === MCP Tool Call Resolution (Function Calling 预检) ===
-    // 对于 OpenAI 兼容模式，先做一次非流式请求以检测 AI 是否要调用工具
-    // 如果有 tool_calls，执行工具后再做流式请求生成最终回复
-    // 优化：使用 heuristic (shouldPreflight) 避免对所有消息都进行预检，显著降低普通对话延迟
+    // === Multi-Round Agent Loop (真正的多轮 ReAct Loop) ===
+    // 标准 Agent 标准流程：Query → LLM → [Thinking+Action+ActionInput] → Tool → Observation → 循环 → Final Answer
+    // 最多允许 MAX_AGENT_ITERATIONS 轮工具调用，防止无限循环
+    const MAX_AGENT_ITERATIONS = 5
+    const preflightHeaders = { ...headers }
+    delete preflightHeaders["X-DashScope-SSE"]
+
     if (shouldPreflight && !isDashScopeAppCall && (useCompatibleMode || !isDashScope)) {
-      try {
-        const preflightBody = {
-          ...requestBody,
-          stream: false,
-          tools: mcpToolDefs,
-        }
-        
-        // Ollama 特殊处理：Ollama 的 stream: false 模式下，tools 支持可能不完善，
-        // 或者返回结构与 OpenAI 不完全一致。
-        // 但根据报错信息 "cannot unmarshal object into Go struct field Message.messages.reasoning of type string"，
-        // 这似乎是因为我们的 requestBody 中的 messages 包含了一些 Ollama 不认识的字段（如 reasoning）。
-        // 我们需要清理一下 messages 中的字段。
+      const encoder = new TextEncoder()
+      const stream = new ReadableStream({
+        async start(controller) {
+          // Keep-Alive ping to prevent gateway timeouts during long tool chains
+          const keepAlive = setInterval(() => {
+            try { controller.enqueue(encoder.encode(": keep-alive\n\n")) } catch { clearInterval(keepAlive) }
+          }, 5000)
 
-        // 清理 requestBody.messages 中的额外字段
-        if (preflightBody.messages) {
-            preflightBody.messages = preflightBody.messages.map((m: any) => {
+          try {
+            // 0. 发送上下文同步事件 (如果发生压缩)
+            if (contextUpdateEvent) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(contextUpdateEvent)}\n\n`))
+            }
+
+            // 0. 发送知识模块路由事件
+            if (matchedSkills && matchedSkills.length > 0) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                id: `skill-selection-${Date.now()}`, object: "chat.completion.chunk",
+                created: Date.now(), model: effectiveModel,
+                skill_selection: matchedSkills.map(s => ({ id: s.id, name: s.name }))
+              })}\n\n`))
+            }
+
+            // === AGENT LOOP ===
+            let iteration = 0
+            
+            while (iteration < MAX_AGENT_ITERATIONS) {
+              iteration++
+              console.log(`[Agent Loop] Iteration ${iteration}/${MAX_AGENT_ITERATIONS}`)
+
+              const cleanMessages = (fullMessages as any[]).map((m: any) => {
                 const { role, content, name, tool_calls, tool_call_id } = m
-                // 只保留标准字段
-                const cleanMsg: any = { role, content }
-                if (name) cleanMsg.name = name
-                if (tool_calls) cleanMsg.tool_calls = tool_calls
-                if (tool_call_id) cleanMsg.tool_call_id = tool_call_id
-                return cleanMsg
-            })
-        }
+                const clean: any = { role, content }
+                if (name) clean.name = name
+                if (tool_calls) clean.tool_calls = tool_calls
+                if (tool_call_id) clean.tool_call_id = tool_call_id
+                return clean
+              })
 
-        // 对于 DashScope 原生模式的非流式请求，不需要 SSE header
-        const preflightHeaders = { ...headers }
-        delete preflightHeaders["X-DashScope-SSE"]
+              const loopBody = {
+                ...requestBody,
+                messages: cleanMessages,
+                stream: true, // 开启流式以支持打字机效果
+                tools: mcpToolDefs,
+              }
 
-        console.log('[MCP] Making preflight call to detect tool_calls...')
-        const preflightRes = await fetch(targetUrl, {
-          method: "POST",
-          headers: preflightHeaders,
-          body: JSON.stringify(preflightBody),
-        })
+              console.log(`[Agent Loop] Calling LLM (streaming) with ${cleanMessages.length} messages...`)
+              const loopRes = await fetch(targetUrl, {
+                method: "POST",
+                headers, // 使用原始 headers (含 SSE 指令)
+                body: JSON.stringify(loopBody),
+              })
 
-        if (preflightRes.ok) {
-          const preflightData = await preflightRes.json()
-          const choice = preflightData.choices?.[0]
+              if (!loopRes.ok) {
+                console.warn(`[Agent Loop] LLM call failed (status ${loopRes.status}), breaking loop`)
+                break
+              }
 
-          if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
-            // AI 决定调用工具！
-            console.log('[MCP] AI requested tool calls:', choice.message.tool_calls.map((tc: any) => tc.function.name))
+              const reader = loopRes.body?.getReader()
+              if (!reader) break
 
-            // 将 AI 的 tool_call 消息加入会话
-            fullMessages.push(choice.message)
+              const decoder = new TextDecoder()
+              let buffer = ""
+              let hasToolCalls = false
+              let currentToolCalls: any[] = []
+              let accumulatedContent = ""
+              let iterationFinished = false
 
-            // 构造 ReadableStream 以便立即给前端反馈
-            const encoder = new TextEncoder()
-            const stream = new ReadableStream({
-              async start(controller) {
-                // Keep-Alive Interval to prevent timeout during long tool execution
-                const keepAliveInterval = setInterval(() => {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split("\n")
+                buffer = lines.pop() || ""
+
+                for (const line of lines) {
+                  const trimmed = line.trim()
+                  if (!trimmed || trimmed === "data: [DONE]") continue
+                  if (trimmed.startsWith("data: ")) {
                     try {
-                        controller.enqueue(encoder.encode(": keep-alive\n\n"))
-                    } catch (e) {
-                        clearInterval(keepAliveInterval)
-                    }
-                }, 5000)
-
-                try {
-                  // 0. 发送已选取的知识模块 (AI Skill Routing)
-                  if (matchedSkills && matchedSkills.length > 0) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                      id: `skill-selection-${Date.now()}`,
-                      object: "chat.completion.chunk",
-                      created: Date.now(),
-                      model: effectiveModel,
-                      skill_selection: matchedSkills.map(s => ({ id: s.id, name: s.name }))
-                    })}\n\n`))
-                  }
-
-                  // 1. 立即推送工具调用状态
-                  const toolStatusPayload = {
-                    id: `tool-status-${Date.now()}`,
-                    object: "chat.completion.chunk",
-                    created: Date.now(),
-                    model: effectiveModel,
-                    tool_calls: choice.message.tool_calls
-                  }
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolStatusPayload)}\n\n`))
-
-                  // 2. 执行工具调用
-                  for (const toolCall of choice.message.tool_calls) {
-                    const fnName = toolCall.function.name
-                    let fnArgs: Record<string, any> = {}
-                    try { fnArgs = JSON.parse(toolCall.function.arguments || '{}') } catch { }
-
-                    console.log(`[MCP] Executing tool: ${fnName}`, fnArgs)
-                    const result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
-                    console.log(`[MCP] Tool ${fnName} result:`, result.success ? 'success' : result.error)
-
-                    // 将工具结果发送给前端，以便在工作室侧边栏展示
-                    const toolResultPayload = {
-                      id: `tool-result-${Date.now()}`,
-                      object: "chat.completion.chunk",
-                      created: Date.now(),
-                      model: effectiveModel,
-                      tool_result: {
-                        name: fnName,
-                        args: fnArgs,
-                        result: result.success ? result.data : { error: result.error }
+                      const json = JSON.parse(trimmed.slice(6))
+                      const delta = json.choices?.[0]?.delta
+                      
+                      // 检查 tool_calls
+                      if (delta?.tool_calls) {
+                        hasToolCalls = true
+                        for (const tc of delta.tool_calls) {
+                          if (tc.index === undefined) continue
+                          if (!currentToolCalls[tc.index]) {
+                            currentToolCalls[tc.index] = { id: tc.id, function: { name: "", arguments: "" } }
+                          }
+                          if (tc.id) currentToolCalls[tc.index].id = tc.id
+                          if (tc.function?.name) currentToolCalls[tc.index].function.name += tc.function.name
+                          if (tc.function?.arguments) currentToolCalls[tc.index].function.arguments += tc.function.arguments
+                        }
                       }
-                    }
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolResultPayload)}\n\n`))
 
-                    // 将工具结果加入会话
-                    // 限制内容长度，防止爆 Context (尤其是网页抓取内容可能非常大)
-                    let toolContent = JSON.stringify(result.success ? result.data : { error: result.error })
-                    if (toolContent.length > 50000) {
-                        toolContent = toolContent.slice(0, 50000) + "\n...[Content Truncated due to length]..."
-                    }
-
-                    fullMessages.push({
-                      role: 'tool',
-                      tool_call_id: toolCall.id,
-                      content: toolContent
-                    })
-                  }
-
-                  // 停止心跳
-                  clearInterval(keepAliveInterval)
-
-                  // 3. 检查工具执行结果，如果失败发送警告，并尝试自动重试 (Simple Retry Logic)
-                  const toolResults = fullMessages.filter(m => m.role === 'tool')
-                  
-                  // 针对网页抓取的自动重试逻辑
-                  // 如果抓取失败，且是 Firecrawl，尝试提示 AI 换一个 URL 或使用 Exa
-                  const failedScrapes = toolResults.filter(m => {
-                      try {
-                          const c = JSON.parse(m.content as string)
-                          return c.error && m.tool_call_id
-                      } catch { return false }
-                  })
-
-                  if (failedScrapes.length > 0) {
-                      console.log('[MCP] Detected failed tool calls, injecting retry instruction...')
-                      // 查找失败的 tool call 原始请求
-                      const failedCallIds = failedScrapes.map(m => m.tool_call_id)
-                      const originalCalls = choice.message.tool_calls.filter((tc: any) => failedCallIds.includes(tc.id))
-                      
-                      const isScrapeFailure = originalCalls.some((tc: any) => tc.function.name === 'mcp_firecrawl_scrape')
-                      
-                      if (isScrapeFailure) {
-                          // 注入系统消息，告知 AI 抓取失败，建议重试其他来源
-                          // 修改逻辑：优先建议换一个 URL 继续尝试 Firecrawl，其次才建议 Exa
-                          fullMessages.push({
-                              role: 'system',
-                              content: `⚠️ 上一次网页抓取失败 (可能是反爬虫或网络原因)。\n请**不要**放弃！请尝试以下步骤：\n1. **优先**：尝试使用 \`mcp_brave_search\` 或 \`mcp_exa_search\` 搜索该主题，找到**另一个不同的 URL**，然后再次调用 \`mcp_firecrawl_scrape\` 抓取那个新 URL。\n2. 如果依然失败，再直接使用 Exa 或 Brave 的搜索结果摘要回答。\n请务必获取到有效信息后再回答用户，直到成功为止。`
-                          })
+                      if (delta?.content) {
+                        accumulatedContent += delta.content
+                        // 只有在没检测到工具调用时，才即时推送内容给前端以支持打字机
+                        // 这里的逻辑稍微纠结：如果又是想工具又是想说话（即 CoT），可以开启推送
+                        // 为了最大限度支持打字机，我们始终推送 content
+                        if (!hasToolCalls) {
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(json)}\n\n`))
+                        }
                       }
+                    } catch (e) { }
                   }
-
-                  const failedTools = toolResults.filter(m => {
-                    try {
-                      const c = JSON.parse(m.content as string)
-                      return c.error
-                    } catch { return false }
-                  })
-
-                  if (failedTools.length > 0) {
-                    const warningContent = "\n\n> ⚠️ 部分工具调用失败，正在尝试自动重试或寻找替代方案...\n\n"
-                    const warningPayload = {
-                      id: `tool-warning-${Date.now()}`,
-                      object: "chat.completion.chunk",
-                      created: Date.now(),
-                      model: effectiveModel,
-                      choices: [{ index: 0, delta: { content: warningContent }, finish_reason: null }]
-                    }
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(warningPayload)}\n\n`))
-                  }
-
-                  // 4. 发起最终 AI 请求
-                  console.log('[MCP] Tool results injected, starting final stream...')
-                  
-                  // 强制注入 System 指令，确保 AI 根据工具结果进行总结，而不是重复输出 JSON
-                  fullMessages.push({
-                    role: 'system',
-                    content: `[SYSTEM] Tool execution completed. The results are provided in the 'tool' messages above. \nPlease use these results to provide a comprehensive and helpful response to the user. \nDo NOT output raw JSON or tool calls again unless necessary.`
-                  })
-
-                  requestBody = {
-                    model: (requestBody as any).model || effectiveModel || 'qwen-plus',
-                    messages: fullMessages,
-                    stream: true,
-                    temperature: 0.7,
-                  }
-
-                  // 清理 requestBody.messages 中的额外字段 (针对 Ollama 等严格后端)
-                  if (requestBody.messages) {
-                      requestBody.messages = requestBody.messages.map((m: any) => {
-                          const { role, content, name, tool_calls, tool_call_id } = m
-                          const cleanMsg: any = { role, content }
-                          if (name) cleanMsg.name = name
-                          if (tool_calls) cleanMsg.tool_calls = tool_calls
-                          if (tool_call_id) cleanMsg.tool_call_id = tool_call_id
-                          return cleanMsg
-                      })
-                  }
-
-                  const finalResponse = await fetch(targetUrl, {
-                    method: "POST",
-                    headers,
-                    body: JSON.stringify(requestBody),
-                  })
-
-                  if (!finalResponse.ok) {
-                    const errorMsg = `Final AI response failed: ${finalResponse.status}`
-                    console.error(errorMsg)
-                    controller.enqueue(encoder.encode(`data: {"error": "${errorMsg}"}\n\n`))
-                    controller.close()
-                    return
-                  }
-
-                  // 5. 转发 AI 的流式响应
-                  if (finalResponse.body) {
-                    const reader = finalResponse.body.getReader()
-                    const decoder = new TextDecoder()
-                    let buffer = ""
-                    
-                    while (true) {
-                      const { done, value } = await reader.read()
-                      if (done) break
-                      
-                      // 检查是否包含 [DONE] 标记
-                      const chunk = decoder.decode(value, { stream: true })
-                      buffer += chunk
-                      
-                      // 直接转发数据
-                      controller.enqueue(value)
-                    }
-                    
-                    // 确保发送 [DONE] 标记
-                    if (!buffer.includes("data: [DONE]")) {
-                      controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-                    }
-                  } else {
-                    // 如果没有响应体，发送 [DONE] 标记
-                    controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-                  }
-
-                  // 6. 扣除配额
-                  if (useSystemKey) {
-                    try { await incrementAiUsage(user.id as number) } catch (e) { }
-                  }
-
-                  controller.close()
-                } catch (err: any) {
-                  clearInterval(keepAliveInterval)
-                  console.error('[MCP Stream Error]', err)
-                  controller.enqueue(encoder.encode(`data: {"error": "Stream error: ${err.message}"}\n\n`))
-                  controller.close()
                 }
               }
-            })
 
-            return new Response(stream, {
-              headers: {
-                "Content-Type": "text/event-stream",
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
+              if (hasToolCalls) {
+                const toolCalls = currentToolCalls.filter(Boolean)
+                console.log(`[Agent Loop] Round ${iteration} - Tool calls:`, toolCalls.map((t: any) => t.function.name))
+                
+                // 将 AI 回复（含可能的 content 和 tool_calls）存入上下文
+                fullMessages.push({ 
+                  role: "assistant", 
+                  content: accumulatedContent || null, 
+                  tool_calls: toolCalls 
+                })
+
+                // 通知前端
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `tool-status-${Date.now()}`, object: "chat.completion.chunk",
+                  created: Date.now(), model: effectiveModel,
+                  tool_calls: toolCalls,
+                  agent_iteration: iteration
+                })}\n\n`))
+
+                // 执行工具
+                for (const toolCall of toolCalls) {
+                  const fnName = toolCall.function.name
+                  let fnArgs = {}
+                  try { fnArgs = JSON.parse(toolCall.function.arguments || '{}') } catch { }
+
+                  const result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
+                  
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `tool-result-${Date.now()}`, object: "chat.completion.chunk",
+                    created: Date.now(), model: effectiveModel,
+                    tool_result: { name: fnName, args: fnArgs, result: result.success ? result.data : { error: result.error } }
+                  })}\n\n`))
+
+                  fullMessages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: JSON.stringify(result.success ? result.data : { error: result.error })
+                  })
+                }
+                requestBody = { ...requestBody, messages: fullMessages }
+                continue
+              } else {
+                // 无工具，说明最后一部分内容已经通过之前的 SSE 流推送出去了，对话已完整
+                fullMessages.push({ role: "assistant", content: accumulatedContent })
+                console.log(`[Agent Loop] Round ${iteration} - Final answer finished streaming`)
+                break
               }
-            })
-
-          } else if (choice?.message?.content) {
-            // AI 没有调用工具，直接返回内容（转为 SSE 流）
-            console.log('[MCP] No tool calls needed, returning preflight content as SSE')
-            const content = choice.message.content
-            const encoder = new TextEncoder()
-            const payload = {
-              id: preflightData.id || `${Date.now()}`,
-              object: "chat.completion.chunk",
-              created: Date.now(),
-              model: effectiveModel,
-              choices: [{ index: 0, delta: { content }, finish_reason: "stop" }],
             }
-            const sseBody = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`
 
-            // 扣除系统 Key 配额
+            clearInterval(keepAlive)
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+
+            // 扣除配额
             if (useSystemKey) {
-              try { await incrementAiUsage(user.id as number) } catch (e) { console.error("Failed to increment AI usage:", e) }
+              try { await incrementAiUsage(user.id as number) } catch (e) { }
             }
 
-            return new Response(sseBody, {
-              headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
-            })
+            controller.close()
+          } catch (err: any) {
+            clearInterval(keepAlive)
+            console.error('[Agent Loop Error]', err)
+            controller.enqueue(encoder.encode(`data: {"error": "Agent loop error: ${err.message}"}\n\n`))
+            controller.close()
           }
-          // 如果既无 tool_calls 也无 content（罕见情况），继续走正常流式路径
-        } else {
-          console.warn('[MCP] Preflight call failed (status:', preflightRes.status, '), falling back to streaming without tools')
         }
-      } catch (preflightError) {
-        console.error('[MCP] Preflight error, falling back to normal streaming:', preflightError)
-      }
+      })
+
+      return new Response(stream, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" }
+      })
     }
-    // === MCP Tool Call Resolution 结束 ===
+    // === Multi-Round Agent Loop 结束 ===
+
 
     console.log('[MCP] Making final streaming request to AI...')
     
     // 同样清理 final requestBody 的 messages
     // 确保 requestBody.messages 不为空，防止 undefined 错误
     if (!requestBody.messages || requestBody.messages.length === 0) {
-        requestBody.messages = fullMessages.length > 0 ? fullMessages : messages;
+        requestBody.messages = fullMessages.length > 0 ? fullMessages : userMessages;
     }
 
     if (requestBody.messages) {
