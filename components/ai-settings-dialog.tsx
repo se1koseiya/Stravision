@@ -40,6 +40,7 @@ interface AISettings {
 interface VoiceSettings {
   enabled: boolean
   voice: string
+  readAloud: boolean
 }
 
 interface AISettingsDialogProps {
@@ -56,12 +57,19 @@ type TabId = "model" | "general" | "voice"
 const VOICE_SETTINGS_KEY = 'xiaozhi-voice-settings'
 
 export function getVoiceSettings(): VoiceSettings {
-  if (typeof window === 'undefined') return { enabled: true, voice: 'Mochi' }
+  if (typeof window === 'undefined') return { enabled: true, voice: 'Mochi', readAloud: true }
   try {
     const saved = localStorage.getItem(VOICE_SETTINGS_KEY)
-    if (saved) return JSON.parse(saved)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      return {
+        enabled: parsed.enabled ?? true,
+        voice: parsed.voice || 'Mochi',
+        readAloud: parsed.readAloud ?? true
+      }
+    }
   } catch { }
-  return { enabled: true, voice: 'Mochi' }
+  return { enabled: true, voice: 'Mochi', readAloud: true }
 }
 
 export function saveVoiceSettings(settings: VoiceSettings) {
@@ -80,7 +88,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
   })
 
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(
-    externalVoiceSettings || { enabled: true, voice: 'Mochi' }
+    externalVoiceSettings || { enabled: true, voice: 'Mochi', readAloud: true }
   )
 
   const [apiType, setApiType] = useState<string>("system")
@@ -501,17 +509,30 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                   </div>
                 </div>
 
-                {/* Voice Enable/Disable */}
                 <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-zinc-900/50">
                   <div className="space-y-1">
                     <Label className="text-base font-medium">启用语音助手</Label>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      在页面右下角显示语音交互悬浮球
+                      并在页面右下角显示语音交互悬浮球
                     </p>
                   </div>
                   <Switch
                     checked={voiceSettings.enabled}
                     onCheckedChange={(checked) => setVoiceSettings({ ...voiceSettings, enabled: checked })}
+                  />
+                </div>
+
+                {/* TTS Reader Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-zinc-900/50">
+                  <div className="space-y-1">
+                    <Label className="text-base font-medium">自动语音朗读</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      接收到 AI 回复时自动进行语音播报
+                    </p>
+                  </div>
+                  <Switch
+                    checked={voiceSettings.readAloud}
+                    onCheckedChange={(checked) => setVoiceSettings({ ...voiceSettings, readAloud: checked })}
                   />
                 </div>
 

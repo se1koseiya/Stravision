@@ -57,6 +57,9 @@ COPY --from=builder /app/package.json ./package.json
 # Copy WebSocket server
 COPY --from=builder /app/server ./server
 
+# Copy AI agents and skills required at runtime
+COPY --from=builder /app/.agents ./.agents
+
 # Ensure data directory exists and has correct permissions
 RUN mkdir -p data && chown -R nextjs:nodejs data
 

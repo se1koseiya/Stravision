@@ -72,13 +72,16 @@ export async function GET() {
       baseURL: baseUrl,
     });
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.SYSTEM_OPENAI_MODEL || 'qwen-plus',
-      messages: [
-        {
-          role: 'system',
-          content: `你是一个专业的智慧农业 AI 助手。请根据提供的最近24小时大棚环境数据，生成一份简短的"每日洞察报告"。
-          
+    let result = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    // Initial messages array
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: `你是一个专业的智慧农业 AI 助手。请根据提供的最近24小时大棚环境数据，生成一份简短的"每日洞察报告"。
+        
 你的输出必须是 JSON 格式，包含以下字段：
 1. insight (string): 对过去24小时环境状况的简要总结（不超过50字），语气专业且亲切。
 2. recommendation (string): 基于数据给出的一条关键种植建议（如需操作设备，请明确指出）。
@@ -92,17 +95,57 @@ export async function GET() {
 - 湿度：60-80%
 - CO2：400-1000ppm
 - 光照：适中`
-        },
-        {
-          role: 'user',
-          content: `环境数据摘要：\n${dataContext}`
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-    });
+      },
+      {
+        role: 'user',
+        content: `环境数据摘要：\n${dataContext}`
+      }
+    ];
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}');
+    while (attempts < maxAttempts) {
+      const completion = await openai.chat.completions.create({
+        model: process.env.SYSTEM_OPENAI_MODEL || 'qwen-plus',
+        messages: messages,
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const content = completion.choices[0].message.content || '{}';
+
+      try {
+        // Safe JSON parsing handling leading/trailing markdown code blocks
+        const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        result = JSON.parse(cleanContent);
+        break; // Process fully successful
+      } catch (e: any) {
+        console.error(`[Daily Insight] Parse failed on attempt ${attempts + 1}:`, e.message, "\nContent:", content);
+        attempts++;
+        
+        if (attempts >= maxAttempts) {
+          result = { 
+            insight: "生成报告时遭遇解析异常", 
+            recommendation: "请稍后重试或手动检查大棚数据指标。", 
+            riskLevel: "low" 
+          };
+          break;
+        }
+        
+        // Feed the failure back to the model with correction prompt
+        messages.push({ role: 'assistant', content: content });
+        messages.push({
+          role: 'user',
+          content: `你生成的 JSON 格式有误，无法被解析器解析。错误详情：${e.message}。
+请修正所有的格式错误，并严格重新输出一次。
+正确的格式必须且仅包含如下 JSON：
+{
+  "insight": "总结...",
+  "recommendation": "建议...",
+  "riskLevel": "low"
+}
+提示：必须以纯净的 JSON 字符串返回，绝对不要输出任何 markdown 代码块标记，不要写 \`\`\`json 等修饰内容。`
+        });
+      }
+    }
 
     // Deduct Quota
     await incrementAiUsage(user.id as number);

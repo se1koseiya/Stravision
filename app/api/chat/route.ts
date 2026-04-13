@@ -101,14 +101,22 @@ export async function POST(req: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const mcpToolDefs = getMCPToolDefinitions(mcpConfigs || [])
     
-    // 提取最后一条用户消息文本，用于意图识别优化
     const lastUserMessageObj = messages.slice().reverse().find((m: any) => m.role === 'user')
     const lastUserContent = lastUserMessageObj?.content
     const lastUserText = typeof lastUserContent === 'string' ? lastUserContent : 
                          (Array.isArray(lastUserContent) ? lastUserContent.find((c:any) => c.type === 'text')?.text || "" : "")
+
+    // 提取最后一条用户消息文本，用于意图识别优化
+    // 智能路由优化：结合“原始意图”和“最新输入”进行技能匹配
+    // 防止在自动调控的多轮对话中，因为 feedback 消息太简洁而导致农业专业技能被意外卸载
+    const firstUserMessageObj = messages.find((m: any) => m.role === 'user');
+    const firstUserText = typeof firstUserMessageObj?.content === 'string' ? firstUserMessageObj.content : "";
+    
+    // 合并文本用于路由匹配
+    const combinedRoutingText = `${firstUserText} ${lastUserText}`.trim();
     
     // 构建增强的系统提示词，通过智能路由选择相关技能以节省 Token
-    const { prompt: enhancedSystemPrompt, matchedSkills } = await getEnhancedSystemPrompt(lastUserText, systemPrompt, user.id as number)
+    const { prompt: enhancedSystemPrompt, matchedSkills } = await getEnhancedSystemPrompt(combinedRoutingText, systemPrompt, user.id as number)
     
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
@@ -907,12 +915,12 @@ export async function POST(req: Request) {
 
                       if (delta?.content) {
                         accumulatedContent += delta.content
-                        // 只有在没检测到工具调用时，才即时推送内容给前端以支持打字机
-                        // 这里的逻辑稍微纠结：如果又是想工具又是想说话（即 CoT），可以开启推送
-                        // 为了最大限度支持打字机，我们始终推送 content
-                        if (!hasToolCalls) {
-                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(json)}\n\n`))
+                        // 始终推送 content 给前端展示，剥离 tool_calls 避免前端意外处理
+                        const cleanJson = JSON.parse(JSON.stringify(json))
+                        if (cleanJson.choices?.[0]?.delta?.tool_calls) {
+                           delete cleanJson.choices[0].delta.tool_calls
                         }
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(cleanJson)}\n\n`))
                       }
                     } catch (e) { }
                   }
@@ -942,9 +950,26 @@ export async function POST(req: Request) {
                 for (const toolCall of toolCalls) {
                   const fnName = toolCall.function.name
                   let fnArgs = {}
-                  try { fnArgs = JSON.parse(toolCall.function.arguments || '{}') } catch { }
+                  let parseError = ""
+                  
+                  try { 
+                    fnArgs = JSON.parse(toolCall.function.arguments || '{}') 
+                  } catch (e: any) { 
+                    parseError = e.message 
+                    console.error(`[Agent Loop] Failed to parse tool arguments for ${fnName}:`, parseError, "Raw:", toolCall.function.arguments)
+                  }
 
-                  const result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
+                  let result: any = null;
+                  
+                  if (parseError) {
+                    // Send explicit JSON correction instructions back to the model
+                    result = { 
+                      success: false, 
+                      error: `工具调用的 JSON 格式解析失败 (SyntaxError: ${parseError})。请完全修正格式错误后重试！\n注意：arguments 参数必须是一个纯粹且闭合的合法 JSON 对象，且不要向 JSON 内混杂 Markdown 代码块标记。` 
+                    };
+                  } else {
+                    result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
+                  }
                   
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                     id: `tool-result-${Date.now()}`, object: "chat.completion.chunk",

@@ -211,7 +211,12 @@ export async function seedBuiltinSkills(): Promise<void> {
   const path = require('path')
 
   const skillsDir = path.join(process.cwd(), '.agents', 'skills')
-  if (!fs.existsSync(skillsDir)) return
+  console.log('[SkillStore] Checking skills directory:', skillsDir)
+  
+  if (!fs.existsSync(skillsDir)) {
+    console.warn('[SkillStore] Skills directory not found:', skillsDir)
+    return
+  }
 
   const ICON_MAP: Record<string, string> = {
     'ai-identity': '🤖',
@@ -253,12 +258,18 @@ export async function seedBuiltinSkills(): Promise<void> {
     .filter((d: any) => d.isDirectory())
     .map((d: any) => d.name)
 
+  console.log('[SkillStore] Found skill folders:', folders)
+
+  let seededCount = 0
+  let skippedCount = 0
+
   for (const folder of folders) {
     const skillPath = path.join(skillsDir, folder, 'SKILL.md')
-    if (!fs.existsSync(skillPath)) continue
+    if (!fs.existsSync(skillPath)) {
+      console.warn('[SkillStore] SKILL.md not found for:', folder)
+      continue
+    }
 
-    const existing = await getSkillById(folder)
-    if (existing) continue // don't overwrite existing
 
     const fileContent = fs.readFileSync(skillPath, 'utf8')
     const fmMatch = fileContent.match(/^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/)
@@ -273,21 +284,50 @@ export async function seedBuiltinSkills(): Promise<void> {
       })
     }
 
-    await createSkill({
-      skill_id: folder,
-      name: metadata.name || folder,
-      description: metadata.description || '',
-      icon: ICON_MAP[folder] || '🧩',
-      category: CATEGORY_MAP[folder] || '工具',
-      author: 'StravisionAI',
-      version: '1.0.0',
-      keywords: metadata.keywords || '',
-      examples: EXAMPLES_MAP[folder] || '',
-      effects: EFFECTS_MAP[folder] || '',
-      content: body.trim(),
-      priority: 0,
-      is_published: 1,
-      is_builtin: folder === 'strawberry-sales' ? 0 : 1
-    })
+    const existing = await getSkillById(folder)
+    const isBuiltin = folder === 'strawberry-sales' ? 0 : 1
+
+    if (existing) {
+      // 如果是系统内置技能且已存在，则尝试更新其内容以保持与磁盘同步
+      if (existing.is_builtin === 1) {
+        await updateSkill(folder, {
+          name: metadata.name || folder,
+          description: metadata.description || '',
+          content: body.trim(),
+          keywords: metadata.keywords || '',
+          is_published: 1
+        })
+        seededCount++
+        console.log('[SkillStore] Updated existing builtin skill:', folder)
+      } else {
+        skippedCount++
+      }
+      continue
+    }
+
+    try {
+      await createSkill({
+        skill_id: folder,
+        name: metadata.name || folder,
+        description: metadata.description || '',
+        icon: ICON_MAP[folder] || '🧩',
+        category: CATEGORY_MAP[folder] || '工具',
+        author: 'StravisionAI',
+        version: '1.0.0',
+        keywords: metadata.keywords || '',
+        examples: EXAMPLES_MAP[folder] || '',
+        effects: EFFECTS_MAP[folder] || '',
+        content: body.trim(),
+        priority: 0,
+        is_published: 1,
+        is_builtin: isBuiltin
+      })
+      seededCount++
+      console.log('[SkillStore] Seeded skill:', folder)
+    } catch (e: any) {
+      console.error('[SkillStore] Failed to seed skill:', folder, e.message)
+    }
   }
+
+  console.log(`[SkillStore] Seeding complete: ${seededCount} new, ${skippedCount} existing`)
 }

@@ -311,7 +311,13 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                       isSubPast ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-500" :
                       "bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-600"
                     )}>
-                      {isSubActive ? <Loader2 size={18} className="animate-spin" /> : React.cloneElement(action.icon as React.ReactElement, { size: 18 })}
+                      {isSubActive ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : action.icon ? (
+                        React.cloneElement(action.icon as React.ReactElement, { size: 18 })
+                      ) : (
+                        <Zap size={18} />
+                      )}
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -401,6 +407,10 @@ function AIAssistantContent() {
   // Chat State
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
+  const messagesRef = useRef<Message[]>(messages)
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
   const [sessions, setSessions] = useState<SessionMeta[]>([])
@@ -412,6 +422,12 @@ function AIAssistantContent() {
   const [isTTSEnabled, setIsTTSEnabled] = useState(true) // TTS Toggle
   const [isTtsPaused, setIsTtsPaused] = useState(false) // 真正的播放暂停
   const [enableMcp, setEnableMcp] = useState(true) // MCP Toggle
+
+  // Initialize TTS state from stored settings
+  useEffect(() => {
+    const voiceSettings = getVoiceSettings()
+    setIsTTSEnabled(voiceSettings.readAloud)
+  }, [])
   
   const ttsQueueRef = useRef<string[]>([])
   const ttsAudioQueueRef = useRef<{url: string, text: string}[]>([]) // 声音缓冲池
@@ -777,6 +793,7 @@ function AIAssistantContent() {
   // 命令执行历史记录，用于防抖和循环检测
   const commandHistoryRef = useRef<{ signature: string, timestamp: number }[]>([])
   const executionLoopCountRef = useRef(0)
+  const rootIntentRef = useRef<string>("")
 
   const [notices, setNotices] = useState<{ id: number; title: string; description?: string; variant?: 'loading' | 'success' | 'error'; expanded: boolean }[]>([])
   const noticeIdCounter = useRef(0)
@@ -1725,17 +1742,32 @@ function AIAssistantContent() {
                  }
             }
 
-            // 这里触发的是一个普通的闭环查询，isFeedback=true 防止这句提示被当成用户提问
+            // 将反馈过程记录到 Agent 执行链中，而不是显示在聊天气泡里（用户觉得丑）
+            const feedbackStepId = `feedback-${Date.now()}`
+            setAgentSteps(prev => [...prev, {
+                id: feedbackStepId,
+                type: "observation",
+                status: "active",
+                title: "意图溯源与结果审视",
+                detail: "正在核对原始意图并采样设备最新状态...",
+                startedAt: Date.now()
+            }])
+
+            const rootIntent = rootIntentRef.current || "刚才的指令";
+            
+            // 恢复使用静默模式 (isSilent: true)，保持聊天记录整洁
             await handleSend(`指令已执行完毕。
 
 请根据系统提供的【当前最新数据】判断执行效果，并决定下一步操作。
 ${taskContext}
-**重要提示：**
-1. 我已开启【自动托管模式】，请不要停下来等待我确认。
-2. **状态验证与推进**：请先分析当前设备状态是否已符合预期。如果符合，请更新任务状态为 completed。
-3. **继续执行**：检查是否还有下一个 pending 的任务。如果有，请先分析该任务对应的设备状态，然后再输出合适的 JSON 控制指令继续执行。
-4. **防死循环**：如果多次执行同一指令环境数据仍未变，请判定为“超时/尽力”，自动跳过并执行下一个任务。
-5. **结束任务**：直到所有任务完成或不可逆失败，再做最终总结并停止输出 JSON。`, [], true, true)
+**核心原则与原始意图回顾：**
+1. 我已开启【自动托管模式】，请直接继续。
+2. **遵守原始指令（最高优先级）**：用户的初始意图是：“${rootIntent}”。必须严格回顾此意图，严禁违背！
+3. **状态验证**：分析当前设备状态是否已符合预期。
+4. **决策下发**：如果任务未完成且不冲突，请继续下发 JSON；如果已完成，请总结并停止。`, [], true, true)
+
+            // 更新步骤为已完成
+            setAgentSteps(prev => prev.map(s => s.id === feedbackStepId ? { ...s, status: "completed", durationMs: Date.now() - s.startedAt } : s))
         } else {
             setAgentStatus("") 
             setIsLoading(false)
@@ -1769,6 +1801,11 @@ ${taskContext}
     // 这里不再强制将 overrideText 转换为 string，因为它可能是包含图片的数组
     const isAutoTrigger = typeof overrideText !== "undefined";
     const text = isAutoTrigger ? (typeof overrideText === "string" ? overrideText : "【视觉分析请求】") : input;
+
+    // 记录原始意图：如果不是反馈或静默消息，我们就将其定为本次会话链条的“根意图”
+    if (!isFeedback && !isSilent && typeof text === 'string' && text.trim()) {
+      rootIntentRef.current = text;
+    }
     
     const currentAttachments = overrideAttachments || attachments
     
@@ -1845,10 +1882,16 @@ ${taskContext}
       return
     }
 
-    const newMessages: Message[] = [...messages, { role: "user", content: userMessageContent, isSilent }]
-    setMessages(newMessages)
-    // currentAttachments 已在函数开头定义，这里不需要重复
+    const userMessage: Message = { role: "user", content: userMessageContent, isSilent }
+    
+    // 使用 Ref 获取并立即更新最新的消息列表，彻底解决闭包导致的异步状态回滚问题
+    const currentMessagesForApi = [...messagesRef.current, userMessage]
+    setMessages(currentMessagesForApi)
+    messagesRef.current = currentMessagesForApi // 同步更新 Ref 为下一轮调用提供正确基准
+    
     setAttachments([])
+
+    let assistantMsg: Message = { role: "assistant", content: "" }
 
     try {
       // 每次新请求时清空工作室旧数据，并确保流结束时关闭浏览器
@@ -1866,8 +1909,8 @@ ${taskContext}
         }
 
         // 保存消息到会话时，确保正确序列化消息内容
-        // 过滤掉可能导致循环引用的对象（比如图片对象中的 DOM 元素引用等）
-        const messagesToSave = newMessages.map(m => {
+        // 这里使用 currentMessagesForApi 确保包含了刚刚插入的那条消息
+        const messagesToSave = currentMessagesForApi.map(m => {
           let safeContent = m.content;
           if (Array.isArray(safeContent)) {
             // 如果是数组格式的多模态消息，我们需要深拷贝并清理它
@@ -1960,7 +2003,7 @@ ${taskContext}
       }
 
       // === 前端感知：检测是否需要上下文压缩 (Frontend Pre-perception) ===
-      const nonMemoryMsgs = newMessages.filter(m => {
+      const nonMemoryMsgs = currentMessagesForApi.filter(m => {
         const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
         return !content.includes('<PAST_MEMORY>')
       })
@@ -1980,7 +2023,7 @@ ${taskContext}
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: newMessages, // 直接发送完整的消息对象，包括可能的数组格式内容
+          messages: currentMessagesForApi, // 使用最新的消息列表
           model: selectedModel || aiSettings?.model,
           apiKey: aiSettings?.apiKey,
           apiUrl: aiSettings?.apiUrl,
@@ -2016,7 +2059,7 @@ ${taskContext}
       const reader = res.body?.getReader()
       if (!reader) throw new Error("No response body")
 
-      const assistantMsg: Message = { role: "assistant", content: "" }
+      assistantMsg = { role: "assistant", content: "" }
       let reasoningText = ""
       let reasoningStart = -1
       const startTs = Date.now()
@@ -2399,7 +2442,7 @@ ${taskContext}
         await fetch(`/api/sessions/${ensuredSessionId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: latestHistoryFromBackend ? [...latestHistoryFromBackend, lastMsg] : [...newMessages, lastMsg] })
+          body: JSON.stringify({ messages: latestHistoryFromBackend ? [...latestHistoryFromBackend, lastMsg] : [...currentMessagesForApi, lastMsg] })
         })
       }
 
@@ -2438,7 +2481,12 @@ ${taskContext}
     } finally {
       // 只有在非静默/非反馈模式下，或者没有正在进行的后续任务时才清除状态
       // 避免内部触发的消息（如巡检反馈）在回复还没开始时就被父级的 finally 清除了状态，导致界面“抽搐”
-      if (!isFeedback && !isSilent) {
+      // 无论是否是静默模式，如果这是流的最后一点（最后没有触发 executeCommands）或者发生了错误，都应该尝试清理状态
+      // 这里增加一层判断：如果 assistantMsg.content 里没找到 JSON 块，说明没有后续的 executeCommands，则必须清除状态
+      const content = typeof assistantMsg.content === 'string' ? assistantMsg.content : '';
+      const hasFollowupCommands = autoExecuteCommands && (content.includes('```json') || content.includes('"action":'));
+
+      if (!hasFollowupCommands || isStoppedRef.current) {
         setAgentStatus("")
         setIsLoading(false)
         // 额外延迟清理一次，确保彻底结束
@@ -2447,7 +2495,7 @@ ${taskContext}
             setAgentStatus("")
             setIsLoading(false)
           }
-        }, 100)
+        }, 300)
       }
     }
   }
@@ -4731,6 +4779,9 @@ ${taskContext}
         onOpenChange={setSettingsOpen}
         onSave={(settings) => {
           setAiSettings(settings)
+        }}
+        onVoiceSettingsChange={(voice) => {
+          setIsTTSEnabled(voice.readAloud)
         }}
       />
  

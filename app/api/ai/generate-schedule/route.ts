@@ -106,41 +106,67 @@ export async function POST(req: Request) {
         else if (!finalUrl.includes('chat/completions')) finalUrl += '/v1/chat/completions'
     }
 
-    const response = await fetch(finalUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: model || "qwen-plus",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            stream: false
-        })
-    })
+    let messages: any[] = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+    ]
 
-    if (!response.ok) {
-        throw new Error(`AI API Error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content || "[]"
-    
-    // Parse JSON from content (handle potential markdown blocks)
     let tasks = []
-    try {
-        const jsonMatch = content.match(/\[[\s\S]*\]/)
-        if (jsonMatch) {
-            tasks = JSON.parse(jsonMatch[0])
-        } else {
-            tasks = JSON.parse(content)
+    let attempts = 0
+    const maxAttempts = 3
+
+    while (attempts < maxAttempts) {
+        const response = await fetch(finalUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: model || "qwen-plus",
+                messages: messages,
+                temperature: 0.7,
+                stream: false
+            })
+        })
+
+        if (!response.ok) {
+            throw new Error(`AI API Error: ${response.status}`)
         }
-    } catch (e) {
-        console.error("Failed to parse AI response", content)
+
+        const data = await response.json()
+        const content = data.choices?.[0]?.message?.content || "[]"
+        
+        // Parse JSON from content (handle potential markdown blocks)
+        try {
+            const jsonMatch = content.match(/\[[\s\S]*\]/)
+            if (jsonMatch) {
+                tasks = JSON.parse(jsonMatch[0])
+            } else {
+                tasks = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+            }
+            break // Successfully parsed
+        } catch (e: any) {
+            console.error(`[AI Schedule] Parse failed on attempt ${attempts + 1}:`, e.message, "\nContent:", content)
+            attempts++
+            
+            if (attempts >= maxAttempts) {
+                console.error("[AI Schedule] Max attempts reached, failing.")
+                break
+            }
+            
+            messages.push({ role: "assistant", content: content })
+            messages.push({ 
+                role: "user", 
+                content: `你生成的 JSON 格式有误，无法解析。报错详情为：${e.message}。
+请修正格式错误，并严格重新输出一次正确的 JSON 数组。
+正确的格式必须是纯 JSON，例如：
+[
+  { "title": "任务测试", "execute_at_time": "12:00", "device_id": 5, "action_type": "relay", "params": { "value": 1 } }
+]
+提示：绝对不要包含任何多余文字或 Markdown 代码块标记（禁止输出 \`\`\`json 等任何格式化修饰符）。` 
+            })
+        }
     }
 
     return NextResponse.json({ tasks })
