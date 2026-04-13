@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 
 export interface ControlCommand {
-  type: 'relay' | 'led' | 'stepper' | 'stepper_reset'
+  type: 'relay' | 'led' | 'stepper' | 'stepper_reset' | 'stepper_preset'
   relayNum?: number
   newState?: number
   led1?: number
@@ -123,10 +123,19 @@ export function useDeviceControl() {
     })
   }, [sendCommand])
 
-  // 步进电机复位到正中间
+  // 步进电机复位到最左侧起点
   const resetStepperPosition = useCallback(async (): Promise<boolean> => {
     return sendCommand({
       type: 'stepper_reset'
+    })
+  }, [sendCommand])
+
+  // 发送自定义预设参数
+  const sendStepperPreset = useCallback(async (pulses: number, speed: number): Promise<boolean> => {
+    return sendCommand({
+      type: 'stepper_preset',
+      stepper_pulses: pulses,
+      stepper_run_time: speed
     })
   }, [sendCommand])
 
@@ -136,6 +145,7 @@ export function useDeviceControl() {
     toggleRelay,
     setLEDs,
     controlStepper,
-    resetStepperPosition
+    resetStepperPosition,
+    sendStepperPreset
   }
 }

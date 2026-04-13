@@ -12,7 +12,7 @@ interface DBLog {
   action: string
   operator: string
   details: string
-  created_at: number
+  created_at: number | string // 可能是数字或字符串
 }
 
 // UI 展示用的日志类型
@@ -31,6 +31,7 @@ export function ActivityPanel() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [logs, setLogs] = useState<ActivityLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [showAllLogs, setShowAllLogs] = useState(true) // 默认显示所有日志
 
   // 生成本周日历数据
   const startDate = startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -38,33 +39,72 @@ export function ActivityPanel() {
 
   const fetchLogs = useCallback(async () => {
     try {
+      console.log(`[ActivityPanel] 开始获取日志, showAllLogs=${showAllLogs}, selectedDate=${selectedDate.toLocaleDateString()}`)
       const res = await fetch("/api/device-logs?limit=50")
       if (res.ok) {
         const data = await res.json()
         const dbLogs: DBLog[] = data.logs || []
         
+        console.log(`[ActivityPanel] 获取到 ${dbLogs.length} 条日志`)
+        console.log(`[ActivityPanel] 前3条日志:`, dbLogs.slice(0, 3))
+        
         // 转换为 UI 格式并根据日期过滤
         const formattedLogs: ActivityLog[] = dbLogs
-          .filter(log => isSameDay(new Date(log.created_at), selectedDate))
-          .map(log => ({
-            id: log.id.toString(),
-            time: format(new Date(log.created_at), "HH:mm"),
-            device: log.device_name,
-            // 如果有 operator 且不是 AI/System，可以显示操作者，这里简化显示 details
-            action: log.details || log.action,
-            status: (log.action.toLowerCase().includes("error") || log.details?.toLowerCase().includes("error")) 
-              ? "error" as const
-              : "success" as const
-          }))
+          .filter(log => {
+            // 如果显示所有日志，不过滤日期
+            if (showAllLogs) {
+              console.log(`[ActivityPanel] showAllLogs=true, 接受日志:`, log.id, log.device_name)
+              return true
+            }
+            
+            // 确保 created_at 是有效的时间戳，转换为数字
+            const timestamp = typeof log.created_at === 'string' ? parseInt(log.created_at, 10) : log.created_at
+            const logDate = new Date(timestamp)
+            if (isNaN(logDate.getTime())) {
+              console.warn("[ActivityPanel] 无效的时间戳:", log)
+              return false
+            }
+            const matches = isSameDay(logDate, selectedDate)
+            console.log(`[ActivityPanel] 日志 ${log.id}: ${logDate.toLocaleDateString()} vs ${selectedDate.toLocaleDateString()} = ${matches}`)
+            return matches
+          })
+          .filter(log => {
+            // 再次验证时间戳有效性，过滤掉无效的
+            const timestamp = typeof log.created_at === 'string' ? parseInt(log.created_at, 10) : log.created_at
+            const logDate = new Date(timestamp)
+            if (isNaN(logDate.getTime())) {
+              console.error("[ActivityPanel] 跳过无效时间戳的日志:", log)
+              return false
+            }
+            return true
+          })
+          .map(log => {
+            const timestamp = typeof log.created_at === 'string' ? parseInt(log.created_at, 10) : log.created_at
+            const logDate = new Date(timestamp)
+            return {
+              id: log.id.toString(),
+              time: format(logDate, "HH:mm"),
+              device: log.device_name,
+              // 如果有 operator 且不是 AI/System，可以显示操作者，这里简化显示 details
+              action: log.details || log.action,
+              status: (log.action.toLowerCase().includes("error") || log.details?.toLowerCase().includes("error")) 
+                ? "error" as const
+                : "success" as const
+            }
+          })
         
+        console.log(`[ActivityPanel] 过滤后有 ${formattedLogs.length} 条日志${showAllLogs ? ' (显示全部)' : '匹配选中日期'}`)
+        console.log(`[ActivityPanel] 格式化后的日志:`, formattedLogs.slice(0, 3))
         setLogs(formattedLogs)
+      } else {
+        console.error("[ActivityPanel] 获取日志失败:", res.status, res.statusText)
       }
     } catch (error) {
-      console.error("Failed to fetch logs:", error)
+      console.error("[ActivityPanel] 获取日志异常:", error)
     } finally {
       setIsLoading(false)
     }
-  }, [selectedDate])
+  }, [selectedDate, showAllLogs])
 
   // 初始加载和自动刷新
   useEffect(() => {
@@ -75,34 +115,44 @@ export function ActivityPanel() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <h3 className="text-gray-500 dark:text-gray-400 font-medium mb-4">操作日志</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-gray-500 dark:text-gray-400 font-medium">操作日志</h3>
+        <button
+          onClick={() => setShowAllLogs(!showAllLogs)}
+          className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        >
+          {showAllLogs ? "按日期筛选" : "显示全部"}
+        </button>
+      </div>
       <div className="text-xs text-gray-400 mb-6">
-        {format(new Date(), "yyyy年M月d日", { locale: zhCN })}
+        {showAllLogs ? "显示所有日志" : format(selectedDate, "yyyy年M月d日", { locale: zhCN })}
       </div>
       
-      {/* Calendar Strip */}
-      <div className="flex justify-between mb-8 text-center">
-        {weekDays.map((day) => {
-          const isSelected = isSameDay(day, selectedDate)
-          const isToday = isSameDay(day, new Date())
-          
-          return (
-            <div 
-              key={day.toISOString()} 
-              className={cn(
-                "flex flex-col gap-1 cursor-pointer transition-all hover:scale-110",
-                isSelected ? "text-foreground font-bold" : "text-gray-400"
-              )}
-              onClick={() => setSelectedDate(day)}
-            >
-              <span className="text-xs">{format(day, "d")}</span>
-              <span className="text-[10px]">周{WEEKDAY_CN[day.getDay()]}</span>
-              {isSelected && <div className="h-1 w-1 bg-emerald-500 rounded-full mx-auto mt-1" />}
-              {!isSelected && isToday && <div className="h-1 w-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-1" />}
-            </div>
-          )
-        })}
-      </div>
+      {/* Calendar Strip - 只在非"显示全部"模式下显示 */}
+      {!showAllLogs && (
+        <div className="flex justify-between mb-8 text-center">
+          {weekDays.map((day) => {
+            const isSelected = isSameDay(day, selectedDate)
+            const isToday = isSameDay(day, new Date())
+            
+            return (
+              <div 
+                key={day.toISOString()} 
+                className={cn(
+                  "flex flex-col gap-1 cursor-pointer transition-all hover:scale-110",
+                  isSelected ? "text-foreground font-bold" : "text-gray-400"
+                )}
+                onClick={() => setSelectedDate(day)}
+              >
+                <span className="text-xs">{format(day, "d")}</span>
+                <span className="text-[10px]">周{WEEKDAY_CN[day.getDay()]}</span>
+                {isSelected && <div className="h-1 w-1 bg-emerald-500 rounded-full mx-auto mt-1" />}
+                {!isSelected && isToday && <div className="h-1 w-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-1" />}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Timeline */}
       <div className="space-y-6 relative pl-4 border-l-2 border-dashed border-gray-200 dark:border-white/10 flex-1 overflow-y-auto pr-2 custom-scrollbar">

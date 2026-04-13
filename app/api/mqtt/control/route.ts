@@ -90,8 +90,8 @@ interface ControlResponse {
  */
 function validateControlRequest(data: ControlRequest): string | null {
   // Validate type field
-  if (!data.type || (data.type !== 'relay' && data.type !== 'led' && data.type !== 'stepper' && data.type !== 'stepper_reset')) {
-    return 'Invalid or missing type field. Must be "relay", "led", "stepper" or "stepper_reset"'
+  if (!data.type || (data.type !== 'relay' && data.type !== 'led' && data.type !== 'stepper' && data.type !== 'stepper_reset' && data.type !== 'stepper_preset')) {
+    return 'Invalid or missing type field.'
   }
   
   if (data.type === 'relay') {
@@ -238,7 +238,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (body.led4 !== undefined && !allowedControls.includes('led4')) {
            return NextResponse.json({ success: false, message: "Permission denied: You cannot control LED 4", timestamp: Date.now() }, { status: 403 });
         }
-      } else if (body.type === 'stepper' || body.type === 'stepper_reset') {
+      } else if (body.type === 'stepper' || body.type === 'stepper_reset' || body.type === 'stepper_preset') {
         // 步进电机权限检查
         if (!allowedControls.includes('stepper')) {
            log('WARN', 'Permission denied for stepper control', { user: currentUser.username });
@@ -329,7 +329,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         deviceName = '摄像头云台'
         const directionNames = ['停止', '左移', '右移']
         actionStr = body.type === 'stepper_reset' ? '复位居中' : (directionNames[body.stepper_direction!] || '控制')
-        detailsStr = body.type === 'stepper_reset' ? '将丝杆滑台复位到正中间' : `摄像头云台${actionStr}`
+        detailsStr = body.type === 'stepper_reset' ? '将丝杆滑台复位到最左侧原点(0mm)' : `摄像头云台${actionStr}`
       } else {
         deviceName = 'Unknown'
         actionStr = 'Unknown'

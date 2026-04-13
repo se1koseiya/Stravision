@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
         '摄像头云台', 
         '复位居中', 
         currentUser.username || 'AI Assistant',
-        `AI 将丝杆滑台复位到正中间`
+        `AI 将丝杆滑台复位到最左侧原点`
       )
 
       return NextResponse.json({
@@ -358,7 +358,7 @@ export async function GET() {
         }
       },
       reset_camera: {
-        description: "将摄像头云台（步进电机）复位到正中间",
+        description: "将摄像头云台（步进电机）复位到最左侧原点",
         parameters: {
           action: "reset_camera"
         },

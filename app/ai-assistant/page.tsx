@@ -1579,7 +1579,7 @@ function AIAssistantContent() {
           
           break;
         } else if (cmd.action === "reset_camera") {
-          // 摄像头云台复位到中间
+          // 摄像头云台复位到最左侧原点
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
             await new Promise(resolve => setTimeout(resolve, 500))
@@ -1594,7 +1594,7 @@ function AIAssistantContent() {
             body: JSON.stringify({ action: 'reset_camera' })
           })
           if (res.ok) {
-            showNotice("云台复位成功 ✅", "丝杆滑台已复位到正中间", "success")
+            showNotice("云台复位成功 ✅", "丝杆滑台已复位到最左侧原点", "success")
           } else {
             let err = ''
             try { const j = await res.json(); err = j?.error || '' } catch { }

@@ -237,7 +237,7 @@ const tools = [
 if (tool_call.name === "move_stepper") {
   mqtt.publish("stepper/control", JSON.stringify({
     direction: tool_call.arguments.direction,
-    pulses: tool_call.arguments.distance * 16
+    pulses: tool_call.arguments.distance * 160
   }))
 }`
   },
@@ -479,7 +479,7 @@ export default function PromptDemoPage() {
         stepper_pulses = 8000
         newPosition = Math.min(700, deviceData.stepper_position + 50)
       } else {
-        const currentPulses = (deviceData.stepper_position / 10) * 160
+        const currentPulses = deviceData.stepper_position * 160
         const middlePulses = 56000
         stepper_direction = currentPulses < middlePulses ? 1 : 2
         stepper_pulses = Math.abs(middlePulses - currentPulses)
@@ -518,7 +518,7 @@ export default function PromptDemoPage() {
         const distance = controlData.distance || 50
 
         let stepper_direction = 0
-        let stepper_pulses = (distance / 10) * 160
+        let stepper_pulses = distance * 160
         let newPosition = deviceData.stepper_position
 
         if (direction === "left") {

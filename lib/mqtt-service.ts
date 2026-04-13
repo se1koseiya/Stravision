@@ -67,7 +67,7 @@ export interface DeviceData {
  * Represents control commands to be sent to devices
  */
 export interface ControlCommand {
-  type: 'relay' | 'led' | 'stepper' | 'stepper_reset'
+  type: 'relay' | 'led' | 'stepper' | 'stepper_reset' | 'stepper_preset'
   relayNum?: number       // Relay number (5-8)
   newState?: number       // New relay state (0/1)
   led1?: number           // LED 1 brightness (0-255)
@@ -113,7 +113,7 @@ export class MQTTService {
   private cachedStepperPosition = 0
 
   private stepperInactivityTimer: NodeJS.Timeout | null = null
-  private readonly STEPPER_AUTO_RESET_DELAY_MS = 5 * 60 * 1000 // 5分钟无操作自动复位到中间
+  private readonly STEPPER_AUTO_RESET_DELAY_MS = 5 * 60 * 1000 // 5分钟无操作自动复位到左侧起点
   private channelUpdateTimes: Map<string, number> = new Map()
   private lastNotificationTimeVal: number = 0
 
@@ -152,10 +152,14 @@ export class MQTTService {
    * @returns {MQTTService} The singleton instance
    */
   public static getInstance(): MQTTService {
-    if (!MQTTService.instance) {
-      MQTTService.instance = new MQTTService()
+    const globalForMqtt = globalThis as unknown as {
+      mqttService: MQTTService | undefined
     }
-    return MQTTService.instance
+    
+    if (!globalForMqtt.mqttService) {
+      globalForMqtt.mqttService = new MQTTService()
+    }
+    return globalForMqtt.mqttService
   }
 
   /**
@@ -350,31 +354,57 @@ export class MQTTService {
     try {
       // Pre-processing for specific command types
       if (command.type === 'stepper_reset') {
-        const currentPos = await getStepperPosition()
-        const middlePos = this.STEPPER_MAX_PULSES / 2 // 56000 pulses
+        // 使用内存缓存作为唯一的位置真值源（与UI同步），不再从DB读取
+        const currentPos = this.cachedStepperPosition
+        const targetPos = 0 // 复位到 0 (最左侧)
         
-        if (currentPos === middlePos) {
-          this.log('INFO', 'Stepper already at middle position, ignoring reset command')
+        if (currentPos <= targetPos) {
+          this.log('INFO', 'Stepper already at left origin, ignoring reset command')
           return
         }
 
-        let direction = 0
-        let pulses = 0
+        const direction = 1 // Left to decrease position towards 0mm
+        const pulses = currentPos - targetPos
 
-        if (currentPos < middlePos) {
-          direction = 1 // Forward/Left to increase position
-          pulses = middlePos - currentPos
-        } else {
-          direction = 2 // Reverse/Right to decrease position
-          pulses = currentPos - middlePos
-        }
-
-        this.log('INFO', `Stepper reset to middle: Moving from ${currentPos} to ${middlePos} (${pulses} pulses in direction ${direction})`)
+        this.log('INFO', `Stepper reset to origin: Moving from ${currentPos} to ${targetPos} (${pulses} pulses in direction ${direction})`)
         
         // Convert to a stepper move command
         command.type = 'stepper'
         command.stepper_direction = direction
         command.stepper_pulses = pulses
+      } else if (command.type === 'stepper_preset') {
+        // 直接发送预设参数 (node0814=0, 以及自定义 pulses 和 speed)
+        const speed = command.stepper_run_time ? String(command.stepper_run_time) : "10000"
+        const pulses = command.stepper_pulses !== undefined ? String(command.stepper_pulses) : "40000"
+        
+        const presetId = Math.random().toString(36).substring(2, 15)
+        const payload = {
+          rw_prot: {
+            Ver: '1.0.1',
+            dir: 'down',
+            id: presetId,
+            w_data: [
+              { name: 'node0801', value: '8' },
+              { name: 'node0814', value: '0' },
+              { name: 'node0817', value: pulses },
+              { name: 'node0803', value: speed }
+            ]
+          }
+        }
+        
+        this.log('INFO', `[Stepper Preset] Sending explicit preset: node0817=${pulses}, node0803=${speed}`)
+        
+        return new Promise((resolve, reject) => {
+          this.client!.publish(
+            this.config.publishTopic,
+            JSON.stringify(payload),
+            { qos: 1 },
+            (error) => {
+              if (error) reject(error)
+              else resolve()
+            }
+          )
+        })
       }
 
       // Build payload after potential type conversion for stepper_reset
@@ -384,7 +414,8 @@ export class MQTTService {
       if (command.type === 'stepper') {
         this.resetStepperInactivityTimer() // Reset timer on any stepper action
 
-        const currentPos = await getStepperPosition()
+        // 使用内存缓存（与UI显示一致），避免缓存与DB不同步导致的里程计算错误
+        const currentPos = this.cachedStepperPosition
         const direction = command.stepper_direction || 0
         const delta = command.stepper_pulses !== undefined ? command.stepper_pulses : this.STEPPER_DEFAULT_STEP
         
@@ -396,21 +427,10 @@ export class MQTTService {
         const SOFT_MAX_PULSES = this.STEPPER_MAX_PULSES - 400
         const SOFT_MIN_PULSES = 400
 
-        if (direction === 1) { // Forward/Left
-          if (currentPos >= SOFT_MAX_PULSES) {
-            this.log('WARN', `Stepper at soft max position (${currentPos}). Command ignored to prevent jamming.`)
-            throw new Error(`已经到达左侧物理终点 (700mm 附近)。当前位置为 ${currentPos} 脉冲，严禁进一步左移。`)
-          }
-          // Clamp target move
-          if (currentPos + delta > SOFT_MAX_PULSES) {
-            targetPulses = SOFT_MAX_PULSES - currentPos
-            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid jamming.`)
-          }
-          newPos = currentPos + targetPulses
-        } else if (direction === 2) { // Reverse/Right
+        if (direction === 1) { // Left (Decrease towards 0mm)
           if (currentPos <= SOFT_MIN_PULSES) {
             this.log('WARN', `Stepper at soft min position (${currentPos}). Command ignored to prevent jamming.`)
-            throw new Error(`已经到达右侧原点 (0mm 附近)。当前位置为 ${currentPos} 脉冲，严禁进一步右移。`)
+            throw new Error(`已经到达左侧原点 (0mm 附近)。当前位置为 ${currentPos} 脉冲，严禁进一步左移。`)
           }
           // Clamp target move
           if (currentPos - delta < SOFT_MIN_PULSES) {
@@ -418,42 +438,109 @@ export class MQTTService {
             this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid jamming.`)
           }
           newPos = currentPos - targetPulses
+        } else if (direction === 2) { // Right (Increase towards 700mm)
+          if (currentPos >= SOFT_MAX_PULSES) {
+            this.log('WARN', `Stepper at soft max position (${currentPos}). Command ignored to prevent jamming.`)
+            throw new Error(`已经到达右侧物理终点 (700mm 附近)。当前位置为 ${currentPos} 脉冲，严禁进一步右移。`)
+          }
+          // Clamp target move
+          if (currentPos + delta > SOFT_MAX_PULSES) {
+            targetPulses = SOFT_MAX_PULSES - currentPos
+            this.log('INFO', `Stepper move clamped to ${targetPulses} to avoid jamming.`)
+          }
+          newPos = currentPos + targetPulses
         }
         
-        // Update the payload with adjusted pulses and other necessary nodes
-        const stepperPayload = payload as any
-        if (stepperPayload.rw_prot && stepperPayload.rw_prot.w_data) {
-          // Ensure node0801 is always "8" for motor control
-          if (!stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0801')) {
-            stepperPayload.rw_prot.w_data.push({ name: 'node0801', value: '8' })
-          }
-          
-          // Reference HTML uses node0814 for direction control (0=stop, 1=fwd, 2=rev)
-          if (!stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0814')) {
-            stepperPayload.rw_prot.w_data.push({ name: 'node0814', value: String(direction) })
+        // ====================================================================
+        // 两步协议 (Two-Step Protocol) — 参照 stepper_motor_control.html
+        // Step 1: 预设参数 (Preset) — node0814=0 + node0817 + node0803
+        // Step 2: 发送运动方向 (Move)  — node0814=direction
+        // ====================================================================
+        const speed = command.stepper_run_time ? String(command.stepper_run_time) : "10000"
+
+        if (direction !== 0) {
+          // --- Step 1: 发送预设参数 (node0814=0 表示设置参数模式) ---
+          const presetId = Math.random().toString(36).substring(2, 15)
+          const presetPayload = {
+            rw_prot: {
+              Ver: '1.0.1',
+              dir: 'down',
+              id: presetId,
+              w_data: [
+                { name: 'node0801', value: '8' },
+                { name: 'node0814', value: '0' },          // 方向=0: 设置参数模式（必须！）
+                { name: 'node0817', value: String(targetPulses) },  // 脉冲数预设值
+                { name: 'node0803', value: speed }          // 运行速度
+              ]
+            }
           }
 
-          // Reference HTML uses node0803 for speed (Pulse_Rate)
-          const speed = command.stepper_run_time ? String(command.stepper_run_time) : "10000"
-          if (!stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0803')) {
-            stepperPayload.rw_prot.w_data.push({ name: 'node0803', value: speed })
+          const presetStr = JSON.stringify(presetPayload)
+          this.log('INFO', `[Stepper Step 1/2] Sending PRESET: node0814=0, node0817=${targetPulses}, node0803=${speed}`)
+
+          await new Promise<void>((resolve, reject) => {
+            this.client!.publish(
+              this.config.publishTopic,
+              presetStr,
+              { qos: 1 },
+              (error) => {
+                if (error) {
+                  this.log('ERROR', `[Stepper Step 1/2] Preset publish failed: ${error.message}`)
+                  reject(error)
+                } else {
+                  this.log('INFO', `[Stepper Step 1/2] Preset published successfully`)
+                  resolve()
+                }
+              }
+            )
+          })
+
+          // 等待 200ms 让控制器处理预设参数
+          await new Promise(resolve => setTimeout(resolve, 200))
+
+          // --- Step 2: 发送运动指令 (node0814=方向) ---
+          const moveId = Math.random().toString(36).substring(2, 15)
+          const movePayload = {
+            rw_prot: {
+              Ver: '1.0.1',
+              dir: 'down',
+              id: moveId,
+              w_data: [
+                { name: 'node0801', value: '8' },
+                { name: 'node0814', value: String(direction) },   // 方向: 1=正转/左移, 2=反转/右移
+                { name: 'node0817', value: String(targetPulses) }, // 脉冲数
+                { name: 'node0803', value: speed }                 // 运行速度
+              ]
+            }
           }
 
-          // Insert node0817 (Pulse Number)
-          if (direction !== 0 && !stepperPayload.rw_prot.w_data.find((d: any) => d.name === 'node0817')) {
-            stepperPayload.rw_prot.w_data.push({ name: 'node0817', value: String(targetPulses) })
-          }
+          this.log('INFO', `[Stepper Step 2/2] Sending MOVE: node0814=${direction}, node0817=${targetPulses}`)
+
+          // 用 movePayload 替换原始 payload，后续统一由底部的 publish 发出
+          Object.assign(payload, movePayload)
+        } else {
+          // direction === 0 表示停止，直接构建停止指令
+          const stepperPayload = payload as any
+          stepperPayload.rw_prot.w_data = [
+            { name: 'node0801', value: '8' },
+            { name: 'node0814', value: '0' },
+            { name: 'node0803', value: speed }
+          ]
         }
         
-        // Persist new position
-        await updateStepperPosition(newPos)
+        // 先更新内存缓存（保证UI和后续命令的一致性），再异步写DB
         this.cachedStepperPosition = newPos
+        this.log('INFO', `Stepper position updated: ${currentPos} → ${newPos} (direction=${direction}, delta=${targetPulses})`)
         if (this.latestData) {
           this.latestData.stepper_position = newPos
           this.latestData.stepper_direction = direction
           // Immediate broadcast for direction state change
           this.dataListeners.forEach(l => { try { l(this.latestData!) } catch(e){} })
         }
+        // 持久化到数据库（防止重启丢失），但不阻塞命令发送
+        updateStepperPosition(newPos).catch(err => {
+          this.log('ERROR', `Failed to persist stepper position to DB: ${err}. Cache is at ${newPos} but DB may be stale.`)
+        })
       }
 
       const payloadString = JSON.stringify(payload)

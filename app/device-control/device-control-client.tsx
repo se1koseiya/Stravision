@@ -183,6 +183,8 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
   const [b, setB] = useState(0)
   const [w, setW] = useState(0)
   const [stepPulses, setStepPulses] = useState(1600) // Default 10mm
+  const [presetPulses, setPresetPulses] = useState(112000)
+  const [presetSpeed, setPresetSpeed] = useState(10000)
 
   // Logs state
   const [logs, setLogs] = useState<any[]>([])
@@ -196,7 +198,7 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
   const { deviceData, connectionStatus } = useDeviceData()
 
   // Control hook for sending commands
-  const { status: controlStatus, toggleRelay, setLEDs, controlStepper, resetStepperPosition } = useDeviceControl()
+  const { status: controlStatus, toggleRelay, setLEDs, controlStepper, resetStepperPosition, sendStepperPreset } = useDeviceControl()
 
   // Fetch current user on mount
   useEffect(() => {
@@ -263,7 +265,19 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
     fetchLogs()
   }, [])
 
-  // Sync LED sliders with device data on first load
+  const handleStepperPreset = async () => {
+    if (!connectionStatus.connected) {
+       toast.error('未连接到设备服务器', { description: '请等待连接恢复后再试' })
+       return
+    }
+    const success = await sendStepperPreset(presetPulses, presetSpeed)
+    if (success) {
+      toast.success('预设参数已发送', { description: `目标脉冲: ${presetPulses}, 速度: ${presetSpeed}` })
+      await createLog("摄像头云台", "预设参数", `设脉冲为 ${presetPulses}, 速度为 ${presetSpeed}`)
+    }
+  }
+
+  // Effect to sync frontend states with backend state once data is loaded
   useEffect(() => {
     if (deviceData && r === 0 && g === 0 && b === 0 && w === 0) {
       setR(deviceData.led1 || 0)
@@ -327,7 +341,7 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
   const handleResetStepper = async () => {
     const success = await resetStepperPosition()
     if (success) {
-      createLog("摄像头云台", "复位居中", "将丝杆滑台复位到正中间")
+      createLog("摄像头云台", "复位归零", "将丝杆滑台复位到最左侧(0mm)")
       toast.success('已发送复位居中指令')
     }
   }
@@ -626,13 +640,12 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                                   ))}
                                 </div>
 
-                                {/* 移动小车/滑块 */}
                                 <motion.div
                                   className="absolute top-1/2 -ms-4 -translate-y-1/2 z-20"
                                   animate={{
                                     left: `${((deviceData?.stepper_position || 0) / 112000) * 100}%`
                                   }}
-                                  transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                                  transition={{ type: "tween", duration: 3, ease: "linear" }}
                                 >
                                   <div className="relative group/carrier">
                                     <div className="size-8 rounded-lg bg-white dark:bg-indigo-600 shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center border border-indigo-100 dark:border-indigo-400/30">
@@ -723,13 +736,47 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
+                            className="text-xs text-muted-foreground hover:text-red-500 transition-colors mt-2"
                             onClick={handleResetStepper}
                             disabled={controlStatus.loading || !connectionStatus.connected}
                           >
                             <RotateCcw className="size-3 mr-1" />
-                            复位到中间
+                            复位到最左侧 (0mm)
                           </Button>
+                          
+                          {/* 预设参数 */}
+                          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 w-full flex flex-col gap-2">
+                            <label className="text-xs font-semibold text-muted-foreground mb-1">高级参数预设 (node0814=0)</label>
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <label className="text-[10px] text-muted-foreground block mb-1">目标脉冲 (node0817)</label>
+                                <input 
+                                  type="number" 
+                                  value={presetPulses}
+                                  onChange={(e) => setPresetPulses(Number(e.target.value))}
+                                  className="w-full text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-[10px] text-muted-foreground block mb-1">速度 (node0803)</label>
+                                <input 
+                                  type="number" 
+                                  value={presetSpeed}
+                                  onChange={(e) => setPresetSpeed(Number(e.target.value))}
+                                  className="w-full text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                              </div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full mt-1 text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/50 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+                              onClick={handleStepperPreset}
+                              disabled={controlStatus.loading || !connectionStatus.connected}
+                            >
+                              发送预设参数
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

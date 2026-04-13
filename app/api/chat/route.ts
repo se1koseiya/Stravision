@@ -355,7 +355,7 @@ export async function POST(req: Request) {
       "- **Parameters**:\n" +
       "  - `direction`: 1 (左移), 2 (右移), 0 (停止)\n" +
       "  - `distance_mm`: 移动距离 (数字，单位毫米)。滑台总行程 700mm。\n" +
-      "- **Action**: `reset_camera` (将滑台复位到正中间 350mm 处)\n" +
+      "- **Action**: `reset_camera` (将滑台复位到最左侧原点 0mm 处)\n" +
       "- **示例**:\n" +
       "```json\n" +
       '{\n  "action": "control_camera",\n  "direction": 1,\n  "distance_mm": 100\n}\n' +
