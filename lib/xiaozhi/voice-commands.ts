@@ -10,6 +10,7 @@ export interface VoiceCommandResult {
   action?: string;
   response?: string;
   error?: string;
+  shouldDisconnect?: boolean; // 是否应该断开连接
 }
 
 /**
@@ -19,6 +20,36 @@ export interface VoiceCommandResult {
  */
 export async function processVoiceCommand(userText: string): Promise<VoiceCommandResult> {
   const text = userText.toLowerCase().trim();
+  
+  // 断开连接命令（告别语）
+  const disconnectKeywords = [
+    '不需要你了',
+    '不用了',
+    '再见',
+    '拜拜',
+    '退出',
+    '关闭',
+    '结束对话',
+    '挂断',
+    '停止',
+    '够了',
+    '可以了',
+    '谢谢你',
+    '辛苦了',
+    '休息吧',
+    '下次再聊',
+  ];
+  
+  const isDisconnectCommand = disconnectKeywords.some(keyword => text.includes(keyword));
+  
+  if (isDisconnectCommand) {
+    return {
+      recognized: true,
+      action: 'disconnect',
+      response: '好的，再见！有需要随时叫我。',
+      shouldDisconnect: true,
+    };
+  }
   
   // 监控截图分析命令
   const snapshotKeywords = [
@@ -92,6 +123,23 @@ export function isSpecialCommand(userText: string): boolean {
   const text = userText.toLowerCase().trim();
   
   const specialKeywords = [
+    // 断开连接命令
+    '不需要你了',
+    '不用了',
+    '再见',
+    '拜拜',
+    '退出',
+    '关闭',
+    '结束对话',
+    '挂断',
+    '停止',
+    '够了',
+    '可以了',
+    '谢谢你',
+    '辛苦了',
+    '休息吧',
+    '下次再聊',
+    // 截图分析命令
     '看看大棚',
     '查看大棚',
     '大棚情况',

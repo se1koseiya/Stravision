@@ -34,9 +34,16 @@ export function getRelevantSkillsContent(userMessage: string, extraSkills: Skill
     // 检查关键字：支持完整包含或作为独立词丛
     const hasKeyword = skill.keywords.some(k => {
       const kw = k.toLowerCase();
-      // 对于短关键词（如"关"、"开"），需要更精确或包含在相关上下文中
+      // 对于短关键词（如"关"、"开"），需要更精确的上下文匹配
       if (kw.length === 1) {
-        return query.includes(kw) && (query.includes('设备') || query.includes('灯') || query.includes('泵') || query.includes('风扇'));
+        // 必须同时包含动作词和设备词，避免误匹配
+        const hasActionContext = query.includes('开启') || query.includes('关闭') || 
+                                 query.includes('打开') || query.includes('关掉') ||
+                                 query.includes('启动') || query.includes('停止');
+        const hasDeviceContext = query.includes('设备') || query.includes('灯') || 
+                                 query.includes('泵') || query.includes('风扇') ||
+                                 query.includes('水泵') || query.includes('补光');
+        return query.includes(kw) && hasActionContext && hasDeviceContext;
       }
       return query.includes(kw);
     });

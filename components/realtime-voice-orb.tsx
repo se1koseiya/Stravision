@@ -668,11 +668,19 @@ export function RealtimeVoiceOrb({
 
 ## 特殊命令处理规则
 **关键**: 当用户说以下内容时，你**不应该**生成任何设备控制命令或导航命令，这些是系统级特殊命令，会被单独处理：
+
+1. 断开连接命令（用户想结束对话）：
+- "不需要你了"、"不用了"、"再见"、"拜拜"
+- "退出"、"关闭"、"结束对话"、"挂断"
+- "停止"、"够了"、"可以了"
+- "谢谢你"、"辛苦了"、"休息吧"、"下次再聊"
+
+2. 截图分析命令：
 - "看看大棚"、"查看大棚"、"大棚情况"
 - "草莓长得怎么样"、"草莓生长"
 - "监控画面"、"截图分析"、"拍个照"
 
-对于这些命令，系统会自动截图并跳转到AI助手进行分析，你**不需要**也**不应该**做任何响应。`;
+对于这些命令，系统会自动处理（断开连接或截图分析），你**不需要**也**不应该**做任何响应。`;
     }
 
     return `${baseInstructions}${deviceInfo}`;
@@ -803,11 +811,14 @@ export function RealtimeVoiceOrb({
           if (text) {
             lastUserTranscriptRef.current = text;
             
-            // Check for special commands
+            // Check for special commands (disconnect and snapshot)
+            const disconnectKeywords = ['不需要你了', '不用了', '再见', '拜拜', '退出', '关闭', '结束对话', '挂断', '停止', '够了', '可以了', '谢谢你', '辛苦了', '休息吧', '下次再聊'];
             const snapshotKeywords = ['看看大棚', '查看大棚', '大棚情况', '草莓长得怎么样', '草莓生长', '监控画面', '截图分析', '拍个照', '看一下大棚', '大棚里', '草莓', '长势', '生长情况'];
+            
+            const isDisconnectCommand = disconnectKeywords.some(keyword => text.toLowerCase().includes(keyword));
             const isSnapshotCommand = snapshotKeywords.some(keyword => text.toLowerCase().includes(keyword));
             
-            if (isSnapshotCommand) {
+            if (isDisconnectCommand || isSnapshotCommand) {
               // Cancel AI response
               sendMessage({ type: 'response.cancel' });
               sendMessage({ type: 'input_audio_buffer.clear' });
@@ -821,7 +832,14 @@ export function RealtimeVoiceOrb({
                   const { processVoiceCommand } = await import('@/lib/xiaozhi/voice-commands');
                   const result = await processVoiceCommand(text);
                   if (result.recognized && result.response) {
-                    setHistory(prev => [...prev, { id: createEventId(), role: 'assistant', content: result.response }]);
+                    setHistory(prev => [...prev, { id: createEventId(), role: 'assistant', content: result.response! }]);
+                    
+                    // If it's a disconnect command, disconnect after a short delay
+                    if (result.shouldDisconnect) {
+                      setTimeout(() => {
+                        disconnect();
+                      }, 1500); // Wait 1.5 seconds for the goodbye message to be heard
+                    }
                   }
                 } catch (error) {
                   console.error('Special command error:', error);

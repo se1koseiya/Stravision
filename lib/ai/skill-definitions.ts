@@ -129,7 +129,14 @@ export const SKILLS: Skill[] = [
     content: `## 设备控制能力
 你可以控制：Relay 5 (水泵), Relay 6 (风扇), Relay 7 (植物全光谱补光灯), Relay 8 (光照植物补光灯)。
 控制补光灯颜色使用 set_led 命令参数。
-注意：set_led 大于 0 会自动开启 Relay 7，但 RGB 为 0 不会直接关闭 Relay 7（需用 toggle_relay）。`
+注意：set_led 大于 0 会自动开启 Relay 7，但 RGB 为 0 不会直接关闭 Relay 7（需用 toggle_relay）。
+
+### ⚠️ 意图保持警告
+**在执行任何设备控制前，必须再次确认用户的原始意图：**
+- 用户说"关闭" → value 必须是 0
+- 用户说"开启"/"打开" → value 必须是 1
+- 绝对不允许在分析过程中改变用户明确表达的开/关意图
+- 如果你发现自己想要执行与用户原始指令相反的操作，立即停止并重新检查用户的原话`
   },
   {
     id: 'motor-control',

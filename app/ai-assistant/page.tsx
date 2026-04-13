@@ -2819,8 +2819,11 @@ ${taskContext}
                     )
                  }
               }
+              // 如果不是IoT命令，不显示JSON，返回null
+              return null
             } catch (e) {
-                // Not valid JSON or not IoT command, fall through to default rendering
+                // Not valid JSON or not IoT command, don't show it
+                return null
             }
           }
 
@@ -2835,41 +2838,11 @@ ${taskContext}
           }
 
           if (part.match(/^<\s*TOOL_USED/)) {
-            try {
-              // Parse TOOL_USED tag attributes
-              const toolUsedMatch = part.match(/<\s*TOOL_USED\s+([^>]*?)(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)/)
-              if (!toolUsedMatch) return null
-              
-              const attributesStr = toolUsedMatch[1]
-              const attributes: Record<string, string> = {}
-              
-              // Parse attributes like toolName="value" description="value" etc.
-              const attrMatches = attributesStr.matchAll(/(\w+)="([^"]*)"/g)
-              for (const match of attrMatches) {
-                attributes[match[1]] = match[2]
-              }
-              
-              const { toolName, description, result, executionTime, details, input, output } = attributes
-              
-              if (!toolName) return null
-              
-              return (
-                <div key={index} className="my-3">
-                  <MCPToolDisplay
-                    toolName={toolName}
-                    toolDescription={description}
-                    result={result as 'success' | 'error' | 'loading'}
-                    executionTime={executionTime ? parseInt(executionTime) : undefined}
-                    input={input ? JSON.parse(input) : undefined}
-                    output={output ? JSON.parse(output) : undefined}
-                    errorText={result === 'error' ? details : undefined}
-                  />
-                </div>
-              )
-            } catch (e) {
-              console.error("TOOL_USED parsing error", e)
-              return null
-            }
+            // ⚠️ 安全警告：AI 不应该手动输出 TOOL_USED 标签
+            // 真实的工具调用会通过 agentSteps 系统显示
+            // 这里忽略 AI 手动输出的 TOOL_USED 标签，防止假装调用工具
+            console.warn('[Security] AI attempted to manually output TOOL_USED tag, ignoring:', part.slice(0, 100))
+            return null
           }
 
           if (part.match(/^<\s*ACTION_PROMPT/)) {
@@ -3168,23 +3141,6 @@ ${taskContext}
 
           if (!part.trim()) return null
 
-          const commands: any[] = []
-          const matches = part.matchAll(/```json\s*([\s\S]*?)```/g)
-          for (const match of matches) {
-            try {
-              const json = JSON.parse(match[1])
-              if (
-                json.action === 'toggle_relay' || 
-                json.action === 'set_led' || 
-                json.action === 'control_camera' ||
-                json.action === 'reset_camera' ||
-                json.action === 'move_camera_and_look'
-              ) {
-                commands.push(json)
-              }
-            } catch { }
-          }
-
           return (
             <div key={index}>
               <ReactMarkdown
@@ -3199,12 +3155,24 @@ ${taskContext}
                       return <MermaidChart chart={String(children).replace(/\n$/, '')} />
                     }
 
-                    // Try to parse JSON and check if it's an ECharts option or Schedule Task
+                    // Try to parse JSON and check if it's an ECharts option, Schedule Task, or IoT Command
                     if (!inline && (!language || language === 'json')) {
                       try {
                         const content = String(children).replace(/\n$/, '')
                         if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
                           const data = JSON.parse(content)
+
+                          // Check for IoT Command - don't display JSON, it's already shown as DeviceControlCard
+                          if (data.action && (
+                            data.action === 'toggle_relay' || 
+                            data.action === 'set_led' || 
+                            data.action === 'control_camera' ||
+                            data.action === 'reset_camera' ||
+                            data.action === 'move_camera_and_look' ||
+                            data.action === 'take_camera_snapshot'
+                          )) {
+                            return null // Don't show JSON for IoT commands
+                          }
 
                           // Check for Schedule Task
                           if (data.action === 'schedule_task') {
@@ -3250,23 +3218,6 @@ ${taskContext}
               >
                 {part}
               </ReactMarkdown>
-
-              {commands.length > 0 && !autoExecuteCommands && (
-                <div className="mt-3 mb-4">
-                  <button
-                    onClick={() => executeCommands(commands)}
-                    className="group relative flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.23)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-white/20 group-hover:translate-x-[100%] transition-transform duration-700 -skew-x-12 -translate-x-[100%]"></div>
-                    <Zap size={18} className="animate-pulse" />
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-bold leading-none">立即执行指令</span>
-                      <span className="text-[10px] opacity-80 font-mono mt-0.5">Execute {commands.length} Command{commands.length > 1 ? 's' : ''}</span>
-                    </div>
-                    <ArrowRight size={16} className="opacity-60 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              )}
             </div>
           )
         })}

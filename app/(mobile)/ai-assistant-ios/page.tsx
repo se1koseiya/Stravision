@@ -545,39 +545,11 @@ export default function AIAssistantIOSPage() {
       <>
         {parts.map((part, index) => {
           if (part.match(/^<\s*TOOL_USED/)) {
-            try {
-              // Parse TOOL_USED tag attributes
-              const toolUsedMatch = part.match(/<\s*TOOL_USED\s+([^>]*?)(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)/)
-              if (!toolUsedMatch) return null
-              
-              const attributesStr = toolUsedMatch[1]
-              const attributes: Record<string, string> = {}
-              
-              // Parse attributes like toolName="value" description="value" etc.
-              const attrMatches = attributesStr.matchAll(/(\w+)="([^"]*)"/g)
-              for (const match of attrMatches) {
-                attributes[match[1]] = match[2]
-              }
-              
-              const { toolName, description, result, executionTime, details } = attributes
-              
-              if (!toolName) return null
-              
-              return (
-                <div key={index} className="my-3">
-                  <ToolUsageIndicator
-                    toolName={toolName}
-                    toolDescription={description}
-                    result={result as 'success' | 'error' | 'loading'}
-                    executionTime={executionTime ? parseInt(executionTime) : undefined}
-                    details={details}
-                  />
-                </div>
-              )
-            } catch (e) {
-              console.error("TOOL_USED parsing error", e)
-              return null
-            }
+            // ⚠️ 安全警告：AI 不应该手动输出 TOOL_USED 标签
+            // 真实的工具调用会通过系统的 tool_calls 接口处理
+            // 这里忽略 AI 手动输出的 TOOL_USED 标签，防止假装调用工具
+            console.warn('[Security] AI attempted to manually output TOOL_USED tag, ignoring')
+            return null
           }
           if (part.match(/^<\s*TASK_LIST/)) return <div key={index} className="my-6"><ScheduledTasksList /></div>
           if (part.match(/^<\s*CONTROL_BENTO/)) return <div key={index} className="my-6"><ControlBentoGrid /></div>
