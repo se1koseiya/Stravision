@@ -534,6 +534,7 @@ function AIAssistantContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
   const [showPlanDialog, setShowPlanDialog] = useState(false)
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{ open: boolean; session: { id: number; title: string } | null }>({ open: false, session: null })
   const [greeting, setGreeting] = useState("晚上好")
   
   // MCP Tool Mention State
@@ -3406,20 +3407,40 @@ ${taskContext}
               </div>
               <div className="space-y-0.5">
                 {sessions.slice(0, 8).map((session) => (
-                   <button
+                   <div
                      key={session.id}
-                     onClick={() => {
-                        setSessionId(session.id)
-                        loadSessionMessages(session.id)
-                     }}
                      className={cn(
-                       "w-full flex items-center gap-3 px-4 py-2 text-[13px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-xl transition-all group truncate",
-                       sessionId === session.id ? "text-zinc-900 dark:text-zinc-100 font-medium" : ""
+                       "w-full flex items-center gap-2 px-4 py-2 text-[13px] rounded-xl transition-all group relative",
+                       sessionId === session.id ? "bg-zinc-100 dark:bg-zinc-900" : "hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                      )}
                    >
-                     <CircleHelp size={14} className="shrink-0 opacity-40 group-hover:text-blue-500 transition-colors" />
-                     <span className="truncate text-left">{session.title}</span>
-                   </button>
+                     <button
+                       onClick={() => {
+                          setSessionId(session.id)
+                          loadSessionMessages(session.id)
+                       }}
+                       className="flex-1 flex items-center gap-3 text-left min-w-0"
+                     >
+                       <CircleHelp size={14} className={cn(
+                         "shrink-0 opacity-40 group-hover:text-blue-500 transition-colors",
+                         sessionId === session.id ? "text-blue-500 opacity-100" : ""
+                       )} />
+                       <span className={cn(
+                         "truncate",
+                         sessionId === session.id ? "text-zinc-900 dark:text-zinc-100 font-medium" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                       )}>{session.title}</span>
+                     </button>
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation()
+                         setDeleteConfirmDialog({ open: true, session: { id: session.id, title: session.title } })
+                       }}
+                       className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                       title="删除会话"
+                     >
+                       <X size={14} />
+                     </button>
+                   </div>
                 ))}
               </div>
            </div>
@@ -3680,7 +3701,7 @@ ${taskContext}
 
                 {/* Premium Floating Orb */}
                 {/* Siri-style Voice Orb Implementation */}
-                <div className="relative mb-12 pt-8">
+                <div className="relative mb-6 pt-4">
                   <motion.div 
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -3690,21 +3711,21 @@ ${taskContext}
                     }}
                     className="relative flex items-center justify-center"
                   >
-                    <SiriOrb size="200px" className="shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-transform duration-700" />
+                    <SiriOrb size="160px" className="shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-transform duration-700" />
                   </motion.div>
                 </div>
 
               {/* Elegant Greeting Typography */}
-              <div className="text-center space-y-4 mb-16">
+              <div className="text-center space-y-2 mb-8">
                 <motion.h1 
                   initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}
-                  className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight"
+                  className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight"
                 >
                   {greeting}, {user?.username || '农场主'}
                 </motion.h1>
                 <motion.div 
                   initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
-                  className="text-2xl md:text-3xl font-medium text-zinc-500 dark:text-zinc-400"
+                  className="text-xl md:text-2xl font-medium text-zinc-500 dark:text-zinc-400"
                 >
                   我今天能为您 <span className="text-blue-600 dark:text-blue-500 font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">做点什么？</span>
                 </motion.div>
@@ -3733,7 +3754,7 @@ ${taskContext}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                     placeholder="输入您的指令，或开启一段深度的农业经营对话..."
-                    className="w-full bg-transparent border-0 focus:ring-0 resize-none text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400/80 text-[19px] leading-relaxed py-8 px-5 min-h-[140px] font-medium"
+                    className="w-full bg-transparent border-0 focus:ring-0 resize-none text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400/80 text-[17px] leading-relaxed py-4 px-5 min-h-[100px] font-medium"
                   />
                   
                   {/* Bottom Persistent Toolbar */}
@@ -4594,6 +4615,66 @@ ${taskContext}
                className="w-full text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-transparent text-sm font-medium"
              >
                明天再来
+             </Button>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmDialog.open} onOpenChange={(open) => setDeleteConfirmDialog({ open, session: null })}>
+        <DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden p-0 border-0 shadow-2xl bg-white dark:bg-zinc-900">
+           {/* Background Decoration */}
+           <div className="absolute inset-0 z-0 pointer-events-none">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl" />
+           </div>
+           
+           <DialogHeader className="pt-10 px-6 pb-2 relative z-10 flex flex-col items-center">
+             <div className="relative mb-6">
+               <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl transform scale-110" />
+               <div className="relative size-20 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
+                 <Trash size={32} className="text-white" />
+               </div>
+             </div>
+
+             <DialogTitle className="text-center text-xl font-bold text-zinc-900 dark:text-white">
+               确认删除会话
+             </DialogTitle>
+             <DialogDescription className="text-center text-sm mt-3 text-zinc-500 dark:text-zinc-400 max-w-[280px] leading-relaxed">
+               确定要删除会话 <span className="font-semibold text-zinc-700 dark:text-zinc-300">"{deleteConfirmDialog.session?.title}"</span> 吗？此操作无法撤销。
+             </DialogDescription>
+           </DialogHeader>
+
+           <DialogFooter className="px-6 pb-8 pt-6 sm:justify-center relative z-10 flex-col sm:flex-col gap-3">
+             <Button 
+               onClick={async () => {
+                 if (!deleteConfirmDialog.session) return
+                 
+                 try {
+                   const res = await fetch(`/api/sessions/${deleteConfirmDialog.session.id}`, { method: 'DELETE' })
+                   if (res.ok) {
+                     setSessions(prev => prev.filter(s => s.id !== deleteConfirmDialog.session!.id))
+                     if (sessionId === deleteConfirmDialog.session.id) {
+                       await createNewSession()
+                     }
+                     setDeleteConfirmDialog({ open: false, session: null })
+                   } else {
+                     alert('删除失败，请重试')
+                   }
+                 } catch (err) {
+                   console.error('Delete session error:', err)
+                   alert('删除失败，请重试')
+                 }
+               }}
+               className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transition-all duration-300 rounded-2xl h-12 font-bold text-base"
+             >
+               确认删除
+             </Button>
+             <Button 
+               variant="ghost" 
+               onClick={() => setDeleteConfirmDialog({ open: false, session: null })}
+               className="w-full text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-transparent text-sm font-medium"
+             >
+               取消
              </Button>
            </DialogFooter>
         </DialogContent>

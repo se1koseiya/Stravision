@@ -197,6 +197,79 @@ export async function POST(req: Request) {
 
     contextInfo += `\n\n## 当前时间上下文\n- 日期：${now.toLocaleDateString('zh-CN')}\n- 季节：${currentSeason}\n- 时段：${timeOfDay} (${currentHour}点)\n`;
 
+    // 检测用户是否需要外部知识检索或其他 MCP 工具但缺少相应配置
+    let mcpInstallationHint = ""
+    
+    // 1. 检测搜索需求
+    const searchKeywords = ["搜索", "查找", "找一下", "帮我查", "搜一下", "search", "find", "lookup", "最新", "现在", "当前", "今天", "最近", "网上", "互联网"]
+    const needsSearch = searchKeywords.some(k => lastUserText.toLowerCase().includes(k))
+    
+    // 2. 检测天气查询需求
+    const weatherKeywords = ["天气", "气温", "降雨", "下雨", "晴天", "阴天", "weather", "forecast", "温度预报"]
+    const needsWeather = weatherKeywords.some(k => lastUserText.toLowerCase().includes(k))
+    
+    // 3. 检测网页抓取需求
+    const scrapeKeywords = ["抓取", "爬取", "网页", "网站内容", "提取网页", "scrape", "crawl", "fetch"]
+    const needsScrape = scrapeKeywords.some(k => lastUserText.toLowerCase().includes(k))
+    
+    const missingTools: string[] = []
+    
+    if (needsSearch) {
+      const hasSearchTool = mcpToolDefs.some(t => 
+        t.function.name.includes('search') || 
+        t.function.name.includes('exa') || 
+        t.function.name.includes('brave')
+      )
+      if (!hasSearchTool) {
+        missingTools.push('搜索工具 (Exa Search / Brave Search)')
+      }
+    }
+    
+    if (needsWeather) {
+      const hasWeatherTool = mcpToolDefs.some(t => 
+        t.function.name.includes('weather') || 
+        t.function.name.includes('天气')
+      )
+      if (!hasWeatherTool) {
+        missingTools.push('天气查询工具 (彩云天气 / 高德天气 / 和风天气)')
+      }
+    }
+    
+    if (needsScrape) {
+      const hasScrapeTool = mcpToolDefs.some(t => 
+        t.function.name.includes('scrape') || 
+        t.function.name.includes('crawl') || 
+        t.function.name.includes('firecrawl')
+      )
+      if (!hasScrapeTool) {
+        missingTools.push('网页抓取工具 (Firecrawl)')
+      }
+    }
+    
+    if (missingTools.length > 0) {
+      mcpInstallationHint = `\n\n## ⚠️ 外部工具能力未启用\n\n` +
+        `检测到你可能需要以下能力，但当前没有安装相应的 MCP 工具：\n` +
+        missingTools.map(t => `- ${t}`).join('\n') + `\n\n` +
+        `**推荐的 MCP 工具：**\n` +
+        `- **Exa Search**: 专业的 AI 搜索引擎，适合获取最新的技术文档和知识\n` +
+        `- **Brave Search**: 隐私友好的通用搜索引擎，适合日常信息查询\n` +
+        `- **Firecrawl**: 网页内容抓取工具，可以深度提取网页信息\n` +
+        `- **彩云天气 / 高德天气 / 和风天气**: 实时天气查询服务\n\n` +
+        `**如何安装：**\n` +
+        `1. 点击右上角的设置图标 ⚙️\n` +
+        `2. 进入 "MCP 工具商店" 标签页\n` +
+        `3. 搜索并安装上述工具\n` +
+        `4. 根据提示配置 API Key（部分工具需要）\n` +
+        `5. 启用工具后即可使用\n\n` +
+        `**当前回复限制：**\n` +
+        `由于缺少相应工具，我只能基于已有知识回答，可能无法提供最新、最准确或实时的信息。\n` +
+        `**建议：如果你经常需要这些能力，请先安装对应的 MCP 工具以获得最佳体验。**\n\n` +
+        `**重要提示：**\n` +
+        `- 你应该在回复中友好地告知用户这个限制\n` +
+        `- 不要假装调用了工具或编造数据\n` +
+        `- 可以建议用户安装工具后再次询问`
+    }
+
     // 只将光谱数据获取推给 MCP，恢复基础设备状态的直接注入
     contextInfo += `\n\n## 光谱数据获取方式\n当需要获取光谱数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n`
 
@@ -631,7 +704,7 @@ export async function POST(req: Request) {
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${contextCompressedInstruction}`,
+          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${mcpInstallationHint}${contextCompressedInstruction}`,
         },
         ...finalMessages,
       ]
@@ -652,7 +725,7 @@ export async function POST(req: Request) {
     } else if (isDashScope) {
       // DashScope 原生API格式
       const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
-      const systemMessage = `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${contextCompressedInstruction}`
+      const systemMessage = `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${mcpInstallationHint}${contextCompressedInstruction}`
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
