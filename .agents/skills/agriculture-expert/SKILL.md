@@ -2,6 +2,7 @@
 name: agriculture-expert
 description: Deep agricultural knowledge base for strawberry cultivation and environmental standards.
 keywords: 草莓, 种植, 温度, 湿度, 病害, 营养, 光谱, NDVI, 环境参数, 指标
+priority: 80
 ---
 # 草莓种植专家知识库 (莓小智)
 

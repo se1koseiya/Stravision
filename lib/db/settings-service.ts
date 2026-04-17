@@ -157,3 +157,24 @@ export async function updateDashboardVersion(version: DashboardVersion): Promise
     ["dashboard_version", version, now]
   )
 }
+
+export type SpectrumDataSource = 'mcp' | 'mqtt'
+
+export async function getSpectrumDataSource(): Promise<SpectrumDataSource> {
+  await initDB()
+  const row = await queryOne<{ value: string }>("SELECT value FROM system_settings WHERE key = $1", ["spectrum_data_source"])
+  
+  if (!row) return 'mcp'
+  return (row.value === 'mqtt' ? 'mqtt' : 'mcp') as SpectrumDataSource
+}
+
+export async function updateSpectrumDataSource(source: SpectrumDataSource): Promise<void> {
+  await initDB()
+  const now = Date.now()
+  await execute(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ["spectrum_data_source", source, now]
+  )
+}

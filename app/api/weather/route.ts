@@ -46,9 +46,82 @@ function parseWindSpeed(ws: string): number {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const city = searchParams.get('city') || '宁波'
+  const city = searchParams.get('city')
   const lat = searchParams.get('lat')
   const lon = searchParams.get('lon')
+  const useIP = searchParams.get('useIP') === 'true'
+  const clientIp = searchParams.get('clientIp')
+  
+  let detectedCity = city
+  let locationSource: 'gps' | 'ip' | 'default' = 'default'
+
+  // 🔥 优先级1：使用GPS坐标（最精确）
+  if (lat && lon) {
+    locationSource = 'gps'
+    console.log('[Weather API] Using GPS coordinates:', lat, lon)
+  }
+  // 🔥 优先级2：使用IP定位（自动检测城市）
+  else if (useIP || !city) {
+    locationSource = 'ip'
+    
+    // 尝试从请求头或参数中获取真实IP
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const realIp = request.headers.get('x-real-ip')
+    const ip = clientIp || forwardedFor?.split(',')[0].trim() || realIp || '未知IP'
+    
+    console.log('[Weather API] Attempting IP geolocation for:', ip)
+    
+    // 使用腾讯地图IP定位服务
+    const tencentKey = process.env.TENCENT_MAP_KEY
+    if (tencentKey && ip && ip !== '未知IP' && !ip.startsWith('127.') && !ip.startsWith('192.168.') && !ip.startsWith('10.')) {
+      try {
+        const locationRes = await fetch(`https://apis.map.qq.com/ws/location/v1/ip?ip=${ip}&key=${tencentKey}`, {
+          next: { revalidate: 3600 } // 缓存1小时
+        })
+        
+        if (locationRes.ok) {
+          const locationData = await locationRes.json()
+          if (locationData.status === 0) {
+            const adInfo = locationData.result.ad_info
+            detectedCity = adInfo.city || adInfo.district || adInfo.province
+            console.log('[Weather API] IP geolocation success:', ip, '→', detectedCity)
+          } else {
+            console.warn('[Weather API] Tencent IP location error:', locationData.message)
+          }
+        }
+      } catch (e) {
+        console.error('[Weather API] IP geolocation failed:', e)
+      }
+    }
+    
+    // 如果IP定位失败，使用备用免费服务
+    if (!detectedCity && ip && ip !== '未知IP' && !ip.startsWith('127.') && !ip.startsWith('192.168.') && !ip.startsWith('10.')) {
+      try {
+        const fallbackRes = await fetch(`http://ip-api.com/json/${ip}?lang=zh-CN`, {
+          signal: AbortSignal.timeout(2000)
+        })
+        
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json()
+          if (fallbackData.status === 'success') {
+            detectedCity = fallbackData.city
+            console.log('[Weather API] Fallback IP geolocation success:', ip, '→', detectedCity)
+          }
+        }
+      } catch (e) {
+        console.warn('[Weather API] Fallback IP geolocation failed:', e)
+      }
+    }
+  }
+  
+  // 🔥 优先级3：使用默认城市（仅作为最后的备选）
+  if (!detectedCity && !lat && !lon) {
+    detectedCity = '北京' // 使用更中性的默认城市
+    locationSource = 'default'
+    console.log('[Weather API] Using default city:', detectedCity)
+  }
+  
+  console.log('[Weather API] Final params:', { city: detectedCity, lat, lon, locationSource })
 
   // 1. 优先使用腾讯地图天气API (如果配置了 key 且有经纬度)
   const tencentKey = process.env.TENCENT_MAP_KEY
@@ -104,7 +177,7 @@ export async function GET(request: NextRequest) {
           forecast: {
             forecastday: [] // 腾讯实时天气API不提供预报，需要单独调用预报接口
           },
-          locationSource: 'tencent'
+          locationSource: locationSource // 使用检测到的来源
         }
         
         console.log('[Weather API] Tencent Map API success for', realtime.city)
@@ -118,10 +191,10 @@ export async function GET(request: NextRequest) {
 
   // 2. 尝试使用 xxapi (如果配置了 key)
   const xxKey = process.env.WEATHER_API_KEY
-  if (xxKey) {
+  if (xxKey && detectedCity) {
     try {
       // xxapi 必传 city 和 key
-      const url = `https://v2.xxapi.cn/api/weather?city=${encodeURIComponent(city)}&key=${xxKey}`
+      const url = `https://v2.xxapi.cn/api/weather?city=${encodeURIComponent(detectedCity)}&key=${xxKey}`
       const res = await fetch(url, {
         next: { revalidate: 1800 }, // 30分钟缓存
         headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -147,7 +220,7 @@ export async function GET(request: NextRequest) {
           
           const response = {
             location: {
-              name: d.city?.CityZHNorm || d.city?.NameZHNorm || city,
+              name: d.city?.CityZHNorm || d.city?.NameZHNorm || detectedCity,
               region: d.city?.Adm2NameZH || '',
               country: '中国',
               lat: parseFloat(d.city?.Latitude || '0'),
@@ -194,10 +267,10 @@ export async function GET(request: NextRequest) {
                 wind_speed: day.windScaleDay
               }))
             },
-            locationSource: 'xxapi'
+            locationSource: locationSource // 使用检测到的来源
           }
           
-          console.log('[Weather API] xxapi success for', city)
+          console.log('[Weather API] xxapi success for', detectedCity)
           return NextResponse.json(response)
         } else {
           console.warn('[Weather API] xxapi returned error or empty data:', json.msg)
@@ -209,47 +282,48 @@ export async function GET(request: NextRequest) {
   }
 
   // 3. 降级使用 tianqiapi (原有逻辑)
-  try {
-    const appid = process.env.TIANQI_APPID
-    const appsecret = process.env.TIANQI_APPSECRET
-    
-    if (!appid || !appsecret) {
-      console.log('[Weather API] No backup credentials (TIANQI), using mock')
-      return NextResponse.json(generateMockResponse(city))
-    }
-    
-    // ... Tianqi API logic ...
-    // 并行请求两个接口
-    const [realtimeRes, weekRes] = await Promise.all([
-      fetch(`http://gfeljm.tianqiapi.com/free/v2030?appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}&hours=1&aqi=1&unescape=1`, {
-        next: { revalidate: 300 },
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      }),
-      fetch(`http://v1.yiketianqi.com/free/week?appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}&unescape=1`, {
-        next: { revalidate: 1800 },
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      })
-    ])
-    
-    const realtime = realtimeRes.ok ? await realtimeRes.json() : null
-    const week = weekRes.ok ? await weekRes.json() : null
-    
-    if ((!realtime || realtime.errcode) && (!week || week.errcode)) {
-      return NextResponse.json({
-        ...generateMockResponse(city),
-        _error: realtime?.errmsg || week?.errmsg || 'API failed'
-      })
-    }
-    
-    console.log('[Weather API] tianqiapi success for', city)
+  if (detectedCity) {
+    try {
+      const appid = process.env.TIANQI_APPID
+      const appsecret = process.env.TIANQI_APPSECRET
+      
+      if (!appid || !appsecret) {
+        console.log('[Weather API] No backup credentials (TIANQI), using mock')
+        return NextResponse.json(generateMockResponse(detectedCity, locationSource))
+      }
+      
+      // ... Tianqi API logic ...
+      // 并行请求两个接口
+      const [realtimeRes, weekRes] = await Promise.all([
+        fetch(`http://gfeljm.tianqiapi.com/free/v2030?appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(detectedCity)}&hours=1&aqi=1&unescape=1`, {
+          next: { revalidate: 300 },
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        }),
+        fetch(`http://v1.yiketianqi.com/free/week?appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(detectedCity)}&unescape=1`, {
+          next: { revalidate: 1800 },
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        })
+      ])
+      
+      const realtime = realtimeRes.ok ? await realtimeRes.json() : null
+      const week = weekRes.ok ? await weekRes.json() : null
+      
+      if ((!realtime || realtime.errcode) && (!week || week.errcode)) {
+        return NextResponse.json({
+          ...generateMockResponse(detectedCity, locationSource),
+          _error: realtime?.errmsg || week?.errmsg || 'API failed'
+        })
+      }
+      
+      console.log('[Weather API] tianqiapi success for', detectedCity)
     
     const data = realtime || {}
     const weekData = week?.data || []
     
     const response = {
       location: {
-        name: data.city || week?.city || city,
-        region: data.city || week?.city || city,
+        name: data.city || week?.city || detectedCity,
+        region: data.city || week?.city || detectedCity,
         country: data.country || '中国',
         lat: 29.87,
         lon: 121.55,
@@ -322,21 +396,26 @@ export async function GET(request: NextRequest) {
       })),
       alarm: data.alarm || [],
       aqi: data.aqi || null,
-      locationSource: 'tianqiapi'
+      locationSource: locationSource // 使用检测到的来源
     }
     
     return NextResponse.json(response)
     
-  } catch (error) {
-    console.error('[Weather API] Error:', error)
-    return NextResponse.json({
-      ...generateMockResponse(city),
-      _error: error instanceof Error ? error.message : 'Unknown error'
-    })
+    } catch (error) {
+      console.error('[Weather API] tianqiapi error:', error)
+      return NextResponse.json({
+        ...generateMockResponse(detectedCity, locationSource),
+        _error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
   }
+  
+  // 如果所有方法都失败，返回Mock数据
+  console.log('[Weather API] All methods failed, using mock')
+  return NextResponse.json(generateMockResponse(detectedCity || '北京', locationSource))
 }
 
-function generateMockResponse(city: string) {
+function generateMockResponse(city: string, locationSource: 'gps' | 'ip' | 'default' = 'default') {
   const now = new Date()
   
   // 生成7天预报
@@ -381,7 +460,7 @@ function generateMockResponse(city: string) {
   }
   
   return {
-    location: { name: city, region: '浙江省', country: '中国', lat: 29.87, lon: 121.55, localtime: now.toISOString() },
+    location: { name: city, region: '未知', country: '中国', lat: 0, lon: 0, localtime: now.toISOString() },
     current: {
       temp_c: 8,
       condition: { text: '多云', code: 1003 },
@@ -392,7 +471,7 @@ function generateMockResponse(city: string) {
     },
     forecast: { forecastday: forecast },
     hours,
-    locationSource: 'mock',
+    locationSource: locationSource,
     _notice: 'Please configure WEATHER_API_KEY in .env.local'
   }
 }

@@ -2,6 +2,8 @@
 name: ai-identity
 description: Defining the persona, mission, and core values of 莓小智 (Berry Smart).
 keywords: 你是谁, 你的名字, 莓小智, 你的职责
+priority: 100
+autoLoad: true
 ---
 # 莓小智 (Berry Smart) 角色设定
 

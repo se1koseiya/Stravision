@@ -278,11 +278,13 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
   }
 
   // Effect to sync frontend states with backend state once data is loaded
+  // 硬件协议: led1=Blue, led2=Red, led3=Green
+  // 前端变量: r=Red, g=Green, b=Blue
   useEffect(() => {
     if (deviceData && r === 0 && g === 0 && b === 0 && w === 0) {
-      setR(deviceData.led1 || 0)
-      setG(deviceData.led2 || 0)
-      setB(deviceData.led3 || 0)
+      setB(deviceData.led1 || 0)  // led1 = Blue
+      setR(deviceData.led2 || 0)  // led2 = Red
+      setG(deviceData.led3 || 0)  // led3 = Green
       setW(deviceData.led4 || 0)
     }
   }, [deviceData, r, g, b, w])
@@ -310,11 +312,13 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
   }
 
   // Handle LED update
+  // 前端: r=Red, g=Green, b=Blue
+  // 发送: led1=Blue, led2=Red, led3=Green (对应硬件node0501/0502/0503)
   const handleLEDUpdate = async () => {
-    const success = await setLEDs(r, g, b, 0)
+    const success = await setLEDs(b, r, g, 0)  // 转换为硬件顺序: Blue, Red, Green
 
     if (success) {
-      createLog("RGB 补光灯", "更新颜色", `R:${r} G:${g} B:${b} W:${w}`)
+      createLog("RGB 补光灯", "更新颜色", `R:${r} G:${g} B:${b}`)
     } else {
       console.error('Failed to update LEDs')
     }

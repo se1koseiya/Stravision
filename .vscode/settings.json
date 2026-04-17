@@ -20,5 +20,6 @@
     ],
     "python.autoComplete.extraPaths": [
         "c:/Users/Zarce/.trae/extensions/rt-thread.rt-thread-micropython-1.0.11/microExamples/code-completion"
-    ]
+    ],
+    "typescript.autoClosingTags": false
 }

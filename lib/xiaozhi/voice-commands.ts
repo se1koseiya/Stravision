@@ -21,17 +21,15 @@ export interface VoiceCommandResult {
 export async function processVoiceCommand(userText: string): Promise<VoiceCommandResult> {
   const text = userText.toLowerCase().trim();
   
-  // 断开连接命令（告别语）
+  // 断开连接命令（告别语）- 移除了"关闭"、"停止"、"结束"等可能引起歧义的词
   const disconnectKeywords = [
     '不需要你了',
     '不用了',
     '再见',
     '拜拜',
     '退出',
-    '关闭',
     '结束对话',
     '挂断',
-    '停止',
     '够了',
     '可以了',
     '谢谢你',

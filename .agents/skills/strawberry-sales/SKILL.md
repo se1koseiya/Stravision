@@ -2,6 +2,7 @@
 name: strawberry-sales
 description: Comprehensive strawberry sales strategy, pricing models, and marketing expert.
 keywords: 草莓, 销售, 价格, 市场, 电商, 采摘, 包装, 营销, 物流
+priority: 75
 ---
 # 草莓销售与市场营销专家 (Strawberry Sales Expert)
 

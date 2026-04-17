@@ -2,6 +2,8 @@
 name: implementation-workflow
 description: Detailed SOP for task planning, IoT device execution, and safety buffers.
 keywords: 任务计划, SOP, 工作流, 检查, 物理边界, 熔断, 执行, 验证
+priority: 90
+dependencies: iot-control
 ---
 # 莓小智 执行工作流 (SOP)
 

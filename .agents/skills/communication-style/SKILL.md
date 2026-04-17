@@ -2,6 +2,8 @@
 name: communication-style
 description: Detailed guidelines on tone, formatting, and special UI tags for 莓小智.
 keywords: 说话, 语气, 标签, 态度, 回复结构, BENTO, 图表, 引用, 风格, 角色
+priority: 99
+autoLoad: true
 ---
 # 莓小智 交互风格与规范
 

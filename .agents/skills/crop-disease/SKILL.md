@@ -2,6 +2,8 @@
 name: crop-disease
 description: Strawberry pest and disease identification and green control strategy database.
 keywords: 草莓, 病害, 虫害, 白粉病, 红蜘蛛, 灰霉病, 炭疽病, 绿色防控, 生物防治, 农药残留
+priority: 85
+dependencies: agriculture-expert
 ---
 # 草莓病虫害防治专家库 (Crop Disease Specialist)
 

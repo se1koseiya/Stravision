@@ -7,6 +7,7 @@ import { UserDialog } from "@/components/admin/user-dialog"
 import { toast } from "sonner"
 import { Loader2, Pencil, ShieldCheck, Activity, Server, Bell, Settings } from "lucide-react";
 import { Plus } from "@/components/animate-ui/icons/plus";
+import Link from "next/link"
 import {
   Table,
   TableBody,
@@ -31,6 +32,8 @@ import { SkillManager } from "@/components/admin/skill-manager"
 import { MonitorVersionSettings } from "@/components/admin/monitor-version-settings"
 import { DeviceControlVersionSettings } from "@/components/admin/device-control-version-settings"
 import { DashboardVersionSettings } from "@/components/admin/dashboard-version-settings"
+import { SpectrumSourceSettings } from "@/components/admin/spectrum-source-settings"
+import { AIFeaturesSettings } from "@/components/admin/ai-features-settings"
 
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -135,6 +138,12 @@ export default function AdminPage() {
           <PageNavigation />
         </div>
         <div className="flex items-center gap-6">
+          <Link href="/admin/agent-monitor">
+            <button className="flex items-center gap-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors group">
+              <Activity className="size-5 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium hidden lg:block">Agent 监控</span>
+            </button>
+          </Link>
           <button className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
             <Bell className="size-5" />
           </button>
@@ -348,6 +357,9 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="settings" className="mt-0 outline-none animate-in fade-in-50 space-y-8">
+            {/* AI 功能开关 - 放在最上面 */}
+            <AIFeaturesSettings />
+            
             <div className="grid gap-8 md:grid-cols-2">
               <RateLimitSettings />
               <MaintenanceSettings />
@@ -355,6 +367,10 @@ export default function AdminPage() {
             
             <div className="grid gap-8 md:grid-cols-2">
               <CameraSettings />
+              <SpectrumSourceSettings />
+            </div>
+            
+            <div className="grid gap-8 md:grid-cols-2">
               <div className="space-y-8">
                 <MonitorVersionSettings />
                 <DeviceControlVersionSettings />

@@ -523,7 +523,11 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
 
             {/* Update Button */}
             <button
-              onClick={() => onUpdateLEDs?.(lightState.rgbLight.r, lightState.rgbLight.g, lightState.rgbLight.b, 0)}
+              onClick={() => {
+                // 前端: r=Red, g=Green, b=Blue
+                // 发送: led1=Blue, led2=Red, led3=Green
+                onUpdateLEDs?.(lightState.rgbLight.b, lightState.rgbLight.r, lightState.rgbLight.g, 0)
+              }}
               className={`w-full py-2 rounded-lg text-xs font-medium transition-colors ${
                 isDark 
                   ? "bg-emerald-600 hover:bg-emerald-500 text-white" 
@@ -1185,11 +1189,12 @@ function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all"
   const hasInitializedLEDs = useRef(false)
 
   // 从 deviceData 同步 LED 值
+  // 硬件协议: led1=Blue, led2=Red, led3=Green
   useEffect(() => {
     if (deviceData && !hasInitializedLEDs.current) {
-      const r = deviceData.led1 ?? 255
-      const g = deviceData.led2 ?? 100
-      const b = deviceData.led3 ?? 200
+      const b = deviceData.led1 ?? 200  // led1 = Blue
+      const r = deviceData.led2 ?? 255  // led2 = Red
+      const g = deviceData.led3 ?? 100  // led3 = Green
       if (r > 0 || g > 0 || b > 0) {
         setLightState(prev => ({
           ...prev,

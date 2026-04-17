@@ -8,6 +8,9 @@ import {
   Maximize2Icon,
   MousePointerClickIcon,
   RefreshCcwIcon,
+  Globe,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react"
 import type { ComponentProps, ReactNode } from "react"
 import { createContext, useContext, useEffect, useState } from "react"
@@ -160,14 +163,73 @@ export type WebPreviewBodyProps = ComponentProps<"iframe"> & {
 export const WebPreviewBody = ({ className, loading, src, ...props }: WebPreviewBodyProps) => {
   const { url } = useWebPreview()
   const finalUrl = src ?? url
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    setIsLoading(true)
+    setIsBlocked(false)
+  }, [finalUrl])
+
+  const handleLoad = () => {
+    setIsLoading(false)
+  }
+
+  const handleError = () => {
+    setIsBlocked(true)
+    setIsLoading(false)
+  }
+
+  if (!finalUrl) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-muted/30">
+        <div className="text-center space-y-2">
+          <Globe className="w-12 h-12 mx-auto text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">输入 URL 开始浏览</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isBlocked) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-muted/30 p-8">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="w-16 h-16 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-lg">该内容被屏蔽了</h3>
+            <p className="text-sm text-muted-foreground">
+              由于安全策略限制，此网页无法在嵌入式框架中显示。
+            </p>
+          </div>
+          <Button
+            onClick={() => window.open(finalUrl, '_blank')}
+            className="gap-2"
+          >
+            <ExternalLinkIcon className="w-4 h-4" />
+            在新标签页中打开
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 relative">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
       <iframe
         className={cn("size-full", className)}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
         src={finalUrl || undefined}
         title="Preview"
+        onLoad={handleLoad}
+        onError={handleError}
         {...props}
       />
       {loading}

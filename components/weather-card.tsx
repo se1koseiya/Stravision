@@ -212,7 +212,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
             title="点击重新定位"
           >
             <h2 className="text-2xl font-bold text-foreground">
-              {weatherData?.location?.name === "Ningbo" ? "宁波" : weatherData?.location?.name || "定位中..."},
+              当前地区,
             </h2>
             <p className="text-muted-foreground">{weekday}, {dateStr}</p>
           </div>

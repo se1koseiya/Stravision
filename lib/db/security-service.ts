@@ -210,7 +210,17 @@ export async function getLastLogin(userId: number): Promise<LoginLog | undefined
   return log || undefined
 }
 
-export async function checkSuspiciousLogin(userId: number, currentIp: string, currentRegion: string | null): Promise<{ isSuspicious: boolean, lastRegion: string | null }> {
+export async function checkSuspiciousLogin(
+  userId: number, 
+  currentIp: string, 
+  currentRegion: string | null,
+  userPermissions?: { ignoreLocationCheck?: boolean }
+): Promise<{ isSuspicious: boolean, lastRegion: string | null }> {
+  // 如果用户有 ignoreLocationCheck 权限，直接返回不可疑
+  if (userPermissions?.ignoreLocationCheck) {
+    return { isSuspicious: false, lastRegion: null }
+  }
+
   // 获取上一次登录记录（排除本次，因为本次可能还没存或者刚存）
   // 这里我们需要在 recordLoginLog 之前调用，或者查询 offset 1
   

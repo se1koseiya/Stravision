@@ -811,38 +811,37 @@ export function RealtimeVoiceOrb({
           if (text) {
             lastUserTranscriptRef.current = text;
             
-            // Check for special commands (disconnect and snapshot)
-            const disconnectKeywords = ['不需要你了', '不用了', '再见', '拜拜', '退出', '关闭', '结束对话', '挂断', '停止', '够了', '可以了', '谢谢你', '辛苦了', '休息吧', '下次再聊'];
+            // Check for snapshot command only (let AI handle disconnect naturally)
             const snapshotKeywords = ['看看大棚', '查看大棚', '大棚情况', '草莓长得怎么样', '草莓生长', '监控画面', '截图分析', '拍个照', '看一下大棚', '大棚里', '草莓', '长势', '生长情况'];
-            
-            const isDisconnectCommand = disconnectKeywords.some(keyword => text.toLowerCase().includes(keyword));
             const isSnapshotCommand = snapshotKeywords.some(keyword => text.toLowerCase().includes(keyword));
             
-            if (isDisconnectCommand || isSnapshotCommand) {
-              // Cancel AI response
+            // Check for disconnect command (but don't cancel AI response)
+            const disconnectKeywords = ['不需要你了', '不用了', '再见', '拜拜', '退出', '结束对话', '挂断', '够了', '可以了', '谢谢你', '辛苦了', '休息吧', '下次再聊'];
+            const isDisconnectCommand = disconnectKeywords.some(keyword => text.toLowerCase().includes(keyword));
+            
+            if (isDisconnectCommand) {
+              // Mark this as a disconnect request - will disconnect after AI responds
+              (window as any).__pendingDisconnect = true;
+            }
+            
+            if (isSnapshotCommand) {
+              // Cancel AI response for snapshot command
               sendMessage({ type: 'response.cancel' });
               sendMessage({ type: 'input_audio_buffer.clear' });
               
               // Add to history
               setHistory(prev => [...prev, { id: createEventId(), role: 'user', content: text }]);
               
-              // Handle special command logic (async)
+              // Handle snapshot command logic (async)
               (async () => {
                 try {
                   const { processVoiceCommand } = await import('@/lib/xiaozhi/voice-commands');
                   const result = await processVoiceCommand(text);
                   if (result.recognized && result.response) {
                     setHistory(prev => [...prev, { id: createEventId(), role: 'assistant', content: result.response! }]);
-                    
-                    // If it's a disconnect command, disconnect after a short delay
-                    if (result.shouldDisconnect) {
-                      setTimeout(() => {
-                        disconnect();
-                      }, 1500); // Wait 1.5 seconds for the goodbye message to be heard
-                    }
                   }
                 } catch (error) {
-                  console.error('Special command error:', error);
+                  console.error('Snapshot command error:', error);
                 }
               })();
               
@@ -900,6 +899,18 @@ export function RealtimeVoiceOrb({
         if (transcript) {
            setHistory(prev => [...prev, { id: createEventId(), role: 'assistant', content: transcript }]);
            setTranscript(""); // Clear active transcript
+        }
+        
+        // Check if there's a pending disconnect request
+        if ((window as any).__pendingDisconnect) {
+          (window as any).__pendingDisconnect = false;
+          // Disconnect after a short delay to let the audio finish playing
+          setTimeout(() => {
+            disconnect();
+          }, 2000); // Wait 2 seconds for the goodbye message to be heard
+          // Don't execute commands or refresh quota if disconnecting
+          pendingCommandsRef.current = "";
+          break;
         }
         
         // Execute commands
@@ -1057,7 +1068,8 @@ export function RealtimeVoiceOrb({
     audioPlayerRef.current?.stop();
     updateStatus('idle');
     setTranscript("");
-    setHistory([]); // Optional: clear history on disconnect? Maybe keep it.
+    // Keep history when disconnecting - don't clear it
+    // setHistory([]); // Removed: preserve conversation history
   }, [updateStatus]);
 
   // Toggle connection

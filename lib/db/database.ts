@@ -24,6 +24,9 @@ function getPool(): Pool {
   return pool
 }
 
+// Export getPool for use in other modules
+export { getPool };
+
 export async function initDB(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
@@ -192,6 +195,67 @@ export async function initDB(): Promise<void> {
           updated_at TEXT NOT NULL,
           last_triggered_at TEXT,
           execution_count INTEGER DEFAULT 0
+        )`,
+        // Agent 长期记忆表
+        `CREATE TABLE IF NOT EXISTS user_preferences (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          preference_key TEXT NOT NULL,
+          preference_value TEXT NOT NULL,
+          confidence REAL DEFAULT 0.5,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL,
+          UNIQUE(user_id, preference_key)
+        )`,
+        `CREATE TABLE IF NOT EXISTS device_patterns (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          device_id INTEGER NOT NULL,
+          pattern_type TEXT NOT NULL,
+          pattern_data TEXT NOT NULL,
+          confidence REAL DEFAULT 0.5,
+          success_count INTEGER DEFAULT 0,
+          total_count INTEGER DEFAULT 0,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS successful_strategies (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          goal TEXT NOT NULL,
+          steps TEXT NOT NULL,
+          success_rate REAL DEFAULT 0.0,
+          avg_execution_time INTEGER DEFAULT 0,
+          conditions TEXT,
+          use_count INTEGER DEFAULT 0,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS agent_execution_logs (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          session_id TEXT NOT NULL,
+          action_type TEXT NOT NULL,
+          action_params TEXT,
+          result TEXT,
+          status TEXT NOT NULL,
+          execution_time INTEGER,
+          error_message TEXT,
+          created_at BIGINT NOT NULL
+        )`,
+        // AI Cron Jobs 表 - 用于 AI 安排的延迟任务
+        `CREATE TABLE IF NOT EXISTS ai_cron_jobs (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          session_id TEXT NOT NULL,
+          task_type TEXT NOT NULL,
+          task_description TEXT NOT NULL,
+          scheduled_time BIGINT NOT NULL,
+          payload TEXT NOT NULL,
+          status TEXT NOT NULL,
+          result TEXT,
+          created_at BIGINT NOT NULL,
+          executed_at BIGINT
         )`
       ]
 
@@ -208,6 +272,8 @@ export async function initDB(): Promise<void> {
 
       const indexStatements = [
         "CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email)",
+        "CREATE INDEX IF NOT EXISTS idx_ai_cron_jobs_status_time ON ai_cron_jobs(status, scheduled_time)",
+        "CREATE INDEX IF NOT EXISTS idx_ai_cron_jobs_user ON ai_cron_jobs(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_email_verifications_expires_at ON email_verifications(expires_at)",
         "CREATE INDEX IF NOT EXISTS idx_sensor_readings_created_at ON sensor_readings(created_at)",
         "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
@@ -215,7 +281,13 @@ export async function initDB(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid)",
         "CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id)",
         "CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, read_at)",
-        "CREATE INDEX IF NOT EXISTS idx_messages_group_id ON messages(group_id)"
+        "CREATE INDEX IF NOT EXISTS idx_messages_group_id ON messages(group_id)",
+        // Agent 记忆系统索引
+        "CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_device_patterns_user_device ON device_patterns(user_id, device_id)",
+        "CREATE INDEX IF NOT EXISTS idx_successful_strategies_user_id ON successful_strategies(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_user_session ON agent_execution_logs(user_id, session_id)",
+        "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_created_at ON agent_execution_logs(created_at)"
       ]
 
       for (const statement of indexStatements) {

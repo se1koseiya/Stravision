@@ -7,12 +7,83 @@ export async function GET() {
 }
 
 import { getEnhancedSystemPrompt } from '@/lib/ai-system-prompt'
+import { generateMemoryEnhancedPrompt } from '@/lib/ai/memory-prompt-enhancer'
+import { learnFromConversation } from '@/lib/ai/auto-learning-service'
 import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service'
 import { getMCPToolDefinitions } from '@/lib/mcp/mcp-tool-definitions'
 import { executeMCPToolCall } from '@/lib/mcp/mcp-tool-executor'
+import { createOrchestrator, globalOrchestratorManager } from '@/lib/ai/agent-orchestrator'
+import type { AgentContext } from '@/lib/ai/agent-orchestrator/types'
+import { getRelevantSkillsContentCached } from '@/lib/ai/skill-router-cached'
+import { executeToolCallsSmart } from '@/lib/ai/parallel-tool-executor'
+import { generateCompactSystemPrompt, filterDisabledFeatures, type AIFeatureConfig } from '@/lib/ai/prompt-templates'
+import fs from 'fs/promises'
+import path from 'path'
+
+// 读取 AI 功能配置
+async function getAIFeaturesConfig(): Promise<AIFeatureConfig | undefined> {
+  try {
+    const configPath = path.join(process.cwd(), 'data', 'ai-features-config.json')
+    const data = await fs.readFile(configPath, 'utf-8')
+    return JSON.parse(data)
+  } catch (error) {
+    // 配置文件不存在或读取失败，返回 undefined（使用默认配置）
+    return undefined
+  }
+}
+
+/**
+ * 🔥 智能过滤器：拦截裸露的 TASK_LIST JSON
+ * 防止 AI 错误输出导致 JSON 暴露在用户界面
+ * 
+ * 重要：只过滤裸露的 JSON，保留正确包裹在 <TASK_LIST> 标签内的 JSON
+ */
+function filterBareTaskListJson(content: string): string {
+  if (!content) return content
+  
+  // 检查是否在 TASK_LIST 标签内
+  const hasOpenTag = content.includes('<TASK_LIST>')
+  const hasCloseTag = content.includes('</TASK_LIST>')
+  
+  // 如果内容包含 TASK_LIST 标签，说明是正确的格式，不要过滤
+  if (hasOpenTag || hasCloseTag) {
+    return content
+  }
+  
+  // 只有在没有标签包裹的情况下，才过滤裸露的 JSON
+  
+  // 1. 拦截完整的裸露 TASK_LIST JSON 对象
+  // 匹配模式：{ "status": "in_progress", "tasks": [...] }
+  const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
+  const hasTaskListJson = taskListJsonPattern.test(content)
+  
+  if (hasTaskListJson) {
+    content = content.replace(taskListJsonPattern, (match) => {
+      console.warn('[TASK_LIST Filter] Intercepted BARE TASK_LIST JSON (no tags):', match.slice(0, 100))
+      return '' // 完全移除裸露的 JSON
+    })
+  }
+  
+  // 2. 拦截不完整的裸露 TASK_LIST JSON 片段（流式输出时）
+  // 匹配模式：{ "status": "in_progress", "tasks": [{ "id": "task-1"...
+  const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
+  if (incompleteTaskPattern.test(content)) {
+    const lastBrace = content.lastIndexOf('{')
+    if (lastBrace !== -1) {
+      const potentialJson = content.slice(lastBrace)
+      // 确认这是 TASK_LIST JSON 的特征
+      if (potentialJson.includes('"tasks"') || (potentialJson.includes('"status"') && potentialJson.includes('"in_progress"'))) {
+        console.warn('[TASK_LIST Filter] Intercepted incomplete BARE TASK_LIST JSON (no tags)')
+        content = content.slice(0, lastBrace).trim()
+      }
+    }
+  }
+  
+  return content
+}
 
 export async function POST(req: Request) {
   try {
@@ -22,6 +93,11 @@ export async function POST(req: Request) {
     }
 
     await initDB()
+    
+    // 读取 AI 功能配置
+    const aiFeatures = await getAIFeaturesConfig()
+    console.log('[Chat API] AI Features Config:', aiFeatures ? 'Loaded' : 'Using defaults')
+    
     const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled } =
       await req.json()
 
@@ -116,7 +192,20 @@ export async function POST(req: Request) {
     const combinedRoutingText = `${firstUserText} ${lastUserText}`.trim();
     
     // 构建增强的系统提示词，通过智能路由选择相关技能以节省 Token
-    const { prompt: enhancedSystemPrompt, matchedSkills } = await getEnhancedSystemPrompt(combinedRoutingText, systemPrompt, user.id as number)
+    // 使用缓存版本以提升性能
+    const { content: skillContent, matchedSkills, fromCache } = await getRelevantSkillsContentCached(
+      combinedRoutingText,
+      user.id as number,
+      mandatorySkillsEnabled
+    );
+    
+    let enhancedSystemPrompt = systemPrompt + '\n\n' + skillContent;
+    
+    if (fromCache) {
+      console.log('[Chat API] ✅ Skill routing cache hit - saved 300-500ms');
+    } else {
+      console.log('[Chat API] Skill routing cache miss - computed fresh');
+    }
     
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
@@ -372,7 +461,7 @@ export async function POST(req: Request) {
     // 天气数据（MCP 天气工具已改为 function calling 方式，由 AI 主动调用）
     if (weatherData) {
       contextInfo += `\n\n## 当前天气信息\n\`\`\`json\n${JSON.stringify({
-        location: weatherData.location?.name || "未知位置",
+        location: "当前地区",
         temperature: weatherData.current?.temp_c !== undefined ? weatherData.current.temp_c + "°C" : "未知",
         condition: weatherData.current?.condition?.text || "未知",
         humidity: weatherData.current?.humidity !== undefined ? weatherData.current.humidity + "%" : "未知",
@@ -404,6 +493,22 @@ export async function POST(req: Request) {
       contextInfo += `\n\n## 当前系统中的定时任务（这是真实的数据库记录，以此为准）\n\`\`\`json\n${JSON.stringify(tasksContext, null, 2)}\n\`\`\`\n`
     } catch (e) {
       console.error("Failed to fetch tasks for context:", e)
+    }
+
+    // === 记忆增强：注入用户偏好和历史模式 ===
+    try {
+      enhancedSystemPrompt = await generateMemoryEnhancedPrompt(enhancedSystemPrompt, {
+        userId: user.id as number,
+        includePreferences: true,
+        includeDevicePatterns: true,
+        includeStrategies: true,
+        maxPreferences: 3,
+        maxPatterns: 2,
+        maxStrategies: 2
+      });
+      console.log('[Memory] Enhanced system prompt with user memory');
+    } catch (e) {
+      console.error('[Memory] Failed to enhance prompt with memory:', e);
     }
 
     const finalSystemPrompt = enhancedSystemPrompt + contextInfo + forcedToolPrompt
@@ -442,13 +547,32 @@ export async function POST(req: Request) {
       "（value: 1 为开启，0 为关闭）\n\n" +
       "### 丝杆滑台 (Stepper Slider) 移动控制\n" +
       "- **Action**: `control_camera` (控制摄像头左右水平移动)\n" +
+      "- **重要提示**：\n" +
+      "  - 滑台量程：0mm（最左侧原点）到 700mm（最右侧终点）\n" +
+      "  - 当前位置：通过 deviceData.stepper_position 获取（单位：脉冲，160脉冲=1mm）\n" +
+      "  - **移动前必须检查当前位置，避免超出边界！**\n" +
+      "  - 如果已经在边界（<10mm 或 >690mm），严禁继续向该方向移动\n" +
+      "  - 如果收到边界错误反馈，必须停止或反向移动\n" +
       "- **Parameters**:\n" +
       "  - `direction`: 1 (左移), 2 (右移), 0 (停止)\n" +
-      "  - `distance_mm`: 移动距离 (数字，单位毫米)。滑台总行程 700mm。\n" +
+      "  - `distance_mm`: 移动距离（毫米），建议10-100mm，避免一次移动过远\n" +
+      "- **边界检查逻辑**（必须遵守）:\n" +
+      "```javascript\n" +
+      "// 1. 获取当前位置（毫米）\n" +
+      "const currentPos = deviceData.stepper_position / 160;\n" +
+      "// 2. 左移前检查\n" +
+      "if (direction === 1 && currentPos <= 10) {\n" +
+      "  // 已接近左边界，严禁左移！告知用户或选择右移\n" +
+      "}\n" +
+      "// 3. 右移前检查\n" +
+      "if (direction === 2 && currentPos >= 690) {\n" +
+      "  // 已接近右边界，严禁右移！告知用户或选择左移\n" +
+      "}\n" +
+      "```\n" +
       "- **Action**: `reset_camera` (将滑台复位到最左侧原点 0mm 处)\n" +
       "- **示例**:\n" +
       "```json\n" +
-      '{\n  "action": "control_camera",\n  "direction": 1,\n  "distance_mm": 100\n}\n' +
+      '{\n  "action": "control_camera",\n  "direction": 1,\n  "distance_mm": 50\n}\n' +
       "```\n\n" +
       "注意：每次回复最多包含一个步骤的命令。如果需要操作多个设备，可在同一个回复中输出多个 JSON 块。不要在一个回复中完成跨时间段的任务。\n"
 
@@ -464,18 +588,25 @@ export async function POST(req: Request) {
       "8. 不要在正文中直接展开 JSON\n" +
       "9. **🚨 严禁编造任何链接、网址或引用信息！所有链接必须来自真实的工具调用结果！**"
     const reasoningInstruction =
-      "**重要：必须在回答之前先展示思考过程！**\n" +
-      "1. 在生成最终答案之前，必须先输出你的思考过程\n" +
-      "2. 使用 <REASONING> 与 </REASONING> 标签包裹思考内容\n" +
+      "**重要：正确使用 REASONING 标签！**\n" +
+      "1. <REASONING> 标签**仅用于展示思考过程**，不是用来放最终答案的！\n" +
+      "2. 使用 <REASONING> 与 </REASONING> 标签包裹**思考过程**\n" +
       "3. 思考内容应该包括：问题分析、解决思路、关键步骤等\n" +
-      "4. 思考过程用中文表达，简洁清晰\n" +
+      "4. **最终答案必须放在 </REASONING> 标签之后**\n" +
       "5. 格式示例：\n" +
       "<REASONING>\n" +
-      "1. 分析用户问题：...\n" +
-      "2. 确定解决方案：...\n" +
-      "3. 执行步骤：...\n" +
-      "</REASONING>\n" +
-      "然后再输出最终答案。该思考块会在前端以可折叠卡片形式展示。"
+      "1. 分析用户问题：用户想要...\n" +
+      "2. 确定解决方案：我需要先...再...\n" +
+      "3. 执行步骤：第一步...第二步...\n" +
+      "</REASONING>\n\n" +
+      "基于以上分析，我的建议是...（这里是最终答案，必须放在标签外面）\n\n" +
+      "**严禁行为：**\n" +
+      "- ❌ 把所有内容都放在 <REASONING> 里\n" +
+      "- ❌ 把最终结论放在 <REASONING> 里\n" +
+      "- ❌ 不输出标签外的内容\n\n" +
+      "**记住：**\n" +
+      "- <REASONING> 里面 = 思考过程（用户可以折叠隐藏）\n" +
+      "- <REASONING> 外面 = 最终答案（用户必须看到的）"
     const tasksInstruction =
       "如果在执行具体工作流程，请在回复末尾使用 <TASKS> 与 </TASKS> 包裹一个 JSON 数组，数组项包含 title、items、status。items 为对象数组，包含 type('text'|'file')、text 以及可选的 file{name, icon}。该块用于前端展示任务进度，并会从最终正文中移除。"
     const chartInstruction =
@@ -512,7 +643,7 @@ export async function POST(req: Request) {
 
     // MCP 工具说明 — 引导 AI 主动使用 Function Calling
     const mcpToolsInstruction = mcpToolDefs.length > 0
-      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力。请注意：对于这些工具，**必须使用原生 Function Calling (tool_calls)**，严禁使用 JSON 文本格式输出！\n\n可用工具列表：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**🚨 严格执行规则：**\n1. **严禁**在回复中直接输出类似 \`{"action": "xxx"}\` 的 JSON 来调用这些工具。必须使用系统提供的 tool_calls 接口。\n2. **严禁编造、虚构或猜测任何信息**！当用户询问需要搜索的内容时，你**必须**主动调用搜索工具获取真实数据。\n3. **搜索类请求强制调用**：当用户说"帮我查"、"帮我搜"、"我想知道"、"找一下"、"搜索"等时，你**必须立即**调用相应的搜索工具，**绝对不能**凭记忆或编造答案。\n4. **禁止编造链接**：严禁编造任何网址、链接或引用。所有链接必须来自真实的工具调用结果。\n5. 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n6. 当用户询问天气、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据。\n7. 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n8. 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n9. 不需要询问用户是否调用工具，直接调用即可。\n\n**⚠️ 特别警告：**\n- 如果你没有调用工具就回答了需要搜索的问题，这是严重错误！\n- 如果你编造了任何链接或信息，这是严重违规！\n- 必须先调用工具获取真实数据，再基于结果回答用户。\n- **严禁在回复中输出 <TOOL_USED> 标签！** 这个标签只能由系统自动生成，你不能手动输出。\n- **如果你想使用工具，必须通过 tool_calls 接口调用，而不是输出任何文本标签。**\n- **只有真正通过 tool_calls 调用的工具才会被系统识别和执行。**\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
+      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力。请注意：对于这些工具，**必须使用原生 Function Calling (tool_calls)**，严禁使用 JSON 文本格式输出！\n\n可用工具列表：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**🚨 严格执行规则：**\n1. **严禁**在回复中直接输出类似 \`{"action": "xxx"}\` 或 \`{"name": "get_all_spectrum", "arguments": {}}\` 的 JSON 来调用这些工具。必须使用系统提供的 tool_calls 接口。\n   - ❌ 错误示例：直接输出 \`{"name": "get_all_spectrum", "arguments": {}}\`\n   - ✅ 正确做法：使用 Native Tool Calling（系统会自动处理）\n   - ✅ 正确做法：工具调用完成后，用自然语言解释结果\n2. **严禁编造、虚构或猜测任何信息**！当用户询问需要搜索的内容时，你**必须**主动调用搜索工具获取真实数据。\n3. **搜索类请求强制调用**：当用户说"帮我查"、"帮我搜"、"我想知道"、"找一下"、"搜索"等时，你**必须立即**调用相应的搜索工具，**绝对不能**凭记忆或编造答案。\n4. **禁止编造链接**：严禁编造任何网址、链接或引用。所有链接必须来自真实的工具调用结果。\n5. 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n6. 当用户询问天气、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据。\n7. 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n8. 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n9. 不需要询问用户是否调用工具，直接调用即可。\n\n**⚠️ 特别警告：**\n- 如果你没有调用工具就回答了需要搜索的问题，这是严重错误！\n- 如果你编造了任何链接或信息，这是严重违规！\n- 必须先调用工具获取真实数据，再基于结果回答用户。\n- **严禁在回复中输出 <TOOL_USED> 标签！** 这个标签只能由系统自动生成，你不能手动输出。\n- **如果你想使用工具，必须通过 tool_calls 接口调用，而不是输出任何文本标签。**\n- **只有真正通过 tool_calls 调用的工具才会被系统识别和执行。**\n- **严禁在回复中直接输出工具调用的JSON！用户看到的应该是自然语言，不是JSON代码！**\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
       : ""
 
     // 检测是否使用DashScope API
@@ -707,12 +838,22 @@ export async function POST(req: Request) {
           return m
       })
 
-      const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
+      const contextCompressedInstruction = contextCompressed ? `\n\n⚠️ 历史已压缩，请在回复开头输出 \`<CONTEXT_COMPRESSED/>\` 标签\n` : ""
+
+      // 使用精简的系统提示词以减少Token消耗
+      const compactSystemPrompt = generateCompactSystemPrompt({
+        basePrompt: finalSystemPrompt,
+        enableDeviceControl: mandatorySkillsEnabled !== false,
+        enableReasoning: enableReasoning,
+        mcpToolNames: mcpToolDefs.map(t => t.function.name),
+        contextCompressed: contextCompressed,
+        aiFeatures: aiFeatures
+      });
 
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${mcpInstallationHint}${contextCompressedInstruction}`,
+          content: compactSystemPrompt + mcpInstallationHint,
         },
         ...finalMessages,
       ]
@@ -732,8 +873,17 @@ export async function POST(req: Request) {
       }
     } else if (isDashScope) {
       // DashScope 原生API格式
-      const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
-      const systemMessage = `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${mcpInstallationHint}${contextCompressedInstruction}`
+      const contextCompressedInstruction = contextCompressed ? `\n\n⚠️ 历史已压缩，请在回复开头输出 \`<CONTEXT_COMPRESSED/>\` 标签\n` : ""
+      
+      // 使用精简的系统提示词
+      const systemMessage = generateCompactSystemPrompt({
+        basePrompt: finalSystemPrompt,
+        enableDeviceControl: mandatorySkillsEnabled !== false,
+        enableReasoning: enableReasoning,
+        mcpToolNames: mcpToolDefs.map(t => t.function.name),
+        contextCompressed: contextCompressed,
+        aiFeatures: aiFeatures
+      }) + mcpInstallationHint;
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
@@ -773,12 +923,22 @@ export async function POST(req: Request) {
       }
     } else {
       // OpenAI 兼容模式
-      const contextCompressedInstruction = contextCompressed ? `\n\n【重要指令】\n为了节省显存，较早的对话历史刚刚已被后台压缩并折叠。你必须在你的回复的**最开头**输出 \`<CONTEXT_COMPRESSED/>\` 这一标签，以在前端触发一条给用户的提示横幅，然后再正常回复用户。\n` : ""
+      const contextCompressedInstruction = contextCompressed ? `\n\n⚠️ 历史已压缩，请在回复开头输出 \`<CONTEXT_COMPRESSED/>\` 标签\n` : ""
+      
+      // 使用精简的系统提示词
+      const compactSystemPrompt = generateCompactSystemPrompt({
+        basePrompt: finalSystemPrompt,
+        enableDeviceControl: mandatorySkillsEnabled !== false,
+        enableReasoning: enableReasoning,
+        mcpToolNames: mcpToolDefs.map(t => t.function.name),
+        contextCompressed: contextCompressed,
+        aiFeatures: aiFeatures
+      });
       
       fullMessages = [
         {
           role: "system",
-          content: `${finalSystemPrompt}\n\n${mandatorySkillsEnabled !== false ? deviceControlInstruction : ""}\n\n${enableReasoning ? reasoningInstruction : ""}\n\n${citationInstruction}\n\n${tasksInstruction}\n\n${chartInstruction}\n\n${monitorInstruction}\n\n${bentoInstruction}\n\n${controlBentoInstruction}\n\n${taskListInstruction}\n\n${axisInstruction}\n\n${toolUsageInstruction}${mcpToolsInstruction}${contextCompressedInstruction}`,
+          content: compactSystemPrompt + mcpInstallationHint,
         },
         ...userMessages,
       ]
@@ -822,6 +982,29 @@ export async function POST(req: Request) {
           const keepAlive = setInterval(() => {
             try { controller.enqueue(encoder.encode(": keep-alive\n\n")) } catch { clearInterval(keepAlive) }
           }, 5000)
+
+          // === 初始化 Agent 编排器 ===
+          const sessionId = `session-${user.id}-${Date.now()}`;
+          const orchestrator = createOrchestrator(sessionId, {
+            enableMemory: true,
+            enableMonitoring: true,
+            enableLogging: true
+          });
+
+          // 注册到全局管理器
+          globalOrchestratorManager.register(sessionId, orchestrator);
+
+          const agentContext: AgentContext = {
+            userId: user.id as number,
+            sessionId,
+            conversationHistory: fullMessages,
+            deviceData: deviceStatus,
+            weatherData,
+            mcpConfigs,
+            appUrl
+          };
+
+          console.log(`[Orchestrator] Initialized for user ${user.id}, session ${sessionId}`);
 
           try {
             // 0. 发送上下文同步事件 (如果发生压缩)
@@ -915,12 +1098,26 @@ export async function POST(req: Request) {
 
                       if (delta?.content) {
                         accumulatedContent += delta.content
+                        
+                        // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON
+                        let filteredContent = filterBareTaskListJson(delta.content)
+                        
+                        // 🔥 应用功能禁用过滤器
+                        filteredContent = filterDisabledFeatures(filteredContent, aiFeatures)
+                        
                         // 始终推送 content 给前端展示，剥离 tool_calls 避免前端意外处理
                         const cleanJson = JSON.parse(JSON.stringify(json))
                         if (cleanJson.choices?.[0]?.delta?.tool_calls) {
                            delete cleanJson.choices[0].delta.tool_calls
                         }
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(cleanJson)}\n\n`))
+                        // 使用过滤后的内容
+                        if (cleanJson.choices?.[0]?.delta) {
+                          cleanJson.choices[0].delta.content = filteredContent
+                        }
+                        // 只有在过滤后还有内容时才发送
+                        if (filteredContent) {
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(cleanJson)}\n\n`))
+                        }
                       }
                     } catch (e) { }
                   }
@@ -946,43 +1143,90 @@ export async function POST(req: Request) {
                   agent_iteration: iteration
                 })}\n\n`))
 
-                // 执行工具
+                // 执行工具 - 使用智能并行执行以提升性能
+                console.log(`[Agent Loop] Round ${iteration} - Executing ${toolCalls.length} tools`);
+
+                // 准备工具调用对象
+                const toolCallObjects = [];
                 for (const toolCall of toolCalls) {
-                  const fnName = toolCall.function.name
-                  let fnArgs = {}
-                  let parseError = ""
+                  let fnArgs = {};
+                  let parseError = "";
                   
                   try { 
                     fnArgs = JSON.parse(toolCall.function.arguments || '{}') 
                   } catch (e: any) { 
-                    parseError = e.message 
-                    console.error(`[Agent Loop] Failed to parse tool arguments for ${fnName}:`, parseError, "Raw:", toolCall.function.arguments)
+                    parseError = e.message;
+                    console.error(`[Agent Loop] Failed to parse tool arguments:`, parseError);
                   }
 
-                  let result: any = null;
-                  
                   if (parseError) {
-                    // Send explicit JSON correction instructions back to the model
-                    result = { 
-                      success: false, 
-                      error: `工具调用的 JSON 格式解析失败 (SyntaxError: ${parseError})。请完全修正格式错误后重试！\n注意：arguments 参数必须是一个纯粹且闭合的合法 JSON 对象，且不要向 JSON 内混杂 Markdown 代码块标记。` 
-                    };
-                  } else {
-                    result = await executeMCPToolCall(fnName, fnArgs, mcpConfigs, appUrl)
+                    // 直接添加错误结果
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCall.id,
+                      content: JSON.stringify({ 
+                        success: false, 
+                        error: `JSON解析失败: ${parseError}` 
+                      })
+                    });
+                    continue;
                   }
                   
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    id: `tool-result-${Date.now()}`, object: "chat.completion.chunk",
-                    created: Date.now(), model: effectiveModel,
-                    tool_result: { name: fnName, args: fnArgs, result: result.success ? result.data : { error: result.error } }
-                  })}\n\n`))
+                  toolCallObjects.push({
+                    id: toolCall.id,
+                    name: toolCall.function.name,
+                    arguments: fnArgs,
+                    timestamp: Date.now()
+                  });
+                }
 
+                // 并行执行工具（带进度回调）
+                const toolResults = await executeToolCallsSmart(
+                  toolCallObjects,
+                  orchestrator,
+                  agentContext,
+                  (completed, total, currentTool) => {
+                    // 发送进度更新到前端
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `tool-progress-${Date.now()}`,
+                      object: "chat.completion.chunk",
+                      created: Date.now(),
+                      model: effectiveModel,
+                      tool_progress: {
+                        completed,
+                        total,
+                        current: currentTool
+                      }
+                    })}\n\n`));
+                  }
+                );
+
+                // 处理结果并添加到消息历史
+                for (const [toolCallId, result] of toolResults.entries()) {
+                  const toolCall = toolCalls.find(tc => tc.id === toolCallId);
+                  if (!toolCall) continue;
+
+                  // 发送工具结果到前端
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `tool-result-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    tool_result: {
+                      name: toolCall.function.name,
+                      args: JSON.parse(toolCall.function.arguments || '{}'),
+                      result: result.success ? result.data : { error: result.error }
+                    }
+                  })}\n\n`));
+
+                  // 添加到消息历史
                   fullMessages.push({
                     role: 'tool',
-                    tool_call_id: toolCall.id,
+                    tool_call_id: toolCallId,
                     content: JSON.stringify(result.success ? result.data : { error: result.error })
-                  })
+                  });
                 }
+                
                 requestBody = { ...requestBody, messages: fullMessages }
                 continue
               } else {
@@ -996,6 +1240,30 @@ export async function POST(req: Request) {
             clearInterval(keepAlive)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
+            // 生成性能报告并记录
+            const metrics = orchestrator.getMetrics();
+            const toolStats = orchestrator.getToolStats();
+            console.log(`[Orchestrator] Session ${sessionId} completed:`, {
+              metrics,
+              toolStats
+            });
+
+            // === 自动学习：从对话中学习用户偏好和模式 ===
+            try {
+              await learnFromConversation({
+                userId: user.id as number,
+                userMessage: lastUserText,
+                aiResponse: fullMessages.filter(m => m.role === 'assistant').map(m => m.content).join('\n')
+              });
+              console.log('[AutoLearning] Learned from conversation');
+            } catch (e) {
+              console.error('[AutoLearning] Failed to learn from conversation:', e);
+            }
+
+            // 清理编排器
+            globalOrchestratorManager.unregister(sessionId);
+            orchestrator.cleanup();
+
             // 扣除配额
             if (useSystemKey) {
               try { await incrementAiUsage(user.id as number) } catch (e) { }
@@ -1005,6 +1273,11 @@ export async function POST(req: Request) {
           } catch (err: any) {
             clearInterval(keepAlive)
             console.error('[Agent Loop Error]', err)
+            
+            // 清理编排器
+            globalOrchestratorManager.unregister(sessionId);
+            orchestrator.cleanup();
+            
             controller.enqueue(encoder.encode(`data: {"error": "Agent loop error: ${err.message}"}\n\n`))
             controller.close()
           }
@@ -1101,14 +1374,19 @@ export async function POST(req: Request) {
                         }
 
                         if (next) {
-                          const openaiFormat = {
-                            id: json.request_id,
-                            object: "chat.completion.chunk",
-                            created: Date.now(),
-                            model: model,
-                            choices: [{ index: 0, delta: { content: next }, finish_reason: null }],
+                          // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON
+                          const filteredNext = filterBareTaskListJson(next)
+                          
+                          if (filteredNext) {
+                            const openaiFormat = {
+                              id: json.request_id,
+                              object: "chat.completion.chunk",
+                              created: Date.now(),
+                              model: model,
+                              choices: [{ index: 0, delta: { content: filteredNext }, finish_reason: null }],
+                            }
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
                           }
-                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
                         }
                       }
                     } catch { }

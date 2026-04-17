@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, Circle, Clock } from "lucide-react";
 import { SkillStore } from "@/components/ai/skill-store"
 import { UnifiedExplore } from "@/components/explore/unified-explore"
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
@@ -93,16 +93,22 @@ import { CalendarTrigger } from "@/components/ai/calendar-trigger"
 import SiriOrb from "@/components/smoothui/siri-orb"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
 import { MCPToolDisplay } from "@/components/ai/mcp-tool-display"
+import { useAIFeatures } from "@/lib/hooks/use-ai-features"
+import { DeviceControlDisplay } from "@/components/studio/device-control-display"
 import { AgentExecutionChain, type AgentStep } from "@/components/ai/agent-execution-chain"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
-import { AutomationStrategyCard } from '@/components/automation-strategy-card';
+import { ClientScheduledTasks } from '@/components/ai/client-scheduled-tasks'
+import { useClientScheduler } from '@/lib/ai/client-scheduler'
+import { parseScheduleTask, removeScheduleTaskTag, getScheduleTaskSystemPrompt } from '@/lib/ai/schedule-task-parser'
+import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 
 import { BrowserActivity } from "@/components/ai/browser-activity"
 import { WebPreview, WebPreviewNavigation, WebPreviewNavigationButton, WebPreviewUrl, WebPreviewBody } from "@/components/ai/web-preview"
 
 import { DeviceControlCard } from "@/components/ai/device-control-card"
 import { HTMLPreviewCard } from "@/components/ai/html-preview-card"
+import { AIControlBorderEffect } from "@/components/ai/ai-control-border-effect"
 
 import { LiveStreamPlayer } from "@/components/live-stream-player"
 
@@ -125,6 +131,7 @@ interface Message {
   tasks?: TaskModel[]
   model?: string // 添加模型字段
   isSilent?: boolean // 是否在 UI 中隐藏
+  commandErrors?: Record<number, string> // 存储命令执行错误，key为命令索引
 }
 
 interface AISettings {
@@ -152,7 +159,23 @@ interface SessionMeta { id: string; title: string; createdAt: number; updatedAt:
 // 任务列表组件 (Dynamic Task Planner) - 参考设计实现
 const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: { content: string, onOpenStudio?: () => void, isPaused?: boolean, onTogglePause?: (paused: boolean) => void }) => {
   const [isVisible, setIsVisible] = useState(true)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [autoCollapse, setAutoCollapse] = useState(() => {
+    // 从 localStorage 读取用户的自动折叠偏好
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('task-planner-auto-collapse')
+      return saved === 'true'
+    }
+    return false
+  })
   const [elapsedTime, setElapsedTime] = useState(0)
+  
+  // 持久化 autoCollapse 状态到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('task-planner-auto-collapse', String(autoCollapse))
+    }
+  }, [autoCollapse])
 
   const tasksData = (() => {
     try {
@@ -164,6 +187,26 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
 
   const tasks = tasksData?.tasks || []
   const allCompleted = tasks.length > 0 && tasks.every((t: any) => t.status === 'completed');
+  
+  // 自动折叠逻辑：当任务完成且启用自动折叠时
+  useEffect(() => {
+    console.log('[DynamicTaskPlanner] State:', { autoCollapse, allCompleted, isCollapsed })
+    if (autoCollapse && allCompleted && !isCollapsed) {
+      const timer = setTimeout(() => {
+        console.log('[DynamicTaskPlanner] Auto-collapsing...')
+        setIsCollapsed(true)
+      }, 2000) // 2秒后自动折叠
+      return () => clearTimeout(timer)
+    }
+  }, [autoCollapse, allCompleted, isCollapsed])
+  
+  // 当有新任务开始时，自动展开（独立的 effect）
+  useEffect(() => {
+    if (!allCompleted && isCollapsed) {
+      console.log('[DynamicTaskPlanner] Auto-expanding because task is active...')
+      setIsCollapsed(false)
+    }
+  }, [allCompleted]) // 只依赖 allCompleted，避免循环
 
   useEffect(() => {
     if (!isVisible || isPaused || allCompleted) return
@@ -212,18 +255,51 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
              </div>
           </div>
           
-          <button 
-            onClick={onOpenStudio}
-            className="group/btn flex items-center gap-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all px-4 py-2 rounded-full bg-zinc-100 hover:bg-blue-50 dark:bg-zinc-800 dark:hover:bg-blue-900/20 border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30"
-          >
-            <Zap size={14} className="fill-current group-hover/btn:scale-110 transition-transform" />
-            <span>打开工作室</span>
-            <ArrowUpRight size={14} className="opacity-50 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* 自动折叠开关 */}
+            <button
+              onClick={() => setAutoCollapse(!autoCollapse)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
+                autoCollapse 
+                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" 
+                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              )}
+              title={autoCollapse ? "已启用自动折叠" : "点击启用自动折叠"}
+            >
+              {autoCollapse ? <CheckCircle2 size={12} /> : <Circle size={12} />}
+              <span>自动折叠</span>
+            </button>
+            
+            {/* 手动折叠按钮 */}
+            <button
+              onClick={() => {
+                console.log('[DynamicTaskPlanner] Manual toggle, current:', isCollapsed, '-> new:', !isCollapsed)
+                setIsCollapsed(!isCollapsed)
+              }}
+              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              title={isCollapsed ? "展开任务" : "折叠任务"}
+            >
+              {isCollapsed ? <ChevronDown size={16} className="text-zinc-600 dark:text-zinc-400" /> : <ChevronUp size={16} className="text-zinc-600 dark:text-zinc-400" />}
+            </button>
+            
+            <button 
+              onClick={onOpenStudio}
+              className="group/btn flex items-center gap-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all px-4 py-2 rounded-full bg-zinc-100 hover:bg-blue-50 dark:bg-zinc-800 dark:hover:bg-blue-900/20 border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30"
+            >
+              <Zap size={14} className="fill-current group-hover/btn:scale-110 transition-transform" />
+              <span>打开工作室</span>
+              <ArrowUpRight size={14} className="opacity-50 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+            </button>
+          </div>
         </div>
         
-        {/* Body */}
-        <div className="flex flex-col sm:flex-row">
+        {/* Body - 可折叠 */}
+        <div className={cn(
+          "transition-all duration-500 ease-in-out overflow-hidden",
+          isCollapsed ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
+        )}>
+          <div className="flex flex-col sm:flex-row">
           {/* Left: Professional Stepper */}
           <div className="w-full sm:w-[200px] md:w-[240px] border-r border-zinc-100 dark:border-white/5 p-6 space-y-7 bg-zinc-50/30 dark:bg-black/10">
             {tasks.map((task: any, idx: number) => {
@@ -380,6 +456,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
               )}
             </div>
           </div>
+        </div>
         </div>
       </div>
     )
@@ -540,18 +617,40 @@ function AIAssistantContent() {
     playNextTtsAudio()
   }
 
-  const [autoExecuteCommands, setAutoExecuteCommands] = useState(true) // AI自动执行设备控制
+  // 自动执行命令已整合到助手模式中，不再需要单独的状态
   const [isExecutingControl, setIsExecutingControl] = useState(false) // 正在执行设备控制（用于发光动效）
   const [executingDeviceName, setExecutingDeviceName] = useState<string>("") // 正在操作的设备名称
   const [devicePillExpanded, setDevicePillExpanded] = useState(false) // 控制胶囊展开动画
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("")
+  const [assistantMode, setAssistantMode] = useState<'chat' | 'automation' | 'expert'>(() => {
+    // 从localStorage读取上次选择的模式，默认为chat
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ai-assistant-mode')
+      if (saved === 'chat' || saved === 'automation' || saved === 'expert') {
+        return saved
+      }
+    }
+    return 'chat'
+  })
   const [attachments, setAttachments] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  
+  // 持久化assistantMode到localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ai-assistant-mode', assistantMode)
+      console.log('[Mode Debug] Current assistantMode:', assistantMode, 'autoExecuteCommands:', assistantMode === 'automation' || assistantMode === 'expert')
+    }
+  }, [assistantMode])
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
   const [showPlanDialog, setShowPlanDialog] = useState(false)
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{ open: boolean; session: { id: number; title: string } | null }>({ open: false, session: null })
   const [greeting, setGreeting] = useState("晚上好")
+  
+  // 自动执行命令 - 只有自动化和专家模式才自动执行
+  // 对话模式下AI会输出JSON，但需要用户手动点击执行按钮
+  const autoExecuteCommands = assistantMode === 'automation' || assistantMode === 'expert'
   
   // MCP Tool Mention State
   const [availableTools, setAvailableTools] = useState<{name: string, description: string, displayName?: string}[]>([])
@@ -560,6 +659,16 @@ function AIAssistantContent() {
   
   // Browser Activity State
   const [browsingUrl, setBrowsingUrl] = useState<string | null>(null)
+  
+  // Client Scheduler Hook
+  const { scheduleTask } = useClientScheduler()
+  
+  // AI Features Configuration Hook
+  const { config: aiFeatures } = useAIFeatures()
+  console.log('[AI Features] Current config:', aiFeatures)
+  
+  // 创建 handleSend 的 ref，确保在定时任务回调中可以访问最新的 handleSend
+  const handleSendRef = useRef<typeof handleSend | null>(null)
   
   // Store State
   const [storeOpen, setStoreOpen] = useState(false)
@@ -619,8 +728,11 @@ function AIAssistantContent() {
   // Studio Panel State
   const [studioOpen, setStudioOpen] = useState(false)
   const [studioData, setStudioData] = useState<any[]>([]) // 存储真实的工具执行结果
+  const [studioTab, setStudioTab] = useState<'tools' | 'tasks'>('tools') // 新增：Studio 标签页状态
   const [currentBrowserUrl, setCurrentBrowserUrl] = useState<string | null>(null) // 工作室内部的浏览器URL
   const [browserScreenshot, setBrowserScreenshot] = useState<string | null>(null) // 新增：浏览器截图数据
+  const [visionInspectionUrl, setVisionInspectionUrl] = useState<string | null>(null) // AI 视觉巡检的摄像头 URL
+  const [visionInspectionStatus, setVisionInspectionStatus] = useState<string>('') // 巡检状态文本
 
   // 全局任务暂停状态 (Real Execution Pause)
   const [isTaskPaused, setIsTaskPaused] = useState(false)
@@ -782,6 +894,22 @@ function AIAssistantContent() {
   }, [input])
   const { deviceData } = useDeviceData()
   const { weatherData } = useWeatherContext()
+  
+  // 🔥 当 AI 功能配置变化时，重新过滤所有消息
+  useEffect(() => {
+    if (!aiFeatures) return
+    
+    setMessages(prev => prev.map(msg => {
+      if (msg.role === 'assistant' && typeof msg.content === 'string') {
+        const filtered = filterDisabledFeatures(msg.content, aiFeatures)
+        if (filtered !== msg.content) {
+          console.log('[AI Features] Re-filtered message due to config change')
+          return { ...msg, content: filtered }
+        }
+      }
+      return msg
+    }))
+  }, [aiFeatures])
   
   // 使用 Ref 追踪最新的数据，避免闭包陷阱
   const deviceDataRef = useRef(deviceData)
@@ -1078,6 +1206,14 @@ function AIAssistantContent() {
 
       try {
         if (cmd.action === "set_led") {
+          // 🔥 检查设备控制功能是否被禁用
+          if (aiFeatures.enableDeviceControl === false) {
+            console.log('[Device Control] Feature disabled by admin')
+            showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
+            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            continue // 跳过此命令
+          }
+          
           // 循环检测暂停状态
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
@@ -1088,19 +1224,58 @@ function AIAssistantContent() {
           // 先显示小圆点，再展开
           setExecutingDeviceName("植物全光谱补光灯")
           setTimeout(() => setDevicePillExpanded(true), 150)
+          
+          // 打开工作室并添加到工作室数据
+          setStudioOpen(true)
+          setStudioData(prev => [...prev, {
+            name: 'set_led',
+            input: { r: cmd.r, g: cmd.g, b: cmd.b },
+            result: { status: 'executing', message: '正在设置补光灯...' }
+          }])
+          
           const res = await fetch('/api/ai/device-control', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'set_led', r: cmd.r, g: cmd.g, b: cmd.b })
           })
+          
+          // 更新工作室状态
           if (res.ok) {
+            setStudioData(prev => {
+              const newData = [...prev]
+              const lastIdx = newData.findLastIndex(d => d.name === 'set_led')
+              if (lastIdx >= 0) {
+                newData[lastIdx].result = { 
+                  status: 'success', 
+                  message: `补光灯已设置 (R:${cmd.r} G:${cmd.g} B:${cmd.b})`,
+                  color: { r: cmd.r, g: cmd.g, b: cmd.b }
+                }
+              }
+              return newData
+            })
             showNotice("调控成功 ✅", `已开启补光灯 (R:${cmd.r} G:${cmd.g} B:${cmd.b})`, "success")
           } else {
             let err = ''
             try { const j = await res.json(); err = j?.error || '' } catch { }
+            setStudioData(prev => {
+              const newData = [...prev]
+              const lastIdx = newData.findLastIndex(d => d.name === 'set_led')
+              if (lastIdx >= 0) {
+                newData[lastIdx].result = { status: 'error', error: err || `请求错误 ${res.status}` }
+              }
+              return newData
+            })
             showNotice("调控失败", err || `请求错误 ${res.status}`, "error")
           }
         } else if (cmd.action === "toggle_relay") {
+          // 🔥 检查设备控制功能是否被禁用
+          if (aiFeatures.enableDeviceControl === false) {
+            console.log('[Device Control] Feature disabled by admin')
+            showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
+            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            continue // 跳过此命令
+          }
+          
           // 循环检测暂停状态
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
@@ -1113,6 +1288,14 @@ function AIAssistantContent() {
           setExecutingDeviceName(devName)
           setTimeout(() => setDevicePillExpanded(true), 150)
           
+          // 打开工作室并添加到工作室数据
+          setStudioOpen(true)
+          setStudioData(prev => [...prev, {
+            name: 'toggle_relay',
+            input: { device: cmd.device, value: cmd.value, deviceName: devName },
+            result: { status: 'executing', message: `正在${cmd.value === 1 ? '开启' : '关闭'}${devName}...` }
+          }])
+          
           // 如果是开启补光灯 (relay7)，由于 set_led 也会控制 relay7，这里可以增加一个判断或合并逻辑
           // 但目前保持独立调用以兼容旧设备逻辑
           
@@ -1121,14 +1304,45 @@ function AIAssistantContent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'toggle_relay', device: cmd.device, value: cmd.value })
           })
+          
+          // 更新工作室状态
           if (res.ok) {
+            setStudioData(prev => {
+              const newData = [...prev]
+              const lastIdx = newData.findLastIndex(d => d.name === 'toggle_relay')
+              if (lastIdx >= 0) {
+                newData[lastIdx].result = { 
+                  status: 'success', 
+                  message: `${devName} 已${cmd.value === 1 ? '开启' : '关闭'}`,
+                  device: cmd.device,
+                  value: cmd.value
+                }
+              }
+              return newData
+            })
             showNotice("开关执行成功 ✅", `${devName} 已${cmd.value === 1 ? '开启' : '关闭'}`, "success")
           } else {
             let err = ''
             try { const j = await res.json(); err = j?.error || '' } catch { }
+            setStudioData(prev => {
+              const newData = [...prev]
+              const lastIdx = newData.findLastIndex(d => d.name === 'toggle_relay')
+              if (lastIdx >= 0) {
+                newData[lastIdx].result = { status: 'error', error: err || `请求错误 ${res.status}` }
+              }
+              return newData
+            })
             showNotice("开关执行失败", err || `请求错误 ${res.status}`, "error")
           }
         } else if (cmd.action === "control_camera") {
+          // 🔥 检查设备控制功能是否被禁用
+          if (aiFeatures.enableDeviceControl === false) {
+            console.log('[Device Control] Feature disabled by admin')
+            showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
+            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            continue // 跳过此命令
+          }
+          
           // 循环检测暂停状态
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
@@ -1136,25 +1350,106 @@ function AIAssistantContent() {
           }
           if (isStoppedRef.current) break
 
+          // 边界检查 - 防止无效移动
+          const currentPos = (deviceDataRef.current?.stepper_position || 0) / 160 // 转换为mm
+          const direction = cmd.direction ?? 0
+          
+          // 检查左边界
+          if (direction === 1 && currentPos <= 10) {
+            showNotice("云台控制失败", `已经在最左侧（${currentPos.toFixed(1)}mm），无法继续左移`, "error")
+            const feedbackMsg = `【系统反馈】云台已经在最左侧（${currentPos.toFixed(1)}mm / 700mm），无法继续左移。请选择右移（direction: 2）或停止（direction: 0）。`
+            handleSend(feedbackMsg, [], true, true)
+            hasSentCustomFeedback = true
+            continue // 跳过这个命令
+          }
+          
+          // 检查右边界
+          if (direction === 2 && currentPos >= 690) {
+            showNotice("云台控制失败", `已经在最右侧（${currentPos.toFixed(1)}mm），无法继续右移`, "error")
+            const feedbackMsg = `【系统反馈】云台已经在最右侧（${currentPos.toFixed(1)}mm / 700mm），无法继续右移。请选择左移（direction: 1）或停止（direction: 0）。`
+            handleSend(feedbackMsg, [], true, true)
+            hasSentCustomFeedback = true
+            continue // 跳过这个命令
+          }
+
           // 摄像头云台控制
           const directionNames = ['停止', '左移', '右移']
-          const dirName = directionNames[cmd.direction ?? 0] || '控制'
+          const dirName = directionNames[direction] || '控制'
           setExecutingDeviceName("摄像头云台")
           setTimeout(() => setDevicePillExpanded(true), 150)
+          
+          // 打开工作室并添加到工作室数据
+          setStudioOpen(true)
+          setStudioData(prev => [...prev, {
+            name: 'control_camera',
+            input: { 
+              direction: cmd.direction, 
+              pulses: cmd.pulses, 
+              distance_mm: cmd.distance_mm || (cmd.pulses ? (cmd.pulses / 160).toFixed(1) : undefined),
+              currentPos: currentPos.toFixed(1)
+            },
+            result: { status: 'executing', message: `正在${dirName}摄像头云台...` }
+          }])
+          
           const res = await fetch('/api/ai/device-control', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'control_camera', direction: cmd.direction, pulses: cmd.pulses })
+            body: JSON.stringify({ 
+              action: 'control_camera', 
+              direction: cmd.direction, 
+              pulses: cmd.pulses,
+              distance_mm: cmd.distance_mm  // 添加distance_mm支持
+            })
           })
+          
+          // 更新工作室状态
           if (res.ok) {
+            setStudioData(prev => {
+              const newData = [...prev]
+              const lastIdx = newData.findLastIndex(d => d.name === 'control_camera')
+              if (lastIdx >= 0) {
+                newData[lastIdx].result = { 
+                  status: 'success', 
+                  message: `摄像头云台${dirName}完成`,
+                  direction: cmd.direction,
+                  pulses: cmd.pulses
+                }
+              }
+              return newData
+            })
             showNotice("云台控制成功 ✅", `摄像头云台${dirName}`, "success")
           } else {
             let err = ''
             try { const j = await res.json(); err = j?.error || '' } catch { }
+            
+            // 检查是否是边界错误，如果是则发送反馈给AI
+            if (err.includes('边界') || err.includes('limit') || err.includes('已经到达') || err.includes('原点')) {
+              const feedbackMsg = `【系统反馈】云台移动失败：${err}。当前位置：${currentPos.toFixed(1)}mm / 700mm。请重新分析位置并选择正确的移动方向，或停止移动。`
+              handleSend(feedbackMsg, [], true, true)
+              hasSentCustomFeedback = true
+            }
+            
+            setStudioData(prev => {
+              const newData = [...prev]
+              const lastIdx = newData.findLastIndex(d => d.name === 'control_camera')
+              if (lastIdx >= 0) {
+                newData[lastIdx].result = { status: 'error', error: err || `请求错误 ${res.status}` }
+              }
+              return newData
+            })
             showNotice("云台控制失败", err || `请求错误 ${res.status}`, "error")
           }
         } else if (cmd.action === "move_camera_and_look") {
           // AI 视觉巡检：移动云台 + 截图 + 发送VLM分析
+          
+          // 🔥 检查视觉巡检功能是否被禁用
+          if (aiFeatures.enableVisionInspection === false) {
+            console.log('[Vision Inspection] Feature disabled by admin')
+            showNotice("❌ 功能已禁用", "管理员已禁用视觉巡检功能", "error")
+            handleSend('【系统反馈】视觉巡检功能已被管理员禁用，无法执行此操作。', [], true, true)
+            continue // 跳过此命令
+          }
+          
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
             await new Promise(resolve => setTimeout(resolve, 500))
@@ -1169,15 +1464,23 @@ function AIAssistantContent() {
           const cameraId = (cmd.camera || 'a') as 'a' | 'b'
           const query = cmd.query || '请描述你在画面中看到的内容'
 
-          setIsInspecting(true)
-          setInspectionCamera(cameraId)
-          setInspectionStatus("初始化巡检任务...")
+          // 打开工作室面板
+          setStudioOpen(true)
+          setVisionInspectionStatus("初始化巡检任务...")
 
-          // Step 1: 移动云台（如果direction不为0）
+          // Step 1: 移动云台（如果direction不为0）- 通过 Agent Loop 调用
           if (direction !== 0) {
             const moveMsg = `正在将摄像头云台${direction === 1 ? '左移' : '右移'} ${(pulses / 160).toFixed(1)}mm...`;
-            setInspectionStatus(moveMsg);
+            setVisionInspectionStatus(moveMsg);
             showNotice("🔄 视觉巡检", moveMsg, "loading")
+            
+            // 将云台移动作为工具调用添加到工作室
+            setStudioData(prev => [...prev, {
+              name: 'control_camera',
+              input: { direction, pulses, distance_mm: (pulses / 160).toFixed(1) },
+              result: { status: 'moving', message: moveMsg }
+            }])
+            
             try {
               const moveRes = await fetch('/api/ai/device-control', {
                 method: 'POST',
@@ -1186,19 +1489,65 @@ function AIAssistantContent() {
               })
               if (!moveRes.ok) {
                 const errData = await moveRes.json().catch(() => ({}))
-                showNotice("云台移动失败", errData?.error || '未知错误', "error")
-                // 即使移动失败，仍然尝试拍照
+                const errorMsg = errData?.error || '未知错误'
+                showNotice("云台移动失败", errorMsg, "error")
+                
+                // 更新工作室状态
+                setStudioData(prev => {
+                  const newData = [...prev]
+                  const lastIdx = newData.findIndex(d => d.name === 'control_camera')
+                  if (lastIdx >= 0) {
+                    newData[lastIdx].result = { status: 'error', error: errorMsg }
+                  }
+                  return newData
+                })
+                
+                // 如果是边界错误，发送反馈给AI让它重新思考
+                if (errorMsg.includes('已经到达') || errorMsg.includes('原点') || errorMsg.includes('边界') || errorMsg.includes('limit')) {
+                  // 更新最后一条助手消息，添加错误信息
+                  setMessages(prev => {
+                    const newMsgs = [...prev]
+                    const lastAssistantIdx = newMsgs.length - 1
+                    if (lastAssistantIdx >= 0 && newMsgs[lastAssistantIdx].role === 'assistant') {
+                      newMsgs[lastAssistantIdx] = {
+                        ...newMsgs[lastAssistantIdx],
+                        commandErrors: {
+                          ...(newMsgs[lastAssistantIdx].commandErrors || {}),
+                          0: errorMsg // 假设云台控制是第一个命令
+                        }
+                      }
+                    }
+                    return newMsgs
+                  })
+                  
+                  const feedbackMsg = `【系统反馈】云台移动失败：${errorMsg}。请重新分析当前位置和目标位置，选择正确的移动方向。`
+                  handleSend(feedbackMsg, [], true, true)
+                  break // 停止当前执行流程
+                }
+              } else {
+                // 更新工作室状态为成功
+                setStudioData(prev => {
+                  const newData = [...prev]
+                  const lastIdx = newData.findIndex(d => d.name === 'control_camera')
+                  if (lastIdx >= 0) {
+                    newData[lastIdx].result = { status: 'success', message: '云台移动完成' }
+                  }
+                  return newData
+                })
               }
             } catch (e) {
               console.error('Stepper move failed:', e)
             }
-            // 等待电机运动完成
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            
+            // 等待云台移动完成（考虑物理延迟）
+            const moveTime = Math.max(2000, pulses / 80) // 根据脉冲数计算移动时间，最少2秒
+            setVisionInspectionStatus(`云台移动中，预计需要 ${(moveTime / 1000).toFixed(1)} 秒...`)
+            await new Promise(resolve => setTimeout(resolve, moveTime))
             if (isStoppedRef.current) break
           }
 
           // Step 2: 获取摄像头 URL
-          setInspectionStatus("正在建立摄像头连接...");
+          setVisionInspectionStatus("正在建立摄像头连接...");
           showNotice("📷 视觉巡检", "正在连接摄像头...", "loading")
           let cameraUrl = ''
           try {
@@ -1215,7 +1564,8 @@ function AIAssistantContent() {
           }
 
           if (!cameraUrl) {
-            setIsInspecting(false);
+            setVisionInspectionUrl(null)
+            setVisionInspectionStatus('')
             showNotice("❌ 视觉巡检失败", "摄像头未配置或不可用", "error")
             // 告知 AI 摄像头不可用
             handleSend(`【系统反馈】视觉巡检失败：摄像头${cameraId === 'b' ? 'B' : 'A'}未配置或不可用。管理员尚未在后台设置摄像头地址。请告知用户无法进行视觉巡检，并使用传感器数据替代。`, [], true, true)
@@ -1223,7 +1573,7 @@ function AIAssistantContent() {
           }
 
           // Step 3: 加载视频流并截图
-          setInspectionStatus(`正在捕捉 ${cameraId === 'b' ? 'B' : 'A'} 摄像头实时画面...`);
+          setVisionInspectionStatus(`正在捕捉 ${cameraId === 'b' ? 'B' : 'A'} 摄像头实时画面...`);
           showNotice("📷 视觉巡检", "正在加载摄像头画面，请稍候...", "loading")
           
           // 获取与 Monitor 页面一致的可播放 URL
@@ -1301,7 +1651,7 @@ function AIAssistantContent() {
 
           const playableUrl = getPlayableUrl(cameraUrl)
           console.log("[AI Vision] Playable URL resolved to:", playableUrl);
-          setInspectionCameraUrl(playableUrl)
+          setVisionInspectionUrl(playableUrl)
 
           let capturedImageBase64 = ''
           try {
@@ -1311,10 +1661,10 @@ function AIAssistantContent() {
               }, 20000)
 
               const checkFrame = setInterval(() => {
-                const video = document.getElementById('hidden-ai-camera') as HTMLVideoElement | null
+                const video = document.getElementById('studio-vision-camera') as HTMLVideoElement | null
                 if (video && video.readyState >= 3 && video.videoWidth > 0) {
                   clearInterval(checkFrame)
-                  setInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
+                  setVisionInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
                   
                   // Wait a bit longer to ensure video is clearly rendering
                   setTimeout(() => {
@@ -1341,7 +1691,8 @@ function AIAssistantContent() {
             })
           } catch (err: any) {
             console.error('Camera capture failed:', err)
-            setIsInspecting(false)
+            setVisionInspectionUrl(null)
+            setVisionInspectionStatus('')
             showNotice("❌ 截图失败", err?.message || '未知错误', "error")
             // 告知 AI 截图失败
             handleSend(`【系统反馈】视觉巡检截图失败：${err?.message || '未知错误'}。摄像头画面可能尚未加载完成或网络问题。请告知用户截图失败，并建议稍后重试或使用传感器数据。严禁编造画面内容。`, [], true, true)
@@ -1380,20 +1731,31 @@ function AIAssistantContent() {
           hasSentCustomFeedback = true
           
           setInspectionStatus("完成巡检分析。");
-          setTimeout(() => setIsInspecting(false), 2000);
           showNotice("✅ 视觉巡检", "画面已发送给 AI 分析", "success")
 
+          // 立即清理视觉巡检状态，避免闪烁
+          setVisionInspectionUrl(null)
+          setVisionInspectionStatus('')
+          
           // 直接调用 handleSend 发送多模态消息 (bypass loading guard via isSilent=true)
-          // 注意：这会触发一次新的 AI 推理循环，必须异步调用不阻塞主线程
           // isFeedback=true 确保允许穿透 loading 锁
           // isSilent=true 确保这条包含截图的丑陋 Prompt 消息不会显示在用户的聊天气泡中，仅作为 AI 视角的内部输入
-          setTimeout(() => {
-            handleSend(visionMessage as any, [], true, true)
-          }, 100)
+          handleSend(visionMessage as any, [], true, true)
+          
+          // 延迟清理 isInspecting 状态
+          setTimeout(() => setIsInspecting(false), 500)
           
           // 重要：完成视觉巡检后立即跳出当前指令执行循环，避免后续代码继续触发全局反馈循环
           break;
         } else if (cmd.action === "take_camera_snapshot") {
+          // 🔥 检查视觉巡检功能是否被禁用
+          if (aiFeatures.enableVisionInspection === false) {
+            console.log('[Camera Snapshot] Feature disabled by admin')
+            showNotice("❌ 功能已禁用", "管理员已禁用摄像头截图功能", "error")
+            handleSend('【系统反馈】摄像头截图功能已被管理员禁用，无法执行此操作。', [], true, true)
+            continue // 跳过此命令
+          }
+          
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
             await new Promise(resolve => setTimeout(resolve, 500))
@@ -1597,6 +1959,14 @@ function AIAssistantContent() {
           
           break;
         } else if (cmd.action === "reset_camera") {
+          // 🔥 检查设备控制功能是否被禁用
+          if (aiFeatures.enableDeviceControl === false) {
+            console.log('[Device Control] Feature disabled by admin')
+            showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
+            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            continue // 跳过此命令
+          }
+          
           // 摄像头云台复位到最左侧原点
           while (isTaskPausedRef.current) {
             if (isStoppedRef.current) break
@@ -1777,7 +2147,13 @@ ${taskContext}
     await feedbackLoop()
   }
 
-  const handleSend = async (overrideText?: any, overrideAttachments?: string[], isFeedback: boolean = false, isSilent: boolean = false) => {
+  const handleSend = async (
+    overrideText?: any, 
+    overrideAttachments?: string[], 
+    isFeedback: boolean = false, 
+    isSilent: boolean = false,
+    useSystemApi: boolean = false // 新参数：强制使用系统API（用于定时任务）
+  ) => {
     // 过滤掉可能作为事件对象传入的 overrideText（如 onClick={handleSend}）
     if (overrideText && typeof overrideText === 'object' && !Array.isArray(overrideText)) {
       overrideText = undefined;
@@ -1833,14 +2209,17 @@ ${taskContext}
     const isSystemMode = !aiSettings?.apiKey && !aiSettings?.apiUrl;
     const isCustomMode = !!aiSettings?.apiKey || !!aiSettings?.apiUrl;
     
-    if (!aiSettings || (!isSystemMode && !isCustomMode)) {
-        if (!aiSettings) {
-             router.push('/model-store'); 
-             return 
-        }
+    // 如果是定时任务调用（useSystemApi=true），跳过配置检查，直接使用系统API
+    if (!useSystemApi) {
+      if (!aiSettings || (!isSystemMode && !isCustomMode)) {
+          if (!aiSettings) {
+               router.push('/model-store'); 
+               return 
+          }
+      }
+      
+      if (!aiSettings) { router.push('/model-store'); return }
     }
-    
-    if (!aiSettings) { router.push('/model-store'); return }
 
     const userMsg = text.trim()
     setInput("")
@@ -1965,8 +2344,49 @@ ${taskContext}
         effectiveSystemPrompt += `\n\n### 用户扩展功能模块 ###\n${storePrompt}`;
       }
 
+      // ⚠️ 添加定时任务功能说明（放在前面，确保AI能看到）
+      effectiveSystemPrompt += `\n\n${getScheduleTaskSystemPrompt()}`;
+
       if (autoExecuteCommands) {
-        effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动托管模式 (Auto-Pilot Mode)。\n严禁提问！严禁等待用户确认！\n必须直接输出 IoT 设备控制指令 JSON (如 toggle_relay)。\n注意：对于 MCP 工具 (如天气、搜索)，仍必须使用 Native Tool Calling！\n如果遇到问题，请自行尝试解决或跳过。";
+        effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动执行模式。\n严禁提问！严禁等待用户确认！\n必须直接输出 IoT 设备控制指令 JSON (如 toggle_relay)。\n注意：对于 MCP 工具 (如天气、搜索)，仍必须使用 Native Tool Calling！\n如果遇到问题，请自行尝试解决或跳过。";
+      }
+      
+      // 根据助手模式调整系统提示词 - 让每个模式有明显区别
+      if (assistantMode === 'automation') {
+        effectiveSystemPrompt += `\n\n【自动化模式 - 执行优先】
+- 目标：快速执行，减少对话
+- 行为准则：
+  1. 收到指令后立即分析并执行，不要询问确认
+  2. 直接输出 JSON 控制指令，不要解释太多
+  3. 如果参数不明确，使用合理的默认值
+  4. 执行完成后简短汇报结果即可
+  5. 遇到问题时自动尝试替代方案
+- 禁止：长篇解释、反复确认、等待用户回复
+- 示例：用户说"开灯" → 直接输出 JSON 开灯指令`;
+      } else if (assistantMode === 'expert') {
+        effectiveSystemPrompt += `\n\n【专家模式 - 分析优先】
+- 目标：深度分析，科学决策
+- 行为准则：
+  1. 先分析环境数据和历史趋势
+  2. 给出专业的诊断和建议
+  3. 解释为什么要这样做（科学依据）
+  4. 提供多个方案供参考
+  5. 执行前说明预期效果和风险
+  6. 使用 <TASK_LIST> 规划复杂任务
+  7. 可以调用多个工具进行综合分析
+- 特点：详细、专业、有理有据
+- 示例：用户说"草莓叶子发黄" → 分析可能原因（缺氮/病害/光照）→ 建议检测方案 → 给出治疗方案`;
+      } else {
+        effectiveSystemPrompt += `\n\n【对话模式 - 交流优先】
+- 目标：友好交流，帮助理解
+- 行为准则：
+  1. 用自然语言回答问题和提供建议
+  2. 如果用户需要控制设备，先解释操作的作用和影响
+  3. 然后输出 JSON 控制指令（用户需要手动点击"执行"按钮确认）
+  4. 提供建议但让用户做最终决定
+  5. 如果不确定用户意图，主动询问
+- 重要：你可以输出 JSON 控制指令，但系统会等待用户手动确认后才执行
+- 示例：用户说"温度有点高" → 解释"当前32°C偏高，建议开启风扇降温" → 输出JSON风扇控制指令 → 用户点击"执行"按钮后才会真正执行`;
       }
 
       // 获取 MCP 配置
@@ -2024,9 +2444,10 @@ ${taskContext}
         signal: controller.signal,
         body: JSON.stringify({
           messages: currentMessagesForApi, // 使用最新的消息列表
-          model: selectedModel || aiSettings?.model,
-          apiKey: aiSettings?.apiKey,
-          apiUrl: aiSettings?.apiUrl,
+          // 如果是定时任务（useSystemApi=true），不传递用户配置，让后端使用系统API
+          model: useSystemApi ? undefined : (selectedModel || aiSettings?.model),
+          apiKey: useSystemApi ? undefined : aiSettings?.apiKey,
+          apiUrl: useSystemApi ? undefined : aiSettings?.apiUrl,
           systemPrompt: effectiveSystemPrompt,
           sessionId: ensuredSessionId,
           enableSearch,
@@ -2038,6 +2459,13 @@ ${taskContext}
           enableMcp
         })
       })
+      
+      // 🔍 调试：检查系统提示词是否包含定时任务说明
+      if (effectiveSystemPrompt.includes('SCHEDULE_TASK')) {
+        console.log('[Schedule Task] ✅ System prompt includes SCHEDULE_TASK instructions')
+      } else {
+        console.warn('[Schedule Task] ⚠️ System prompt does NOT include SCHEDULE_TASK instructions')
+      }
       
       abortControllerRef.current = null // 请求结束，清空 controller
 
@@ -2099,6 +2527,8 @@ ${taskContext}
             // 流结束时，确保清理所有状态
             setAgentStatus("")
             setBrowsingUrl(null)
+            // 🔥 修复：立即清理 isLoading 状态，避免显示"思考中"
+            setIsLoading(false)
             continue
           }
           
@@ -2241,21 +2671,27 @@ ${taskContext}
                     try {
                         const args = JSON.parse(crawlerCall.function.arguments)
                         let url = null
-                        if (args.url) {
-                            url = args.url
-                        } else if (args.query) {
-                            // 对于 Exa/Brave 搜索，显示搜索关键词作为"虚拟网页"
-                            url = `https://search.engine/search?q=${encodeURIComponent(args.query)}`
-                        }
                         
-                        if (url) {
-                             setBrowsingUrl(url)
-                             setCurrentBrowserUrl(url) // 同步到工作室内部浏览器状态
-                             setStudioOpen(true) // 确保工作室打开
+                        // 只有真正的网页抓取工具才显示浏览器预览
+                        // 搜索工具（Exa、Brave）不显示预览
+                        const isScrapeTool = crawlerCall.function.name.includes('scrape') || 
+                                           crawlerCall.function.name.includes('crawl') ||
+                                           crawlerCall.function.name.includes('fetch')
+                        
+                        if (isScrapeTool && args.url) {
+                            url = args.url
+                            setBrowsingUrl(url)
+                            setCurrentBrowserUrl(url) // 同步到工作室内部浏览器状态
+                            setStudioOpen(true) // 确保工作室打开
                         }
+                        // 搜索工具不设置 browsingUrl，不显示网页预览
                     } catch (e) { console.error("Failed to parse crawler args", e) }
-                } else if (data.tool_calls.some((t: any) => t.function.name.includes('scrape') || t.function.name.includes('search'))) {
-                    // 兜底：如果没匹配到上面的 crawlerCall 但依然是抓取或搜索类工具，也打开工作室
+                } else if (data.tool_calls.some((t: any) => {
+                    const name = t.function.name
+                    // 只有抓取类工具才打开工作室，搜索类工具不打开
+                    return name.includes('scrape') || name.includes('crawl') || name.includes('fetch')
+                })) {
+                    // 兜底：如果是抓取类工具，打开工作室
                     setStudioOpen(true)
                 }
 
@@ -2300,6 +2736,58 @@ ${taskContext}
                     assistantMsg.content = content
                 }
 
+                // 实时清理 TASK_LIST 和 SCHEDULE_TASK 标签，防止在流式输出时裸露
+                if (typeof assistantMsg.content === "string") {
+                    // 注意：不要移除正确包裹的 <TASK_LIST>...</TASK_LIST>
+                    // 只移除裸露的 JSON 和错误的标签
+                    
+                    // 1. 拦截裸露的 TASK_LIST JSON（没有标签包裹的）
+                    // 先检查是否有完整的标签对
+                    const hasCompleteTag = /<TASK_LIST>[\s\S]*?<\/TASK_LIST>/.test(assistantMsg.content)
+                    
+                    if (!hasCompleteTag) {
+                        // 只有在没有完整标签的情况下才过滤裸露的 JSON
+                        
+                        // 匹配模式：{ "status": "in_progress", "tasks": [...]
+                        const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
+                        assistantMsg.content = assistantMsg.content.replace(taskListJsonPattern, '')
+                        
+                        // 拦截不完整的 TASK_LIST JSON（流式输出时）
+                        const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
+                        if (incompleteTaskPattern.test(assistantMsg.content)) {
+                            const lastBrace = assistantMsg.content.lastIndexOf('{')
+                            if (lastBrace !== -1) {
+                                const potentialJson = assistantMsg.content.slice(lastBrace)
+                                if (potentialJson.includes('"tasks"') || potentialJson.includes('"status"')) {
+                                    assistantMsg.content = assistantMsg.content.slice(0, lastBrace).trim()
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 2. 移除孤立的开始或结束标签（不成对的）
+                    // 检查标签是否成对
+                    const openTagCount = (assistantMsg.content.match(/<TASK_LIST>/g) || []).length
+                    const closeTagCount = (assistantMsg.content.match(/<\/TASK_LIST>/g) || []).length
+                    
+                    if (openTagCount !== closeTagCount) {
+                        // 标签不成对，移除孤立的标签
+                        if (openTagCount > closeTagCount) {
+                            // 有多余的开始标签，移除不完整的
+                            assistantMsg.content = assistantMsg.content.replace(/<TASK_LIST[^>]*$/g, '')
+                        }
+                        if (closeTagCount > openTagCount) {
+                            // 有多余的结束标签
+                            assistantMsg.content = assistantMsg.content.replace(/<\/TASK_LIST>/g, '')
+                        }
+                    }
+                    
+                    // 3. 隐藏 SCHEDULE_TASK 标记（但不删除，因为后面需要解析）
+                    // 使用CSS隐藏而不是删除内容
+                    // 注意：这里只是临时隐藏显示，实际内容保留用于后续解析
+                    // 在流式输出完成后会正式移除
+                }
+
                 // TTS 增量片段解析与阅读：自动忽略所有的代码块与特定 XML 元素(如 task)包含的内容
                 if (isTTSEnabled) {
                     const getTTSableText = (text: string) => {
@@ -2307,10 +2795,10 @@ ${taskContext}
                       let s = text
                       // Remove reasoning blocks and markdown code blocks completely
                       s = s.replace(/```[\s\S]*?(?:```|$)/g, '')
-                      // Remove block tags like task, device_control, chart, TASK_LIST completely along with inner payload
-                      s = s.replace(/<(task|device_control|chart|TASK_LIST|TOOL_USED|REASONING|analyze|plan)(?:[\s>][\s\S]*?(?:<\/\1>|$)|$)/gi, '')
+                      // Remove block tags like task, device_control, chart, TASK_LIST, SCHEDULE_TASK completely along with inner payload
+                      s = s.replace(/<(task|device_control|chart|TASK_LIST|SCHEDULE_TASK|TOOL_USED|REASONING|analyze|plan)(?:[\s>][\s\S]*?(?:<\/\1>|$)|$)/gi, '')
                       // Remove incomplete typing of these tags specifically so it doesn't accidentally read them before parsing finishes
-                      s = s.replace(/<\/?(?:t|ta|tas|task|d|de|dev|devi|devic|device|device_|device_c|device_co|device_con|device_cont|device_contr|device_contro|device_control|c|ch|cha|char|chart|T|TA|TAS|TASK|TASK_|TASK_L|TASK_LI|TASK_LIS|TASK_LIST|R|RE|REA|REAS|REASO|REASON|REASONI|REASONIN|REASONING|a|an|ana|anal|analy|analyz|analyze|p|pl|pla|plan)$/i, '')
+                      s = s.replace(/<\/?(?:t|ta|tas|task|d|de|dev|devi|devic|device|device_|device_c|device_co|device_con|device_cont|device_contr|device_contro|device_control|c|ch|cha|char|chart|T|TA|TAS|TASK|TASK_|TASK_L|TASK_LI|TASK_LIS|TASK_LIST|S|SC|SCH|SCHE|SCHED|SCHEDU|SCHEDUL|SCHEDULE|SCHEDULE_|SCHEDULE_T|SCHEDULE_TA|SCHEDULE_TAS|SCHEDULE_TASK|R|RE|REA|REAS|REASO|REASON|REASONI|REASONIN|REASONING|a|an|ana|anal|analy|analyz|analyze|p|pl|pla|plan)$/i, '')
                       // Only strip generic styling tags like <b> themselves but keep their inner text reading
                       s = s.replace(/<\/?(?:b|i|strong|em|p|div|span|h[1-6]|ul|li|ol|br|hr|a|img)[^>]*>/gi, '')
                       return s
@@ -2351,16 +2839,16 @@ ${taskContext}
                     ttsProcessedLength += lastMatchEnd
                 }
                 
-                // Simplified reasoning parsing
+                // Simplified reasoning parsing (仅在开启深度思考模式时解析)
                 const combined = assistantMsg.content as string
                 // ... reasoning logic ...
-                if (reasoningStart === -1) {
+                if (enableReasoning && reasoningStart === -1) {
                   const sIdx = combined.indexOf("<REASONING>")
                   if (sIdx !== -1) reasoningStart = sIdx
                 }
                 
                 let display = combined
-                if (reasoningStart !== -1) {
+                if (enableReasoning && reasoningStart !== -1) {
                   const endIdx = combined.indexOf("</REASONING>", reasoningStart)
                   if (endIdx !== -1) {
                     reasoningText = combined.slice(reasoningStart + 11, endIdx)
@@ -2369,14 +2857,22 @@ ${taskContext}
                     reasoningText = combined.slice(reasoningStart + 11)
                     display = combined.slice(0, reasoningStart)
                   }
+                } else if (!enableReasoning) {
+                  // 未开启深度思考时，移除所有 REASONING 标签
+                  display = display.replace(/<REASONING>[\s\S]*?<\/REASONING>/g, '')
+                  display = display.replace(/<REASONING>[\s\S]*$/g, '') // 移除未闭合的标签
                 }
+
+                // 🔥 强制过滤被禁用的功能标签（前端最后一道防线）
+                display = filterDisabledFeatures(display, aiFeatures)
+                console.log('[Frontend Filter] Applied to streaming content')
 
                 setMessages(prev => {
                   const newMsgs = [...prev]
                   newMsgs[newMsgs.length - 1] = {
                     role: "assistant",
                     content: display,
-                    reasoning: { text: reasoningText, durationMs: Date.now() - startTs },
+                    reasoning: enableReasoning ? { text: reasoningText, durationMs: Date.now() - startTs } : undefined,
                     model: selectedModel || aiSettings?.model
                   }
                   return newMsgs
@@ -2433,10 +2929,179 @@ ${taskContext}
 
       // 确保流结束时关闭浏览器
       setBrowsingUrl(null)
+      
+      // ⚠️ 重要：先保存原始内容用于解析，因为后面会删除SCHEDULE_TASK标记
+      const originalContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : ''
+      
+      // 解析并创建定时任务（如果AI响应中包含SCHEDULE_TASK标记）
+      if (originalContent) {
+        console.log('[Schedule Task] 🔍 Checking content for SCHEDULE_TASK tag...')
+        console.log('[Schedule Task] Content length:', originalContent.length)
+        console.log('[Schedule Task] Content preview:', originalContent.substring(0, 500))
+        
+        // 检查是否包含标记
+        const hasTag = originalContent.includes('<SCHEDULE_TASK>')
+        console.log('[Schedule Task] Has <SCHEDULE_TASK> tag:', hasTag)
+        
+        if (hasTag) {
+          console.log('[Schedule Task] ✅ Found SCHEDULE_TASK tag, attempting to parse...')
+        } else {
+          console.log('[Schedule Task] ❌ No SCHEDULE_TASK tag found in response')
+        }
+        
+        const taskData = parseScheduleTask(originalContent)
+        if (taskData) {
+          console.log('[Schedule Task] ✅ Successfully parsed task data:', taskData)
+          
+          // 创建定时任务
+          const taskId = scheduleTask(
+            taskData.description,
+            taskData.delayMinutes,
+            taskData.taskType,
+            taskData.payload,
+            async (task) => {
+              // 任务执行时的回调
+              console.log('[Schedule Task] Executing task:', task)
+              toast.info(`定时任务执行：${task.description}`)
+              
+              // 根据任务类型执行不同操作
+              switch (task.taskType) {
+                case 'analysis':
+                  // 使用 handleSend 触发完整的AI对话流程（支持工具调用、流式输出等）
+                  console.log('[Schedule Task] Triggering AI analysis via handleSend...')
+                  const analysisPrompt = `🔔 定时任务提醒
+
+【${task.description}】
+
+请立即进行环境诊断分析：
+1. 检查当前温度、湿度、光照等环境参数
+2. 分析是否存在异常情况
+3. 如果发现问题，给出具体的改善建议
+4. 如果一切正常，简要说明当前状态
+
+⚠️ 重要限制：
+- 这是定时任务执行，不要创建新的定时任务！
+- 只生成分析报告，禁止输出任何设备控制 JSON 指令！
+- 禁止调用 toggle_relay、set_led、control_camera 等设备控制工具！
+- 只做分析和建议，不要实际操作设备！`
+                  
+                  try {
+                    // 使用 handleSendRef 调用完整的对话流程
+                    // ⚠️ 重要：传入 useSystemApi=true，强制使用系统预设的API（不需要用户配置）
+                    if (handleSendRef.current) {
+                      await handleSendRef.current(analysisPrompt, [], false, false, true)
+                      console.log('[Schedule Task] AI analysis triggered successfully')
+                      toast.success('环境分析完成', {
+                        description: '莓小智已为您更新环境状态',
+                        duration: 3000
+                      })
+                    } else {
+                      console.error('[Schedule Task] handleSendRef.current is null')
+                      toast.error('定时任务执行失败：无法访问AI接口')
+                    }
+                  } catch (error) {
+                    console.error('[Schedule Task] Failed to trigger AI analysis:', error)
+                    toast.error('定时任务执行失败', {
+                      description: '请手动检查环境状态'
+                    })
+                  }
+                  break
+                  
+                case 'reminder':
+                  // 显示提醒
+                  toast.info(task.description, {
+                    duration: 10000,
+                    action: {
+                      label: '查看',
+                      onClick: () => {
+                        // 可以跳转到相关页面
+                      }
+                    }
+                  })
+                  break
+                  
+                case 'notification':
+                  // 显示通知
+                  if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('定时提醒', {
+                      body: task.description,
+                      icon: '/favicon.ico'
+                    })
+                  }
+                  toast.success(task.description)
+                  break
+                  
+                case 'device_control':
+                  // 执行设备控制
+                  console.log('[Schedule Task] Executing device control:', task.payload)
+                  toast.info(`定时设备控制：${task.description}`)
+                  
+                  try {
+                    // 执行设备控制指令
+                    const controlCommand = task.payload
+                    if (controlCommand && controlCommand.action) {
+                      // 调用设备控制 API
+                      const response = await fetch('/api/device-control', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(controlCommand)
+                      })
+                      
+                      if (response.ok) {
+                        const result = await response.json()
+                        console.log('[Schedule Task] Device control success:', result)
+                        toast.success('设备控制成功', {
+                          description: task.description,
+                          duration: 3000
+                        })
+                        
+                        // 通过莓小智发送确认消息
+                        if (handleSendRef.current) {
+                          const confirmMessage = `✅ 定时任务已执行：${task.description}`
+                          await handleSendRef.current(confirmMessage, [], false, true, true)
+                        }
+                      } else {
+                        throw new Error('Device control failed')
+                      }
+                    }
+                  } catch (error) {
+                    console.error('[Schedule Task] Failed to control device:', error)
+                    toast.error('设备控制失败', {
+                      description: task.description
+                    })
+                  }
+                  break
+                  
+                case 'custom':
+                  // 自定义任务处理
+                  console.log('[Schedule Task] Custom task payload:', task.payload)
+                  toast.info(task.description)
+                  break
+              }
+            }
+          )
+          
+          toast.success(`定时任务已创建：${taskData.description}`)
+          console.log('[Schedule Task] Task created with ID:', taskId)
+          
+          // 从响应中移除SCHEDULE_TASK标记
+          assistantMsg.content = removeScheduleTaskTag(assistantMsg.content)
+          
+          // 更新消息显示
+          setMessages(prev => {
+            const newMsgs = [...prev]
+            newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+            return newMsgs
+          })
+        } else {
+          console.log('[Schedule Task] No SCHEDULE_TASK tag found in content')
+        }
+      }
+      
       if (ensuredSessionId) {
         const lastMsg = {  
           ...assistantMsg, 
-          reasoning: { text: reasoningText, durationMs: Date.now() - startTs },
+          reasoning: enableReasoning ? { text: reasoningText, durationMs: Date.now() - startTs } : undefined,
           model: selectedModel || aiSettings?.model // 保存使用的模型
         }
         await fetch(`/api/sessions/${ensuredSessionId}`, {
@@ -2447,8 +3112,10 @@ ${taskContext}
       }
 
       // 如果开启了AI自动执行，检测并执行命令
+      console.log('[Auto Execute Check]', { autoExecuteCommands, hasContent: typeof assistantMsg.content === 'string' })
       if (autoExecuteCommands && typeof assistantMsg.content === 'string') {
         const jsonMatches = [...assistantMsg.content.matchAll(/```json\s*([\s\S]*?)```/g)]
+        console.log('[Auto Execute] Found JSON blocks:', jsonMatches.length)
         if (jsonMatches.length > 0) {
           const commands = []
           for (const match of jsonMatches) {
@@ -2466,6 +3133,7 @@ ${taskContext}
             } catch { }
           }
           if (commands.length > 0) {
+            console.log('[Auto Execute] Executing commands automatically:', commands)
             // 再次检查是否已停止
             if (isStoppedRef.current) return;
             // 重要：如果在这次调用中已经触发了设备执行，标记本次会话不再需要通用反馈
@@ -2475,7 +3143,13 @@ ${taskContext}
         }
       }
 
-    } catch (e) {
+    } catch (e: any) {
+      // 忽略用户主动停止任务的"错误"
+      if (e?.message === "Task terminated by user" || e === "Task terminated by user") {
+        console.log("[Chat] Task terminated by user (expected)")
+        return
+      }
+      
       console.error("Chat error:", e)
       setMessages(prev => [...prev, { role: "assistant", content: "抱歉，发生了一些错误，请稍后再试。" }])
     } finally {
@@ -2486,19 +3160,25 @@ ${taskContext}
       const content = typeof assistantMsg.content === 'string' ? assistantMsg.content : '';
       const hasFollowupCommands = autoExecuteCommands && (content.includes('```json') || content.includes('"action":'));
 
-      if (!hasFollowupCommands || isStoppedRef.current) {
-        setAgentStatus("")
-        setIsLoading(false)
-        // 额外延迟清理一次，确保彻底结束
-        setTimeout(() => {
-          if (!isStoppedRef.current) {
-            setAgentStatus("")
-            setIsLoading(false)
-          }
-        }, 300)
-      }
+      // 🔥 修复：立即清理状态，无论是否有后续命令
+      // 后续命令的执行会在executeCommands中单独管理状态
+      setAgentStatus("")
+      setIsLoading(false)
+      
+      // 额外延迟清理一次，确保彻底结束（防止竞态条件）
+      setTimeout(() => {
+        if (!isStoppedRef.current && !hasFollowupCommands) {
+          setAgentStatus("")
+          setIsLoading(false)
+        }
+      }, 300)
     }
   }
+  
+  // 更新 handleSendRef，确保定时任务回调中可以访问最新的 handleSend
+  useEffect(() => {
+    handleSendRef.current = handleSend
+  }, [])
 
   const createNewSession = async () => {
     try {
@@ -2744,8 +3424,18 @@ ${taskContext}
   const renderMessageContent = (msg: Message, onOpenStudio?: () => void) => {
     let content = msg.content
     
-    // 渲染思考过程（如果存在）
-    const reasoningElement = msg.reasoning?.text ? (
+    // 🔥 前端最后一道防线：强制过滤被禁用的功能标签
+    if (typeof content === 'string') {
+      content = filterDisabledFeatures(content, aiFeatures)
+    }
+    
+    // 过滤掉 SCHEDULE_TASK 标记（不显示在聊天中）
+    if (typeof content === 'string') {
+      content = content.replace(/<SCHEDULE_TASK>[\s\S]*?<\/SCHEDULE_TASK>/g, '').trim()
+    }
+    
+    // 渲染思考过程（仅在开启深度思考模式时显示）
+    const reasoningElement = (msg.reasoning?.text && enableReasoning) ? (
       <Reasoning isStreaming={false} className="mb-4">
         <ReasoningTrigger />
         <ReasoningContent>
@@ -2771,14 +3461,55 @@ ${taskContext}
         // 移除原始的 tool_call 标签，防止泄露到 UI
         content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "");
         
-        // 增强过滤：仅移除看起来像工具调用的 JSON 参数（通常在抓取或搜索时出现）
-        // 我们需要小心，不要误删了设备控制指令
-        // 只有包含 firecrawl, exa, search 等关键字的 JSON 块才会被移除
-        content = content.replace(/```json\s*\{\s*"action":\s*"(?:mcp_firecrawl_scrape|mcp_exa_search|mcp_brave_search|mcp_weather|scrape|search|find)"[\s\S]*?\}\s*```/g, "");
-        content = content.replace(/```json\s*\{\s*"function":\s*"(?:mcp_firecrawl_scrape|mcp_exa_search|mcp_brave_search|mcp_weather|scrape|search|find)"[\s\S]*?\}\s*```/g, "");
+        // 增强过滤：移除所有看起来像工具调用的 JSON 块
+        // 保留设备控制指令（toggle_relay, control_camera 等）
         
-        // 移除孤立的工具调用 JSON 文本
-        content = content.replace(/^\s*\{\s*"action":\s*"(?:mcp_firecrawl_scrape|mcp_exa_search|mcp_brave_search|mcp_weather|scrape|search|find)"[\s\S]*?\}\s*$/gm, "");
+        // 1. 移除 MCP 工具调用的 JSON 块（以 mcp_ 开头的）
+        content = content.replace(/```json\s*\{\s*"(?:action|function|name)":\s*"mcp_[^"]*"[\s\S]*?\}\s*```/g, "");
+        
+        // 2. 移除常见工具调用的 JSON 块
+        content = content.replace(/```json\s*\{\s*"(?:action|function)":\s*"(?:scrape|search|find|fetch|get|query|analyze)"[\s\S]*?\}\s*```/g, "");
+        
+        // 3. 移除包含 tool_calls 或 function_call 的 JSON 块
+        content = content.replace(/```json\s*\{[\s\S]*?"tool_calls"[\s\S]*?\}\s*```/g, "");
+        content = content.replace(/```json\s*\{[\s\S]*?"function_call"[\s\S]*?\}\s*```/g, "");
+        
+        // 4. 移除孤立的工具调用 JSON 文本（不在代码块中的）
+        content = content.replace(/^\s*\{\s*"(?:action|function|name)":\s*"mcp_[^"]*"[\s\S]*?\}\s*$/gm, "");
+        
+        // 5. 移除包含 arguments 字段的工具调用 JSON（通常是 OpenAI function calling 格式）
+        content = content.replace(/```json\s*\{[\s\S]*?"arguments":\s*\{[\s\S]*?\}[\s\S]*?\}\s*```/g, "");
+
+        // 6. 🔥 新增：拦截裸露的 TASK_LIST JSON（最重要的过滤）
+        // 但要保留正确包裹在 <TASK_LIST> 标签内的 JSON
+        
+        // 先检查是否有完整的 TASK_LIST 标签对
+        const hasCompleteTaskListTag = /<TASK_LIST>[\s\S]*?<\/TASK_LIST>/.test(content)
+        
+        if (!hasCompleteTaskListTag) {
+            // 只有在没有完整标签的情况下才过滤裸露的 JSON
+            
+            // 匹配完整的 TASK_LIST JSON 对象
+            const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
+            content = content.replace(taskListJsonPattern, (match) => {
+                console.warn('[TASK_LIST Filter] Intercepted bare TASK_LIST JSON:', match.slice(0, 100))
+                return '' // 完全移除
+            });
+            
+            // 7. 🔥 新增：拦截不完整的 TASK_LIST JSON 片段
+            // 匹配模式：{ "status": "in_progress", "tasks": [{ "id": "task-1"...
+            const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
+            if (incompleteTaskPattern.test(content)) {
+                const lastBrace = content.lastIndexOf('{')
+                if (lastBrace !== -1) {
+                    const potentialJson = content.slice(lastBrace)
+                    if (potentialJson.includes('"tasks"') || (potentialJson.includes('"status"') && potentialJson.includes('"in_progress"'))) {
+                        console.warn('[TASK_LIST Filter] Intercepted incomplete TASK_LIST JSON')
+                        content = content.slice(0, lastBrace).trim()
+                    }
+                }
+            }
+        }
 
         const taskListMatch = content.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
         if (taskListMatch) {
@@ -2799,25 +3530,25 @@ ${taskContext}
                   <Image src={part.image_url.url} alt="User upload" width={300} height={200} className="object-cover w-full h-auto" />
                 </div>
               )}
-              {part.type === 'text' && part.text && renderTextContent(part.text)}
+              {part.type === 'text' && part.text && renderTextContent(part.text, msg)}
             </div>
           ))}
           {/* Render DynamicTaskPlanner at the very bottom if it exists */}
-          {dynamicTaskContent && <DynamicTaskPlanner content={dynamicTaskContent} onOpenStudio={onOpenStudio} />}
+          {dynamicTaskContent && aiFeatures.enableTaskList !== false && <DynamicTaskPlanner content={dynamicTaskContent} onOpenStudio={onOpenStudio} />}
         </div>
       )
     }
     return (
       <>
         {reasoningElement}
-        {renderTextContent(typeof content === 'string' ? content : "")}
+        {renderTextContent(typeof content === 'string' ? content : "", msg)}
         {/* Render DynamicTaskPlanner at the very bottom if it exists */}
-        {dynamicTaskContent && <DynamicTaskPlanner content={dynamicTaskContent} onOpenStudio={onOpenStudio} />}
+        {dynamicTaskContent && aiFeatures.enableTaskList !== false && <DynamicTaskPlanner content={dynamicTaskContent} onOpenStudio={onOpenStudio} />}
       </>
     )
   }
 
-  const renderTextContent = (content: string) => {
+  const renderTextContent = (content: string, msg?: Message) => {
     // TaskList extraction moved to renderMessageContent to ensure correct scope
     
     // Split content by CHART, REASONING, SOURCES, and TOOL_USED tags
@@ -2849,7 +3580,17 @@ ${taskContext}
                  )
                  
                  const commands = Array.isArray(parsed) ? parsed : [parsed]
+                 
+                 // 只渲染 IoT 命令，其他 JSON 都隐藏
                  if (commands.some(isIoTCommand)) {
+                    // 调试信息
+                    console.log('[Device Control Debug]', {
+                      assistantMode,
+                      autoExecuteCommands,
+                      commandsCount: commands.length,
+                      expectedStatus: autoExecuteCommands ? 'executed' : 'pending'
+                    })
+                    
                     return (
                         <div key={index} className="my-4 space-y-3">
                             {commands.map((cmd: any, i: number) => (
@@ -2858,20 +3599,33 @@ ${taskContext}
                                         key={i} 
                                         command={cmd} 
                                         status={autoExecuteCommands ? 'executed' : 'pending'}
+                                        error={msg && msg.commandErrors ? msg.commandErrors[i] : undefined}
                                         onExecute={async (c) => {
+                                            console.log('[Manual Execute] User clicked execute button:', c)
                                             await executeCommands([c])
                                         }}
+                                        onRetry={msg ? () => {
+                                            // 重试：让AI重新思考
+                                            const errorMsg = (msg.commandErrors && msg.commandErrors[i]) || '操作失败'
+                                            const retryPrompt = `上一次设备控制失败了。错误信息：${errorMsg}。请重新分析情况并给出正确的控制指令。`
+                                            handleSend(retryPrompt, [], false, false)
+                                        } : undefined}
                                     />
                                 ) : null
                             ))}
                         </div>
                     )
+                 } else {
+                    // 不是 IoT 命令的 JSON，完全隐藏（工具调用等）
+                    console.log('[JSON Filter] Hiding non-IoT JSON block:', jsonContent.substring(0, 50) + '...')
+                    return null
                  }
               }
-              // 如果不是IoT命令，不显示JSON，返回null
+              // 如果不是有效的 JSON 对象/数组，也隐藏
               return null
             } catch (e) {
-                // Not valid JSON or not IoT command, don't show it
+                // 解析失败的 JSON，隐藏
+                console.log('[JSON Filter] Hiding invalid JSON block')
                 return null
             }
           }
@@ -3301,19 +4055,11 @@ ${taskContext}
         isElderFriendlyMode && "elder-friendly-text"
       )}
     >
+      {/* AI Control Border Effect - 渐变边框效果 */}
+      <AIControlBorderEffect isActive={isExecutingControl} duration={2000} />
+      
       {/* Background - Minimal & Clean */}
       <div className="absolute inset-0 bg-[#FAFAFA] dark:bg-[#09090B]" />
-      
-      {/* Subtle Ambient Light */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-gradient-to-br from-emerald-500/5 to-transparent blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-gradient-to-tl from-blue-500/5 to-transparent blur-[120px] rounded-full pointer-events-none" />
-
-      {/* Control Execution State - Subtle Top Line Loading */}
-      {isExecutingControl && (
-        <div className="absolute top-0 left-0 w-full h-1 z-[9999]">
-             <div className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 animate-gradient-x" />
-        </div>
-      )}
 
       {/* Device Operation Indicator - Dynamic Island Style */}
       {executingDeviceName && (
@@ -3525,6 +4271,46 @@ ${taskContext}
               </button>
             )}
             
+            {/* 助手模式选择器 */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 shadow-sm">
+              <button
+                onClick={() => setAssistantMode('chat')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  assistantMode === 'chat' 
+                    ? "bg-blue-500 text-white shadow-sm" 
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                )}
+              >
+                <MessageSquare size={14} />
+                对话模式
+              </button>
+              <button
+                onClick={() => setAssistantMode('automation')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  assistantMode === 'automation' 
+                    ? "bg-emerald-500 text-white shadow-sm" 
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                )}
+              >
+                <Zap size={14} />
+                自动化模式
+              </button>
+              <button
+                onClick={() => setAssistantMode('expert')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  assistantMode === 'expert' 
+                    ? "bg-purple-500 text-white shadow-sm" 
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                )}
+              >
+                <Brain size={14} />
+                专家模式
+              </button>
+            </div>
+
             {(() => {
               const currentModelId = (selectedModel || aiSettings?.model || "qwen3.6-plus") as string;
               return (
@@ -3547,9 +4333,9 @@ ${taskContext}
                         }
                       </div>
                       <span className="text-zinc-700 dark:text-zinc-300 tracking-tight font-black">{
-                        currentModelId === 'auto' ? "智能模式" : 
+                        currentModelId === 'auto' ? "智能模型" : 
                         currentModelId === 'deepseek-v3' ? "DeepSeek-V3" :
-                        currentModelId === 'deepseek-r1' ? "DeepSeek-R1 (推理)" :
+                        currentModelId === 'deepseek-r1' ? "DeepSeek-R1" :
                         currentModelId === 'qwen3.6-plus' ? "Qwen3.6 Plus" :
                         currentModelId === 'qwen3.5-plus' ? "Qwen3.5 Plus" :
                         currentModelId === 'qwen3.5-flash' ? "Qwen3.5 Flash" :
@@ -3567,7 +4353,7 @@ ${taskContext}
                           <Sparkles size={18} className="text-blue-500" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">智能模式 (Auto)</span>
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">智能模型 (Auto)</span>
                           <span className="text-[10px] text-zinc-500">根据任务自动选择最佳模型</span>
                         </div>
                       </div>
@@ -3777,6 +4563,42 @@ ${taskContext}
                 >
                   我今天能为您 <span className="text-blue-600 dark:text-blue-500 font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">做点什么？</span>
                 </motion.div>
+                
+                {/* 模式说明卡片 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ duration: 0.8, delay: 0.6 }}
+                  className="mt-6 inline-flex items-start gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-100 dark:border-blue-900/50"
+                >
+                  {assistantMode === 'chat' && (
+                    <>
+                      <MessageSquare size={20} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      <div className="text-left">
+                        <div className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-1">对话模式：友好交流</div>
+                        <div className="text-xs text-blue-600/80 dark:text-blue-400/80">AI会详细解释并提供控制指令，您需要点击"执行"按钮确认</div>
+                      </div>
+                    </>
+                  )}
+                  {assistantMode === 'automation' && (
+                    <>
+                      <Zap size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="text-left">
+                        <div className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-1">自动化模式：快速执行</div>
+                        <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80">AI会立即执行您的指令，无需确认，适合批量操作</div>
+                      </div>
+                    </>
+                  )}
+                  {assistantMode === 'expert' && (
+                    <>
+                      <Brain size={20} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                      <div className="text-left">
+                        <div className="text-sm font-bold text-purple-700 dark:text-purple-300 mb-1">专家模式：深度分析</div>
+                        <div className="text-xs text-purple-600/80 dark:text-purple-400/80">AI会进行科学分析，提供专业建议并自动执行方案</div>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
               </div>
 
               {/* Large Centered Input Area (BeeBot v4 Style) */}
@@ -3820,7 +4642,24 @@ ${taskContext}
                           生成图像
                        </button>
 
-                       <button onClick={() => setEnableSearch(!enableSearch)} className={cn("flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold border border-transparent shadow-none hover:shadow-md", enableSearch ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}>
+                       <button onClick={() => {
+                         // 检查是否安装了搜索工具
+                         const hasSearchTool = availableTools.some(t => 
+                           t.name.includes('search') || 
+                           t.name.includes('exa') || 
+                           t.name.includes('brave')
+                         )
+                         
+                         if (!hasSearchTool && !enableSearch) {
+                           // 如果没有搜索工具且要开启搜索，显示提示
+                           toast.error('未安装搜索工具', {
+                             description: '请先在设置中安装 Exa Search 或 Brave Search 等 MCP 工具'
+                           })
+                           return
+                         }
+                         
+                         setEnableSearch(!enableSearch)
+                       }} className={cn("flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold border border-transparent shadow-none hover:shadow-md", enableSearch ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}>
                           <Globe size={18} className={cn("transition-colors", enableSearch ? "text-emerald-500" : "text-zinc-400")} />
                           全网检索
                        </button>
@@ -3886,11 +4725,11 @@ ${taskContext}
 
               {/* Quick Action Bento Chips */}
               <div id="ai-quick-actions" className="mt-8 flex flex-wrap justify-center gap-4 px-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700">
-                {[
-                  { icon: <Activity size={18} />, text: "环境监测报告", action: "最近一小时的大棚环境数据分析 report", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-                  { icon: <Sprout size={18} />, text: "草莓种植建议", action: "现在这个季节草莓种植需要注意什么？", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-                  { icon: <Zap size={18} />, text: "设备巡检", action: "帮我巡检一下所有设备的工作状态", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-                  { icon: <Compass size={18} />, text: "病害诊断", action: "如果草莓叶子发黄该怎么办？", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+                {/* 根据模式显示不同的快捷操作 */}
+                {assistantMode === 'chat' && [
+                  { icon: <CircleHelp size={18} />, text: "草莓种植建议", action: "现在这个季节草莓种植需要注意什么？", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                  { icon: <Activity size={18} />, text: "查看环境数据", action: "帮我看看现在大棚的环境怎么样", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+                  { icon: <Compass size={18} />, text: "病害咨询", action: "如果草莓叶子发黄该怎么办？", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
                 ].map((item, i) => (
                   <button
                     key={i}
@@ -3903,6 +4742,53 @@ ${taskContext}
                     <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 tracking-tight">{item.text}</span>
                   </button>
                 ))}
+                
+                {assistantMode === 'automation' && [
+                  { icon: <Zap size={18} />, text: "快速巡检", action: "立即巡检所有设备状态", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+                  { icon: <Sun size={18} />, text: "优化环境", action: "根据当前数据自动优化大棚环境", color: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+                  { icon: <Activity size={18} />, text: "生成报告", action: "生成今天的环境监测报告", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(item.action)}
+                    className="flex items-center gap-3 px-6 py-3.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800 rounded-2xl hover:bg-white dark:hover:bg-zinc-800 transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group"
+                  >
+                    <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", item.color)}>
+                      {item.icon}
+                    </div>
+                    <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 tracking-tight">{item.text}</span>
+                  </button>
+                ))}
+                
+                {assistantMode === 'expert' && [
+                  { icon: <Brain size={18} />, text: "深度诊断", action: "分析最近一周的数据，诊断可能存在的问题", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+                  { icon: <Sprout size={18} />, text: "优化方案", action: "基于当前生长阶段，制定科学的管理方案", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                  { icon: <Activity size={18} />, text: "趋势分析", action: "分析环境数据趋势，预测未来变化", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(item.action)}
+                    className="flex items-center gap-3 px-6 py-3.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800 rounded-2xl hover:bg-white dark:hover:bg-zinc-800 transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group"
+                  >
+                    <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", item.color)}>
+                      {item.icon}
+                    </div>
+                    <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 tracking-tight">{item.text}</span>
+                  </button>
+                ))}
+                
+                {/* Agent编排入口 - 仅在专家模式显示 */}
+                {assistantMode === 'expert' && (
+                  <button
+                    onClick={() => router.push('/admin/agent-orchestration')}
+                    className="flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-purple-500/10 to-blue-500/10 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-md border border-purple-200/50 dark:border-purple-800/50 rounded-2xl hover:from-purple-500/20 hover:to-blue-500/20 transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 group"
+                  >
+                    <div className="size-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 bg-gradient-to-br from-purple-500 to-blue-500 text-white">
+                      <Brain size={18} />
+                    </div>
+                    <span className="text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 tracking-tight">多Agent协作编排</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -4041,7 +4927,7 @@ ${taskContext}
                             <div className="flex items-center gap-1.5 mb-3 pb-2 border-b border-zinc-100 dark:border-zinc-800">
                               <Sparkles size={12} className="text-purple-500" />
                               <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                                {msg.model === 'auto' ? '智能模式' :
+                                {msg.model === 'auto' ? '智能模型' :
                                  msg.model === 'qwen3.6-plus' ? 'Qwen3.6 Plus' :
                                  msg.model === 'qwen3.6-flash' ? 'Qwen3.6 Flash' :
                                  msg.model === 'qwen3-vl-plus' ? 'Qwen3 VL Plus' :
@@ -4375,7 +5261,24 @@ ${taskContext}
                         <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
 
                         <button
-                          onClick={() => setEnableSearch(!enableSearch)}
+                          onClick={() => {
+                            // 检查是否安装了搜索工具
+                            const hasSearchTool = availableTools.some(t => 
+                              t.name.includes('search') || 
+                              t.name.includes('exa') || 
+                              t.name.includes('brave')
+                            )
+                            
+                            if (!hasSearchTool && !enableSearch) {
+                              // 如果没有搜索工具且要开启搜索，显示提示
+                              toast.error('未安装搜索工具', {
+                                description: '请先在设置中安装 Exa Search 或 Brave Search 等 MCP 工具'
+                              })
+                              return
+                            }
+                            
+                            setEnableSearch(!enableSearch)
+                          }}
                           className={cn(
                             "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium select-none group",
                             enableSearch
@@ -4425,33 +5328,28 @@ ${taskContext}
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
-                              className={cn(
-                                "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors group relative",
-                                autoExecuteCommands
-                                  ? "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20"
-                                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                              )}
-                              title={autoExecuteCommands ? "AI自动托管已开启" : "手动确认执行设备控制"}
+                              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 group relative"
+                              title="模式指示器"
                             >
-                              <Zap size={18} strokeWidth={2} className={autoExecuteCommands ? "fill-current" : ""} />
+                              {assistantMode === 'automation' && <Zap size={18} strokeWidth={2} className="text-emerald-500 fill-current" />}
+                              {assistantMode === 'expert' && <Brain size={18} strokeWidth={2} className="text-purple-500" />}
+                              {assistantMode === 'chat' && <MessageSquare size={18} strokeWidth={2} className="text-blue-500" />}
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-64 p-3" align="start" sideOffset={10}>
                             <div className="space-y-2">
                               <h4 className="font-medium text-sm flex items-center gap-2">
-                                <Zap size={16} className="text-violet-500 fill-current" />
-                                AI 自动托管模式
+                                {assistantMode === 'automation' && <><Zap size={16} className="text-emerald-500 fill-current" />自动化模式</>}
+                                {assistantMode === 'expert' && <><Brain size={16} className="text-purple-500" />专家模式</>}
+                                {assistantMode === 'chat' && <><MessageSquare size={16} className="text-blue-500" />对话模式</>}
                               </h4>
                               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                                开启后，AI 将获得执行指令的权限，可以自动控制设备、调节环境，无需您再次确认。
+                                {assistantMode === 'automation' && 'AI 将自动执行设备控制指令，无需确认。'}
+                                {assistantMode === 'expert' && 'AI 将进行深度分析和多步骤推理，自动执行复杂任务。'}
+                                {assistantMode === 'chat' && 'AI 将提供控制指令，您需要点击"执行"按钮确认后才会真正执行。'}
                               </p>
-                              <div className="flex items-center justify-between pt-2">
-                                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">启用自动执行</span>
-                                <Switch 
-                                  checked={autoExecuteCommands}
-                                  onCheckedChange={setAutoExecuteCommands}
-                                  className="data-[state=checked]:bg-violet-600"
-                                />
+                              <div className="pt-2 text-xs text-zinc-400">
+                                在顶部工具栏切换模式
                               </div>
                             </div>
                           </PopoverContent>
@@ -4502,40 +5400,162 @@ ${taskContext}
         {studioOpen && (
           <div className="w-full h-full flex flex-col overflow-hidden">
             {/* Studio Header */}
-            <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <Zap size={18} className="animate-pulse" />
+            <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <Zap size={18} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-zinc-900 dark:text-white">工作室</h2>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                      {studioTab === 'tools' ? (
+                        <>
+                          {studioData.length > 0 && studioData[studioData.length - 1].name.includes('weather') ? <Sun size={12} /> : 
+                           studioData.length > 0 && studioData[studioData.length - 1].name.includes('spectrum') ? <Activity size={12} /> : 
+                           <Globe size={12} />}
+                          {studioData.length > 0 ? `正在处理: ${studioData[studioData.length - 1].name}...` : '等待工具执行...'}
+                        </>
+                      ) : (
+                        <>
+                          <Clock size={12} />
+                          定时任务管理
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-zinc-900 dark:text-white">工作室</h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                    {studioData.length > 0 && studioData[studioData.length - 1].name.includes('weather') ? <Sun size={12} /> : 
-                     studioData.length > 0 && studioData[studioData.length - 1].name.includes('spectrum') ? <Activity size={12} /> : 
-                     <Globe size={12} />}
-                    {studioData.length > 0 ? `正在处理: ${studioData[studioData.length - 1].name}...` : '等待工具执行...'}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setStudioOpen(false)}
+                    className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <PanelLeftOpen size={18} className="rotate-180" />
+                  </button>
+                  <button 
+                    onClick={() => setStudioOpen(false)}
+                    className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setStudioOpen(false)}
-                  className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              
+              {/* 标签页切换 */}
+              <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                <button
+                  onClick={() => setStudioTab('tools')}
+                  className={cn(
+                    "flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all",
+                    studioTab === 'tools'
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  )}
                 >
-                  <PanelLeftOpen size={18} className="rotate-180" />
+                  <div className="flex items-center justify-center gap-2">
+                    <Zap size={14} />
+                    工具执行
+                  </div>
                 </button>
-                <button 
-                  onClick={() => setStudioOpen(false)}
-                  className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                <button
+                  onClick={() => setStudioTab('tasks')}
+                  className={cn(
+                    "flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all",
+                    studioTab === 'tasks'
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  )}
                 >
-                  <X size={18} />
+                  <div className="flex items-center justify-center gap-2">
+                    <Clock size={14} />
+                    定时任务
+                  </div>
                 </button>
               </div>
             </div>
 
             {/* Studio Content */}
             <div className="flex-1 overflow-y-auto p-6 bg-zinc-50 dark:bg-[#09090B]">
-              <div className="space-y-6">
+              {studioTab === 'tools' ? (
+                <div className="space-y-6">
+                {/* AI 视觉巡检区域 */}
+                <AnimatePresence mode="wait">
+                  {visionInspectionUrl && (
+                    <motion.div
+                      key={visionInspectionUrl} // 添加 key 避免重复渲染导致闪烁
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }} // 添加退出动画
+                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                      className="mb-6"
+                    >
+                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200/50 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+                      {/* Background Gradient Accent */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-cyan-500/5 dark:from-emerald-500/10 dark:to-cyan-500/5" />
+                      
+                      {/* Status Indicator Dot */}
+                      <div className="absolute top-6 right-6 z-20">
+                        <div className="size-3 rounded-full bg-red-500 animate-pulse shadow-lg shadow-red-500/50" />
+                      </div>
+
+                      <div className="relative p-6 space-y-4">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+                              <Camera className="size-5 text-emerald-500" />
+                              AI 视觉巡检
+                            </h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                              {inspectionCamera === 'a' ? '温室摄像头 A' : '温室摄像头 B'}
+                            </p>
+                          </div>
+                          
+                          <div className="px-3 py-1.5 rounded-full bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 flex items-center gap-2">
+                            <div className="size-2 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-xs font-bold text-red-600 dark:text-red-400 tracking-wide uppercase">Live</span>
+                          </div>
+                        </div>
+
+                        {/* Video Container */}
+                        <div className="relative rounded-2xl overflow-hidden bg-black shadow-xl">
+                          <div className="relative w-full h-[280px]">
+                            {/* 视频流 */}
+                            <LiveStreamPlayer
+                              id="studio-vision-camera"
+                              sources={[{ src: visionInspectionUrl }]}
+                              autoplay
+                              muted
+                              controls={false}
+                              className="w-full h-full object-cover"
+                            />
+                            
+                            {/* 覆盖层渐变 */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        {/* Status Message */}
+                        {visionInspectionStatus && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 p-4 backdrop-blur-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Loader2 className="size-4 text-emerald-600 dark:text-emerald-400 animate-spin flex-shrink-0" />
+                              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                                {visionInspectionStatus}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                  )}
+                </AnimatePresence>
+                
                 {/* 如果正在浏览网页，显示浏览器预览 */}
                 {currentBrowserUrl && (
                     <div className="animate-in fade-in slide-in-from-bottom-2 mb-4">
@@ -4569,17 +5589,35 @@ ${taskContext}
                 )}
 
                 {studioData.length > 0 ? (
-                   studioData.map((data, idx) => (
-                     <MCPToolDisplay
-                       key={idx}
-                       toolName={data.name}
-                       result={data.result?.error ? 'error' : 'success'}
-                       input={data.input}
-                       output={data.result?.error ? undefined : data.result}
-                       errorText={data.result?.error}
-                       className="mb-4"
-                     />
-                   ))
+                   studioData.map((data, idx) => {
+                     // 判断是否是设备控制类型
+                     const isDeviceControl = ['set_led', 'toggle_relay', 'control_camera'].includes(data.name)
+                     
+                     if (isDeviceControl) {
+                       return (
+                         <DeviceControlDisplay
+                           key={idx}
+                           toolName={data.name}
+                           input={data.input}
+                           result={data.result}
+                           className="mb-4"
+                         />
+                       )
+                     }
+                     
+                     // 其他工具使用原有的 MCPToolDisplay
+                     return (
+                       <MCPToolDisplay
+                         key={idx}
+                         toolName={data.name}
+                         result={data.result?.error ? 'error' : 'success'}
+                         input={data.input}
+                         output={data.result?.error ? undefined : data.result}
+                         errorText={data.result?.error}
+                         className="mb-4"
+                       />
+                     )
+                   })
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-600 pt-20">
                      <Loader2 size={24} className="animate-spin mb-4" />
@@ -4587,6 +5625,10 @@ ${taskContext}
                   </div>
                 )}
               </div>
+              ) : (
+                // 定时任务标签页
+                <ClientScheduledTasks />
+              )}
             </div>
           </div>
         )}
@@ -4784,88 +5826,6 @@ ${taskContext}
           setIsTTSEnabled(voice.readAloud)
         }}
       />
- 
-      {/* 可见的 LiveStreamPlayer 弹窗用于 AI 视觉巡检截图，参考 Monitor 页面样式 */}
-      {/* 修复闪烁：增加 key 或移除不必要的重新渲染触发条件，并且移除 pointer-events-none 避免在某些设备上被点击穿透导致关闭，但我们需要它不可点击，所以用 pointer-events-none。 闪烁通常是因为 open 状态瞬间变化，或者组件重复挂载。 */}
-      <Dialog open={!!inspectionCameraUrl || isInspecting} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-[1000px] p-0 gap-0 overflow-hidden bg-black border-white/10 shadow-2xl rounded-3xl [&>button]:hidden pointer-events-none duration-300">
-          <DialogTitle className="sr-only">AI 视觉巡检画面</DialogTitle>
-          <div className="relative w-full h-[60vh] bg-black flex flex-col items-center justify-center overflow-hidden">
-            {/* Background Video */}
-            <div className="absolute inset-0 z-0">
-              {/* Keep LiveStreamPlayer mounted always to avoid flicker, just hide it when not ready */}
-              <div className={cn("w-full h-full", inspectionCameraUrl ? "opacity-100" : "opacity-0 absolute")}>
-                {inspectionCameraUrl && (
-                  <LiveStreamPlayer
-                    id="hidden-ai-camera"
-                    sources={[{ src: inspectionCameraUrl || "" }]}
-                    autoplay
-                    muted
-                    controls={false}
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </div>
-              
-              {!inspectionCameraUrl && (
-                <div className="w-full h-full flex items-center justify-center bg-zinc-900 absolute inset-0">
-                  <div className="text-center space-y-4">
-                    <div className="w-20 h-20 mx-auto rounded-full bg-zinc-800/50 flex items-center justify-center border border-white/5">
-                      <Signal className="w-8 h-8 text-zinc-600 animate-pulse" />
-                    </div>
-                    <p className="text-zinc-400 font-medium">连接中...</p>
-                  </div>
-                </div>
-              )}
-              {/* Overlay Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none" />
-            </div>
-
-            {/* Top Bar (Mock) */}
-            <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-start justify-between">
-               {/* Left: Status */}
-               <div className="flex items-center gap-3">
-                  <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-2">
-                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                     <span className="text-xs font-bold text-white tracking-wide">AI Vision</span>
-                  </div>
-               </div>
-
-               {/* Center: Title */}
-               <div className="px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-                  <span className="text-sm font-medium text-white">
-                    {inspectionCamera === 'a' ? '温室摄像头 A' : '温室摄像头 B'}
-                  </span>
-               </div>
-            </div>
-
-            {/* Center Loading Indicator */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-              <div className="relative size-32 flex items-center justify-center mb-6">
-                 {/* 扫描线动画 */}
-                 <div className="absolute inset-0 rounded-full border border-emerald-500/30 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]" style={{ animation: 'scan 2s ease-in-out infinite' }} />
-                 </div>
-                 <div className="size-16 rounded-full bg-emerald-500/20 flex items-center justify-center animate-pulse backdrop-blur-md border border-emerald-500/30">
-                  <Camera className="size-8 text-emerald-400" />
-                 </div>
-              </div>
-              <h3 className="text-white font-bold text-xl mb-2 drop-shadow-md">正在进行视觉巡检</h3>
-              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                 <Loader2 className="size-4 text-emerald-400 animate-spin" />
-                 <p className="text-emerald-400 text-sm font-medium">{inspectionStatus}</p>
-              </div>
-            </div>
-            
-            <style dangerouslySetInnerHTML={{ __html: `
-              @keyframes scan {
-                0% { transform: translateY(-100%); }
-                100% { transform: translateY(32rem); }
-              }
-            `}} />
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

@@ -103,13 +103,21 @@ export function useDeviceControl() {
     })
   }, [sendCommand])
 
+  // setLEDs 接口参数（已调整为硬件BRG顺序）：
+  // led1 = Blue (蓝色)
+  // led2 = Red (红色)
+  // led3 = Green (绿色)
+  // led4 = W (白色/保留)
+  // 
+  // 直接映射到硬件协议：
+  // node0501=Blue, node0502=Red, node0503=Green
   const setLEDs = useCallback(async (led1: number, led2: number, led3: number, led4: number): Promise<boolean> => {
     return sendCommand({
       type: 'led',
-      led1,
-      led2,
-      led3,
-      led4
+      led1, // Blue蓝色
+      led2, // Red红色
+      led3, // Green绿色
+      led4  // W白色(保留)
     })
   }, [sendCommand])
 

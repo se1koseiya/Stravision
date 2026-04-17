@@ -163,12 +163,14 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // 直接调用 MQTT Service
+      // AI发送的是RGB语义，需要转换为硬件BRG顺序
+      // AI: r=Red, g=Green, b=Blue
+      // 硬件: led1=Blue, led2=Red, led3=Green
       const mqttPayload = {
         type: 'led' as const,
-        led1: r,  // 红色
-        led2: g,  // 绿色
-        led3: b,  // 蓝色
+        led1: b,  // Blue 蓝色
+        led2: r,  // Red 红色
+        led3: g,  // Green 绿色
         led4: 0   // 白色（保留）
       }
       console.log('[AI Device Control] Calling MQTT Service with:', mqttPayload)
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
         'RGB Light', 
         'Set Color', 
         currentUser.username || 'AI Assistant',
-        `AI Set RGB: ${r}, ${g}, ${b}`
+        `AI Set RGB: R=${r}, G=${g}, B=${b}`
       )
 
       return NextResponse.json({

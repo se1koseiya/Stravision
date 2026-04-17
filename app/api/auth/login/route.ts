@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
     const location = await fetchIpLocation(ip)
 
     // 检查是否可疑（与历史记录对比）
-    const suspiciousCheck = await checkSuspiciousLogin(user.id, ip, location?.region || null)
+    const suspiciousCheck = await checkSuspiciousLogin(
+      user.id, 
+      ip, 
+      location?.region || null,
+      user.permissions // 传递用户权限以检查 ignoreLocationCheck
+    )
     
     if (suspiciousCheck.isSuspicious) {
       // 如果提供了验证码，进行验证

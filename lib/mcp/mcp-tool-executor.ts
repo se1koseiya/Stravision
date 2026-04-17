@@ -8,6 +8,7 @@
  */
 
 import { getMCPServerIdByToolName } from './mcp-tool-definitions'
+import { spectrumConnectionPool } from './spectrum-connection-pool'
 
 interface MCPConfig {
     id: string
@@ -27,9 +28,9 @@ interface ToolCallResult {
 
 /**
  * 带超时的 Fetch 辅助函数
- * 默认超时时间 60秒，确保给工具足够的执行时间
+ * 默认超时时间 30秒，优化后的超时设置
  */
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 30000): Promise<Response> {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -574,228 +575,20 @@ async function executeFarmDataQuery(args: Record<string, any>, config: MCPConfig
 async function executeSpectrumTool(toolName: string, args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
     console.log(`[MCP] Executing Spectrum Tool: ${toolName}`, args)
 
-    // 直接连接到 Supergateway，不使用代理 API
-    // 在服务端环境中，我们可以直接处理 SSE 连接
-    const sseUrl = 'http://8.153.175.190:8000/spectrum-stravision'
-
     try {
-        console.log(`[MCP] Connecting to Supergateway: ${sseUrl}`)
-
-        // 建立 SSE 连接
-        const sseRes = await fetchWithTimeout(sseUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'text/event-stream',
-                'Cache-Control': 'no-cache'
-            }
-        }, 10000)
-
-        if (!sseRes.ok || !sseRes.body) {
-            return { success: false, error: `无法连接到光谱服务器: ${sseRes.status}` }
-        }
-
-        // 解析 SSE 流获取 endpoint
-        const reader = sseRes.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-        let postEndpoint = ''
-
-        // 读取直到获取 endpoint 事件
-        const startTime = Date.now()
-        while (Date.now() - startTime < 5000) {
-            const { value, done } = await reader.read()
-            if (done) break
-
-            buffer += decoder.decode(value, { stream: true })
-
-            const eventMatch = buffer.match(/event:\s*endpoint[\s\S]*?data:\s*([^\n\r]+)/)
-            if (eventMatch && eventMatch[1]) {
-                const endpointPath = eventMatch[1].trim().replace(/^["']|["']$/g, '')
-                postEndpoint = `http://8.153.175.190:8000${endpointPath}`
-                console.log(`[MCP] Got endpoint: ${postEndpoint}`)
-                break
-            }
-        }
-
-        if (!postEndpoint) {
-            await reader.cancel()
-            return { success: false, error: '无法从 SSE 获取端点' }
-        }
-
-        // === MCP 协议握手：必须先发送 initialize 请求 ===
-        console.log(`[MCP] Step 1: Sending initialize request`)
+        const startTime = Date.now();
         
-        const initBody = {
-            jsonrpc: "2.0",
-            method: "initialize",
-            params: {
-                protocolVersion: "2024-11-05",
-                capabilities: {
-                    roots: { listChanged: false },
-                    sampling: {}
-                },
-                clientInfo: {
-                    name: "stravision-iot-platform",
-                    version: "1.0.0"
-                }
-            },
-            id: Date.now()
-        }
+        // 使用连接池执行（复用连接，大幅提升性能）
+        const data = await spectrumConnectionPool.executeToolCall(toolName, args);
         
-        console.log(`[MCP] Initialize body:`, JSON.stringify(initBody))
+        const executionTime = Date.now() - startTime;
+        console.log(`[MCP] ✅ Spectrum tool completed in ${executionTime}ms (using connection pool)`);
         
-        await fetchWithTimeout(postEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(initBody)
-        }, 5000)
-        
-        // 等待 initialize 响应
-        console.log(`[MCP] Waiting for initialize response...`)
-        let initResponse: any = null
-        buffer = ''
-        
-        const initStartTime = Date.now()
-        while (Date.now() - initStartTime < 5000) {
-            const { value, done } = await reader.read()
-            if (done) break
-            
-            buffer += decoder.decode(value, { stream: true })
-            
-            const messageMatch = buffer.match(/event:\s*message[\s\S]*?data:\s*({[\s\S]*?})\n\n/)
-            if (messageMatch && messageMatch[1]) {
-                try {
-                    initResponse = JSON.parse(messageMatch[1])
-                    console.log(`[MCP] Initialize response received`)
-                    break
-                } catch (e) {
-                    console.error(`[MCP] Failed to parse init response:`, e)
-                }
-            }
-        }
-        
-        if (!initResponse || initResponse.error) {
-            await reader.cancel()
-            return { success: false, error: `初始化失败: ${initResponse?.error?.message || '超时'}` }
-        }
-        
-        // 发送 initialized 通知
-        console.log(`[MCP] Step 2: Sending initialized notification`)
-        
-        const initializedBody = {
-            jsonrpc: "2.0",
-            method: "notifications/initialized",
-            params: {}
-        }
-        
-        await fetchWithTimeout(postEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(initializedBody)
-        }, 5000)
-        
-        // 清空缓冲区，准备接收工具调用响应
-        buffer = ''
-        
-        // === 现在可以发送工具调用请求了 ===
-        console.log(`[MCP] Step 3: Sending tool call request`)
-
-        // 发送工具调用请求
-        // 尝试使用 resources/read 而不是 tools/call
-        // 因为 get_all_spectrum 也被定义为 resource
-        const useResource = toolName === 'get_all_spectrum'
-        
-        const requestBody: any = {
-            jsonrpc: "2.0",
-            method: useResource ? "resources/read" : "tools/call",
-            params: useResource ? {
-                uri: "spectrum://channels"  // 使用 resource URI
-            } : {
-                name: toolName
-            },
-            id: Date.now()
-        }
-        
-        // 只有当使用 tools/call 且有参数时才添加 arguments
-        if (!useResource && args && typeof args === 'object' && Object.keys(args).length > 0) {
-            requestBody.params.arguments = args
-            console.log(`[MCP] Including arguments:`, args)
-        } else {
-            console.log(`[MCP] No arguments (using ${useResource ? 'resource' : 'tool'})`)
-        }
-        
-        console.log(`[MCP] Request body:`, JSON.stringify(requestBody))
-        console.log(`[MCP] Sending request to ${postEndpoint}`)
-
-        await fetchWithTimeout(postEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        }, 5000)
-
-        // 等待响应（通过 SSE 流）
-        let responseData: any = null
-        buffer = ''
-
-        const responseStartTime = Date.now()
-        while (Date.now() - responseStartTime < 15000) {
-            const { value, done } = await reader.read()
-            if (done) break
-
-            buffer += decoder.decode(value, { stream: true })
-
-            // 解析 message 事件
-            const messageMatch = buffer.match(/event:\s*message[\s\S]*?data:\s*({[\s\S]*?})\n\n/)
-            if (messageMatch && messageMatch[1]) {
-                try {
-                    responseData = JSON.parse(messageMatch[1])
-                    console.log(`[MCP] Got response from SSE`)
-                    break
-                } catch (e) {
-                    console.error(`[MCP] Failed to parse response:`, e)
-                }
-            }
-        }
-
-        // 关闭 SSE 连接
-        await reader.cancel()
-
-        if (!responseData) {
-            return { success: false, error: 'MCP 服务器无响应（超时）' }
-        }
-
-        // 解析 JSON-RPC 响应
-        if (responseData.result) {
-            // 提取 content
-            if (responseData.result.content && Array.isArray(responseData.result.content)) {
-                const textContent = responseData.result.content.find((c: any) => c.type === 'text')
-                if (textContent) {
-                    try {
-                        const data = JSON.parse(textContent.text)
-                        return { success: true, data }
-                    } catch {
-                        return { success: true, data: textContent.text }
-                    }
-                }
-            }
-            return { success: true, data: responseData.result }
-        }
-
-        if (responseData.error) {
-            return { success: false, error: responseData.error.message || 'Unknown error' }
-        }
-
-        return { success: true, data: responseData }
-
+        return { 
+            success: true, 
+            data,
+            executionTime
+        };
     } catch (e: any) {
         console.error(`[MCP] Spectrum tool error:`, e)
         return { success: false, error: `光谱服务连接错误: ${e.message}` }

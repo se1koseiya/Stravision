@@ -191,7 +191,7 @@ export class MQTTService {
           keepalive: this.config.keepalive,
           reconnectPeriod: this.config.reconnectPeriod,
           clean: true,
-          clientId: `mqtt_service_${Math.random().toString(16).slice(2, 10)}`
+          clientId: `mqtt_service_${Date.now()}_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`
         })
 
         // Connection successful event
@@ -632,17 +632,25 @@ export class MQTTService {
       validateLED(led3, 'LED3')
       validateLED(led4, 'LED4')
 
-      // Map LEDs to node IDs (led1->node0501, led2->node0502, etc.)
+      // 硬件实际协议映射 (BRG顺序)：
+      // node0501 = Blue (蓝色)
+      // node0502 = Red (红色)
+      // node0503 = Green (绿色)
+      // 
+      // 接口参数（前端已调整为硬件顺序）：
+      // led1 = Blue (蓝色) -> node0501
+      // led2 = Red (红色) -> node0502
+      // led3 = Green (绿色) -> node0503
+      // led4 = W (白色/保留)
       return {
         rw_prot: {
           Ver: '1.0.1',
           dir: 'down',
           id,
           w_data: [
-            { name: 'node0501', value: String(led1) },
-            { name: 'node0502', value: String(led2) },
-            { name: 'node0503', value: String(led3) },
-            { name: 'node0504', value: String(led4) }
+            { name: 'node0501', value: String(led1) }, // Blue 蓝色
+            { name: 'node0502', value: String(led2) }, // Red 红色
+            { name: 'node0503', value: String(led3) }  // Green 绿色
           ]
         }
       }

@@ -2,6 +2,8 @@
 name: iot-control
 description: Technical instructions for controlling hardware via JSON and MCP.
 keywords: 控制, 指令, 开关, 关, 开, 关闭, 全部, 所有, 设备, 继电器, 云台, 电机, 定时任务, JSON, 参数, 水泵, 风扇, 补光灯, 白灯, 摄像头, 5, 6, 7, 8
+priority: 90
+dependencies: hardware-control, motor-control
 ---
 # 莓小智 物联网控制指令手册
 
