@@ -44,6 +44,8 @@ priority: 82
 - **task_action**: 要执行的动作类型
   - `toggle_relay`: 控制继电器
   - `set_led`: 设置 RGB 灯光
+  - `agent_analysis`: 定时执行 AI 智能分析任务
+  - `user_reminder`: 设置简单的定时文字提醒
   - `control_camera`: 控制摄像头移动
 
 - **device**: 设备编号（仅 toggle_relay 需要）

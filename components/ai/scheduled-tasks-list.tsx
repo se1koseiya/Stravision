@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Calendar, Repeat, PlayCircle, Power, MoreVertical, Loader2, AlertCircle } from "lucide-react";
+import { Calendar, Repeat, PlayCircle, Power, Bell, Loader2 } from "lucide-react";
 import { Clock } from "@/components/animate-ui/icons/clock";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { cn } from "@/lib/utils"
@@ -14,7 +14,7 @@ interface ScheduledTask {
   cron_expression?: string | null
   execute_at?: number | null
   next_run?: number | null
-  action_type: 'relay' | 'led'
+  action_type: 'relay' | 'led' | 'agent' | 'reminder'
   device_id?: number
   params: string
   is_active: number
@@ -78,8 +78,8 @@ export function ScheduledTasksList() {
 
   useEffect(() => {
     fetchTasks()
-    // Poll for updates every 30s
-    const interval = setInterval(fetchTasks, 30000)
+    // Poll for updates every 5s for immediate visibility
+    const interval = setInterval(fetchTasks, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -133,10 +133,10 @@ export function ScheduledTasksList() {
         <div className="size-16 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center mb-4 text-blue-500 dark:text-blue-400">
            <Calendar size={28} />
         </div>
-        <h3 className="text-zinc-900 dark:text-white font-semibold text-lg mb-2">暂无定时任务</h3>
+        <h3 className="text-zinc-900 dark:text-white font-semibold text-lg mb-2">暂无自动化记录</h3>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
-          您可以让 AI 帮您设定，例如<br/>
-          <span className="text-zinc-700 dark:text-zinc-300 font-medium">"每天8点开启水泵"</span>
+          您可以让 AI 帮您设定设备定时或延时提醒，例如<br/>
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium">"每天8点开启水泵"</span> 或 <span className="text-zinc-700 dark:text-zinc-300 font-medium">"10分钟后提醒我分析"</span>
         </p>
       </div>
     )
@@ -171,10 +171,12 @@ export function ScheduledTasksList() {
                  <div className={cn(
                    "size-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
                    task.is_active 
-                     ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20" 
+                     ? (task.action_type === 'agent' || task.action_type === 'reminder')
+                       ? "bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/20"
+                       : "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20" 
                      : "bg-zinc-100 dark:bg-white/10 text-zinc-400 dark:text-zinc-500"
                  )}>
-                    {task.cron_expression ? <Repeat size={20} /> : <PlayCircle size={20} />}
+                    {task.action_type === 'agent' ? <PlayCircle size={20} /> : task.action_type === 'reminder' ? <Bell size={20} /> : task.cron_expression ? <Repeat size={20} /> : <PlayCircle size={20} />}
                  </div>
 
                  {/* Content */}
@@ -210,9 +212,9 @@ export function ScheduledTasksList() {
                        </div>
                        
                        <div className="flex items-center gap-1.5">
-                          <Power size={12} className={cn(isOn ? "text-emerald-500" : "text-rose-500")} />
-                          <span className={cn(isOn ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
-                            {isRelay ? (isOn ? "开启" : "关闭") : "调节颜色"}
+                          <Power size={12} className={cn((isOn || task.action_type === 'agent' || task.action_type === 'reminder') ? "text-emerald-500" : "text-rose-500")} />
+                          <span className={cn((isOn || task.action_type === 'agent' || task.action_type === 'reminder') ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                            {task.action_type === 'agent' ? "智能分析" : task.action_type === 'reminder' ? "定时提醒" : isRelay ? (isOn ? "开启" : "关闭") : "调节颜色"}
                           </span>
                        </div>
                     </div>

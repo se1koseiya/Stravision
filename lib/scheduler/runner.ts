@@ -158,6 +158,11 @@ export class SchedulerRunner {
           led3: b,
           led4: w
         }
+      } else if (task.action_type === 'agent' || task.action_type === 'reminder') {
+        // Agent and reminder tasks are primarily handled by the frontend picking up the "due" status.
+        // We log it here so we know the backend did its part (for one-time tasks).
+        console.log(`[Scheduler] Agent/Reminder task triggered: ${task.title}. Frontend should handle the visual execution.`)
+        return; 
       }
 
       if (!command) throw new Error(`Unsupported action_type: ${task.action_type}`)

@@ -98,8 +98,6 @@ import { DeviceControlDisplay } from "@/components/studio/device-control-display
 import { AgentExecutionChain, type AgentStep } from "@/components/ai/agent-execution-chain"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
-import { ClientScheduledTasks } from '@/components/ai/client-scheduled-tasks'
-import { useClientScheduler } from '@/lib/ai/client-scheduler'
 import { parseScheduleTask, removeScheduleTaskTag, getScheduleTaskSystemPrompt } from '@/lib/ai/schedule-task-parser'
 import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 
@@ -159,7 +157,7 @@ interface SessionMeta { id: string; title: string; createdAt: number; updatedAt:
 // 任务列表组件 (Dynamic Task Planner) - 参考设计实现
 const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: { content: string, onOpenStudio?: () => void, isPaused?: boolean, onTogglePause?: (paused: boolean) => void }) => {
   const [isVisible, setIsVisible] = useState(true)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true) // 默认折叠
   const [autoCollapse, setAutoCollapse] = useState(() => {
     // 从 localStorage 读取用户的自动折叠偏好
     if (typeof window !== 'undefined') {
@@ -200,13 +198,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
     }
   }, [autoCollapse, allCompleted, isCollapsed])
   
-  // 当有新任务开始时，自动展开（独立的 effect）
-  useEffect(() => {
-    if (!allCompleted && isCollapsed) {
-      console.log('[DynamicTaskPlanner] Auto-expanding because task is active...')
-      setIsCollapsed(false)
-    }
-  }, [allCompleted]) // 只依赖 allCompleted，避免循环
+  // 移除了自动展开逻辑，保持默认折叠状态，由用户手动展开
 
   useEffect(() => {
     if (!isVisible || isPaused || allCompleted) return
@@ -242,20 +234,55 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
     return (
       <div className="my-8 w-full max-w-2xl bg-white/70 backdrop-blur-xl rounded-[28px] border border-zinc-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans dark:bg-[#1C1C1E]/80 dark:border-white/5">
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-100/80 dark:border-white/5 bg-white/30 dark:bg-black/20">
-          <div className="flex items-center gap-3">
+        <div 
+          className={cn(
+            "px-6 py-4 flex items-center justify-between border-b border-zinc-100/80 dark:border-white/5 bg-white/30 dark:bg-black/20 cursor-pointer select-none transition-colors hover:bg-zinc-50/50 dark:hover:bg-white/5",
+            isCollapsed && "border-b-0"
+          )}
+          onClick={() => {
+            console.log('[DynamicTaskPlanner] Header click toggle, current:', isCollapsed, '-> new:', !isCollapsed)
+            setIsCollapsed(!isCollapsed)
+          }}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
              <div className={cn(
-               "size-2 rounded-full",
-               allCompleted ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-blue-500 animate-pulse"
-             )} />
-             <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
-               <span>
-                 {allCompleted ? "任务已全部达成" : "执行中"} | 执行用时: {formatTime(elapsedTime)}
-               </span>
-             </div>
+                "size-2 rounded-full shrink-0",
+                allCompleted ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-blue-500 animate-pulse"
+              )} />
+             <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500 shrink-0">
+                <span>
+                  {allCompleted ? "任务已全部达成" : "执行中"} | 执行用时: {formatTime(elapsedTime)}
+                </span>
+              </div>
+              {/* 折叠时显示当前任务进度 */}
+              {isCollapsed && !allCompleted && activeTask && (
+                <div className="flex items-center gap-2 ml-2 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Loader2 size={11} className="text-blue-500 animate-spin shrink-0" />
+                    <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 truncate">
+                      {activeTask.title}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-500 dark:text-blue-400 shrink-0 tabular-nums">
+                    {currentIndex + 1}/{tasks.length}
+                  </span>
+                </div>
+              )}
+              {isCollapsed && allCompleted && (
+                <div className="flex items-center gap-2 ml-2 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0" />
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      全部完成
+                    </span>
+                  </div>
+                </div>
+              )}
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
             {/* 自动折叠开关 */}
             <button
               onClick={() => setAutoCollapse(!autoCollapse)}
@@ -660,8 +687,73 @@ function AIAssistantContent() {
   // Browser Activity State
   const [browsingUrl, setBrowsingUrl] = useState<string | null>(null)
   
-  // Client Scheduler Hook
-  const { scheduleTask } = useClientScheduler()
+  // Unified Scheduler: Replacing client-side hook with a direct API call wrapper
+  const scheduleTask = async (description: string, delayMinutes: number, taskType: string, payload: any) => {
+    const execute_at = Date.now() + delayMinutes * 60 * 1000
+    try {
+      await fetch('/api/scheduler/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: description,
+          execute_at,
+          action_type: taskType === 'analysis' ? 'agent' : taskType === 'reminder' ? 'reminder' : taskType,
+          params: payload || {}
+        })
+      })
+      console.log('[Unified Scheduler] Legacy tag task saved to DB:', description)
+    } catch (e) {
+      console.error('[Unified Scheduler] Failed to save legacy tag task:', e)
+    }
+  }
+
+  // 自动化任务执行检查 (Unified Scheduler - Agent & Reminder support)
+  useEffect(() => {
+    const checkScheduledTasks = async () => {
+      try {
+        const res = await fetch('/api/scheduler/tasks')
+        if (!res.ok) return
+        const { tasks } = await res.json()
+        if (!tasks || !Array.isArray(tasks)) return
+
+        const now = Date.now()
+        for (const task of tasks) {
+          // 只处理活跃的 agent 或 reminder 任务
+          if (task.is_active === 1 && (task.action_type === 'agent' || task.action_type === 'reminder')) {
+            const executeTime = task.execute_at
+            // 如果已到执行时间（容忍2分钟过期）
+            if (executeTime && executeTime <= now && (now - executeTime < 120000)) {
+              console.log('[Unified Scheduler] Executing due task:', task.title)
+              
+              // 1. 先标记为已完成（删除），防止重复触发
+              await fetch(`/api/scheduler/tasks?id=${task.id}`, { method: 'DELETE' })
+
+              // 2. 执行逻辑
+              if (task.action_type === 'agent') {
+                const analysisPrompt = `🔔 定时任务提醒\n\n【${task.title}】\n\n请立即进行环境诊断分析：\n1. 检查当前环境参数并分析是否存在异常\n2. 给出具体的改善建议。`
+                if (handleSendRef.current) {
+                  console.log('[Unified Scheduler] Triggering AI handleSend for agent task')
+                  handleSendRef.current(analysisPrompt, [], false, false, true)
+                }
+              } else if (task.action_type === 'reminder') {
+                toast.info(`🔔 定时提醒：${task.title}`, {
+                  duration: 10000
+                })
+              }
+            } else if (executeTime && now - executeTime >= 120000) {
+              // 已经过期太久的任务，直接删除
+              await fetch(`/api/scheduler/tasks?id=${task.id}`, { method: 'DELETE' })
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[Unified Scheduler] Check error:', e)
+      }
+    }
+
+    const interval = setInterval(checkScheduledTasks, 15000)
+    return () => clearInterval(interval)
+  }, [])
   
   // AI Features Configuration Hook
   const { config: aiFeatures } = useAIFeatures()
@@ -2953,149 +3045,28 @@ ${taskContext}
         if (taskData) {
           console.log('[Schedule Task] ✅ Successfully parsed task data:', taskData)
           
-          // 创建定时任务
-          const taskId = scheduleTask(
+          // 创建定时任务 (Legacy Tag Support - now saved to DB)
+          await scheduleTask(
             taskData.description,
             taskData.delayMinutes,
             taskData.taskType,
-            taskData.payload,
-            async (task) => {
-              // 任务执行时的回调
-              console.log('[Schedule Task] Executing task:', task)
-              toast.info(`定时任务执行：${task.description}`)
-              
-              // 根据任务类型执行不同操作
-              switch (task.taskType) {
-                case 'analysis':
-                  // 使用 handleSend 触发完整的AI对话流程（支持工具调用、流式输出等）
-                  console.log('[Schedule Task] Triggering AI analysis via handleSend...')
-                  const analysisPrompt = `🔔 定时任务提醒
-
-【${task.description}】
-
-请立即进行环境诊断分析：
-1. 检查当前温度、湿度、光照等环境参数
-2. 分析是否存在异常情况
-3. 如果发现问题，给出具体的改善建议
-4. 如果一切正常，简要说明当前状态
-
-⚠️ 重要限制：
-- 这是定时任务执行，不要创建新的定时任务！
-- 只生成分析报告，禁止输出任何设备控制 JSON 指令！
-- 禁止调用 toggle_relay、set_led、control_camera 等设备控制工具！
-- 只做分析和建议，不要实际操作设备！`
-                  
-                  try {
-                    // 使用 handleSendRef 调用完整的对话流程
-                    // ⚠️ 重要：传入 useSystemApi=true，强制使用系统预设的API（不需要用户配置）
-                    if (handleSendRef.current) {
-                      await handleSendRef.current(analysisPrompt, [], false, false, true)
-                      console.log('[Schedule Task] AI analysis triggered successfully')
-                      toast.success('环境分析完成', {
-                        description: '莓小智已为您更新环境状态',
-                        duration: 3000
-                      })
-                    } else {
-                      console.error('[Schedule Task] handleSendRef.current is null')
-                      toast.error('定时任务执行失败：无法访问AI接口')
-                    }
-                  } catch (error) {
-                    console.error('[Schedule Task] Failed to trigger AI analysis:', error)
-                    toast.error('定时任务执行失败', {
-                      description: '请手动检查环境状态'
-                    })
-                  }
-                  break
-                  
-                case 'reminder':
-                  // 显示提醒
-                  toast.info(task.description, {
-                    duration: 10000,
-                    action: {
-                      label: '查看',
-                      onClick: () => {
-                        // 可以跳转到相关页面
-                      }
-                    }
-                  })
-                  break
-                  
-                case 'notification':
-                  // 显示通知
-                  if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('定时提醒', {
-                      body: task.description,
-                      icon: '/favicon.ico'
-                    })
-                  }
-                  toast.success(task.description)
-                  break
-                  
-                case 'device_control':
-                  // 执行设备控制
-                  console.log('[Schedule Task] Executing device control:', task.payload)
-                  toast.info(`定时设备控制：${task.description}`)
-                  
-                  try {
-                    // 执行设备控制指令
-                    const controlCommand = task.payload
-                    if (controlCommand && controlCommand.action) {
-                      // 调用设备控制 API
-                      const response = await fetch('/api/device-control', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(controlCommand)
-                      })
-                      
-                      if (response.ok) {
-                        const result = await response.json()
-                        console.log('[Schedule Task] Device control success:', result)
-                        toast.success('设备控制成功', {
-                          description: task.description,
-                          duration: 3000
-                        })
-                        
-                        // 通过莓小智发送确认消息
-                        if (handleSendRef.current) {
-                          const confirmMessage = `✅ 定时任务已执行：${task.description}`
-                          await handleSendRef.current(confirmMessage, [], false, true, true)
-                        }
-                      } else {
-                        throw new Error('Device control failed')
-                      }
-                    }
-                  } catch (error) {
-                    console.error('[Schedule Task] Failed to control device:', error)
-                    toast.error('设备控制失败', {
-                      description: task.description
-                    })
-                  }
-                  break
-                  
-                case 'custom':
-                  // 自定义任务处理
-                  console.log('[Schedule Task] Custom task payload:', task.payload)
-                  toast.info(task.description)
-                  break
-              }
-            }
+            taskData.payload
           )
-          
-          toast.success(`定时任务已创建：${taskData.description}`)
-          console.log('[Schedule Task] Task created with ID:', taskId)
-          
-          // 从响应中移除SCHEDULE_TASK标记
-          assistantMsg.content = removeScheduleTaskTag(assistantMsg.content)
-          
-          // 更新消息显示
-          setMessages(prev => {
-            const newMsgs = [...prev]
-            newMsgs[newMsgs.length - 1] = { ...assistantMsg }
-            return newMsgs
-          })
-        } else {
-          console.log('[Schedule Task] No SCHEDULE_TASK tag found in content')
+          toast.success("定时任务已加入计划", { description: taskData.description })
         }
+      }
+
+      // Check for SCHEDULE_TASK tag regardless of previous structure
+      const tagCheckContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : ''
+      if (tagCheckContent.includes('<SCHEDULE_TASK>')) {
+        assistantMsg.content = removeScheduleTaskTag(tagCheckContent)
+        
+        // 更新消息显示
+        setMessages(prev => {
+          const newMsgs = [...prev]
+          newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+          return newMsgs
+        })
       }
       
       if (ensuredSessionId) {
@@ -3764,57 +3735,6 @@ ${taskContext}
             )
           }
 
-          if (part.match(/^<\s*TASKS/)) {
-            try {
-              const jsonStr = part.replace(/<\s*TASKS\s*>/, '').replace(/<\/\s*TASKS\s*>/, '').trim()
-              const tasks = JSON.parse(jsonStr) as TaskModel[]
-
-              if (!tasks || tasks.length === 0) return null
-
-              return (
-                <div key={index} className="my-4 space-y-4">
-                  {tasks.map((task, i) => (
-                    <div key={i} className="bg-white dark:bg-white/5 rounded-lg border border-zinc-200 dark:border-white/10 overflow-hidden shadow-sm">
-                      <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                        <h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">{task.title}</h3>
-                        <div className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide",
-                          task.status === 'completed' ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :
-                            task.status === 'in_progress' ? "bg-emerald-100 dark:bg-blue-900/30 text-emerald-700 dark:text-blue-500" :
-                              "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                        )}>
-                          {task.status === 'completed' ? 'Completed' : task.status === 'in_progress' ? 'In Progress' : 'Pending'}
-                        </div>
-                      </div>
-                      <div className="p-0">
-                        {task.items.map((item, j) => (
-                          <div key={j} className="flex items-start gap-3 px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                            <div className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500">
-                              {item.type === 'file' ? <FileText size={16} /> : <CheckCircle2 size={16} className={cn(task.status === 'completed' ? "text-emerald-500" : "")} />}
-                            </div>
-                            <div className="flex-1 text-sm text-zinc-600 dark:text-zinc-300">
-                              {item.text}
-                              {item.file && (
-                                <div className="mt-2 flex items-center gap-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 w-fit">
-                                  <div className="size-8 bg-white dark:bg-white/10 rounded border border-zinc-200 dark:border-white/10 flex items-center justify-center text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">
-                                    {item.file.name.split('.').pop()}
-                                  </div>
-                                  <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{item.file.name}</div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            } catch (e) {
-              console.error("Tasks parsing error", e)
-              return null
-            }
-          }
 
           if (part.match(/^<\s*MONITOR/)) {
             return (
@@ -3977,8 +3897,33 @@ ${taskContext}
                             return null // Don't show JSON for IoT commands
                           }
 
-                          // Check for Schedule Task
+                          // Check for Schedule Task with validation
                           if (data.action === 'schedule_task') {
+                            console.log('[ScheduleCard] 🔍 Detected schedule_task JSON:', data)
+                            
+                            // Validate required fields
+                            const errors: string[] = []
+                            if (!data.title) errors.push('缺少 title 字段')
+                            if (!data.task_action) errors.push('缺少 task_action 字段')
+                            if (!data.delay_seconds && !data.cron) errors.push('缺少 delay_seconds 或 cron 字段')
+                            if (data.delay_seconds && typeof data.delay_seconds !== 'number') {
+                              errors.push(`delay_seconds 必须是数字类型，当前是: ${typeof data.delay_seconds}`)
+                            }
+                            if (data.task_action === 'toggle_relay' && (!data.device || data.value === undefined)) {
+                              errors.push('toggle_relay 任务缺少 device 或 value 字段')
+                            }
+                            
+                            if (errors.length > 0) {
+                              console.error('[ScheduleCard] ❌ JSON 格式错误:', errors)
+                              toast.error('定时任务格式错误', { 
+                                description: errors.join('; '),
+                                duration: 5000
+                              })
+                              // Still try to render the card, it will show error state
+                            } else {
+                              console.log('[ScheduleCard] ✅ JSON 格式验证通过')
+                            }
+                            
                             return <ScheduleCard data={data} />
                           }
 
@@ -3993,6 +3938,7 @@ ${taskContext}
                         }
                       } catch (e) {
                         // Not valid JSON or not a chart, continue to render as code
+                        console.error('[JSON Parse] Failed to parse JSON code block:', e)
                       }
                     }
 
@@ -5627,7 +5573,7 @@ ${taskContext}
               </div>
               ) : (
                 // 定时任务标签页
-                <ClientScheduledTasks />
+                <ScheduledTasksList />
               )}
             </div>
           </div>

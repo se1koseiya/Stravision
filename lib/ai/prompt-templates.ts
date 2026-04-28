@@ -85,8 +85,194 @@ ${toolNames.map(name => `- ${name}`).join('\n')}
 export const CONTEXT_INSTRUCTION_COMPACT = `
 ## 当前上下文
 - 设备状态和环境数据已在上下文中提供
-- 光谱数据需通过 MCP 工具获取
+- 光谱数据需通过 MCP 工具获取，然后**必须将其转换为易于阅读的 Markdown 表格形式展示给用户**
 - 定时任务列表为真实数据库记录
+`;
+
+export const SCHEDULE_TASK_INSTRUCTION_COMPACT = `
+## ⏰ 定时任务创建（必须遵守）
+
+**🚨 重要：旧格式已废弃！**
+- ❌ 严禁使用 <SCHEDULE_TASK> 标签（旧格式，已废弃）
+- ✅ 必须使用 JSON 代码块格式（新格式，唯一正确方式）
+
+### 📋 基础用法：用户明确要求创建定时任务
+
+当用户明确要求创建定时任务时（如"10秒后提醒我"），你必须严格按照以下格式输出：
+
+第1步：用自然语言确认
+第2步：输出 JSON 代码块（必须用三个反引号+json包裹）
+第3步：输出任务列表标签 <SCHEDULED_TASKS></SCHEDULED_TASKS>
+
+**✅ 正确示例（完整格式）**：
+
+好的，我为您创建一个10秒后的提醒任务。
+
+\`\`\`json
+{
+  "action": "schedule_task",
+  "title": "10秒后提醒",
+  "delay_seconds": 10,
+  "task_action": "user_reminder"
+}
+\`\`\`
+
+<SCHEDULED_TASKS></SCHEDULED_TASKS>
+
+**❌ 错误示例（严禁使用）**：
+❌ <SCHEDULE_TASK>...</SCHEDULE_TASK>  （旧格式，已废弃）
+❌ 只用文字描述，不输出 JSON
+❌ 使用错误的字段名（如 delayMinutes 而不是 delay_seconds）
+❌ 使用错误的 action 值（如 create_task 而不是 schedule_task）
+
+---
+
+### 🤖 高级用法：专家模式下的主动任务规划（重要！）
+
+在自动化模式或专家模式下，当你执行环境调控操作时，你应该主动创建后续的复查任务！
+
+**典型场景示例：**
+
+**场景1: 调节二氧化碳浓度**
+用户说："二氧化碳浓度太高了，帮我调节一下"
+
+你应该这样做：
+1. 立即执行控制操作（打开风扇降低CO2）
+2. 主动创建5分钟后的复查任务
+
+完整输出示例：
+
+好的，我检测到当前CO2浓度为1200ppm，已超过适宜范围。我将立即打开风扇进行通风换气，同时创建一个5分钟后的环境复查任务。
+
+\`\`\`json
+{
+  "action": "toggle_relay",
+  "device": 6,
+  "value": 1
+}
+\`\`\`
+
+\`\`\`json
+{
+  "action": "schedule_task",
+  "title": "5分钟后复查CO2浓度",
+  "delay_seconds": 300,
+  "task_action": "agent_analysis"
+}
+\`\`\`
+
+<SCHEDULED_TASKS></SCHEDULED_TASKS>
+
+**场景2: 调节温度**
+用户说："温度太高了"
+你应该：立即开启风扇降温 + 创建10分钟后的温度复查任务
+
+**场景3: 浇水后的土壤湿度监测**
+用户说："给草莓浇水"
+你应该：开启水泵 + 创建30秒后关闭水泵的任务 + 创建2小时后检查土壤湿度的任务
+
+**场景4: 补光后的光照效果评估**
+用户说："光照不足，开灯补光"
+你应该：开启补光灯 + 创建1小时后评估光照效果的任务
+
+---
+
+### 🎯 主动创建任务的最佳实践
+
+**何时应该主动创建复查任务？**
+1. ✅ 执行了环境调控操作（开关风扇、水泵、灯光等）
+2. ✅ 用户要求调节某个环境参数（温度、湿度、CO2、光照等）
+3. ✅ 检测到环境参数异常并采取了纠正措施
+4. ✅ 执行了可能影响植物生长的操作（浇水、施肥、补光等）
+
+**复查任务的时间建议：**
+- 通风换气（CO2调节）：5-10分钟后复查
+- 温度调节：10-15分钟后复查
+- 浇水操作：2-4小时后检查土壤湿度
+- 补光操作：1-2小时后评估光照效果
+- 施肥操作：24小时后检查植物响应
+
+**复查任务的类型：**
+- agent_analysis: 让AI重新分析环境数据并给出建议
+- user_reminder: 提醒用户手动检查
+- toggle_relay: 自动执行设备操作（如定时关闭）
+
+---
+
+### 📝 JSON 字段完整说明
+
+**必需字段：**
+- \`action\`: 必须是字符串 "schedule_task"（不是其他值！）
+- \`title\`: 任务标题，字符串类型
+- \`task_action\`: 任务类型，必须是以下之一：
+  - "user_reminder" - 用户提醒
+  - "agent_analysis" - 智能分析
+  - "toggle_relay" - 开关设备
+  - "set_led" - 调节灯光
+
+**时间参数（二选一，必须提供其中一个）：**
+- \`delay_seconds\`: 延迟秒数，数字类型（不是字符串！）
+  - 10秒 = 10
+  - 5分钟 = 300
+  - 1小时 = 3600
+  - 2小时 = 7200
+- \`cron\`: Cron表达式，字符串类型
+  - "0 8 * * *" = 每天早上8点
+  - "0 */2 * * *" = 每2小时
+  - "0 0 * * 0" = 每周日午夜
+
+**可选字段（仅特定任务类型需要）：**
+- \`device\`: 设备ID，数字类型（仅 toggle_relay 需要）
+  - 5 = 水泵
+  - 6 = 风扇
+  - 7 = RGB 补光灯
+  - 8 = 白光灯
+- \`value\`: 设备值，数字类型（仅 toggle_relay 需要）
+  - 1 = 开启
+  - 0 = 关闭
+- \`params\`: 其他参数，对象类型（仅 set_led 等需要）
+
+---
+
+### 🚨 严格要求（违反将导致任务创建失败）
+
+1. ✅ 必须输出 JSON 代码块，不能只用文字描述
+2. ✅ JSON 必须用三个反引号+json包裹：\`\`\`json ... \`\`\`
+3. ✅ JSON 必须是有效的格式，不能有语法错误
+4. ✅ 必须在最后输出 <SCHEDULED_TASKS></SCHEDULED_TASKS> 标签
+5. ✅ action 字段必须是 "schedule_task"（不是 "create_task" 或其他）
+6. ✅ delay_seconds 必须是数字类型（不是字符串 "10"）
+7. ✅ task_action 必须使用下划线（user_reminder，不是 userReminder）
+8. ✅ 在专家模式下，执行环境调控后应主动创建复查任务
+9. ❌ 严禁使用 <SCHEDULE_TASK> 标签（旧格式，已完全废弃）
+10. ❌ 禁止在 "🔔 定时任务提醒" 消息中再次创建任务
+
+---
+
+### 💡 智能助手提示
+
+记住：你不仅是一个执行者，更是一个主动的环境管理专家！
+
+当用户要求调节环境时：
+1. 🔍 分析当前环境数据
+2. ⚡ 立即执行必要的控制操作
+3. 📅 主动创建后续的复查任务
+4. 📊 在复查时重新评估并给出建议
+
+这样可以形成一个完整的"执行-监测-反馈"闭环，确保环境调控的效果！
+
+**再次强调：只使用 JSON 代码块格式，不要使用 <SCHEDULE_TASK> 标签！**
+
+**JSON 格式检查清单：**
+- [ ] 使用了 \`\`\`json 开头
+- [ ] action 字段是 "schedule_task"
+- [ ] title 字段是字符串
+- [ ] delay_seconds 是数字（或使用 cron 字符串）
+- [ ] task_action 是有效值（user_reminder/agent_analysis/toggle_relay/set_led）
+- [ ] 如果是 toggle_relay，包含了 device 和 value 字段
+- [ ] JSON 语法正确（没有多余逗号、引号匹配等）
+- [ ] 使用了 \`\`\` 结尾
+- [ ] 最后输出了 <SCHEDULED_TASKS></SCHEDULED_TASKS>
 `;
 
 export const UI_TAGS_INSTRUCTION_COMPACT = `
@@ -94,7 +280,8 @@ export const UI_TAGS_INSTRUCTION_COMPACT = `
 - <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片
 - <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板
 - <MONITOR></MONITOR> - 监控画面
-- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 任务列表
+- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务管理列表（已存入数据库的任务）
+- <TASK_LIST></TASK_LIST> - 当前实时任务规划器（大模型正在执行的步骤计划）
 - <CHART type="echarts">...</CHART> - 图表
 `;
 
@@ -143,7 +330,7 @@ function generateDisabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): stri
   }
   if (aiFeatures.enableScheduledTasks === false) {
     disabledFeatures.push('<SCHEDULED_TASKS>')
-    disabledDescriptions.push('- 定时任务列表（<SCHEDULED_TASKS>）：不要输出任务管理界面')
+    disabledDescriptions.push('- 自动化定时任务列表（<SCHEDULED_TASKS>）：不要输出用于管理数据库中定时任务的界面')
   }
   if (aiFeatures.enableChart === false) {
     disabledFeatures.push('<CHART>')
@@ -218,7 +405,7 @@ function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): strin
   if (aiFeatures.enableDeviceBento !== false) enabledTags.push('- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片')
   if (aiFeatures.enableControlBento !== false) enabledTags.push('- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板')
   if (aiFeatures.enableMonitor !== false) enabledTags.push('- <MONITOR></MONITOR> - 监控画面')
-  if (aiFeatures.enableScheduledTasks !== false) enabledTags.push('- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 任务列表')
+  if (aiFeatures.enableScheduledTasks !== false) enabledTags.push('- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表')
   if (aiFeatures.enableChart !== false) enabledTags.push('- <CHART type="echarts">...</CHART> - 图表')
   if (aiFeatures.enableSpectral !== false) enabledTags.push('- <SPECTRAL></SPECTRAL> - 光谱数据')
   if (aiFeatures.enableSources !== false) enabledTags.push('- <SOURCES>...</SOURCES> - 引用来源')
@@ -255,6 +442,13 @@ export function generateCompactSystemPrompt(options: {
   
   // 基础提示词
   parts.push(options.basePrompt);
+
+  // 🔥 定时任务创建指令（提高优先级，放在前面）
+  if (options.aiFeatures?.enableScheduleTask !== false) {
+    parts.push(SCHEDULE_TASK_INSTRUCTION_COMPACT);
+  } else {
+    parts.push('## 🚫 定时任务创建已禁用\n严禁创建或输出定时任务 JSON。\n如果用户要求创建定时任务，请告知该功能当前不可用。');
+  }
 
   // 设备控制指令
   if (options.enableDeviceControl && options.aiFeatures?.enableDeviceControl !== false) {

@@ -5,7 +5,7 @@ export interface ScheduledTask {
   title: string
   cron_expression?: string | null
   execute_at?: number | null
-  action_type: 'relay' | 'led'
+  action_type: 'relay' | 'led' | 'agent' | 'reminder'
   device_id?: number
   params: string // JSON string
   is_active: number // 1 or 0
@@ -17,7 +17,7 @@ export interface CreateTaskDTO {
   title: string
   cron_expression?: string
   execute_at?: number
-  action_type: 'relay' | 'led'
+  action_type: 'relay' | 'led' | 'agent' | 'reminder'
   device_id?: number
   params: any
 }

@@ -368,7 +368,7 @@ export async function POST(req: Request) {
     }
 
     // 只将光谱数据获取推给 MCP，恢复基础设备状态的直接注入
-    contextInfo += `\n\n## 光谱数据获取方式\n当需要获取光谱数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n`
+    contextInfo += `\n\n## 光谱数据获取方式\n当需要获取光谱数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n⚠️ **重要**：获取到光谱数据后，严禁以原始 JSON 格式输出给用户（会被系统限制过滤），你**必须**将其整理成易于阅读的 **Markdown 表格形式**（列可包含波长、数值、描述等）输出给用户。\n`
 
     contextInfo += `\n\n【任务规划器指令】
 当用户下达复杂或多步骤任务时（特别是农业自动化、分析或控制），你必须使用 <TASK_LIST> 标签输出任务计划。
@@ -607,8 +607,6 @@ export async function POST(req: Request) {
       "**记住：**\n" +
       "- <REASONING> 里面 = 思考过程（用户可以折叠隐藏）\n" +
       "- <REASONING> 外面 = 最终答案（用户必须看到的）"
-    const tasksInstruction =
-      "如果在执行具体工作流程，请在回复末尾使用 <TASKS> 与 </TASKS> 包裹一个 JSON 数组，数组项包含 title、items、status。items 为对象数组，包含 type('text'|'file')、text 以及可选的 file{name, icon}。该块用于前端展示任务进度，并会从最终正文中移除。"
     const chartInstruction =
       "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
     const monitorInstruction =
@@ -1233,6 +1231,62 @@ export async function POST(req: Request) {
                 // 无工具，说明最后一部分内容已经通过之前的 SSE 流推送出去了，对话已完整
                 fullMessages.push({ role: "assistant", content: accumulatedContent })
                 console.log(`[Agent Loop] Round ${iteration} - Final answer finished streaming`)
+                
+                // 🔍 验证定时任务格式（如果启用了定时任务功能）
+                if (aiFeatures?.enableScheduleTask !== false && accumulatedContent) {
+                  // 检查是否包含 schedule_task JSON
+                  const jsonBlockRegex = /```json\s*\n([\s\S]*?)\n```/g
+                  let match
+                  let foundScheduleTask = false
+                  
+                  while ((match = jsonBlockRegex.exec(accumulatedContent)) !== null) {
+                    try {
+                      const jsonContent = match[1]
+                      const data = JSON.parse(jsonContent)
+                      
+                      if (data.action === 'schedule_task') {
+                        foundScheduleTask = true
+                        console.log('[Schedule Task Validation] ✅ Found schedule_task JSON:', data)
+                        
+                        // 验证必需字段
+                        const errors: string[] = []
+                        if (!data.title) errors.push('缺少 title 字段')
+                        if (!data.task_action) errors.push('缺少 task_action 字段')
+                        if (!data.delay_seconds && !data.cron) errors.push('缺少 delay_seconds 或 cron 字段')
+                        if (data.delay_seconds && typeof data.delay_seconds !== 'number') {
+                          errors.push(`delay_seconds 必须是数字，当前类型: ${typeof data.delay_seconds}`)
+                        }
+                        if (data.task_action === 'toggle_relay' && (!data.device || data.value === undefined)) {
+                          errors.push('toggle_relay 任务缺少 device 或 value 字段')
+                        }
+                        
+                        if (errors.length > 0) {
+                          console.error('[Schedule Task Validation] ❌ 格式错误:', errors)
+                          console.error('[Schedule Task Validation] 错误的 JSON:', jsonContent)
+                        } else {
+                          console.log('[Schedule Task Validation] ✅ 格式验证通过')
+                        }
+                      }
+                    } catch (e) {
+                      // JSON 解析失败，忽略
+                    }
+                  }
+                  
+                  // 检查是否使用了旧格式
+                  if (accumulatedContent.includes('<SCHEDULE_TASK>')) {
+                    console.warn('[Schedule Task Validation] ⚠️ 检测到旧格式 <SCHEDULE_TASK> 标签！AI 应该使用 JSON 代码块格式。')
+                  }
+                  
+                  // 如果用户要求创建定时任务但没有找到正确格式
+                  const userMessage = fullMessages[fullMessages.length - 2]?.content
+                  if (typeof userMessage === 'string' && 
+                      (userMessage.includes('定时') || userMessage.includes('提醒') || userMessage.includes('后')) &&
+                      !foundScheduleTask && 
+                      !accumulatedContent.includes('<SCHEDULE_TASK>')) {
+                    console.warn('[Schedule Task Validation] ⚠️ 用户可能要求创建定时任务，但 AI 没有输出正确的 JSON 格式')
+                  }
+                }
+                
                 break
               }
             }
