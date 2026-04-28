@@ -107,6 +107,7 @@ import { WebPreview, WebPreviewNavigation, WebPreviewNavigationButton, WebPrevie
 import { DeviceControlCard } from "@/components/ai/device-control-card"
 import { HTMLPreviewCard } from "@/components/ai/html-preview-card"
 import { AIControlBorderEffect } from "@/components/ai/ai-control-border-effect"
+import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
 
 import { LiveStreamPlayer } from "@/components/live-stream-player"
 
@@ -4260,130 +4261,17 @@ ${taskContext}
             {(() => {
               const currentModelId = (selectedModel || aiSettings?.model || "qwen3.6-plus") as string;
               return (
-                <PromptInputModelSelect value={currentModelId} onValueChange={(val) => {
-                  setSelectedModel(val)
-                  if (aiSettings) {
-                    const newSettings = { ...aiSettings, model: val }
-                    setAiSettings(newSettings)
-                    localStorage.setItem("ai-settings", JSON.stringify(newSettings))
-                  }
-                }}>
-                  <PromptInputModelSelectTrigger className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all font-bold text-xs h-auto shadow-sm focus:ring-0 group">
-                      <div className="size-6 rounded-lg overflow-hidden flex items-center justify-center transition-transform group-hover:scale-110">
-                        {
-                          currentModelId === 'auto' ? <Sparkles size={14} className="text-blue-500" /> :
-                          currentModelId.includes('qwen') ? <Qwen.Color size={16} /> :
-                          currentModelId.includes('deepseek') ? <DeepSeek.Color size={16} /> :
-                          currentModelId.includes('kimi') ? <Moonshot size={16} /> :
-                          <Qwen.Color size={16} />
-                        }
-                      </div>
-                      <span className="text-zinc-700 dark:text-zinc-300 tracking-tight font-black">{
-                        currentModelId === 'auto' ? "智能模型" : 
-                        currentModelId === 'deepseek-v3' ? "DeepSeek-V3" :
-                        currentModelId === 'deepseek-r1' ? "DeepSeek-R1" :
-                        currentModelId === 'qwen3.6-plus' ? "Qwen3.6 Plus" :
-                        currentModelId === 'qwen3.5-plus' ? "Qwen3.5 Plus" :
-                        currentModelId === 'qwen3.5-flash' ? "Qwen3.5 Flash" :
-                        currentModelId === 'qwen-max' ? "Qwen Max" :
-                        currentModelId === 'kimi-latest' ? "Kimi Latest" :
-                        currentModelId
-                      }</span>
-                      <ChevronDown size={12} className="text-zinc-400 group-hover:text-zinc-600 transition-all" />
-                  </PromptInputModelSelectTrigger>
-                  <PromptInputModelSelectContent className="w-[320px] p-2 rounded-3xl border-zinc-200/60 dark:border-zinc-800 shadow-2xl backdrop-blur-xl bg-white/95 dark:bg-zinc-900/95">
-                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">精选国产模型</div>
-                    <PromptInputModelSelectItem value="auto" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                          <Sparkles size={18} className="text-blue-500" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">智能模型 (Auto)</span>
-                          <span className="text-[10px] text-zinc-500">根据任务自动选择最佳模型</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <PromptInputModelSelectItem value="deepseek-v3" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                          <DeepSeek.Color size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">DeepSeek-V3</span>
-                          <span className="text-[10px] text-zinc-500">巅峰中文性能与极速响应</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <PromptInputModelSelectItem value="qwen3.6-plus" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                          <Qwen.Color size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen3.6 Plus</span>
-                          <span className="text-[10px] text-zinc-500">阿里通义千问最新视觉增强版</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">深度思考 / 推理</div>
-                    <PromptInputModelSelectItem value="deepseek-r1" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center overflow-hidden">
-                          <DeepSeek size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">DeepSeek-R1</span>
-                          <span className="text-[10px] text-zinc-500">对标 o1 的强力逻辑思考模型</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <PromptInputModelSelectItem value="qwen-max" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center overflow-hidden border border-emerald-500/20">
-                          <Qwen.Color size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen Max</span>
-                          <span className="text-[10px] text-zinc-500">通义千问最强生产力工具</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Alibaba Qwen 系列</div>
-                    <PromptInputModelSelectItem value="qwen3.5-plus" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                          <Qwen.Color size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen3.5 Plus</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <PromptInputModelSelectItem value="qwen3.5-flash" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                          <Qwen size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Qwen3.5 Flash</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                    <div className="px-3 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">其他国产模型</div>
-                    <PromptInputModelSelectItem value="kimi-latest" className="rounded-xl px-3 py-2.5">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="size-8 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                          <Moonshot size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 italic">Kimi Latest</span>
-                          <span className="text-[10px] text-zinc-500">超长上下文支持之王</span>
-                        </div>
-                      </div>
-                    </PromptInputModelSelectItem>
-                  </PromptInputModelSelectContent>
-                </PromptInputModelSelect>
+                <DynamicModelSelector 
+                  value={currentModelId}
+                  onValueChange={(val) => {
+                    setSelectedModel(val)
+                    if (aiSettings) {
+                      const newSettings = { ...aiSettings, model: val }
+                      setAiSettings(newSettings)
+                      localStorage.setItem("ai-settings", JSON.stringify(newSettings))
+                    }
+                  }}
+                />
               )
             })()}
           </div>

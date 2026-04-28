@@ -18,7 +18,7 @@ export default function ArtPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   return (
-    <main className="relative bg-[#050505] text-white selection:bg-emerald-500/30 font-jinbuti overflow-x-hidden cursor-none min-h-screen">
+    <main className="relative bg-background text-white selection:bg-primary/30 font-jinbuti overflow-x-hidden cursor-none min-h-screen">
       <CustomCursor />
 
       <AnimatePresence mode="wait">
@@ -27,8 +27,8 @@ export default function ArtPage() {
       
       {/* Global Perspective Grid Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top opacity-30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,212,170,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,170,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
       </div>
 
       {/* Content Layer */}

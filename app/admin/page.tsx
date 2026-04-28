@@ -34,6 +34,7 @@ import { DeviceControlVersionSettings } from "@/components/admin/device-control-
 import { DashboardVersionSettings } from "@/components/admin/dashboard-version-settings"
 import { SpectrumSourceSettings } from "@/components/admin/spectrum-source-settings"
 import { AIFeaturesSettings } from "@/components/admin/ai-features-settings"
+import { AIModelsManager } from "@/components/admin/ai-models-manager"
 
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -204,6 +205,12 @@ export default function AdminPage() {
               User Management
             </TabsTrigger>
             <TabsTrigger
+              value="ai-models"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              AI Models
+            </TabsTrigger>
+            <TabsTrigger
               value="security"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
             >
@@ -234,6 +241,10 @@ export default function AdminPage() {
               Agent Skills
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ai-models" className="mt-0 outline-none animate-in fade-in-50">
+            <AIModelsManager />
+          </TabsContent>
 
           <TabsContent value="users" className="mt-0 outline-none animate-in fade-in-50">
             <div className="flex justify-end mb-6">
