@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { UserPublic } from "@/lib/db/user-service"
@@ -185,7 +185,7 @@ export default function AdminPage() {
               <div className="flex flex-col items-end">
                 <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</span>
                 <div className="flex items-center gap-2">
-                  <div className="size-2 rounded-full bg-emerald-500" />
+                  <div className="size-2 rounded-full bg-primary" />
                   <span className="text-xl font-medium">Active</span>
                 </div>
               </div>
@@ -393,7 +393,7 @@ export default function AdminPage() {
             <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <Activity className="size-4 text-emerald-500" />
+                  <Activity className="size-4 text-primary" />
                   每日智能播报
                 </CardTitle>
               </CardHeader>

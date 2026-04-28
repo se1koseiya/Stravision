@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
@@ -248,7 +248,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
           <div className="flex items-center gap-3 min-w-0 flex-1">
              <div className={cn(
                 "size-2 rounded-full shrink-0",
-                allCompleted ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-blue-500 animate-pulse"
+                allCompleted ? "bg-primary shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-blue-500 animate-pulse"
               )} />
              <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500 shrink-0">
                 <span>
@@ -274,8 +274,8 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                 <div className="flex items-center gap-2 ml-2 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
                   <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0" />
                   <div className="flex items-center gap-1.5">
-                    <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
-                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 size={11} className="text-primary shrink-0" />
+                    <span className="text-[11px] font-semibold text-primary dark:text-emerald-400">
                       全部完成
                     </span>
                   </div>
@@ -347,7 +347,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                   <div className={cn(
                     "relative z-10 flex items-center justify-center shrink-0 size-6 rounded-full text-[10px] font-black transition-all duration-500",
                     isActive ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] scale-110" : 
-                    isPast ? "bg-emerald-500 text-white" : 
+                    isPast ? "bg-primary text-white" : 
                     isFailed ? "bg-red-500 text-white" :
                     "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-700"
                   )}>
@@ -368,7 +368,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                         </div>
                     )}
                     {allCompleted && idx === tasks.length - 1 && (
-                        <div className="text-[10px] text-emerald-500 font-medium mt-1 truncate animate-in fade-in slide-in-from-left-1 duration-500">
+                        <div className="text-[10px] text-primary font-medium mt-1 truncate animate-in fade-in slide-in-from-left-1 duration-500">
                             任务已圆满完成
                         </div>
                     )}
@@ -390,7 +390,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                 )}>
                     <span className={cn(
                       "text-[10px] font-bold",
-                      allCompleted ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
+                      allCompleted ? "text-primary dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
                     )}>
                       {allCompleted ? "完成 100%" : `步骤 ${currentIndex + 1}/${tasks.length}`}
                     </span>
@@ -412,7 +412,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                     <div className={cn(
                       "flex items-center justify-center size-9 rounded-xl transition-all duration-500",
                       isSubActive ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : 
-                      isSubPast ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-500" :
+                      isSubPast ? "bg-emerald-100 text-primary dark:bg-emerald-950/30 dark:text-primary" :
                       "bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-600"
                     )}>
                       {isSubActive ? (
@@ -440,7 +440,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                     </div>
                     
                     {isSubPast && (
-                      <div className="size-5 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-500">
+                      <div className="size-5 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-primary">
                         <CheckCircle2 size={12} strokeWidth={3} />
                       </div>
                     )}
@@ -461,7 +461,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                   {isPaused ? (
                     <button 
                       onClick={() => onTogglePause?.(false)}
-                      className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                      className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-white bg-primary hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                     >
                       <Play size={14} className="fill-current" />
                       继续流水线
@@ -477,9 +477,9 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/50 dark:border-emerald-500/20 animate-in zoom-in duration-500">
-                   <CheckCircle2 size={16} className="text-emerald-500" />
-                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">流水线执行完毕</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/50 dark:border-primary/20 animate-in zoom-in duration-500">
+                   <CheckCircle2 size={16} className="text-primary" />
+                   <span className="text-xs font-bold text-primary dark:text-emerald-400">流水线执行完毕</span>
                 </div>
               )}
             </div>
@@ -3656,7 +3656,7 @@ ${taskContext}
             return (
               <div key={index} className="my-2 animate-in fade-in slide-in-from-top-1 duration-500">
                 <div className="flex items-center gap-2 px-3 py-2 bg-zinc-100/50 dark:bg-zinc-800/50 backdrop-blur-sm rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                  <Activity size={12} className="text-emerald-500" />
+                  <Activity size={12} className="text-primary" />
                   <span>为了维持响应速度，较早的对话历史已自动提炼并压缩</span>
                 </div>
               </div>
@@ -3959,11 +3959,11 @@ ${taskContext}
                   ul: ({ children }: any) => <ul className="list-disc list-inside my-2 space-y-1 ml-2">{children}</ul>,
                   ol: ({ children }: any) => <ol className="list-decimal list-inside my-2 space-y-1 ml-2">{children}</ol>,
                   li: ({ children }: any) => <li className="text-zinc-700 dark:text-zinc-300">{children}</li>,
-                  blockquote: ({ children }: any) => <blockquote className="border-l-4 border-emerald-500 dark:border-blue-600 pl-4 py-1 my-4 italic bg-emerald-50/50 dark:bg-blue-900/10 rounded-r text-zinc-600 dark:text-zinc-400">{children}</blockquote>,
+                  blockquote: ({ children }: any) => <blockquote className="border-l-4 border-primary dark:border-blue-600 pl-4 py-1 my-4 italic bg-emerald-50/50 dark:bg-blue-900/10 rounded-r text-zinc-600 dark:text-zinc-400">{children}</blockquote>,
                   h1: ({ children }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-zinc-900 dark:text-zinc-100">{children}</h1>,
                   h2: ({ children }: any) => <h2 className="text-xl font-bold mt-5 mb-3 text-zinc-900 dark:text-zinc-100 pb-2 border-b border-zinc-100 dark:border-zinc-800">{children}</h2>,
                   h3: ({ children }: any) => <h3 className="text-lg font-bold mt-4 mb-2 text-zinc-900 dark:text-zinc-100">{children}</h3>,
-                  a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-500 hover:underline decoration-emerald-300 dark:decoration-emerald-300 underline-offset-2">{children}</a>
+                  a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary dark:text-primary hover:underline decoration-emerald-300 dark:decoration-emerald-300 underline-offset-2">{children}</a>
                 }}
               >
                 {part}
@@ -3997,7 +3997,7 @@ ${taskContext}
     <>
     <div
       className={cn(
-        "relative fixed inset-0 w-full h-full text-zinc-900 dark:text-zinc-100 overflow-hidden flex font-sans selection:bg-emerald-500/20 selection:text-emerald-700",
+        "relative fixed inset-0 w-full h-full text-zinc-900 dark:text-zinc-100 overflow-hidden flex font-sans selection:bg-primary/20 selection:text-emerald-700",
         isExecutingControl && "ai-control-active",
         isElderFriendlyMode && "elder-friendly-text"
       )}
@@ -4027,7 +4027,7 @@ ${taskContext}
             }}
           >
             <div className="size-9 rounded-full bg-zinc-100 flex items-center justify-center shrink-0">
-               <div className="size-2.5 bg-emerald-500 rounded-full animate-pulse" />
+               <div className="size-2.5 bg-primary rounded-full animate-pulse" />
             </div>
             
             <div 
@@ -4237,7 +4237,7 @@ ${taskContext}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
                   assistantMode === 'automation' 
-                    ? "bg-emerald-500 text-white shadow-sm" 
+                    ? "bg-primary text-white shadow-sm" 
                     : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 )}
               >
@@ -4324,7 +4324,7 @@ ${taskContext}
                 className={cn(
                   "p-2 transition-all rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900",
                   isTTSEnabled 
-                    ? "text-emerald-500" 
+                    ? "text-primary" 
                     : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                 )}
                 title={isTTSEnabled ? "全局播报已开启" : "全局播报已静音"}
@@ -4363,7 +4363,7 @@ ${taskContext}
                       scale: [1, 1.2, 1]
                     }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute -bottom-1/4 -right-1/4 size-[150%] bg-gradient-to-tl from-emerald-500/10 via-transparent to-transparent rounded-full"
+                    className="absolute -bottom-1/4 -right-1/4 size-[150%] bg-gradient-to-tl from-primary/10 via-transparent to-transparent rounded-full"
                   />
                 </div>
 
@@ -4416,10 +4416,10 @@ ${taskContext}
                   )}
                   {assistantMode === 'automation' && (
                     <>
-                      <Zap size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <Zap size={20} className="text-primary dark:text-emerald-400 shrink-0 mt-0.5" />
                       <div className="text-left">
                         <div className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-1">自动化模式：快速执行</div>
-                        <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80">AI会立即执行您的指令，无需确认，适合批量操作</div>
+                        <div className="text-xs text-primary/80 dark:text-emerald-400/80">AI会立即执行您的指令，无需确认，适合批量操作</div>
                       </div>
                     </>
                   )}
@@ -4493,8 +4493,8 @@ ${taskContext}
                          }
                          
                          setEnableSearch(!enableSearch)
-                       }} className={cn("flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold border border-transparent shadow-none hover:shadow-md", enableSearch ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}>
-                          <Globe size={18} className={cn("transition-colors", enableSearch ? "text-emerald-500" : "text-zinc-400")} />
+                       }} className={cn("flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all text-sm font-bold border border-transparent shadow-none hover:shadow-md", enableSearch ? "bg-emerald-50 text-primary border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800")}>
+                          <Globe size={18} className={cn("transition-colors", enableSearch ? "text-primary" : "text-zinc-400")} />
                           全网检索
                        </button>
 
@@ -4561,7 +4561,7 @@ ${taskContext}
               <div id="ai-quick-actions" className="mt-8 flex flex-wrap justify-center gap-4 px-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700">
                 {/* 根据模式显示不同的快捷操作 */}
                 {assistantMode === 'chat' && [
-                  { icon: <CircleHelp size={18} />, text: "草莓种植建议", action: "现在这个季节草莓种植需要注意什么？", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                  { icon: <CircleHelp size={18} />, text: "草莓种植建议", action: "现在这个季节草莓种植需要注意什么？", color: "bg-primary/10 text-primary dark:text-emerald-400" },
                   { icon: <Activity size={18} />, text: "查看环境数据", action: "帮我看看现在大棚的环境怎么样", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
                   { icon: <Compass size={18} />, text: "病害咨询", action: "如果草莓叶子发黄该怎么办？", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
                 ].map((item, i) => (
@@ -4596,7 +4596,7 @@ ${taskContext}
                 
                 {assistantMode === 'expert' && [
                   { icon: <Brain size={18} />, text: "深度诊断", action: "分析最近一周的数据，诊断可能存在的问题", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
-                  { icon: <Sprout size={18} />, text: "优化方案", action: "基于当前生长阶段，制定科学的管理方案", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                  { icon: <Sprout size={18} />, text: "优化方案", action: "基于当前生长阶段，制定科学的管理方案", color: "bg-primary/10 text-primary dark:text-emerald-400" },
                   { icon: <Activity size={18} />, text: "趋势分析", action: "分析环境数据趋势，预测未来变化", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
                 ].map((item, i) => (
                   <button
@@ -4798,9 +4798,9 @@ ${taskContext}
                           ) : (
                             <div className="flex items-center gap-4 px-3 py-6">
                               <div className="relative flex items-center justify-center">
-                                <span className="absolute inline-flex size-6 animate-ping rounded-full bg-emerald-400 dark:bg-emerald-500 opacity-20"></span>
-                                <span className="absolute inline-flex size-4 animate-pulse rounded-full bg-emerald-500/40"></span>
-                                <span className="relative inline-flex size-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
+                                <span className="absolute inline-flex size-6 animate-ping rounded-full bg-emerald-400 dark:bg-primary opacity-20"></span>
+                                <span className="absolute inline-flex size-4 animate-pulse rounded-full bg-primary/40"></span>
+                                <span className="relative inline-flex size-2 rounded-full bg-primary shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
                               </div>
                               {agentStatus && (
                                 <span className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium tracking-tight animate-in fade-in slide-in-from-left-2 duration-700">
@@ -4831,12 +4831,12 @@ ${taskContext}
                       <div className="absolute -top-10 left-0 right-0 flex justify-center items-center text-xs text-zinc-500 dark:text-zinc-400 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-500">
                           <div className="flex items-center gap-3 bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm">
                               <div className="flex items-center gap-1.5">
-                                  <span className="inline-block size-1.5 rounded-full bg-emerald-500"></span>
+                                  <span className="inline-block size-1.5 rounded-full bg-primary"></span>
                                   <span className="font-medium">系统托管</span>
                               </div>
                               <div className="w-px h-3 bg-zinc-300 dark:bg-zinc-600"></div>
                               <div className="flex items-center gap-3">
-                                  <span>今日: <span className={cn("font-medium", (quotaInfo.daily_limit - quotaInfo.daily_usage) <= 0 ? "text-red-500" : "text-emerald-600 dark:text-emerald-400")}>{Math.max(0, quotaInfo.daily_limit - quotaInfo.daily_usage)}</span>/{quotaInfo.daily_limit}</span>
+                                  <span>今日: <span className={cn("font-medium", (quotaInfo.daily_limit - quotaInfo.daily_usage) <= 0 ? "text-red-500" : "text-primary dark:text-emerald-400")}>{Math.max(0, quotaInfo.daily_limit - quotaInfo.daily_usage)}</span>/{quotaInfo.daily_limit}</span>
                               </div>
                           </div>
                       </div>
@@ -4947,7 +4947,7 @@ ${taskContext}
                                                     className="flex flex-col items-start py-2.5 px-3 cursor-pointer"
                                                 >
                                                     <div className="flex items-center gap-2 w-full">
-                                                        <div className="size-6 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                        <div className="size-6 rounded bg-emerald-100 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 flex items-center justify-center shrink-0">
                                                             <Zap size={12} />
                                                         </div>
                                                         <span className="font-medium text-sm text-zinc-900 dark:text-zinc-100">{tool.displayName || tool.name}</span>
@@ -5116,12 +5116,12 @@ ${taskContext}
                           className={cn(
                             "px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium select-none group",
                             enableSearch
-                              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-emerald-50 dark:bg-emerald-900/20 text-primary dark:text-emerald-400"
                               : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                           )}
                           title="联网搜索"
                         >
-                          <Globe size={14} className={enableSearch ? "text-emerald-500" : ""} />
+                          <Globe size={14} className={enableSearch ? "text-primary" : ""} />
                           <span>搜索</span>
                         </button>
 
@@ -5165,7 +5165,7 @@ ${taskContext}
                               className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 group relative"
                               title="模式指示器"
                             >
-                              {assistantMode === 'automation' && <Zap size={18} strokeWidth={2} className="text-emerald-500 fill-current" />}
+                              {assistantMode === 'automation' && <Zap size={18} strokeWidth={2} className="text-primary fill-current" />}
                               {assistantMode === 'expert' && <Brain size={18} strokeWidth={2} className="text-purple-500" />}
                               {assistantMode === 'chat' && <MessageSquare size={18} strokeWidth={2} className="text-blue-500" />}
                             </button>
@@ -5173,7 +5173,7 @@ ${taskContext}
                           <PopoverContent className="w-64 p-3" align="start" sideOffset={10}>
                             <div className="space-y-2">
                               <h4 className="font-medium text-sm flex items-center gap-2">
-                                {assistantMode === 'automation' && <><Zap size={16} className="text-emerald-500 fill-current" />自动化模式</>}
+                                {assistantMode === 'automation' && <><Zap size={16} className="text-primary fill-current" />自动化模式</>}
                                 {assistantMode === 'expert' && <><Brain size={16} className="text-purple-500" />专家模式</>}
                                 {assistantMode === 'chat' && <><MessageSquare size={16} className="text-blue-500" />对话模式</>}
                               </h4>
@@ -5237,7 +5237,7 @@ ${taskContext}
             <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 flex items-center justify-center">
                     <Zap size={18} className="animate-pulse" />
                   </div>
                   <div>
@@ -5325,7 +5325,7 @@ ${taskContext}
                     >
                     <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200/50 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
                       {/* Background Gradient Accent */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-cyan-500/5 dark:from-emerald-500/10 dark:to-cyan-500/5" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-cyan-500/5 dark:from-primary/10 dark:to-cyan-500/5" />
                       
                       {/* Status Indicator Dot */}
                       <div className="absolute top-6 right-6 z-20">
@@ -5337,7 +5337,7 @@ ${taskContext}
                         <div className="flex items-center justify-between">
                           <div className="space-y-1">
                             <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
-                              <Camera className="size-5 text-emerald-500" />
+                              <Camera className="size-5 text-primary" />
                               AI 视觉巡检
                             </h3>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
@@ -5374,10 +5374,10 @@ ${taskContext}
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 p-4 backdrop-blur-sm"
+                            className="rounded-2xl bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 p-4 backdrop-blur-sm"
                           >
                             <div className="flex items-center gap-3">
-                              <Loader2 className="size-4 text-emerald-600 dark:text-emerald-400 animate-spin flex-shrink-0" />
+                              <Loader2 className="size-4 text-primary dark:text-emerald-400 animate-spin flex-shrink-0" />
                               <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                                 {visionInspectionStatus}
                               </p>
@@ -5473,12 +5473,12 @@ ${taskContext}
         <DialogContent className="sm:max-w-[400px] rounded-3xl overflow-hidden p-0 border-0 shadow-2xl bg-white dark:bg-zinc-900">
            {/* Background Decoration */}
            <div className="absolute inset-0 z-0 pointer-events-none">
-             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-emerald-500/10 to-transparent" />
+             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-primary/10 to-transparent" />
            </div>
            
            <DialogHeader className="pt-10 px-6 pb-2 relative z-10 flex flex-col items-center">
              <div className="relative mb-6">
-               <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl transform scale-110" />
+               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl transform scale-110" />
                <div className="relative size-20 rounded-full border-4 border-white dark:border-zinc-800 shadow-xl overflow-hidden bg-emerald-50 dark:bg-emerald-900/20">
                   <Image 
                     src="/icon.png" 
@@ -5505,8 +5505,8 @@ ${taskContext}
            <div className="px-6 py-4 relative z-10">
               <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-800 space-y-4">
                  <div className="flex items-center gap-3.5">
-                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
-                       <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                       <Sparkles size={14} className="text-primary dark:text-emerald-400" />
                     </div>
                     <div className="flex-1">
                        <span className="text-sm font-semibold text-zinc-900 dark:text-white block">无限次对话</span>
@@ -5515,8 +5515,8 @@ ${taskContext}
                  </div>
                  <div className="w-full h-px bg-zinc-200/50 dark:bg-zinc-700/50" />
                  <div className="flex items-center gap-3.5">
-                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
-                       <Zap size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                       <Zap size={14} className="text-primary dark:text-emerald-400" />
                     </div>
                     <div className="flex-1">
                        <span className="text-sm font-semibold text-zinc-900 dark:text-white block">高级 AI 模型</span>

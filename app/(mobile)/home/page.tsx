@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, Suspense, useRef, useMemo } from "react"
 import Image from "next/image"
@@ -460,7 +460,7 @@ function DeviceCard({
 }) {
   const colorMap = {
     blue: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30",
-    green: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30",
+    green: "text-primary dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30",
     purple: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-900/30",
     orange: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-900/30",
   }
@@ -982,7 +982,7 @@ export default function HomePage() {
                        className={cn(
                          "rounded-2xl p-3.5 border backdrop-blur-sm transition-colors duration-300",
                          aiStatus === 'warning' ? "bg-orange-50/80 dark:bg-orange-500/10 border-orange-100 dark:border-orange-500/20" :
-                         aiStatus === 'healthy' ? "bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20" :
+                         aiStatus === 'healthy' ? "bg-emerald-50/80 dark:bg-primary/10 border-emerald-100 dark:border-primary/20" :
                          "bg-blue-50/80 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20"
                        )}
                      >

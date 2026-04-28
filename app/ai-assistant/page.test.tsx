@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UI State Synchronization Tests for AI Assistant Page
  * 
  * This test file verifies that the Search button state synchronization works correctly:
@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest'
  * These tests document the expected behavior that should be manually verified:
  * 
  * 1. Search Button State Toggle:
- *    - Initial state: Button should have bg-white, text-gray-500, border-gray-200
+ *    - Initial state: Button should have bg-white, text-muted-foreground, border-border
  *    - After click: Button should have bg-blue-50, text-blue-600, border-blue-200, shadow-sm
  *    - After second click: Button should return to initial state
  * 
@@ -42,7 +42,7 @@ describe('AI Assistant Page - UI State Synchronization (Manual Verification)', (
     // This test documents the expected behavior for manual verification
     const expectedBehavior = {
       initialState: {
-        classes: ['bg-white', 'text-gray-500', 'border-gray-200'],
+        classes: ['bg-white', 'text-muted-foreground', 'border-border'],
         enableSearch: false,
       },
       activeState: {
@@ -93,8 +93,8 @@ describe('AI Assistant Page - UI State Synchronization (Manual Verification)', (
       }
       return {
         bg: 'bg-white',
-        text: 'text-gray-500',
-        border: 'border-gray-200',
+        text: 'text-muted-foreground',
+        border: 'border-border',
         shadow: '',
       }
     }
@@ -102,8 +102,8 @@ describe('AI Assistant Page - UI State Synchronization (Manual Verification)', (
     // Test inactive state
     const inactiveClasses = getButtonClasses(false)
     expect(inactiveClasses.bg).toBe('bg-white')
-    expect(inactiveClasses.text).toBe('text-gray-500')
-    expect(inactiveClasses.border).toBe('border-gray-200')
+    expect(inactiveClasses.text).toBe('text-muted-foreground')
+    expect(inactiveClasses.border).toBe('border-border')
     expect(inactiveClasses.shadow).toBe('')
     
     // Test active state

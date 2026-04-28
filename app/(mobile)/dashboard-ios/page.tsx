@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import Image from "next/image"
@@ -596,7 +596,7 @@ export default function DashboardIOSPage() {
                         key={ctrl.id}
                         className={cn(
                           "shrink-0 w-[160px] p-4 rounded-[1.5rem] bg-white/55 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-sm transition-all active:scale-95",
-                          on && "ring-1 ring-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-500/10"
+                          on && "ring-1 ring-emerald-500/50 bg-emerald-50/50 dark:bg-primary/10"
                         )}
                         onClick={() => handleToggle(ctrl.relay)}
                       >
@@ -604,7 +604,7 @@ export default function DashboardIOSPage() {
                             <div 
                               className={cn(
                                 "size-10 rounded-xl flex items-center justify-center transition-colors",
-                                on ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-slate-100 dark:bg-white/10 text-slate-500"
+                                on ? "bg-primary text-white shadow-lg shadow-emerald-500/20" : "bg-slate-100 dark:bg-white/10 text-slate-500"
                               )}
                               style={!on ? { backgroundColor: ctrl.color.bg, color: ctrl.color.fg } : undefined}
                             >
@@ -614,7 +614,7 @@ export default function DashboardIOSPage() {
                               onClick={(e) => toggleLock(ctrl.relay, e)}
                               className={cn(
                                 "size-8 rounded-full flex items-center justify-center transition-colors",
-                                isLocked ? "text-emerald-500 bg-emerald-100 dark:bg-emerald-500/20" : "text-slate-300 dark:text-slate-600"
+                                isLocked ? "text-primary bg-emerald-100 dark:bg-primary/20" : "text-slate-300 dark:text-slate-600"
                               )}
                             >
                                {isLocked ? <Lock className="size-3" /> : <Unlock className="size-3" />}
@@ -623,7 +623,7 @@ export default function DashboardIOSPage() {
                          <div>
                             <div className="font-bold text-slate-900 dark:text-white text-sm truncate">{ctrl.name}</div>
                             <div className="flex items-center gap-2 mt-1">
-                               <span className={cn("size-1.5 rounded-full", on ? "bg-emerald-500" : "bg-slate-300")} />
+                               <span className={cn("size-1.5 rounded-full", on ? "bg-primary" : "bg-slate-300")} />
                                <span className="text-[10px] text-slate-500 font-medium">{on ? "运行中" : "已停止"}</span>
                             </div>
                          </div>
@@ -724,7 +724,7 @@ export default function DashboardIOSPage() {
           <DialogFooter className="flex-col gap-3 mt-8 sm:flex-col sm:space-x-0">
             <Button 
               onClick={handleSaveSettings} 
-              className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/20 text-base font-bold transition-all active:scale-95"
+              className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/20 text-base font-bold transition-all active:scale-95"
             >
               <Save className="w-5 h-5 mr-2" />
               保存配置

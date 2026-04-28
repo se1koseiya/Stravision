@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
@@ -525,7 +525,7 @@ export default function AIAssistantIOSPage() {
           {content.map((part, i) => (
             <div key={i}>
               {part.type === 'image_url' && part.image_url && (
-                <div className="relative w-full max-w-[300px] h-auto rounded-lg overflow-hidden border border-gray-200 my-2">
+                <div className="relative w-full max-w-[300px] h-auto rounded-lg overflow-hidden border border-border my-2">
                    <Image src={part.image_url.url} alt="User upload" width={300} height={200} className="object-cover w-full h-auto" />
                 </div>
               )}
@@ -564,23 +564,23 @@ export default function AIAssistantIOSPage() {
               return (
                 <div key={index} className="my-4 space-y-4">
                   {tasks.map((task, i) => (
-                    <div key={i} className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                    <div key={i} className="bg-white rounded-lg border border-border overflow-hidden shadow-sm">
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                         <h3 className="font-medium text-sm text-gray-900">{task.title}</h3>
-                        <div className={cn("px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide", task.status === 'completed' ? "bg-green-100 text-green-700" : task.status === 'in_progress' ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>
+                        <div className={cn("px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide", task.status === 'completed' ? "bg-green-100 text-green-700" : task.status === 'in_progress' ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground")}>
                           {task.status === 'completed' ? '已完成' : task.status === 'in_progress' ? '进行中' : '待处理'}
                         </div>
                       </div>
                       <div className="p-0">
                         {task.items.map((item, j) => (
                            <div key={j} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                             <div className="mt-0.5 shrink-0 text-gray-400">
+                             <div className="mt-0.5 shrink-0 text-muted-foreground">
                                {item.type === 'file' ? <FileText size={16} /> : <CheckCircle2 size={16} className={cn(task.status === 'completed' ? "text-green-500" : "")} />}
                              </div>
-                             <div className="flex-1 text-sm text-gray-600">
+                             <div className="flex-1 text-sm text-muted-foreground">
                                {item.text}
                                {item.file && (
-                                 <div className="mt-2 flex items-center gap-2 p-2 bg-gray-100 rounded-md border border-gray-200 w-fit">
+                                 <div className="mt-2 flex items-center gap-2 p-2 bg-muted rounded-md border border-border w-fit">
                                     <div className="text-xs font-medium text-gray-700">{item.file.name}</div>
                                  </div>
                                )}
@@ -669,9 +669,9 @@ export default function AIAssistantIOSPage() {
                           }
                         } catch {}
                       }
-                       return <code className={cn("bg-gray-100 rounded px-1 font-mono text-sm text-gray-800 font-semibold", className)} {...props}>{children}</code>
+                       return <code className={cn("bg-muted rounded px-1 font-mono text-sm text-gray-800 font-semibold", className)} {...props}>{children}</code>
                     },
-                    pre: ({ node, children, ...props }: any) => <pre className="bg-gray-50 p-3 rounded-lg overflow-x-auto my-2 border border-gray-200" {...props}>{children}</pre>
+                    pre: ({ node, children, ...props }: any) => <pre className="bg-gray-50 p-3 rounded-lg overflow-x-auto my-2 border border-border" {...props}>{children}</pre>
                   }}
                 >
                   {part}
@@ -775,7 +775,7 @@ export default function AIAssistantIOSPage() {
                    <div className="absolute top-0 left-0 right-0 h-[40%] bg-gradient-to-b from-white/60 to-transparent opacity-50 rounded-t-2xl pointer-events-none" />
                    
                    <p className="text-slate-700 text-sm font-bold leading-relaxed relative z-10" style={{ fontFamily: 'DingTalkJinBuTi, sans-serif' }}>
-                      你好，我是<span className="text-emerald-600">莓小智</span>，你的智慧农业环境管家。
+                      你好，我是<span className="text-primary">莓小智</span>，你的智慧农业环境管家。
                    </p>
                    
                    {/* Tail */}
@@ -883,7 +883,7 @@ export default function AIAssistantIOSPage() {
                          }}
                        >
                           {[
-                            { label: "环境分析", sub: "环境分析", action: "分析当前大棚环境数据", ipImage: "/ip/智慧农业3D图标-数据监测-细线版.png", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+                            { label: "环境分析", sub: "环境分析", action: "分析当前大棚环境数据", ipImage: "/ip/智慧农业3D图标-数据监测-细线版.png", color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
                             { label: "设备检查", sub: "设备检查", action: "检查所有设备运行状态", ipImage: "/ip/智慧农业3D图标-无人机巡检-细线版.png", color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
                             { label: "病害咨询", sub: "病害咨询", action: "草莓常见病害有哪些？", ipImage: "/ip/智慧农业3D图标-作物检测-细线版.png", color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" },
                             { label: "生长建议", sub: "生长建议", action: "现在是草莓开花期，有什么建议？", ipImage: "/ip/智慧农业3D图标-浇水灌溉-细线版.png", color: "text-cyan-500", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
@@ -1030,7 +1030,7 @@ export default function AIAssistantIOSPage() {
             <div className="absolute -top-10 left-0 right-0 flex justify-center items-center pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-500 gap-2">
                 <div className="pointer-events-auto shadow-sm">
                     <PromptInputModelSelect value={selectedModel || aiSettings?.model || ""} onValueChange={(v) => { setSelectedModel(v); if (aiSettings) handleSettingsSave({ ...aiSettings, model: v }) }}>
-                        <PromptInputModelSelectTrigger className="h-8 px-3 bg-white/90 dark:bg-black/60 backdrop-blur-md rounded-full border border-gray-200 dark:border-white/10 flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-black/80 transition-all shadow-sm ring-0 focus:ring-0 outline-none">
+                        <PromptInputModelSelectTrigger className="h-8 px-3 bg-white/90 dark:bg-black/60 backdrop-blur-md rounded-full border border-border dark:border-white/10 flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-black/80 transition-all shadow-sm ring-0 focus:ring-0 outline-none">
                             <Sparkles size={12} className="text-purple-500" />
                             <span>{selectedModel === "auto" || !selectedModel ? "智能模式" : selectedModel}</span>
                             <ArrowUp size={10} className="opacity-50" />
@@ -1046,14 +1046,14 @@ export default function AIAssistantIOSPage() {
                 </div>
 
                 {(!aiSettings?.apiKey && !aiSettings?.apiUrl && quotaInfo) && (
-                    <div className="flex items-center gap-3 bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 h-8 rounded-full border border-gray-200 dark:border-white/10 shadow-sm text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-3 bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 h-8 rounded-full border border-border dark:border-white/10 shadow-sm text-xs text-muted-foreground dark:text-muted-foreground">
                         <div className="flex items-center gap-1.5">
-                            <span className="inline-block size-1.5 rounded-full bg-emerald-500"></span>
+                            <span className="inline-block size-1.5 rounded-full bg-primary"></span>
                             <span>系统托管</span>
                         </div>
                         <div className="w-px h-3 bg-gray-300 dark:bg-gray-600"></div>
                         <div className="flex items-center gap-3">
-                            <span className={cn("font-medium", (quotaInfo.daily_limit - quotaInfo.daily_usage) <= 0 ? "text-red-500" : "text-emerald-600 dark:text-emerald-400")}>
+                            <span className={cn("font-medium", (quotaInfo.daily_limit - quotaInfo.daily_usage) <= 0 ? "text-red-500" : "text-primary dark:text-emerald-400")}>
                                 {Math.max(0, quotaInfo.daily_limit - quotaInfo.daily_usage)}
                             </span>
                         </div>
@@ -1130,15 +1130,15 @@ export default function AIAssistantIOSPage() {
         <DialogContent className="sm:max-w-[425px] rounded-3xl overflow-hidden p-0 border-0 shadow-2xl bg-white dark:bg-zinc-900">
            {/* Background Decoration */}
            <div className="absolute inset-0 z-0 pointer-events-none">
-             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-emerald-500/10 to-transparent" />
-             <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl" />
+             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-primary/10 to-transparent" />
+             <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-3xl" />
              <div className="absolute -top-10 -left-10 size-40 bg-teal-500/10 rounded-full blur-3xl" />
            </div>
            
            <DialogHeader className="pt-10 px-6 pb-2 relative z-10 flex flex-col items-center">
              {/* IP Avatar Container */}
              <div className="relative mb-6">
-               <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl transform scale-110" />
+               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl transform scale-110" />
                <div className="relative size-24 rounded-full border-4 border-white dark:border-zinc-800 shadow-xl overflow-hidden bg-emerald-50 dark:bg-emerald-900/20">
                   <Image 
                     src="/icon.png" 
@@ -1165,8 +1165,8 @@ export default function AIAssistantIOSPage() {
            <div className="px-6 py-4 relative z-10">
               <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-slate-100 dark:border-white/5 space-y-4">
                  <div className="flex items-center gap-3.5">
-                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
-                       <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <div className="size-8 rounded-full bg-emerald-100 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                       <Sparkles size={14} className="text-primary dark:text-emerald-400" />
                     </div>
                     <div className="flex-1">
                        <span className="text-sm font-semibold text-slate-900 dark:text-white block">无限次对话</span>
@@ -1189,7 +1189,7 @@ export default function AIAssistantIOSPage() {
            <DialogFooter className="px-6 pb-8 pt-2 sm:justify-center relative z-10 flex-col sm:flex-col gap-3">
              <Button 
                onClick={() => router.push('/plans')} 
-               className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 py-6 text-base font-semibold rounded-2xl transition-transform active:scale-95"
+               className="w-full bg-gradient-to-r from-primary to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 py-6 text-base font-semibold rounded-2xl transition-transform active:scale-95"
              >
                立即升级专业版
              </Button>
@@ -1219,7 +1219,7 @@ export default function AIAssistantIOSPage() {
              {notice.variant === 'error' && <AlertCircle size={20} className="text-red-500 mt-0.5" />}
              <div className="flex-1">
                 <h3 className="font-medium text-sm text-gray-900 dark:text-white">{notice.title}</h3>
-                {notice.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notice.description}</p>}
+                {notice.description && <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">{notice.description}</p>}
              </div>
           </div>
         ))}
