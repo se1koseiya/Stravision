@@ -114,9 +114,9 @@ export default function RecaptzWidget({ onSuccess }: RecaptzWidgetProps) {
         <div className="w-full flex justify-between items-center mb-3 px-1 z-10">
           <span className="text-sm font-medium text-white/90 font-jinbuti tracking-wide">安全验证</span>
           <div className="flex gap-1.5">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30 animate-pulse delay-75" />
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/10 animate-pulse delay-150" />
+             <div className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" />
+             <div className="w-1.5 h-1.5 rounded-full bg-primary/30 animate-pulse delay-75" />
+             <div className="w-1.5 h-1.5 rounded-full bg-primary/10 animate-pulse delay-150" />
           </div>
         </div>
 

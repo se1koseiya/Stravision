@@ -50,7 +50,7 @@ export function BrowserActivity({ url, isOpen, onClose }: BrowserActivityProps) 
             {/* Address Bar */}
             <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 py-1.5 shadow-sm">
               <div className="flex gap-1 text-zinc-400">
-                 <Lock size={12} className="text-emerald-500" />
+                 <Lock size={12} className="text-primary" />
               </div>
               <div className="flex-1 text-xs truncate font-mono text-zinc-600 dark:text-zinc-300 selection:bg-blue-100">
                 {displayUrl}

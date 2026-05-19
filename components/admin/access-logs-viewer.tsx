@@ -72,7 +72,7 @@ export function AccessLogsViewer() {
                       <span className={`px-2 py-0.5 rounded-none text-[10px] font-medium border ${
                         log.status >= 400 
                           ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30' 
-                          : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                          : 'bg-emerald-50 text-primary border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
                       }`}>
                         {log.status}
                       </span>

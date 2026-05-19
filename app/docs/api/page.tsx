@@ -401,7 +401,7 @@ const apiData: ApiGroup[] = [
 function MethodBadge({ method }: { method: string }) {
   const colors: Record<string, string> = {
     GET: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    POST: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    POST: "bg-primary/20 text-emerald-400 border-primary/30",
     PUT: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
     DELETE: "bg-red-500/20 text-red-400 border-red-500/30"
   }
@@ -424,11 +424,11 @@ function CodeBlock({ code, label }: { code: string | object, label?: string }) {
 
   return (
     <div className="relative group mt-2">
-      {label && <div className="text-[10px] text-gray-500 mb-1 font-mono uppercase tracking-wider">{label}</div>}
+      {label && <div className="text-[10px] text-muted-foreground mb-1 font-mono uppercase tracking-wider">{label}</div>}
       <div className="relative bg-[#0a0a0a] border border-white/10 rounded-lg overflow-hidden">
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={copy} className="p-1.5 hover:bg-white/10 rounded-md text-gray-400 hover:text-white transition-colors">
-            {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+          <button onClick={copy} className="p-1.5 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors">
+            {copied ? <Check className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
           </button>
         </div>
         <pre className="p-4 text-xs font-mono text-gray-300 overflow-x-auto custom-scrollbar">
@@ -452,7 +452,7 @@ export default function ApiDocsPage() {
   }, [activeGroup])
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#020202] text-white font-sans selection:bg-primary/30">
       {/* Background Grid */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
@@ -465,16 +465,16 @@ export default function ApiDocsPage() {
         <div className="w-64 flex-shrink-0 border-r border-white/10 bg-[#020202]/50 backdrop-blur-xl flex flex-col">
           <div className="p-6 border-b border-white/10">
             <h1 className="text-xl font-bold font-jinbuti tracking-wide flex items-center gap-2">
-              <Terminal className="w-5 h-5 text-emerald-500" />
+              <Terminal className="w-5 h-5 text-primary" />
               API DOCS
             </h1>
-            <p className="text-[10px] text-gray-500 mt-1 font-mono">v4.0.2 // SYSTEM_ONLINE</p>
+            <p className="text-[10px] text-muted-foreground mt-1 font-mono">v4.0.2 // SYSTEM_ONLINE</p>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
             {apiData.map(group => (
               <div key={group.id}>
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-3 px-2 uppercase tracking-wider">
+                <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground mb-3 px-2 uppercase tracking-wider">
                   {group.icon}
                   {group.name}
                 </div>
@@ -485,15 +485,15 @@ export default function ApiDocsPage() {
                       onClick={() => setSelectedEndpoint(endpoint)}
                       className={`w-full text-left px-3 py-2 rounded-md text-xs font-mono transition-all flex items-center justify-between group ${
                         selectedEndpoint === endpoint 
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                          : "text-gray-400 hover:bg-white/5 hover:text-white border border-transparent"
+                          ? "bg-primary/10 text-emerald-400 border border-primary/20" 
+                          : "text-muted-foreground hover:bg-white/5 hover:text-white border border-transparent"
                       }`}
                     >
                       <span className="truncate mr-2">{endpoint.path}</span>
                       <span className={`text-[9px] px-1 rounded ${
                         endpoint.method === 'GET' ? 'text-blue-400 bg-blue-500/10' :
-                        endpoint.method === 'POST' ? 'text-emerald-400 bg-emerald-500/10' :
-                        'text-gray-400'
+                        endpoint.method === 'POST' ? 'text-emerald-400 bg-primary/10' :
+                        'text-muted-foreground'
                       }`}>
                         {endpoint.method}
                       </span>
@@ -509,13 +509,13 @@ export default function ApiDocsPage() {
         <div className="flex-1 overflow-y-auto bg-[#050505] relative">
           {/* Header */}
           <div className="sticky top-0 z-20 bg-[#050505]/80 backdrop-blur-md border-b border-white/10 px-8 py-4 flex items-center justify-between">
-             <div className="flex items-center gap-2 text-sm text-gray-400">
+             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                <span>Docs</span>
                <ChevronRight className="w-4 h-4" />
                <span className="text-white">{selectedEndpoint.title}</span>
              </div>
              <div className="flex gap-2">
-               <div className="px-3 py-1 bg-emerald-900/20 border border-emerald-500/20 rounded-full text-emerald-500 text-xs font-mono flex items-center gap-2">
+               <div className="px-3 py-1 bg-emerald-900/20 border border-primary/20 rounded-full text-primary text-xs font-mono flex items-center gap-2">
                  <Activity className="w-3 h-3" />
                  Stable
                </div>
@@ -537,11 +537,11 @@ export default function ApiDocsPage() {
                   <h2 className="text-3xl font-bold text-white tracking-tight">{selectedEndpoint.title}</h2>
                 </div>
                 <div className="flex items-center gap-2 font-mono text-sm bg-white/5 border border-white/10 rounded-lg p-3 w-full">
-                  <Globe className="w-4 h-4 text-gray-500" />
-                  <span className="text-emerald-500">{process.env.NEXT_PUBLIC_APP_URL || 'https://stravision.cheesestrawberry.top'}</span>
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-primary">{process.env.NEXT_PUBLIC_APP_URL || 'https://stravision.cheesestrawberry.top'}</span>
                   <span className="text-gray-300">{selectedEndpoint.path}</span>
                 </div>
-                <p className="mt-4 text-gray-400 leading-relaxed text-sm max-w-2xl">
+                <p className="mt-4 text-muted-foreground leading-relaxed text-sm max-w-2xl">
                   {selectedEndpoint.description}
                 </p>
               </div>
@@ -550,12 +550,12 @@ export default function ApiDocsPage() {
               {selectedEndpoint.params && (
                 <div className="mb-8">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-emerald-500" />
+                    <Terminal className="w-4 h-4 text-primary" />
                     Query Parameters
                   </h3>
                   <div className="border border-white/10 rounded-lg overflow-hidden">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-white/5 text-gray-400 font-mono text-xs uppercase">
+                      <thead className="bg-white/5 text-muted-foreground font-mono text-xs uppercase">
                         <tr>
                           <th className="px-4 py-3 font-medium">Name</th>
                           <th className="px-4 py-3 font-medium">Type</th>
@@ -572,10 +572,10 @@ export default function ApiDocsPage() {
                               {param.required ? (
                                 <span className="text-red-400 text-xs bg-red-500/10 px-1.5 py-0.5 rounded">Required</span>
                               ) : (
-                                <span className="text-gray-500 text-xs">Optional</span>
+                                <span className="text-muted-foreground text-xs">Optional</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-gray-400">{param.desc}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{param.desc}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -593,12 +593,12 @@ export default function ApiDocsPage() {
                   </h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                      <div>
-                       <p className="text-sm text-gray-400 mb-2">Content-Type: <span className="text-gray-300 font-mono">application/json</span></p>
+                       <p className="text-sm text-muted-foreground mb-2">Content-Type: <span className="text-gray-300 font-mono">application/json</span></p>
                        <CodeBlock code={selectedEndpoint.body} label="JSON Payload" />
                      </div>
                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                       <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Schema Description</h4>
-                       <ul className="space-y-2 text-sm text-gray-400">
+                       <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2">Schema Description</h4>
+                       <ul className="space-y-2 text-sm text-muted-foreground">
                          {Object.keys(selectedEndpoint.body).map(key => (
                            <li key={key} className="flex items-start gap-2">
                              <span className="w-1 h-1 bg-blue-500 rounded-full mt-2" />
@@ -619,10 +619,10 @@ export default function ApiDocsPage() {
                   <Activity className="w-4 h-4 text-green-500" />
                   Response
                 </h3>
-                <div className="border border-emerald-500/20 bg-emerald-500/5 rounded-lg p-4">
+                <div className="border border-primary/20 bg-primary/5 rounded-lg p-4">
                    <div className="flex items-center gap-2 mb-2">
                      <span className="px-2 py-0.5 bg-green-500 text-black text-xs font-bold rounded">200 OK</span>
-                     <span className="text-xs text-gray-500 font-mono">application/json</span>
+                     <span className="text-xs text-muted-foreground font-mono">application/json</span>
                    </div>
                    <CodeBlock code={selectedEndpoint.response} label="Response Body" />
                 </div>

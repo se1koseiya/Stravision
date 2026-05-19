@@ -30,7 +30,7 @@ export default function TestReasoningDesign() {
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               isStreaming 
                 ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-primary hover:bg-emerald-700 text-white'
             }`}
           >
             {isStreaming ? '停止思考' : '开始思考'}
@@ -67,7 +67,7 @@ export default function TestReasoningDesign() {
                   </div>
                   <div className="h-4 w-4">⌄</div>
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                <div className="text-sm text-muted-foreground dark:text-gray-300 mt-2">
                   <div className="pb-2 pt-2 border-t border-emerald-100 dark:border-blue-900/50 whitespace-pre-wrap leading-relaxed">
                     {sampleReasoningText}
                   </div>
@@ -110,7 +110,7 @@ export default function TestReasoningDesign() {
           <div className="space-y-4">
             <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-primary dark:text-emerald-400 text-sm font-medium">
                   AI
                 </div>
                 <div className="flex-1">

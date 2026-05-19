@@ -7,7 +7,7 @@ import { motion } from "framer-motion"
 export function MonitorCardMock() {
   return (
     <div className="w-full max-w-sm bg-black/40 border border-gray-800 rounded-xl overflow-hidden backdrop-blur-sm">
-      <div className="relative aspect-video bg-gray-900 group">
+      <div className="relative aspect-video bg-background group">
         <div className="absolute inset-0 flex items-center justify-center">
           <Video className="w-8 h-8 text-gray-700" />
         </div>
@@ -22,9 +22,9 @@ export function MonitorCardMock() {
       <div className="p-3 flex items-center justify-between border-t border-gray-800/50">
         <div className="flex items-center gap-2">
           <Wifi className="w-3.5 h-3.5 text-green-500" />
-          <span className="text-xs text-gray-400">信号良好</span>
+          <span className="text-xs text-muted-foreground">信号良好</span>
         </div>
-        <span className="text-xs text-gray-500 font-mono">1080P • 30FPS</span>
+        <span className="text-xs text-muted-foreground font-mono">1080P • 30FPS</span>
       </div>
     </div>
   )
@@ -49,7 +49,7 @@ export function DeviceControlCardMock() {
       </div>
       
       <div className="space-y-2">
-        <div className="flex justify-between text-xs text-gray-400">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span>风速等级</span>
           <span>3 级</span>
         </div>
@@ -74,8 +74,8 @@ export function TaskCardMock() {
             执行中
           </span>
         </div>
-        <p className="text-xs text-gray-500 mb-2">计划执行：16:30 关闭补光灯</p>
-        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-800/50 rounded-lg p-2">
+        <p className="text-xs text-muted-foreground mb-2">计划执行：16:30 关闭补光灯</p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/50 rounded-lg p-2">
           <Timer className="w-3.5 h-3.5" />
           <span>剩余时间: 01:59:45</span>
         </div>
@@ -108,7 +108,7 @@ export function DiseaseCardMock() {
           </div>
         </div>
         
-        <div className="text-xs text-gray-400 leading-relaxed bg-gray-800/30 p-3 rounded-lg">
+        <div className="text-xs text-muted-foreground leading-relaxed bg-card/30 p-3 rounded-lg">
           建议立即隔离病株，并使用碳酸氢钾或硫磺熏蒸进行防治。保持通风良好，降低环境湿度。
         </div>
       </div>
@@ -138,7 +138,7 @@ export function DataChartCardMock() {
         ))}
       </div>
       
-      <div className="flex justify-between mt-3 text-[10px] text-gray-500 font-mono">
+      <div className="flex justify-between mt-3 text-[10px] text-muted-foreground font-mono">
         <span>MON</span>
         <span>TUE</span>
         <span>WED</span>

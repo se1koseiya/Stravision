@@ -1275,7 +1275,7 @@ export default function PromptDemoPage() {
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Enterprise Agent Builder</h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-              <span className="font-medium">Current Stage:</span> <span className="font-mono text-emerald-600 dark:text-emerald-400">{STAGE_PROMPTS[currentStage].title}</span>
+              <span className="font-medium">Current Stage:</span> <span className="font-mono text-primary dark:text-emerald-400">{STAGE_PROMPTS[currentStage].title}</span>
             </p>
           </div>
         </div>
@@ -1291,7 +1291,7 @@ export default function PromptDemoPage() {
                 className={cn(
                   "min-w-[80px] h-9 px-4 text-xs font-semibold",
                   currentStage === i 
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm" 
+                    ? "bg-primary hover:bg-emerald-700 text-white shadow-sm" 
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 )}
               >
@@ -1316,7 +1316,7 @@ export default function PromptDemoPage() {
         <div className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-8 py-5">
           <div className="max-w-5xl">
             <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="size-4 text-emerald-600" />
+              <Sparkles className="size-4 text-primary" />
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">API Configuration</h3>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1355,7 +1355,7 @@ export default function PromptDemoPage() {
               className={cn(
                 "flex items-center gap-2 px-6 py-3.5 text-sm font-semibold border-b-2 transition-all relative",
                 activeTab === "prompt"
-                  ? "border-emerald-600 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-zinc-950"
+                  ? "border-emerald-600 text-primary dark:text-emerald-400 bg-white dark:bg-zinc-950"
                   : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50"
               )}
             >
@@ -1367,7 +1367,7 @@ export default function PromptDemoPage() {
               className={cn(
                 "flex items-center gap-2 px-6 py-3.5 text-sm font-semibold border-b-2 transition-all relative",
                 activeTab === "data"
-                  ? "border-emerald-600 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-zinc-950"
+                  ? "border-emerald-600 text-primary dark:text-emerald-400 bg-white dark:bg-zinc-950"
                   : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50"
               )}
             >
@@ -1379,7 +1379,7 @@ export default function PromptDemoPage() {
               className={cn(
                 "flex items-center gap-2 px-6 py-3.5 text-sm font-semibold border-b-2 transition-all relative",
                 activeTab === "stepper"
-                  ? "border-emerald-600 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-zinc-950"
+                  ? "border-emerald-600 text-primary dark:text-emerald-400 bg-white dark:bg-zinc-950"
                   : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50"
               )}
             >
@@ -1391,7 +1391,7 @@ export default function PromptDemoPage() {
               className={cn(
                 "flex items-center gap-2 px-6 py-3.5 text-sm font-semibold border-b-2 transition-all relative",
                 activeTab === "mqtt"
-                  ? "border-emerald-600 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-zinc-950"
+                  ? "border-emerald-600 text-primary dark:text-emerald-400 bg-white dark:bg-zinc-950"
                   : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50"
               )}
             >
@@ -1451,7 +1451,7 @@ export default function PromptDemoPage() {
                   <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 mb-3">
                     模拟设备数据（可编辑）
                   </h3>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-4">
+                  <p className="text-xs text-primary dark:text-emerald-400 mb-4">
                     修改这些数据后，AI会基于新数据进行分析。用于演示不同场景。
                   </p>
                   
@@ -2069,7 +2069,7 @@ AI输出：
           
           <div className="flex items-center justify-between px-6 py-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
             <div className="flex items-center gap-3">
-              <div className="size-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
+              <div className="size-2 rounded-full bg-primary animate-pulse shadow-lg shadow-emerald-500/50" />
               <span className="text-sm font-semibold text-zinc-900 dark:text-white">AI Response Preview</span>
               <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">{messages.length} messages</span>
             </div>
@@ -2098,7 +2098,7 @@ AI输出：
                     <div className={cn(
                       "size-8 rounded-lg overflow-hidden shrink-0",
                       msg.role === "assistant" 
-                        ? "bg-gradient-to-br from-emerald-500 to-cyan-500" 
+                        ? "bg-gradient-to-br from-primary to-cyan-500" 
                         : "bg-zinc-200 dark:bg-zinc-700"
                     )}>
                       {msg.role === "assistant" ? (
@@ -2114,7 +2114,7 @@ AI输出：
                       "flex-1 max-w-[85%] rounded-2xl px-4 py-3",
                       msg.role === "assistant" 
                         ? "bg-zinc-100 dark:bg-zinc-800" 
-                        : "bg-emerald-500 text-white"
+                        : "bg-primary text-white"
                     )}>
                       <MessageContent 
                         content={msg.content.replace(/<TASK_LIST>[\s\S]*?<\/TASK_LIST>/g, '').replace(/<CONTROL>[\s\S]*?<\/CONTROL>/g, '')} 
@@ -2130,7 +2130,7 @@ AI输出：
                 
                 {isLoading && (
                   <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="size-8 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-emerald-500 to-cyan-500">
+                    <div className="size-8 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-primary to-cyan-500">
                       <Image src="/icon.png" alt="AI" width={32} height={32} className="object-cover animate-pulse" />
                     </div>
                     <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-4 py-3">
@@ -2158,7 +2158,7 @@ AI输出：
                   size="sm"
                   onClick={() => handleAutoType(text)}
                   disabled={isTyping || isLoading}
-                  className="text-xs shrink-0 h-7 px-3 border-zinc-300 dark:border-zinc-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 hover:border-emerald-500 transition-all"
+                  className="text-xs shrink-0 h-7 px-3 border-zinc-300 dark:border-zinc-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 hover:border-primary transition-all"
                 >
                   <Play className="size-3 mr-1" />
                   {text}
@@ -2187,7 +2187,7 @@ AI输出：
                   type="submit"
                   size="icon"
                   disabled={!input.trim() || isLoading || isTyping}
-                  className="absolute right-2 bottom-2 size-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute right-2 bottom-2 size-9 bg-primary hover:bg-emerald-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                 </Button>

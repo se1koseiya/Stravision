@@ -553,7 +553,7 @@ export const PromptInputSubmit = React.forwardRef<HTMLButtonElement, PromptInput
     type="submit"
     size="icon"
     disabled={disabled || status === "loading"}
-    className={cn("size-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700", className)}
+    className={cn("size-8 rounded-full bg-gradient-to-r from-primary to-primary hover:from-emerald-600 hover:to-emerald-700", className)}
     {...props}
   >
     {status === "loading" ? <Loader size={20} /> : <ArrowUpIcon className="size-4" />}

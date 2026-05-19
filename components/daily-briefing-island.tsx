@@ -99,6 +99,12 @@ export function DailyBriefingIsland({
   useEffect(() => {
     if (!enabled || !username || !dataReady || hasTriggeredRef.current) return
 
+    // 检查用户是否永久禁用了今日播报
+    if (localStorage.getItem('daily_briefing_disabled') === 'true') {
+      hasTriggeredRef.current = true
+      return
+    }
+
     const today = new Date().toISOString().split("T")[0]
     const storageKey = `daily_briefing_${username}_${today}`
     
@@ -215,6 +221,15 @@ export function DailyBriefingIsland({
     setTimeout(() => setPhase("dismissed"), 600)
   }, [cleanup, stopWaveAnimation])
 
+  const handleDisablePermanently = useCallback(() => {
+    // 永久禁用今日播报
+    localStorage.setItem('daily_briefing_disabled', 'true')
+    cleanup()
+    stopWaveAnimation()
+    setPhase("collapsing")
+    setTimeout(() => setPhase("dismissed"), 600)
+  }, [cleanup, stopWaveAnimation])
+
   if (phase === "idle" || phase === "dismissed") return null
 
   const isCompact = phase === "loading"
@@ -243,7 +258,7 @@ export function DailyBriefingIsland({
         {isCompact && (
           <div className="flex items-center justify-center h-full gap-3 px-5 animate-in fade-in duration-300">
             <div className="relative flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-primary flex items-center justify-center">
                 <Volume2 size={12} className="text-white" />
               </div>
               <div className="absolute inset-0 w-6 h-6 rounded-full bg-emerald-400/40 animate-ping" />
@@ -260,7 +275,7 @@ export function DailyBriefingIsland({
             {/* Header row */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-primary flex items-center justify-center shadow-lg shadow-emerald-500/30">
                   <Volume2 size={14} className="text-white" />
                 </div>
                 <div>
@@ -268,12 +283,23 @@ export function DailyBriefingIsland({
                   <div className="text-[10px] text-white/40 font-medium">莓小智 · AI 管家</div>
                 </div>
               </div>
-              <button
-                onClick={handleDismiss}
-                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-              >
-                <X size={12} className="text-white/60" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleDisablePermanently}
+                  className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 flex items-center gap-1 transition-colors group"
+                  title="不再显示今日播报"
+                >
+                  <X size={10} className="text-white/60 group-hover:text-white/80" />
+                  <span className="text-[10px] text-white/60 group-hover:text-white/80 font-medium">不再显示</span>
+                </button>
+                <button
+                  onClick={handleDismiss}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                  title="关闭"
+                >
+                  <X size={12} className="text-white/60" />
+                </button>
+              </div>
             </div>
 
             {/* Audio waveform */}
@@ -281,7 +307,7 @@ export function DailyBriefingIsland({
               {bars.map((h, i) => (
                 <div
                   key={i}
-                  className="w-[3px] rounded-full bg-gradient-to-t from-emerald-500 to-emerald-300 transition-all duration-100"
+                  className="w-[3px] rounded-full bg-gradient-to-t from-primary to-emerald-300 transition-all duration-100"
                   style={{ height: `${h}px` }}
                 />
               ))}

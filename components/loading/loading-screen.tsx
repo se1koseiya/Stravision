@@ -54,7 +54,7 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
           <div className="w-64 mx-auto space-y-2">
             <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all duration-300 ease-out"
+                className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -66,7 +66,7 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
 
         {/* Loading Dots */}
         <div className="flex items-center justify-center gap-2">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
           <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>

@@ -80,7 +80,7 @@ const layerColors: Record<LayerType, { bg: string; border: string; text: string;
   },
   backend: { 
     bg: 'bg-zinc-950/40', 
-    border: 'border-emerald-500/20', 
+    border: 'border-primary/20', 
     text: 'text-emerald-400',
     glow: 'shadow-emerald-500/10',
     accent: '#10b981' // emerald-500
@@ -101,7 +101,7 @@ const layerColors: Record<LayerType, { bg: string; border: string; text: string;
   },
   device: { 
     bg: 'bg-zinc-950/40', 
-    border: 'border-emerald-500/20', 
+    border: 'border-primary/20', 
     text: 'text-emerald-400',
     glow: 'shadow-emerald-500/10',
     accent: '#10b981' // emerald-500
@@ -173,7 +173,7 @@ const SystemNodeComponent = ({ data, selected }: NodeProps & { data: SystemNodeD
           <div className="absolute top-3 right-3">
             <div className={cn(
               "size-1 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-              data.layer === 'backend' || data.layer === 'device' ? "bg-emerald-500" : "bg-white/30"
+              data.layer === 'backend' || data.layer === 'device' ? "bg-primary" : "bg-white/30"
             )} />
           </div>
         )}
@@ -593,10 +593,10 @@ function SystemArchitectureDiagramInner() {
 
       {/* Decorative Frame */}
       <div className="absolute inset-0 border border-white/5 pointer-events-none" />
-      <div className="absolute top-0 left-0 w-8 h-px bg-emerald-500/50" />
-      <div className="absolute top-0 left-0 w-px h-8 bg-emerald-500/50" />
-      <div className="absolute bottom-0 right-0 w-8 h-px bg-emerald-500/50" />
-      <div className="absolute bottom-0 right-0 w-px h-8 bg-emerald-500/50" />
+      <div className="absolute top-0 left-0 w-8 h-px bg-primary/50" />
+      <div className="absolute top-0 left-0 w-px h-8 bg-primary/50" />
+      <div className="absolute bottom-0 right-0 w-8 h-px bg-primary/50" />
+      <div className="absolute bottom-0 right-0 w-px h-8 bg-primary/50" />
     </div>
   )
 }
@@ -609,7 +609,7 @@ export function SystemArchitectureDiagram() {
       <div className="absolute top-8 left-8 z-20">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-px bg-emerald-500" />
+            <div className="w-8 h-px bg-primary" />
             <h2 className="text-sm font-bold text-white tracking-[0.3em] uppercase font-mono">
               系统架构蓝图
             </h2>
@@ -622,7 +622,7 @@ export function SystemArchitectureDiagram() {
 
       <div className="absolute bottom-8 left-8 z-20 hidden md:flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">核心正常运行</span>
         </div>
         <div className="flex items-center gap-2">

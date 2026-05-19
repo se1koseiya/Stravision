@@ -37,17 +37,17 @@ const ModuleBox = ({ icon, title, items, isActive = false }: { icon: any, title:
       variants={itemVariants}
       className={cn(
         "relative flex flex-col p-5 rounded-2xl border transition-all duration-300 group overflow-hidden",
-        "border-emerald-500/10 bg-black/40 backdrop-blur-md hover:bg-emerald-500/5 hover:border-emerald-500/30"
+        "border-primary/10 bg-black/40 backdrop-blur-md hover:bg-primary/5 hover:border-primary/30"
       )}
     >
       {/* Active Glow */}
       {isActive && (
-          <div className="absolute inset-0 bg-emerald-500/5 animate-pulse pointer-events-none" />
+          <div className="absolute inset-0 bg-primary/5 animate-pulse pointer-events-none" />
       )}
       
       {/* Header */}
       <div className="flex items-center gap-3 mb-4 relative z-10">
-        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform duration-300">
+        <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
             {icon}
         </div>
         <span className="font-bold font-jinbuti tracking-wide text-zinc-100 group-hover:text-emerald-400 transition-colors">{title}</span>
@@ -57,25 +57,25 @@ const ModuleBox = ({ icon, title, items, isActive = false }: { icon: any, title:
       <div className="grid grid-cols-2 gap-y-2 gap-x-4 relative z-10">
         {items.map((item, i) => (
           <div key={i} className="flex items-center gap-2 text-[10px] md:text-xs text-zinc-500 group-hover:text-zinc-300 font-mono transition-colors">
-            <div className="w-1 h-1 rounded-full bg-emerald-500/50" />
+            <div className="w-1 h-1 rounded-full bg-primary/50" />
             {item}
           </div>
         ))}
       </div>
 
       {/* Decor */}
-      <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+      <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
     </motion.div>
   )
 }
 
 const LayerSection = ({ title, icon, children, ipImage, ipPosition = "right" }: { title: string, icon: any, children: React.ReactNode, ipImage?: string, ipPosition?: "left" | "right" }) => {
     return (
-        <div className="relative border border-emerald-500/10 rounded-3xl p-6 md:p-8 bg-zinc-900/20 backdrop-blur-sm">
+        <div className="relative border border-primary/10 rounded-3xl p-6 md:p-8 bg-zinc-900/20 backdrop-blur-sm">
             {/* Layer Label */}
-            <div className="absolute -top-3 left-8 px-4 py-1 bg-[#050505] border border-emerald-500/20 rounded-full flex items-center gap-2">
+            <div className="absolute -top-3 left-8 px-4 py-1 bg-[#050505] border border-primary/20 rounded-full flex items-center gap-2">
                 {icon}
-                <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-500 font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">
                     {title}
                 </span>
             </div>
@@ -102,9 +102,9 @@ const LayerSection = ({ title, icon, children, ipImage, ipPosition = "right" }: 
 
 const FlowArrow = () => (
     <div className="flex justify-center -my-4 relative z-10">
-        <div className="w-px h-8 bg-gradient-to-b from-emerald-500/0 via-emerald-500/50 to-emerald-500/0" />
+        <div className="w-px h-8 bg-gradient-to-b from-primary/0 via-emerald-500/50 to-emerald-500/0" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-             <ArrowDown className="w-4 h-4 text-emerald-500/50 animate-bounce" />
+             <ArrowDown className="w-4 h-4 text-primary/50 animate-bounce" />
         </div>
     </div>
 )
@@ -121,7 +121,7 @@ export function LogicalArchitectureDiagram() {
         <h3 className="text-3xl md:text-4xl font-bold text-white font-jinbuti mb-2">
           System Logical Architecture
         </h3>
-        <p className="text-emerald-500/60 text-xs font-mono uppercase tracking-[0.2em]">
+        <p className="text-primary/60 text-xs font-mono uppercase tracking-[0.2em]">
           系统总体逻辑架构设计
         </p>
       </motion.div>
@@ -136,12 +136,12 @@ export function LogicalArchitectureDiagram() {
         {/* 1. Access Layer */}
         <LayerSection 
             title="Access Layer / 接入层" 
-            icon={<Globe className="w-3 h-3 text-emerald-500" />}
+            icon={<Globe className="w-3 h-3 text-primary" />}
             ipImage={IP_IMAGES.access}
             ipPosition="right"
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-4 md:pl-0 pr-4 md:pr-12">
-             <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-emerald-500/40 transition-all cursor-default">
+             <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-primary/40 transition-all cursor-default">
                 <div className="flex items-center gap-3">
                     <Globe className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
@@ -149,10 +149,10 @@ export function LogicalArchitectureDiagram() {
                         <span className="text-[10px] text-zinc-600 font-mono">React / Next.js</span>
                     </div>
                 </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
              </div>
 
-             <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-emerald-500/40 transition-all cursor-default">
+             <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-primary/40 transition-all cursor-default">
                 <div className="flex items-center gap-3">
                     <Smartphone className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
@@ -160,10 +160,10 @@ export function LogicalArchitectureDiagram() {
                         <span className="text-[10px] text-zinc-600 font-mono">iOS / Android / PWA</span>
                     </div>
                 </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse delay-75" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-75" />
              </div>
 
-             <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-emerald-500/40 transition-all cursor-default">
+             <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-primary/40 transition-all cursor-default">
                 <div className="flex items-center gap-3">
                     <LayoutGrid className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
@@ -171,7 +171,7 @@ export function LogicalArchitectureDiagram() {
                         <span className="text-[10px] text-zinc-600 font-mono">System Management</span>
                     </div>
                 </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse delay-150" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150" />
              </div>
           </div>
         </LayerSection>
@@ -180,16 +180,16 @@ export function LogicalArchitectureDiagram() {
 
         {/* 2. Gateway Layer */}
         <div className="relative group">
-           <div className="absolute inset-0 bg-emerald-500/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+           <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
            <div className="relative p-1 rounded-2xl bg-gradient-to-r from-zinc-800 via-emerald-500/30 to-zinc-800">
                <div className="bg-[#050505] rounded-xl px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="flex items-center gap-4">
-                     <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                     <div className="p-2 rounded-lg bg-primary/10 text-primary">
                         <ShieldCheck className="w-6 h-6" />
                      </div>
                      <div className="flex flex-col">
                         <span className="font-bold text-white font-jinbuti tracking-wide">API 网关</span>
-                        <span className="text-[10px] text-emerald-500/60 font-mono uppercase tracking-widest">安全过滤 & 流量分发</span>
+                        <span className="text-[10px] text-primary/60 font-mono uppercase tracking-widest">安全过滤 & 流量分发</span>
                      </div>
                   </div>
                   
@@ -209,7 +209,7 @@ export function LogicalArchitectureDiagram() {
         {/* 3. Business Service Layer */}
         <LayerSection 
             title="Business Layer / 业务层" 
-            icon={<Code className="w-3 h-3 text-emerald-500" />}
+            icon={<Code className="w-3 h-3 text-primary" />}
             ipImage={IP_IMAGES.business}
             ipPosition="left"
         >
@@ -243,7 +243,7 @@ export function LogicalArchitectureDiagram() {
         {/* 4. Support Layer */}
         <LayerSection 
             title="Support Layer / 支撑层" 
-            icon={<Server className="w-3 h-3 text-emerald-500" />}
+            icon={<Server className="w-3 h-3 text-primary" />}
             ipImage={IP_IMAGES.support}
             ipPosition="right"
         >
@@ -254,7 +254,7 @@ export function LogicalArchitectureDiagram() {
                   { title: "日志服务", sub: "ELK Stack" },
                   { title: "缓存服务", sub: "Redis Cluster" }
               ].map((item, i) => (
-                  <div key={i} className="flex flex-col items-center justify-center p-4 rounded-xl border border-zinc-800 bg-black/40 hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-colors">
+                  <div key={i} className="flex flex-col items-center justify-center p-4 rounded-xl border border-zinc-800 bg-black/40 hover:bg-primary/5 hover:border-primary/20 transition-colors">
                       <span className="text-xs font-bold text-zinc-300">{item.title}</span>
                       <span className="text-[10px] text-zinc-600 font-mono mt-1">{item.sub}</span>
                   </div>

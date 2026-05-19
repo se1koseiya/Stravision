@@ -105,7 +105,7 @@ export function AiChatSection() {
             </span>
           </h2>
           
-          <p className="text-gray-400 text-lg leading-relaxed">
+          <p className="text-muted-foreground text-lg leading-relaxed">
             内置的大语言模型不仅能回答您的种植疑问，还能直接帮您控制设备。
             就像拥有一位随叫随到的资深农业专家，让管理变得像聊天一样简单。
           </p>
@@ -165,7 +165,7 @@ export function AiChatSection() {
           <div className="relative bg-[#0A0A0A] border border-gray-800 rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col">
             {/* Header */}
             <div className="p-4 border-b border-gray-800 bg-[#0f0f0f]/80 backdrop-blur-sm flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center relative overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center relative overflow-hidden">
                 <Image 
                   src="/logo.gif" 
                   alt="AI Assistant" 
@@ -198,7 +198,7 @@ export function AiChatSection() {
                   className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.role === 'ai' && (
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex-shrink-0 flex items-center justify-center mt-1 relative overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center mt-1 relative overflow-hidden">
                       <Image 
                         src="/logo.gif" 
                         alt="AI" 
@@ -212,7 +212,7 @@ export function AiChatSection() {
                   <div className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${
                     msg.role === 'user' 
                       ? 'bg-blue-600 text-white rounded-tr-none' 
-                      : 'bg-gray-800 text-gray-200 rounded-tl-none'
+                      : 'bg-card text-gray-200 rounded-tl-none'
                   }`}>
                     <p className="mb-2">{msg.text}</p>
                     {msg.component && (
@@ -247,7 +247,7 @@ export function AiChatSection() {
             {/* Input Area Mockup */}
             <div className="p-4 border-t border-gray-800 bg-[#0f0f0f]">
               <div className="relative">
-                <div className="h-10 w-full bg-gray-900 rounded-full border border-gray-700 px-4 flex items-center text-gray-500 text-sm">
+                <div className="h-10 w-full bg-background rounded-full border border-gray-700 px-4 flex items-center text-muted-foreground text-sm">
                   请输入您的问题...
                 </div>
                 <div className="absolute right-1 top-1 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">

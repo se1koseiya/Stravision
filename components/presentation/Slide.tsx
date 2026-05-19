@@ -32,7 +32,7 @@ export function Slide({
   onPrev
 }: SlideProps) {
   return (
-    <div className={cn("w-full h-full flex flex-col relative overflow-hidden font-jinbuti bg-[#050505] text-white selection:bg-emerald-500/30", className)}>
+    <div className={cn("w-full h-full flex flex-col relative overflow-hidden font-jinbuti bg-[#050505] text-white selection:bg-primary/30", className)}>
       
       {/* --- Dynamic Background Layer --- */}
       {!noPadding && (
@@ -70,7 +70,7 @@ export function Slide({
                  x: [0, 50, 0]
                }}
                transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-               className="absolute top-[-10%] left-[-5%] w-[60vw] h-[60vw] rounded-full bg-emerald-500/10 blur-[120px]" 
+               className="absolute top-[-10%] left-[-5%] w-[60vw] h-[60vw] rounded-full bg-primary/10 blur-[120px]" 
              />
              <motion.div 
                animate={{ 
@@ -105,10 +105,10 @@ export function Slide({
                 className="flex items-center gap-3 mb-4"
               >
                 <div className="flex gap-1">
-                   <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                   <div className="w-8 h-px bg-emerald-500/30 self-center" />
+                   <div className="w-1 h-1 rounded-full bg-primary" />
+                   <div className="w-8 h-px bg-primary/30 self-center" />
                 </div>
-                <p className="text-emerald-500/80 text-base font-mono uppercase tracking-[0.4em]">
+                <p className="text-primary/80 text-base font-mono uppercase tracking-[0.4em]">
                   {subtitle}
                 </p>
               </motion.div>
@@ -118,7 +118,7 @@ export function Slide({
                 <h2 className="text-7xl md:text-8xl font-bold tracking-tighter leading-tight text-white">
                   {title}
                 </h2>
-                <div className="absolute -bottom-4 left-0 w-24 h-1 bg-emerald-500/50" />
+                <div className="absolute -bottom-4 left-0 w-24 h-1 bg-primary/50" />
               </div>
             )}
           </div>
@@ -148,7 +148,7 @@ export function Slide({
              <div className="flex flex-col gap-1">
                 <span className="text-base font-mono text-zinc-700 tracking-[0.3em] uppercase">System Status</span>
                 <div className="flex items-center gap-2">
-                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
                    <span className="text-base font-mono text-zinc-400 tracking-widest uppercase">Stravision AIoT Operational</span>
                 </div>
              </div>
@@ -169,7 +169,7 @@ export function Slide({
                     
                     {(current && total) && (
                       <div className="flex items-baseline gap-1 font-mono text-base">
-                        <span className="text-emerald-500 font-bold">{current.toString().padStart(2, '0')}</span>
+                        <span className="text-primary font-bold">{current.toString().padStart(2, '0')}</span>
                         <span className="text-zinc-800">/</span>
                         <span className="text-zinc-600">{total.toString().padStart(2, '0')}</span>
                       </div>

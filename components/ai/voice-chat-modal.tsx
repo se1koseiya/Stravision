@@ -234,7 +234,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
                   <div className={cn(
                     "absolute w-48 h-48 rounded-full border-2 transition-all duration-300",
                     isListening 
-                      ? "border-emerald-500/40 animate-ping" 
+                      ? "border-primary/40 animate-ping" 
                       : isSpeaking 
                         ? "border-blue-500/40 animate-ping"
                         : "border-white/20"
@@ -242,7 +242,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
                   <div className={cn(
                     "absolute w-36 h-36 rounded-full border-2 transition-all duration-500",
                     isListening 
-                      ? "border-emerald-500/60" 
+                      ? "border-primary/60" 
                       : isSpeaking 
                         ? "border-blue-500/60"
                         : "border-white/30"
@@ -261,13 +261,13 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
                   ? "bg-gray-700 cursor-not-allowed"
                   : isActive
                     ? isListening
-                      ? "bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 shadow-emerald-500/30"
+                      ? "bg-gradient-to-br from-primary to-primary hover:from-emerald-400 hover:to-emerald-500 shadow-emerald-500/30"
                       : isSpeaking
                         ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/30"
                         : isProcessing
                           ? "bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/30"
                           : "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 shadow-red-500/30"
-                    : "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/30"
+                    : "bg-gradient-to-br from-primary to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/30"
               )}
             >
               {isProcessing ? (
@@ -292,7 +292,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
             {isActive && (currentTranscript || interimTranscript) && (
               <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <span className="text-xs text-white/50 uppercase tracking-wide">您说</span>
                 </div>
                 <p className="text-white/90 text-sm leading-relaxed">

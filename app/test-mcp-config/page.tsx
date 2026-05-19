@@ -109,7 +109,7 @@ export default function TestMCPConfigPage() {
                       <p className="text-sm text-zinc-500">ID: {config.id}</p>
                       <p className="text-sm text-zinc-500">API Key: {config.apiKey}</p>
                     </div>
-                    <div className={`px-2 py-1 rounded text-sm ${config.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                    <div className={`px-2 py-1 rounded text-sm ${config.enabled ? 'bg-green-100 text-green-700' : 'bg-muted text-gray-700'}`}>
                       {config.enabled ? '已启用' : '已禁用'}
                     </div>
                   </div>

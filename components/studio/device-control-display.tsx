@@ -108,7 +108,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
         <div className={cn(
           "size-3 rounded-full shadow-lg",
           isExecuting && "bg-blue-500 animate-pulse shadow-blue-500/50",
-          isSuccess && "bg-emerald-500 shadow-emerald-500/50",
+          isSuccess && "bg-primary shadow-emerald-500/50",
           isError && "bg-red-500 shadow-red-500/50"
         )} />
       </div>
@@ -162,7 +162,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                  className="absolute -bottom-2 -right-2 size-10 rounded-full bg-emerald-500 flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
+                  className="absolute -bottom-2 -right-2 size-10 rounded-full bg-primary flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
                 >
                   <CheckCircle2 className="size-5 text-white" />
                 </motion.div>
@@ -250,7 +250,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                 </div>
                 <div className={cn(
                   "text-3xl font-bold",
-                  input.value === 1 ? "text-emerald-500 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
+                  input.value === 1 ? "text-primary dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
                 )}>
                   {input.value === 1 ? 'ON' : 'OFF'}
                 </div>
@@ -290,14 +290,14 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
             animate={{ opacity: 1, y: 0 }}
             className={cn(
               "rounded-2xl p-4 backdrop-blur-sm border shadow-sm",
-              isSuccess && "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20 dark:border-emerald-500/30",
+              isSuccess && "bg-primary/10 dark:bg-primary/20 border-primary/20 dark:border-primary/30",
               isError && "bg-red-500/10 dark:bg-red-500/20 border-red-500/20 dark:border-red-500/30",
               isExecuting && "bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/20 dark:border-blue-500/30"
             )}
           >
             <div className="flex items-center gap-3">
               {isExecuting && <Loader2 className="size-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />}
-              {isSuccess && <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />}
+              {isSuccess && <CheckCircle2 className="size-4 text-primary dark:text-emerald-400 flex-shrink-0" />}
               {isError && <XCircle className="size-4 text-red-600 dark:text-red-400 flex-shrink-0" />}
               <p className={cn(
                 "text-sm font-medium",

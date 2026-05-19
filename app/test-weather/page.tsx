@@ -71,7 +71,7 @@ export default function TestWeatherPage() {
         </h1>
 
         {/* 位置信息 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white dark:bg-card rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
             当前位置
           </h2>
@@ -85,11 +85,11 @@ export default function TestWeatherPage() {
               </p>
             </div>
           ) : (
-            <p className="text-gray-500 dark:text-gray-400">正在获取位置...</p>
+            <p className="text-muted-foreground dark:text-muted-foreground">正在获取位置...</p>
           )}
           <button
             onClick={getLocation}
-            className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition"
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary transition"
           >
             重新获取位置
           </button>
@@ -104,7 +104,7 @@ export default function TestWeatherPage() {
 
         {/* 加载状态 */}
         {loading && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+          <div className="bg-white dark:bg-card rounded-lg shadow-lg p-6 mb-6">
             <p className="text-gray-700 dark:text-gray-300">正在加载天气数据...</p>
           </div>
         )}
@@ -118,43 +118,43 @@ export default function TestWeatherPage() {
             </div>
 
             {/* 当前天气 */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div className="bg-white dark:bg-card rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
                 {weatherData.location?.name} - 实时天气
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">温度</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground text-sm">温度</p>
                   <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {weatherData.current?.temp_c}°C
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">天气</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground text-sm">天气</p>
                   <p className="text-xl font-semibold text-gray-900 dark:text-white">
                     {weatherData.current?.condition?.text}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">湿度</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground text-sm">湿度</p>
                   <p className="text-xl font-semibold text-gray-900 dark:text-white">
                     {weatherData.current?.humidity}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">风向</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground text-sm">风向</p>
                   <p className="text-xl font-semibold text-gray-900 dark:text-white">
                     {weatherData.current?.wind_dir}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">风速</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground text-sm">风速</p>
                   <p className="text-xl font-semibold text-gray-900 dark:text-white">
                     {weatherData.current?.wind_kph} km/h
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">能见度</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground text-sm">能见度</p>
                   <p className="text-xl font-semibold text-gray-900 dark:text-white">
                     {weatherData.current?.vis_km} km
                   </p>
@@ -163,7 +163,7 @@ export default function TestWeatherPage() {
             </div>
 
             {/* 未来天气预报 */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div className="bg-white dark:bg-card rounded-lg shadow-lg p-6">
               <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
                 未来天气预报
               </h2>
@@ -171,7 +171,7 @@ export default function TestWeatherPage() {
                 {weatherData.forecast?.forecastday?.map((day: any, index: number) => (
                   <div
                     key={index}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    className="border border-border dark:border-gray-700 rounded-lg p-4"
                   >
                     <p className="font-semibold text-gray-900 dark:text-white mb-2">
                       {day.date} {day.week}
@@ -198,11 +198,11 @@ export default function TestWeatherPage() {
             </div>
 
             {/* 原始数据 */}
-            <details className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <details className="bg-white dark:bg-card rounded-lg shadow-lg p-6">
               <summary className="text-xl font-semibold cursor-pointer text-gray-800 dark:text-white">
                 查看原始数据
               </summary>
-              <pre className="mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded overflow-auto text-xs">
+              <pre className="mt-4 p-4 bg-muted dark:bg-background rounded overflow-auto text-xs">
                 {JSON.stringify(weatherData, null, 2)}
               </pre>
             </details>

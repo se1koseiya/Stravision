@@ -83,7 +83,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
   const AppIcon = ({ icon, name, className }: { icon: string, name: string, className?: string }) => {
     if (iconError || !icon) {
       const firstLetter = name.charAt(0).toUpperCase()
-      const colors = ["bg-blue-500", "bg-rose-500", "bg-emerald-500", "bg-amber-500", "bg-violet-500"]
+      const colors = ["bg-blue-500", "bg-rose-500", "bg-primary", "bg-amber-500", "bg-violet-500"]
       const color = colors[name.length % colors.length]
       return (
         <div className={cn(className, color, "text-white font-black flex items-center justify-center text-4xl shadow-2xl shrink-0")}>
@@ -103,7 +103,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
 
   const gradients = [
     "from-indigo-600 via-blue-700 to-cyan-500",
-    "from-emerald-500 via-teal-600 to-cyan-600",
+    "from-primary via-teal-600 to-cyan-600",
     "from-purple-600 via-fuchsia-700 to-pink-600",
     "from-orange-500 via-rose-600 to-red-600"
   ]
@@ -208,8 +208,8 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                                 transition={{ delay: i * 0.1 }}
                                 className="flex items-center gap-4 p-5 rounded-3xl bg-zinc-100 dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800 shadow-sm"
                               >
-                                 <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                                    <Check className="size-5 text-emerald-500 font-bold" />
+                                 <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                                    <Check className="size-5 text-primary font-bold" />
                                  </div>
                                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{feature}</span>
                               </motion.div>
@@ -265,7 +265,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                              className="absolute top-8 right-8 h-12 w-12 text-zinc-500 hover:text-white hover:bg-white/10 rounded-2xl transition-all"
                              onClick={handleCopyCommand}
                            >
-                             {copied ? <Check className="size-6 text-emerald-500" /> : <Copy className="size-6" />}
+                             {copied ? <Check className="size-6 text-primary" /> : <Copy className="size-6" />}
                            </Button>
                          </div>
                       </section>
@@ -290,15 +290,15 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                             </div>
                             <div className="flex justify-between items-center pt-3">
                                <span className="text-zinc-500 font-medium italic">兼容性</span>
-                               <span className="font-bold text-emerald-500 flex items-center gap-1 underline decoration-dotted underline-offset-4">
+                               <span className="font-bold text-primary flex items-center gap-1 underline decoration-dotted underline-offset-4">
                                  <Cpu size={14} /> 模型原生支持
                                </span>
                             </div>
                          </div>
                       </div>
 
-                      <div className="p-10 rounded-[3rem] bg-emerald-500/[0.03] dark:bg-emerald-500/[0.05] border border-emerald-500/10 space-y-4 shadow-sm">
-                          <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                      <div className="p-10 rounded-[3rem] bg-primary/[0.03] dark:bg-primary/[0.05] border border-primary/10 space-y-4 shadow-sm">
+                          <div className="flex items-center gap-3 text-primary dark:text-emerald-400">
                              <Info size={20} />
                              <h4 className="font-bold">安全提示</h4>
                           </div>

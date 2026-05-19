@@ -33,7 +33,7 @@ export function CitationGroup({ sources }: CitationGroupProps) {
             {sources.slice(0, 3).map((s, i) => (
               <div 
                 key={i} 
-                className="size-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[10px] font-bold text-white shadow-sm shrink-0 relative z-10"
+                className="size-6 rounded-full bg-gradient-to-br from-primary to-teal-600 border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[10px] font-bold text-white shadow-sm shrink-0 relative z-10"
               >
                 {s.number}
               </div>

@@ -42,7 +42,7 @@ const BentoCard = ({ children, className, delay = 0 }: { children: React.ReactNo
     viewport={{ once: true, margin: "-50px" }}
     transition={{ duration: 0.5, delay }}
     className={cn(
-      "bg-white/5 border border-white/10 backdrop-blur-sm p-6 relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500",
+      "bg-white/5 border border-white/10 backdrop-blur-sm p-6 relative overflow-hidden group hover:border-primary/30 transition-all duration-500",
       className
     )}
   >
@@ -50,7 +50,7 @@ const BentoCard = ({ children, className, delay = 0 }: { children: React.ReactNo
     <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 mix-blend-overlay pointer-events-none" />
     
     {/* Hover Glow */}
-    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+    <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
     {children}
   </motion.div>
@@ -67,7 +67,7 @@ export default function MCPPromoPage() {
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white font-jinbuti selection:bg-emerald-500/30 selection:text-emerald-50 cursor-none overflow-x-hidden">
+    <div className="min-h-screen bg-[#020202] text-white font-jinbuti selection:bg-primary/30 selection:text-emerald-50 cursor-none overflow-x-hidden">
       <CustomCursor />
 
       {/* Global Background */}
@@ -108,7 +108,7 @@ export default function MCPPromoPage() {
                <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-emerald-400 text-xs font-mono backdrop-blur-md">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                   </span>
                   MCP PROTOCOL LIVE
                </motion.div>
@@ -116,10 +116,10 @@ export default function MCPPromoPage() {
                <motion.h1 variants={fadeInUp} className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 font-jinbuti">
                   BREAK <br/>
                   THE <br/>
-                  <span className="text-emerald-500">LIMITS.</span>
+                  <span className="text-primary">LIMITS.</span>
                </motion.h1>
 
-               <motion.p variants={fadeInUp} className="text-xl text-white/60 max-w-lg font-light leading-relaxed border-l-2 border-emerald-500/50 pl-6">
+               <motion.p variants={fadeInUp} className="text-xl text-white/60 max-w-lg font-light leading-relaxed border-l-2 border-primary/50 pl-6">
                   Model Context Protocol (MCP) 让 AI 真正拥有了双手。
                   <br/>
                   打破应用孤岛，构建属于未来的智能互联生态。
@@ -128,7 +128,7 @@ export default function MCPPromoPage() {
                <motion.div variants={fadeInUp} className="flex flex-wrap gap-4 pt-4">
                   <Button 
                     size="lg" 
-                    className="h-16 px-10 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg rounded-none w-full sm:w-auto transition-all group relative overflow-hidden"
+                    className="h-16 px-10 bg-primary hover:bg-primary text-white font-bold text-lg rounded-none w-full sm:w-auto transition-all group relative overflow-hidden"
                     onClick={() => router.push('/mcp-store')}
                   >
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -149,7 +149,7 @@ export default function MCPPromoPage() {
                {/* Abstract Tech Circle */}
                <div className="absolute inset-0 border border-white/5 rounded-full animate-[spin_60s_linear_infinite]" />
                <div className="absolute inset-[10%] border border-white/5 rounded-full animate-[spin_40s_linear_infinite_reverse]" />
-               <div className="absolute inset-[20%] border border-emerald-500/10 rounded-full animate-[spin_20s_linear_infinite]" />
+               <div className="absolute inset-[20%] border border-primary/10 rounded-full animate-[spin_20s_linear_infinite]" />
                
                {/* IP Character - Jumping Out */}
                <div className="relative w-[500px] h-[500px] z-10">
@@ -202,7 +202,7 @@ export default function MCPPromoPage() {
          <div className="max-w-7xl mx-auto">
             <div className="mb-16">
                <h2 className="text-4xl md:text-5xl font-bold mb-6 font-jinbuti">生态核心</h2>
-               <div className="h-1 w-20 bg-emerald-500" />
+               <div className="h-1 w-20 bg-primary" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-auto md:h-[600px]">
@@ -210,7 +210,7 @@ export default function MCPPromoPage() {
                <BentoCard className="md:col-span-2 md:row-span-2 bg-gradient-to-br from-white/5 to-emerald-900/10">
                   <div className="h-full flex flex-col justify-between relative z-10">
                      <div>
-                        <div className="size-12 bg-emerald-500 text-black flex items-center justify-center rounded-lg mb-6">
+                        <div className="size-12 bg-primary text-black flex items-center justify-center rounded-lg mb-6">
                            <Globe className="size-6" />
                         </div>
                         <h3 className="text-3xl font-bold mb-4">万物互联协议</h3>
@@ -221,9 +221,9 @@ export default function MCPPromoPage() {
                      <div className="relative mt-8 h-48 w-full bg-black/40 rounded-lg border border-white/5 overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
                            <div className="relative size-32">
-                              <div className="absolute inset-0 border-2 border-emerald-500/30 rounded-full animate-ping-slow" />
+                              <div className="absolute inset-0 border-2 border-primary/30 rounded-full animate-ping-slow" />
                               <div className="absolute inset-0 flex items-center justify-center">
-                                 <div className="size-4 bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.8)]" />
+                                 <div className="size-4 bg-primary rounded-full shadow-[0_0_20px_rgba(16,185,129,0.8)]" />
                               </div>
                               {/* Orbiting dots */}
                               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 size-3 bg-white rounded-full animate-orbit" />
@@ -307,7 +307,7 @@ export default function MCPPromoPage() {
                </div>
 
                {/* Decorative Elements */}
-               <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/20 rounded-full blur-3xl -z-10" />
+               <div className="absolute -top-10 -right-10 size-40 bg-primary/20 rounded-full blur-3xl -z-10" />
                <div className="absolute -bottom-10 -left-10 size-40 bg-blue-500/20 rounded-full blur-3xl -z-10" />
                
                {/* IP Character - Sitting */}
@@ -338,7 +338,7 @@ export default function MCPPromoPage() {
                <div className="grid grid-cols-2 gap-6">
                   <div>
                      <h4 className="text-white font-bold mb-2 flex items-center gap-2">
-                        <Box className="size-4 text-emerald-500" /> 开箱即用
+                        <Box className="size-4 text-primary" /> 开箱即用
                      </h4>
                      <p className="text-sm text-white/40">标准化协议，兼容所有支持 MCP 的 AI 客户端（如 Claude Desktop, Cursor）。</p>
                   </div>
@@ -357,7 +357,7 @@ export default function MCPPromoPage() {
       <section className="py-32 px-6 relative z-10 text-center">
          <div className="max-w-3xl mx-auto">
             <h2 className="text-5xl md:text-7xl font-bold font-jinbuti mb-8 tracking-tighter">
-               READY TO <span className="text-emerald-500">CONNECT?</span>
+               READY TO <span className="text-primary">CONNECT?</span>
             </h2>
             <p className="text-xl text-white/60 mb-12 font-light">
                探索数百个现成的 MCP 工具，或构建您自己的。<br/>

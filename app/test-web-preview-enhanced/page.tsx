@@ -32,7 +32,7 @@ export default function TestWebPreviewEnhanced() {
                 onClick={() => setSelectedUrl(urlInfo)}
                 className={`p-4 rounded-lg border-2 transition-all text-left ${
                   selectedUrl.url === urlInfo.url
-                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                    ? 'border-primary bg-emerald-50 dark:bg-emerald-900/20'
                     : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
                 }`}
               >

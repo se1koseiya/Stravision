@@ -84,7 +84,7 @@ const AgentNodeComponent = ({ data, selected }: NodeProps & { data: AgentNodeDat
       case 'running':
         return <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse border border-amber-400" />
       case 'success':
-        return <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        return <CheckCircle2 className="w-4 h-4 text-primary" />
       case 'error':
         return <XCircle className="w-4 h-4 text-rose-500" />
       default:
@@ -161,7 +161,7 @@ const DecisionNodeComponent = ({ data, selected }: NodeProps & { data: AgentNode
       )}
     >
       <Handle type="target" position={Position.Top} className="!bg-white/40 !border-white/60 !w-2.5 !h-2.5 !top-[-6px] !left-1/2 !-translate-x-1/2" />
-      <Handle type="source" position={Position.Bottom} id="yes" className="!bg-emerald-500 !border-emerald-400 !w-3 !h-3 !bottom-[-8px] !left-1/2 !-translate-x-1/2" />
+      <Handle type="source" position={Position.Bottom} id="yes" className="!bg-primary !border-emerald-400 !w-3 !h-3 !bottom-[-8px] !left-1/2 !-translate-x-1/2" />
       <Handle type="source" position={Position.Right} id="no" className="!bg-rose-500 !border-rose-400 !w-3 !h-3 !right-[-8px] !top-1/2 !-translate-y-1/2" />
       
       <div className="absolute inset-0 flex items-center justify-center -rotate-45 p-4">
@@ -578,7 +578,7 @@ function AIAgentFlowDiagramInner() {
           size="sm"
           onClick={simulateFlow}
           disabled={isSimulating}
-          className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 rounded-none backdrop-blur-3xl font-mono text-[11px] tracking-widest uppercase py-5 px-6"
+          className="bg-primary/10 border-primary/30 text-emerald-400 hover:bg-primary/20 rounded-none backdrop-blur-3xl font-mono text-[11px] tracking-widest uppercase py-5 px-6"
         >
           {isSimulating ? (
             <>
@@ -607,7 +607,7 @@ function AIAgentFlowDiagramInner() {
        <div className="absolute inset-0 border border-white/5 pointer-events-none" />
        {/* Corner accents */}
        <div className="absolute top-0 left-0 w-10 h-1 border-l-2 border-t-2 border-indigo-500/50" />
-       <div className="absolute bottom-0 right-0 w-10 h-1 border-r-2 border-b-2 border-emerald-500/50" />
+       <div className="absolute bottom-0 right-0 w-10 h-1 border-r-2 border-b-2 border-primary/50" />
     </div>
   )
 }

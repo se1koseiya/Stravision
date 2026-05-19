@@ -65,7 +65,7 @@ export default function MCPStorePage() {
     const [error, setError] = useState(false)
     if (error || !icon) {
       const firstLetter = name.charAt(0).toUpperCase()
-      const colors = ["bg-blue-500", "bg-rose-500", "bg-emerald-500", "bg-amber-500", "bg-violet-500", "bg-indigo-500"]
+      const colors = ["bg-blue-500", "bg-rose-500", "bg-primary", "bg-amber-500", "bg-violet-500", "bg-indigo-500"]
       const color = colors[name.length % colors.length]
       return (
         <div className={cn(className, color, "text-white font-black flex items-center justify-center text-xl shrink-0")}>
@@ -96,7 +96,7 @@ export default function MCPStorePage() {
 
   const gradients = [
     "from-indigo-600 to-blue-700",
-    "from-emerald-500 to-teal-700",
+    "from-primary to-teal-700",
     "from-purple-600 to-pink-800",
     "from-orange-500 to-red-600"
   ]

@@ -46,7 +46,7 @@ export function AnnouncementSender() {
     <Card className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border-white/40 dark:border-white/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-emerald-500" />
+          <Megaphone className="h-5 w-5 text-primary" />
           发布系统公告
         </CardTitle>
         <CardDescription>
@@ -64,7 +64,7 @@ export function AnnouncementSender() {
           <Button 
             onClick={handleSend} 
             disabled={loading || !content.trim()}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+            className="bg-primary hover:bg-primary text-white shadow-lg shadow-emerald-500/20"
           >
             {loading ? (
               <>

@@ -68,7 +68,7 @@ class ModelErrorBoundary extends Component<{children: ReactNode}, {hasError: boo
           </div>
           <p className="font-medium text-foreground">3D 模型加载失败</p>
           <p className="text-sm max-w-xs">网络连接超时或资源无法访问。这不会影响页面的其他功能。</p>
-          <button onClick={() => this.setState({ hasError: false })} className="mt-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+          <button onClick={() => this.setState({ hasError: false })} className="mt-2 px-4 py-2 bg-primary hover:bg-primary text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
             重试加载
           </button>
         </div>
@@ -411,7 +411,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <span className="text-sm font-medium">在线</span>
                 </div>
               </div>
@@ -432,13 +432,13 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${isOn ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${isOn ? "bg-primary" : "bg-slate-400"}`} />
                   <span className="text-sm font-medium">{isOn ? "运行中" : "已关闭"}</span>
                 </div>
               </div>
               <button 
                 onClick={() => onToggleRelay?.(relay, deviceData?.[`relay${relay}`] ?? 0)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${isOn ? "bg-emerald-500" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${isOn ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isOn ? "left-[calc(100%-22px)]" : "left-0.5"}`} />
               </button>
@@ -453,13 +453,13 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay7 === 1 ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay7 === 1 ? "bg-primary" : "bg-slate-400"}`} />
                   <span className="text-sm font-medium">{deviceData?.relay7 === 1 ? "开启" : "关闭"}</span>
                 </div>
               </div>
               <button 
                 onClick={() => onToggleRelay?.(7, deviceData?.relay7 ?? 0)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay7 === 1 ? "bg-emerald-500" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay7 === 1 ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${deviceData?.relay7 === 1 ? "left-[calc(100%-22px)]" : "left-0.5"}`} />
               </button>
@@ -530,8 +530,8 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               }}
               className={`w-full py-2 rounded-lg text-xs font-medium transition-colors ${
                 isDark 
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white" 
-                  : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  ? "bg-primary hover:bg-primary text-white" 
+                  : "bg-primary hover:bg-primary text-white"
               }`}
             >
               更新颜色
@@ -546,13 +546,13 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay8 === 1 ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay8 === 1 ? "bg-primary" : "bg-slate-400"}`} />
                   <span className="text-sm font-medium">{deviceData?.relay8 === 1 ? "开启" : "关闭"}</span>
                 </div>
               </div>
               <button 
                 onClick={() => onToggleRelay?.(8, deviceData?.relay8 ?? 0)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay8 === 1 ? "bg-emerald-500" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay8 === 1 ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${deviceData?.relay8 === 1 ? "left-[calc(100%-22px)]" : "left-0.5"}`} />
               </button>
@@ -785,7 +785,7 @@ function AIAssistantCard({
         </div>
         <a 
           href="/ai-assistant" 
-          className={`text-xs ${isDark ? "text-emerald-400 hover:text-emerald-300" : "text-emerald-600 hover:text-emerald-700"}`}
+          className={`text-xs ${isDark ? "text-emerald-400 hover:text-emerald-300" : "text-primary hover:text-emerald-700"}`}
         >
           打开完整版 →
         </a>
@@ -805,13 +805,13 @@ function AIAssistantCard({
             </div>
             <div className="flex items-center gap-1.5">
               <Droplets className="w-3 h-3 text-cyan-500" />
-              <span className={deviceData.relay5 === 1 ? "text-emerald-500" : ""}>
+              <span className={deviceData.relay5 === 1 ? "text-primary" : ""}>
                 灌溉 {deviceData.relay5 === 1 ? "开" : "关"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Fan className="w-3 h-3 text-indigo-500" />
-              <span className={deviceData.relay6 === 1 ? "text-emerald-500" : ""}>
+              <span className={deviceData.relay6 === 1 ? "text-primary" : ""}>
                 通风 {deviceData.relay6 === 1 ? "开" : "关"}
               </span>
             </div>
@@ -844,7 +844,7 @@ function AIAssistantCard({
                     <Icon className={`w-3 h-3 ${color}`} />
                     <span>{label}</span>
                   </div>
-                  <div className={`w-6 h-3 rounded-full transition-colors ${isOn ? "bg-emerald-500" : isDark ? "bg-slate-600" : "bg-slate-300"}`}>
+                  <div className={`w-6 h-3 rounded-full transition-colors ${isOn ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}>
                     <div className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-transform mt-[1px] ${isOn ? "ml-[13px]" : "ml-[1px]"}`} />
                   </div>
                 </button>
@@ -868,7 +868,7 @@ function AIAssistantCard({
             )}
             <div className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-xs ${
               msg.role === "user" 
-                ? "bg-emerald-500 text-white rounded-br-md" 
+                ? "bg-primary text-white rounded-br-md" 
                 : isDark 
                   ? "bg-slate-700 text-slate-200 rounded-bl-md" 
                   : "bg-slate-200 text-slate-800 rounded-bl-md"
@@ -912,7 +912,7 @@ function AIAssistantCard({
           disabled={isLoading || !message.trim()}
           className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
             message.trim() && !isLoading
-              ? "bg-emerald-500 text-white hover:bg-emerald-600"
+              ? "bg-primary text-white hover:bg-primary"
               : isDark ? "bg-slate-700 text-slate-500" : "bg-slate-200 text-slate-400"
           }`}
         >
@@ -1406,7 +1406,7 @@ function Model3DLoadingSkeleton({ isDark }: { isDark: boolean }) {
               <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl opacity-20" />
             </div>
             <div className="absolute inset-2 animate-pulse">
-              <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-blue-600 rounded-xl opacity-40" />
+              <div className="w-full h-full bg-gradient-to-br from-primary to-blue-600 rounded-xl opacity-40" />
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-4xl">🏡</div>
@@ -1425,7 +1425,7 @@ function Model3DLoadingSkeleton({ isDark }: { isDark: boolean }) {
 
           {/* Loading Dots */}
           <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
@@ -1449,7 +1449,7 @@ function Model3DLoadingSkeleton({ isDark }: { isDark: boolean }) {
       {/* Progress Bar */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-64">
         <div className="h-1 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+          <div className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full animate-pulse" style={{ width: '60%' }} />
         </div>
       </div>
     </div>

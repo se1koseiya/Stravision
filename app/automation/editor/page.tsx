@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import React, { useState, useCallback, useRef } from 'react';
@@ -737,7 +737,7 @@ function AutomationEditor() {
                             onDragStart={(e) => onDragStart(e, item.type, item.subType, item.label)}
                           >
                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${
-                               item.color === 'green' ? 'bg-emerald-500/10 text-emerald-600' :
+                               item.color === 'green' ? 'bg-primary/10 text-primary' :
                                item.color === 'purple' ? 'bg-violet-500/10 text-violet-600' :
                                item.color === 'blue' ? 'bg-blue-500/10 text-blue-600' :
                                'bg-amber-500/10 text-amber-600'

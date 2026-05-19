@@ -82,7 +82,7 @@ export default function ProposalCoverPage() {
             <Button onClick={handleExportImage} disabled={isExporting} className="bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md">
                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-2" />} PNG
             </Button>
-            <Button onClick={handleExportPDF} disabled={isExporting} className="bg-emerald-500 hover:bg-emerald-600 text-black border-none font-medium">
+            <Button onClick={handleExportPDF} disabled={isExporting} className="bg-primary hover:bg-primary text-black border-none font-medium">
                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />} PDF
             </Button>
         </div>
@@ -107,7 +107,7 @@ export default function ProposalCoverPage() {
              />
              
              {/* Top Spotlight (Emerald) */}
-             <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-emerald-600/30 blur-[150px] rounded-full mix-blend-screen animate-pulse-slow" />
+             <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-primary/30 blur-[150px] rounded-full mix-blend-screen animate-pulse-slow" />
              
              {/* Bottom Backlight (Deep Blue) */}
              <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-700/20 blur-[120px] rounded-full mix-blend-screen" />
@@ -128,12 +128,12 @@ export default function ProposalCoverPage() {
              <header className="flex justify-between items-center border-b border-white/20 pb-6">
                 <div className="flex items-center gap-3">
                    {/* Logo: Transparent Background, Pure Shape */}
-                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center backdrop-blur-md">
-                      <div className="w-4 h-4 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                   <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center backdrop-blur-md">
+                      <div className="w-4 h-4 bg-primary rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                    </div>
                    <div className="flex flex-col">
                       <span className="font-bold text-xl tracking-tight leading-none text-white">STRAVISION</span>
-                      <span className="text-[10px] font-mono text-emerald-500 tracking-widest">IOT PLATFORM</span>
+                      <span className="text-[10px] font-mono text-primary tracking-widest">IOT PLATFORM</span>
                    </div>
                 </div>
                 <div className="text-right">
@@ -149,7 +149,7 @@ export default function ProposalCoverPage() {
                 <div className="relative w-full flex justify-center items-center">
                    
                    {/* Background Circle */}
-                   <div className="absolute w-[500px] h-[500px] border border-emerald-500/20 rounded-full flex items-center justify-center animate-[spin_60s_linear_infinite]">
+                   <div className="absolute w-[500px] h-[500px] border border-primary/20 rounded-full flex items-center justify-center animate-[spin_60s_linear_infinite]">
                       <div className="w-[480px] h-[480px] border border-dashed border-white/10 rounded-full" />
                    </div>
                    
@@ -169,12 +169,12 @@ export default function ProposalCoverPage() {
                       {/* Glass Cards - Asymmetric Floating UI */}
                       <div className="absolute top-[15%] left-[-10%] bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-xl shadow-2xl rotate-[-5deg]">
                          <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                             <span className="text-[10px] font-mono text-white/80">LIVE MONITORING</span>
                          </div>
                          <div className="text-2xl font-bold font-mono">24.5°C</div>
                          <div className="h-1 w-20 bg-white/10 rounded-full mt-2 overflow-hidden">
-                            <div className="h-full w-[70%] bg-emerald-500" />
+                            <div className="h-full w-[70%] bg-primary" />
                          </div>
                       </div>
 
@@ -200,7 +200,7 @@ export default function ProposalCoverPage() {
                       莓界·智能
                    </h1>
                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="h-[2px] w-20 bg-emerald-500 mb-4" />
+                      <div className="h-[2px] w-20 bg-primary mb-4" />
                       <h2 className="text-3xl font-bold tracking-wide text-white font-jinbuti drop-shadow-lg">
                          AI 驱动的物联网大棚种植管理平台
                       </h2>
@@ -215,18 +215,18 @@ export default function ProposalCoverPage() {
              {/* Footer: Tech Specs style */}
              <footer className="grid grid-cols-3 gap-8 border-t border-white/20 pt-8">
                 <div>
-                   <h3 className="text-[10px] font-mono text-emerald-500 mb-2">PLATFORM VERSION</h3>
+                   <h3 className="text-[10px] font-mono text-primary mb-2">PLATFORM VERSION</h3>
                    <p className="text-sm font-bold leading-tight text-white/80 font-jinbuti">V 2.0.0<br/>Enterprise Edition</p>
                 </div>
                 <div>
-                   <h3 className="text-[10px] font-mono text-emerald-500 mb-2">DOCUMENT TYPE</h3>
+                   <h3 className="text-[10px] font-mono text-primary mb-2">DOCUMENT TYPE</h3>
                    <p className="text-sm font-bold leading-tight text-white/80 font-jinbuti">内部战略<br/>规划白皮书</p>
                 </div>
                 <div className="text-right">
-                   <h3 className="text-[10px] font-mono text-emerald-500 mb-2">CONFIDENTIALITY</h3>
+                   <h3 className="text-[10px] font-mono text-primary mb-2">CONFIDENTIALITY</h3>
                    <div className="flex justify-end gap-1">
                       <div className="w-10 h-3 bg-white/20 skew-x-[-20deg]" />
-                      <div className="w-2 h-3 bg-emerald-500 skew-x-[-20deg]" />
+                      <div className="w-2 h-3 bg-primary skew-x-[-20deg]" />
                    </div>
                 </div>
              </footer>

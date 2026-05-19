@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
@@ -453,7 +453,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
               <Button
                 onClick={handleSaveLayout}
                 size="sm"
-                className="h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-md transition-all font-medium px-4 ml-2"
+                className="h-9 rounded-full bg-primary hover:bg-primary text-white shadow-md transition-all font-medium px-4 ml-2"
               >
                 完成编辑
               </Button>
@@ -678,7 +678,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                       header={
                         <div className="flex items-center gap-2">
                           <div className="p-2 rounded-full bg-emerald-50">
-                            <Leaf className="w-4 h-4 text-emerald-500" />
+                            <Leaf className="w-4 h-4 text-primary" />
                           </div>
                           {getCurrentWidgetSize('fertility') !== 'small' && <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">土壤肥力</span>}
                         </div>

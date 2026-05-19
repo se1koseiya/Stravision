@@ -52,7 +52,7 @@ export function AiInsightCard() {
     switch (level) {
       case 'high': return 'text-orange-500 bg-orange-500/10 border-orange-500/20'
       case 'medium': return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
-      case 'low': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+      case 'low': return 'text-primary bg-primary/10 border-primary/20'
       default: return 'text-zinc-500 bg-zinc-500/10 border-zinc-500/20'
     }
   }
@@ -170,7 +170,7 @@ export function AiInsightCard() {
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
           
           {/* Animated Blob Background */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-tr from-emerald-500/20 to-blue-500/20 rounded-full blur-[40px] animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-tr from-primary/20 to-blue-500/20 rounded-full blur-[40px] animate-pulse" />
 
           <motion.div
             key={loading ? 'loading-img' : data?.riskLevel}

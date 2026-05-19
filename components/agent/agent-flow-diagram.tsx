@@ -107,7 +107,7 @@ export function AgentFlowDiagram() {
 
   const getNodeColor = (status: FlowNode['status']) => {
     switch (status) {
-      case 'pending': return 'bg-gray-100 border-gray-300';
+      case 'pending': return 'bg-muted border-border';
       case 'active': return 'bg-blue-100 border-blue-500 ring-2 ring-blue-200';
       case 'completed': return 'bg-green-100 border-green-500';
       case 'failed': return 'bg-red-100 border-red-500';

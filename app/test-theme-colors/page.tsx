@@ -132,7 +132,7 @@ export default function TestThemeColorsPage() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2 text-emerald-600">✅ 已修改的颜色变量</h4>
+              <h4 className="font-semibold mb-2 text-primary">✅ 已修改的颜色变量</h4>
               <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                 <li>• <code>--primary</code> - 主色调改为宝石绿色</li>
                 <li>• <code>--ring</code> - 聚焦环颜色改为宝石绿色</li>

@@ -79,7 +79,7 @@ export function LoadingScreen({ onFinished }: { onFinished: () => void }) {
       {/* 居中动画容器 */}
       <div className="relative w-64 h-64 md:w-96 md:h-96 flex items-center justify-center mb-8">
          {/* 辉光效果 */}
-        <div className="absolute inset-0 bg-emerald-500/10 blur-[80px] rounded-full animate-pulse" />
+        <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full animate-pulse" />
         
         <AnimatePresence mode="wait">
           <motion.div
@@ -104,14 +104,14 @@ export function LoadingScreen({ onFinished }: { onFinished: () => void }) {
 
       {/* 进度条与文字 */}
       <div className="flex flex-col items-center gap-6 z-10 w-full max-w-md px-8">
-        <div className="flex items-center justify-between w-full text-emerald-500/80 font-jinbuti tracking-widest">
+        <div className="flex items-center justify-between w-full text-primary/80 font-jinbuti tracking-widest">
           <span className="text-lg animate-pulse">系统初始化中...</span>
           <span className="text-xl font-mono">{Math.floor(progress)}%</span>
         </div>
         
         <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden relative">
           <motion.div 
-            className="absolute top-0 left-0 h-full bg-emerald-500 shadow-[0_0_15px_#10b981]"
+            className="absolute top-0 left-0 h-full bg-primary shadow-[0_0_15px_#10b981]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
           />
@@ -122,7 +122,7 @@ export function LoadingScreen({ onFinished }: { onFinished: () => void }) {
           />
         </div>
         
-        <div className="flex justify-between w-full text-[10px] font-mono text-emerald-500/30 uppercase tracking-[0.2em]">
+        <div className="flex justify-between w-full text-[10px] font-mono text-primary/30 uppercase tracking-[0.2em]">
           <span>Loading Assets</span>
           <span>Stravision IOT</span>
           <span>v2.4.0</span>

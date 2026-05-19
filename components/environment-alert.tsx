@@ -363,7 +363,7 @@ export function EnvironmentAlert() {
                 {/* 内容 */}
                 <div className="flex-1 min-w-0 pt-1">
                   <h3 className="font-semibold text-white text-base">{alert.config.title}</h3>
-                  <p className="text-sm text-gray-400 mt-1">{alert.config.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{alert.config.description}</p>
                 </div>
 
                 {/* 操作按钮 */}
@@ -373,7 +373,7 @@ export function EnvironmentAlert() {
                   className={cn(
                     "px-4 py-2 rounded-full font-medium text-sm transition-all shrink-0",
                     alert.loading 
-                      ? "bg-gray-700 text-gray-400 cursor-wait"
+                      ? "bg-gray-700 text-muted-foreground cursor-wait"
                       : "bg-amber-500 text-black hover:bg-amber-400"
                   )}
                 >
@@ -383,7 +383,7 @@ export function EnvironmentAlert() {
                 {/* 关闭按钮 */}
                 <button
                   onClick={(e) => { e.stopPropagation(); dismissAlert(alert.id); }}
-                  className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors shrink-0 -mt-1"
+                  className="p-1.5 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 transition-colors shrink-0 -mt-1"
                 >
                   <X size={16} />
                 </button>
@@ -391,7 +391,7 @@ export function EnvironmentAlert() {
 
               {/* 忽略选项 */}
               <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10">
-                <span className="text-xs text-gray-500">忽略:</span>
+                <span className="text-xs text-muted-foreground">忽略:</span>
                 {[
                   { label: '1小时', duration: 60 * 60 * 1000 },
                   { label: '4小时', duration: 4 * 60 * 60 * 1000 },
@@ -401,7 +401,7 @@ export function EnvironmentAlert() {
                   <button
                     key={opt.label}
                     onClick={(e) => { e.stopPropagation(); handleIgnore(alert.config.type, opt.duration); }}
-                    className="px-2.5 py-1 text-xs text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    className="px-2.5 py-1 text-xs text-muted-foreground hover:text-white hover:bg-white/10 rounded-full transition-colors"
                   >
                     {opt.label}
                   </button>

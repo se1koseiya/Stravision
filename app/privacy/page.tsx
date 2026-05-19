@@ -7,7 +7,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30 font-sans">
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 font-sans">
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px]" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           {/* 侧边导航 */}
           <div className="hidden md:flex w-64 border-r border-white/10 bg-white/5 flex-col h-full overflow-hidden">
             <div className="p-6 pb-2 shrink-0">
-              <h3 className="font-bold text-emerald-500">政策目录</h3>
+              <h3 className="font-bold text-primary">政策目录</h3>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-6">
               <nav className="space-y-2 text-sm text-white/60">
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
               
               <section id="section-1">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">01.</span> 引言
+                  <span className="text-primary">01.</span> 引言
                 </h2>
                 <p>
                   Stravision Inc.（以下简称“我们”）深知个人信息对您的重要性，并致力于保护您的隐私和数据安全。本隐私政策详细说明了在您使用 Stravision IoT 平台及相关服务时，我们如何收集、使用、存储、共享和保护您的信息。
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
 
               <section id="section-2">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">02.</span> 我们收集的信息
+                  <span className="text-primary">02.</span> 我们收集的信息
                 </h2>
                 <div className="space-y-4">
                   <div>
@@ -102,10 +102,10 @@ export default function PrivacyPage() {
 
               <section id="section-3">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">03.</span> 信息使用方式
+                  <span className="text-primary">03.</span> 信息使用方式
                 </h2>
                 <p className="mb-4">我们收集的信息将用于以下目的：</p>
-                <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500/50">
+                <ul className="list-disc pl-5 space-y-2 marker:text-primary/50">
                   <li><strong>核心服务提供</strong>：处理设备数据连接、存储、可视化展示以及设备远程控制功能。</li>
                   <li><strong>告警与通知</strong>：根据您设置的规则发送设备状态异常告警（邮件、短信）。</li>
                   <li><strong>安全保障</strong>：监测异常登录、防范网络攻击、验证身份。</li>
@@ -116,10 +116,10 @@ export default function PrivacyPage() {
 
               <section id="section-4">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">04.</span> 信息共享与披露
+                  <span className="text-primary">04.</span> 信息共享与披露
                 </h2>
                 <p className="mb-4">我们承诺不会出售您的个人信息。我们仅在以下情况共享信息：</p>
-                <ul className="list-disc pl-5 space-y-2 marker:text-emerald-500/50">
+                <ul className="list-disc pl-5 space-y-2 marker:text-primary/50">
                   <li><strong>服务提供商</strong>：与代表我们提供基础设施服务的第三方（如 AWS/阿里云用于数据存储、Resend 用于邮件发送）共享必要信息。这些第三方受严格的数据处理协议 (DPA) 约束。</li>
                   <li><strong>法律要求</strong>：在遵守法律程序、法院命令或政府强制要求的情况下披露信息。</li>
                   <li><strong>业务转让</strong>：在合并、收购或资产出售中，用户信息可能作为转让资产的一部分。</li>
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
 
               <section id="section-5">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">05.</span> 数据存储与安全
+                  <span className="text-primary">05.</span> 数据存储与安全
                 </h2>
                 <p><strong>5.1 存储地点</strong>：您的数据主要存储在中国境内或您选择的特定区域数据中心。我们严格遵守当地的数据本地化法律。</p>
                 <p className="mt-2"><strong>5.2 存储期限</strong>：我们仅在提供服务所需的期限内保留您的数据。用户注销账户后，我们会按照法律规定在合理期限内删除或匿名化处理您的个人信息。</p>
@@ -138,7 +138,7 @@ export default function PrivacyPage() {
 
               <section id="section-6">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">06.</span> Cookie 与追踪技术
+                  <span className="text-primary">06.</span> Cookie 与追踪技术
                 </h2>
                 <p>
                   我们使用 Cookie、LocalStorage 和类似技术来维持您的登录会话、保存偏好设置（如语言、主题）以及分析流量。您可以通过浏览器设置拒绝 Cookie，但这可能导致无法登录或使用部分功能。我们不会使用 Cookie 进行跨网站的广告追踪。
@@ -147,11 +147,11 @@ export default function PrivacyPage() {
 
               <section id="section-7">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">07.</span> 您的权利
+                  <span className="text-primary">07.</span> 您的权利
                 </h2>
                 <div className="space-y-2">
                   <p>根据适用的数据保护法律，您拥有以下权利：</p>
-                  <ul className="list-disc pl-5 space-y-1 marker:text-emerald-500/50">
+                  <ul className="list-disc pl-5 space-y-1 marker:text-primary/50">
                     <li><strong>访问权</strong>：查询我们持有的您的个人信息副本。</li>
                     <li><strong>更正权</strong>：更正不准确的个人信息。</li>
                     <li><strong>删除权</strong>：在特定情况下要求删除您的数据（“被遗忘权”）。</li>
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
 
               <section id="section-8">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">08.</span> 未成年人保护
+                  <span className="text-primary">08.</span> 未成年人保护
                 </h2>
                 <p>
                   本服务主要面向成年人。我们不会有意收集未满 14 周岁（或当地法律规定的儿童年龄）未成年人的个人信息。如果您发现我们在不知情的情况下收集了未成年人的信息，请立即联系我们，我们将尽快删除相关数据。
@@ -174,7 +174,7 @@ export default function PrivacyPage() {
 
               <section id="section-9">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">09.</span> 全球数据传输
+                  <span className="text-primary">09.</span> 全球数据传输
                 </h2>
                 <p>
                   如果您在不同国家/地区访问本服务，您的信息可能会被传输到您所在国家/地区以外的服务器进行处理。此类传输将依据标准合同条款 (SCC) 或其他法律机制进行，确保您的数据享有同等水平的保护。
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
 
               <section id="section-10">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">10.</span> 政策更新
+                  <span className="text-primary">10.</span> 政策更新
                 </h2>
                 <p>
                   我们会根据业务发展和法律法规的变化不时更新本隐私政策。更新后的版本将在生效前通过网站公告或邮件通知您。建议您定期查阅本页面以了解最新的隐私实践。
@@ -192,12 +192,12 @@ export default function PrivacyPage() {
 
               <section id="section-11">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="text-emerald-500">11.</span> 联系我们
+                  <span className="text-primary">11.</span> 联系我们
                 </h2>
                 <p>
                   如果您对本隐私政策或个人信息处理有任何疑问、投诉或建议，请通过以下方式联系我们的数据保护官 (DPO)：
                 </p>
-                <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
                   <p className="font-bold text-white">Stravision Privacy Team</p>
                   <p className="mt-1">Email: <a href="mailto:privacy@stravision.com" className="text-emerald-400 hover:underline">privacy@stravision.com</a></p>
                   <p className="mt-1">地址: [公司具体注册地址]</p>

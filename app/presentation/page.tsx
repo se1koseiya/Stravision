@@ -41,7 +41,7 @@ const ArtisticContainer = ({ children, className, title, delay = 0 }: { children
     <div className="relative overflow-hidden bg-white/[0.02] border border-white/5 backdrop-blur-sm p-8">
       {title && (
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-1 h-1 rounded-full bg-emerald-500" />
+          <div className="w-1 h-1 rounded-full bg-primary" />
           <h4 className="text-base font-mono uppercase tracking-[0.3em] text-white/40">{title}</h4>
           <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
         </div>
@@ -69,7 +69,7 @@ const Dots = () => {
       {dots.map((dot, i) => (
         <motion.div
           key={i}
-          className="absolute bg-emerald-500 rounded-full opacity-40"
+          className="absolute bg-primary rounded-full opacity-40"
           style={{
             left: `${dot.x}%`,
             top: `${dot.y}%`,
@@ -142,14 +142,14 @@ export default function PresentationPage() {
                transition={{ duration: 1, ease: "easeOut" }}
              >
                <div className="flex items-center gap-4 mb-8">
-                  <div className="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-lg font-mono tracking-widest uppercase">
+                  <div className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-emerald-400 text-lg font-mono tracking-widest uppercase">
                      Stravision AIoT
                   </div>
-                  <div className="h-px w-24 bg-emerald-500/30" />
+                  <div className="h-px w-24 bg-primary/30" />
                </div>
                
                <h1 className="text-[10rem] md:text-[11rem] font-bold text-white font-jinbuti tracking-tighter leading-[0.8] mb-8">
-                 莓界<span className="text-emerald-500">.</span>
+                 莓界<span className="text-primary">.</span>
                </h1>
                
                <p className="text-zinc-400 text-5xl max-w-2xl leading-relaxed font-light">
@@ -176,7 +176,7 @@ export default function PresentationPage() {
           </div>
           
           <div className="col-span-5 relative h-full flex items-center justify-center">
-             <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse-slow" />
+             <div className="absolute inset-0 bg-primary/10 rounded-full blur-[120px] animate-pulse-slow" />
              <Mascot pose="hello" className="w-full h-full max-h-[800px] object-contain scale-125 relative z-10" glowColor="emerald" />
              
              {/* Orbiting Elements */}
@@ -223,7 +223,7 @@ export default function PresentationPage() {
                    className="flex items-center gap-6 group cursor-pointer"
                    onClick={() => setCurrentSlide(i + 2)}
                 >
-                   <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-zinc-500 font-mono group-hover:bg-emerald-500 group-hover:text-black group-hover:border-emerald-500 transition-all">
+                   <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-zinc-500 font-mono group-hover:bg-primary group-hover:text-black group-hover:border-primary transition-all">
                       {String(i + 1).padStart(2, '0')}
                    </div>
                    <div className="text-4xl text-zinc-300 group-hover:text-white group-hover:translate-x-2 transition-all">
@@ -264,11 +264,11 @@ export default function PresentationPage() {
              </div>
           </div>
           <div className="col-span-5 relative flex justify-center items-center h-full">
-             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-transparent rounded-full blur-[120px] opacity-40 animate-pulse-slow" />
+             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-blue-500/5 to-transparent rounded-full blur-[120px] opacity-40 animate-pulse-slow" />
              <Mascot pose="run" className="w-full h-full max-h-[600px] object-contain relative z-10" glowColor="emerald" />
              
              {/* Decorative Elements */}
-             <div className="absolute top-1/4 right-0 w-32 h-px bg-gradient-to-l from-emerald-500/20 to-transparent" />
+             <div className="absolute top-1/4 right-0 w-32 h-px bg-gradient-to-l from-primary/20 to-transparent" />
              <div className="absolute bottom-1/4 left-0 w-32 h-px bg-gradient-to-r from-blue-500/20 to-transparent" />
           </div>
        </div>
@@ -279,7 +279,7 @@ export default function PresentationPage() {
        <div className="relative w-full h-full flex flex-col justify-center px-12">
           
           {/* Background Elements */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-b from-emerald-500/10 to-transparent rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-b from-primary/10 to-transparent rounded-full blur-[120px] pointer-events-none" />
 
           {/* Main Headline - Floating Top Left */}
           <div className="mb-16 max-w-4xl">
@@ -304,7 +304,7 @@ export default function PresentationPage() {
                    { icon: Leaf, title: "绿色生产标准", desc: "倒逼传统农场转型升级" }
                 ].map((item, i) => (
                    <div key={i} className="flex items-start gap-6 group">
-                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
                          <item.icon className="w-6 h-6" />
                       </div>
                       <div>
@@ -351,11 +351,11 @@ export default function PresentationPage() {
 
                 {/* The Gap Highlight */}
                 <div className="mt-12 p-0 relative">
-                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent blur-2xl -z-10" />
+                   <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent blur-2xl -z-10" />
                    <div className="flex items-end gap-6">
                       <div className="text-[8rem] font-bold text-emerald-400 leading-none font-jinbuti tracking-tighter">54.5%</div>
                       <div className="pb-4 max-w-xs">
-                         <div className="text-emerald-500 font-mono uppercase tracking-widest mb-1">Market Gap</div>
+                         <div className="text-primary font-mono uppercase tracking-widest mb-1">Market Gap</div>
                          <p className="text-white text-lg leading-tight">
                             现有技术无法覆盖的中小农户缺口，正是<span className="text-emerald-400 font-bold">“莓界”</span>的蓝海机遇。
                          </p>
@@ -495,7 +495,7 @@ export default function PresentationPage() {
                  {/* Strengths */}
                  <div>
                     <div className="relative mb-8 group">
-                       <span className="absolute -top-10 left-0 text-[5rem] font-bold font-mono text-emerald-500/5 pointer-events-none select-none">STRENGTHS</span>
+                       <span className="absolute -top-10 left-0 text-[5rem] font-bold font-mono text-primary/5 pointer-events-none select-none">STRENGTHS</span>
                        <h3 className="text-6xl font-bold text-white font-jinbuti group-hover:text-emerald-400 transition-colors relative z-10">优势</h3>
                     </div>
                     <div className="space-y-8 pl-2">
@@ -505,7 +505,7 @@ export default function PresentationPage() {
                           { title: "团队实力", desc: "校企协同，产学研高效联动" }
                        ].map((item, i) => (
                           <div key={i} className="flex items-start gap-5 group/item">
-                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2.5 shrink-0 group-hover/item:scale-150 transition-transform" />
+                             <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2.5 shrink-0 group-hover/item:scale-150 transition-transform" />
                              <div>
                                 <span className="text-white text-xl font-bold mr-3">{item.title}</span>
                                 <span className="text-zinc-400 text-lg leading-relaxed">{item.desc}</span>
@@ -645,10 +645,10 @@ export default function PresentationPage() {
           {/* Right: Hardware Kit */}
           <div className="relative h-full flex flex-col justify-center px-16 group border-l border-white/5 bg-white/[0.01]">
              {/* Background Glow */}
-             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -z-10 group-hover:bg-emerald-500/10 transition-colors duration-700" />
+             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -z-10 group-hover:bg-primary/10 transition-colors duration-700" />
 
              <div className="mb-12">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-base font-mono tracking-wider mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-emerald-400 text-base font-mono tracking-wider mb-6">
                    <Box className="w-4 h-4" />
                    THE BODY
                 </div>
@@ -668,7 +668,7 @@ export default function PresentationPage() {
                    { title: "智能控制器", desc: "精准控制水肥机、风机、卷帘", icon: Zap }
                 ].map((item, i) => (
                    <div key={i} className="flex items-center gap-6 group/item">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover/item:scale-110 transition-transform border border-emerald-500/20">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-emerald-400 group-hover/item:scale-110 transition-transform border border-primary/20">
                          <item.icon className="w-6 h-6" />
                       </div>
                       <div>
@@ -697,7 +697,7 @@ export default function PresentationPage() {
        <div className="grid grid-cols-12 gap-16 h-full items-center px-8">
           <div className="col-span-6 space-y-12">
              <div className="relative">
-                <span className="text-emerald-500 font-mono tracking-widest uppercase text-base mb-4 block">Data Input</span>
+                <span className="text-primary font-mono tracking-widest uppercase text-base mb-4 block">Data Input</span>
                 <h3 className="text-7xl font-bold text-white leading-tight font-jinbuti">
                    让环境变化<br/>
                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">“看得见”</span>
@@ -736,7 +736,7 @@ export default function PresentationPage() {
                       </div>
                       <span className="font-mono text-emerald-400/50 text-lg">ADVANCED</span>
                    </div>
-                   <div className="h-px w-full bg-white/10 mb-4 group-hover:bg-emerald-500/50 transition-colors" />
+                   <div className="h-px w-full bg-white/10 mb-4 group-hover:bg-primary/50 transition-colors" />
                    <div className="flex gap-8 text-zinc-500 font-mono text-base">
                       <span>UVA</span>
                       <span>BLUE</span>
@@ -750,9 +750,9 @@ export default function PresentationPage() {
 
           <div className="col-span-6 relative h-full flex items-center justify-center">
              {/* Abstract Sensor Visual */}
-             <div className="absolute inset-0 bg-emerald-500/5 rounded-full blur-3xl" />
+             <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl" />
              <div className="relative z-10 w-full max-w-md aspect-square rounded-full border border-white/5 flex items-center justify-center">
-                <div className="absolute inset-0 border border-emerald-500/20 rounded-full animate-[spin_10s_linear_infinite]" />
+                <div className="absolute inset-0 border border-primary/20 rounded-full animate-[spin_10s_linear_infinite]" />
                 <div className="absolute inset-8 border border-white/10 rounded-full border-dashed animate-[spin_15s_linear_infinite_reverse]" />
                 <Mascot pose="sit" className="w-full h-full object-contain scale-110" glowColor="emerald" />
                 
@@ -854,10 +854,10 @@ export default function PresentationPage() {
        <div className="w-full h-full flex flex-col items-center justify-center relative">
           
           {/* Central Core Visual */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
              <div className="relative w-64 h-64 flex items-center justify-center">
-                <div className="absolute inset-0 border border-emerald-500/30 rounded-full animate-[spin_20s_linear_infinite]" />
+                <div className="absolute inset-0 border border-primary/30 rounded-full animate-[spin_20s_linear_infinite]" />
                 <div className="absolute inset-4 border border-blue-500/30 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
                 <Brain className="w-24 h-24 text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
                 <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
@@ -889,10 +889,10 @@ export default function PresentationPage() {
              {/* Right: Execution */}
              <div className="flex flex-col justify-center items-end pr-20 text-right pointer-events-auto">
                 <div className="flex items-center gap-4 mb-4 group flex-row-reverse">
-                   <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                   <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Zap className="w-8 h-8 text-emerald-400" />
                    </div>
-                   <div className="h-px flex-1 bg-gradient-to-l from-emerald-500/50 to-transparent" />
+                   <div className="h-px flex-1 bg-gradient-to-l from-primary/50 to-transparent" />
                 </div>
                 <h3 className="text-4xl font-bold text-white mb-2">闭环决策执行</h3>
                 <p className="text-zinc-400 text-lg max-w-xs leading-relaxed">
@@ -950,7 +950,7 @@ export default function PresentationPage() {
                        </div>
                     </div>
                     <div className="flex items-start gap-4">
-                       <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <Activity className="w-6 h-6 text-emerald-400" />
                        </div>
                        <div>
@@ -1065,7 +1065,7 @@ export default function PresentationPage() {
                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                    <span className="text-red-400 font-bold">LIVE STREAM</span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full">
                    <Globe className="w-4 h-4 text-emerald-400" />
                    <span className="text-emerald-400 font-bold">3D VIEW</span>
                 </div>
@@ -1151,7 +1151,7 @@ export default function PresentationPage() {
                          initial={{ opacity: 0, x: 20 }}
                          whileInView={{ opacity: 1, x: 0 }}
                          transition={{ delay: 0.2 }}
-                         className="self-end bg-emerald-500/10 border border-emerald-500/20 rounded-2xl rounded-tr-none px-6 py-4 max-w-xl backdrop-blur-md"
+                         className="self-end bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-none px-6 py-4 max-w-xl backdrop-blur-md"
                       >
                          <div className="flex items-center gap-3 mb-2">
                             <Sparkles className="w-4 h-4 text-emerald-400" />
@@ -1164,7 +1164,7 @@ export default function PresentationPage() {
                          {/* Mini Chart */}
                          <div className="mt-4 h-24 w-full bg-black/20 rounded-lg flex items-end gap-1 p-2">
                             {[40, 60, 45, 92, 55, 65, 50].map((h, i) => (
-                               <div key={i} className={`flex-1 rounded-sm ${h > 80 ? 'bg-red-500' : 'bg-emerald-500/50'}`} style={{ height: `${h}%` }} />
+                               <div key={i} className={`flex-1 rounded-sm ${h > 80 ? 'bg-red-500' : 'bg-primary/50'}`} style={{ height: `${h}%` }} />
                             ))}
                          </div>
                       </motion.div>
@@ -1183,7 +1183,7 @@ export default function PresentationPage() {
 
                 {/* Input Area */}
                 <div className="h-20 bg-zinc-900/80 border border-white/10 rounded-full flex items-center px-8 gap-4 shadow-2xl relative z-10 backdrop-blur-xl">
-                   <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-emerald-500/20">
                       <Sparkles className="w-5 h-5 text-black" />
                    </div>
                    <div className="flex-1 text-zinc-500 text-xl font-light">
@@ -1198,7 +1198,7 @@ export default function PresentationPage() {
              {/* Right: Feature Highlights */}
              <div className="col-span-5 flex flex-col justify-center space-y-12 pl-12">
                 <div>
-                   <span className="text-emerald-500 font-mono tracking-widest uppercase text-base mb-4 block">Intelligence</span>
+                   <span className="text-primary font-mono tracking-widest uppercase text-base mb-4 block">Intelligence</span>
                    <h3 className="text-7xl font-bold text-white mb-6 leading-tight font-jinbuti">
                       不仅仅是工具<br/>
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">更是专家</span>
@@ -1210,7 +1210,7 @@ export default function PresentationPage() {
 
                 <div className="space-y-8">
                    <div className="flex items-start gap-6 group">
-                      <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                          <List className="w-8 h-8 text-emerald-400" />
                       </div>
                       <div>
@@ -1241,13 +1241,13 @@ export default function PresentationPage() {
           
           {/* Background Elements */}
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
-          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px]" />
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]" />
           
           {/* IP Mascot: The Guardian (Left Side) */}
           <div className="absolute left-24 bottom-12 z-10 w-[450px] h-[450px] flex items-center justify-center pointer-events-none">
              {/* Holographic Shield Effect */}
-             <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-3xl animate-pulse-slow" />
-             <div className="absolute inset-[-20px] border border-emerald-500/20 rounded-full animate-[spin_10s_linear_infinite]" />
+             <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
+             <div className="absolute inset-[-20px] border border-primary/20 rounded-full animate-[spin_10s_linear_infinite]" />
              <div className="absolute inset-[-40px] border border-blue-500/10 rounded-full animate-[spin_15s_linear_infinite_reverse] border-dashed" />
              
              {/* Mascot */}
@@ -1257,9 +1257,9 @@ export default function PresentationPage() {
              <motion.div 
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-0 right-10 bg-zinc-900/80 backdrop-blur-md border border-emerald-500/30 px-5 py-2 rounded-xl flex items-center gap-3 shadow-xl z-20"
+                className="absolute top-0 right-10 bg-zinc-900/80 backdrop-blur-md border border-primary/30 px-5 py-2 rounded-xl flex items-center gap-3 shadow-xl z-20"
              >
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 <span className="text-emerald-400 font-bold text-base tracking-wider">SECURITY GUARD</span>
              </motion.div>
           </div>
@@ -1321,16 +1321,16 @@ export default function PresentationPage() {
                    initial={{ y: 50, opacity: 0 }}
                    whileInView={{ y: 0, opacity: 1 }}
                    transition={{ delay: 0 }}
-                   className="relative w-[500px] h-[120px] bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md rounded-2xl flex items-center px-8 shadow-[0_20px_50px_rgba(16,185,129,0.15)] group hover:translate-z-10 transition-transform duration-500"
+                   className="relative w-[500px] h-[120px] bg-primary/10 border border-primary/30 backdrop-blur-md rounded-2xl flex items-center px-8 shadow-[0_20px_50px_rgba(16,185,129,0.15)] group hover:translate-z-10 transition-transform duration-500"
                 >
-                   <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-16 bg-emerald-500 rounded-full" />
-                   <div className="w-16 h-16 rounded-xl bg-emerald-500/20 flex items-center justify-center mr-6 border border-emerald-500/30">
+                   <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-16 bg-primary rounded-full" />
+                   <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center mr-6 border border-primary/30">
                       <Activity className="w-8 h-8 text-emerald-400" />
                    </div>
                    <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                          <h3 className="text-2xl font-bold text-white">设备健康监测</h3>
-                         <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 text-base font-mono rounded">DEVICE LAYER</span>
+                         <span className="px-2 py-1 bg-primary/20 text-emerald-300 text-base font-mono rounded">DEVICE LAYER</span>
                       </div>
                       <p className="text-zinc-400 text-base">心跳实时检测，故障自动降级与熔断保护</p>
                    </div>
@@ -1350,7 +1350,7 @@ export default function PresentationPage() {
                 
                 <div className="flex items-center gap-4">
                    <div className="flex -space-x-2">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-xs text-emerald-400">端</div>
+                      <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center text-xs text-emerald-400">端</div>
                       <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500 flex items-center justify-center text-xs text-blue-400">管</div>
                       <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center text-xs text-purple-400">云</div>
                    </div>
@@ -1368,7 +1368,7 @@ export default function PresentationPage() {
        <div className="w-full h-full relative flex flex-col justify-center overflow-hidden px-8">
           
           {/* Fluid Background */}
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-emerald-500/10 to-blue-500/10 rounded-full blur-[120px]" />
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-primary/10 to-blue-500/10 rounded-full blur-[120px]" />
           <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[100px]" />
 
           <div className="mb-12 relative z-10">
@@ -1394,14 +1394,14 @@ export default function PresentationPage() {
              </div>
 
              {/* Step 2 */}
-             <div className="group relative p-6 rounded-3xl bg-zinc-900/50 border border-white/10 hover:bg-zinc-900 hover:border-emerald-500/50 transition-all duration-500 mt-12">
-                <div className="absolute -top-4 -right-4 w-12 h-12 bg-zinc-900 rounded-full border border-white/10 flex items-center justify-center text-xl font-bold text-zinc-500 group-hover:text-emerald-400 group-hover:border-emerald-500 transition-colors">02</div>
-                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
+             <div className="group relative p-6 rounded-3xl bg-zinc-900/50 border border-white/10 hover:bg-zinc-900 hover:border-primary/50 transition-all duration-500 mt-12">
+                <div className="absolute -top-4 -right-4 w-12 h-12 bg-zinc-900 rounded-full border border-white/10 flex items-center justify-center text-xl font-bold text-zinc-500 group-hover:text-emerald-400 group-hover:border-primary transition-colors">02</div>
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
                    <RefreshCw className="w-8 h-8" />
                 </div>
                 <h4 className="text-2xl font-bold text-white mb-2">软件订阅</h4>
                 <p className="text-zinc-400 text-base leading-relaxed">平台年费 + 高级 AI 功能订阅，构建持续现金流。</p>
-                <div className="mt-4 text-base font-mono text-emerald-500 uppercase tracking-wider">Recurring</div>
+                <div className="mt-4 text-base font-mono text-primary uppercase tracking-wider">Recurring</div>
              </div>
 
              {/* Step 3 */}
@@ -1448,7 +1448,7 @@ export default function PresentationPage() {
                  <span className="text-zinc-400 text-base">Hardware 30%</span>
              </div>
              <div className="flex items-center gap-2">
-                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                 <div className="w-3 h-3 rounded-full bg-primary" />
                  <span className="text-emerald-400 font-bold text-base">SaaS & Services 70%</span>
              </div>
           </div>
@@ -1460,7 +1460,7 @@ export default function PresentationPage() {
     <Slide key="finance" title="财务与营销" subtitle="Finance & Strategy" step={17}>
        <div className="w-full h-full relative flex items-center justify-center px-12">
           {/* Background */}
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-emerald-500/5 to-blue-500/5 rounded-full blur-[120px]" />
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-primary/5 to-blue-500/5 rounded-full blur-[120px]" />
 
           <div className="grid grid-cols-12 gap-16 w-full h-full items-center">
              
@@ -1473,7 +1473,7 @@ export default function PresentationPage() {
                       <span className="text-8xl font-bold text-white tracking-tighter font-jinbuti">¥12,000</span>
                       <span className="text-4xl text-emerald-400 font-bold">+</span>
                    </div>
-                   <div className="h-px w-32 bg-emerald-500/50 mt-6 mb-6" />
+                   <div className="h-px w-32 bg-primary/50 mt-6 mb-6" />
                    <p className="text-zinc-400 text-xl leading-relaxed">
                       通过精准水肥与病害减少，<br/>为每户农户带来的直接年增收。
                    </p>
@@ -1548,7 +1548,7 @@ export default function PresentationPage() {
              
              <div className="space-y-12">
                 <motion.div initial={{ x: -20, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="relative">
-                   <div className="absolute -left-[45px] top-1 w-5 h-5 rounded-full bg-emerald-500 ring-4 ring-black shadow-[0_0_20px_rgba(16,185,129,0.5)]" />
+                   <div className="absolute -left-[45px] top-1 w-5 h-5 rounded-full bg-primary ring-4 ring-black shadow-[0_0_20px_rgba(16,185,129,0.5)]" />
                    <div className="text-lg text-emerald-400 font-mono mb-2">2025 - 2027</div>
                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                       <h3 className="text-4xl font-bold text-white mb-2">第一阶段：深耕浙江，打造样板</h3>
@@ -1600,7 +1600,7 @@ export default function PresentationPage() {
                    className={`
                       flex items-center gap-3 px-4 py-4 rounded-xl text-left transition-all border
                       ${supportTab === tab.id 
-                         ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20" 
+                         ? "bg-primary text-white border-primary shadow-lg shadow-emerald-500/20" 
                          : "bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-white"}
                    `}
                 >
@@ -1687,7 +1687,7 @@ export default function PresentationPage() {
                          "湖州市迁奕软件科技有限责任公司(1)haoliang_02.png",
                          "湖州市迁奕软件科技有限责任公司(1)haoliang_03.png"
                       ].map((file, i) => (
-                         <div key={i} className="aspect-[3/4] rounded-lg overflow-hidden border border-white/10 bg-white hover:border-emerald-500 transition-colors">
+                         <div key={i} className="aspect-[3/4] rounded-lg overflow-hidden border border-white/10 bg-white hover:border-primary transition-colors">
                             <img src={`/作证材料/三、合作意向书/${file}`} className="w-full h-full object-contain" alt="Partner" />
                          </div>
                       ))}
@@ -1739,16 +1739,16 @@ export default function PresentationPage() {
                initial={{ opacity: 0, y: 20 }}
                whileInView={{ opacity: 1, y: 0 }}
                transition={{ duration: 0.5 }}
-               className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/50 rounded-3xl p-8 transition-all duration-500"
+               className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 rounded-3xl p-8 transition-all duration-500"
              >
-                <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
                 
                 <div className="relative z-10 flex flex-col items-center text-center">
-                   <div className="w-40 h-40 rounded-full p-1 border-2 border-emerald-500/30 mb-6 relative group-hover:scale-105 transition-transform duration-500">
+                   <div className="w-40 h-40 rounded-full p-1 border-2 border-primary/30 mb-6 relative group-hover:scale-105 transition-transform duration-500">
                       <div className="w-full h-full rounded-full overflow-hidden bg-zinc-800">
                          <img src="/顾问团队/weng-tianfang.png" className="w-full h-full object-cover" alt="Weng Tianfang" />
                       </div>
-                      <div className="absolute bottom-2 right-2 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-black border-2 border-[#050505]">
+                      <div className="absolute bottom-2 right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-black border-2 border-[#050505]">
                          <Rocket className="w-5 h-5" />
                       </div>
                    </div>
@@ -1928,7 +1928,7 @@ export default function PresentationPage() {
           <button 
             onClick={nextSlide}
             disabled={currentSlide === totalSlides - 1}
-            className="p-3 rounded-full bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 hover:text-emerald-300 disabled:opacity-30 transition-all backdrop-blur-md border border-emerald-500/20"
+            className="p-3 rounded-full bg-primary/20 hover:bg-primary/40 text-emerald-400 hover:text-emerald-300 disabled:opacity-30 transition-all backdrop-blur-md border border-primary/20"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -1939,7 +1939,7 @@ export default function PresentationPage() {
       {!hideUI && (
         <div className="absolute bottom-0 left-0 h-1 bg-zinc-900 w-full z-50">
            <motion.div 
-             className="h-full bg-emerald-500"
+             className="h-full bg-primary"
              initial={{ width: "0%" }}
              animate={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
              transition={{ duration: 0.5 }}

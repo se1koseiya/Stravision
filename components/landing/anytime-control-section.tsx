@@ -73,21 +73,21 @@ export function AnytimeControlSection() {
             </span>
           </h2>
           
-          <p className="text-gray-400 text-lg leading-relaxed">
+          <p className="text-muted-foreground text-lg leading-relaxed">
             不管您是在家中休息，还是外出度假，拿出手机即可查看实时监控画面。
             低延迟的视频流传输，让您仿佛身临其境。
           </p>
 
           <div className="grid grid-cols-2 gap-4">
-             <div className="p-4 rounded-2xl bg-gray-900/50 border border-gray-800">
+             <div className="p-4 rounded-2xl bg-background/50 border border-gray-800">
                 <ShieldCheck className="w-8 h-8 text-blue-400 mb-2" />
                 <h3 className="font-semibold text-white">安全加密</h3>
-                <p className="text-sm text-gray-500">银行级数据传输加密</p>
+                <p className="text-sm text-muted-foreground">银行级数据传输加密</p>
              </div>
-             <div className="p-4 rounded-2xl bg-gray-900/50 border border-gray-800">
+             <div className="p-4 rounded-2xl bg-background/50 border border-gray-800">
                 <Wifi className="w-8 h-8 text-green-400 mb-2" />
                 <h3 className="font-semibold text-white">极速连接</h3>
-                <p className="text-sm text-gray-500">全球节点加速网络</p>
+                <p className="text-sm text-muted-foreground">全球节点加速网络</p>
              </div>
           </div>
         </motion.div>

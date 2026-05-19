@@ -72,10 +72,10 @@ export function ToasterWrapper() {
           success: (
             <div className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 shadow-sm ${
               isDark 
-                ? 'bg-emerald-500/15 border-[2px] border-emerald-500 shadow-emerald-500/20'
-                : 'bg-emerald-50 border-[2px] border-emerald-500 shadow-emerald-500/10'
+                ? 'bg-primary/15 border-[2px] border-primary shadow-emerald-500/20'
+                : 'bg-emerald-50 border-[2px] border-primary shadow-emerald-500/10'
             }`}>
-              <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -105,10 +105,10 @@ export function ToasterWrapper() {
           info: (
             <div className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 shadow-sm ${
               isDark
-                ? 'bg-emerald-500/15 border-[2px] border-emerald-500 shadow-emerald-500/20'
-                : 'bg-emerald-50 border-[2px] border-emerald-500 shadow-emerald-500/10'
+                ? 'bg-primary/15 border-[2px] border-primary shadow-emerald-500/20'
+                : 'bg-emerald-50 border-[2px] border-primary shadow-emerald-500/10'
             }`}>
-              <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>

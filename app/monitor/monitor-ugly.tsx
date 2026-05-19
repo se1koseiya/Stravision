@@ -691,7 +691,7 @@ export default function MonitorPage() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-slate-400 hover:text-emerald-500"
+                        className="h-8 w-8 text-slate-400 hover:text-primary"
                         onClick={() => handleAddDevice(device)}
                       >
                         <Plus className="w-4 h-4" />
@@ -1002,7 +1002,7 @@ function CameraSettingsForm({
             <button
               type="button"
               onClick={() => setShowAuth(true)}
-              className="text-xs text-emerald-500 hover:text-emerald-600"
+              className="text-xs text-primary hover:text-primary"
             >
               + 添加认证信息
             </button>

@@ -17,7 +17,7 @@ const widgetVariants = cva(
       },
       variant: {
         default: "bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0", // Clean white look
-        emerald: "bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 border-0", // Emerald accent card
+        emerald: "bg-primary text-white shadow-xl shadow-emerald-500/20 border-0", // Emerald accent card
         glass: "bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg",
         colorful: "text-white shadow-lg border-0",
         outline: "bg-transparent border-2 border-slate-200 dark:border-slate-800 border-dashed",

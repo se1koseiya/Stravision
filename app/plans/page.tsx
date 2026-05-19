@@ -165,7 +165,7 @@ export default function PlansPage() {
             >
               {plan.popular && (
                 <div className="absolute top-0 right-0 p-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary dark:text-emerald-400">
                     <Crown size={14} className="fill-emerald-600 dark:fill-emerald-400" />
                     Most Popular
                   </div>
@@ -192,7 +192,7 @@ export default function PlansPage() {
               <div className="flex-grow space-y-4 mb-12">
                 {plan.features.map((feature, i) => (
                   <div key={i} className="flex items-start gap-3 text-sm text-zinc-600 dark:text-zinc-300">
-                    <Check size={16} className={cn("mt-0.5 shrink-0", plan.popular ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400")} />
+                    <Check size={16} className={cn("mt-0.5 shrink-0", plan.popular ? "text-primary dark:text-emerald-400" : "text-zinc-400")} />
                     <span className="leading-tight">{feature}</span>
                   </div>
                 ))}

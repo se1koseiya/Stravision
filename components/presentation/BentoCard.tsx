@@ -28,9 +28,9 @@ const VARIANTS = {
   },
   emerald: {
     bg: "bg-emerald-950/20 hover:bg-emerald-900/30",
-    border: "border-emerald-500/10 hover:border-emerald-500/20",
-    glow: "from-emerald-500/20 via-transparent to-transparent",
-    iconBg: "bg-emerald-500/10",
+    border: "border-primary/10 hover:border-primary/20",
+    glow: "from-primary/20 via-transparent to-transparent",
+    iconBg: "bg-primary/10",
     iconColor: "text-emerald-400"
   },
   blue: {

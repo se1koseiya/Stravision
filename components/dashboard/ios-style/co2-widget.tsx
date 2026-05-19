@@ -58,7 +58,7 @@ export function CO2Widget({
       status: "优良",
       label: "优良",
       icon: CheckCircle,
-      colorClass: "text-emerald-500",
+      colorClass: "text-primary",
       bgClass: "bg-emerald-50",
       hexColor: "#10b981"
     }

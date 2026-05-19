@@ -116,15 +116,15 @@ export function ActivityPanel() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-gray-500 dark:text-gray-400 font-medium">操作日志</h3>
+        <h3 className="text-muted-foreground dark:text-muted-foreground font-medium">操作日志</h3>
         <button
           onClick={() => setShowAllLogs(!showAllLogs)}
-          className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="text-xs text-muted-foreground hover:text-muted-foreground dark:hover:text-gray-300 transition-colors"
         >
           {showAllLogs ? "按日期筛选" : "显示全部"}
         </button>
       </div>
-      <div className="text-xs text-gray-400 mb-6">
+      <div className="text-xs text-muted-foreground mb-6">
         {showAllLogs ? "显示所有日志" : format(selectedDate, "yyyy年M月d日", { locale: zhCN })}
       </div>
       
@@ -140,13 +140,13 @@ export function ActivityPanel() {
                 key={day.toISOString()} 
                 className={cn(
                   "flex flex-col gap-1 cursor-pointer transition-all hover:scale-110",
-                  isSelected ? "text-foreground font-bold" : "text-gray-400"
+                  isSelected ? "text-foreground font-bold" : "text-muted-foreground"
                 )}
                 onClick={() => setSelectedDate(day)}
               >
                 <span className="text-xs">{format(day, "d")}</span>
                 <span className="text-[10px]">周{WEEKDAY_CN[day.getDay()]}</span>
-                {isSelected && <div className="h-1 w-1 bg-emerald-500 rounded-full mx-auto mt-1" />}
+                {isSelected && <div className="h-1 w-1 bg-primary rounded-full mx-auto mt-1" />}
                 {!isSelected && isToday && <div className="h-1 w-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-1" />}
               </div>
             )
@@ -155,7 +155,7 @@ export function ActivityPanel() {
       )}
 
       {/* Timeline */}
-      <div className="space-y-6 relative pl-4 border-l-2 border-dashed border-gray-200 dark:border-white/10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 relative pl-4 border-l-2 border-dashed border-border dark:border-white/10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
         {logs.map((log, index) => (
           <div key={log.id} className="relative pl-6 animate-in slide-in-from-bottom-2 fade-in duration-500" style={{ animationDelay: `${index * 100}ms` }}>
             <div className={cn(
@@ -163,10 +163,10 @@ export function ActivityPanel() {
               log.status === "success" ? "bg-slate-900 dark:bg-emerald-400" : 
               log.status === "warning" ? "bg-gray-300 dark:bg-yellow-400" : "bg-red-400"
             )} />
-            <div className="text-xs text-gray-400 font-mono mb-1">{log.time}</div>
+            <div className="text-xs text-muted-foreground font-mono mb-1">{log.time}</div>
             <div className={cn(
               "p-4 rounded-2xl rounded-tl-none transition-colors",
-              log.status === "success" ? "bg-[#E0E7FF] dark:bg-indigo-500/20" : "bg-gray-100 dark:bg-slate-800/50"
+              log.status === "success" ? "bg-[#E0E7FF] dark:bg-indigo-500/20" : "bg-muted dark:bg-slate-800/50"
             )}>
               <div className={cn(
                 "font-bold mb-1",
@@ -176,7 +176,7 @@ export function ActivityPanel() {
               </div>
               <div className={cn(
                 "text-sm",
-                log.status === "success" ? "text-[#6366F1] dark:text-indigo-200/70" : "text-gray-500 dark:text-gray-400"
+                log.status === "success" ? "text-[#6366F1] dark:text-indigo-200/70" : "text-muted-foreground dark:text-muted-foreground"
               )}>
                 {log.action}
               </div>
@@ -197,10 +197,10 @@ export function ActivityPanel() {
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-xs text-gray-400">加载活动记录</span>
+                <span className="text-xs text-muted-foreground">加载活动记录</span>
               </div>
             ) : (
-              <span className="text-xs text-gray-400">无活动记录</span>
+              <span className="text-xs text-muted-foreground">无活动记录</span>
             )}
           </div>
         )}

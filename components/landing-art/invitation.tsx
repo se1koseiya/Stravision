@@ -33,7 +33,7 @@ export function Invitation() {
           onMouseLeave={() => setState("idle")}
           className="group relative"
         >
-          <span className="text-3xl md:text-4xl text-gray-500 font-jinbuti tracking-tighter transition-colors group-hover:text-white">
+          <span className="text-3xl md:text-4xl text-muted-foreground font-jinbuti tracking-tighter transition-colors group-hover:text-white">
             让我管一次
           </span>
           <motion.div 

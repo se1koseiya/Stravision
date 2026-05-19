@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import SiriOrb from "@/components/smoothui/siri-orb";
+import BerryOrb from "@/components/smoothui/berry-orb";
 import dynamic from "next/dynamic";
 
 // Dynamically import project components to reuse them
@@ -80,7 +80,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#0A0A0A] text-white selection:bg-emerald-500/30 font-sans overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-[#0A0A0A] text-white selection:bg-primary/30 font-sans overflow-x-hidden">
       {/* Navigation */}
       <nav className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
@@ -95,7 +95,7 @@ export default function LandingPage() {
             <Image src="/icon.png" alt="logo" width={42} height={42} className="rounded-xl shadow-2xl shadow-emerald-500/20 group-hover:rotate-6 transition-transform" />
             <div className="flex flex-col leading-tight">
               <span className="text-2xl font-black tracking-tighter text-white">STRAVISION</span>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em]">Agri Hub v4.0</span>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Agri Hub v4.0</span>
             </div>
           </motion.div>
           
@@ -109,7 +109,7 @@ export default function LandingPage() {
               >
                 <Link href={`/${item.toLowerCase().replace(' ', '-')}`} className="text-[11px] font-black text-slate-500 hover:text-emerald-400 tracking-widest transition-colors relative group uppercase">
                   {item}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-500 transition-all group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
                 </Link>
               </motion.div>
             ))}
@@ -117,7 +117,7 @@ export default function LandingPage() {
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <Link href="/dashboard">
-              <Button className="bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-full px-10 h-14 text-xs tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] active:scale-95 uppercase">
+              <Button className="bg-primary hover:bg-emerald-400 text-black font-black rounded-full px-10 h-14 text-xs tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] active:scale-95 uppercase">
                 GET STARTED
               </Button>
             </Link>
@@ -151,7 +151,7 @@ export default function LandingPage() {
                  >
                    4.98
                  </motion.span>
-                 <span className="text-[11px] font-bold bg-emerald-500 px-4 py-1.5 rounded-full text-black tracking-widest uppercase">PREMIUM CHOICE</span>
+                 <span className="text-[11px] font-bold bg-primary px-4 py-1.5 rounded-full text-black tracking-widest uppercase">PREMIUM CHOICE</span>
               </div>
             </div>
 
@@ -161,7 +161,7 @@ export default function LandingPage() {
                 animate={{ x: 0, opacity: 1 }}
                 className="text-[clamp(5rem,15vw,12rem)] font-black leading-[0.75] tracking-tighter mb-10"
               >
-                Berry <br /> <span className="text-emerald-500">Realm.</span>
+                Berry <br /> <span className="text-primary">Realm.</span>
               </motion.h1>
               <p className="text-2xl md:text-3xl font-black leading-tight max-w-xl group-hover:translate-x-3 transition-transform italic uppercase tracking-tighter">
                 赋能每一寸土地，重新定义智慧农业。 <br />
@@ -182,15 +182,15 @@ export default function LandingPage() {
                     whileHover={{ scale: 1.1, rotate: 3 }} 
                     className="size-20 rounded-[2rem] bg-slate-100 flex flex-col items-center justify-center border-4 border-black cursor-pointer shadow-[8px_8px_0px_rgba(33,150,243,1)]"
                   >
-                    <Zap className="size-8 text-emerald-500" />
+                    <Zap className="size-8 text-primary" />
                     <span className="text-[10px] font-black mt-1 text-black">AUTO</span>
                   </motion.div>
                </div>
                <Link href="/dashboard" className="group/btn relative">
                  <motion.div 
-                    className="absolute inset-x-0 bottom-0 top-0 bg-emerald-500 rounded-full blur-2xl opacity-10 group-hover/btn:opacity-40 transition-opacity"
+                    className="absolute inset-x-0 bottom-0 top-0 bg-primary rounded-full blur-2xl opacity-10 group-hover/btn:opacity-40 transition-opacity"
                  />
-                 <Button className="relative h-24 w-24 rounded-full bg-black text-white hover:bg-emerald-600 transition-all border-4 border-black hover:scale-110 active:scale-90">
+                 <Button className="relative h-24 w-24 rounded-full bg-black text-white hover:bg-primary transition-all border-4 border-black hover:scale-110 active:scale-90">
                    <ArrowRight className="size-10" />
                  </Button>
                </Link>
@@ -210,24 +210,19 @@ export default function LandingPage() {
             className="md:col-span-12 lg:col-span-5 bg-[#FFB7B7] rounded-[3.5rem] p-10 flex flex-col items-center justify-center min-h-[550px] border-[6px] border-black group shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_white] transition-all duration-700 relative overflow-hidden"
           >
              <div className="relative size-[380px] cursor-pointer">
-                <SiriOrb 
+                <BerryOrb 
                   size="380px" 
-                  colors={
-                    assistantStatus === 'listening' ? { bg: "#FFB7B7", c1: "#10b981", c2: "#34d399", c3: "#059669" } :
-                    assistantStatus === 'speaking' ? { bg: "#FFB7B7", c1: "#ffffff", c2: "#10b981", c3: "#eff6ff" } :
-                    { bg: "#FFB7B7", c1: "#000000", c2: "#333333", c3: "#1a1a1a" }
-                  }
-                  animationDuration={assistantStatus === 'idle' ? 25 : 5}
+                  isActive={assistantStatus !== 'idle'}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                    <AnimatePresence mode="wait">
                      {assistantStatus === 'listening' && (
                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="p-8 bg-white rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-                         <Mic className="size-16 text-emerald-500 animate-pulse" />
+                         <Mic className="size-16 text-primary animate-pulse" />
                        </motion.div>
                      )}
                      {assistantStatus === 'speaking' && (
-                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="p-8 bg-emerald-500 rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] text-black">
+                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="p-8 bg-primary rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] text-black">
                          <Volume2 className="size-16" />
                        </motion.div>
                      )}
@@ -268,9 +263,9 @@ export default function LandingPage() {
                    </div>
                 </div>
                 <div className="flex items-center gap-4">
-                   <div className="flex items-center gap-2 bg-emerald-500/10 border-2 border-emerald-500/20 px-4 py-1.5 rounded-full">
-                      <Activity className="size-4 text-emerald-500 animate-pulse" />
-                      <span className="text-[11px] font-black text-emerald-600 uppercase tracking-widest">LIVE DATA FEED</span>
+                   <div className="flex items-center gap-2 bg-primary/10 border-2 border-primary/20 px-4 py-1.5 rounded-full">
+                      <Activity className="size-4 text-primary animate-pulse" />
+                      <span className="text-[11px] font-black text-primary uppercase tracking-widest">LIVE DATA FEED</span>
                    </div>
                    <motion.div 
                      whileHover={{ x: 6 }}
@@ -286,7 +281,7 @@ export default function LandingPage() {
                 
                 <div className="absolute top-8 left-8 p-6 bg-white border-4 border-black rounded-[2.5rem] shadow-[10px_10px_0px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-left duration-1000">
                    <div className="flex items-center gap-4">
-                      <div className="size-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-black border-2 border-black">
+                      <div className="size-12 rounded-2xl bg-primary flex items-center justify-center text-black border-2 border-black">
                          <Activity className="size-7" />
                       </div>
                       <div className="flex flex-col">
@@ -323,14 +318,14 @@ export default function LandingPage() {
                    <motion.div 
                      animate={{ rotate: 360 }} 
                      transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-                     className="size-12 rounded-full border-4 border-black bg-emerald-500 shadow-[6px_6px_0px_rgba(0,0,0,1)] flex items-center justify-center"
+                     className="size-12 rounded-full border-4 border-black bg-primary shadow-[6px_6px_0px_rgba(0,0,0,1)] flex items-center justify-center"
                    >
                       <Zap className="size-6 text-black" />
                    </motion.div>
                 </div>
                 
                 <h3 className="text-5xl font-black tracking-tighter mb-10 text-black italic uppercase leading-[0.9]">
-                   随时随地 <br /> <span className="text-emerald-500 underline decoration-black decoration-[8px] underline-offset-[10px]">掌握全局</span>
+                   随时随地 <br /> <span className="text-primary underline decoration-black decoration-[8px] underline-offset-[10px]">掌握全局</span>
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-5 w-full">
@@ -371,7 +366,7 @@ export default function LandingPage() {
                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">APP CLUSTER</span>
                    <p className="text-2xl font-black text-black leading-tight uppercase italic">
                       Efficiency <br /> 
-                      <span className="text-5xl tracking-tighter text-emerald-500">+85%</span>
+                      <span className="text-5xl tracking-tighter text-primary">+85%</span>
                       <Sparkles className="inline-block size-8 text-black ml-2 animate-bounce" />
                    </p>
                 </div>
@@ -418,7 +413,7 @@ export default function LandingPage() {
                   { label: "TEMPERATURE", val: "24.5°C", icon: Thermometer, change: "+1.2", h: [40, 60, 50, 80, 70, 90, 85], color: "text-red-500" },
                   { label: "HUMIDITY", val: "62%", icon: Droplets, change: "-0.5", h: [70, 65, 75, 60, 55, 72, 68], color: "text-blue-500" },
                   { label: "CO2 LEVEL", val: "420ppm", icon: Cloud, change: "SECURE", h: [50, 52, 55, 51, 50, 52, 53], color: "text-purple-500" },
-                  { label: "FERTILITY", val: "94%", icon: Leaf, change: "+2.1", h: [90, 95, 100, 98, 105, 107, 104], color: "text-emerald-500" },
+                  { label: "FERTILITY", val: "94%", icon: Leaf, change: "+2.1", h: [90, 95, 100, 98, 105, 107, 104], color: "text-primary" },
                 ].map((stat, i) => (
                   <motion.div 
                     key={i} 
@@ -433,7 +428,7 @@ export default function LandingPage() {
                         <stat.icon className={cn("size-8", stat.color)} />
                      </div>
 
-                     <div className="relative z-10 mt-6 flex items-center gap-2 text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit uppercase tracking-tighter">
+                     <div className="relative z-10 mt-6 flex items-center gap-2 text-[10px] font-black text-primary bg-emerald-50 px-3 py-1 rounded-full w-fit uppercase tracking-tighter">
                         {stat.change} FROM YESTERDAY
                      </div>
                      
@@ -456,7 +451,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      <footer className="py-32 bg-black border-t-[8px] border-emerald-500 overflow-hidden relative mt-20">
+      <footer className="py-32 bg-black border-t-[8px] border-primary overflow-hidden relative mt-20">
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
         <div className="container mx-auto px-6 flex flex-col items-center relative z-10">
@@ -465,13 +460,13 @@ export default function LandingPage() {
              whileInView={{ y: 0, opacity: 1 }}
              className="text-[clamp(3rem,8.5vw,7.5rem)] font-black tracking-tighter text-white mb-20 text-center italic uppercase leading-[0.8]"
            >
-             准备好进入 <br /> <span className="text-emerald-500 underline decoration-white decoration-[12px] underline-offset-[12px]">农业 4.0</span> 时代.
+             准备好进入 <br /> <span className="text-primary underline decoration-white decoration-[12px] underline-offset-[12px]">农业 4.0</span> 时代.
            </motion.h2>
            
            <div className="flex flex-col sm:flex-row gap-10">
               <Link href="/dashboard">
                 <motion.div whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}>
-                  <Button className="h-24 px-20 rounded-[2.5rem] bg-emerald-500 text-black hover:bg-white transition-all font-black text-4xl shadow-[16px_16px_0px_white] border-4 border-black uppercase tracking-tighter">
+                  <Button className="h-24 px-20 rounded-[2.5rem] bg-primary text-black hover:bg-white transition-all font-black text-4xl shadow-[16px_16px_0px_white] border-4 border-black uppercase tracking-tighter">
                     JOIN NOW
                   </Button>
                 </motion.div>
@@ -490,12 +485,12 @@ export default function LandingPage() {
                  </motion.div>
                  <div className="flex flex-col leading-none">
                     <span className="text-3xl font-black tracking-tighter uppercase italic">STRAVISION</span>
-                    <span className="text-[11px] text-emerald-500 font-black tracking-[0.4em] mt-1">AGRI CLUSTER SERVICES</span>
+                    <span className="text-[11px] text-primary font-black tracking-[0.4em] mt-1">AGRI CLUSTER SERVICES</span>
                  </div>
               </div>
               <div className="flex gap-12 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">
                  {["Privacy", "Terms", "Twitter", "GitHub"].map(link => (
-                   <a key={link} href="#" className="hover:text-emerald-500 hover:translate-x-1 transition-all">{link}</a>
+                   <a key={link} href="#" className="hover:text-primary hover:translate-x-1 transition-all">{link}</a>
                  ))}
               </div>
               <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic opacity-50">© 2024 STRAVISION ELITE HUB</p>

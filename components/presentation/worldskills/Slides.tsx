@@ -190,7 +190,7 @@ export const ConceptSlide = () => (
   <div className="h-full flex items-center justify-center relative text-center">
     <StoryBackground mode="hope" />
     <div className="relative z-10 max-w-4xl flex flex-col items-center">
-       <div className="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mb-12 shadow-[0_0_60px_rgba(16,185,129,0.3)]">
+       <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mb-12 shadow-[0_0_60px_rgba(16,185,129,0.3)]">
           <Sparkles className="w-10 h-10 text-white" />
        </div>
        <h2 className="text-7xl font-medium text-white mb-8">
@@ -492,7 +492,7 @@ export const VoiceInteractionSlide = () => (
              transition={{ delay: 0.5 }}
              className="flex justify-start gap-4 items-end"
            >
-              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
                  <BotIcon className="w-6 h-6 text-white" />
               </div>
               <div className="bg-zinc-800 text-zinc-200 px-6 py-4 rounded-2xl rounded-tl-none text-lg shadow-lg max-w-md border border-white/5">
@@ -510,7 +510,7 @@ export const VoiceInteractionSlide = () => (
            {[...Array(5)].map((_, i) => (
              <motion.div
                key={i}
-               className="w-1 bg-emerald-500 rounded-full"
+               className="w-1 bg-primary rounded-full"
                animate={{ height: [10, Math.random() * 40 + 10, 10] }}
                transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.1 }}
              />
@@ -572,7 +572,7 @@ export const MobileAppSlide = () => (
   <div className="h-full flex items-center justify-center relative bg-zinc-950">
      <div className="w-full max-w-6xl grid grid-cols-2 gap-20 items-center z-10 px-20">
         <div className="space-y-8">
-           <Tag className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Mobile First</Tag>
+           <Tag className="bg-primary/10 text-emerald-400 border-primary/20">Mobile First</Tag>
            <h2 className="text-7xl font-medium text-white">
              掌上农场
            </h2>
@@ -602,7 +602,7 @@ export const MobileAppSlide = () => (
            </motion.div>
            
            {/* Decorative elements behind */}
-           <div className="absolute inset-0 bg-emerald-500/20 blur-[100px] -z-10 rounded-full" />
+           <div className="absolute inset-0 bg-primary/20 blur-[100px] -z-10 rounded-full" />
         </div>
      </div>
   </div>
@@ -621,8 +621,8 @@ export const VisualMonitorSlide = () => (
      
      <div className="relative w-[900px] h-[500px] rounded-2xl border border-white/10 bg-zinc-900/50 backdrop-blur overflow-hidden shadow-2xl z-10">
         <div className="absolute inset-0 flex items-center justify-center">
-           <Box className="w-32 h-32 text-emerald-500/20 animate-spin-slow" />
-           <div className="absolute text-emerald-500 font-mono text-xs tracking-widest mt-40">RENDERING...</div>
+           <Box className="w-32 h-32 text-primary/20 animate-spin-slow" />
+           <div className="absolute text-primary font-mono text-xs tracking-widest mt-40">RENDERING...</div>
         </div>
         
         {/* UI Overlay */}
@@ -685,7 +685,7 @@ export const MarketSlide = () => (
         
         <div className="space-y-6">
            {[
-              { title: "硬件销售", val: "30%", color: "bg-emerald-500" },
+              { title: "硬件销售", val: "30%", color: "bg-primary" },
               { title: "SaaS 订阅", val: "45%", color: "bg-blue-500" },
               { title: "数据增值服务", val: "25%", color: "bg-purple-500" },
            ].map((item, i) => (
@@ -760,7 +760,7 @@ export const RoadmapSlide = () => (
            { year: "2026", title: "Global", desc: "普惠每一位新农人" },
         ].map((item, i) => (
            <div key={i} className="flex flex-col items-start w-64 group">
-              <div className="w-4 h-4 bg-zinc-900 border-2 border-white rounded-full mb-8 group-hover:scale-125 transition-transform group-hover:bg-emerald-500 group-hover:border-emerald-500" />
+              <div className="w-4 h-4 bg-zinc-900 border-2 border-white rounded-full mb-8 group-hover:scale-125 transition-transform group-hover:bg-primary group-hover:border-primary" />
               <div className="text-4xl font-medium text-white mb-2">{item.year}</div>
               <div className="text-lg text-emerald-400 font-medium mb-2">{item.title}</div>
               <p className="text-zinc-500 leading-relaxed">{item.desc}</p>

@@ -69,19 +69,19 @@ export function AIControlBorderDemo() {
               </h4>
               <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span className="text-primary mt-0.5">✓</span>
                   <span>四周边框流动渐变动画</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span className="text-primary mt-0.5">✓</span>
                   <span>四个角落光晕效果</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span className="text-primary mt-0.5">✓</span>
                   <span>丝滑的进入和退出动画</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span className="text-primary mt-0.5">✓</span>
                   <span>不影响页面交互（pointer-events-none）</span>
                 </li>
               </ul>

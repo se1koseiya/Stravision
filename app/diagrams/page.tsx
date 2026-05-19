@@ -46,10 +46,10 @@ export default function DiagramsPage() {
   const [activeTab, setActiveTab] = useState("architecture")
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden text-zinc-100 font-sans selection:bg-emerald-500/30 bg-[#050505]">
+    <div className="min-h-screen relative overflow-x-hidden text-zinc-100 font-sans selection:bg-primary/30 bg-[#050505]">
       <GridBackground />
       
-      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed top-[30%] right-[-20%] w-[40%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
 
@@ -65,11 +65,11 @@ export default function DiagramsPage() {
           
           <div className="flex items-center gap-4">
             <div className="flex gap-1">
-              <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse delay-75" />
-              <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse delay-150" />
+              <span className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+              <span className="w-1 h-1 bg-primary rounded-full animate-pulse delay-75" />
+              <span className="w-1 h-1 bg-primary rounded-full animate-pulse delay-150" />
             </div>
-            <span className="text-xs font-mono text-emerald-500/50 uppercase tracking-widest hidden md:block">
+            <span className="text-xs font-mono text-primary/50 uppercase tracking-widest hidden md:block">
               Interactive Diagrams
             </span>
           </div>
@@ -83,7 +83,7 @@ export default function DiagramsPage() {
         >
           <motion.div variants={fadeInUp} className="text-center max-w-4xl mx-auto mb-8">
             <div className="inline-flex items-center gap-2 mb-4">
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+              <Badge variant="outline" className="bg-primary/10 text-emerald-400 border-primary/30">
                 v1.0
               </Badge>
               <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
@@ -104,7 +104,7 @@ export default function DiagramsPage() {
                 <TabsList className="bg-zinc-900/60 border border-white/10 backdrop-blur-xl p-1 rounded-xl">
                   <TabsTrigger 
                     value="architecture"
-                    className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 px-6 py-3 rounded-lg transition-all"
+                    className="data-[state=active]:bg-primary/20 data-[state=active]:text-emerald-400 px-6 py-3 rounded-lg transition-all"
                   >
                     <Layout className="w-4 h-4 mr-2" />
                     系统架构图
@@ -131,7 +131,7 @@ export default function DiagramsPage() {
                       <span>支持鼠标滚轮缩放、拖拽平移</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                       <span className="text-xs text-zinc-500">实时状态</span>
                     </div>
                   </div>
@@ -165,22 +165,22 @@ export default function DiagramsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 rounded-2xl border border-white/10 bg-zinc-900/40 backdrop-blur-xl">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
                     <Layout className="w-5 h-5 text-emerald-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-white">系统架构图说明</h3>
                 </div>
                 <ul className="space-y-2 text-sm text-zinc-400">
                   <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                     <span>展示平台六层架构：前端、网关、服务、数据、外部服务、设备层</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                     <span>彩色连线表示数据流向与依赖关系</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                     <span>支持缩放、平移、小地图导航</span>
                   </li>
                 </ul>

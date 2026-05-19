@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useRef, useState } from "react"
 import Image from "next/image"
@@ -49,7 +49,7 @@ export default function BannerGenerator() {
       >
         {/* --- Background Effects --- */}
         {/* Gradient Orbs */}
-        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-emerald-500/20 blur-[150px] rounded-full mix-blend-screen animate-pulse-slow" />
+        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-primary/20 blur-[150px] rounded-full mix-blend-screen animate-pulse-slow" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-500/10 blur-[120px] rounded-full mix-blend-screen" />
         
         {/* Grid Texture */}
@@ -65,7 +65,7 @@ export default function BannerGenerator() {
             <div className="flex flex-col gap-10 max-w-[640px] pt-8">
                 {/* Top Badge */}
                 <div className="flex items-center gap-3">
-                    <div className="h-[1px] w-8 bg-emerald-500/50" />
+                    <div className="h-[1px] w-8 bg-primary/50" />
                     <span className="text-emerald-400 font-mono text-sm tracking-[0.2em] uppercase">
                         AI-Driven Agriculture Platform
                     </span>
@@ -98,7 +98,7 @@ export default function BannerGenerator() {
                 <div className="flex flex-wrap gap-3 mt-2">
                     {['Next.js 15', 'TypeScript', 'Tailwind', 'Three.js', 'IoT/MQTT', 'LLM'].map((tech, i) => (
                         <div key={tech} className="group relative">
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500" />
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-500" />
                             <span className="relative block px-5 py-2.5 bg-zinc-900/80 border border-white/10 rounded-full text-zinc-300 font-medium text-sm backdrop-blur-md hover:border-white/20 hover:text-white transition-colors">
                                 {tech}
                             </span>
@@ -111,7 +111,7 @@ export default function BannerGenerator() {
             <div className="relative w-[500px] h-[600px] flex items-center justify-center">
                 
                 {/* Background Glow for IP */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-b from-emerald-500/10 to-transparent rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-b from-primary/10 to-transparent rounded-full blur-3xl" />
 
                 {/* Main IP Image */}
                 <div className="relative z-20 w-[620px] h-[620px] animate-float-slow">
@@ -137,7 +137,7 @@ export default function BannerGenerator() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
+                        <div className="p-2.5 bg-primary/10 rounded-xl text-emerald-400">
                             <Activity className="w-5 h-5" />
                         </div>
                         <div>
@@ -179,7 +179,7 @@ export default function BannerGenerator() {
         {/* Bottom Status Bar */}
         <div className="absolute bottom-0 w-full h-12 border-t border-white/5 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-between px-8 text-xs font-mono text-zinc-600">
             <div className="flex gap-6">
-                <span className="flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> SYSTEM ONLINE</span>
+                <span className="flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-pulse" /> SYSTEM ONLINE</span>
                 <span className="flex items-center gap-2"><Wifi className="w-3 h-3" /> IOT CONNECTED</span>
             </div>
             <div>

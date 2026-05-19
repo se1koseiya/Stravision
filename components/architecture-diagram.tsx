@@ -117,7 +117,7 @@ const sysNodes = [
   { id: 'mqtt-client', type: 'customNode', position: { x: 40, y: 360 }, parentId: 'parent-backend', extent: 'parent', data: { label: 'MQTT Service', sublabel: '后端设备状态同步池', icon: 'Activity' } },
 
   // Gateway (MQTT Broker)
-  { id: 'broker', type: 'customNode', position: { x: 750, y: 560 }, data: { label: 'MQTT Broker', sublabel: '中心消息总线 / 发布订阅', icon: 'Wifi', highlight: true, iconColor: 'bg-emerald-50 text-emerald-600' } },
+  { id: 'broker', type: 'customNode', position: { x: 750, y: 560 }, data: { label: 'MQTT Broker', sublabel: '中心消息总线 / 发布订阅', icon: 'Wifi', highlight: true, iconColor: 'bg-emerald-50 text-primary' } },
 
   // 3. Agent Layer
   { id: 'parent-ai', type: 'customGroup', position: { x: 1150, y: -20 }, data: { label: 'AI Agent 引擎层 (莓小智 XiaoZhi)', borderColor: 'border-fuchsia-400', bgColor: 'bg-fuchsia-50/20', dotColor: 'bg-fuchsia-500' }, style: { width: 520, height: 350 }, zIndex: -1 },

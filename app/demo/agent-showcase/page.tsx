@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import SiriOrb from "@/components/smoothui/siri-orb"
+import BerryOrb from "@/components/smoothui/berry-orb"
 
 // --- Mock Data & Constants ---
 
@@ -118,7 +118,7 @@ const SearchResultItem = ({ title, url, snippet, index }: any) => (
       <h4 className="text-sm font-bold text-blue-600 dark:text-blue-400 group-hover:underline underline-offset-4">{title}</h4>
       <ExternalLink size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
-    <div className="text-[10px] text-emerald-600 dark:text-emerald-400/80 mb-2 truncate opacity-70">{url}</div>
+    <div className="text-[10px] text-primary dark:text-emerald-400/80 mb-2 truncate opacity-70">{url}</div>
     <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">{snippet}</p>
   </motion.div>
 )
@@ -217,23 +217,23 @@ export default function AgentShowcase() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#09090B] text-slate-900 dark:text-slate-100 font-sans selection:bg-emerald-500/30 overflow-hidden flex flex-col relative">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#09090B] text-slate-900 dark:text-slate-100 font-sans selection:bg-primary/30 overflow-hidden flex flex-col relative">
       
       {/* --- Aesthetic Background Mesh --- */}
       <div className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-20 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/20 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
       {/* --- Fixed Header --- */}
       <header className="h-16 border-b border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl z-50 flex items-center justify-between px-8">
         <div className="flex items-center gap-3">
-          <div className="size-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <div className="size-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <Zap className="text-white size-5 fill-current" />
           </div>
           <div>
             <h1 className="text-base font-black tracking-tight flex items-center gap-2">
-              Stravision <span className="text-zinc-400 font-normal">|</span> <span className="text-emerald-500">Agent Studio</span>
+              Stravision <span className="text-zinc-400 font-normal">|</span> <span className="text-primary">Agent Studio</span>
             </h1>
             <p className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Autonomous Management Pro</p>
           </div>
@@ -244,7 +244,7 @@ export default function AgentShowcase() {
             v3.2.0-STABLE
           </Badge>
           <div className="h-4 w-px bg-zinc-200 dark:bg-white/10" />
-          <Button variant="ghost" size="sm" className="hidden sm:flex text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 text-xs font-bold gap-2">
+          <Button variant="ghost" size="sm" className="hidden sm:flex text-primary hover:text-primary hover:bg-emerald-50 text-xs font-bold gap-2">
             <LayoutDashboard size={14} />
             返回仪表盘
           </Button>
@@ -264,7 +264,7 @@ export default function AgentShowcase() {
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="bg-zinc-900 dark:bg-emerald-500 text-white dark:text-white px-6 py-4 rounded-[2rem] rounded-tr-none shadow-xl max-w-md"
+                className="bg-zinc-900 dark:bg-primary text-white dark:text-white px-6 py-4 rounded-[2rem] rounded-tr-none shadow-xl max-w-md"
               >
                 <p className="text-sm font-medium leading-relaxed">
                   分析未来三天徐州的天气对大棚草莓的影响并给出建议，如果是弱光环境自动联动光照系统调优。
@@ -281,13 +281,13 @@ export default function AgentShowcase() {
               <div className="flex items-center justify-between mb-4 px-2">
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
                    <div className="size-4 relative">
-                     <SiriOrb size="16px" colors={{ bg: "transparent", c1: "#10b981", c2: "#34d399", c3: "#059669" }} animationDuration={3} />
+                     <BerryOrb size="16px" isActive={true} />
                    </div>
                   Mission Execution Chain
                 </h3>
                 {demoState === "running" && (
-                   <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 animate-pulse bg-emerald-500/10 px-2 py-0.5 rounded">
-                     <span className="size-1 bg-emerald-500 rounded-full" />
+                   <span className="flex items-center gap-1.5 text-[10px] font-bold text-primary animate-pulse bg-primary/10 px-2 py-0.5 rounded">
+                     <span className="size-1 bg-primary rounded-full" />
                      LIVE PROCESSING
                    </span>
                 )}
@@ -307,7 +307,7 @@ export default function AgentShowcase() {
                       }}
                       className={cn(
                         "relative flex gap-4 p-4 rounded-2xl transition-all duration-500",
-                        isActive ? "bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 shadow-sm" : "border border-transparent"
+                        isActive ? "bg-emerald-50 dark:bg-primary/10 border border-emerald-100 dark:border-primary/20 shadow-sm" : "border border-transparent"
                       )}
                     >
                       {/* Line */}
@@ -317,8 +317,8 @@ export default function AgentShowcase() {
 
                       <div className={cn(
                         "relative z-10 size-7 rounded-full flex items-center justify-center shrink-0 border text-[10px] font-black transition-all duration-500",
-                        isActive ? "bg-emerald-500 text-white border-emerald-400 scale-110 shadow-lg shadow-emerald-500/40" : 
-                        isDone ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/40" :
+                        isActive ? "bg-primary text-white border-emerald-400 scale-110 shadow-lg shadow-emerald-500/40" : 
+                        isDone ? "bg-emerald-100 dark:bg-primary/20 text-primary dark:text-emerald-400 border-emerald-200 dark:border-primary/40" :
                         "bg-zinc-50 dark:bg-white/5 text-zinc-300 dark:text-zinc-600 border-zinc-200 dark:border-white/10"
                       )}>
                         {isDone ? <CheckCircle2 size={14} /> : idx + 1}
@@ -327,7 +327,7 @@ export default function AgentShowcase() {
                       <div className="flex-1 pr-6">
                         <h4 className={cn(
                           "text-sm font-bold transition-colors duration-500",
-                          isActive ? "text-emerald-600 dark:text-emerald-400" : 
+                          isActive ? "text-primary dark:text-emerald-400" : 
                           isDone ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
                         )}>
                           {step.title}
@@ -342,7 +342,7 @@ export default function AgentShowcase() {
 
                       {isActive && (
                         <div className="flex items-center">
-                          <Loader2 size={16} className="animate-spin text-emerald-500/50" />
+                          <Loader2 size={16} className="animate-spin text-primary/50" />
                         </div>
                       )}
                     </motion.div>
@@ -360,22 +360,18 @@ export default function AgentShowcase() {
                   className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/10 rounded-3xl p-8 relative overflow-hidden group shadow-2xl backdrop-blur-sm"
                 >
                   <div className="absolute top-[-40px] right-[-40px] p-4 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-                    <SiriOrb size="300px" colors={{ bg: "transparent", c1: "#10b981", c2: "#34d399", c3: "#059669" }} animationDuration={20} />
+                    <BerryOrb size="300px" isActive={demoState === 'running'} />
                   </div>
                   
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="size-16 rounded-2xl bg-black dark:bg-emerald-500/10 flex items-center justify-center p-1 border border-white/5 overflow-hidden">
-                       <SiriOrb 
+                    <div className="size-16 rounded-2xl bg-black dark:bg-primary/10 flex items-center justify-center p-1 border border-white/5 overflow-hidden">
+                       <BerryOrb 
                          size="64px" 
-                         colors={
-                           demoState === 'running' ? { bg: "transparent", c1: "#10b981", c2: "#34d399", c3: "#ffffff" } :
-                           { bg: "transparent", c1: "#27272a", c2: "#52525b", c3: "#18181b" }
-                         }
-                         animationDuration={demoState === 'running' ? 5 : 20}
+                         isActive={demoState === 'running'}
                        />
                     </div>
                     <div>
-                      <h4 className="text-base font-black tracking-tighter italic uppercase text-emerald-600 dark:text-emerald-400">Agent Mind Studio</h4>
+                      <h4 className="text-base font-black tracking-tighter italic uppercase text-primary dark:text-emerald-400">Agent Mind Studio</h4>
                       <p className="text-[10px] text-zinc-400 mt-0.5 font-mono">STV-ORB_CLUSTER-8821 / ACTIVE</p>
                     </div>
                   </div>
@@ -384,7 +380,7 @@ export default function AgentShowcase() {
                     <p className="text-base leading-relaxed text-zinc-800 dark:text-zinc-200 font-bold italic">
                       {thoughtText ? `"${thoughtText}"` : "等待任务启动，系统将自动展示多模态推理链..."}
                       <span className={cn(
-                        "inline-block w-1.5 h-4 bg-emerald-500 ml-1 align-middle",
+                        "inline-block w-1.5 h-4 bg-primary ml-1 align-middle",
                         demoState === 'running' ? "animate-pulse" : "opacity-0"
                       )} />
                     </p>
@@ -398,7 +394,7 @@ export default function AgentShowcase() {
               {demoState === "idle" ? (
                 <Button 
                   onClick={handleStart} 
-                  className="h-14 px-10 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-base shadow-xl shadow-emerald-500/20 group gap-4 active:scale-95 transition-all"
+                  className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary text-white font-bold text-base shadow-xl shadow-emerald-500/20 group gap-4 active:scale-95 transition-all"
                 >
                   <Play className="fill-current" />
                   运行演示脚本
@@ -419,7 +415,7 @@ export default function AgentShowcase() {
               
               <div className="hidden lg:flex flex-col items-end gap-1 px-4 border-r border-zinc-100 dark:border-white/5">
                 <span className="text-[10px] font-black uppercase text-zinc-300 dark:text-zinc-700 tracking-tighter">Powered By</span>
-                <span className="text-xs font-bold text-emerald-500/60">Stravision DeepSeek v3</span>
+                <span className="text-xs font-bold text-primary/60">Stravision DeepSeek v3</span>
               </div>
             </div>
 
@@ -432,7 +428,7 @@ export default function AgentShowcase() {
           {/* Internal Navigation */}
           <div className="h-14 border-b border-zinc-200 dark:border-white/5 px-6 flex items-center justify-between bg-white/40 dark:bg-white/5 backdrop-blur-md">
             <div className="flex items-center gap-2">
-              <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="size-2 rounded-full bg-primary animate-pulse" />
               <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Live Studio Feed</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -460,7 +456,7 @@ export default function AgentShowcase() {
                        <div className="flex gap-1.5">
                           <div className="size-2 rounded-full bg-red-500/20" />
                           <div className="size-2 rounded-full bg-amber-500/20" />
-                          <div className="size-2 rounded-full bg-emerald-500/20" />
+                          <div className="size-2 rounded-full bg-primary/20" />
                        </div>
                     </div>
                     <ScrollArea className="flex-1 p-4 font-mono text-xs whitespace-pre-wrap">
@@ -504,7 +500,7 @@ export default function AgentShowcase() {
                         </div>
                       ) : (
                         <div className="h-full flex flex-col items-center justify-center p-10 text-center gap-4">
-                          <div className="size-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-100 dark:border-emerald-500/20">
+                          <div className="size-16 rounded-full bg-emerald-50 dark:bg-primary/10 flex items-center justify-center text-primary border border-emerald-100 dark:border-primary/20">
                             <Globe size={32} className="animate-pulse" />
                           </div>
                           <div>
@@ -566,7 +562,7 @@ export default function AgentShowcase() {
                   </div>
 
                   <div className="col-span-2 p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl shadow-xl flex items-center justify-between group overflow-hidden relative">
-                    <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="flex items-center gap-4 relative z-10">
                       <div className={cn(
                         "size-12 rounded-2xl flex items-center justify-center transition-all duration-1000",
@@ -577,7 +573,7 @@ export default function AgentShowcase() {
                       <div>
                         <div className="text-sm font-bold flex items-center gap-2">
                           智能化补光策略
-                          {currentStep >= 5 && <CheckCircle2 size={14} className="text-emerald-500" />}
+                          {currentStep >= 5 && <CheckCircle2 size={14} className="text-primary" />}
                         </div>
                         <div className="text-xs text-zinc-400 mt-1">
                           {currentStep >= 5 ? "联动执行中: RGB(120,45,200)" : "等待气象分析完毕..."}
@@ -604,13 +600,13 @@ export default function AgentShowcase() {
       <footer className="h-10 border-t border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/80 backdrop-blur-md z-40 px-8 flex items-center justify-between text-[10px] uppercase font-mono tracking-widest text-zinc-400">
         <div className="flex gap-6">
           <div className="flex items-center gap-2">
-             <div className="size-1.5 rounded-full bg-emerald-500" />
+             <div className="size-1.5 rounded-full bg-primary" />
              AGENT_V3_ONLINE
           </div>
           <div>MCP_LATENCY: 42MS</div>
           <div>VLM_CONFIDENCE: 98.4%</div>
         </div>
-        <div className="hidden sm:block underline decoration-emerald-500/50 underline-offset-4 cursor-pointer hover:text-emerald-500 transition-colors">
+        <div className="hidden sm:block underline decoration-emerald-500/50 underline-offset-4 cursor-pointer hover:text-primary transition-colors">
           View Raw Logic Manifest
         </div>
       </footer>

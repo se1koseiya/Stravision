@@ -73,7 +73,7 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
           <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
             {isPreview ? (
               <>
-                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <div className="size-1.5 rounded-full bg-primary animate-pulse"></div>
                 实时渲染预览
               </>
             ) : (
@@ -90,17 +90,17 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
             <div className="flex items-center bg-zinc-200/50 dark:bg-zinc-800 rounded-lg p-0.5 mr-2 animate-in fade-in zoom-in duration-300">
               <button 
                 onClick={() => setViewMode('desktop')}
-                className={cn("p-1 rounded-md transition-all", viewMode === 'desktop' ? "bg-white dark:bg-zinc-700 text-emerald-500 shadow-sm" : "text-zinc-500")}
+                className={cn("p-1 rounded-md transition-all", viewMode === 'desktop' ? "bg-white dark:bg-zinc-700 text-primary shadow-sm" : "text-zinc-500")}
                 title="桌面视图"
               ><Monitor size={14} /></button>
               <button 
                 onClick={() => setViewMode('tablet')}
-                className={cn("p-1 rounded-md transition-all", viewMode === 'tablet' ? "bg-white dark:bg-zinc-700 text-emerald-500 shadow-sm" : "text-zinc-500")}
+                className={cn("p-1 rounded-md transition-all", viewMode === 'tablet' ? "bg-white dark:bg-zinc-700 text-primary shadow-sm" : "text-zinc-500")}
                 title="平板视图"
               ><Tablet size={14} /></button>
               <button 
                 onClick={() => setViewMode('mobile')}
-                className={cn("p-1 rounded-md transition-all", viewMode === 'mobile' ? "bg-white dark:bg-zinc-700 text-emerald-500 shadow-sm" : "text-zinc-500")}
+                className={cn("p-1 rounded-md transition-all", viewMode === 'mobile' ? "bg-white dark:bg-zinc-700 text-primary shadow-sm" : "text-zinc-500")}
                 title="手机视图"
               ><Smartphone size={14} /></button>
             </div>
@@ -112,7 +112,7 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
               "flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm",
               isPreview 
                 ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900" 
-                : "bg-emerald-600 dark:bg-emerald-500 text-white hover:bg-emerald-700 dark:hover:bg-emerald-400"
+                : "bg-primary dark:bg-primary text-white hover:bg-emerald-700 dark:hover:bg-emerald-400"
             )}
           >
             {isPreview ? <Code size={14} /> : <Play size={14} />}
@@ -122,7 +122,7 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
           {isPreview && (
             <button 
               onClick={() => setKey(k => k + 1)}
-              className="p-2 text-zinc-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+              className="p-2 text-zinc-500 hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
               title="刷新预览"
             >
               <RotateCcw size={14} />
@@ -159,8 +159,8 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
       
       {/* Footer Info */}
       {isPreview && (
-        <div className="px-5 py-2 border-t border-zinc-100 dark:border-zinc-800 bg-emerald-500/5 flex items-center justify-between">
-           <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/50 font-medium">预览模式已启用 (Sandboxed Iframe)</span>
+        <div className="px-5 py-2 border-t border-zinc-100 dark:border-zinc-800 bg-primary/5 flex items-center justify-between">
+           <span className="text-[10px] text-primary/70 dark:text-emerald-400/50 font-medium">预览模式已启用 (Sandboxed Iframe)</span>
            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 italic">渲染自：{language}</span>
         </div>
       )}

@@ -112,10 +112,10 @@ export default function TestCompletedColorPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 bg-emerald-600 rounded-full"></div>
+                  <div className="w-4 h-4 bg-primary rounded-full"></div>
                   <span className="text-emerald-700 dark:text-emerald-400 font-medium">宝石绿 (Emerald)</span>
                 </div>
-                <p className="text-xs text-emerald-600 dark:text-emerald-500">
+                <p className="text-xs text-primary dark:text-primary">
                   这是正确的完成状态颜色
                 </p>
               </div>
@@ -141,7 +141,7 @@ export default function TestCompletedColorPage() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2 text-emerald-600">✅ 已修改的组件</h4>
+              <h4 className="font-semibold mb-2 text-primary">✅ 已修改的组件</h4>
               <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                 <li>• <code>components/ai/tool.tsx</code> - "output-available" 状态图标和Badge背景</li>
                 <li>• <code>components/ui/assistant-ui.tsx</code> - TaskTrigger "completed" 状态指示器</li>
@@ -152,10 +152,10 @@ export default function TestCompletedColorPage() {
             <div>
               <h4 className="font-semibold mb-2">🎨 主要颜色变更</h4>
               <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                <li>• <code>text-green-600</code> → <code>text-emerald-600</code></li>
+                <li>• <code>text-green-600</code> → <code>text-primary</code></li>
                 <li>• <code>bg-green-400</code> → <code>bg-emerald-400</code></li>
                 <li>• <code>bg-green-100</code> → <code>bg-emerald-100</code></li>
-                <li>• <code>text-green-500</code> → <code>text-emerald-500</code></li>
+                <li>• <code>text-green-500</code> → <code>text-primary</code></li>
                 <li>• Badge背景从secondary变为自定义宝石绿色</li>
               </ul>
             </div>

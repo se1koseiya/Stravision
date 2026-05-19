@@ -31,7 +31,7 @@ export type ToolProps = ComponentProps<typeof Collapsible>
 export const Tool = ({ className, ...props }: ToolProps) => (
   <Collapsible 
     className={cn(
-      "group relative my-4 w-full rounded-2xl border border-zinc-200/60 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none transition-all duration-300 hover:shadow-lg hover:border-emerald-500/30 dark:hover:border-emerald-500/30 overflow-hidden", 
+      "group relative my-4 w-full rounded-2xl border border-zinc-200/60 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] dark:shadow-none transition-all duration-300 hover:shadow-lg hover:border-primary/30 dark:hover:border-primary/30 overflow-hidden", 
       className
     )} 
     {...props} 
@@ -79,11 +79,11 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
         {/* Animated Icon Container */}
         <div className="relative flex items-center justify-center">
           {isRunning && (
-            <span className="absolute inset-0 block size-8 rounded-full bg-emerald-500/20 animate-ping" />
+            <span className="absolute inset-0 block size-8 rounded-full bg-primary/20 animate-ping" />
           )}
           <div className={cn(
             "relative z-10 flex size-8 items-center justify-center rounded-xl border shadow-sm transition-colors",
-            isCompleted ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
+            isCompleted ? "bg-emerald-50 dark:bg-primary/10 border-emerald-200 dark:border-primary/20 text-primary dark:text-emerald-400" :
             isError ? "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400" :
             "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400"
           )}>
@@ -96,7 +96,7 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
           <div className="flex items-center gap-2 mt-0.5">
             <span className={cn(
               "text-[10px] font-medium uppercase tracking-wider",
-              isCompleted ? "text-emerald-600 dark:text-emerald-400" :
+              isCompleted ? "text-primary dark:text-emerald-400" :
               isError ? "text-red-500" :
               "text-blue-500 animate-pulse"
             )}>
@@ -120,7 +120,7 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
         {/* Status Indicator Icon */}
         <div className="mr-2">
            {isCompleted ? (
-             <CheckCircle2 className="size-4 text-emerald-500" />
+             <CheckCircle2 className="size-4 text-primary" />
            ) : isError ? (
              <XCircle className="size-4 text-red-500" />
            ) : (

@@ -75,8 +75,8 @@ export function DeviceBentoGrid() {
         </h2>
         <div className="flex items-center gap-1.5">
             <span className="relative flex size-1.5">
-              <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", connectionStatus.connected ? "bg-emerald-500" : "bg-rose-500")}></span>
-              <span className={cn("relative inline-flex rounded-full size-1.5", connectionStatus.connected ? "bg-emerald-500" : "bg-rose-500")}></span>
+              <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", connectionStatus.connected ? "bg-primary" : "bg-rose-500")}></span>
+              <span className={cn("relative inline-flex rounded-full size-1.5", connectionStatus.connected ? "bg-primary" : "bg-rose-500")}></span>
             </span>
             <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                 {connectionStatus.connected ? "设备在线" : "设备离线"}
@@ -112,7 +112,7 @@ export function DeviceBentoGrid() {
           value={data.co2}
           unit="ppm"
           icon={Wind}
-          colorClass="text-emerald-500"
+          colorClass="text-primary"
         />
         <MetricCell
           title="土壤温度"

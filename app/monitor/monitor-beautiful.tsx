@@ -599,13 +599,13 @@ export default function MonitorPage() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white/80 border border-black/5 flex items-center justify-center text-slate-800 transition-transform group-hover:scale-110 dark:bg-white/5 dark:border-white/10 dark:text-slate-100 group-hover:text-emerald-500">
+                    <div className="h-12 w-12 rounded-2xl bg-white/80 border border-black/5 flex items-center justify-center text-slate-800 transition-transform group-hover:scale-110 dark:bg-white/5 dark:border-white/10 dark:text-slate-100 group-hover:text-primary">
                       {cam.on ? <PlayCircle className="h-6 w-6" /> : <Video className="h-6 w-6" />}
                     </div>
                     <div>
                       <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{cam.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className={cn("w-1.5 h-1.5 rounded-full", cam.on ? "bg-emerald-500" : "bg-slate-300")} />
+                        <div className={cn("w-1.5 h-1.5 rounded-full", cam.on ? "bg-primary" : "bg-slate-300")} />
                         <span className="text-xs text-slate-500 dark:text-slate-400">{cam.on ? "Live" : "Offline"}</span>
                       </div>
                       <div className="text-xs text-slate-400 mt-2 font-mono dark:text-slate-500">{cam.time}</div>
@@ -628,7 +628,7 @@ export default function MonitorPage() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 text-muted-foreground hover:text-emerald-500"
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
               onClick={() => setDeviceDialogOpen(true)}
             >
               <Settings className="h-5 w-5" />
@@ -675,7 +675,7 @@ export default function MonitorPage() {
                               variant="secondary"
                               className={cn(
                                 "h-8 w-8 rounded-full bg-white/70 hover:bg-white border border-black/5 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10",
-                                isLocked && "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                                isLocked && "text-primary bg-emerald-50 dark:bg-emerald-900/20"
                               )}
                               onClick={(e) => toggleLock(ctrl.relay, e)}
                             >
@@ -953,7 +953,7 @@ export default function MonitorPage() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-slate-400 hover:text-emerald-500"
+                        className="h-8 w-8 text-slate-400 hover:text-primary"
                         onClick={() => handleAddDevice(device)}
                       >
                         <Plus className="w-4 h-4" />
@@ -1264,7 +1264,7 @@ function CameraSettingsForm({
             <button
               type="button"
               onClick={() => setShowAuth(true)}
-              className="text-xs text-emerald-500 hover:text-emerald-600"
+              className="text-xs text-primary hover:text-primary"
             >
               + 添加认证信息
             </button>

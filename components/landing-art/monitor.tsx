@@ -1,222 +1,211 @@
 "use client"
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion"
-import { ReactNode, useState, useEffect } from "react"
-import { GlassCard } from "@/components/ui/glass-card"
-import { cn } from "@/lib/utils"
+import { motion, useScroll, useTransform, useMotionTemplate } from "framer-motion"
+import { useRef } from "react"
+import { ExactDesignHome } from "@/components/ai/exact-design-home"
+import { Lock } from "lucide-react"
+import Image from "next/image"
 
-// 3D Tilt Card Wrapper (Industrial Version)
-function IndustrialCard({ children, className, delay = 0 }: { children: ReactNode, className?: string, delay?: number }) {
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-  
-  const mouseX = useSpring(x, { stiffness: 500, damping: 100 })
-  const mouseY = useSpring(y, { stiffness: 500, damping: 100 })
-  
-  const rotateX = useTransform(mouseY, [-0.5, 0.5], ["5deg", "-5deg"])
-  const rotateY = useTransform(mouseX, [-0.5, 0.5], ["-5deg", "5deg"])
-
-  function onMouseMove(e: React.MouseEvent) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const width = rect.width
-    const height = rect.height
-    const mouseXVal = e.clientX - rect.left
-    const mouseYVal = e.clientY - rect.top
-    const xPct = mouseXVal / width - 0.5
-    const yPct = mouseYVal / height - 0.5
-    x.set(xPct)
-    y.set(yPct)
+// --- THE FLOATING CARDS DATA (Light Premium Theme) ---
+const floatCards = [
+  {
+    icon: "/glassyicons/Design.png",
+    title: "多模态认知",
+    desc: "融合视觉与时序传感数据，精准洞察",
+    style: { top: '15%', left: '8%', rotateX: 10, rotateY: 15, rotateZ: -5 },
+  },
+  {
+    icon: "/glassyicons/Calendar.png",
+    title: "自主任务流",
+    desc: "按环境节律与光照自动调度",
+    style: { top: '25%', right: '8%', rotateX: -10, rotateY: -15, rotateZ: 5 },
+  },
+  {
+    icon: "/glassyicons/Sygnal.png",
+    title: "毫秒级响应",
+    desc: "边缘计算极速下发控制指令，无延迟",
+    style: { bottom: '25%', left: '10%', rotateX: 20, rotateY: -20, rotateZ: 8 },
+  },
+  {
+    icon: "/glassyicons/Graph.png",
+    title: "全息数据洞察",
+    desc: "构建全生命周期草莓生长与环境模型",
+    style: { bottom: '15%', right: '10%', rotateX: -15, rotateY: 15, rotateZ: -8 },
   }
+]
 
+// --- BROWSER WINDOW COMPONENT (Light Premium Theme) ---
+function BrowserWindow({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, delay }}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      onMouseMove={onMouseMove}
-      onMouseLeave={() => {
-        x.set(0)
-        y.set(0)
-      }}
-      className={cn("perspective-1000 group relative", className)}
-    >
-      <GlassCard 
-        className="h-full w-full bg-[#0a0a0a]/80 border-white/10 p-6 overflow-hidden transition-all duration-300 group-hover:border-emerald-500/50"
-        style={{ transform: "translateZ(20px)" }}
-        hoverEffect={false}
-      >
-        {/* Corner Accents */}
-        <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-white/30 group-hover:border-emerald-500 transition-colors" />
-        <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-white/30 group-hover:border-emerald-500 transition-colors" />
-        <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-white/30 group-hover:border-emerald-500 transition-colors" />
-        <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-white/30 group-hover:border-emerald-500 transition-colors" />
-        
-        {/* Background Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
+    <div className="w-full mx-auto group relative">
+      {/* 极光边缘发光特效 - 清新透亮版 */}
+      <div className="absolute -inset-[2px] bg-gradient-to-r from-emerald-300/40 via-teal-200/40 to-blue-300/40 rounded-[2rem] blur-xl opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
 
-        {children}
-      </GlassCard>
-    </motion.div>
+      <div className="relative rounded-[2rem] bg-white/70 backdrop-blur-3xl border border-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-500 ring-1 ring-black/5">
+
+        {/* Safari-like Titlebar */}
+        <div className="h-14 bg-white/50 backdrop-blur-md border-b border-zinc-200/50 flex items-center px-6 relative z-20">
+          <div className="flex items-center gap-2 absolute left-6">
+            <div className="w-3.5 h-3.5 rounded-full bg-[#FF5F56] border border-[#E0443E]/30" />
+            <div className="w-3.5 h-3.5 rounded-full bg-[#FFBD2E] border border-[#DEA123]/30" />
+            <div className="w-3.5 h-3.5 rounded-full bg-[#27C93F] border border-[#1AAB29]/30" />
+          </div>
+
+          <div className="mx-auto flex items-center justify-center h-8 px-8 min-w-[200px] max-w-md bg-white/60 rounded-lg border border-black/5 shadow-sm">
+            <Lock className="w-3 h-3 text-zinc-400 mr-2" />
+            <span className="text-[13px] font-medium text-zinc-500 font-mono tracking-tight">
+              stravision.site/ai-assistant
+            </span>
+          </div>
+        </div>
+
+        {/* Content Area - Scrollable Fake Window */}
+        <div className="bg-[#f8fafc] relative z-0 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ height: 'min(calc(100vh - 8rem), 800px)' }}>
+          {children}
+        </div>
+      </div>
+    </div>
   )
 }
 
 export function Monitor() {
-  const [activeTab, setActiveTab] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Simulated live data
-  const [temp, setTemp] = useState(24.5)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTemp(prev => prev + (Math.random() - 0.5) * 0.2)
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [])
+  // Track scroll over the 120vh container
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  })
+
+  // --- LAYER 1: OUTER WHITE WORLD ANIMATIONS ---
+  // 给用户留出 [0, 0.05] 的时间来阅读外层文案
+  const textOpacity = useTransform(scrollYProgress, [0.05, 0.15], [1, 0])
+  const textY = useTransform(scrollYProgress, [0.05, 0.15], [0, -50])
+  const textScale = useTransform(scrollYProgress, [0.05, 0.15], [1, 1.2])
+  const textFilter = useTransform(scrollYProgress, [0.05, 0.15], ["blur(0px)", "blur(10px)"])
+
+  // --- LAYER 2: INNER LIGHT WORLD REVEAL (APERTURE) ---
+  // 从 0.1 开始平滑展开，直到 0.5 完全覆盖全屏
+  const apertureSize = useTransform(scrollYProgress, [0.1, 0.5], ["0%", "150%"])
+  const clipPath = useMotionTemplate`circle(${apertureSize} at 50% 50%)`
+
+  // --- 3D CARDS FLY-THROUGH ---
+  const cardsOpacity = useTransform(scrollYProgress, [0.4, 0.95], [1, 0])
+  // 卡片飞行贯穿整个滚动过程
+  const z1 = useTransform(scrollYProgress, [0.2, 0.9], [0, 1600])
+  const z2 = useTransform(scrollYProgress, [0.25, 0.95], [0, 1600])
+  const z3 = useTransform(scrollYProgress, [0.2, 0.85], [0, 1600])
+  const z4 = useTransform(scrollYProgress, [0.3, 1], [0, 1600])
+  const zArr = [z1, z2, z3, z4]
+
+  // --- BROWSER WINDOW ANIMATION ---
+  // 将最终落位动画拉满到 1.0，彻底消除空滑的“垃圾时间”
+  const browserY = useTransform(scrollYProgress, [0.3, 1], ["40%", "0%"])
+  const browserScale = useTransform(scrollYProgress, [0.3, 1], [0.8, 1])
+  const browserOpacity = useTransform(scrollYProgress, [0.25, 0.8], [0, 1])
+
+  // Glowing orb scale inside the portal
+  const orbScale = useTransform(scrollYProgress, [0.1, 0.8], [1, 2.5])
+
+  // 背景色过渡 - 从白色到 slate-50
+  const bgColor = useTransform(
+    scrollYProgress,
+    [0, 0.7, 1],
+    ["rgb(255, 255, 255)", "rgb(255, 255, 255)", "rgb(248, 250, 252)"]
+  )
+
+  // Mock data for ExactDesignHome
+  const mockUser = {
+    id: 1, uid: "mock-uid", username: "Satsuseii", email: "user@example.com", avatar_url: null,
+    role: "user" as const, email_verified: true, created_at: Date.now(), updated_at: Date.now(),
+    membership: "free" as const, permissions: {} as any, notification_settings: {} as any
+  }
+  const mockDeviceData = { temperature: 25.3, humidity: 46, light: 137, earth_water: 0 }
+  const handleSendMessage = (msg: string) => console.log("Sending command:", msg)
 
   return (
-    <section className="min-h-screen w-full flex items-center justify-center px-4 md:px-24 py-24 relative">
-      <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-16 items-start">
-        
-        {/* Left Side: Typography & Description */}
-        <div className="flex-1 space-y-12 sticky top-24">
-          <div>
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-4 mb-6"
-            >
-              <div className="w-12 h-[1px] bg-emerald-500" />
-              <span className="text-emerald-500 font-jinbuti text-sm tracking-widest">环境监测系统</span>
-            </motion.div>
-            
-            <h2 className="text-5xl md:text-7xl font-jinbuti leading-[1.1] mb-8">
-              温度、光、空气。<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-200">
-                数据即状态。
+    <section ref={containerRef} className="relative h-[120vh] bg-gradient-to-b from-white via-white to-slate-50">
+      <div className="sticky top-0 h-screen w-full overflow-hidden">
+
+        {/* ================= LAYER 1: THE WHITE WORLD ================= */}
+        {/* Connects seamlessly to hero.tsx's white wave */}
+        <motion.div
+          className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none"
+          style={{ backgroundColor: bgColor }}
+        >
+          <motion.div
+            style={{ opacity: textOpacity, y: textY, scale: textScale, filter: textFilter }}
+            className="text-center px-4"
+          >
+            <h2 className="text-6xl md:text-[6rem] lg:text-[8rem] font-black tracking-tighter leading-[1.1] text-zinc-900 mb-6 font-alimama drop-shadow-sm">
+              一句话，<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
+                掌控万千设备。
               </span>
             </h2>
-            
-            <p className="text-xl font-jinbuti text-white/60 max-w-lg leading-relaxed">
-              实时监控环境指标，当数据异常时，系统会自动触发警报并执行预设逻辑。这不是简单的仪表盘，而是整个农场的神经中枢。
+            <p className="text-xl md:text-2xl text-zinc-500 font-medium tracking-tight animate-pulse">
+              向下滚动，开启中枢
             </p>
-          </div>
+          </motion.div>
+        </motion.div>
 
-          <div className="flex gap-4">
-            {["概览", "详情", "日志"].map((tab, i) => (
-              <button 
-                key={tab}
-                onClick={() => setActiveTab(i)}
-                className={cn(
-                  "px-6 py-2 border font-jinbuti text-sm transition-all",
-                  activeTab === i 
-                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" 
-                    : "border-white/10 text-white/40 hover:border-white/30"
-                )}
-              >
-                0{i+1} // {tab}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* ================= LAYER 2: THE INNER WORLD (APERTURE REVEAL) ================= */}
+        {/* A vibrant, light, non-black premium UI revealed through the circular mask */}
+        <motion.div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden"
+          style={{ clipPath, backgroundColor: bgColor }}
+        >
+          {/* Subtle Light Grid Background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000006_1px,transparent_1px),linear-gradient(to_bottom,#00000006_1px,transparent_1px)] bg-[size:48px_48px]" />
 
-        {/* Right Side: Dashboard Grid */}
-        <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Module 1: Temperature */}
-          <IndustrialCard className="md:col-span-2">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h3 className="text-lg font-jinbuti font-bold tracking-wide">温度</h3>
-                <span className="text-xs text-emerald-500/60 font-jinbuti">传感器ID: T-2049</span>
-              </div>
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]" />
+          {/* Vibrant Core Orb */}
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full mix-blend-multiply pointer-events-none z-10"
+            style={{
+              background: 'radial-gradient(circle, rgba(52,211,153,0.15) 0%, rgba(56,189,248,0.1) 40%, transparent 70%)',
+              scale: orbScale
+            }}
+          />
+
+          {/* --- 3D Fly-through Cards --- */}
+          <motion.div
+            className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center"
+            style={{ perspective: '1200px' }}
+          >
+            <div className="relative w-full h-full max-w-[1600px] mx-auto" style={{ transformStyle: 'preserve-3d' }}>
+              {floatCards.map((card, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-[280px] lg:w-[320px] bg-white/70 backdrop-blur-2xl p-6 lg:p-8 rounded-[2rem] border border-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)]"
+                  style={{
+                    ...card.style,
+                    z: zArr[i],
+                    opacity: cardsOpacity
+                  }}
+                >
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-white/80 border border-black/5 flex items-center justify-center mb-4 lg:mb-6 shadow-sm overflow-hidden">
+                    <Image src={card.icon} alt={card.title} width={48} height={48} className="w-full h-full object-contain" />
+                  </div>
+                  <h3 className="text-zinc-900 font-bold text-xl lg:text-2xl mb-2 lg:mb-3 tracking-tight">{card.title}</h3>
+                  <p className="text-zinc-500 text-sm lg:text-base font-medium">{card.desc}</p>
+                </motion.div>
+              ))}
             </div>
-            
-            <div className="flex items-end gap-4">
-              <span className="text-7xl font-jinbuti text-white tracking-tighter">
-                {temp.toFixed(1)}
-              </span>
-              <span className="text-xl text-white/40 mb-2 font-jinbuti">°C</span>
-            </div>
-            
-            {/* Graph Visualization */}
-            <div className="h-16 w-full mt-6 flex items-end gap-[2px] opacity-50">
-               {Array.from({ length: 40 }).map((_, i) => (
-                 <motion.div 
-                   key={i}
-                   className="flex-1 bg-emerald-500"
-                   initial={{ height: "20%" }}
-                   animate={{ height: `${20 + Math.random() * 60}%` }}
-                   transition={{ duration: 1, repeat: Infinity, repeatType: "reverse", delay: i * 0.05 }}
-                 />
-               ))}
-            </div>
-          </IndustrialCard>
+          </motion.div>
 
-          {/* Module 2: Humidity */}
-          <IndustrialCard delay={0.2}>
-             <div className="flex justify-between items-start mb-4">
-                <h3 className="text-sm font-jinbuti font-bold tracking-wide text-white/80">湿度</h3>
-                <span className="text-[10px] text-white/40 font-jinbuti">H-102</span>
-             </div>
-             <div className="relative w-full aspect-square flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.1)" strokeWidth="8" fill="none" />
-                  <motion.circle 
-                    cx="50" cy="50" r="40" 
-                    stroke="#10b981" 
-                    strokeWidth="8" 
-                    fill="none" 
-                    strokeDasharray="251.2"
-                    strokeDashoffset="251.2"
-                    whileInView={{ strokeDashoffset: 251.2 * 0.4 }} // 60%
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-3xl font-jinbuti font-bold">62%</span>
-                  <span className="text-[10px] text-white/40 font-jinbuti">最佳</span>
-                </div>
-             </div>
-          </IndustrialCard>
+          {/* --- The Destination: Browser Control Center --- */}
+          {/* Pure Light/Premium styling - No Black! */}
+          <motion.div
+            className="relative z-20 w-full max-w-[1400px] px-6 pointer-events-auto"
+            style={{ y: browserY, scale: browserScale, opacity: browserOpacity }}
+          >
+            <BrowserWindow>
+              <ExactDesignHome user={mockUser} deviceData={mockDeviceData} onSendMessage={handleSendMessage} />
+            </BrowserWindow>
+          </motion.div>
 
-          {/* Module 3: CO2 */}
-          <IndustrialCard delay={0.4}>
-             <div className="flex justify-between items-start mb-4">
-                <h3 className="text-sm font-jinbuti font-bold tracking-wide text-white/80">二氧化碳浓度</h3>
-                <span className="text-[10px] text-white/40 font-jinbuti">C-882</span>
-             </div>
-             <div className="space-y-4 mt-8">
-               <div className="flex justify-between text-xs font-jinbuti">
-                 <span className="text-white/40">当前值</span>
-                 <span>420 PPM</span>
-               </div>
-               <div className="w-full h-1 bg-white/10">
-                 <motion.div 
-                   className="h-full bg-emerald-500"
-                   initial={{ width: 0 }}
-                   whileInView={{ width: "40%" }}
-                   transition={{ duration: 1 }}
-                 />
-               </div>
-               
-               <div className="flex justify-between text-xs font-jinbuti">
-                 <span className="text-white/40">峰值</span>
-                 <span>450 PPM</span>
-               </div>
-               <div className="w-full h-1 bg-white/10">
-                 <motion.div 
-                   className="h-full bg-white/30"
-                   initial={{ width: 0 }}
-                   whileInView={{ width: "45%" }}
-                   transition={{ duration: 1 }}
-                 />
-               </div>
-             </div>
-          </IndustrialCard>
+        </motion.div>
 
-        </div>
       </div>
     </section>
   )

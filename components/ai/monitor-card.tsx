@@ -159,7 +159,7 @@ export function MonitorCard() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">实时监控</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{date}</p>
+            <p className="text-xs text-muted-foreground dark:text-muted-foreground font-medium">{date}</p>
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@ export function MonitorCard() {
           </div>
           <div>
             <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100">主摄像头</h4>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">高清 • 30fps</p>
+            <p className="text-[10px] text-muted-foreground dark:text-muted-foreground">高清 • 30fps</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/10 rounded-full border border-gray-100 dark:border-white/10 shadow-sm">

@@ -46,7 +46,7 @@ const AppIcon = ({ icon, name, className }: { icon: string, name: string, classN
   
   if (error || !icon) {
     const firstLetter = name.charAt(0).toUpperCase()
-    const colors = ["bg-blue-500", "bg-rose-500", "bg-emerald-500", "bg-amber-500", "bg-violet-500"]
+    const colors = ["bg-blue-500", "bg-rose-500", "bg-primary", "bg-amber-500", "bg-violet-500"]
     const color = colors[name.length % colors.length]
     return (
       <div className={cn(className, color, "text-white font-black flex items-center justify-center text-4xl shadow-2xl")}>
@@ -86,7 +86,7 @@ const SkillDetailView = ({
 
   const gradients = [
     "from-indigo-600 via-blue-700 to-cyan-500",
-    "from-emerald-500 via-teal-600 to-cyan-600",
+    "from-primary via-teal-600 to-cyan-600",
     "from-purple-600 via-fuchsia-700 to-pink-600",
     "from-orange-500 via-rose-600 to-red-600"
   ]
@@ -189,7 +189,7 @@ const SkillDetailView = ({
                      </h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-8 rounded-[2.5rem] bg-zinc-100 dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 space-y-4 shadow-sm group hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">
-                           <div className="size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-bold shrink-0">
+                           <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                               <Check className="size-6" />
                            </div>
                            <h4 className="font-bold text-lg dark:text-zinc-200">深度专业支持</h4>
@@ -204,8 +204,8 @@ const SkillDetailView = ({
                         </div>
                      </div>
                      {skill.effects && (
-                       <div className="p-8 rounded-3xl bg-emerald-500/[0.03] dark:bg-emerald-500/[0.05] border border-emerald-500/10 flex items-start gap-4">
-                          <CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={24} />
+                       <div className="p-8 rounded-3xl bg-primary/[0.03] dark:bg-primary/[0.05] border border-primary/10 flex items-start gap-4">
+                          <CheckCircle2 className="text-primary shrink-0 mt-1" size={24} />
                           <p className="text-lg text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed italic">
                             {skill.effects}
                           </p>
@@ -234,7 +234,7 @@ const SkillDetailView = ({
                          className="absolute top-8 right-8 h-12 w-12 text-zinc-500 hover:text-white hover:bg-white/10 rounded-2xl transition-all"
                          onClick={handleCopyPrompt}
                        >
-                         {copied ? <Check className="size-6 text-emerald-500" /> : <Copy className="size-6" />}
+                         {copied ? <Check className="size-6 text-primary" /> : <Copy className="size-6" />}
                        </Button>
                      </div>
                   </section>
@@ -396,7 +396,7 @@ export function SkillStore() {
   const gradients = [
     "from-blue-600 to-indigo-700",
     "from-rose-500 to-orange-600",
-    "from-emerald-500 to-teal-700",
+    "from-primary to-teal-700",
     "from-violet-600 to-purple-800"
   ]
 

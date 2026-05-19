@@ -120,7 +120,7 @@ export function ScheduledTasksList() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8 text-gray-400">
+      <div className="flex items-center justify-center p-8 text-muted-foreground">
         <Loader2 className="animate-spin mr-2" size={20} />
         <span>加载任务列表...</span>
       </div>
@@ -186,7 +186,7 @@ export function ScheduledTasksList() {
                        <span className={cn(
                          "text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wide shrink-0 border",
                          task.is_active 
-                           ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30" 
+                           ? "bg-emerald-50 dark:bg-emerald-900/20 text-primary dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30" 
                            : "bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-white/10"
                        )}>
                          {task.is_active ? "ACTIVE" : "DONE"}
@@ -212,8 +212,8 @@ export function ScheduledTasksList() {
                        </div>
                        
                        <div className="flex items-center gap-1.5">
-                          <Power size={12} className={cn((isOn || task.action_type === 'agent' || task.action_type === 'reminder') ? "text-emerald-500" : "text-rose-500")} />
-                          <span className={cn((isOn || task.action_type === 'agent' || task.action_type === 'reminder') ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                          <Power size={12} className={cn((isOn || task.action_type === 'agent' || task.action_type === 'reminder') ? "text-primary" : "text-rose-500")} />
+                          <span className={cn((isOn || task.action_type === 'agent' || task.action_type === 'reminder') ? "text-primary dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                             {task.action_type === 'agent' ? "智能分析" : task.action_type === 'reminder' ? "定时提醒" : isRelay ? (isOn ? "开启" : "关闭") : "调节颜色"}
                           </span>
                        </div>

@@ -76,7 +76,7 @@ export function AIInsightWidget({
         return {
           status: '健康',
           icon: CheckCircle,
-          colorClass: 'text-emerald-500',
+          colorClass: 'text-primary',
           bgClass: 'bg-emerald-50'
         }
       default:

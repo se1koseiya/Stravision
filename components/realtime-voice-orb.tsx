@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Volume2, Loader2, Sparkles, Lightbulb, Fan, Droplets, Video, Calendar, ArrowRight, Zap, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import SiriOrb from "@/components/smoothui/siri-orb";
+import BerryOrb from "@/components/smoothui/berry-orb";
 import type { DeviceData } from "@/lib/contexts/device-context";
 
 // Types
@@ -138,7 +138,7 @@ function CommandCard({ command }: { command: AICommand }) {
     
     return (
       <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md shadow-sm overflow-hidden">
-        <div className={cn("flex items-center justify-center w-10 h-10 rounded-full", isOn ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400")}>
+        <div className={cn("flex items-center justify-center w-10 h-10 rounded-full", isOn ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-muted-foreground")}>
           <Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
@@ -1149,10 +1149,9 @@ export function RealtimeVoiceOrb({
       >
         {/* Orb Background */}
         <div className="absolute inset-0 rounded-full overflow-hidden shadow-2xl">
-          <SiriOrb
+          <BerryOrb
             size={`${size}px`}
-            colors={orbConfig.colors}
-            animationDuration={orbConfig.duration}
+            isActive={isActive}
             className="w-full h-full"
           />
         </div>
@@ -1205,7 +1204,7 @@ export function RealtimeVoiceOrb({
               status === 'speaking' && "bg-green-100/80 text-green-600 border-green-200",
               status === 'connecting' && "bg-yellow-100/80 text-yellow-600 border-yellow-200",
               status === 'error' && "bg-red-100/90 text-red-700 border-red-300",
-              (status === 'idle') && "bg-white/80 text-gray-600 border-gray-200"
+              (status === 'idle') && "bg-white/80 text-muted-foreground border-border"
             )}>
               {statusText}
             </span>

@@ -20,17 +20,17 @@ const DBNode = ({ icon, title, desc, type, className }: { icon: any, title: stri
   return (
     <div className={cn(
         "relative group flex flex-col p-6 rounded-2xl border transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.2)]",
-        "border-zinc-800 bg-black/40 backdrop-blur-md hover:border-emerald-500/30",
+        "border-zinc-800 bg-black/40 backdrop-blur-md hover:border-primary/30",
         className
     )}>
        {/* Holographic Edge */}
        <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
        
        <div className="flex items-start justify-between mb-4">
-           <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform duration-300">
+           <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
                {icon}
            </div>
-           <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-500/50 border border-emerald-500/10 px-2 py-1 rounded bg-emerald-500/5">
+           <span className="text-[10px] font-mono uppercase tracking-widest text-primary/50 border border-primary/10 px-2 py-1 rounded bg-primary/5">
                {type}
            </span>
        </div>
@@ -55,14 +55,14 @@ export function DatabaseArchitectureDiagram() {
         <h3 className="text-3xl md:text-4xl font-bold text-white font-jinbuti mb-2">
           Storage Architecture
         </h3>
-        <p className="text-emerald-500/60 text-xs font-mono uppercase tracking-[0.2em]">
+        <p className="text-primary/60 text-xs font-mono uppercase tracking-[0.2em]">
           数据库存储架构设计
         </p>
       </motion.div>
 
       {/* Central IP Hub */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-10 pointer-events-none z-0">
-          <div className="absolute inset-0 bg-emerald-500/20 blur-[100px] rounded-full" />
+          <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
       </div>
       
       {/* Central Figure */}

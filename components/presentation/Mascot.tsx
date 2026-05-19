@@ -42,7 +42,7 @@ export function Mascot({
       <div 
         className={cn(
           "absolute inset-0 blur-[60px] rounded-full opacity-60 animate-pulse-slow",
-          glowColor === "emerald" && "bg-emerald-500/30",
+          glowColor === "emerald" && "bg-primary/30",
           glowColor === "blue" && "bg-blue-500/30",
           glowColor === "purple" && "bg-purple-500/30",
           glowColor === "rose" && "bg-rose-500/30"

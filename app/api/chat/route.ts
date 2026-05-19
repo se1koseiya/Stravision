@@ -511,7 +511,122 @@ export async function POST(req: Request) {
       console.error('[Memory] Failed to enhance prompt with memory:', e);
     }
 
-    const finalSystemPrompt = enhancedSystemPrompt + contextInfo + forcedToolPrompt
+    const finalSystemPrompt = enhancedSystemPrompt + contextInfo + `
+
+【报告生成能力 - 创意排版设计】
+你现在具备生成精美HTML报告的能力。当用户请求"生成报告"、"导出报告"、"分析报告"时：
+
+**🚨 关键规则：HTML代码必须用 [REPORT:标题] 标签包裹！**
+
+**🚨 严格输出顺序与闭合规则（最高优先级）：**
+1. **先说明，后报告**：必须先输出所有的文本解释、额度提醒等内容，最后才能输出 [REPORT:标题] 标签及其包裹的 HTML 报告！HTML 报告必须是你的回复的**最后一个内容**！
+2. **严禁中途闭合**：一旦开始输出 [REPORT:标题] 标签，必须连续输出完整的 HTML 代码，并且只能在 HTML 代码的最末尾输出唯一的 [/REPORT] 标记！绝对不能提前或中途闭合！
+3. **严禁在报告标签外输出任何 HTML 代码**：所有的 HTML 报告内容必须 100% 包含在方括号标签内部！
+4. **💰 配额提醒**：
+   - 每个用户每天有 5 次报告生成配额
+   - 生成报告会消耗 1 个配额
+   - 在生成报告后，你必须提醒用户："本次报告生成已消耗 1 个配额，今日剩余 X 次"（这句提醒文字必须放在 [REPORT:] 标签开始之前输出，绝对不能放在 [REPORT:] ... [/REPORT] 标签之后输出！）
+
+**📢 生成流程提示：**
+1. **立即输出生成提示** - 在开始生成报告前，先输出特殊标记（用尖括号包裹REPORT_GENERATING标签，内容为"正在生成报告，请稍候..."）
+2. 然后再输出简短说明
+3. **必须用方括号标签包裹HTML** - 使用 [REPORT:标题] 和 [/REPORT] 包裹完整的HTML内容
+
+**✅ 正确格式（必须严格遵守）：**
+
+第一步：输出加载提示
+<REPORT_GENERATING>正在生成环境监测报告，请稍候...</REPORT_GENERATING>
+
+第二步：输出简短说明
+我已经为您生成了今日环境监测报告，采用了现代卡片式设计，点击下方卡片查看。本次报告生成已消耗 1 个配额，今日剩余 4 次。
+
+第三步：输出包裹的HTML报告
+[REPORT:今日环境监测报告]
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+  <!-- 完整的HTML内容 -->
+</div>
+[/REPORT]
+
+**❌ 禁止的做法：**
+- ❌ 直接输出HTML代码而不用 [REPORT:] 标签包裹
+- ❌ 使用 markdown 代码块包裹 HTML 代码
+- ❌ 在REPORT标签外显示HTML代码
+- ❌ 忘记输出 <REPORT_GENERATING> 标记
+
+**🎨 设计原则：**
+1. **根据主题选择配色** - 环境报告用绿色系，设备报告用蓝色系，警告报告用橙红色系
+2. **使用现代排版** - 卡片式布局、渐变背景、圆角、阴影、图标
+3. **信息层次清晰** - 标题、摘要、详细内容、建议分层展示
+4. **视觉元素丰富** - 使用emoji图标、彩色标签、进度条、状态指示器
+5. **响应式设计** - 确保在不同屏幕尺寸下都美观
+
+**📐 推荐的HTML结构模板：**
+
+[REPORT:报告标题]
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+  
+  <!-- 头部横幅 -->
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+      <span style="font-size: 48px;">📊</span>
+      <div>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 700;">报告标题</h1>
+        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">生成时间 | 作者</p>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">核心摘要内容</p>
+  </div>
+
+  <!-- 关键指标卡片组 -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 4px solid #10b981;">
+      <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">温度</div>
+      <div style="font-size: 32px; font-weight: 700; color: #10b981; margin-bottom: 5px;">22°C</div>
+      <div style="font-size: 12px; color: #10b981;">✓ 正常范围</div>
+    </div>
+  </div>
+
+  <!-- 详细内容区域 -->
+  <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px;">
+    <h2 style="color: #1f2937; font-size: 22px; margin: 0 0 20px 0;">📈 数据分析</h2>
+    <div style="line-height: 1.8; color: #4b5563;">详细内容</div>
+  </div>
+
+  <!-- 页脚 -->
+  <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px;">
+    <p style="margin: 0;">莓小智·莓界智慧农业平台</p>
+  </div>
+</div>
+[/REPORT]
+
+**🎯 不同主题的配色建议：**
+- **环境监测报告**：绿色系 (#10b981, #059669)
+- **设备状态报告**：蓝色系 (#3b82f6, #2563eb)
+- **警告/异常报告**：橙红色系 (#f59e0b, #ef4444)
+- **数据分析报告**：紫色系 (#8b5cf6, #7c3aed)
+
+记住：HTML必须用 [REPORT:标题] 和 [/REPORT] 包裹，不要使用代码块！
+
+【AI 助手能力展示】
+当用户询问你的能力、功能、可以做什么、有哪些功能等问题时，请直接在回复中插入 <CAPABILITIES/> 标签（自闭合标签）。这将展示一个美观的交互式功能卡片，用户可以点击查看详情和示例。
+
+**触发关键词**：
+- "你能做什么"
+- "你有什么功能"
+- "你可以帮我做什么"
+- "介绍一下你的能力"
+- "你都会什么"
+- "你的功能有哪些"
+
+**输出格式**：
+\`\`\`
+<CAPABILITIES/>
+
+我是莓小智，你的智慧农业助手。上面的卡片展示了我的核心能力，你可以点击任意卡片查看详细说明和使用示例。
+\`\`\`
+
+**注意**：输出标签后，你可以简短地补充说明，但不需要详细列举所有功能（卡片会展示）。
+` + forcedToolPrompt
 
     const deviceControlInstruction =
       "## IoT 设备控制规范与硬件 ID 映射 (必读)\n" +
@@ -611,6 +726,8 @@ export async function POST(req: Request) {
       "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
     const monitorInstruction =
       "当用户询问监控、摄像头、直播流或想要查看实时画面时，请直接在回复中插入 <MONITOR></MONITOR> 标签（标签内不需要任何内容）。"
+    const capabilitiesInstruction =
+      "当用户询问你的能力、功能、可以做什么、有哪些功能等问题时，请直接在回复中插入 <CAPABILITIES/> 标签（自闭合标签）。这将展示一个美观的交互式功能卡片，用户可以点击查看详情和示例。输出标签后，你可以简短地补充说明，但不需要详细列举所有功能（卡片会展示）。"
     const controlBentoInstruction =
       "当用户要求查看设备控制、调节设备状态或你建议进行设备调控时，请在回复中包含 <CONTROL_BENTO></CONTROL_BENTO> 标签（标签内不需要任何内容）。然后，必须在标签之后简要说明你的调控建议或理由。如果用户明确表达了“是”、“确认”、“执行”等意图，或者你非常有把握需要执行某些操作，请务必同时输出 JSON 格式的控制命令（仅限 IoT 设备控制，如开关灯、继电器等），以便系统自动执行。"
     const taskListInstruction =

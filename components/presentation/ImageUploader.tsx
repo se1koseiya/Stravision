@@ -39,7 +39,7 @@ export function ImageUploader({ defaultImage, alt, className, onImageChange }: I
   return (
     <div 
       className={cn(
-        "relative group cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-zinc-800 bg-zinc-900/50 hover:border-emerald-500/50 transition-colors flex items-center justify-center",
+        "relative group cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-zinc-800 bg-zinc-900/50 hover:border-primary/50 transition-colors flex items-center justify-center",
         className
       )}
       onClick={() => fileInputRef.current?.click()}
@@ -73,7 +73,7 @@ export function ImageUploader({ defaultImage, alt, className, onImageChange }: I
           </div>
         </>
       ) : (
-        <div className="flex flex-col items-center gap-2 text-zinc-500 group-hover:text-emerald-500 transition-colors">
+        <div className="flex flex-col items-center gap-2 text-zinc-500 group-hover:text-primary transition-colors">
           <Upload className="w-8 h-8" />
           <span className="text-xs font-mono uppercase tracking-widest">Upload Image</span>
         </div>

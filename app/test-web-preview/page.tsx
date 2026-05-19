@@ -126,7 +126,7 @@ export default function TestWebPreviewPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="font-semibold mb-3 text-emerald-600">✅ 新 Shadcn WebPreview 优势</h4>
+              <h4 className="font-semibold mb-3 text-primary">✅ 新 Shadcn WebPreview 优势</h4>
               <ul className="space-y-2 text-sm">
                 <li>• 完整的浏览器界面模拟</li>
                 <li>• 可交互的导航栏</li>

@@ -116,7 +116,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
 
   return (
     <div>
-      <h3 className="text-gray-500 dark:text-gray-400 font-medium mb-4">成员</h3>
+      <h3 className="text-muted-foreground dark:text-muted-foreground font-medium mb-4">成员</h3>
       <div className="flex items-center gap-4">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -133,7 +133,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                   </Avatar>
                 ))
               ) : (
-                <div className="text-sm text-gray-400">暂无成员</div>
+                <div className="text-sm text-muted-foreground">暂无成员</div>
               )}
             </div>
           </DialogTrigger>
@@ -152,8 +152,8 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
               )}
             </Button>
           ) : remainingCount > 0 ? (
-            <div className="rounded-full h-10 w-10 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <span className="font-bold text-xs text-gray-500">+{remainingCount}</span>
+            <div className="rounded-full h-10 w-10 bg-muted dark:bg-card flex items-center justify-center">
+              <span className="font-bold text-xs text-muted-foreground">+{remainingCount}</span>
             </div>
           ) : null}
 
@@ -168,7 +168,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                 {members.map((member) => {
                   const RoleIcon = ROLE_ICONS[member.role]
                   return (
-                    <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-card/50">
                       <div className="flex items-center gap-3">
                         <Avatar className="w-9 h-9">
                           <AvatarImage src={member.avatar_url || undefined} />
@@ -180,10 +180,10 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                           <div className="text-sm font-medium flex items-center gap-1.5">
                             {member.username}
                             {member.id === currentUser?.id && (
-                              <span className="text-xs text-emerald-600 dark:text-emerald-400">(我)</span>
+                              <span className="text-xs text-primary dark:text-emerald-400">(我)</span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <RoleIcon className="w-3 h-3" />
                             {ROLE_LABELS[member.role]}
                           </div>
@@ -202,7 +202,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-gray-400 hover:text-red-500"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-500"
                           onClick={() => handleRemoveMember(member.id)}
                         >
                           <X className="w-4 h-4" />
@@ -234,7 +234,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                       添加
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     添加的成员将获得设备操作权限
                   </p>
                 </div>

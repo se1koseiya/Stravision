@@ -225,7 +225,7 @@ export function AgentWorkflowBuilder() {
                               {/* 拖拽手柄 */}
                               <div className="flex items-center gap-2">
                                 <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-sm font-medium">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
                                   {index + 1}
                                 </div>
                               </div>

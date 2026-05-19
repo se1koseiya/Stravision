@@ -430,8 +430,8 @@ export function DayTaskManager({ date }: { date: Date }) {
             <Label className="text-xs font-semibold text-zinc-500">动作状态</Label>
             <div className="flex items-center gap-2.5">
               <span className={cn("text-xs font-bold transition-colors", !actionValue ? "text-rose-500" : "text-zinc-400")}>关闭</span>
-              <Switch checked={actionValue} onCheckedChange={setActionValue} className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-zinc-200 dark:data-[state=unchecked]:bg-zinc-700" />
-              <span className={cn("text-xs font-bold transition-colors", actionValue ? "text-emerald-500" : "text-zinc-400")}>开启</span>
+              <Switch checked={actionValue} onCheckedChange={setActionValue} className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-zinc-200 dark:data-[state=unchecked]:bg-zinc-700" />
+              <span className={cn("text-xs font-bold transition-colors", actionValue ? "text-primary" : "text-zinc-400")}>开启</span>
             </div>
           </div>
 
@@ -468,7 +468,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                   <div className={cn(
                     "h-10 w-10 rounded-full flex items-center justify-center border transition-all shadow-sm",
                     task.is_active 
-                        ? isOn ? "bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400" : "bg-rose-50 border-rose-100 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
+                        ? isOn ? "bg-emerald-50 border-emerald-100 text-primary dark:bg-primary/10 dark:border-primary/20 dark:text-emerald-400" : "bg-rose-50 border-rose-100 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
                         : "bg-zinc-100 border-transparent text-zinc-400 dark:bg-zinc-800"
                   )}>
                     <Power className="h-4 w-4" />
@@ -478,7 +478,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                     <div className="text-xs text-zinc-500 flex items-center gap-2 mt-1">
                        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">{format(new Date(task.execute_at!), "HH:mm")}</span>
                        <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                       <span className={cn("font-bold", isOn ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                       <span className={cn("font-bold", isOn ? "text-primary dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                          {isOn ? "开启" : "关闭"}
                        </span>
                     </div>
@@ -505,7 +505,7 @@ export function DayTaskManager({ date }: { date: Date }) {
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-emerald-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 AI 智能排程建议
             </DialogTitle>
             <DialogDescription>
@@ -631,7 +631,7 @@ export function DayTaskManager({ date }: { date: Date }) {
             <Button 
                 onClick={handleConfirmSaveAI} 
                 disabled={isSavingAI || selectedPreviewTasks.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-primary hover:bg-emerald-700 text-white"
             >
                 {isSavingAI && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 确认添加 ({selectedPreviewTasks.length})

@@ -180,7 +180,7 @@ const FaqItemComponent = ({ item, isOpen, onClick }: { item: FaqItem, isOpen: bo
           {item.question}
         </span>
         <ChevronDown 
-          className={`w-5 h-5 text-white/40 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-500" : ""}`} 
+          className={`w-5 h-5 text-white/40 transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} 
         />
       </button>
       <AnimatePresence>
@@ -238,10 +238,10 @@ export default function HelpPage() {
   })
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30 font-sans">
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 font-sans">
       {/* Background Effects */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px]" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
       </div>
@@ -273,8 +273,8 @@ export default function HelpPage() {
 
             {/* Search Bar */}
             <div className="relative max-w-2xl mx-auto mt-8 group">
-              <div className="absolute inset-0 bg-emerald-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative flex items-center bg-white/5 border border-white/10 rounded-2xl p-2 backdrop-blur-xl focus-within:border-emerald-500/50 focus-within:bg-white/10 transition-all duration-300">
+              <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative flex items-center bg-white/5 border border-white/10 rounded-2xl p-2 backdrop-blur-xl focus-within:border-primary/50 focus-within:bg-white/10 transition-all duration-300">
                 <Search className="w-6 h-6 text-white/40 ml-3" />
                 <input
                   type="text"
@@ -299,10 +299,10 @@ export default function HelpPage() {
             {CATEGORIES.map((cat, idx) => (
               <GlassCard
                 key={cat.id}
-                className={`p-6 cursor-pointer group transition-all duration-300 border border-white/5 hover:border-emerald-500/30 ${selectedCategory === cat.id ? 'bg-emerald-500/10 border-emerald-500/50' : 'hover:bg-white/5'}`}
+                className={`p-6 cursor-pointer group transition-all duration-300 border border-white/5 hover:border-primary/30 ${selectedCategory === cat.id ? 'bg-primary/10 border-primary/50' : 'hover:bg-white/5'}`}
                 onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors duration-300 ${selectedCategory === cat.id ? 'bg-emerald-500 text-white' : 'bg-white/5 text-white/60 group-hover:bg-emerald-500/20 group-hover:text-emerald-400'}`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors duration-300 ${selectedCategory === cat.id ? 'bg-primary text-white' : 'bg-white/5 text-white/60 group-hover:bg-primary/20 group-hover:text-emerald-400'}`}>
                   {cat.icon}
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2 group-hover:text-emerald-400 transition-colors">
@@ -325,7 +325,7 @@ export default function HelpPage() {
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <HelpCircle className="w-6 h-6 text-emerald-500" />
+              <HelpCircle className="w-6 h-6 text-primary" />
               常见问题
             </h2>
             {selectedCategory && (
@@ -380,7 +380,7 @@ export default function HelpPage() {
                 我们的支持团队随时为您服务。通常我们在 24 小时内回复。
               </p>
               <div className="flex gap-4">
-                <Button className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl h-11 px-6 gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                <Button className="bg-primary hover:bg-primary text-white rounded-xl h-11 px-6 gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                   <MessageCircle className="w-4 h-4" />
                   在线咨询
                 </Button>
@@ -391,9 +391,9 @@ export default function HelpPage() {
               </div>
             </div>
             
-            <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/20 to-transparent border-emerald-500/20">
+            <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/20 to-transparent border-primary/20">
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <div className="p-3 rounded-lg bg-primary/10 text-emerald-400">
                   <Book className="w-6 h-6" />
                 </div>
                 <div>

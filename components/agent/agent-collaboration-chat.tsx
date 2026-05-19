@@ -182,7 +182,7 @@ export function AgentCollaborationChat() {
                         className={`rounded-lg p-3 max-w-[80%] ${
                           isUser
                             ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-900'
+                            : 'bg-muted text-gray-900'
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>

@@ -33,7 +33,7 @@ export function SoilWidget({
     if (avgHealth >= 60) return {
       status: "健康",
       label: "土壤健康",
-      colorClass: "text-emerald-500",
+      colorClass: "text-primary",
       bgClass: "bg-emerald-50",
       hexColor: "#10b981"
     }
@@ -136,7 +136,7 @@ export function SoilWidget({
                 <div className="flex gap-4 bg-slate-50 rounded-2xl p-3">
                    <div className="flex flex-col items-center">
                       <span className="text-xs text-slate-400 uppercase tracking-wide">水分</span>
-                      <span className="text-lg font-bold text-emerald-500">{moisture}%</span>
+                      <span className="text-lg font-bold text-primary">{moisture}%</span>
                    </div>
                    <div className="w-[1px] h-8 bg-slate-200" />
                    <div className="flex flex-col items-center">

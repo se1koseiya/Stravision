@@ -1,7 +1,6 @@
 "use client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import Image from "next/image"
 import {
   Droplet,
   Lightbulb,
@@ -13,27 +12,39 @@ import {
   WifiOff,
   History,
   Camera,
+  ChevronUp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Square,
   RotateCcw,
+  Home,
+  BarChart3,
+  Zap,
+  MessageSquare,
+  Settings,
+  CloudRain,
+  Droplets,
+  Eye,
+  Activity,
+  Bell,
+  Moon,
+  User,
+  LayoutGrid,
+  List,
+  Check,
+  Plus,
+  Minus,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { PageNavigation } from "@/components/page-navigation"
-import { PageHeader } from "@/components/page-header"
-import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import { WeatherCard } from "@/components/weather-card"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { ModeToggle } from "@/components/mode-toggle"
-import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
-import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import {
   Sheet,
   SheetContent,
@@ -42,6 +53,35 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import Link from "next/link"
+import { PageHeader } from "@/components/page-header"
+import { ModeToggle } from "@/components/mode-toggle"
+import { WeatherCard } from "@/components/weather-card"
+import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { usePlantGrowth } from "@/lib/hooks/use-plant-growth"
+
+// 侧边栏导航项
+const sidebarItems = [
+  { icon: Home, label: "首页", href: "/" },
+  { icon: Settings, label: "设备控制", href: "/device-control", active: true },
+  { icon: BarChart3, label: "数据看板", href: "/dashboard" },
+  { icon: Zap, label: "自动化", href: "/automation" },
+  { icon: Camera, label: "场景", href: "/monitor" },
+  { icon: MessageSquare, label: "AI助手", href: "/ai-assistant" },
+  { icon: History, label: "日志", href: "#" },
+  { icon: Settings, label: "设置", href: "/settings" },
+]
+
+// 顶部导航标签
+const topNavItems = [
+  { label: "设备控制", href: "/device-control", active: true },
+  { label: "数据看板", href: "/dashboard" },
+  { label: "自动化", href: "/automation" },
+  { label: "场景", href: "/monitor" },
+  { label: "AI助手", href: "/ai-assistant" },
+  { label: "消息", href: "/messages" },
+]
 
 function Toggle({
   checked = false,
@@ -64,17 +104,17 @@ function Toggle({
       onClick={handleToggle}
       disabled={disabled}
       className={cn(
-        "relative w-16 h-9 rounded-full transition-all duration-300 shadow-lg",
+        "relative w-14 h-8 rounded-full transition-all duration-300",
         disabled && "opacity-50 cursor-not-allowed",
         checked
-          ? "bg-primary"
-          : "bg-muted"
+          ? "bg-emerald-500"
+          : "bg-slate-700"
       )}
     >
       <motion.span
-        className="absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white shadow-md"
+        className="absolute top-1 w-6 h-6 rounded-full bg-white shadow-md"
         animate={{
-          left: checked ? "calc(100% - 32px)" : "4px",
+          left: checked ? "calc(100% - 28px)" : "4px",
         }}
         transition={{
           type: "spring",
@@ -83,6 +123,45 @@ function Toggle({
         }}
       />
     </button>
+  )
+}
+
+// 快捷设备卡片
+function QuickDeviceCard({
+  title,
+  subtitle,
+  icon,
+  checked = false,
+  onChange,
+  disabled = false,
+}: {
+  title: string
+  subtitle: string
+  icon: React.ReactNode
+  checked?: boolean
+  onChange?: (checked: boolean) => void
+  disabled?: boolean
+}) {
+  return (
+    <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800/70 transition-all">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "p-2 rounded-lg",
+              checked ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-700/50 text-slate-400"
+            )}>
+              {icon}
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-white">{title}</h4>
+              <p className="text-xs text-slate-400">{subtitle}</p>
+            </div>
+          </div>
+          <Toggle checked={checked} onChange={onChange} disabled={disabled} />
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -175,16 +254,18 @@ function SliderRow({
   )
 }
 
-export default function DeviceControlClient({ version = 'full' }: { version?: 'full' | 'simplified' }) {
+export default function DeviceControlClient() {
   const router = useRouter()
-  const { isElderFriendlyMode } = useElderFriendly()
   const [r, setR] = useState(0)
   const [g, setG] = useState(0)
   const [b, setB] = useState(0)
   const [w, setW] = useState(0)
-  const [stepPulses, setStepPulses] = useState(1600) // Default 10mm
+  const [brightness, setBrightness] = useState(80)
+  const [stepPulses, setStepPulses] = useState(1600)
   const [presetPulses, setPresetPulses] = useState(112000)
   const [presetSpeed, setPresetSpeed] = useState(10000)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [version, setVersion] = useState<'full' | 'simplified'>('full')
 
   // Logs state
   const [logs, setLogs] = useState<any[]>([])
@@ -193,6 +274,9 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
   // User authentication state
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
+
+  // Elder friendly mode
+  const { isElderFriendlyMode } = useElderFriendly()
 
   // Connect to SSE for real-time device data
   const { deviceData, connectionStatus } = useDeviceData()
@@ -222,6 +306,23 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
 
     fetchCurrentUser()
   }, [router])
+
+  // Fetch device control version
+  useEffect(() => {
+    const fetchVersion = async () => {
+      try {
+        const response = await fetch("/api/admin/device-control-version")
+        const data = await response.json()
+        if (data.version) {
+          setVersion(data.version)
+        }
+      } catch (error) {
+        console.error("获取设备控制版本失败:", error)
+      }
+    }
+
+    fetchVersion()
+  }, [])
 
   // Fetch logs
   const fetchLogs = async () => {
@@ -253,14 +354,12 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
           details
         })
       })
-      // Refresh logs
       fetchLogs()
     } catch (error) {
       console.error("Failed to create log:", error)
     }
   }
 
-  // Fetch logs on mount
   useEffect(() => {
     fetchLogs()
   }, [])
@@ -277,19 +376,14 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
     }
   }
 
-  // Effect to sync frontend states with backend state once data is loaded
-  // 硬件协议: led1=Blue, led2=Red, led3=Green
-  // 前端变量: r=Red, g=Green, b=Blue
   useEffect(() => {
-    if (deviceData && r === 0 && g === 0 && b === 0 && w === 0) {
-      setB(deviceData.led1 || 0)  // led1 = Blue
-      setR(deviceData.led2 || 0)  // led2 = Red
-      setG(deviceData.led3 || 0)  // led3 = Green
-      setW(deviceData.led4 || 0)
+    if (deviceData && r === 0 && g === 0 && b === 0) {
+      setB(deviceData.led1 || 0)
+      setR(deviceData.led2 || 0)
+      setG(deviceData.led3 || 0)
     }
-  }, [deviceData, r, g, b, w])
+  }, [deviceData, r, g, b])
 
-  // Handle relay toggle
   const handleRelayToggle = async (relayNum: number) => {
     if (!deviceData) return
 
@@ -305,28 +399,19 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
         8: "光照植物补光灯"
       }
       createLog(deviceNames[relayNum] || `Relay ${relayNum}`, newState === 1 ? "开启" : "关闭")
-    } else {
-      // Show error notification (you can add a toast notification here)
-      console.error('Failed to toggle relay')
     }
   }
 
-  // Handle LED update
-  // 前端: r=Red, g=Green, b=Blue
-  // 发送: led1=Blue, led2=Red, led3=Green (对应硬件node0501/0502/0503)
   const handleLEDUpdate = async () => {
-    const success = await setLEDs(b, r, g, 0)  // 转换为硬件顺序: Blue, Red, Green
+    const success = await setLEDs(b, r, g, w)
 
     if (success) {
-      createLog("RGB 补光灯", "更新颜色", `R:${r} G:${g} B:${b}`)
-    } else {
-      console.error('Failed to update LEDs')
+      createLog("RGB 补光灯", "更新颜色", `R:${r} G:${g} B:${b} W:${w}`)
+      toast.success('LED 颜色已更新')
     }
   }
 
-  // Handle stepper motor control (摄像头云台)
   const handleStepperControl = async (direction: number) => {
-    // direction: 0=停止, 1=正转/左移, 2=反转/右移
     const pulses = direction === 0 ? undefined : stepPulses
     const success = await controlStepper(direction, pulses)
 
@@ -337,8 +422,6 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
       if (direction !== 0) {
         toast.success(`指令发送成功: ${direction === 1 ? '开始左移' : '开始右移'} ${pulses! / 160}mm`)
       }
-    } else {
-      console.error('Failed to control stepper motor')
     }
   }
 
@@ -350,29 +433,18 @@ export default function DeviceControlClient({ version = 'full' }: { version?: 'f
     }
   }
 
-  // Show loading state while checking authentication
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="animate-in fade-in duration-500">
-          <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50" />
-          <div className="p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="h-10 w-80 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
-              <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-8" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="h-48 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" style={{ animationDelay: `${i * 50}ms` }} />
-                ))}
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-[#0B1220] flex items-center justify-center">
+        <div className="flex gap-2">
+          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" />
+          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
         </div>
       </div>
     )
   }
 
-  // Don't render page if no user (will redirect)
   if (!currentUser) {
     return null
   }

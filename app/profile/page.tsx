@@ -199,7 +199,7 @@ export default function ProfilePage() {
                               </AvatarFallback>
                            </Avatar>
                         </div>
-                        <div className="absolute bottom-1 right-1 size-5 bg-emerald-500 rounded-full border-4 border-white dark:border-black" />
+                        <div className="absolute bottom-1 right-1 size-5 bg-primary rounded-full border-4 border-white dark:border-black" />
                      </motion.div>
 
                      <motion.div variants={fadeInUp} className="mb-2">
@@ -223,7 +223,7 @@ export default function ProfilePage() {
                      <div className="flex flex-col items-end">
                         <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">系统状态</span>
                         <div className="flex items-center gap-2">
-                           <div className={cn("size-2 rounded-full", connectionStatus.connected ? "bg-emerald-500" : "bg-red-500")} />
+                           <div className={cn("size-2 rounded-full", connectionStatus.connected ? "bg-primary" : "bg-red-500")} />
                            <span className="text-xl font-medium">{connectionStatus.connected ? '在线' : '离线'}</span>
                         </div>
                      </div>
@@ -427,8 +427,8 @@ export default function ProfilePage() {
                                        <div className="flex justify-between items-start mb-6">
                                           <Cpu className="size-8 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
                                           <div className="flex items-center gap-2">
-                                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                             <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">运行中</span>
+                                             <div className="size-1.5 rounded-full bg-primary animate-pulse" />
+                                             <span className="text-xs font-bold uppercase tracking-wider text-primary dark:text-emerald-400">运行中</span>
                                           </div>
                                        </div>
                                        <h3 className="text-xl font-bold mb-2">{device.name}</h3>

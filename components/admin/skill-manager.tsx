@@ -208,7 +208,7 @@ export function SkillManager() {
               </TableRow>
             ) : filteredSkills.map((skill) => (
               <TableRow key={skill.id}>
-                <TableCell className="font-bold text-emerald-500">#{skill.priority}</TableCell>
+                <TableCell className="font-bold text-primary">#{skill.priority}</TableCell>
                 <TableCell>
                    <SkillIcon icon={skill.icon} name={skill.name} className="size-10 rounded-lg" />
                 </TableCell>
@@ -219,7 +219,7 @@ export function SkillManager() {
                 </TableCell>
                 <TableCell>
                   {skill.is_published ? (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] font-bold">
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
                       <Globe className="size-3 mr-1" /> Published
                     </Badge>
                   ) : (
@@ -406,7 +406,7 @@ export function SkillManager() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-emerald-500 flex items-center gap-2">
+              <label className="text-sm font-bold text-primary flex items-center gap-2">
                  <Terminal className="size-4" /> System Prompt (Core Instructions)
               </label>
               <Textarea 
@@ -419,7 +419,7 @@ export function SkillManager() {
           </div>
           <DialogFooter className="sticky bottom-0 bg-white dark:bg-zinc-900 pt-4 border-t border-zinc-100 dark:border-zinc-800">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl px-8">Cancel</Button>
-            <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-12 font-bold shadow-lg shadow-emerald-500/20">
+            <Button onClick={handleSave} className="bg-primary hover:bg-primary text-white rounded-xl px-12 font-bold shadow-lg shadow-emerald-500/20">
                Save Skill Asset
             </Button>
           </DialogFooter>

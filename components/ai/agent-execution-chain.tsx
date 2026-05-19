@@ -26,7 +26,6 @@ import { useState, useEffect, useRef } from "react"
 export type AgentStepType = "thinking" | "action" | "observation" | "answer"
 export type AgentStepStatus = "pending" | "active" | "completed" | "error"
 
-// 新增：Agent 角色类型
 export type AgentRole = "planner" | "executor" | "validator" | "coordinator" | "general"
 
 export interface AgentStep {
@@ -36,70 +35,72 @@ export interface AgentStep {
   title: string
   detail?: string
   toolName?: string
-  /** ms elapsed */
   duration?: number
-  /** timestamp when started */
   startedAt?: number
-  /** 新增：Agent 角色 */
   agentRole?: AgentRole
-  /** 新增：Agent 名称 */
   agentName?: string
 }
 
 interface AgentExecutionChainProps {
   steps: AgentStep[]
   className?: string
-  /** Whether the entire chain is still in progress */
   isActive?: boolean
-  /** Auto-collapse when all steps are completed */
   autoCollapse?: boolean
 }
 
 // --- Helpers ---
 
-// 根据 Agent 角色获取配置
 const getAgentRoleConfig = (role?: AgentRole) => {
   switch (role) {
     case "planner":
       return {
         label: "规划器",
-        color: "text-blue-500 dark:text-blue-400",
-        bgColor: "bg-blue-500/10",
+        color: "text-cyan-600 dark:text-cyan-400",
+        bgColor: "bg-cyan-50 dark:bg-cyan-500/10",
+        borderColor: "border-cyan-200 dark:border-cyan-500/20",
+        glow: "shadow-[0_0_15px_rgba(6,182,212,0.3)] dark:shadow-[0_0_15px_rgba(34,211,238,0.4)]",
         icon: Brain,
       }
     case "executor":
       return {
         label: "执行器",
-        color: "text-green-500 dark:text-green-400",
-        bgColor: "bg-green-500/10",
+        color: "text-emerald-600 dark:text-emerald-400",
+        bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
+        borderColor: "border-emerald-200 dark:border-emerald-500/20",
+        glow: "shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]",
         icon: Zap,
       }
     case "validator":
       return {
         label: "验证器",
-        color: "text-purple-500 dark:text-purple-400",
-        bgColor: "bg-purple-500/10",
+        color: "text-violet-600 dark:text-violet-400",
+        bgColor: "bg-violet-50 dark:bg-violet-500/10",
+        borderColor: "border-violet-200 dark:border-violet-500/20",
+        glow: "shadow-[0_0_15px_rgba(139,92,246,0.3)] dark:shadow-[0_0_15px_rgba(139,92,246,0.4)]",
         icon: CheckCircle2,
       }
     case "coordinator":
       return {
         label: "协调器",
-        color: "text-orange-500 dark:text-orange-400",
-        bgColor: "bg-orange-500/10",
+        color: "text-amber-600 dark:text-amber-400",
+        bgColor: "bg-amber-50 dark:bg-amber-500/10",
+        borderColor: "border-amber-200 dark:border-amber-500/20",
+        glow: "shadow-[0_0_15px_rgba(245,158,11,0.3)] dark:shadow-[0_0_15px_rgba(251,191,36,0.4)]",
         icon: MessageSquare,
       }
     default:
       return {
         label: "通用",
-        color: "text-zinc-500 dark:text-zinc-400",
-        bgColor: "bg-zinc-500/10",
+        color: "text-emerald-600 dark:text-emerald-400",
+        bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
+        borderColor: "border-emerald-200 dark:border-emerald-500/20",
+        glow: "shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]",
         icon: Cpu,
       }
   }
 }
 
 const getStepIcon = (type: AgentStepType, toolName?: string, agentRole?: AgentRole) => {
-  // 如果指定了 Agent 角色，优先使用角色图标
   if (agentRole) {
     return getAgentRoleConfig(agentRole).icon
   }
@@ -108,7 +109,6 @@ const getStepIcon = (type: AgentStepType, toolName?: string, agentRole?: AgentRo
   if (type === "answer") return MessageSquare
   if (type === "observation") return Eye
 
-  // Action: pick icon based on tool name
   if (toolName) {
     const t = toolName.toLowerCase()
     if (t.includes("weather") || t.includes("天气")) return CloudLightning
@@ -122,8 +122,6 @@ const getStepIcon = (type: AgentStepType, toolName?: string, agentRole?: AgentRo
   return Wrench
 }
 
-
-// --- Animated elapsed timer ---
 function ElapsedTimer({ startedAt }: { startedAt: number }) {
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
@@ -133,14 +131,11 @@ function ElapsedTimer({ startedAt }: { startedAt: number }) {
   return <span className="tabular-nums">{(elapsed / 1000).toFixed(1)}s</span>
 }
 
-// --- Main Component ---
-
 import { motion, AnimatePresence } from "framer-motion"
 
 export function AgentExecutionChain({ steps, className, isActive, autoCollapse: autoCollapseProp = false }: AgentExecutionChainProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [autoCollapse, setAutoCollapse] = useState(() => {
-    // 从 localStorage 读取用户的自动折叠偏好
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('agent-execution-chain-auto-collapse')
       return saved === 'true'
@@ -148,7 +143,6 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
     return autoCollapseProp
   })
   
-  // 持久化 autoCollapse 状态到 localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('agent-execution-chain-auto-collapse', String(autoCollapse))
@@ -157,64 +151,62 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
   
   if (steps.length === 0) return null
 
-  // 统计不同角色的 Agent
   const agentRoles = steps.filter(s => s.agentRole).map(s => s.agentRole)
   const uniqueRoles = Array.from(new Set(agentRoles))
   const hasMultipleAgents = uniqueRoles.length > 1
   
-  // 检查是否所有步骤都已完成
   const allCompleted = steps.length > 0 && steps.every(s => s.status === 'completed')
   
-  // 自动折叠逻辑：当所有步骤完成且启用自动折叠时
   useEffect(() => {
     if (autoCollapse && allCompleted && !isActive && !isCollapsed) {
       const timer = setTimeout(() => {
-        console.log('[AgentExecutionChain] Auto-collapsing...')
         setIsCollapsed(true)
-      }, 2000) // 2秒后自动折叠
+      }, 2000)
       return () => clearTimeout(timer)
     }
   }, [autoCollapse, allCompleted, isActive, isCollapsed])
   
-  // 当有新步骤开始时，自动展开（独立的 effect）
   useEffect(() => {
     if (isActive && isCollapsed) {
-      console.log('[AgentExecutionChain] Auto-expanding because agent is active...')
       setIsCollapsed(false)
     }
-  }, [isActive]) // 只依赖 isActive，避免循环
+  }, [isActive])
   
-  // 手动折叠处理
   const handleToggleCollapse = () => {
-    console.log('[AgentExecutionChain] Manual toggle, current:', isCollapsed, '-> new:', !isCollapsed)
     setIsCollapsed(!isCollapsed)
   }
 
   return (
     <div className={cn("w-full my-4", className)}>
       {/* Header with controls */}
-      <div className="mb-3 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-100 dark:border-blue-900/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
+      <div className="mb-4 px-4 py-3 rounded-2xl bg-white/80 dark:bg-black/20 backdrop-blur-xl border border-zinc-200 dark:border-white/5 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] relative overflow-hidden transition-colors">
+        {/* Subtle glow background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-cyan-500/5 dark:from-emerald-500/10 dark:via-transparent dark:to-cyan-500/5 pointer-events-none" />
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3 text-sm">
             {hasMultipleAgents ? (
               <>
-                <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="font-medium text-blue-900 dark:text-blue-100">
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors">
+                  <Cpu className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="font-medium text-zinc-800 dark:text-zinc-100 tracking-wide transition-colors">
                   多 Agent 协作模式
                 </span>
-                <span className="text-blue-600 dark:text-blue-400">·</span>
-                <span className="text-xs text-blue-700 dark:text-blue-300">
+                <span className="text-zinc-400 dark:text-zinc-600 transition-colors">·</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 transition-colors">
                   {uniqueRoles.length} 个 Agent 正在协同工作
                 </span>
               </>
             ) : (
               <>
-                <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="font-medium text-blue-900 dark:text-blue-100">
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors">
+                  <Brain className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="font-medium text-zinc-800 dark:text-zinc-100 tracking-wide transition-colors">
                   Agent 执行链
                 </span>
-                <span className="text-blue-600 dark:text-blue-400">·</span>
-                <span className="text-xs text-blue-700 dark:text-blue-300">
+                <span className="text-zinc-400 dark:text-zinc-600 transition-colors">·</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 transition-colors">
                   {allCompleted ? '已完成' : isActive ? '执行中' : '待处理'}
                 </span>
               </>
@@ -226,10 +218,10 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
             <button
               onClick={() => setAutoCollapse(!autoCollapse)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border",
                 autoCollapse 
-                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" 
-                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_10px_rgba(16,185,129,0.15)]" 
+                  : "bg-zinc-100 text-zinc-500 border-zinc-200 hover:bg-zinc-200 hover:text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/5 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
               )}
               title={autoCollapse ? "已启用自动折叠" : "点击启用自动折叠"}
             >
@@ -240,10 +232,10 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
             {/* 手动折叠按钮 */}
             <button
               onClick={handleToggleCollapse}
-              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-white/10 transition-all border border-transparent hover:border-zinc-300 dark:hover:border-white/10"
               title={isCollapsed ? "展开执行链" : "折叠执行链"}
             >
-              {isCollapsed ? <ChevronDown size={16} className="text-zinc-600 dark:text-zinc-400" /> : <ChevronUp size={16} className="text-zinc-600 dark:text-zinc-400" />}
+              {isCollapsed ? <ChevronDown size={16} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" /> : <ChevronUp size={16} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" />}
             </button>
           </div>
         </div>
@@ -278,7 +270,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                     layout
                     className={cn(
                       "absolute left-[11px] top-[24px] bottom-0 w-px origin-top transition-colors",
-                      roleConfig ? roleConfig.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-') + '/20' : "bg-zinc-200 dark:bg-zinc-800"
+                      roleConfig ? roleConfig.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-') + '/20' : "bg-zinc-200 dark:bg-emerald-500/20"
                     )}
                   />
                 )}
@@ -289,34 +281,40 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                     <motion.div 
                        layoutId={`dot-${step.id}`}
                        className={cn(
-                         "size-6 rounded-full flex items-center justify-center shadow-lg",
-                         roleConfig ? roleConfig.bgColor + " " + roleConfig.color : "bg-emerald-500 dark:bg-emerald-400"
+                         "size-6 rounded-full flex items-center justify-center border",
+                         roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor} ${roleConfig.glow}` : "bg-emerald-100 text-emerald-600 border-emerald-200 shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]"
                        )}
-                       animate={{ boxShadow: ["0 0 0 0 rgba(16,185,129,0.4)", "0 0 0 8px rgba(16,185,129,0)", "0 0 0 0 rgba(16,185,129,0)"] }}
-                       transition={{ duration: 1.5, repeat: Infinity }}
+                       animate={{ 
+                         boxShadow: [
+                           roleConfig ? roleConfig.glow.replace('15px', '5px') : "0 0 5px rgba(16,185,129,0.2)", 
+                           roleConfig ? roleConfig.glow.replace('15px', '25px') : "0 0 20px rgba(16,185,129,0.5)", 
+                           roleConfig ? roleConfig.glow.replace('15px', '5px') : "0 0 5px rgba(16,185,129,0.2)"
+                         ] 
+                       }}
+                       transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Loader2 className={cn("size-3.5 animate-spin", roleConfig ? roleConfig.color : "text-white dark:text-zinc-900")} />
+                      <Loader2 className={cn("size-3.5 animate-spin", roleConfig ? roleConfig.color : "text-emerald-600 dark:text-emerald-400")} />
                     </motion.div>
                   ) : step.status === "completed" ? (
                     <motion.div 
                        layoutId={`dot-${step.id}`}
                        initial={{ scale: 0.8 }} animate={{ scale: 1 }}
                        className={cn(
-                         "size-6 rounded-full flex items-center justify-center",
-                         roleConfig ? roleConfig.bgColor + " " + roleConfig.color : "bg-zinc-900 dark:bg-zinc-100"
+                         "size-6 rounded-full flex items-center justify-center border",
+                         roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor}` : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-emerald-500/10 dark:text-emerald-500 dark:border-emerald-500/20"
                        )}
                     >
-                      <CheckCircle2 className={cn("size-3.5", roleConfig ? roleConfig.color : "text-white dark:text-zinc-900")} />
+                      <CheckCircle2 className={cn("size-3.5", roleConfig ? roleConfig.color : "text-zinc-500 dark:text-emerald-500")} />
                     </motion.div>
                   ) : step.status === "error" ? (
                     <motion.div 
                        layoutId={`dot-${step.id}`}
-                       className="size-6 rounded-full bg-red-500 flex items-center justify-center"
+                       className="size-6 rounded-full bg-red-100 border border-red-200 shadow-sm dark:bg-red-500/10 dark:border-red-500/30 dark:shadow-[0_0_15px_rgba(239,68,68,0.2)] flex items-center justify-center"
                     >
-                      <span className="text-white text-xs font-bold">!</span>
+                      <span className="text-red-600 dark:text-red-400 text-xs font-bold">!</span>
                     </motion.div>
                   ) : (
-                    <div className="size-6 rounded-full border-2 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" />
+                    <div className="size-6 rounded-full border border-zinc-200 bg-zinc-50 dark:border-white/5 dark:bg-black/40 transition-colors" />
                   )}
                 </div>
 
@@ -328,18 +326,19 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                     isActiveStep ? "pb-6" : ""
                   )}
                 >
-                  <div className="flex items-center gap-2 min-h-[24px] flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <motion.div
                       animate={isActiveStep ? { 
                         scale: [1, 1.2, 1],
                         rotate: [0, 5, -5, 0]
                       } : {}}
                       transition={{ duration: 2, repeat: Infinity }}
+                      className="flex items-center justify-center"
                     >
                       <Icon className={cn(
                         "size-3.5 shrink-0 transition-colors duration-500",
                         isActiveStep ? (roleConfig ? roleConfig.color : "text-emerald-600 dark:text-emerald-400") :
-                        step.status === "completed" ? "text-zinc-500 dark:text-zinc-400" :
+                        step.status === "completed" ? "text-zinc-500 dark:text-zinc-500" :
                         "text-zinc-400 dark:text-zinc-600"
                       )} />
                     </motion.div>
@@ -350,9 +349,10 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className={cn(
-                          "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider",
+                          "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border flex items-center",
                           roleConfig.bgColor,
-                          roleConfig.color
+                          roleConfig.color,
+                          roleConfig.borderColor
                         )}
                       >
                         {step.agentName || roleConfig.label}
@@ -360,7 +360,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                     )}
                     
                     <span className={cn(
-                      "text-[13px] font-medium transition-colors duration-500 transition-all",
+                      "text-[13px] font-medium transition-colors duration-500 transition-all flex items-center",
                       isActiveStep ? "text-zinc-900 dark:text-zinc-100 font-bold" :
                       step.status === "completed" ? "text-zinc-600 dark:text-zinc-400" :
                       "text-zinc-400 dark:text-zinc-600"
@@ -370,8 +370,8 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                         <motion.span 
                           initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
                           className={cn(
-                            "ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-tighter",
-                            roleConfig ? roleConfig.bgColor + " " + roleConfig.color : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            "ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-tighter border inline-flex items-center",
+                            roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor}` : "bg-emerald-100 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
                           )}
                         >
                           正在处理
@@ -385,7 +385,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                         <motion.span 
                           key="duration"
                           initial={{ opacity: 0, filter: "blur(4px)" }} animate={{ opacity: 1, filter: "blur(0px)" }}
-                          className="text-[11px] text-zinc-400 dark:text-zinc-600 font-mono ml-auto"
+                          className="text-[11px] text-zinc-500 font-mono ml-auto transition-colors flex items-center"
                         >
                           {(step.duration / 1000).toFixed(1)}s
                         </motion.span>
@@ -393,7 +393,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                         <motion.span 
                           key="timer"
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                          className="text-[11px] text-zinc-400 dark:text-zinc-600 font-mono ml-auto"
+                          className="text-[11px] text-zinc-500 font-mono ml-auto transition-colors flex items-center"
                         >
                           <ElapsedTimer startedAt={step.startedAt} />
                         </motion.span>
@@ -412,16 +412,16 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                       >
                         <p className={cn(
                             "text-[12px] mt-1 leading-relaxed transition-colors duration-500",
-                            isActiveStep ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
+                            isActiveStep ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-500 dark:text-zinc-600"
                           )}
                         >
                           {step.detail}
                         </p>
                         {isActiveStep && (
                            <div className="mt-2 flex gap-1 items-center">
-                              <div className={cn("size-1 rounded-full animate-pulse", roleConfig ? roleConfig.color.replace('text-', 'bg-') : "bg-emerald-500")} />
-                              <div className={cn("size-1 rounded-full animate-pulse [animation-delay:0.2s]", roleConfig ? roleConfig.color.replace('text-', 'bg-') : "bg-emerald-500")} />
-                              <div className={cn("size-1 rounded-full animate-pulse [animation-delay:0.4s]", roleConfig ? roleConfig.color.replace('text-', 'bg-') : "bg-emerald-500")} />
+                              <div className={cn("size-1 rounded-full animate-pulse", roleConfig ? roleConfig.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-') : "bg-emerald-500 dark:bg-emerald-400")} />
+                              <div className={cn("size-1 rounded-full animate-pulse [animation-delay:0.2s]", roleConfig ? roleConfig.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-') : "bg-emerald-500 dark:bg-emerald-400")} />
+                              <div className={cn("size-1 rounded-full animate-pulse [animation-delay:0.4s]", roleConfig ? roleConfig.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-') : "bg-emerald-500 dark:bg-emerald-400")} />
                            </div>
                         )}
                       </motion.div>

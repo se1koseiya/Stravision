@@ -22,17 +22,17 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-emerald-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-primary/30 overflow-x-hidden">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 lg:px-12 py-4 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 relative">
             <Image src="/logo.svg" alt="Logo" fill className="object-contain" />
           </div>
-          <span className="text-sm text-gray-400">/ support@stravision.ai</span>
+          <span className="text-sm text-muted-foreground">/ support@stravision.ai</span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8 text-sm text-gray-400">
+        <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <Link href="#features" className="hover:text-white transition-colors">功能</Link>
           <Link href="#data" className="hover:text-white transition-colors">数据</Link>
           <Link href="#app" className="hover:text-white transition-colors">应用</Link>
@@ -40,7 +40,7 @@ export default function LandingPage() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+          <Link href="/login" className="text-sm text-muted-foreground hover:text-white transition-colors">
             登录
           </Link>
           <Link href="/register">
@@ -60,12 +60,12 @@ export default function LandingPage() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] bg-[#0a0a0a] border-white/10 text-white p-6">
               <div className="flex flex-col gap-6 mt-8">
-                <Link href="#features" className="text-gray-400 hover:text-white transition-colors">功能</Link>
-                <Link href="#data" className="text-gray-400 hover:text-white transition-colors">数据</Link>
-                <Link href="#app" className="text-gray-400 hover:text-white transition-colors">应用</Link>
-                <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors">价格</Link>
+                <Link href="#features" className="text-muted-foreground hover:text-white transition-colors">功能</Link>
+                <Link href="#data" className="text-muted-foreground hover:text-white transition-colors">数据</Link>
+                <Link href="#app" className="text-muted-foreground hover:text-white transition-colors">应用</Link>
+                <Link href="#pricing" className="text-muted-foreground hover:text-white transition-colors">价格</Link>
                 <div className="h-px bg-white/10 my-2" />
-                <Link href="/login" className="text-gray-400 hover:text-white transition-colors">登录</Link>
+                <Link href="/login" className="text-muted-foreground hover:text-white transition-colors">登录</Link>
                 <Link href="/register">
                   <Button className="w-full bg-white text-black hover:bg-gray-200 rounded-full font-medium">
                     开始使用
@@ -91,7 +91,7 @@ export default function LandingPage() {
                   transition={{ duration: 0.8 }}
                 >
                   智慧农业<br />
-                  <span className="text-gray-500">`更简单^</span>
+                  <span className="text-muted-foreground">`更简单^</span>
                 </motion.h1>
 
                 <motion.div 
@@ -101,11 +101,11 @@ export default function LandingPage() {
                   transition={{ delay: 0.3, duration: 0.6 }}
                 >
                   <div className="w-px h-12 bg-white/20" />
-                  <p className="text-gray-400 text-lg">
+                  <p className="text-muted-foreground text-lg">
                     轻松管理您的<br />智能温室
                   </p>
                   <Link href="/login">
-                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-black rounded-full px-6 font-medium">
+                    <Button className="bg-primary hover:bg-primary text-black rounded-full px-6 font-medium">
                       开始 <ArrowRight className="ml-1 w-4 h-4" />
                     </Button>
                   </Link>
@@ -126,16 +126,16 @@ export default function LandingPage() {
                   
                   {/* User Card */}
                   <div className="absolute top-8 left-1/3 bg-[#1a1a1a] rounded-xl px-4 py-2 flex items-center gap-3 shadow-xl">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-black font-bold text-sm">A</div>
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-sm">A</div>
                     <span className="text-white text-sm font-medium">管理员</span>
-                    <span className="bg-emerald-500 text-black text-xs px-2 py-0.5 rounded-full">Pro</span>
+                    <span className="bg-primary text-black text-xs px-2 py-0.5 rounded-full">Pro</span>
                   </div>
 
                   {/* Avatar Group */}
                   <div className="absolute top-8 right-8 flex -space-x-2">
                     <div className="w-8 h-8 rounded-full bg-gray-600 border-2 border-emerald-400 flex items-center justify-center text-white text-xs font-bold">Z</div>
                     <div className="w-8 h-8 rounded-full bg-gray-500 border-2 border-emerald-400 flex items-center justify-center text-white text-xs font-bold">L</div>
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 border-2 border-emerald-400 flex items-center justify-center text-xs font-bold">+3</div>
+                    <div className="w-8 h-8 rounded-full bg-primary border-2 border-emerald-400 flex items-center justify-center text-xs font-bold">+3</div>
                   </div>
 
                   {/* Flow Diagram */}
@@ -159,14 +159,14 @@ export default function LandingPage() {
                           <div className="w-5 h-5 rounded bg-orange-500/20 flex items-center justify-center">
                             <div className="w-2 h-2 rounded-full bg-orange-500" />
                           </div>
-                          <span className="text-gray-400 text-xs truncate">传感器数据...</span>
+                          <span className="text-muted-foreground text-xs truncate">传感器数据...</span>
                         </div>
                       </div>
                       <div className="bg-[#1a1a1a] rounded-xl px-4 py-3 min-w-[120px]">
                         <div className="text-white text-xs mb-1">任务分配</div>
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-emerald-500" />
-                          <span className="text-gray-400 text-xs">AI 助手</span>
+                          <div className="w-5 h-5 rounded-full bg-primary" />
+                          <span className="text-muted-foreground text-xs">AI 助手</span>
                         </div>
                       </div>
                       <div className="bg-[#1a1a1a] rounded-xl px-4 py-3 min-w-[120px]">
@@ -175,7 +175,7 @@ export default function LandingPage() {
                           <div className="w-5 h-5 rounded bg-purple-500/20 flex items-center justify-center">
                             <div className="w-2 h-2 rounded-full bg-purple-500" />
                           </div>
-                          <span className="text-gray-400 text-xs truncate">自动控制...</span>
+                          <span className="text-muted-foreground text-xs truncate">自动控制...</span>
                         </div>
                       </div>
                     </div>
@@ -199,23 +199,23 @@ export default function LandingPage() {
                         <div className="w-6 h-6 rounded-full bg-gray-700" />
                       </div>
                     </div>
-                    <div className="text-[10px] text-gray-400">✓ 任务完成</div>
+                    <div className="text-[10px] text-muted-foreground">✓ 任务完成</div>
                     <div className="bg-white/5 rounded-lg p-2">
                       <div className="text-white text-xs font-medium">定时浇灌</div>
-                      <div className="text-[10px] text-gray-500 mt-1">设备:relay7</div>
+                      <div className="text-[10px] text-muted-foreground mt-1">设备:relay7</div>
                     </div>
                     <div className="space-y-2 text-[10px]">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">负责人</span>
+                        <span className="text-muted-foreground">负责人</span>
                         <span className="text-white">Zarx</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">截止日期</span>
+                        <span className="text-muted-foreground">截止日期</span>
                         <span className="text-white">7月15-24</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">状态</span>
-                        <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[8px]">进行中</span>
+                        <span className="text-muted-foreground">状态</span>
+                        <span className="bg-primary/20 text-emerald-400 px-2 py-0.5 rounded text-[8px]">进行中</span>
                       </div>
                     </div>
                   </div>
@@ -237,7 +237,7 @@ export default function LandingPage() {
                 <span className="text-sm md:text-base font-semibold tracking-wide text-gray-200 uppercase">Stravision 团队</span>
               </div>
               {/* X 分隔符 */}
-              <span className="text-2xl font-bold text-gray-500">×</span>
+              <span className="text-2xl font-bold text-muted-foreground">×</span>
               {/* 宁波城市职业技术学院 Logo */}
               <div className="flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
                 <div className="w-48 h-12 relative">
@@ -269,7 +269,7 @@ export default function LandingPage() {
               {/* Right - Content */}
               <div className="space-y-6">
                 <h2 className="text-3xl lg:text-4xl font-bold">用 AI 放大您的影响力</h2>
-                <p className="text-gray-400 text-lg leading-relaxed">
+                <p className="text-muted-foreground text-lg leading-relaxed">
                   借助 AI 助手套件，更智能、更快速地工作，最大化您的温室管理效率
                 </p>
                 <Link href="/login">
@@ -283,12 +283,12 @@ export default function LandingPage() {
             {/* Testimonial */}
             <div className="mt-20 flex items-center gap-6">
               <div className="flex -space-x-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-600 border-2 border-[#0a0a0a] flex items-center justify-center text-white font-bold">Z</div>
+                <div className="w-12 h-12 rounded-full bg-primary border-2 border-[#0a0a0a] flex items-center justify-center text-white font-bold">Z</div>
                 <div className="w-12 h-12 rounded-full bg-purple-600 border-2 border-[#0a0a0a] flex items-center justify-center text-white font-bold">L</div>
                 <div className="w-12 h-12 rounded-full bg-gray-600 border-2 border-[#0a0a0a] flex items-center justify-center text-white font-bold">W</div>
               </div>
               <div>
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   与专家交流，了解 Stravision 如何帮助您简化跨部门工作流程。
                 </p>
                 <p className="text-white font-medium mt-1">Zarx，技术总监</p>
@@ -307,7 +307,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-4xl lg:text-5xl font-bold mb-4">核心功能</h2>
-              <p className="text-gray-400 text-lg">全方位的智慧农业解决方案</p>
+              <p className="text-muted-foreground text-lg">全方位的智慧农业解决方案</p>
             </motion.div>
 
             {/* Bento Grid Layout - 统一深色主题 */}
@@ -319,13 +319,13 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-500" />
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-500" />
                 <div>
                   <div className="w-16 h-16 mb-6 relative">
                     <Image src="/animated_icon/Sustainability.gif" alt="环境监测" fill className="object-contain" unoptimized />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">智能环境监测</h3>
-                  <p className="text-gray-400 max-w-md">
+                  <p className="text-muted-foreground max-w-md">
                     实时监控温度、湿度、光照、CO2等关键指标，数据可视化展示，历史趋势分析
                   </p>
                 </div>
@@ -344,13 +344,13 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
               >
-                <div className="absolute -right-16 -bottom-16 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-500" />
+                <div className="absolute -right-16 -bottom-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-500" />
                 <div>
                   <div className="w-16 h-16 mb-6 relative">
                     <Image src="/animated_icon/Chatbot.gif" alt="AI分析" fill className="object-contain" unoptimized />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">AI 智能分析</h3>
-                  <p className="text-gray-400">
+                  <p className="text-muted-foreground">
                     基于大模型的智能诊断，提供精准种植建议和病害预警
                   </p>
                 </div>
@@ -364,13 +364,13 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
               >
-                <div className="absolute -left-16 -top-16 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-500" />
+                <div className="absolute -left-16 -top-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-500" />
                 <div>
                   <div className="w-16 h-16 mb-6 relative">
                     <Image src="/animated_icon/phone.gif" alt="移动端" fill className="object-contain" unoptimized />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">移动端支持</h3>
-                  <p className="text-gray-400">
+                  <p className="text-muted-foreground">
                     随时随地通过手机管理温室，接收告警通知
                   </p>
                 </div>
@@ -384,20 +384,20 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
               >
-                <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-500" />
+                <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-500" />
                 <div>
                   <div className="w-16 h-16 mb-6 relative">
                     <Image src="/animated_icon/stop.gif" alt="自动化" fill className="object-contain" unoptimized />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">自动化控制</h3>
-                  <p className="text-gray-400 max-w-md">
+                  <p className="text-muted-foreground max-w-md">
                     智能联动设备，根据环境数据自动调节温度、湿度、光照等参数，实现无人值守
                   </p>
                 </div>
                 <div className="flex items-center gap-4 mt-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-sm text-gray-400">自动运行中</span>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                    <span className="text-sm text-muted-foreground">自动运行中</span>
                   </div>
                 </div>
               </motion.div>
@@ -416,11 +416,11 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold">云端同步</h3>
-                    <p className="text-gray-400">数据安全存储，多设备实时同步</p>
+                    <p className="text-muted-foreground">数据安全存储，多设备实时同步</p>
                   </div>
                 </div>
                 <Link href="/login">
-                  <Button className="bg-emerald-500 hover:bg-emerald-600 text-black rounded-full px-6 font-medium">
+                  <Button className="bg-primary hover:bg-primary text-black rounded-full px-6 font-medium">
                     立即体验 <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </Link>
@@ -440,12 +440,12 @@ export default function LandingPage() {
               <h2 className="text-4xl lg:text-6xl font-bold mb-6">
                 准备好开始了吗？
               </h2>
-              <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
+              <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
                 加入数千名农业从业者，体验 AI 驱动的智慧农业管理平台
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/register">
-                  <Button className="bg-emerald-500 hover:bg-emerald-600 text-black rounded-full px-8 py-6 text-lg font-medium">
+                  <Button className="bg-primary hover:bg-primary text-black rounded-full px-8 py-6 text-lg font-medium">
                     免费注册 <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
@@ -470,12 +470,12 @@ export default function LandingPage() {
               </div>
               <span className="font-semibold">Stravision 莓界</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-gray-400">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <Link href="#" className="hover:text-white transition-colors">隐私政策</Link>
               <Link href="#" className="hover:text-white transition-colors">服务条款</Link>
               <Link href="#" className="hover:text-white transition-colors">联系我们</Link>
             </div>
-            <p className="text-sm text-gray-500">© 2025 Stravision. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 Stravision. All rights reserved.</p>
           </div>
         </div>
       </footer>

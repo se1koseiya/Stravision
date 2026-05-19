@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, Circle, Clock } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, Circle, Clock, Info } from "lucide-react";
 import { SkillStore } from "@/components/ai/skill-store"
 import { UnifiedExplore } from "@/components/explore/unified-explore"
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
@@ -12,6 +12,8 @@ import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, Comma
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
+const MessageWithReport = dynamic(() => import("@/components/ai/message-with-report").then(mod => ({ default: mod.MessageWithReport })), { ssr: false })
+const ReportRenderer = dynamic(() => import("@/components/ai/report-renderer"), { ssr: false })
 const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
   ssr: false,
   loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
@@ -42,6 +44,7 @@ import remarkGfm from "remark-gfm"
 import * as htmlToImage from 'html-to-image'
 import jsPDF from "jspdf"
 import { toast } from "sonner"
+import { Toaster } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 
 import {
@@ -90,11 +93,12 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { PageNavigation } from "@/components/page-navigation"
 import { VoiceChatModal } from "@/components/ai/voice-chat-modal"
 import { CalendarTrigger } from "@/components/ai/calendar-trigger"
-import SiriOrb from "@/components/smoothui/siri-orb"
+import BerryOrb from "@/components/smoothui/berry-orb"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
 import { MCPToolDisplay } from "@/components/ai/mcp-tool-display"
 import { useAIFeatures } from "@/lib/hooks/use-ai-features"
 import { DeviceControlDisplay } from "@/components/studio/device-control-display"
+import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { AgentExecutionChain, type AgentStep } from "@/components/ai/agent-execution-chain"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
@@ -110,6 +114,9 @@ import { AIControlBorderEffect } from "@/components/ai/ai-control-border-effect"
 import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
 
 import { LiveStreamPlayer } from "@/components/live-stream-player"
+import { ModernHomeView } from "@/components/ai/modern-home-view"
+import { ExactDesignHome } from "@/components/ai/exact-design-home"
+import { CapabilitiesCard } from "@/components/ai/capabilities-card"
 
 interface Citation {
   number: string
@@ -233,7 +240,7 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
     );
 
     return (
-      <div className="my-8 w-full max-w-2xl bg-white/70 backdrop-blur-xl rounded-[28px] border border-zinc-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans dark:bg-[#1C1C1E]/80 dark:border-white/5">
+      <div className="my-8 w-full max-w-2xl bg-white/70 backdrop-blur-xl rounded-[28px] border border-zinc-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans dark:bg-[#1C1C1E]/90 dark:border-white/10 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
         {/* Header */}
         <div 
           className={cn(
@@ -494,6 +501,161 @@ const DynamicTaskPlanner = ({ content, onOpenStudio, isPaused, onTogglePause }: 
   }
 }
 
+/**
+ * Premium glassmorphic loading stepper for report generation
+ */
+function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", isComplete = false }: {
+  reportTitle?: string
+  htmlContent?: string
+  isComplete?: boolean
+}) {
+  const cleanHtml = htmlContent.trim()
+  let currentStep = 0
+  let progress = 10
+  let activeStatusText = "正在初始化环境监测报告容器..."
+
+  if (isComplete) {
+    currentStep = 4
+    progress = 100
+    activeStatusText = "✓ 编译成功，已生成精美可视化画布"
+  } else if (cleanHtml.length === 0) {
+    currentStep = 0
+    progress = 15
+    activeStatusText = "正在唤醒 AI 引擎并捕获物联网实时数据..."
+  } else {
+    // 真实 Token 扫描分析
+    const hasSuggestions = /(建议|措施|调控|策略|农事|决策|Control|Suggestion|Action)/i.test(cleanHtml)
+    const hasAnalysis = /(分析|诊断|评估|数据研判|质量评估|Quality|Analysis|Diagnosis)/i.test(cleanHtml)
+    const hasMetrics = /(温度|湿度|光照|土壤|CO2|二氧化碳|指标|卡片|传感器|Sensor|Metric|Value)/i.test(cleanHtml)
+
+    if (hasSuggestions) {
+      currentStep = 3
+      progress = 85
+      activeStatusText = "正在基于农业知识库生成智能调控与农事建议..."
+    } else if (hasAnalysis) {
+      currentStep = 2
+      progress = 60
+      activeStatusText = "正在开展温室数据多维智能研判与环境诊断..."
+    } else if (hasMetrics) {
+      currentStep = 1
+      progress = 35
+      activeStatusText = "正在编排今日核心物联网传感器指标卡片..."
+    } else {
+      currentStep = 0
+      progress = 20
+      activeStatusText = "正在构建报告头部与全局品牌样式系统..."
+    }
+  }
+
+  const steps = [
+    { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout },
+    { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu },
+    { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain },
+    { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText }
+  ]
+
+  return (
+    <div className="w-full my-4 rounded-2xl bg-white/60 dark:bg-zinc-950/40 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden transition-all duration-300">
+      {/* Dynamic Progress Bar */}
+      <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-850/40 relative overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-500 ease-out relative"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Header Block */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
+              <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black font-alimama tracking-wide text-zinc-800 dark:text-zinc-200">
+                正在生成：{reportTitle}
+              </h4>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400/80 mt-0.5 flex items-center gap-1.5">
+                {!isComplete ? (
+                  <>
+                    <Loader2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400 animate-spin" />
+                    <span>{activeStatusText}</span>
+                  </>
+                ) : (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{activeStatusText}</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+            {progress}%
+          </div>
+        </div>
+
+        {/* Stepper Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
+          {steps.map((step, idx) => {
+            const Icon = step.icon
+            const isDone = currentStep > idx
+            const isActive = currentStep === idx
+            
+            return (
+              <div 
+                key={idx}
+                className={`relative flex flex-row md:flex-col gap-3 p-3 rounded-xl border transition-all duration-300 ${
+                  isActive 
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/40 shadow-[0_4px_12px_rgba(16,185,129,0.03)]" 
+                    : isDone
+                      ? "bg-zinc-50/30 dark:bg-zinc-900/10 border-zinc-100 dark:border-zinc-900/30 opacity-70"
+                      : "bg-transparent border-transparent opacity-40"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                    isActive
+                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                      : isDone
+                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-zinc-100 text-zinc-400 dark:bg-zinc-805/50 dark:text-zinc-600"
+                  }`}>
+                    {isDone ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      <Icon className={`w-4 h-4 ${isActive ? "animate-pulse" : ""}`} />
+                    )}
+                  </div>
+                  
+                  {isActive && (
+                    <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 animate-pulse">
+                      进行中
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex-1 md:mt-1 space-y-0.5 text-left">
+                  <p className={`text-xs font-black font-alimama tracking-wider ${
+                    isActive 
+                      ? "text-emerald-700 dark:text-emerald-300" 
+                      : isDone
+                        ? "text-zinc-600 dark:text-zinc-400"
+                        : "text-zinc-400 dark:text-zinc-600"
+                  }`}>
+                    {step.label}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-normal hidden md:block">
+                    {step.desc}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AIAssistantPage() {
   return (
     <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-emerald-400">Loading AI Assistant...</div>}>
@@ -527,6 +689,7 @@ function AIAssistantContent() {
   const [isTTSEnabled, setIsTTSEnabled] = useState(true) // TTS Toggle
   const [isTtsPaused, setIsTtsPaused] = useState(false) // 真正的播放暂停
   const [enableMcp, setEnableMcp] = useState(true) // MCP Toggle
+  const [useModernView, setUseModernView] = useState(true) // 使用现代化首页视图
 
   // Initialize TTS state from stored settings
   useEffect(() => {
@@ -821,9 +984,49 @@ function AIAssistantContent() {
   // Studio Panel State
   const [studioOpen, setStudioOpen] = useState(false)
   const [studioData, setStudioData] = useState<any[]>([]) // 存储真实的工具执行结果
-  const [studioTab, setStudioTab] = useState<'tools' | 'tasks'>('tools') // 新增：Studio 标签页状态
+  const [studioTab, setStudioTab] = useState<'tools' | 'tasks' | 'report'>('tools') // 新增：Studio 标签页状态，添加report选项
   const [currentBrowserUrl, setCurrentBrowserUrl] = useState<string | null>(null) // 工作室内部的浏览器URL
   const [browserScreenshot, setBrowserScreenshot] = useState<string | null>(null) // 新增：浏览器截图数据
+  const [reportData, setReportData] = useState<{title: string, html: string, timestamp: number} | null>(null) // 报告数据
+  
+  // 打开Studio并显示报告的函数
+  const onOpenStudio = (reportTitle: string, reportHtml: string) => {
+    console.log('[onOpenStudio] Called with:', { reportTitle, htmlLength: reportHtml.length })
+    setReportData({
+      title: reportTitle,
+      html: reportHtml,
+      timestamp: Date.now()
+    })
+    setStudioTab('report')
+    setStudioOpen(true)
+    console.log('[onOpenStudio] State updated, Studio should open')
+  }
+
+  // 监听报告数据并自动打开Studio
+  useEffect(() => {
+    const checkPendingReport = () => {
+      const pending = sessionStorage.getItem('pendingReport')
+      if (pending) {
+        try {
+          const data = JSON.parse(pending)
+          setReportData(data)
+          setStudioTab('report')
+          setStudioOpen(true)
+          sessionStorage.removeItem('pendingReport')
+        } catch (e) {
+          console.error('Failed to parse pending report:', e)
+        }
+      }
+    }
+    
+    // 检查是否有待显示的报告
+    checkPendingReport()
+    
+    // 监听storage事件（如果从其他标签页触发）
+    window.addEventListener('storage', checkPendingReport)
+    return () => window.removeEventListener('storage', checkPendingReport)
+  }, [])
+  
   const [visionInspectionUrl, setVisionInspectionUrl] = useState<string | null>(null) // AI 视觉巡检的摄像头 URL
   const [visionInspectionStatus, setVisionInspectionStatus] = useState<string>('') // 巡检状态文本
 
@@ -1018,6 +1221,9 @@ function AIAssistantContent() {
 
   const [notices, setNotices] = useState<{ id: number; title: string; description?: string; variant?: 'loading' | 'success' | 'error'; expanded: boolean }[]>([])
   const noticeIdCounter = useRef(0)
+  
+  // 🔥 修复：跟踪已显示通知的报告，避免重复弹窗
+  const notifiedReportsRef = useRef<Set<string>>(new Set())
 
   const showNotice = (title: string, description?: string, variant?: 'loading' | 'success' | 'error') => {
     const id = ++noticeIdCounter.current
@@ -1027,6 +1233,39 @@ function AIAssistantContent() {
       setTimeout(() => {
         setNotices(prev => prev.filter(n => n.id !== id))
       }, 5000)
+    }
+  }
+
+  // 加载会话消息
+  const loadSessionMessages = async (sessionId: number) => {
+    // 🔥 关键修复：切换会话时，中止正在进行的流式输出
+    if (abortControllerRef.current) {
+      console.log('[Session Switch] Aborting ongoing stream...')
+      abortControllerRef.current.abort("Session switched")
+      abortControllerRef.current = null
+    }
+    
+    // 重置加载状态
+    setIsLoading(false)
+    isStoppedRef.current = false
+    
+    // 清空当前消息，避免闪烁
+    setMessages([])
+    
+    try {
+      const res = await fetch(`/api/chat/sessions/${sessionId}/messages`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.messages && Array.isArray(data.messages)) {
+          setMessages(data.messages)
+        }
+      } else {
+        console.error('Failed to load session messages:', res.status)
+        showNotice("加载失败", "无法加载会话消息", "error")
+      }
+    } catch (error) {
+      console.error('Error loading session messages:', error)
+      showNotice("加载失败", "发生未知错误", "error")
     }
   }
 
@@ -2603,8 +2842,17 @@ ${taskContext}
       let buffer = ""
       let ttsProcessedLength = 0
       let latestHistoryFromBackend: Message[] | null = null
+      
+      // 🔥 关键修复：保存当前会话ID，用于验证流式输出是否应该继续
+      const streamSessionId = ensuredSessionId
 
       while (true) {
+        // 🔥 关键修复：检查会话是否已切换
+        if (streamSessionId !== sessionId) {
+          console.log('[Stream Guard] Session switched, aborting stream update')
+          break
+        }
+        
         const { done, value } = await reader.read()
         if (done) break
         
@@ -2791,11 +3039,14 @@ ${taskContext}
 
                 // ✅ Fix #3: 不再往 content 中注入 TASK_LIST / TOOL_USED 标签
                 // 执行链完全由 agentSteps 状态驱动，消息体保持纯净
-                setMessages(prev => {
-                  const newMsgs = [...prev]
-                  newMsgs[newMsgs.length - 1] = { ...assistantMsg }
-                  return newMsgs
-                })
+                // 🔥 关键修复：只有当前会话才更新消息
+                if (streamSessionId === sessionId) {
+                  setMessages(prev => {
+                    const newMsgs = [...prev]
+                    newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+                    return newMsgs
+                  })
+                }
 
                 continue
               }
@@ -2829,8 +3080,161 @@ ${taskContext}
                     assistantMsg.content = content
                 }
 
-                // 实时清理 TASK_LIST 和 SCHEDULE_TASK 标签，防止在流式输出时裸露
+                // 实时清理 TASK_LIST、SCHEDULE_TASK 和 TOOL_USED 标签，防止在流式输出时裸露
                 if (typeof assistantMsg.content === "string") {
+                    // 🔥 首先过滤 TOOL_USED 标签（这些不应该显示给用户）
+                    assistantMsg.content = assistantMsg.content.replace(/<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)/g, '')
+                    
+                    // 🔥 过滤空的或不完整的 AUTOMATION_STRATEGY 标签
+                    // 检测空的 AUTOMATION_STRATEGY 标签（没有 JSON 内容的）
+                    assistantMsg.content = assistantMsg.content.replace(/<\s*AUTOMATION_STRATEGY\s+[^>]*>\s*<\/\s*AUTOMATION_STRATEGY\s*>/g, (match) => {
+                        console.warn('[Stream Filter] Removed empty AUTOMATION_STRATEGY tag')
+                        return '' // 移除空标签
+                    })
+                    
+                    // 检测不完整的 AUTOMATION_STRATEGY 标签（只有开始标签，没有结束标签或内容）
+                    const hasCompleteAutomationTag = /<\s*AUTOMATION_STRATEGY\s+[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>/.test(assistantMsg.content)
+                    if (!hasCompleteAutomationTag) {
+                        // 移除孤立的开始标签
+                        assistantMsg.content = assistantMsg.content.replace(/<\s*AUTOMATION_STRATEGY\s+[^>]*>(?![\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>)/g, (match) => {
+                            console.warn('[Stream Filter] Removed incomplete AUTOMATION_STRATEGY opening tag')
+                            return ''
+                        })
+                    }
+                    
+                    // 🔥 检测并自动包裹裸露的 HTML 报告代码
+                    // 检查是否已经有 [REPORT:...] 标签包裹或已有开始标记（避免在AI已经原生输出[REPORT:时进行干扰）
+                    const hasReportTag = assistantMsg.content.includes('[REPORT:') || /\[REPORT:[^\]]+\][\s\S]*?\[\/REPORT\]/.test(assistantMsg.content)
+                    
+                    if (!hasReportTag) {
+                        // 🔥 增强的 HTML 检测模式 - 更激进地捕获各种 HTML 结构
+                        // 1. 完整的 HTML 文档
+                        const fullHtmlPattern = /<!DOCTYPE[^>]*>[\s\S]*?<html[\s\S]*?<\/html>/gi
+                        // 2. 带 style 属性的 div 容器（更宽松的匹配）
+                        const styledDivPattern = /<div\s+style\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/div>/gi
+                        // 3. 带 style 属性的 p 标签（某些模型可能用 p 标签）
+                        const styledPPattern = /<p\s+style\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/p>/gi
+                        // 4. 任何以 < 开头并包含多个 HTML 标签的内容
+                        const multiTagPattern = /(?:<(?:div|p|h[1-6]|section|article)\s+[^>]*>[\s\S]*?){3,}/gi
+                        
+                        // 🔥 首先处理可能被包裹在 markdown 代码块中的 HTML
+                        const markdownHtmlPattern = /```(?:html)?\s*(<!DOCTYPE[\s\S]*?<\/html>|<(?:div|p|section|article)\s+[\s\S]*?<\/(?:div|p|section|article)>)\s*```/gi
+                        const markdownMatches = assistantMsg.content.match(markdownHtmlPattern)
+                        
+                        if (markdownMatches && markdownMatches.length > 0) {
+                            console.log('[Stream Filter] Found HTML in markdown code blocks:', markdownMatches.length)
+                            markdownMatches.forEach((codeBlock) => {
+                                // 提取代码块中的 HTML
+                                const htmlMatch = codeBlock.match(/```(?:html)?\s*([\s\S]*?)\s*```/)
+                                if (htmlMatch && htmlMatch[1]) {
+                                    const htmlCode = htmlMatch[1].trim()
+                                    const isReportHtml = /(?:报告|分析|监测|数据|统计|环境|设备|温度|湿度|Report|Analysis|gradient|font-family)/i.test(htmlCode)
+                                    
+                                    if (isReportHtml && htmlCode.length > 150) { // 降低最小长度要求
+                                        console.log('[Stream Filter] Detected HTML report in markdown code block, extracting and wrapping...')
+                                        
+                                        // 提取标题
+                                        let reportTitle = "AI生成报告"
+                                        const h1Match = htmlCode.match(/<h1[^>]*>(.*?)<\/h1>/i)
+                                        if (h1Match && h1Match[1]) {
+                                            reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
+                                        }
+                                        
+                                        // 包裹并替换
+                                        const wrappedReport = `[REPORT:${reportTitle}]\n${htmlCode}\n[/REPORT]`
+                                        assistantMsg.content = assistantMsg.content.replace(codeBlock, wrappedReport)
+                                        console.log(`[Stream Filter] Extracted from markdown and wrapped: "${reportTitle}"`)
+                                    }
+                                }
+                            })
+                        }
+                        
+                        // 🔥 查找裸露的 HTML 报告代码（不在代码块和 REPORT 标签中的）
+                        // 先移除已经在代码块中的内容，避免重复检测
+                        let contentWithoutCodeBlocks = assistantMsg.content.replace(/```[\s\S]*?```/g, '')
+                        
+                        // 尝试所有检测模式
+                        const allPatterns = [fullHtmlPattern, styledDivPattern, styledPPattern]
+                        let foundHtml = false
+                        
+                        for (const pattern of allPatterns) {
+                            const htmlMatches = contentWithoutCodeBlocks.match(pattern)
+                            
+                            if (htmlMatches && htmlMatches.length > 0) {
+                                console.log(`[Stream Filter] Found ${htmlMatches.length} bare HTML blocks with pattern:`, pattern.source.substring(0, 50))
+                                htmlMatches.forEach((htmlCode) => {
+                                    // 验证这是否真的是报告 HTML（包含报告特征关键词或样式特征）
+                                    const isReportHtml = /(?:报告|分析|监测|数据|统计|环境|设备|温度|湿度|Report|Analysis|gradient|font-family|max-width|padding|border-radius)/i.test(htmlCode)
+                                    
+                                    if (isReportHtml && htmlCode.length > 150) { // 降低最小长度要求
+                                        console.log('[Stream Filter] Detected bare HTML report code, auto-wrapping...')
+                                        console.log('[Stream Filter] HTML preview:', htmlCode.substring(0, 100) + '...')
+                                        
+                                        // 尝试从 HTML 中提取标题
+                                        let reportTitle = "AI生成报告"
+                                        
+                                        // 尝试从 <h1> 标签提取
+                                        const h1Match = htmlCode.match(/<h1[^>]*>(.*?)<\/h1>/i)
+                                        if (h1Match && h1Match[1]) {
+                                            reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
+                                        } else {
+                                            // 尝试从 <title> 标签提取
+                                            const titleMatch = htmlCode.match(/<title[^>]*>(.*?)<\/title>/i)
+                                            if (titleMatch && titleMatch[1]) {
+                                                reportTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim()
+                                            } else {
+                                                // 尝试从内容中查找"报告"相关文字
+                                                const reportTextMatch = htmlCode.match(/([^<>]*?(?:报告|分析|监测)[^<>]*?)(?:<|$)/i)
+                                                if (reportTextMatch && reportTextMatch[1]) {
+                                                    reportTitle = reportTextMatch[1].trim().substring(0, 30)
+                                                }
+                                            }
+                                        }
+                                        
+                                        // 自动包裹为标准格式
+                                        const wrappedReport = `[REPORT:${reportTitle}]\n${htmlCode}\n[/REPORT]`
+                                        
+                                        // 替换原始 HTML 为包裹后的版本
+                                        assistantMsg.content = assistantMsg.content.replace(htmlCode, wrappedReport)
+                                        foundHtml = true
+                                        
+                                        console.log(`[Stream Filter] Auto-wrapped report: "${reportTitle}"`)
+                                    }
+                                })
+                                
+                                if (foundHtml) break // 找到并处理后就退出循环
+                            }
+                        }
+                        
+                        // 🔥 最后的兜底检测：如果内容很长且包含大量 HTML 标签，但还没被包裹
+                        if (!foundHtml && contentWithoutCodeBlocks.length > 300) {
+                            const htmlTagCount = (contentWithoutCodeBlocks.match(/<[^>]+>/g) || []).length
+                            const hasStyleAttr = /style\s*=\s*["'][^"']*["']/.test(contentWithoutCodeBlocks)
+                            const hasReportKeywords = /(?:报告|分析|监测|数据|统计|环境|设备)/i.test(contentWithoutCodeBlocks)
+                            
+                            if (htmlTagCount > 10 && hasStyleAttr && hasReportKeywords) {
+                                console.log('[Stream Filter] Fallback detection: Found complex HTML structure with report keywords')
+                                console.log('[Stream Filter] HTML tag count:', htmlTagCount)
+                                
+                                // 尝试提取整个 HTML 内容
+                                const firstTagIndex = contentWithoutCodeBlocks.indexOf('<')
+                                if (firstTagIndex !== -1) {
+                                    const htmlContent = contentWithoutCodeBlocks.substring(firstTagIndex)
+                                    
+                                    let reportTitle = "AI生成报告"
+                                    const h1Match = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i)
+                                    if (h1Match && h1Match[1]) {
+                                        reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
+                                    }
+                                    
+                                    const wrappedReport = `[REPORT:${reportTitle}]\n${htmlContent}\n[/REPORT]`
+                                    assistantMsg.content = assistantMsg.content.replace(htmlContent, wrappedReport)
+                                    console.log(`[Stream Filter] Fallback wrapped report: "${reportTitle}"`)
+                                }
+                            }
+                        }
+                    }
+                    
                     // 注意：不要移除正确包裹的 <TASK_LIST>...</TASK_LIST>
                     // 只移除裸露的 JSON 和错误的标签
                     
@@ -2841,9 +3245,16 @@ ${taskContext}
                     if (!hasCompleteTag) {
                         // 只有在没有完整标签的情况下才过滤裸露的 JSON
                         
-                        // 匹配模式：{ "status": "in_progress", "tasks": [...]
-                        const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
-                        assistantMsg.content = assistantMsg.content.replace(taskListJsonPattern, '')
+                        // 匹配包含 "tasks" 数组和 "status" 字段的 JSON 对象 - 增强版
+                        const taskListJsonPattern = /\{\s*"(?:status|tasks)"[\s\S]*?"(?:tasks|status)"[\s\S]*?\}/g
+                        assistantMsg.content = assistantMsg.content.replace(taskListJsonPattern, (match) => {
+                            // 只移除包含 tasks 数组和 status 字段的 JSON
+                            if (match.includes('"tasks"') && match.includes('"status"')) {
+                                console.warn('[Stream Filter] Intercepted bare TASK_LIST JSON')
+                                return '' // 完全移除
+                            }
+                            return match // 保留其他 JSON
+                        })
                         
                         // 拦截不完整的 TASK_LIST JSON（流式输出时）
                         const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
@@ -2960,19 +3371,25 @@ ${taskContext}
                 display = filterDisabledFeatures(display, aiFeatures)
                 console.log('[Frontend Filter] Applied to streaming content')
 
-                setMessages(prev => {
-                  const newMsgs = [...prev]
-                  newMsgs[newMsgs.length - 1] = {
-                    role: "assistant",
-                    content: display,
-                    reasoning: enableReasoning ? { text: reasoningText, durationMs: Date.now() - startTs } : undefined,
-                    model: selectedModel || aiSettings?.model
-                  }
-                  return newMsgs
-                })
+                // 🔥 关键修复：只有当前会话才更新消息
+                if (streamSessionId === sessionId) {
+                  setMessages(prev => {
+                    const newMsgs = [...prev]
+                    newMsgs[newMsgs.length - 1] = {
+                      role: "assistant",
+                      content: display,
+                      reasoning: enableReasoning ? { text: reasoningText, durationMs: Date.now() - startTs } : undefined,
+                      model: selectedModel || aiSettings?.model
+                    }
+                    return newMsgs
+                  })
+                }
               }
             } catch (e) { 
                 console.error("Error parsing stream chunk", e)
+                // 🔥 修复：解析错误时也要清理状态
+                setIsLoading(false)
+                setAgentStatus("")
             }
           }
         }
@@ -3020,6 +3437,11 @@ ${taskContext}
       // 延迟清除执行链，让用户能看到完整流程
       setTimeout(() => setAgentSteps([]), 3000)
 
+      // 🔥 修复：流式输出结束后立即清理状态
+      console.log('[Stream End] Cleaning up loading state')
+      setIsLoading(false)
+      setAgentStatus("")
+      
       // 确保流结束时关闭浏览器
       setBrowsingUrl(null)
       
@@ -3063,11 +3485,88 @@ ${taskContext}
         assistantMsg.content = removeScheduleTaskTag(tagCheckContent)
         
         // 更新消息显示
-        setMessages(prev => {
-          const newMsgs = [...prev]
-          newMsgs[newMsgs.length - 1] = { ...assistantMsg }
-          return newMsgs
-        })
+        // 🔥 关键修复：只有当前会话才更新消息
+        if (streamSessionId === sessionId) {
+          setMessages(prev => {
+            const newMsgs = [...prev]
+            newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+            return newMsgs
+          })
+        }
+      }
+      
+      // 🔥 流结束后的最终HTML检测和包裹（兜底方案）
+      const finalContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : ''
+      if (finalContent && !finalContent.includes('[REPORT:')) {
+        console.log('[Final HTML Check] Checking for bare HTML in completed response...')
+        
+        // 检测是否包含大量HTML标签和报告特征
+        const htmlTagCount = (finalContent.match(/<[^>]+>/g) || []).length
+        const hasStyleAttr = /style\s*=\s*["'][^"']*["']/.test(finalContent)
+        const hasReportKeywords = /(?:报告|分析|监测|数据|统计|环境|设备|温度|湿度)/i.test(finalContent)
+        
+        console.log('[Final HTML Check] HTML tags:', htmlTagCount, 'Has styles:', hasStyleAttr, 'Has keywords:', hasReportKeywords)
+        
+        if (htmlTagCount > 5 && hasStyleAttr && hasReportKeywords) {
+          console.log('[Final HTML Check] ⚠️ Detected bare HTML report in final output!')
+          
+          // 查找HTML内容的起始位置
+          const htmlStartPatterns = [
+            /<div\s+style\s*=/i,
+            /<p\s+style\s*=/i,
+            /<!DOCTYPE/i,
+            /<html/i
+          ]
+          
+          let htmlStartIndex = -1
+          for (const pattern of htmlStartPatterns) {
+            const match = finalContent.match(pattern)
+            if (match && match.index !== undefined) {
+              htmlStartIndex = match.index
+              break
+            }
+          }
+          
+          if (htmlStartIndex !== -1) {
+            // 分离前面的文本说明和HTML代码
+            const beforeHtml = finalContent.substring(0, htmlStartIndex).trim()
+            const htmlContent = finalContent.substring(htmlStartIndex).trim()
+            
+            console.log('[Final HTML Check] Before HTML:', beforeHtml.substring(0, 100))
+            console.log('[Final HTML Check] HTML content length:', htmlContent.length)
+            
+            // 提取报告标题
+            let reportTitle = "AI生成报告"
+            const h1Match = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i)
+            if (h1Match && h1Match[1]) {
+              reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
+            } else {
+              const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i)
+              if (titleMatch && titleMatch[1]) {
+                reportTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim()
+              }
+            }
+            
+            // 重新组合：说明文字 + 包裹的HTML
+            const wrappedContent = beforeHtml 
+              ? `${beforeHtml}\n\n[REPORT:${reportTitle}]\n${htmlContent}\n[/REPORT]`
+              : `[REPORT:${reportTitle}]\n${htmlContent}\n[/REPORT]`
+            
+            assistantMsg.content = wrappedContent
+            console.log('[Final HTML Check] ✅ Wrapped HTML report:', reportTitle)
+            
+            // 更新消息显示
+            if (streamSessionId === sessionId) {
+              setMessages(prev => {
+                const newMsgs = [...prev]
+                newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+                return newMsgs
+              })
+            }
+          }
+        } else {
+          console.log('[Final HTML Check] No bare HTML detected in final output')
+        }
       }
       
       if (ensuredSessionId) {
@@ -3461,11 +3960,16 @@ ${taskContext}
         if (!hasCompleteTaskListTag) {
             // 只有在没有完整标签的情况下才过滤裸露的 JSON
             
-            // 匹配完整的 TASK_LIST JSON 对象
-            const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
+            // 匹配完整的 TASK_LIST JSON 对象 - 增强版正则
+            // 匹配包含 "tasks" 数组和 "status" 字段的 JSON 对象
+            const taskListJsonPattern = /\{\s*"(?:status|tasks)"[\s\S]*?"(?:tasks|status)"[\s\S]*?\}/g
             content = content.replace(taskListJsonPattern, (match) => {
-                console.warn('[TASK_LIST Filter] Intercepted bare TASK_LIST JSON:', match.slice(0, 100))
-                return '' // 完全移除
+                // 只移除包含 tasks 数组和 status 字段的 JSON
+                if (match.includes('"tasks"') && match.includes('"status"')) {
+                    console.warn('[TASK_LIST Filter] Intercepted bare TASK_LIST JSON:', match.slice(0, 100))
+                    return '' // 完全移除
+                }
+                return match // 保留其他 JSON
             });
             
             // 7. 🔥 新增：拦截不完整的 TASK_LIST JSON 片段
@@ -3530,8 +4034,11 @@ ${taskContext}
     // Added SCHEDULED_TASKS for legacy/scheduled tasks list
     // Added TOOL_USED for tool usage indicators
     // Added AUTOMATION_STRATEGY for automation strategy cards
+    // Added REPORT for HTML report rendering
+    // Added REPORT_GENERATING for report generation loading state
+    // Added CAPABILITIES for AI capabilities showcase
     // Also split by JSON code blocks to render them as DeviceControlCard
-    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|```json\s*[\s\S]*?```)/g)
+    const parts = content.split(/(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*REASONING\s*>[\s\S]*?(?:<\/\s*REASONING\s*>|$)|<\s*SOURCES\s*>[\s\S]*?<\/\s*SOURCES\s*>|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*TASKS\s*>[\s\S]*?<\/\s*TASKS\s*>|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g)
 
     return (
       <>
@@ -3663,6 +4170,176 @@ ${taskContext}
             )
           }
 
+          // Handle CAPABILITIES tag for AI capabilities showcase
+          if (part.match(/^<\s*CAPABILITIES/)) {
+            return (
+              <div key={index} className="flex justify-center my-6">
+                <CapabilitiesCard 
+                  onExampleClick={(example) => {
+                    setInput(example)
+                    // 自动聚焦到输入框
+                    setTimeout(() => {
+                      const inputElement = document.querySelector('textarea[placeholder*="输入"]') as HTMLTextAreaElement
+                      inputElement?.focus()
+                    }, 100)
+                  }}
+                />
+              </div>
+            )
+          }
+
+          // Handle REPORT_GENERATING tag for loading state
+          if (part.match(/^<\s*REPORT_GENERATING/)) {
+            const generatingText = part.replace(/^<\s*REPORT_GENERATING\s*>/, '').replace(/<\/\s*REPORT_GENERATING\s*>/, '').trim()
+            return (
+              <div key={index} className="my-4">
+                <PremiumReportLoader
+                  reportTitle={generatingText || "环境监测报告"}
+                  htmlContent=""
+                  isComplete={false}
+                />
+              </div>
+            )
+          }
+
+          // Handle REPORT tags for HTML report rendering
+          if (part.match(/^\[REPORT:/)) {
+            try {
+              const isComplete = part.endsWith('[/REPORT]')
+              const reportMatch = part.match(/\[REPORT:([^\]]+)\]([\s\S]*?)(?:\[\/REPORT\]|$)/)
+              
+              if (reportMatch) {
+                const reportTitle = reportMatch[1]
+                const reportHtml = reportMatch[2].trim()
+                
+                if (!isComplete) {
+                  // While streaming, render a beautiful glassmorphic stepper with dynamic progress
+                  return (
+                    <div key={index} className="my-4">
+                      <PremiumReportLoader
+                        reportTitle={reportTitle}
+                        htmlContent={reportHtml || ""}
+                        isComplete={false}
+                      />
+                    </div>
+                  )
+                }
+                
+                // 🔥 修复：生成唯一的报告ID，避免重复通知
+                const reportId = `${reportTitle}_${reportHtml.substring(0, 50)}`
+                
+                // 🎉 发送报告完成通知 - 使用 sonner toast 右上角弹窗
+                // 只有第一次渲染时才显示通知并扣除配额
+                if (!notifiedReportsRef.current.has(reportId)) {
+                  notifiedReportsRef.current.add(reportId)
+                  
+                  // 🔥 扣除报告配额
+                  setTimeout(async () => {
+                    try {
+                      const response = await fetch('/api/reports/consume-quota', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user?.id })
+                      })
+                      
+                      const data = await response.json()
+                      
+                      if (response.ok) {
+                        // 配额扣除成功，显示通知
+                        toast.success("📊 报告生成完成", {
+                          description: `${reportTitle} 已准备就绪。${data.message}`,
+                          action: {
+                            label: "查看报告",
+                            onClick: () => {
+                              onOpenStudio(reportTitle, reportHtml)
+                            }
+                          },
+                          duration: 10000, // 显示10秒，让用户看到配额信息
+                          position: "top-right",
+                        })
+                      } else {
+                        // 配额不足或其他错误
+                        toast.warning("⚠️ 报告生成完成", {
+                          description: `${reportTitle} 已准备就绪，但${data.error || '配额扣除失败'}`,
+                          action: {
+                            label: "查看报告",
+                            onClick: () => {
+                              onOpenStudio(reportTitle, reportHtml)
+                            }
+                          },
+                          duration: 10000,
+                          position: "top-right",
+                        })
+                      }
+                    } catch (error) {
+                      console.error('扣除报告配额失败:', error)
+                      // 即使扣除失败也显示报告完成通知
+                      toast.success("📊 报告生成完成", {
+                        description: `${reportTitle} 已准备就绪`,
+                        action: {
+                          label: "查看报告",
+                          onClick: () => {
+                            onOpenStudio(reportTitle, reportHtml)
+                          }
+                        },
+                        duration: 8000,
+                        position: "top-right",
+                      })
+                    }
+                  }, 100)
+                }
+                
+                // 创建一个简洁的报告卡片，点击后打开Studio
+                return (
+                  <div key={index} className="my-4">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group relative bg-gradient-to-r from-emerald-50/80 via-emerald-50/40 to-white dark:from-emerald-950/20 dark:via-emerald-950/10 dark:to-zinc-900 rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all border border-gray-200 dark:border-zinc-700"
+                      onClick={() => {
+                        console.log('[Report Card] Clicked, opening Studio with:', { reportTitle, htmlLength: reportHtml.length })
+                        // 直接调用onOpenStudio函数打开报告
+                        onOpenStudio(reportTitle, reportHtml)
+                      }}
+                    >
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          {/* 文档图标 */}
+                          <div className="w-12 h-12 bg-emerald-500 dark:bg-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <FileText className="w-6 h-6 text-white" />
+                          </div>
+                          
+                          {/* 标题和描述 */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-0.5 truncate">
+                              {reportTitle}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 font-normal">
+                              AI智能生成报告 · 点击查看详情
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* 查看按钮 - 默认隐藏，悬停时显示 */}
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="px-4 py-2 bg-emerald-500 dark:bg-emerald-600 rounded-lg text-white text-sm font-medium shadow-sm group-hover:bg-emerald-600 dark:group-hover:bg-emerald-700 transition-colors">
+                            查看报告
+                          </div>
+                          <ArrowUpRight className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                )
+              } else {
+                console.error('[REPORT] Failed to match report pattern in part')
+              }
+            } catch (e) {
+              console.error('REPORT parsing error:', e)
+              return null
+            }
+          }
+
           if (part.match(/^<\s*PAST_MEMORY/)) {
             const memoryText = part.replace(/^<\s*PAST_MEMORY\s*>/, '').replace(/<\/\s*PAST_MEMORY\s*>/, '').trim()
             return (
@@ -3699,11 +4376,12 @@ ${taskContext}
 
           if (part.match(/^<\s*AUTOMATION_STRATEGY/)) {
             try {
-              const strategyContent = part.replace(/^<\s*AUTOMATION_STRATEGY\s*>/, '').replace(/<\/\s*AUTOMATION_STRATEGY\s*>$/, '').trim();
+              // Extract description from opening tag attribute if present
+              const openTagMatch = part.match(/^<\s*AUTOMATION_STRATEGY\s+description="([^"]*)"[^>]*>/);
+              const description = openTagMatch ? openTagMatch[1] : undefined;
               
-              // Extract description if present
-              const descMatch = strategyContent.match(/description="([^"]*)"/);
-              const description = descMatch ? descMatch[1] : undefined;
+              // Remove opening and closing tags to get content
+              const strategyContent = part.replace(/^<\s*AUTOMATION_STRATEGY[^>]*>/, '').replace(/<\/\s*AUTOMATION_STRATEGY\s*>$/, '').trim();
               
               // Extract JSON strategy
               const jsonMatch = strategyContent.match(/```json\s*([\s\S]*?)\s*```/);
@@ -3865,6 +4543,13 @@ ${taskContext}
 
           if (!part.trim()) return null
 
+          // 🚨 安全过滤：如果这个part包含REPORT标签，完全不渲染
+          // 这是为了防止AI错误地在REPORT标签外输出HTML代码
+          if (part.includes('[REPORT:') || part.includes('[/REPORT]')) {
+            console.warn('[REPORT Filter] Blocking part that contains REPORT tags but was not matched by regex')
+            return null
+          }
+
           return (
             <div key={index}>
               <ReactMarkdown
@@ -3995,6 +4680,21 @@ ${taskContext}
 
   return (
     <>
+    {/* Sonner Toast 通知容器 */}
+    <Toaster 
+      position="top-right" 
+      richColors 
+      closeButton
+      toastOptions={{
+        style: {
+          background: 'white',
+          color: '#09090b',
+          border: '1px solid #e4e4e7',
+        },
+        className: 'dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800',
+      }}
+    />
+    
     <div
       className={cn(
         "relative fixed inset-0 w-full h-full text-zinc-900 dark:text-zinc-100 overflow-hidden flex font-sans selection:bg-primary/20 selection:text-emerald-700",
@@ -4005,8 +4705,9 @@ ${taskContext}
       {/* AI Control Border Effect - 渐变边框效果 */}
       <AIControlBorderEffect isActive={isExecutingControl} duration={2000} />
       
-      {/* Background - Minimal & Clean */}
-      <div className="absolute inset-0 bg-[#FAFAFA] dark:bg-[#09090B]" />
+      {/* Background - Minimal & Clean with Gradient */}
+      <div className="absolute inset-0 bg-[#FAFAFA] dark:bg-[#0B1220]" />
+      <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.08),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.06),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.05),transparent_60%)]" />
 
       {/* Device Operation Indicator - Dynamic Island Style */}
       {executingDeviceName && (
@@ -4064,7 +4765,7 @@ ${taskContext}
 
       {/* Refined Minimalist Sidebar (BeeBot Style) */}
       <div className={cn(
-        "relative flex-shrink-0 bg-[#F9F9F9] dark:bg-[#09090B] border-r border-zinc-200/50 dark:border-zinc-800/50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden z-20 group/sidebar",
+        "relative flex-shrink-0 bg-[#F9F9F9] dark:bg-[#0B1220]/95 border-r border-zinc-200/50 dark:border-white/10 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden z-20 group/sidebar backdrop-blur-xl",
         sidebarOpen ? "w-[260px]" : "w-0 shadow-none border-none"
       )}>
         <div className="w-[260px] h-full flex flex-col pt-6 pb-4">
@@ -4207,7 +4908,7 @@ ${taskContext}
       </div>
 
       {/* Main Interface Content Area */}
-      <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#0C0C0E] transition-colors duration-500 overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#0B1220] transition-colors duration-500 overflow-hidden relative">
         
         {/* Stationary Integrated Header (BeeBot style) */}
         <div className="h-[72px] flex items-center justify-between px-8 shrink-0 z-10 transition-all border-b border-zinc-100 dark:border-zinc-900">
@@ -4219,11 +4920,17 @@ ${taskContext}
             )}
             
             {/* 助手模式选择器 */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 shadow-sm">
+            <div className="relative flex items-center gap-2 px-3 py-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 shadow-sm z-10">
               <button
-                onClick={() => setAssistantMode('chat')}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('[Mode Switch] Switching to chat mode')
+                  setAssistantMode('chat')
+                }}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  "relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
                   assistantMode === 'chat' 
                     ? "bg-blue-500 text-white shadow-sm" 
                     : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -4233,9 +4940,15 @@ ${taskContext}
                 对话模式
               </button>
               <button
-                onClick={() => setAssistantMode('automation')}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('[Mode Switch] Switching to automation mode')
+                  setAssistantMode('automation')
+                }}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  "relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
                   assistantMode === 'automation' 
                     ? "bg-primary text-white shadow-sm" 
                     : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -4245,9 +4958,15 @@ ${taskContext}
                 自动化模式
               </button>
               <button
-                onClick={() => setAssistantMode('expert')}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('[Mode Switch] Switching to expert mode')
+                  setAssistantMode('expert')
+                }}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  "relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
                   assistantMode === 'expert' 
                     ? "bg-purple-500 text-white shadow-sm" 
                     : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -4344,6 +5063,14 @@ ${taskContext}
           {/* Chat/Welcome Scrollable Area */}
           <div id="ai-welcome-area" className="flex-1 overflow-y-auto custom-scrollbar pt-12">
              {messages.length === 0 ? (
+               useModernView ? (
+                 // 新的完全按照设计图的首页视图
+                 <ExactDesignHome 
+                   user={user}
+                   deviceData={deviceData}
+                   onSendMessage={(msg) => handleSend(msg)}
+                 />
+               ) : (
                <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-4xl mx-auto relative z-10 animate-in fade-in zoom-in-95 duration-1000">
                 {/* Subtle Dynamic Mesh Background Background */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-40 dark:opacity-20 blur-[100px]">
@@ -4379,7 +5106,7 @@ ${taskContext}
                     }}
                     className="relative flex items-center justify-center"
                   >
-                    <SiriOrb size="160px" className="shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-transform duration-700" />
+                    <BerryOrb size="160px" isActive={true} className="shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-transform duration-700" />
                   </motion.div>
                 </div>
 
@@ -4625,7 +5352,7 @@ ${taskContext}
                 )}
               </div>
             </div>
-
+               )
           ) : (
             <>
               <Conversation className="flex-1 h-full min-h-0 overflow-hidden">
@@ -4737,14 +5464,9 @@ ${taskContext}
                                   : 'none'
                               }}
                             >
-                              <SiriOrb 
+                              <BerryOrb 
                                 size="32px"
-                                colors={orbConfig.colors}
-                                animationDuration={
-                                  orbConfig.status === 'executing' ? 3 : 
-                                  orbConfig.status === 'thinking' ? 8 : 
-                                  orbConfig.status === 'speaking' ? 4 : 12
-                                }
+                                isActive={orbConfig.status !== 'idle'}
                               />
                             </div>
                           </div>
@@ -4753,7 +5475,7 @@ ${taskContext}
                         <div className={cn(
                           "relative max-w-[85%] text-[16px] leading-[1.6]",
                           msg.role === "user"
-                            ? "bg-[#f4f4f4] dark:bg-[#2f2f2f] text-zinc-900 dark:text-zinc-100 rounded-3xl px-5 py-2.5"
+                            ? "bg-[#f4f4f4] dark:bg-[#1C1C1E] text-zinc-900 dark:text-zinc-100 rounded-3xl px-5 py-2.5 border dark:border-white/10"
                             : "bg-transparent text-zinc-800 dark:text-zinc-200 px-0 py-1"
                         )}>
                           {/* 显示模型标签 */}
@@ -5250,6 +5972,11 @@ ${taskContext}
                            <Globe size={12} />}
                           {studioData.length > 0 ? `正在处理: ${studioData[studioData.length - 1].name}...` : '等待工具执行...'}
                         </>
+                      ) : studioTab === 'report' ? (
+                        <>
+                          <FileText size={12} />
+                          AI生成报告
+                        </>
                       ) : (
                         <>
                           <Clock size={12} />
@@ -5280,7 +6007,7 @@ ${taskContext}
                 <button
                   onClick={() => setStudioTab('tools')}
                   className={cn(
-                    "flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all",
+                    "flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all",
                     studioTab === 'tools'
                       ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
@@ -5288,13 +6015,13 @@ ${taskContext}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Zap size={14} />
-                    工具执行
+                    工具
                   </div>
                 </button>
                 <button
                   onClick={() => setStudioTab('tasks')}
                   className={cn(
-                    "flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all",
+                    "flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all",
                     studioTab === 'tasks'
                       ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
@@ -5302,14 +6029,28 @@ ${taskContext}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Clock size={14} />
-                    定时任务
+                    任务
+                  </div>
+                </button>
+                <button
+                  onClick={() => setStudioTab('report')}
+                  className={cn(
+                    "flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                    studioTab === 'report'
+                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText size={14} />
+                    报告
                   </div>
                 </button>
               </div>
             </div>
 
             {/* Studio Content */}
-            <div className="flex-1 overflow-y-auto p-6 bg-zinc-50 dark:bg-[#09090B]">
+            <div className="flex-1 overflow-y-auto p-6 bg-zinc-50 dark:bg-[#0B1220]">
               {studioTab === 'tools' ? (
                 <div className="space-y-6">
                 {/* AI 视觉巡检区域 */}
@@ -5459,6 +6200,28 @@ ${taskContext}
                   </div>
                 )}
               </div>
+              ) : studioTab === 'report' ? (
+                // 报告标签页
+                <div className="space-y-4">
+                  {(() => {
+                    console.log('[Studio Report Tab] Rendering, reportData:', reportData ? { title: reportData.title, htmlLength: reportData.html.length } : null)
+                    return reportData ? (
+                      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                        <ReportRenderer
+                          htmlContent={reportData.html}
+                          reportTitle={reportData.title}
+                          reportId={`report_${reportData.timestamp}`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+                        <FileText size={48} className="mb-4 opacity-50" />
+                        <p className="text-sm">暂无报告</p>
+                        <p className="text-xs mt-2">AI生成报告后会自动显示在这里</p>
+                      </div>
+                    )
+                  })()}
+                </div>
               ) : (
                 // 定时任务标签页
                 <ScheduledTasksList />
@@ -5622,7 +6385,7 @@ ${taskContext}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[200] bg-white dark:bg-[#09090B] flex flex-col pt-12"
+            className="fixed inset-0 z-[200] bg-white dark:bg-[#0B1220] flex flex-col pt-12"
           >
             <div className="absolute top-6 left-8 z-[210]">
                <Button 

@@ -124,9 +124,9 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
       label: "控制单元",
       desc: isOn ? "电源接通" : "电源断开",
       icon: Power,
-      color: "text-emerald-500 dark:text-emerald-400",
-      bgGradient: "from-emerald-500/5 to-green-500/5 dark:from-emerald-500/10 dark:to-green-500/5",
-      accentColor: "bg-emerald-500",
+      color: "text-primary dark:text-emerald-400",
+      bgGradient: "from-primary/5 to-green-500/5 dark:from-primary/10 dark:to-green-500/5",
+      accentColor: "bg-primary",
       isOn
     };
   };
@@ -169,7 +169,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         "absolute left-0 top-0 bottom-0 w-1",
         status === 'loading' ? "bg-amber-500" :
         status === 'pending' ? "bg-blue-500" :
-        status === 'executed' ? (meta.isOn ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600") : 
+        status === 'executed' ? (meta.isOn ? "bg-primary" : "bg-zinc-400 dark:bg-zinc-600") : 
         "bg-red-500"
       )} />
 
@@ -257,10 +257,10 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
               {/* ON/OFF 状态显示 - 超级明显 */}
               {command.action === 'set_led' ? (
                 <div className="flex flex-col items-center">
-                  <div className="size-14 rounded-2xl bg-emerald-500/15 dark:bg-emerald-500/25 border-2 border-emerald-500/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <CheckCircle2 size={26} className="text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+                  <div className="size-14 rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <CheckCircle2 size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mt-1">
+                  <span className="text-[10px] font-bold text-primary dark:text-emerald-400 uppercase tracking-wider mt-1">
                     已设置
                   </span>
                 </div>
@@ -269,10 +269,10 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
                   {meta.isOn ? (
                     // ON 状态 - 绿色高亮
                     <>
-                      <div className="size-14 rounded-2xl bg-emerald-500/15 dark:bg-emerald-500/25 border-2 border-emerald-500/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                        <CheckCircle2 size={26} className="text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+                      <div className="size-14 rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <CheckCircle2 size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
                       </div>
-                      <div className="mt-1.5 px-3 py-1 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 border border-emerald-500/40">
+                      <div className="mt-1.5 px-3 py-1 rounded-full bg-primary/20 dark:bg-primary/30 border border-primary/40">
                         <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
                           ON
                         </span>

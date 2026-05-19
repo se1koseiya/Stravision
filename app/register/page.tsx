@@ -84,6 +84,22 @@ export default function RegisterPage() {
     }
   }, [countdown])
 
+  // 当验证码组件显示或验证码发送成功时，自动滚动到最底部以展现完整信息
+  React.useEffect(() => {
+    if (showCaptcha || codeSent) {
+      const timer = setTimeout(() => {
+        const panel = document.querySelector('.exact-left-panel')
+        if (panel) {
+          panel.scrollTo({
+            top: panel.scrollHeight,
+            behavior: 'smooth'
+          })
+        }
+      }, 300) // 300ms 完美契合 Framer Motion 折叠下拉过渡动画
+      return () => clearTimeout(timer)
+    }
+  }, [showCaptcha, codeSent])
+
   // 实际发送验证码逻辑
   const doSendCode = async () => {
     setSendingCode(true)
@@ -203,45 +219,42 @@ export default function RegisterPage() {
       title="加入我们" 
       subtitle="创建您的 Stravision ID"
     >
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">邮箱</Label>
-          <div className="relative group">
-            <Input
-              id="email"
-              type="email"
-              placeholder="请输入邮箱"
-              className="h-11 pr-[100px] rounded-xl bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500 transition-all duration-300 font-jinbuti"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); if (emailError) validateEmail(e.target.value) }}
-              onBlur={(e) => validateEmail(e.target.value)}
-            />
-            <div className="absolute right-1 top-1 bottom-1 flex items-center">
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-full px-3 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all text-xs font-medium font-jinbuti"
-                onClick={handleGetCodeClick}
-                disabled={sendingCode || countdown > 0 || !email}
-              >
-                {sendingCode ? (
-                  <div className="flex gap-0.5">
-                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                ) : countdown > 0 ? (
-                  `${countdown}s`
-                ) : codeSent ? (
-                  "重发"
-                ) : (
-                  "获取验证码"
-                )}
-              </Button>
-            </div>
+      <div className="space-y-3.5">
+        <div className="space-y-1.5 relative group">
+          <Input
+            id="email"
+            type="email"
+            placeholder="账户邮箱"
+            className="h-11 pr-[110px] rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 text-sm shadow-inner w-full"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); if (emailError) validateEmail(e.target.value) }}
+            onBlur={(e) => validateEmail(e.target.value)}
+          />
+          <div className="absolute right-1 top-1 bottom-1 flex items-center pr-1">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 px-3.5 rounded-full bg-black hover:bg-black/80 text-white text-[11px] font-medium transition-all duration-300"
+              onClick={handleGetCodeClick}
+              disabled={sendingCode || countdown > 0 || !email}
+            >
+              {sendingCode ? (
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              ) : countdown > 0 ? (
+                `${countdown}s`
+              ) : codeSent ? (
+                "重发"
+              ) : (
+                "获取"
+              )}
+            </Button>
           </div>
-          {emailError && <p className="text-xs text-red-400 font-jinbuti">{emailError}</p>}
         </div>
+        {emailError && <p className="text-[10px] text-red-500 font-medium pl-3">{emailError}</p>}
 
         {/* Recaptz Widget for Email Verification */}
         <AnimatePresence>
@@ -253,8 +266,8 @@ export default function RegisterPage() {
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div className="py-2 bg-white/5 rounded-xl border border-white/10 p-4">
-                <p className="text-xs text-white/60 mb-3 text-center font-jinbuti">请完成安全验证以获取验证码</p>
+              <div className="py-2 bg-[#e8e7e3] rounded-2xl p-4 shadow-inner">
+                <p className="text-[11px] text-[#666] mb-3 text-center font-medium">请完成安全验证以获取验证码</p>
                 <RecaptzWidget onSuccess={handleCaptchaSuccess} />
               </div>
             </motion.div>
@@ -265,11 +278,11 @@ export default function RegisterPage() {
           {codeSent && (
             <motion.div
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
-              animate={{ opacity: 1, height: "auto", marginTop: 16 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 12 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="overflow-hidden space-y-2"
             >
-              <Label htmlFor="code" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">邮箱验证码</Label>
+              <Label htmlFor="code" className="text-[#666] text-xs font-semibold pl-2">邮箱验证码</Label>
               <InputOTP
                 maxLength={6}
                 value={verificationCode}
@@ -279,71 +292,69 @@ export default function RegisterPage() {
                 }}
               >
                 <InputOTPGroup className="w-full justify-center gap-2">
-                  <InputOTPSlot index={0} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                  <InputOTPSlot index={1} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                  <InputOTPSlot index={2} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                  <InputOTPSlot index={3} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                  <InputOTPSlot index={4} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                  <InputOTPSlot index={5} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
+                  <InputOTPSlot index={0} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                  <InputOTPSlot index={1} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                  <InputOTPSlot index={2} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                  <InputOTPSlot index={3} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                  <InputOTPSlot index={4} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                  <InputOTPSlot index={5} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
                 </InputOTPGroup>
               </InputOTP>
-              {codeError && <p className="text-xs text-red-400 font-jinbuti text-center">{codeError}</p>}
+              {codeError && <p className="text-[10px] text-red-500 font-medium text-center">{codeError}</p>}
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="space-y-2">
-          <Label htmlFor="username" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">用户名</Label>
+        <div className="space-y-1.5">
           <Input
             id="username"
             type="text"
-            placeholder="请输入显示名称"
-            className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500 transition-all duration-300 font-jinbuti"
+            placeholder="显示名称 / 用户名"
+            className="h-11 rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 text-sm shadow-inner w-full"
             value={username}
             onChange={(e) => { setUsername(e.target.value); if (usernameError) validateUsername(e.target.value) }}
             onBlur={(e) => validateUsername(e.target.value)}
           />
-          {usernameError && <p className="text-xs text-red-400 font-jinbuti">{usernameError}</p>}
+          {usernameError && <p className="text-[10px] text-red-500 font-medium pl-3">{usernameError}</p>}
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">密码</Label>
+        <div className="space-y-1.5">
           <Input
             id="password"
             type="password"
-            placeholder="至少8个字符"
-            className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500 transition-all duration-300 font-jinbuti"
+            placeholder="密码 (至少8个字符)"
+            className="h-11 rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 text-sm shadow-inner w-full"
             value={password}
             onChange={(e) => { setPassword(e.target.value); if (passwordError) validatePassword(e.target.value) }}
             onBlur={(e) => validatePassword(e.target.value)}
           />
-          {passwordError && <p className="text-xs text-red-400 font-jinbuti">{passwordError}</p>}
+          {passwordError && <p className="text-[10px] text-red-500 font-medium pl-3">{passwordError}</p>}
         </div>
 
-        <div className="flex items-center space-x-2 py-1">
+        <div className="flex items-center space-x-2 py-1 pl-1">
           <Checkbox 
             id="terms" 
             checked={agreed} 
             onCheckedChange={(checked) => setAgreed(checked as boolean)}
-            className="border-white/20 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+            className="border-black/20 data-[state=checked]:bg-black data-[state=checked]:border-black rounded-sm"
           />
           <label
             htmlFor="terms"
-            className="text-xs text-white/60 font-jinbuti leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-[11px] text-[#666] leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-medium"
           >
             我已阅读并同意
-            <Link href="/terms" target="_blank" className="text-emerald-500 hover:text-emerald-400 hover:underline mx-1">
+            <Link href="/terms" target="_blank" className="text-[#3c763d] hover:text-black font-semibold mx-1">
               服务条款
             </Link>
             和
-            <Link href="/privacy" target="_blank" className="text-emerald-500 hover:text-emerald-400 hover:underline mx-1">
+            <Link href="/privacy" target="_blank" className="text-[#3c763d] hover:text-black font-semibold mx-1">
               隐私政策
             </Link>
           </label>
         </div>
         
         <Button
-          className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all duration-300 mt-2 font-jinbuti" 
+          className="w-full h-11 rounded-full bg-black hover:bg-black/80 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm tracking-wider mt-2" 
           onClick={onSubmit} 
           disabled={loading}
         >
@@ -354,51 +365,48 @@ export default function RegisterPage() {
                 <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="font-jinbuti">创建账户中...</span>
+              <span>创建账户中...</span>
             </>
-          ) : "注册账户"}
+          ) : "注 册 账 户"}
         </Button>
         
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center flex items-center justify-center gap-2 font-jinbuti">
+          <div className="p-2.5 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[11px] font-medium text-center flex items-center justify-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             {error}
           </div>
         )}
 
-        <div className="relative py-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="px-2 bg-[#0a0a0a] text-white/30 uppercase tracking-widest font-jinbuti">其他方式注册</span>
-          </div>
+        <div className="flex items-center justify-between gap-4 py-2">
+          <div className="h-[1px] flex-1 bg-[#e4e2dd]"></div>
+          <span className="text-[10px] text-[#aaa] uppercase tracking-widest font-medium">其他方式注册</span>
+          <div className="h-[1px] flex-1 bg-[#e4e2dd]"></div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Button 
             variant="outline" 
-            className="h-10 rounded-xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white hover:border-white/20 transition-all"
+            className="h-11 rounded-full bg-white hover:bg-gray-50 text-black border border-black/5 shadow-sm transition-all flex items-center justify-center gap-2"
             onClick={() => window.location.href = "/api/auth/alipay/login"}
           >
-            <Image src="/alipay.svg" alt="Alipay" width={20} height={20} className="w-5 h-5 mr-2 opacity-80" />
-            <span className="text-xs">支付宝</span>
+            <Image src="/alipay.svg" alt="Alipay" width={20} height={20} className="w-5 h-5 mr-1" />
+            <span className="text-xs font-semibold">支付宝</span>
           </Button>
           <Button 
             variant="outline" 
-            className="h-10 rounded-xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white hover:border-white/20 transition-all"
+            className="h-11 rounded-full bg-white hover:bg-gray-50 text-black border border-black/5 shadow-sm transition-all flex items-center justify-center gap-2"
             onClick={() => window.location.href = "/api/auth/qq/login"}
           >
-            <svg className="w-5 h-5 mr-2 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-5 h-5 mr-1" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
               <path d="M824.8 613.2c-16-51.4-34.4-94.6-62.7-165.3C766.5 262.2 689.3 112 511.5 112 331.7 112 256.2 265.2 261 447.9c-28.4 70.8-46.7 113.7-62.7 165.3-34 109.5-23 154.8-14.6 155.8 18 2.2 70.1-82.4 70.1-82.4 0 49 25.2 112.9 79.8 159-26.4 8.1-85.7 29.9-71.6 53.8 11.4 19.3 196.2 12.3 249.5 6.3 53.3 6 238.1 13 249.5-6.3 14.1-23.8-45.2-45.7-71.6-53.8 54.6-46.2 79.8-110.1 79.8-159 0 0 52.1 84.6 70.1 82.4 8.5-1.1 19.5-46.4-14.5-155.8z" fill="currentColor"/>
             </svg>
-            <span className="text-xs">QQ</span>
+            <span className="text-xs font-semibold">QQ</span>
           </Button>
         </div>
 
-        <p className="text-xs text-center text-white/30 pt-4 font-jinbuti">
+        <p className="text-xs text-center text-[#999] pt-3 font-medium">
           已有账户？{" "}
-          <Link href="/login" className="text-emerald-500 hover:text-emerald-400 hover:underline transition-all">
+          <Link href="/login" className="text-[#3c763d] hover:text-black font-semibold transition-all">
             直接登录
           </Link>
         </p>

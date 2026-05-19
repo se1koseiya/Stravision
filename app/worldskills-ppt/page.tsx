@@ -90,7 +90,7 @@ export default function WorldSkillsPresentation() {
   const CurrentComponent = slides[currentSlide].component
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden relative font-sans selection:bg-emerald-500/30">
+    <div className="w-screen h-screen bg-black overflow-hidden relative font-sans selection:bg-primary/30">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
@@ -148,9 +148,9 @@ export default function WorldSkillsPresentation() {
       </div>
       
       {/* Progress Bar */}
-      <div className="absolute bottom-0 left-0 h-1 bg-emerald-500/20 w-full z-50">
+      <div className="absolute bottom-0 left-0 h-1 bg-primary/20 w-full z-50">
         <motion.div 
-          className="h-full bg-emerald-500"
+          className="h-full bg-primary"
           initial={{ width: "0%" }}
           animate={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
           transition={{ duration: 0.5 }}

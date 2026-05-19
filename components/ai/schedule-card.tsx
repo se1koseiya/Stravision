@@ -49,14 +49,14 @@ function CountdownToast({ id, targetTime, title }: { id: string | number, target
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">任务倒计时</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{title}</div>
+            <div className="text-xs text-muted-foreground dark:text-muted-foreground truncate">{title}</div>
           </div>
         </div>
         <div className="text-xl font-bold text-blue-600 dark:text-blue-400 font-mono shrink-0">{remaining}s</div>
       </div>
       
       {/* Progress Bar */}
-      <div className="h-1.5 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-muted dark:bg-white/10 rounded-full overflow-hidden">
         <div 
           className="h-full bg-blue-500 dark:bg-blue-600 transition-all duration-1000 ease-linear" 
           style={{ width: `${progress}%` }}
@@ -203,7 +203,7 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="my-2 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium"
+        className="my-2 flex items-center gap-2 text-sm text-primary dark:text-emerald-400 font-medium"
       >
         <CheckCircle2 size={16} />
         <span>✅ 定时任务已创建：{data.title}</span>

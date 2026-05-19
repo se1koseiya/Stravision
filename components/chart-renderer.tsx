@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic'
 // Create a dynamic component for Vega Lite
 const VegaLiteChart = dynamic(() => import('./vega-chart'), { 
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-full text-gray-400 text-sm">Loading chart...</div>
+  loading: () => <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Loading chart...</div>
 })
 
 interface ChartRendererProps {

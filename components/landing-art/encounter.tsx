@@ -27,7 +27,7 @@ export function Encounter() {
         </motion.h1>
         
         <motion.p 
-          className="mt-12 text-xl md:text-2xl text-gray-400 font-light tracking-[0.5em] uppercase mix-blend-difference"
+          className="mt-12 text-xl md:text-2xl text-muted-foreground font-light tracking-[0.5em] uppercase mix-blend-difference"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1.5 }}

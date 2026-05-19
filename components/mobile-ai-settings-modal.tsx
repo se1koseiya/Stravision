@@ -168,10 +168,10 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               </div>
               <div>
                 <div className="text-base font-bold text-gray-900 dark:text-gray-100">模型配置</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">配置您的专属 AI 助手</div>
+                <div className="text-xs text-muted-foreground dark:text-muted-foreground">配置您的专属 AI 助手</div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full hover:bg-gray-100 dark:hover:bg-white/10 h-8 w-8 text-gray-500">
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full hover:bg-muted dark:hover:bg-white/10 h-8 w-8 text-muted-foreground">
               <X size={18} />
             </Button>
           </div>
@@ -181,7 +181,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             
             {/* API Type Selector */}
             <div className="space-y-3">
-              <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">大模型厂商选择</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">大模型厂商选择</Label>
               <div 
                 className="flex flex-row overflow-x-auto gap-2 pb-2 snap-x snap-mandatory px-1"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -219,7 +219,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                         "flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap snap-center shrink-0 border",
                         apiType === p.id 
                           ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 border-transparent shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
-                          : "text-gray-600 dark:text-gray-400 border-gray-200/50 dark:border-white/5 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5 bg-gray-50/50 dark:bg-zinc-800/20"
+                          : "text-muted-foreground dark:text-muted-foreground border-border/50 dark:border-white/5 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5 bg-gray-50/50 dark:bg-zinc-800/20"
                       )}
                     >
                       <Icon size={16} />
@@ -228,7 +228,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                   )
                 })}
               </div>
-              <p className="text-[10px] text-gray-400 px-1">
+              <p className="text-[10px] text-muted-foreground px-1">
                 {[
                   { id: "system", desc: "阿里云百炼提供基础AI能力，每日固定免费额度，无需手动配置。" },
                   { id: "dashscope", desc: "推荐国内用户使用，填入自定义阿里云百炼 Key 即可享用。" },
@@ -245,9 +245,9 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             </div>
 
             {apiType === "system" ? (
-               <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-4 border border-emerald-100 dark:border-emerald-500/20">
+               <div className="bg-emerald-50 dark:bg-primary/10 rounded-xl p-4 border border-emerald-100 dark:border-primary/20">
                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-full text-emerald-600 dark:text-emerald-400">
+                     <div className="p-2 bg-emerald-100 dark:bg-primary/20 rounded-full text-primary dark:text-emerald-400">
                         <ShieldCheck size={20} />
                      </div>
                      <div>
@@ -259,9 +259,9 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             ) : (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
               <div className="space-y-2">
-                <Label htmlFor="model" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">模型名称</Label>
+                <Label htmlFor="model" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">模型名称</Label>
                 <div className="relative group">
-                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="model" 
                     placeholder={
@@ -276,36 +276,36 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                     }
                     value={settings.model} 
                     onChange={(e) => setSettings({ ...settings, model: e.target.value })} 
-                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all" 
+                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-border dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all" 
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="apiKey" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">API Key</Label>
+                <Label htmlFor="apiKey" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">API Key</Label>
                 <div className="relative group">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="apiKey" 
                     type="password" 
                     placeholder="sk-..." 
                     value={settings.apiKey} 
                     onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })} 
-                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all font-mono text-sm" 
+                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-border dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all font-mono text-sm" 
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="apiUrl" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">API 接入点</Label>
+                <Label htmlFor="apiUrl" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">API 接入点</Label>
                 <div className="relative group">
-                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="apiUrl" 
                     placeholder="https://..." 
                     value={settings.apiUrl} 
                     onChange={(e) => setSettings({ ...settings, apiUrl: e.target.value })} 
-                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all font-mono text-xs" 
+                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-border dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all font-mono text-xs" 
                   />
                 </div>
               </div>
@@ -313,15 +313,15 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             )}
 
             <div className="space-y-2">
-                <Label htmlFor="systemPrompt" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">系统提示词</Label>
+                <Label htmlFor="systemPrompt" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">系统提示词</Label>
                 <div className="relative group">
-                  <MessageSquareText className="absolute left-3 top-4 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <MessageSquareText className="absolute left-3 top-4 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Textarea 
                     id="systemPrompt" 
                     placeholder="定义 AI 助手的角色和行为..." 
                     value={settings.systemPrompt} 
                     onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })} 
-                    className="pl-10 min-h-[100px] bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all resize-none leading-relaxed" 
+                    className="pl-10 min-h-[100px] bg-gray-50 dark:bg-zinc-800/50 border-border dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all resize-none leading-relaxed" 
                   />
                 </div>
               </div>
@@ -333,7 +333,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               <Button 
                 variant="outline" 
                 onClick={() => onOpenChange(false)} 
-                className="flex-1 h-12 rounded-xl border-gray-200 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5 text-gray-600"
+                className="flex-1 h-12 rounded-xl border-border hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5 text-muted-foreground"
               >
                 取消
               </Button>

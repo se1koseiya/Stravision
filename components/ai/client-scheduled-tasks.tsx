@@ -77,7 +77,7 @@ export function ClientScheduledTasks() {
       case 'completed':
         return <CheckCircle2 className="h-4 w-4 text-green-500" />
       case 'cancelled':
-        return <XCircle className="h-4 w-4 text-gray-400" />
+        return <XCircle className="h-4 w-4 text-muted-foreground" />
       default:
         return <Clock className="h-4 w-4" />
     }

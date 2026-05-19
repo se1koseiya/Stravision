@@ -261,7 +261,7 @@ export default function TooManyRequestsPage() {
                                 <div className="flex gap-2">
                                     <div className="w-2 h-2 rounded-full bg-red-500/40 shadow-[0_0_5px_rgba(239,68,68,0.4)]" />
                                     <div className="w-2 h-2 rounded-full bg-yellow-500/40 shadow-[0_0_5px_rgba(234,179,8,0.4)]" />
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500/40 shadow-[0_0_5px_rgba(16,185,129,0.4)]" />
+                                    <div className="w-2 h-2 rounded-full bg-primary/40 shadow-[0_0_5px_rgba(16,185,129,0.4)]" />
                                 </div>
                                 <span className="font-jinbuti text-[10px] text-red-500/60 tracking-[0.2em] uppercase">Traffic Control // Active</span>
                             </div>
@@ -274,8 +274,8 @@ export default function TooManyRequestsPage() {
                                     {/* Oscilloscope Screen */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-end px-1">
-                                            <span className="font-jinbuti text-[10px] text-emerald-500/60 uppercase">Signal Input</span>
-                                            <span className="font-jinbuti text-[10px] text-emerald-500/60">{isLocked ? "LOCKED" : "SEARCHING"}</span>
+                                            <span className="font-jinbuti text-[10px] text-primary/60 uppercase">Signal Input</span>
+                                            <span className="font-jinbuti text-[10px] text-primary/60">{isLocked ? "LOCKED" : "SEARCHING"}</span>
                                         </div>
                                         <div className="h-40 md:h-56 relative group-hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-shadow duration-500">
                                             <Oscilloscope quality={quality} isLocked={isLocked} />
@@ -290,10 +290,10 @@ export default function TooManyRequestsPage() {
                                                         className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-20"
                                                     >
                                                         <div className="flex flex-col items-center gap-2">
-                                                            <div className="w-12 h-12 rounded-full border-2 border-emerald-500 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] bg-emerald-950/50">
-                                                                <Lock className="w-5 h-5 text-emerald-500" />
+                                                            <div className="w-12 h-12 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] bg-emerald-950/50">
+                                                                <Lock className="w-5 h-5 text-primary" />
                                                             </div>
-                                                            <span className="font-jinbuti text-emerald-500 tracking-widest text-sm font-bold shadow-black drop-shadow-md">SIGNAL LOCKED</span>
+                                                            <span className="font-jinbuti text-primary tracking-widest text-sm font-bold shadow-black drop-shadow-md">SIGNAL LOCKED</span>
                                                         </div>
                                                     </motion.div>
                                                 )}
@@ -324,7 +324,7 @@ export default function TooManyRequestsPage() {
                                             <div className="text-[10px] font-jinbuti text-zinc-500 uppercase">Signal Quality</div>
                                             <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                                                 <motion.div 
-                                                    className="h-full bg-emerald-500 shadow-[0_0_10px_#10b981]"
+                                                    className="h-full bg-primary shadow-[0_0_10px_#10b981]"
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${quality * 100}%` }}
                                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -338,7 +338,7 @@ export default function TooManyRequestsPage() {
                                 <div className="pt-6 border-t border-white/5 flex items-center justify-between gap-8">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-4 mb-2">
-                                            <div className={cn("w-1.5 h-1.5 rounded-full", isLocked ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : "bg-zinc-600")} />
+                                            <div className={cn("w-1.5 h-1.5 rounded-full", isLocked ? "bg-primary shadow-[0_0_8px_#10b981]" : "bg-zinc-600")} />
                                             <span className="text-xs font-jinbuti text-zinc-400 uppercase tracking-wider">Manual Tuning</span>
                                         </div>
                                         <p className="text-[10px] font-jinbuti text-zinc-600 leading-relaxed max-w-[200px]">
@@ -385,14 +385,14 @@ export default function TooManyRequestsPage() {
                                     exit={{ opacity: 0, y: -10 }}
                                     className="space-y-4"
                                 >
-                                    <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 backdrop-blur-sm">
+                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 backdrop-blur-sm">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <div className="p-1 rounded-full bg-emerald-500/20 text-emerald-500">
+                                            <div className="p-1 rounded-full bg-primary/20 text-primary">
                                                 <Check className="w-3 h-3" />
                                             </div>
                                             <span className="font-jinbuti text-sm font-bold text-emerald-400 tracking-wide">通道已恢复</span>
                                         </div>
-                                        <p className="text-xs font-jinbuti text-emerald-500/60 pl-8">
+                                        <p className="text-xs font-jinbuti text-primary/60 pl-8">
                                             验证通过。您可以继续之前的操作。
                                         </p>
                                     </div>

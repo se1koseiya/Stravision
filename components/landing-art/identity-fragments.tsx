@@ -42,7 +42,7 @@ function FragmentItem({ text, subText, iconPath, index }: FragmentProps) {
           <h2 className="text-6xl md:text-8xl font-jinbuti font-bold text-white tracking-tighter leading-none">
             {text}
           </h2>
-          <p className="text-xl text-gray-400 font-jinbuti tracking-widest uppercase">
+          <p className="text-xl text-muted-foreground font-jinbuti tracking-widest uppercase">
             {subText}
           </p>
         </div>

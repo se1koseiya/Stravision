@@ -2,174 +2,265 @@
 
 import { motion, useScroll, useTransform } from "framer-motion"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { GlassCard } from "@/components/ui/glass-card"
+import Image from "next/image"
+import { ChevronRight, Sparkles } from "lucide-react"
+import { useRef } from "react"
 
 export function Hero() {
-  const { scrollY } = useScroll()
-  const y = useTransform(scrollY, [0, 500], [0, 200])
-  const opacity = useTransform(scrollY, [0, 300], [1, 0])
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"]
+  })
 
-  // Decoding Text Effect
-  const [text, setText] = useState("")
-  const targetText = "STRAVISION"
-  
-  useEffect(() => {
-    let iterations = 0
-    const interval = setInterval(() => {
-      setText(targetText.split("")
-        .map((letter, index) => {
-          if (index < iterations) {
-            return targetText[index]
-          }
-          return String.fromCharCode(65 + Math.floor(Math.random() * 26))
-        })
-        .join("")
-      )
-      
-      if (iterations >= targetText.length) {
-        clearInterval(interval)
-      }
-      
-      iterations += 1/3
-    }, 30)
-    
-    return () => clearInterval(interval)
-  }, [])
+  const yBg = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
+  const yText = useTransform(scrollYProgress, [0, 1], ["0%", "80%"])
+  const yCharacter = useTransform(scrollYProgress, [0, 1], ["0%", "30%"])
 
   return (
-    <section className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden pt-20">
-      
-      {/* Background Typography (Massive) */}
-      <motion.div 
-        style={{ y, opacity }}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-      >
-        <h1 className="text-[25vw] font-jinbuti text-[#101010] tracking-tighter leading-none select-none">
-          IOT
-        </h1>
-      </motion.div>
+    <section
+      ref={ref}
+      className="relative w-full flex flex-col pt-6 pb-32 bg-gradient-to-b from-[#6fbcf8] via-[#85c8f9] to-[#b4defb] overflow-hidden z-20"
+    >
+      {/* Decorative Background Clouds & Parallax Orbs */}
+      <motion.div style={{ y: yBg }} className="absolute inset-0 z-0 pointer-events-none">
+        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-[5%] left-[5%] w-[400px] h-[400px] bg-white/40 blur-[80px] rounded-full" />
+        <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 10, repeat: Infinity, delay: 1 }} className="absolute top-[15%] right-[10%] w-[500px] h-[500px] bg-blue-300/40 blur-[100px] rounded-full" />
+        <motion.div animate={{ x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 12, repeat: Infinity }} className="absolute bottom-[20%] left-[20%] w-[350px] h-[350px] bg-cyan-200/40 blur-[60px] rounded-full" />
 
-      {/* Top Status Bar - Floating Pill */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1 }}
-        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
-      >
-        <GlassCard className="flex items-center gap-6 px-6 py-2 rounded-full bg-black/40 border-white/10 pointer-events-auto" hoverEffect={false}>
-          <div className="flex gap-4 text-xs font-jinbuti text-emerald-500/80 tracking-wider items-center">
-            <span className="text-white/40">V4.0.2</span>
-            <span className="w-1 h-1 rounded-full bg-white/20" />
-            <span className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              已连接
-            </span>
-          </div>
-          <div className="hidden md:flex gap-1.5 opacity-50">
-             {[1,2,3,4].map(i => (
-               <div key={i} className={`w-1 h-4 rounded-full ${i===4 ? 'bg-emerald-500' : 'bg-emerald-900/40'}`} />
-             ))}
-          </div>
-        </GlassCard>
-      </motion.div>
-
-      {/* Main Content */}
-      <div className="relative z-10 w-full max-w-[90vw] mx-auto flex flex-col items-start md:items-center">
-
-        {/* Hero Title */}
-        <div className="relative mb-8">
-          <motion.h1 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ 
-              scale: 1, 
-              opacity: [1, 0.9, 1, 0.8, 1, 0.4, 1, 0.9, 1], // Flickering opacity
-              filter: [
-                "drop-shadow(0 0 0px rgba(255,255,255,0))",
-                "drop-shadow(0 0 10px rgba(255,255,255,0.4))",
-                "drop-shadow(0 0 20px rgba(255,255,255,0.6))", 
-                "drop-shadow(0 0 5px rgba(255,255,255,0.2))"
-              ]
+        {/* Floating little particles */}
+        {[...Array(15)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+            initial={{ x: Math.random() * 100 + "%", y: Math.random() * 100 + "%", opacity: Math.random() }}
+            animate={{
+              y: [null, Math.random() * -100 - 50],
+              opacity: [null, 0]
             }}
-            transition={{ 
-              scale: { duration: 0.8, ease: "easeOut" },
-              opacity: {
-                duration: 3,
-                repeat: Infinity,
-                repeatType: "reverse",
-                times: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5, 1],
-                ease: "linear"
-              },
-              filter: {
-                duration: 3,
-                repeat: Infinity,
-                repeatType: "reverse",
-                times: [0, 0.05, 0.1, 0.5],
-                ease: "linear"
-              }
-            }}
-            className="text-8xl md:text-[12rem] font-jinbuti tracking-tighter leading-[0.8] text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50"
-          >
-            莓界
-          </motion.h1>
-          
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="h-1 bg-emerald-500 mt-4"
+            transition={{ duration: Math.random() * 5 + 5, repeat: Infinity, ease: "linear" }}
           />
+        ))}
+      </motion.div>
+
+      {/* Top Navigation */}
+      <header className="relative z-50 flex items-center justify-between px-8 py-4 w-full max-w-7xl mx-auto">
+        <div className="flex items-center gap-2">
+          {/* Logo icon */}
+          <div className="w-8 h-8 flex items-center justify-center">
+            <div className="text-white font-bold text-xl tracking-tighter flex items-center gap-2">
+              <div className="w-20 h-20 flex items-center justify-center">
+                <Image src="/icon.png" alt="Logo" width={50} height={50} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Subtitle / Description */}
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="text-xl md:text-3xl font-jinbuti text-white/60 max-w-2xl text-left md:text-center leading-relaxed"
-        >
-          让大棚开始<span className="text-emerald-400">自己运转</span>。
-          <br className="hidden md:block" />
-          莓小智正在巡检你的环境数据。
-        </motion.p>
+        <nav className="hidden md:flex items-center bg-white/30 rounded-full p-1 border border-white/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(255,255,255,0.2)]">
+          <Link href="#dashboard" className="px-5 py-2 text-sm text-blue-500 bg-white rounded-full font-medium shadow-sm">
+            控制台
+          </Link>
+          <Link href="#limits" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
+            设备管理
+          </Link>
+          <Link href="#prices" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
+            数据分析
+          </Link>
+          <Link href="#faq" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
+            自动化
+          </Link>
+          <Link href="#blog" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
+            知识库
+          </Link>
+        </nav>
 
-        {/* CTA Buttons - Industrial Style */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="flex flex-col md:flex-row gap-6 mt-16 w-full md:w-auto"
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="text-sm text-white font-medium hover:text-white/80 transition-colors">
+            登录
+          </Link>
+          <Link href="/dashboard" className="px-5 py-2.5 rounded-full bg-black text-white text-sm font-medium hover:bg-black/80 transition-colors flex items-center gap-2">
+            立即开启 <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Hero Content */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-start pt-16 px-4">
+
+        <motion.div
+          style={{ y: yText }}
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 1, type: "spring", bounce: 0.4 }}
+          className="flex flex-col items-center text-center max-w-5xl relative z-20"
         >
-          <Link href="/dashboard" className="group relative px-8 py-4 bg-white text-black font-jinbuti tracking-wide overflow-hidden">
-            <div className="absolute inset-0 bg-emerald-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-            <span className="relative z-10 group-hover:text-black transition-colors flex items-center gap-2">
-              进入体验 
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            </span>
-          </Link>
-          
-          <Link href="/docs" className="group px-8 py-4 border border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-white/80 hover:text-white font-jinbuti text-sm flex items-center justify-center">
-            <span className="mr-2 opacity-50 group-hover:opacity-100">&lt;</span>
-            查看接入文档
-            <span className="ml-2 opacity-50 group-hover:opacity-100">/&gt;</span>
-          </Link>
+
+
+          <h1 className="text-6xl md:text-[6rem] lg:text-[7.5rem] font-black tracking-tighter mb-6 leading-[1.05] text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/70 drop-shadow-xl font-alimama">
+            让AI接管<br />
+            你的大棚
+          </h1>
+
+          <p className="text-xl md:text-2xl text-white/95 max-w-2xl mx-auto mb-12 font-medium drop-shadow-md font-alimama">
+            AI智能体 + IoT设备协同，用自然语言对话即可掌控整个温室。
+          </p>
+
+          <div className="flex items-center gap-4 mb-16">
+            <Link href="/dashboard" className="px-6 py-3 rounded-full bg-black text-white hover:bg-black/80 transition-colors flex items-center gap-2 text-sm font-medium shadow-lg">
+              <span className="w-4 h-4 bg-white text-black rounded-full flex items-center justify-center text-[10px] font-bold">W</span>
+              进入网页控制台
+            </Link>
+            <a href="https://mp.weixin.qq.com/s/your-article-link" target="_blank" rel="noopener noreferrer" className="px-6 py-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm font-medium shadow-lg">
+              <span className="w-4 h-4 bg-white text-blue-500 rounded-full flex items-center justify-center text-[10px]">↗</span>
+              关注微信公众号
+            </a>
+          </div>
         </motion.div>
 
+        {/* Central Visual (3D Scene) */}
+        <div className="relative w-full max-w-6xl h-[650px] flex items-center justify-center mt-10 pointer-events-none" style={{ perspective: '2000px' }}>
+
+          <motion.div style={{ y: yCharacter }} className="absolute inset-0 flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
+
+            {/* Main Portrait (Static in center) */}
+            <div className="absolute bottom-[-150px] w-[800px] h-[900px] mask-image-b" style={{ transform: 'translateZ(0)', clipPath: 'polygon(0% 0%, 100% 0%, 100% 93.5%, 0% 93.5%)' }}>
+              <Image
+                src="/ip/sit.png"
+                alt="Hero portrait"
+                fill
+                className="object-contain object-bottom"
+                priority
+              />
+            </div>
+
+            {/* Floating Cards Array (Rotating Carousel) */}
+            <motion.div
+              className="absolute top-[40%] mt-[-120px] w-[240px] h-[300px]"
+              style={{ transformStyle: 'preserve-3d' }}
+              animate={{ rotateY: [0, -360] }}
+              transition={{ repeat: Infinity, duration: 35, ease: "linear" }}
+            >
+
+              {/* Card 1: AI感知 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full bg-white/60 backdrop-blur-2xl border border-white/60 rounded-[2rem] shadow-[0_32px_64px_rgba(0,0,0,0.15)] p-6 flex flex-col pointer-events-auto transition-transform hover:scale-105"
+                style={{ transform: 'rotateY(0deg) translateZ(650px)' }}
+              >
+                <div className="text-xs text-gray-500 font-medium mb-1">AI 感知层</div>
+                <div className="text-lg font-bold mb-4 leading-tight">多维传感<br />实时融合</div>
+                <div className="flex-1 w-full flex items-end justify-between gap-1.5 mb-2">
+                  {[40, 60, 30, 80, 50, 70, 40].map((h, i) => <div key={i} className={`w-full rounded-sm ${i === 3 ? 'bg-rose-400' : 'bg-gray-200'}`} style={{ height: `${h}%` }} />)}
+                </div>
+                <div className="text-lg font-bold text-gray-800">6路 <span className="text-[10px] text-gray-400 font-normal">传感器在线</span></div>
+              </div>
+
+              {/* Card 2: AI决策 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full bg-black/40 backdrop-blur-2xl border border-white/30 rounded-[2rem] shadow-[0_32px_64px_rgba(0,0,0,0.25)] p-6 flex flex-col pointer-events-auto transition-transform hover:scale-105"
+                style={{ transform: 'rotateY(60deg) translateZ(650px)' }}
+              >
+                <div className="text-lg font-bold text-white mb-4 leading-tight">AI决策<br />自主推理<br />精准执行</div>
+                <div className="mt-auto">
+                  <div className="text-[10px] text-white/60 mb-1">AI推理置信度</div>
+                  <div className="text-xl font-bold text-white">97.8% <span className="text-[10px] text-white/60 font-normal">/ 已执行</span></div>
+                </div>
+              </div>
+
+              {/* Card 3: 自然语言控制 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-pink-500/70 to-rose-600/70 backdrop-blur-2xl border border-white/50 rounded-[2rem] shadow-[0_32px_64px_rgba(225,29,72,0.4)] p-6 flex flex-col pointer-events-auto transition-transform hover:scale-105"
+                style={{ transform: 'rotateY(120deg) translateZ(650px)' }}
+              >
+                <div className="text-lg font-bold text-white leading-tight">"帮我降温"</div>
+                <div className="text-[10px] text-white/80 mb-4">自然语言 → IoT指令</div>
+                <div className="mt-auto bg-white/20 backdrop-blur-md rounded-xl p-3 border border-white/20">
+                  <div className="text-[10px] text-white/80 mb-1">AI已理解并执行</div>
+                  <div className="text-xl font-bold text-white">风机已开启</div>
+                </div>
+              </div>
+
+              {/* Card 4: AI预测模型 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full bg-white/60 backdrop-blur-2xl border border-white/60 rounded-[2rem] shadow-[0_32px_64px_rgba(0,0,0,0.15)] p-6 flex flex-col pointer-events-auto transition-transform hover:scale-105"
+                style={{ transform: 'rotateY(180deg) translateZ(650px)' }}
+              >
+                <div className="text-xs text-gray-500 font-medium mb-4">AI 预测模型</div>
+                <div className="mb-4">
+                  <div className="text-[10px] font-medium text-gray-500 mb-2">模型训练进度</div>
+                  <div className="w-full h-1.5 bg-gray-200 rounded-full relative mb-2">
+                    <div className="absolute top-0 left-0 h-full bg-blue-500 rounded-full" style={{ width: '80%' }} />
+                    <div className="absolute top-1/2 left-[80%] -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full shadow-sm" />
+                  </div>
+                  <div className="flex justify-between text-[8px] text-gray-400">
+                    <span>数据</span><span>特征</span><span>训练</span><span>验证</span><span>部署</span>
+                  </div>
+                </div>
+                <div className="mt-auto">
+                  <div className="text-3xl font-bold text-gray-800">R² 0.96</div>
+                </div>
+              </div>
+
+              {/* Card 5: AI诊断 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full bg-white/60 backdrop-blur-2xl border border-white/60 rounded-[2rem] shadow-[0_32px_64px_rgba(0,0,0,0.15)] p-6 flex flex-col pointer-events-auto transition-transform hover:scale-105"
+                style={{ transform: 'rotateY(240deg) translateZ(650px)' }}
+              >
+                <div className="text-xs text-gray-500 font-medium mb-4">AI 视觉诊断</div>
+                <div className="flex-1 w-full flex items-end justify-between gap-1.5 mb-2">
+                  {[30, 45, 60, 40, 70, 85].map((h, i) => (
+                    <div key={i} className="w-full bg-blue-100 rounded-sm relative" style={{ height: '100%' }}>
+                      <div className="absolute bottom-0 w-full bg-blue-500 rounded-sm shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{ height: `${h}%` }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[9px] text-gray-400 mt-1 font-medium">
+                  <span>灰霉</span><span>白粉</span><span>蚜虫</span><span>红蜘蛛</span><span>炭疽</span><span>健康</span>
+                </div>
+              </div>
+
+              {/* Card 6: IoT设备矩阵 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full bg-blue-500/60 backdrop-blur-2xl border border-white/50 rounded-[2rem] shadow-[0_32px_64px_rgba(59,130,246,0.4)] p-6 flex flex-col pointer-events-auto transition-transform hover:scale-105"
+                style={{ transform: 'rotateY(300deg) translateZ(650px)' }}
+              >
+                <div className="text-lg font-bold text-white mb-2 leading-tight">IoT 设备矩阵</div>
+                <div className="text-xs text-white/80 mb-4">12台设备 · AI统一调度</div>
+                <div className="mt-auto flex items-center gap-2 bg-white/20 p-3 rounded-xl border border-white/20 backdrop-blur-md">
+                  <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-blue-500 text-xs font-bold">✓</div>
+                  <span className="text-sm text-white font-medium">全链路在线</span>
+                </div>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        </div>
+
+      </main>
+
+      {/* ================= FUTURISTIC 3D BORDERLESS GLASSMORPHIC PORTAL SEPARATOR ================= */}
+      <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-30 pointer-events-none">
+        <svg className="relative block w-full h-[100px] md:h-[140px]" viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Layer 1: Borderless Translucent Fade Wave Body with heavy backdrop blur */}
+          <path d="M0,30 Q720,120 1440,30 L1440,120 L0,120 Z" fill="url(#wave-glass-fade)" className="backdrop-blur-2xl" />
+          
+          <defs>
+            {/* Extremely soft, borderless linear gradient going from transparent to solid white */}
+            <linearGradient id="wave-glass-fade" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="40%" stopColor="#ffffff" stopOpacity="0.4" />
+              <stop offset="75%" stopColor="#ffffff" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+        </svg>
       </div>
 
-      {/* Scroll Indicator - Moved outside main content to position relative to viewport */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2, duration: 1 }}
-        className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 z-20"
-      >
-        <span className="text-[10px] tracking-[0.2em] font-jinbuti text-white/40">向下滚动探索</span>
-        <div className="w-[1px] h-12 bg-gradient-to-b from-emerald-500 to-transparent" />
-      </motion.div>
+      <style jsx>{`
+        .mask-image-b {
+          mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        }
+      `}</style>
     </section>
   )
 }

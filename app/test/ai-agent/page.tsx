@@ -192,7 +192,7 @@ export default function AIAgentTestPage() {
                   <div className="flex flex-col items-end">
                      <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">系统状态</span>
                      <div className="flex items-center gap-2">
-                        <div className="size-2 rounded-full bg-emerald-500" />
+                        <div className="size-2 rounded-full bg-primary" />
                         <span className="text-xl font-medium">运行中</span>
                      </div>
                   </div>
@@ -291,7 +291,7 @@ export default function AIAgentTestPage() {
                                      <div key={i} className="group relative pl-4 border-l-2 border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
                                         <div className={`absolute -left-[5px] top-1 w-2 h-2 rounded-full ${
                                            log.type === 'error' ? 'bg-red-500' :
-                                           log.type === 'success' ? 'bg-emerald-500' :
+                                           log.type === 'success' ? 'bg-primary' :
                                            log.type === 'warning' ? 'bg-amber-500' :
                                            'bg-zinc-300 dark:bg-zinc-600'
                                         }`} />
@@ -301,7 +301,7 @@ export default function AIAgentTestPage() {
                                            </span>
                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${
                                               log.type === 'error' ? 'text-red-500' :
-                                              log.type === 'success' ? 'text-emerald-500' :
+                                              log.type === 'success' ? 'text-primary' :
                                               log.type === 'warning' ? 'text-amber-500' :
                                               'text-zinc-400'
                                            }`}>{log.type}</span>
@@ -421,7 +421,7 @@ function OverviewPanel({ addLog }: { addLog: (type: LogEntry["type"], msg: strin
           <div key={i} className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
             <div className="flex items-center gap-4">
               <div className={`size-3 rounded-full ${
-                ep.status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 
+                ep.status === 'online' ? 'bg-primary shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 
                 ep.status === 'offline' ? 'bg-red-500' : 'bg-zinc-300'
               }`} />
               <div>
@@ -431,7 +431,7 @@ function OverviewPanel({ addLog }: { addLog: (type: LogEntry["type"], msg: strin
             </div>
             <div className="text-right">
                <div className={`text-xs font-bold uppercase tracking-wider ${
-                  ep.status === 'online' ? 'text-emerald-600' : 'text-zinc-400'
+                  ep.status === 'online' ? 'text-primary' : 'text-zinc-400'
                }`}>
                   {ep.status === 'unknown' ? '未知' : ep.status === 'online' ? '在线' : '离线'}
                </div>
@@ -880,7 +880,7 @@ function PromptOptimizerTestPanel({ addLog }: { addLog: (type: LogEntry["type"],
                   <div className="flex gap-4">
                      <div className="mt-1">
                         <div className="size-6 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                           <Wand2 className="size-3 text-emerald-600 dark:text-emerald-400" />
+                           <Wand2 className="size-3 text-primary dark:text-emerald-400" />
                         </div>
                      </div>
                      <div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
@@ -934,7 +934,7 @@ function MQTTTestPanel({ addLog }: { addLog: (type: LogEntry["type"], msg: strin
         {status && (
           <CleanCard className="p-4 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs overflow-auto">
              <div className="flex items-center gap-2 mb-4">
-                <div className={`size-2 rounded-full ${status.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <div className={`size-2 rounded-full ${status.connected ? 'bg-primary' : 'bg-red-500'}`} />
                 <span className="font-bold uppercase">{status.connected ? 'CONNECTED' : 'DISCONNECTED'}</span>
              </div>
              <pre>{JSON.stringify(status, null, 2)}</pre>
@@ -1027,7 +1027,7 @@ function SSETestPanel({ addLog }: { addLog: (type: LogEntry["type"], msg: string
            </Button>
            
            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <div className={`size-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-zinc-300"}`} />
+              <div className={`size-2 rounded-full ${isConnected ? "bg-primary" : "bg-zinc-300"}`} />
               {isConnected ? "正在接收数据..." : "未连接"}
            </div>
         </div>
@@ -1162,7 +1162,7 @@ function DBDiagnosticPanel({ addLog }: { addLog: (type: LogEntry["type"], msg: s
              <CleanCard className="flex flex-col items-center justify-center py-8">
                 <div className="text-zinc-500 text-xs uppercase font-bold tracking-wider mb-2">连接状态</div>
                 <div className={`text-2xl font-bold ${
-                   status.status === 'healthy' ? 'text-emerald-500' : 'text-red-500'
+                   status.status === 'healthy' ? 'text-primary' : 'text-red-500'
                 }`}>
                    {status.status === 'healthy' ? '正常' : '异常'}
                 </div>

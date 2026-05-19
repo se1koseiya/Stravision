@@ -388,7 +388,7 @@ export default function SettingsPage() {
                               animate={{ opacity: 1, y: 0 }}
                               className={cn(
                                  "p-4 text-sm font-medium",
-                                 message.type === "success" ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                                 message.type === "success" ? "bg-emerald-50 text-primary dark:bg-emerald-900/20 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
                               )}
                            >
                               {message.text}

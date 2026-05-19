@@ -69,8 +69,8 @@ interface TechSpecProps {
 }
 
 const TechSpec = ({ icon, label, value }: TechSpecProps) => (
-  <div className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:border-emerald-500/30 transition-colors group">
-    <div className="text-emerald-500/70 group-hover:text-emerald-400 transition-colors">
+  <div className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:border-primary/30 transition-colors group">
+    <div className="text-primary/70 group-hover:text-emerald-400 transition-colors">
       {icon}
     </div>
     <div className="flex flex-col">
@@ -96,7 +96,7 @@ const LayerCard = ({ title, enTitle, image, description, specs, index }: LayerCa
       className="relative group flex-1 min-w-[300px] max-w-[350px]"
     >
       {/* Glow Effect */}
-      <div className="absolute -inset-1 bg-gradient-to-b from-emerald-500/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      <div className="absolute -inset-1 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
       
       {/* Card Body */}
       <div className="relative h-full bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden flex flex-col">
@@ -116,20 +116,20 @@ const LayerCard = ({ title, enTitle, image, description, specs, index }: LayerCa
            </motion.div>
            
            {/* Decorative Rings */}
-           <div className="absolute inset-0 border-[0.5px] border-emerald-500/10 rounded-full scale-[2] opacity-20" />
-           <div className="absolute inset-0 border-[0.5px] border-emerald-500/10 rounded-full scale-[1.5] opacity-20" />
+           <div className="absolute inset-0 border-[0.5px] border-primary/10 rounded-full scale-[2] opacity-20" />
+           <div className="absolute inset-0 border-[0.5px] border-primary/10 rounded-full scale-[1.5] opacity-20" />
         </div>
 
         {/* Content */}
         <div className="p-6 flex-1 flex flex-col gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-emerald-500 font-mono text-xs font-bold">0{index + 1}</span>
-              <div className="h-px flex-1 bg-emerald-500/20" />
+              <span className="text-primary font-mono text-xs font-bold">0{index + 1}</span>
+              <div className="h-px flex-1 bg-primary/20" />
             </div>
             <h3 className="text-2xl font-bold text-white font-jinbuti tracking-wide">{title}</h3>
-            <p className="text-xs font-mono text-emerald-500/60 uppercase tracking-widest mb-2">{enTitle}</p>
-            <p className="text-sm text-zinc-400 leading-relaxed border-l-2 border-emerald-500/20 pl-3">
+            <p className="text-xs font-mono text-primary/60 uppercase tracking-widest mb-2">{enTitle}</p>
+            <p className="text-sm text-zinc-400 leading-relaxed border-l-2 border-primary/20 pl-3">
               {description}
             </p>
           </div>
@@ -142,7 +142,7 @@ const LayerCard = ({ title, enTitle, image, description, specs, index }: LayerCa
         </div>
 
         {/* Bottom Strip */}
-        <div className="h-1 w-full bg-gradient-to-r from-emerald-500/0 via-emerald-500/50 to-emerald-500/0 opacity-50" />
+        <div className="h-1 w-full bg-gradient-to-r from-primary/0 via-emerald-500/50 to-emerald-500/0 opacity-50" />
       </div>
     </motion.div>
   )
@@ -154,7 +154,7 @@ const DataFlow = ({ label }: { label: string }) => {
       <motion.div 
         animate={{ opacity: [0.2, 1, 0.2], x: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
-        className="text-emerald-500"
+        className="text-primary"
       >
         <div className="flex gap-1">
             <div className="w-1 h-1 bg-current rounded-full" />
@@ -162,11 +162,11 @@ const DataFlow = ({ label }: { label: string }) => {
             <div className="w-1 h-1 bg-current rounded-full" />
         </div>
       </motion.div>
-      <div className="h-px w-8 bg-emerald-500/30" />
+      <div className="h-px w-8 bg-primary/30" />
       <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase rotate-90 whitespace-nowrap tracking-widest mt-4 mb-4 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
         {label}
       </span>
-      <div className="h-px w-8 bg-emerald-500/30" />
+      <div className="h-px w-8 bg-primary/30" />
     </div>
   )
 }
@@ -181,14 +181,14 @@ export function ArchitectureDiagram() {
       >
         <div className="inline-block relative">
             <h2 className="text-4xl md:text-6xl font-bold text-white font-jinbuti tracking-tight relative z-10">
-              STRAVISION <span className="text-emerald-500">OS</span>
+              STRAVISION <span className="text-primary">OS</span>
             </h2>
-            <div className="absolute -inset-x-8 -inset-y-4 bg-emerald-500/5 blur-3xl rounded-full z-0" />
+            <div className="absolute -inset-x-8 -inset-y-4 bg-primary/5 blur-3xl rounded-full z-0" />
         </div>
-        <p className="mt-4 text-emerald-500/60 font-mono text-xs md:text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-4">
-          <span className="w-8 h-px bg-emerald-500/30" />
+        <p className="mt-4 text-primary/60 font-mono text-xs md:text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-4">
+          <span className="w-8 h-px bg-primary/30" />
           System Architecture V4.2
-          <span className="w-8 h-px bg-emerald-500/30" />
+          <span className="w-8 h-px bg-primary/30" />
         </p>
       </motion.div>
 

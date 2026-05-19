@@ -64,7 +64,7 @@ export default function NotFound() {
         >
           {/* Error Display */}
           <motion.div variants={fadeInUp} className="flex items-baseline gap-4 mb-6">
-             <span className="text-emerald-500 font-mono text-sm tracking-wider">● SYSTEM_ALERT</span>
+             <span className="text-primary font-mono text-sm tracking-wider">● SYSTEM_ALERT</span>
              <div className="h-px bg-zinc-200 dark:bg-zinc-800 flex-1" />
           </motion.div>
 
@@ -76,7 +76,7 @@ export default function NotFound() {
           </motion.h1>
 
           <motion.div variants={fadeInUp} className="space-y-8 max-w-2xl">
-             <div className="border-l-2 border-emerald-500 pl-6 py-2">
+             <div className="border-l-2 border-primary pl-6 py-2">
                 <h2 className="text-2xl md:text-3xl font-light mb-2 text-zinc-800 dark:text-zinc-200">
                    页面不存在或已被移除
                 </h2>

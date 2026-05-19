@@ -74,7 +74,7 @@ export default function TestFocusStatesPage() {
                 这是一个 <a href="#" className="text-primary hover:underline">主色调链接</a> 的示例。
               </p>
               <p>
-                这是一个 <a href="#" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline">宝石绿链接</a> 的示例。
+                这是一个 <a href="#" className="text-primary dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline">宝石绿链接</a> 的示例。
               </p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function TestFocusStatesPage() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2 text-emerald-600">✅ 应该显示宝石绿色的地方</h4>
+              <h4 className="font-semibold mb-2 text-primary">✅ 应该显示宝石绿色的地方</h4>
               <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                 <li>• 输入框聚焦时的边框颜色</li>
                 <li>• 文本域聚焦时的边框颜色</li>

@@ -118,7 +118,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
 
   const gradients = [
     "from-indigo-600 via-blue-700 to-cyan-500",
-    "from-emerald-500 via-teal-600 to-cyan-600",
+    "from-primary via-teal-600 to-cyan-600",
     "from-purple-600 via-fuchsia-700 to-pink-600",
     "from-orange-500 via-rose-600 to-red-600"
   ]
@@ -296,15 +296,15 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                             </div>
                             <div className="flex justify-between items-center pt-3">
                                <span className="text-zinc-500 font-medium italic">MCP 工具流</span>
-                               <span className="font-bold text-emerald-500 flex items-center gap-1 underline decoration-dotted underline-offset-4">
+                               <span className="font-bold text-primary flex items-center gap-1 underline decoration-dotted underline-offset-4">
                                  全面兼容
                                </span>
                             </div>
                          </div>
                       </div>
 
-                      <div className="p-10 rounded-[3rem] bg-emerald-500/[0.03] dark:bg-emerald-500/[0.05] border border-emerald-500/10 space-y-4 shadow-sm">
-                          <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                      <div className="p-10 rounded-[3rem] bg-primary/[0.03] dark:bg-primary/[0.05] border border-primary/10 space-y-4 shadow-sm">
+                          <div className="flex items-center gap-3 text-primary dark:text-emerald-400">
                              <Info size={20} />
                              <h4 className="font-bold">平台保障</h4>
                           </div>

@@ -98,7 +98,7 @@ export function MCPStatusIndicator() {
         <button
           className={cn(
             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
-            "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
+            "bg-emerald-50 dark:bg-emerald-900/20 text-primary dark:text-emerald-400",
             "hover:bg-emerald-100 dark:hover:bg-emerald-900/30",
             "border border-emerald-200 dark:border-emerald-800"
           )}
@@ -129,7 +129,7 @@ export function MCPStatusIndicator() {
               key={server.id}
               className="flex items-center gap-2 cursor-default"
             >
-              <div className="size-2 bg-emerald-500 rounded-full shrink-0" />
+              <div className="size-2 bg-primary rounded-full shrink-0" />
               <span className="flex-1 truncate text-sm">{server.displayName}</span>
             </DropdownMenuItem>
           ))}

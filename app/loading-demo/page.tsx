@@ -36,7 +36,7 @@ export default function LoadingDemoPage() {
               onClick={() => setActiveDemo(demo.id)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeDemo === demo.id
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-primary text-white"
                   : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
               }`}
             >

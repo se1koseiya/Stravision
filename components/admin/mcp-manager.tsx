@@ -180,7 +180,7 @@ export function MCPManager() {
               </TableRow>
             ) : filteredServers.map((server) => (
               <TableRow key={server.id}>
-                <TableCell className="font-bold text-emerald-500">#{server.priority}</TableCell>
+                <TableCell className="font-bold text-primary">#{server.priority}</TableCell>
                 <TableCell>
                   <div className={`size-8 rounded flex items-center justify-center text-lg ${server.iconBg}`}>
                     {server.icon ? (
@@ -202,7 +202,7 @@ export function MCPManager() {
                 </TableCell>
                 <TableCell>
                   {server.is_published ? (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                    <Badge className="bg-primary/10 text-primary border-primary/20">
                       Published
                     </Badge>
                   ) : (

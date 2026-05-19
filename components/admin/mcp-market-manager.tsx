@@ -127,7 +127,7 @@ export function MCPMarketManager() {
     const [error, setError] = useState(false)
     if (error || !icon) {
       const firstLetter = name.charAt(0).toUpperCase()
-      const colors = ["bg-blue-500", "bg-rose-500", "bg-emerald-500", "bg-amber-500", "bg-violet-500", "bg-indigo-500"]
+      const colors = ["bg-blue-500", "bg-rose-500", "bg-primary", "bg-amber-500", "bg-violet-500", "bg-indigo-500"]
       const color = colors[name.length % colors.length]
       return (
         <div className={cn(className, color, "text-white font-black flex items-center justify-center")}>
@@ -214,7 +214,7 @@ export function MCPMarketManager() {
               </TableRow>
             ) : filteredServers.map((server) => (
               <TableRow key={server.id}>
-                <TableCell className="font-bold text-emerald-500">#{server.priority}</TableCell>
+                <TableCell className="font-bold text-primary">#{server.priority}</TableCell>
                 <TableCell>
                    <AppIcon icon={server.icon} name={server.displayName} className={cn("size-10 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800", server.iconBg)} />
                 </TableCell>
@@ -230,7 +230,7 @@ export function MCPMarketManager() {
                 </TableCell>
                 <TableCell>
                   {server.is_published ? (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px]">
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
                       Published
                     </Badge>
                   ) : (

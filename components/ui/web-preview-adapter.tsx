@@ -134,7 +134,7 @@ export function WebPreview({ url, className, showFallback = true }: WebPreviewPr
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-zinc-600 dark:text-zinc-400">
           {imageError ? (
             <>
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg mb-4">
                 <Globe size={32} className="text-white" />
               </div>
               <div className="text-center">
@@ -147,7 +147,7 @@ export function WebPreview({ url, className, showFallback = true }: WebPreviewPr
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                  className="inline-flex items-center gap-2 text-xs text-primary dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
                 >
                   <ExternalLink size={12} />
                   在浏览器中打开

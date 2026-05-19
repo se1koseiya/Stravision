@@ -111,18 +111,18 @@ export default function ForgotPasswordPage() {
     return (
       <AuthLayout title="重置成功" subtitle="正在跳转到登录页面...">
         <div className="flex flex-col items-center justify-center py-10 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-[#e8e7e3] flex items-center justify-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="text-emerald-500"
+              className="text-black"
             >
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </motion.div>
           </div>
-          <p className="text-white/60 font-jinbuti">密码已更新，请使用新密码登录</p>
+          <p className="text-[#666] font-medium">密码已更新，请使用新密码登录</p>
         </div>
       </AuthLayout>
     )
@@ -130,38 +130,39 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthLayout title="找回密码" subtitle="验证身份以重置您的密码">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">邮箱</Label>
-          <div className="relative group">
-            <Input
-              id="email"
-              type="email"
-              placeholder="请输入注册邮箱"
-              className="h-11 pr-[100px] rounded-xl bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500 transition-all duration-300 font-jinbuti"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={codeSent && countdown > 0}
-            />
-            <div className="absolute right-1 top-1 bottom-1 flex items-center">
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-full px-3 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all text-xs font-medium font-jinbuti"
-                onClick={sendResetCode}
-                disabled={sendingCode || countdown > 0 || !email}
-              >
-                {sendingCode ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : countdown > 0 ? (
-                  `${countdown}s`
-                ) : codeSent ? (
-                  "重发"
-                ) : (
-                  "获取验证码"
-                )}
-              </Button>
-            </div>
+      <div className="space-y-3.5">
+        <div className="space-y-1.5 relative group">
+          <Input
+            id="email"
+            type="email"
+            placeholder="账户邮箱"
+            className="h-11 pr-[110px] rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 text-sm shadow-inner w-full"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={codeSent && countdown > 0}
+          />
+          <div className="absolute right-1 top-1 bottom-1 flex items-center pr-1">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 px-3.5 rounded-full bg-black hover:bg-black/80 text-white text-[11px] font-medium transition-all duration-300"
+              onClick={sendResetCode}
+              disabled={sendingCode || countdown > 0 || !email}
+            >
+              {sendingCode ? (
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              ) : countdown > 0 ? (
+                `${countdown}s`
+              ) : codeSent ? (
+                "重发"
+              ) : (
+                "获取"
+              )}
+            </Button>
           </div>
         </div>
 
@@ -174,37 +175,36 @@ export default function ForgotPasswordPage() {
               className="overflow-hidden space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="code" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">验证码</Label>
+                <Label htmlFor="code" className="text-[#666] text-xs font-semibold pl-2">验证码</Label>
                 <InputOTP
                   maxLength={6}
                   value={verificationCode}
                   onChange={(value) => setVerificationCode(value)}
                 >
                   <InputOTPGroup className="w-full justify-center gap-2">
-                    <InputOTPSlot index={0} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                    <InputOTPSlot index={1} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                    <InputOTPSlot index={2} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                    <InputOTPSlot index={3} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                    <InputOTPSlot index={4} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
-                    <InputOTPSlot index={5} className="w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-lg" />
+                    <InputOTPSlot index={0} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                    <InputOTPSlot index={1} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                    <InputOTPSlot index={2} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                    <InputOTPSlot index={3} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                    <InputOTPSlot index={4} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
+                    <InputOTPSlot index={5} className="w-11 h-11 rounded-full border border-black/5 bg-[#e8e7e3] text-black text-sm font-semibold" />
                   </InputOTPGroup>
                 </InputOTP>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="new-password" className="text-white/60 text-xs font-jinbuti uppercase tracking-wider">新密码</Label>
+              <div className="space-y-1.5">
                 <Input
                   id="new-password"
                   type="password"
                   placeholder="请输入新密码（至少8位）"
-                  className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-500 transition-all duration-300 font-jinbuti"
+                  className="h-11 rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 text-sm shadow-inner w-full"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
 
               <Button
-                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all duration-300 mt-2 font-jinbuti"
+                className="w-full h-11 rounded-full bg-black hover:bg-black/80 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm tracking-wider mt-2"
                 onClick={onSubmit}
                 disabled={loading}
               >
@@ -213,22 +213,22 @@ export default function ForgotPasswordPage() {
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     重置中...
                   </>
-                ) : "重置密码"}
+                ) : "重 置 密 码"}
               </Button>
             </motion.div>
           )}
         </AnimatePresence>
 
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center flex items-center justify-center gap-2 font-jinbuti">
+          <div className="p-2.5 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[11px] font-medium text-center flex items-center justify-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             {error}
           </div>
         )}
 
         <div className="pt-4 text-center">
-          <Link href="/login" className="text-xs text-white/40 hover:text-white transition-colors flex items-center justify-center gap-1 font-jinbuti">
-            <ArrowLeft className="w-3 h-3" />
+          <Link href="/login" className="text-xs text-[#666] hover:text-black transition-colors flex items-center justify-center gap-1 font-medium">
+            <ArrowLeft className="w-3.5 h-3.5" />
             返回登录
           </Link>
         </div>

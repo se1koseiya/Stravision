@@ -51,15 +51,15 @@ const StepCard = ({
         <motion.div variants={itemVariants} className="flex-1 relative">
             <div className="relative z-10 h-full flex flex-col">
                 {/* Number Badge */}
-                <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-zinc-900 border border-emerald-500/30 flex items-center justify-center text-emerald-500 font-mono font-bold shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)] z-20">
+                <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-zinc-900 border border-primary/30 flex items-center justify-center text-primary font-mono font-bold shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)] z-20">
                     {step}
                 </div>
 
                 {/* Card Content */}
-                <div className="flex-1 p-6 pt-8 rounded-2xl border border-zinc-800 bg-black/40 backdrop-blur-md hover:border-emerald-500/30 transition-all duration-300 group overflow-hidden">
+                <div className="flex-1 p-6 pt-8 rounded-2xl border border-zinc-800 bg-black/40 backdrop-blur-md hover:border-primary/30 transition-all duration-300 group overflow-hidden">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-6">
-                        <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-500">
+                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-primary">
                             {icon}
                         </div>
                         {/* IP Image */}
@@ -79,8 +79,8 @@ const StepCard = ({
                     {/* Sub Items */}
                     <div className="space-y-3">
                         {subItems.map((item, i) => (
-                            <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5 group-hover:border-emerald-500/10 transition-colors">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500/50 group-hover:text-emerald-500 transition-colors" />
+                            <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5 group-hover:border-primary/10 transition-colors">
+                                <CheckCircle2 className="w-4 h-4 text-primary/50 group-hover:text-primary transition-colors" />
                                 <span className="text-xs text-zinc-300 font-mono">{item}</span>
                             </div>
                         ))}
@@ -95,7 +95,7 @@ const StepCard = ({
                         animate={{ x: [0, 5, 0], opacity: [0.3, 1, 0.3] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     >
-                        <ArrowRight className="w-6 h-6 text-emerald-500/50" />
+                        <ArrowRight className="w-6 h-6 text-primary/50" />
                     </motion.div>
                 </div>
             )}
@@ -103,7 +103,7 @@ const StepCard = ({
             {/* Mobile Connector */}
             {!isLast && (
                  <div className="lg:hidden flex justify-center py-4">
-                    <ArrowRight className="w-6 h-6 text-emerald-500/30 rotate-90" />
+                    <ArrowRight className="w-6 h-6 text-primary/30 rotate-90" />
                  </div>
             )}
         </motion.div>
@@ -122,7 +122,7 @@ export function UserFlowDiagram() {
         <h3 className="text-3xl md:text-4xl font-bold text-white font-jinbuti mb-2">
           User Business Flow
         </h3>
-        <p className="text-emerald-500/60 text-xs font-mono uppercase tracking-[0.2em]">
+        <p className="text-primary/60 text-xs font-mono uppercase tracking-[0.2em]">
           用户全链路业务逻辑
         </p>
       </motion.div>

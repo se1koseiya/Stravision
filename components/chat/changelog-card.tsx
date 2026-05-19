@@ -38,7 +38,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
       {/* Header */}
       <div className="bg-zinc-50/50 dark:bg-zinc-800/20 p-5 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center justify-between mb-3">
-          <Badge variant="outline" className="rounded-md font-mono text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30 px-2 py-0.5">
+          <Badge variant="outline" className="rounded-md font-mono text-xs bg-emerald-50 dark:bg-emerald-900/20 text-primary dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30 px-2 py-0.5">
             {data.version}
           </Badge>
           <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium font-mono">
@@ -46,7 +46,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
           </span>
         </div>
         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-start gap-2 leading-tight">
-          <Megaphone className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+          <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />
           {data.title || "系统更新公告"}
         </h3>
       </div>

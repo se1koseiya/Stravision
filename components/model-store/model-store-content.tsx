@@ -259,7 +259,7 @@ export function ModelStoreContent() {
 
   const gradients = [
     "from-indigo-600 to-blue-700",
-    "from-emerald-500 to-teal-700",
+    "from-primary to-teal-700",
     "from-purple-600 to-pink-800",
     "from-orange-500 to-red-600"
   ]
@@ -407,7 +407,7 @@ export function ModelStoreContent() {
         onSave={handleConfigSaved}
       />
 
-      <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-emerald-500/[0.03] to-transparent pointer-events-none -z-10" />
+      <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-primary/[0.03] to-transparent pointer-events-none -z-10" />
     </div>
   )
 }

@@ -22,11 +22,11 @@ const GridBackground = () => (
 
 export default function ArchitecturePage() {
   return (
-    <div className="min-h-screen relative overflow-x-hidden text-zinc-100 font-sans selection:bg-emerald-500/30 bg-[#050505]">
+    <div className="min-h-screen relative overflow-x-hidden text-zinc-100 font-sans selection:bg-primary/30 bg-[#050505]">
       <GridBackground />
       
       {/* Ambient Glow */}
-      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       <main className="relative z-10 min-h-screen flex flex-col">
@@ -42,11 +42,11 @@ export default function ArchitecturePage() {
           
           <div className="flex items-center gap-2">
              <div className="flex gap-1">
-                <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse delay-75" />
-                <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse delay-150" />
+                <span className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                <span className="w-1 h-1 bg-primary rounded-full animate-pulse delay-75" />
+                <span className="w-1 h-1 bg-primary rounded-full animate-pulse delay-150" />
              </div>
-             <span className="text-xs font-mono text-emerald-500/50 uppercase tracking-widest">System Architecture V4.2</span>
+             <span className="text-xs font-mono text-primary/50 uppercase tracking-widest">System Architecture V4.2</span>
           </div>
         </header>
 

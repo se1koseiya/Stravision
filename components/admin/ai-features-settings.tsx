@@ -249,7 +249,7 @@ export function AIFeaturesSettings() {
         {/* 功能增强类 */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-            <div className="size-1.5 rounded-full bg-emerald-500" />
+            <div className="size-1.5 rounded-full bg-primary" />
             功能增强类
           </h3>
           <div className="space-y-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">

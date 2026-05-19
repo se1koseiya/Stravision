@@ -106,7 +106,7 @@ export function DeviceControlOverlay({
               >
                 <div className="relative flex-shrink-0">
                   <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping absolute" />
-                  <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full relative" />
+                  <div className="w-2.5 h-2.5 bg-primary rounded-full relative" />
                 </div>
                 <span className="text-white text-sm font-medium whitespace-nowrap">
                   正在操作{" "}
@@ -117,7 +117,7 @@ export function DeviceControlOverlay({
               </div>
               {!isExpanded && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+                  <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
                 </div>
               )}
             </div>

@@ -222,7 +222,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl p-0 overflow-hidden gap-0 h-[650px] flex flex-row border-none shadow-2xl bg-white dark:bg-zinc-950 sm:rounded-2xl">
         {/* Sidebar */}
-        <div className="w-64 bg-gray-50/80 dark:bg-zinc-900/50 border-r border-gray-200/50 dark:border-white/10 p-4 flex flex-col gap-2 shrink-0">
+        <div className="w-64 bg-gray-50/80 dark:bg-zinc-900/50 border-r border-border/50 dark:border-white/10 p-4 flex flex-col gap-2 shrink-0">
           <div className="px-2 py-3 mb-2">
             <h2 className="font-bold text-xl tracking-tight">Settings</h2>
           </div>
@@ -276,7 +276,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">大模型 API 厂商商店</Label>
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-full">
+                    <span className="text-xs text-primary dark:text-emerald-400 font-medium px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-full">
                       由 阿里云百炼 提供基础支持
                     </span>
                   </div>
@@ -425,7 +425,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                       <Sparkles className="w-5 h-5" />
                       <span className="font-semibold">当前服务状态</span>
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                    <div className="text-sm text-muted-foreground dark:text-muted-foreground space-y-1">
                       <p>您正在使用系统提供的 AI 服务。</p>
                       {quotaInfo ? (
                         <>
@@ -509,10 +509,10 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-zinc-900/50">
+                <div className="flex items-center justify-between p-4 rounded-xl border border-border dark:border-gray-700 bg-gray-50/50 dark:bg-zinc-900/50">
                   <div className="space-y-1">
                     <Label className="text-base font-medium">启用语音助手</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                       并在页面右下角显示语音交互悬浮球
                     </p>
                   </div>
@@ -523,10 +523,10 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                 </div>
 
                 {/* TTS Reader Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-zinc-900/50">
+                <div className="flex items-center justify-between p-4 rounded-xl border border-border dark:border-gray-700 bg-gray-50/50 dark:bg-zinc-900/50">
                   <div className="space-y-1">
                     <Label className="text-base font-medium">自动语音朗读</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                       接收到 AI 回复时自动进行语音播报
                     </p>
                   </div>
@@ -556,14 +556,14 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                         >
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{voice.name}</span>
-                            <span className="text-xs text-gray-500">({voice.id})</span>
-                            <span className="text-xs text-gray-400">- {voice.desc}</span>
+                            <span className="text-xs text-muted-foreground">({voice.id})</span>
+                            <span className="text-xs text-muted-foreground">- {voice.desc}</span>
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                     选择AI语音助手的声音风格，更改后下次对话生效
                   </p>
                 </div>
@@ -574,7 +574,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                     <Mic className="w-5 h-5" />
                     <span className="font-semibold">使用提示</span>
                   </div>
-                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                  <ul className="text-sm text-muted-foreground dark:text-muted-foreground space-y-1 list-disc list-inside">
                     <li>点击悬浮球开始语音对话</li>
                     <li>双击悬浮球开启/关闭智能唤醒</li>
                     <li>右键悬浮球可查看更多选项</li>
@@ -593,37 +593,37 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                       className={cn(
                         "border-2 rounded-lg p-3 flex flex-col items-center gap-2 cursor-pointer transition-all",
                         theme === 'system'
-                          ? "border-emerald-500 dark:border-blue-600 bg-emerald-50/50 dark:bg-blue-950/30"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                          ? "border-primary dark:border-blue-600 bg-emerald-50/50 dark:bg-blue-950/30"
+                          : "border-border dark:border-gray-700 hover:border-border dark:hover:border-gray-600"
                       )}
                       onClick={() => setTheme('system')}
                     >
-                      <div className="w-full aspect-video bg-gradient-to-br from-white to-zinc-900 rounded border border-gray-200 dark:border-gray-700 shadow-sm"></div>
-                      <span className={cn("text-sm font-medium", theme === 'system' ? "text-emerald-700 dark:text-blue-500" : "text-gray-600 dark:text-gray-400")}>System</span>
+                      <div className="w-full aspect-video bg-gradient-to-br from-white to-zinc-900 rounded border border-border dark:border-gray-700 shadow-sm"></div>
+                      <span className={cn("text-sm font-medium", theme === 'system' ? "text-emerald-700 dark:text-blue-500" : "text-muted-foreground dark:text-muted-foreground")}>System</span>
                     </div>
                     <div
                       className={cn(
                         "border-2 rounded-lg p-3 flex flex-col items-center gap-2 cursor-pointer transition-all",
                         theme === 'light'
-                          ? "border-emerald-500 dark:border-blue-600 bg-emerald-50/50 dark:bg-blue-950/30"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                          ? "border-primary dark:border-blue-600 bg-emerald-50/50 dark:bg-blue-950/30"
+                          : "border-border dark:border-gray-700 hover:border-border dark:hover:border-gray-600"
                       )}
                       onClick={() => setTheme('light')}
                     >
-                      <div className="w-full aspect-video bg-white rounded border border-gray-200 dark:border-gray-700 shadow-sm"></div>
-                      <span className={cn("text-sm font-medium", theme === 'light' ? "text-emerald-700 dark:text-blue-500" : "text-gray-600 dark:text-gray-400")}>Light</span>
+                      <div className="w-full aspect-video bg-white rounded border border-border dark:border-gray-700 shadow-sm"></div>
+                      <span className={cn("text-sm font-medium", theme === 'light' ? "text-emerald-700 dark:text-blue-500" : "text-muted-foreground dark:text-muted-foreground")}>Light</span>
                     </div>
                     <div
                       className={cn(
                         "border-2 rounded-lg p-3 flex flex-col items-center gap-2 cursor-pointer transition-all",
                         theme === 'dark'
-                          ? "border-emerald-500 dark:border-blue-600 bg-emerald-50/50 dark:bg-blue-950/30"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                          ? "border-primary dark:border-blue-600 bg-emerald-50/50 dark:bg-blue-950/30"
+                          : "border-border dark:border-gray-700 hover:border-border dark:hover:border-gray-600"
                       )}
                       onClick={() => setTheme('dark')}
                     >
                       <div className="w-full aspect-video bg-zinc-900 rounded border border-gray-800 shadow-sm"></div>
-                      <span className={cn("text-sm font-medium", theme === 'dark' ? "text-emerald-700 dark:text-blue-500" : "text-gray-600 dark:text-gray-400")}>Dark</span>
+                      <span className={cn("text-sm font-medium", theme === 'dark' ? "text-emerald-700 dark:text-blue-500" : "text-muted-foreground dark:text-muted-foreground")}>Dark</span>
                     </div>
                   </div>
                 </div>
@@ -633,14 +633,14 @@ export function AISettingsDialog({ open, onOpenChange, onSave, onVoiceSettingsCh
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 dark:border-blue-800 bg-emerald-50/30 dark:bg-blue-950/30 cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <Globe size={18} className="text-emerald-600 dark:text-blue-500" />
+                        <Globe size={18} className="text-primary dark:text-blue-500" />
                         <span className="text-sm font-medium">中文 (简体)</span>
                       </div>
-                      <CheckCircle2 size={18} className="text-emerald-600 dark:text-blue-500" />
+                      <CheckCircle2 size={18} className="text-primary dark:text-blue-500" />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border border-transparent hover:bg-gray-50 cursor-pointer opacity-60">
                       <div className="flex items-center gap-3">
-                        <Globe size={18} className="text-gray-500" />
+                        <Globe size={18} className="text-muted-foreground" />
                         <span className="text-sm font-medium">English (US)</span>
                       </div>
                     </div>
@@ -663,10 +663,10 @@ function SidebarItem({ icon: Icon, label, active, onClick, badge }: { icon: any,
         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-left w-full",
         active
           ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-white/10"
-          : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-white/5"
+          : "text-muted-foreground dark:text-muted-foreground hover:text-gray-900 dark:hover:text-gray-200 hover:bg-muted/50 dark:hover:bg-white/5"
       )}
     >
-      <Icon size={18} className={cn(active ? "text-emerald-600 dark:text-blue-500" : "text-gray-400")} />
+      <Icon size={18} className={cn(active ? "text-primary dark:text-blue-500" : "text-muted-foreground")} />
       <span className="flex-1">{label}</span>
       {badge && (
         <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
@@ -684,21 +684,21 @@ function ProviderCard({ active, onClick, icon: Icon, title, desc, badge }: { act
       className={cn(
         "relative cursor-pointer rounded-xl border p-4 transition-all duration-200 hover:shadow-md",
         active
-          ? "border-emerald-500 dark:border-blue-600 bg-emerald-50/30 dark:bg-blue-950/30 ring-1 ring-emerald-500/20 dark:ring-blue-600/20"
-          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-zinc-900"
+          ? "border-primary dark:border-blue-600 bg-emerald-50/30 dark:bg-blue-950/30 ring-1 ring-emerald-500/20 dark:ring-blue-600/20"
+          : "border-border dark:border-gray-700 hover:border-border dark:hover:border-gray-600 bg-white dark:bg-zinc-900"
       )}
     >
       <div className="flex items-start justify-between mb-2">
-        <div className={cn("p-2 rounded-lg", active ? "bg-emerald-100 dark:bg-blue-900/50 text-emerald-600 dark:text-blue-500" : "bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400")}>
+        <div className={cn("p-2 rounded-lg", active ? "bg-emerald-100 dark:bg-blue-900/50 text-primary dark:text-blue-500" : "bg-muted dark:bg-zinc-800 text-muted-foreground dark:text-muted-foreground")}>
           <Icon size={20} />
         </div>
         <div className="flex flex-col items-end gap-1">
           {badge && <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">{badge}</span>}
-          {active && <CheckCircle2 size={18} className="text-emerald-500 dark:text-blue-500" />}
+          {active && <CheckCircle2 size={18} className="text-primary dark:text-blue-500" />}
         </div>
       </div>
       <div className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-0.5">{title}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{desc}</div>
+      <div className="text-xs text-muted-foreground dark:text-muted-foreground">{desc}</div>
     </div>
   )
 }

@@ -32,7 +32,7 @@ export function SmartControlSection() {
             </span>
           </h2>
           
-          <p className="text-gray-400 text-lg leading-relaxed">
+          <p className="text-muted-foreground text-lg leading-relaxed">
             Stravision 的智能大脑会根据环境数据自动调节设备。
             无论是开启风机降温，还是自动补光，一切都在毫秒间完成。
             您只需设定目标，剩下的交给我们。
@@ -61,7 +61,7 @@ export function SmartControlSection() {
           >
             {/* Simulation Header */}
             <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
-              <span className="text-sm text-gray-400 font-mono">AI_CORE_STATUS</span>
+              <span className="text-sm text-muted-foreground font-mono">AI_CORE_STATUS</span>
               <span className="flex items-center gap-2 text-xs text-green-400">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -84,9 +84,9 @@ export function SmartControlSection() {
                       <metric.icon className={`w-4 h-4 ${metric.color}`} />
                       {metric.label}
                     </span>
-                    <span className="text-gray-500 font-mono">OPTIMIZING...</span>
+                    <span className="text-muted-foreground font-mono">OPTIMIZING...</span>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-card rounded-full overflow-hidden">
                     <motion.div
                       className={`h-full ${metric.bg}`}
                       initial={{ width: "30%" }}

@@ -79,7 +79,7 @@ export default function ToolUsageIndicator({
           bg: 'bg-emerald-50/80 dark:bg-emerald-950/20',
           border: 'border-emerald-200/60 dark:border-emerald-800/40',
           text: 'text-emerald-700 dark:text-emerald-400',
-          icon: 'text-emerald-600 dark:text-emerald-500',
+          icon: 'text-primary dark:text-primary',
           iconBg: 'bg-emerald-100 dark:bg-emerald-900/30'
         }
       case 'error':

@@ -187,7 +187,7 @@ export function MultiAgentOrchestrator() {
   const getStatusIcon = (status: Agent['status']) => {
     switch (status) {
       case 'idle':
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
       case 'thinking':
       case 'executing':
         return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
@@ -201,7 +201,7 @@ export function MultiAgentOrchestrator() {
   const getStatusColor = (status: Agent['status']) => {
     switch (status) {
       case 'idle':
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-muted text-muted-foreground';
       case 'thinking':
         return 'bg-blue-100 text-blue-600';
       case 'executing':

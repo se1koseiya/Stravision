@@ -56,7 +56,7 @@ export function DashboardVersionSettings() {
     <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-medium flex items-center gap-2">
-          <LayoutDashboard className="size-4 text-emerald-500" />
+          <LayoutDashboard className="size-4 text-primary" />
           仪表盘页面版本控制
         </CardTitle>
         <CardDescription className="text-xs">
@@ -66,7 +66,7 @@ export function DashboardVersionSettings() {
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-3">
           <div 
-            className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${version === 'full' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-emerald-200'}`}
+            className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${version === 'full' ? 'border-primary bg-emerald-50 dark:bg-primary/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-emerald-200'}`}
             onClick={() => handleSave('full')}
           >
             <div className="flex items-center justify-between">
@@ -74,14 +74,14 @@ export function DashboardVersionSettings() {
                 <h4 className="font-bold text-sm">✨ 完整版 (当前默认)</h4>
                 <p className="text-xs text-zinc-500 mt-1">包含所有图表卡片，包括「光谱分析数据」</p>
               </div>
-              <div className={`size-4 rounded-full border flex items-center justify-center ${version === 'full' ? 'border-emerald-500' : 'border-zinc-300'}`}>
-                {version === 'full' && <div className="size-2 rounded-full bg-emerald-500" />}
+              <div className={`size-4 rounded-full border flex items-center justify-center ${version === 'full' ? 'border-primary' : 'border-zinc-300'}`}>
+                {version === 'full' && <div className="size-2 rounded-full bg-primary" />}
               </div>
             </div>
           </div>
 
           <div 
-            className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${version === 'simplified' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-emerald-200'}`}
+            className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${version === 'simplified' ? 'border-primary bg-emerald-50 dark:bg-primary/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-emerald-200'}`}
             onClick={() => handleSave('simplified')}
           >
             <div className="flex items-center justify-between">
@@ -89,8 +89,8 @@ export function DashboardVersionSettings() {
                 <h4 className="font-bold text-sm">🧹 极简版</h4>
                 <p className="text-xs text-zinc-500 mt-1">隐藏了「光谱分析数据」卡片</p>
               </div>
-              <div className={`size-4 rounded-full border flex items-center justify-center ${version === 'simplified' ? 'border-emerald-500' : 'border-zinc-300'}`}>
-                {version === 'simplified' && <div className="size-2 rounded-full bg-emerald-500" />}
+              <div className={`size-4 rounded-full border flex items-center justify-center ${version === 'simplified' ? 'border-primary' : 'border-zinc-300'}`}>
+                {version === 'simplified' && <div className="size-2 rounded-full bg-primary" />}
               </div>
             </div>
           </div>

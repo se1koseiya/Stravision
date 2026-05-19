@@ -50,12 +50,12 @@ export function CustomCursor() {
       >
         {/* Center Dot */}
         <motion.div 
-          className="w-1 h-1 bg-emerald-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          className="w-1 h-1 bg-primary rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         />
 
         {/* Outer Ring / Brackets */}
         <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-emerald-500/50 rounded-full"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-primary/50 rounded-full"
           animate={{
             width: isHovering ? 60 : 20,
             height: isHovering ? 60 : 20,
@@ -67,18 +67,18 @@ export function CustomCursor() {
         >
             {/* Crosshair Lines (Only visible when hovering) */}
             <motion.div 
-                className="absolute top-1/2 left-0 w-full h-[1px] bg-emerald-500/30"
+                className="absolute top-1/2 left-0 w-full h-[1px] bg-primary/30"
                 animate={{ scaleX: isHovering ? 1 : 0 }}
             />
             <motion.div 
-                className="absolute top-0 left-1/2 h-full w-[1px] bg-emerald-500/30"
+                className="absolute top-0 left-1/2 h-full w-[1px] bg-primary/30"
                 animate={{ scaleY: isHovering ? 1 : 0 }}
             />
         </motion.div>
         
         {/* Label (Optional) */}
         <motion.div 
-            className="absolute top-4 left-4 text-[8px] font-mono text-emerald-500 whitespace-nowrap"
+            className="absolute top-4 left-4 text-[8px] font-mono text-primary whitespace-nowrap"
             animate={{ opacity: isHovering ? 1 : 0 }}
         >
             TARGET_LOCKED

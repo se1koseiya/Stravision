@@ -101,7 +101,7 @@ export function FeaturesSection() {
         <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
           核心技术优势
         </h2>
-        <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+        <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
           融合最前沿的物联网与人工智能技术，为现代农业赋能
         </p>
       </motion.div>
@@ -129,7 +129,7 @@ export function FeaturesSection() {
               <div className="mb-3 text-white">
                 <feature.icon size={28} />
               </div>
-              <span className="text-sm font-medium text-gray-500 tracking-wide">
+              <span className="text-sm font-medium text-muted-foreground tracking-wide">
                 {feature.label}
               </span>
             </div>
@@ -138,7 +138,7 @@ export function FeaturesSection() {
               <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
                 {feature.title}
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 {feature.description}
               </p>
             </div>

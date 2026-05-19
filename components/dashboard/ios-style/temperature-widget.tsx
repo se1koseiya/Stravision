@@ -49,7 +49,7 @@ export function TemperatureWidget({
     if (temp >= 18) return {
       status: "适宜",
       label: "适宜温度",
-      colorClass: "text-emerald-500",
+      colorClass: "text-primary",
       bgClass: "bg-emerald-50",
       hexColor: "#10b981"
     }
@@ -98,7 +98,7 @@ export function TemperatureWidget({
               </div>
               {trend !== 'stable' && (
                 <div className={cn("flex items-center p-1 rounded-full bg-slate-50", 
-                  trend === 'up' ? "text-emerald-500" : "text-red-500")}>
+                  trend === 'up' ? "text-primary" : "text-red-500")}>
                    {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 </div>
               )}

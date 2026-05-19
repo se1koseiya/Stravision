@@ -40,8 +40,8 @@ const HeroTitle = () => {
             transition={{ delay: 0.5, duration: 0.8 }}
             className="absolute -left-12 top-2 hidden md:flex flex-col gap-2"
         >
-            <div className="w-px h-12 bg-emerald-500/50" />
-            <span className="text-[10px] font-mono text-emerald-500/50 [writing-mode:vertical-rl] rotate-180">SYS.INIT.V2</span>
+            <div className="w-px h-12 bg-primary/50" />
+            <span className="text-[10px] font-mono text-primary/50 [writing-mode:vertical-rl] rotate-180">SYS.INIT.V2</span>
         </motion.div>
 
         <h1 className="text-[15vw] leading-[0.85] font-jinbuti tracking-tighter text-white mix-blend-difference select-none">
@@ -56,7 +56,7 @@ const HeroTitle = () => {
                 initial={{ width: 0 }}
                 animate={{ width: "100px" }}
                 transition={{ delay: 1, duration: 1, ease: "circOut" }}
-                className="h-px bg-emerald-500 hidden md:block mt-6" 
+                className="h-px bg-primary hidden md:block mt-6" 
             />
             
             <motion.p 
@@ -90,7 +90,7 @@ const FeatureRow = ({ title, desc, id, index, href }: { title: string, desc: str
     const Content = (
         <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-8">
             {/* ID */}
-            <span className="font-mono text-xs text-emerald-500/50 uppercase tracking-widest">
+            <span className="font-mono text-xs text-primary/50 uppercase tracking-widest">
                 {id}
             </span>
 
@@ -105,7 +105,7 @@ const FeatureRow = ({ title, desc, id, index, href }: { title: string, desc: str
             </div>
 
             {/* Action */}
-            <div className="hidden md:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 group-hover:border-emerald-500/50 group-hover:scale-110 transition-all duration-500">
+            <div className="hidden md:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 group-hover:border-primary/50 group-hover:scale-110 transition-all duration-500">
                 <ArrowUpRight className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400" />
             </div>
         </div>
@@ -132,7 +132,7 @@ const TechnicalHUD = () => {
     return (
         <div className="fixed top-24 right-6 md:right-12 z-40 hidden lg:flex flex-col items-end gap-2 pointer-events-none mix-blend-difference">
             <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse" />
+                <div className="w-1.5 h-1.5 bg-primary animate-pulse" />
                 <span className="font-mono text-[10px] text-zinc-400">LIVE FEED</span>
             </div>
             <div className="font-mono text-[10px] text-zinc-600 flex flex-col items-end gap-1">
@@ -148,7 +148,7 @@ const TechnicalHUD = () => {
 
 export default function DocsPage() {
   return (
-    <main className="relative min-h-screen bg-[#020202] text-white selection:bg-emerald-500/30">
+    <main className="relative min-h-screen bg-[#020202] text-white selection:bg-primary/30">
       <GridBackground />
       <TechnicalHUD />
 
@@ -169,7 +169,7 @@ export default function DocsPage() {
       {/* Brutalist Features List */}
       <section className="relative z-10 pb-32">
         <div className="px-6 md:px-24 mb-12 flex items-end gap-4">
-            <div className="w-3 h-3 bg-emerald-500" />
+            <div className="w-3 h-3 bg-primary" />
             <h3 className="font-mono text-sm text-zinc-500 uppercase tracking-widest">System Modules</h3>
         </div>
 
@@ -263,7 +263,7 @@ export default function DocsPage() {
                 Ready to deploy the future of agriculture?
                 <br/>Initialize your instance now.
             </p>
-            <Link href="/apply" className="group flex items-center gap-4 px-8 py-4 bg-emerald-500 text-black font-bold text-lg hover:bg-emerald-400 transition-colors">
+            <Link href="/apply" className="group flex items-center gap-4 px-8 py-4 bg-primary text-black font-bold text-lg hover:bg-emerald-400 transition-colors">
                 <span>INITIALIZE</span>
                 <ArrowUpRight className="w-5 h-5 group-hover:rotate-45 transition-transform" />
             </Link>

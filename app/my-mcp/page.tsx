@@ -138,7 +138,7 @@ export default function MyMCPPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-jinbuti selection:bg-emerald-500/30 selection:text-emerald-50 cursor-none">
+    <div className="min-h-screen bg-[#050505] text-white font-jinbuti selection:bg-primary/30 selection:text-emerald-50 cursor-none">
       <CustomCursor />
 
       {/* Background Elements - Matching Main Site */}
@@ -186,7 +186,7 @@ export default function MyMCPPage() {
              <Button 
                variant="ghost" 
                size="sm" 
-               className="text-white/60 hover:text-emerald-400 hover:bg-emerald-500/10 h-8 px-2 gap-2 font-jinbuti rounded-none border border-transparent hover:border-emerald-500/30"
+               className="text-white/60 hover:text-emerald-400 hover:bg-primary/10 h-8 px-2 gap-2 font-jinbuti rounded-none border border-transparent hover:border-primary/30"
                onClick={() => router.push('/ai-assistant')}
              >
                <ArrowLeft className="size-4" />
@@ -238,7 +238,7 @@ export default function MyMCPPage() {
            <Button
              variant="ghost"
              size="icon"
-             className="text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-none border border-transparent hover:border-emerald-500/30 size-9"
+             className="text-zinc-400 hover:text-emerald-400 hover:bg-primary/10 rounded-none border border-transparent hover:border-primary/30 size-9"
              onClick={() => router.push('/my-mcp')}
              title="Settings"
            >
@@ -261,7 +261,7 @@ export default function MyMCPPage() {
            </motion.div>
 
            <Button 
-             className="rounded-none px-4 h-9 bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 font-jinbuti tracking-wide border border-emerald-500/50 clip-path-slant"
+             className="rounded-none px-4 h-9 bg-primary text-white hover:bg-primary shadow-lg shadow-emerald-500/20 font-jinbuti tracking-wide border border-primary/50 clip-path-slant"
              onClick={() => setCustomDialogOpen(true)}
              style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
            >
@@ -282,9 +282,9 @@ export default function MyMCPPage() {
             >
                <motion.div variants={fadeInUp} className="mb-6">
                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <span className="h-px w-8 bg-emerald-500/50"></span>
+                    <span className="h-px w-8 bg-primary/50"></span>
                     <span className="text-xs font-medium tracking-[0.2em] text-emerald-400 uppercase font-mono">已安装服务</span>
-                    <span className="h-px w-8 bg-emerald-500/50"></span>
+                    <span className="h-px w-8 bg-primary/50"></span>
                  </div>
                  <div className="relative inline-block">
                     <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-white mb-6 font-jinbuti mix-blend-difference">
@@ -314,7 +314,7 @@ export default function MyMCPPage() {
          </div>
          
          {/* Background Elements */}
-         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
       </header>
 
@@ -323,14 +323,14 @@ export default function MyMCPPage() {
          <div className="max-w-[1600px] mx-auto">
             {installedServers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 bg-white/5 backdrop-blur-sm">
-                    <Grid className="size-16 text-emerald-500/20 mb-6" />
+                    <Grid className="size-16 text-primary/20 mb-6" />
                     <h3 className="text-xl font-bold mb-2 font-jinbuti">暂无已安装的 MCP Server</h3>
                     <p className="text-white/40 mb-8 max-w-md text-center font-light">
                         前往 MCP 广场探索并安装您需要的插件，它们将在这里显示。
                     </p>
                     <Button 
                         onClick={() => router.push('/mcp-store')}
-                        className="bg-emerald-600 text-white hover:bg-emerald-500 px-8 font-jinbuti rounded-none border border-emerald-500/50"
+                        className="bg-primary text-white hover:bg-primary px-8 font-jinbuti rounded-none border border-primary/50"
                     >
                         去逛逛广场
                     </Button>
@@ -342,12 +342,12 @@ export default function MyMCPPage() {
                   className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                 >
                    {installedServers.map((server) => (
-                      <div key={server.id} className="group relative bg-[#0A0A0A]/80 backdrop-blur-sm border border-white/5 overflow-hidden hover:border-emerald-500/30 transition-all duration-500 flex flex-col h-[260px]">
+                      <div key={server.id} className="group relative bg-[#0A0A0A]/80 backdrop-blur-sm border border-white/5 overflow-hidden hover:border-primary/30 transition-all duration-500 flex flex-col h-[260px]">
                          {/* Corner Accents */}
-                         <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-white/10 group-hover:border-emerald-500/50 transition-colors" />
-                         <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-white/10 group-hover:border-emerald-500/50 transition-colors" />
-                         <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-white/10 group-hover:border-emerald-500/50 transition-colors" />
-                         <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-white/10 group-hover:border-emerald-500/50 transition-colors" />
+                         <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-white/10 group-hover:border-primary/50 transition-colors" />
+                         <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-white/10 group-hover:border-primary/50 transition-colors" />
+                         <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-white/10 group-hover:border-primary/50 transition-colors" />
+                         <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-white/10 group-hover:border-primary/50 transition-colors" />
 
                          {/* Card Header */}
                              <div className="p-5 flex items-start justify-between relative z-10">
@@ -361,12 +361,12 @@ export default function MyMCPPage() {
                                <div>
                                   <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 font-jinbuti">{server.displayName}</h3>
                                   <div className="flex items-center gap-2 text-xs text-white/40 mt-0.5 font-mono">
-                                     <span className="flex items-center gap-1"><div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> 运行中</span>
+                                     <span className="flex items-center gap-1"><div className="size-1.5 rounded-full bg-primary animate-pulse" /> 运行中</span>
                                   </div>
                                </div>
                             </div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button size="icon" variant="ghost" className="size-8 text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-none" onClick={() => { setSelectedServer(server); setDetailDialogOpen(true); }}>
+                                <Button size="icon" variant="ghost" className="size-8 text-white/40 hover:text-emerald-400 hover:bg-primary/10 rounded-none" onClick={() => { setSelectedServer(server); setDetailDialogOpen(true); }}>
                                     <Settings className="size-4" />
                                 </Button>
                             </div>
@@ -403,7 +403,7 @@ export default function MyMCPPage() {
                                </Button>
                                <Button 
                                  size="sm" 
-                                 className="h-8 px-4 text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 font-jinbuti rounded-none"
+                                 className="h-8 px-4 text-xs bg-primary/10 text-emerald-400 hover:bg-primary/20 border border-primary/20 font-jinbuti rounded-none"
                                  onClick={() => { setSelectedServer(server); setDetailDialogOpen(true); }}
                                >
                                   配置

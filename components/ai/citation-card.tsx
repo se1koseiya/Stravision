@@ -31,7 +31,7 @@ export function CitationCard({ citation, className }: CitationCardProps) {
             className
         )}>
             {/* 顶部装饰条 */}
-            <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+            <div className="h-1 bg-gradient-to-r from-primary via-teal-500 to-cyan-500" />
             
             <div className="p-4 space-y-3">
                 {/* Header: Icon + Hostname + Number Badge */}
@@ -52,7 +52,7 @@ export function CitationCard({ citation, className }: CitationCardProps) {
                         </span>
                     </div>
                     {citation.number && (
-                        <div className="shrink-0 size-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">
+                        <div className="shrink-0 size-6 rounded-full bg-gradient-to-br from-primary to-teal-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">
                             {citation.number}
                         </div>
                     )}
@@ -64,7 +64,7 @@ export function CitationCard({ citation, className }: CitationCardProps) {
                         href={citation.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors mb-2 line-clamp-2"
+                        className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight hover:text-primary dark:hover:text-emerald-400 transition-colors mb-2 line-clamp-2"
                     >
                         {citation.title}
                     </a>
@@ -82,7 +82,7 @@ export function CitationCard({ citation, className }: CitationCardProps) {
                     href={citation.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 hover:gap-2 transition-all group-hover:text-emerald-700 dark:group-hover:text-emerald-300"
+                    className="text-xs font-medium text-primary dark:text-emerald-400 flex items-center gap-1.5 hover:gap-2 transition-all group-hover:text-emerald-700 dark:group-hover:text-emerald-300"
                 >
                     访问来源 <ExternalLink size={12} className="transition-transform group-hover:translate-x-0.5" />
                 </a>

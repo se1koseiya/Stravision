@@ -42,7 +42,7 @@ export default function TestStudioPanel() {
             <div className="mt-6 space-y-4">
               <button 
                 onClick={() => setStudioOpen(!studioOpen)}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 {studioOpen ? 'Hide' : 'Show'} Studio Panel
               </button>
@@ -66,7 +66,7 @@ export default function TestStudioPanel() {
                 {/* Studio Header */}
                 <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 flex items-center justify-center">
                       <Zap size={18} className="animate-pulse" />
                     </div>
                     <div>

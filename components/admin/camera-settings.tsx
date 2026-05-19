@@ -84,7 +84,7 @@ export function CameraSettings() {
     <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Camera className="h-5 w-5 text-emerald-500" />
+          <Camera className="h-5 w-5 text-primary" />
           <CardTitle className="text-base font-medium">监控摄像头配置</CardTitle>
         </div>
       </CardHeader>
@@ -123,7 +123,7 @@ export function CameraSettings() {
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-emerald-700 text-white">
               <Save className="mr-2 h-4 w-4" />
               {saving ? "保存中..." : "保存摄像头配置"}
             </Button>
