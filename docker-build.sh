@@ -67,12 +67,14 @@ case $BUILD_TYPE in
         echo "📦 Building with low memory settings (for 4GB servers)..."
         echo "Memory limit: 3.5g"
         echo "Memory swap: 7g"
+        echo "CPUs: 2"
         echo "Using: Dockerfile.low-memory"
         echo ""
         
         docker build \
             --memory=3.5g \
             --memory-swap=7g \
+            --cpus=2 \
             --progress=plain \
             -t $IMAGE_NAME:latest \
             -f Dockerfile.low-memory \

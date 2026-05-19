@@ -33,6 +33,7 @@ COPY --chown=nextjs:nodejs ./public ./public
 COPY --chown=nextjs:nodejs ./.next ./.next
 COPY --chown=nextjs:nodejs ./server ./server
 COPY --chown=nextjs:nodejs ./.agents ./.agents
+COPY --chown=nextjs:nodejs ./data ./data
 
 # Copy production dependencies
 COPY --from=deps /app/node_modules ./node_modules

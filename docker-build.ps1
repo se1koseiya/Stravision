@@ -66,12 +66,14 @@ switch ($BuildType) {
         Write-Host "📦 Building with low memory settings (for 4GB servers)..." -ForegroundColor Green
         Write-Host "Memory limit: 3.5g"
         Write-Host "Memory swap: 7g"
+        Write-Host "CPUs: 2"
         Write-Host "Using: Dockerfile.low-memory"
         Write-Host ""
         
         docker build `
             --memory=3.5g `
             --memory-swap=7g `
+            --cpus=2 `
             --progress=plain `
             -t "${ImageName}:latest" `
             -f Dockerfile.low-memory `
