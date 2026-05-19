@@ -1,9 +1,9 @@
-FROM docker.m.daocloud.io/node:20-alpine AS base
+FROM docker.m.daocloud.io/node:22-alpine AS base
 
-# Install pnpm
+# Install pnpm - specify version to match package.json
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.30.1 --activate
 
 # Install dependencies only when needed
 FROM base AS deps

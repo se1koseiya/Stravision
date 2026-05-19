@@ -5,17 +5,19 @@ Docker build fails with `SIGKILL` after ~18 minutes during `npm run build`, indi
 
 ## Root Causes
 1. **Wrong package manager**: Dockerfile was using npm but project uses pnpm
-2. **Insufficient memory**: 4GB limit too low for large Next.js + Turbopack builds
-3. **Large build context**: Unnecessary files being copied to Docker
-4. **No build optimization**: Missing environment variables to reduce memory usage
+2. **Node.js version mismatch**: pnpm 10.30.1+ requires Node.js 18.12+ (using Node.js 22 for future compatibility)
+3. **Insufficient memory**: 4GB limit too low for large Next.js + Turbopack builds
+4. **Large build context**: Unnecessary files being copied to Docker
+5. **No build optimization**: Missing environment variables to reduce memory usage
 
 ## Solutions Applied
 
 ### 1. Updated Dockerfile
+- ✅ Upgraded to Node.js 22 (required for pnpm 10.30.1+)
 - ✅ Switched from npm to pnpm (matches project setup)
+- ✅ Pinned pnpm version to 10.30.1 (matches package.json)
 - ✅ Increased memory limit from 4GB to 8GB (`NODE_OPTIONS="--max-old-space-size=8192"`)
 - ✅ Added `GENERATE_SOURCEMAP=false` to reduce memory usage
-- ✅ Enabled pnpm via corepack
 - ✅ Used `--frozen-lockfile` for faster, deterministic installs
 
 ### 2. Created .dockerignore
