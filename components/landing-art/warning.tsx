@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import { useRef, useState } from "react"
 import BerryOrb from "@/components/smoothui/berry-orb"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Cpu } from "lucide-react"
 
 export function Warning() {
   const ref = useRef(null)
