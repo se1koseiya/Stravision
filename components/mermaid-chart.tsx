@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react'
-import mermaid from 'mermaid'
 
 interface MermaidChartProps {
   chart: string
@@ -10,23 +9,31 @@ interface MermaidChartProps {
 const MermaidChart: React.FC<MermaidChartProps> = ({ chart }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [svg, setSvg] = useState<string>('')
+  const [mermaidInstance, setMermaidInstance] = useState<any>(null)
 
   useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-      fontFamily: 'inherit',
-    })
+    // Dynamically import mermaid only on the client
+    const initMermaid = async () => {
+      const { default: mermaid } = await import('mermaid')
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'inherit',
+      })
+      setMermaidInstance(mermaid)
+    }
+
+    initMermaid()
   }, [])
 
   useEffect(() => {
     const renderChart = async () => {
-      if (!containerRef.current || !chart) return
+      if (!containerRef.current || !chart || !mermaidInstance) return
 
       try {
         const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`
-        const { svg } = await mermaid.render(id, chart)
+        const { svg } = await mermaidInstance.render(id, chart)
         setSvg(svg)
       } catch (error) {
         console.error('Mermaid render error:', error)
@@ -35,7 +42,7 @@ const MermaidChart: React.FC<MermaidChartProps> = ({ chart }) => {
     }
 
     renderChart()
-  }, [chart])
+  }, [chart, mermaidInstance])
 
   return (
     <div 

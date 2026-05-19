@@ -13,6 +13,20 @@ const nextConfig: NextConfig = {
     // This is default in recent versions but good to be explicit if issues arise
     optimizePackageImports: ['lucide-react', '@heroicons/react', '@tabler/icons-react'],
   },
+  // Fix mermaid module resolution issues - works with both Turbopack and Webpack
+  transpilePackages: ['mermaid'],
+  // Turbopack configuration (Next.js 16+)
+  turbopack: {
+    resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
+  },
+  // Webpack configuration (fallback for --webpack flag)
+  webpack: (config) => {
+    config.resolve.extensionAlias = {
+      '.js': ['.js', '.ts', '.tsx', '.jsx'],
+      '.mjs': ['.mjs', '.mts'],
+    };
+    return config;
+  },
   /* config options here */
   images: {
     remotePatterns: [

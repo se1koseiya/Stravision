@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { Copy, RotateCcw, CircleHelp, CheckCircle2, AlertCircle, Loader2, Globe, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Mic, Image as ImageIcon, Camera, Rocket, Trash, History, Home, Droplets, Thermometer, CalendarDays, User, MessageSquare, Bell, Monitor, Search, Menu, Plus, ArrowRight, ArrowUp, TrendingUp, BarChart3, Send, Sparkles, Smile, Settings } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import MermaidChart from "@/components/mermaid-chart"
+import dynamic from "next/dynamic"
+const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
+})
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"

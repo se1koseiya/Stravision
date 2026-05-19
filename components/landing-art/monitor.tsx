@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform, useMotionTemplate } from "framer-motion"
+import { motion, useScroll, useTransform, useMotionTemplate, useSpring } from "framer-motion"
 import { useRef } from "react"
 import { ExactDesignHome } from "@/components/ai/exact-design-home"
 import { Lock } from "lucide-react"
@@ -71,46 +71,51 @@ function BrowserWindow({ children }: { children: React.ReactNode }) {
 export function Monitor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Track scroll over the 120vh container
+  // Track scroll over the container - Finishing much earlier at center
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start end", "center center"]
+  })
+
+  // Add physical damping for premium feel
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 40,
+    damping: 20,
+    restDelta: 0.001
   })
 
   // --- LAYER 1: OUTER WHITE WORLD ANIMATIONS ---
-  // 给用户留出 [0, 0.05] 的时间来阅读外层文案
-  const textOpacity = useTransform(scrollYProgress, [0.05, 0.15], [1, 0])
-  const textY = useTransform(scrollYProgress, [0.05, 0.15], [0, -50])
-  const textScale = useTransform(scrollYProgress, [0.05, 0.15], [1, 1.2])
-  const textFilter = useTransform(scrollYProgress, [0.05, 0.15], ["blur(0px)", "blur(10px)"])
+  // Delayed start to let user see the text first
+  const textOpacity = useTransform(smoothProgress, [0.2, 0.4], [1, 0])
+  const textY = useTransform(smoothProgress, [0.2, 0.4], [0, -50])
+  const textScale = useTransform(smoothProgress, [0.2, 0.4], [1, 1.2])
+  const textFilter = useTransform(smoothProgress, [0.2, 0.4], ["blur(0px)", "blur(10px)"])
 
   // --- LAYER 2: INNER LIGHT WORLD REVEAL (APERTURE) ---
-  // 从 0.1 开始平滑展开，直到 0.5 完全覆盖全屏
-  const apertureSize = useTransform(scrollYProgress, [0.1, 0.5], ["0%", "150%"])
+  // Starts after text begins to fade
+  const apertureSize = useTransform(smoothProgress, [0.35, 0.75], ["0%", "150%"])
   const clipPath = useMotionTemplate`circle(${apertureSize} at 50% 50%)`
 
   // --- 3D CARDS FLY-THROUGH ---
-  const cardsOpacity = useTransform(scrollYProgress, [0.4, 0.95], [1, 0])
-  // 卡片飞行贯穿整个滚动过程
-  const z1 = useTransform(scrollYProgress, [0.2, 0.9], [0, 1600])
-  const z2 = useTransform(scrollYProgress, [0.25, 0.95], [0, 1600])
-  const z3 = useTransform(scrollYProgress, [0.2, 0.85], [0, 1600])
-  const z4 = useTransform(scrollYProgress, [0.3, 1], [0, 1600])
+  const cardsOpacity = useTransform(smoothProgress, [0.6, 0.95], [1, 0])
+  const z1 = useTransform(smoothProgress, [0.4, 0.9], [0, 1600])
+  const z2 = useTransform(smoothProgress, [0.45, 0.95], [0, 1600])
+  const z3 = useTransform(smoothProgress, [0.4, 0.85], [0, 1600])
+  const z4 = useTransform(smoothProgress, [0.5, 1], [0, 1600])
   const zArr = [z1, z2, z3, z4]
 
   // --- BROWSER WINDOW ANIMATION ---
-  // 将最终落位动画拉满到 1.0，彻底消除空滑的“垃圾时间”
-  const browserY = useTransform(scrollYProgress, [0.3, 1], ["40%", "0%"])
-  const browserScale = useTransform(scrollYProgress, [0.3, 1], [0.8, 1])
-  const browserOpacity = useTransform(scrollYProgress, [0.25, 0.8], [0, 1])
+  const browserY = useTransform(smoothProgress, [0.6, 1], ["40%", "0%"])
+  const browserScale = useTransform(smoothProgress, [0.6, 1], [0.8, 1])
+  const browserOpacity = useTransform(smoothProgress, [0.5, 0.9], [0, 1])
 
-  // Glowing orb scale inside the portal
-  const orbScale = useTransform(scrollYProgress, [0.1, 0.8], [1, 2.5])
+  // Glowing orb scale
+  const orbScale = useTransform(smoothProgress, [0.3, 0.9], [1, 2.5])
 
-  // 背景色过渡 - 从白色到 slate-50
+  // Background color transition
   const bgColor = useTransform(
-    scrollYProgress,
-    [0, 0.7, 1],
+    smoothProgress,
+    [0, 0.8, 1],
     ["rgb(255, 255, 255)", "rgb(255, 255, 255)", "rgb(248, 250, 252)"]
   )
 
@@ -124,11 +129,10 @@ export function Monitor() {
   const handleSendMessage = (msg: string) => console.log("Sending command:", msg)
 
   return (
-    <section ref={containerRef} className="relative h-[120vh] bg-gradient-to-b from-white via-white to-slate-50">
+    <section ref={containerRef} className="relative h-[150vh] bg-gradient-to-b from-white via-white to-slate-50">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
 
         {/* ================= LAYER 1: THE WHITE WORLD ================= */}
-        {/* Connects seamlessly to hero.tsx's white wave */}
         <motion.div
           className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none"
           style={{ backgroundColor: bgColor }}
@@ -150,15 +154,12 @@ export function Monitor() {
         </motion.div>
 
         {/* ================= LAYER 2: THE INNER WORLD (APERTURE REVEAL) ================= */}
-        {/* A vibrant, light, non-black premium UI revealed through the circular mask */}
         <motion.div
           className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden"
           style={{ clipPath, backgroundColor: bgColor }}
         >
-          {/* Subtle Light Grid Background */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000006_1px,transparent_1px),linear-gradient(to_bottom,#00000006_1px,transparent_1px)] bg-[size:48px_48px]" />
 
-          {/* Vibrant Core Orb */}
           <motion.div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full mix-blend-multiply pointer-events-none z-10"
             style={{
@@ -194,7 +195,6 @@ export function Monitor() {
           </motion.div>
 
           {/* --- The Destination: Browser Control Center --- */}
-          {/* Pure Light/Premium styling - No Black! */}
           <motion.div
             className="relative z-20 w-full max-w-[1400px] px-6 pointer-events-auto"
             style={{ y: browserY, scale: browserScale, opacity: browserOpacity }}

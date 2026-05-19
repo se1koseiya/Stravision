@@ -5,6 +5,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { ChevronRight, Sparkles } from "lucide-react"
 import { useRef } from "react"
+import React from "react"
+import GlassSurface from "@/components/ui/glass-surface"
 
 export function Hero() {
   const ref = useRef(null)
@@ -17,74 +19,107 @@ export function Hero() {
   const yText = useTransform(scrollYProgress, [0, 1], ["0%", "80%"])
   const yCharacter = useTransform(scrollYProgress, [0, 1], ["0%", "30%"])
 
+  // Header scroll effect
+  const [isScrolled, setIsScrolled] = React.useState(false)
+  
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
-    <section
-      ref={ref}
-      className="relative w-full flex flex-col pt-6 pb-32 bg-gradient-to-b from-[#6fbcf8] via-[#85c8f9] to-[#b4defb] overflow-hidden z-20"
-    >
-      {/* Decorative Background Clouds & Parallax Orbs */}
-      <motion.div style={{ y: yBg }} className="absolute inset-0 z-0 pointer-events-none">
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-[5%] left-[5%] w-[400px] h-[400px] bg-white/40 blur-[80px] rounded-full" />
-        <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 10, repeat: Infinity, delay: 1 }} className="absolute top-[15%] right-[10%] w-[500px] h-[500px] bg-blue-300/40 blur-[100px] rounded-full" />
-        <motion.div animate={{ x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 12, repeat: Infinity }} className="absolute bottom-[20%] left-[20%] w-[350px] h-[350px] bg-cyan-200/40 blur-[60px] rounded-full" />
-
-        {/* Floating little particles */}
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-            initial={{ x: Math.random() * 100 + "%", y: Math.random() * 100 + "%", opacity: Math.random() }}
-            animate={{
-              y: [null, Math.random() * -100 - 50],
-              opacity: [null, 0]
-            }}
-            transition={{ duration: Math.random() * 5 + 5, repeat: Infinity, ease: "linear" }}
-          />
-        ))}
-      </motion.div>
-
-      {/* Top Navigation */}
-      <header className="relative z-50 flex items-center justify-between px-8 py-4 w-full max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          {/* Logo icon */}
-          <div className="w-8 h-8 flex items-center justify-center">
-            <div className="text-white font-bold text-xl tracking-tighter flex items-center gap-2">
-              <div className="w-20 h-20 flex items-center justify-center">
-                <Image src="/icon.png" alt="Logo" width={50} height={50} />
-              </div>
+    <>
+      {/* Top Navigation - Sticky Header */}
+      <header className={`fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 md:px-8 py-4 w-full transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-transparent' 
+          : 'bg-transparent'
+      }`}>
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 flex items-center justify-center">
+              <Image src="/icon.png" alt="StraVision Logo" width={40} height={40} className="group-hover:scale-110 transition-transform" />
             </div>
+            <span className={`font-bold text-lg tracking-tight hidden sm:inline transition-colors font-alimama ${
+              isScrolled ? 'text-black' : 'text-black'
+            }`}>StraVision</span>
+          </Link>
+
+          {/* Center Navigation */}
+          <div className="hidden lg:block">
+            <GlassSurface 
+              width="auto" 
+              height="auto" 
+              borderRadius={9999}
+              backgroundOpacity={0.15}
+              borderWidth={0.05}
+              blur={15}
+              className="px-2 py-1.5"
+            >
+              <nav className="flex items-center gap-1 font-alimama">
+                <Link href="/dashboard" className="px-4 py-2 text-sm rounded-full font-bold shadow-sm transition-all hover:shadow-md text-blue-600 bg-white">
+                  控制台
+                </Link>
+                <Link href="/device-control" className="px-4 py-2 text-sm transition-colors font-bold text-black hover:text-black/70">
+                  设备管理
+                </Link>
+                <Link href="/monitor" className="px-4 py-2 text-sm transition-colors font-bold text-black hover:text-black/70">
+                  数据监控
+                </Link>
+                <Link href="/automation" className="px-4 py-2 text-sm transition-colors font-bold text-black hover:text-black/70">
+                  自动化
+                </Link>
+                <Link href="/docs" className="px-4 py-2 text-sm transition-colors font-bold text-black hover:text-black/70">
+                  文档
+                </Link>
+              </nav>
+            </GlassSurface>
           </div>
-        </div>
 
-        <nav className="hidden md:flex items-center bg-white/30 rounded-full p-1 border border-white/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(255,255,255,0.2)]">
-          <Link href="#dashboard" className="px-5 py-2 text-sm text-blue-500 bg-white rounded-full font-medium shadow-sm">
-            控制台
-          </Link>
-          <Link href="#limits" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
-            设备管理
-          </Link>
-          <Link href="#prices" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
-            数据分析
-          </Link>
-          <Link href="#faq" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
-            自动化
-          </Link>
-          <Link href="#blog" className="px-5 py-2 text-sm text-white hover:text-white/80 transition-colors">
-            知识库
-          </Link>
-        </nav>
-
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm text-white font-medium hover:text-white/80 transition-colors">
-            登录
-          </Link>
-          <Link href="/dashboard" className="px-5 py-2.5 rounded-full bg-black text-white text-sm font-medium hover:bg-black/80 transition-colors flex items-center gap-2">
-            立即开启 <ChevronRight className="w-4 h-4" />
-          </Link>
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            <Link href="/login" className={`text-sm font-bold transition-colors hidden sm:inline font-alimama ${
+              isScrolled ? 'text-black hover:text-black/70' : 'text-black hover:text-black/70'
+            }`}>
+              登录
+            </Link>
+            <Link href="/dashboard" className="px-4 py-2.5 rounded-full bg-black/90 text-white text-sm font-medium hover:bg-black transition-all flex items-center gap-2 shadow-lg hover:shadow-xl">
+              立即开启 <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Main Hero Content */}
+      <section
+        ref={ref}
+        className="relative w-full flex flex-col pt-24 pb-32 bg-gradient-to-b from-[#6fbcf8] via-[#85c8f9] to-[#b4defb] overflow-hidden z-20"
+      >
+        {/* Decorative Background Clouds & Parallax Orbs */}
+        <motion.div style={{ y: yBg }} className="absolute inset-0 z-0 pointer-events-none">
+          <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-[5%] left-[5%] w-[400px] h-[400px] bg-white/40 blur-[80px] rounded-full" />
+          <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 10, repeat: Infinity, delay: 1 }} className="absolute top-[15%] right-[10%] w-[500px] h-[500px] bg-blue-300/40 blur-[100px] rounded-full" />
+          <motion.div animate={{ x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 12, repeat: Infinity }} className="absolute bottom-[20%] left-[20%] w-[350px] h-[350px] bg-cyan-200/40 blur-[60px] rounded-full" />
+
+          {/* Floating little particles */}
+          {[...Array(15)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+              initial={{ x: Math.random() * 100 + "%", y: Math.random() * 100 + "%", opacity: Math.random() }}
+              animate={{
+                y: [null, Math.random() * -100 - 50],
+                opacity: [null, 0]
+              }}
+              transition={{ duration: Math.random() * 5 + 5, repeat: Infinity, ease: "linear" }}
+            />
+          ))}
+        </motion.div>
+
+        {/* Main Hero Content */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-start pt-16 px-4">
 
         <motion.div
@@ -262,5 +297,6 @@ export function Hero() {
         }
       `}</style>
     </section>
+  </>
   )
 }
