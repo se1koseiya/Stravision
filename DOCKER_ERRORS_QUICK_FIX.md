@@ -118,6 +118,23 @@ docker run --env-file .env image-name
 
 ---
 
+## Error: `ENOENT: no such file or directory, open '/app/data/ai-models-config.json'`
+
+**Cause:** Missing data directory in Docker container
+
+**Fix:**
+```bash
+# Rebuild with updated Dockerfile (已修复)
+docker build -t berry-realm:latest .
+
+# Or use volume mount as temporary fix
+docker run -p 3000:3000 -p 3002:3002 -v $(pwd)/data:/app/data berry-realm:latest
+```
+
+**Note:** All Dockerfiles have been updated to include data directory
+
+---
+
 ## Error: `No space left on device`
 
 **Cause:** Docker disk full

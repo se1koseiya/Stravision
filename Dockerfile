@@ -73,7 +73,7 @@ COPY --from=builder /app/.agents ./.agents
 COPY --from=builder /app/data ./data
 
 # Ensure data directory exists and has correct permissions
-RUN mkdir -p data && chown -R nextjs:nodejs data
+RUN mkdir -p data && chown -R nextjs:nodejs data && chmod -R 755 data
 
 # Switch back to root to fix permissions at runtime via entrypoint
 USER root

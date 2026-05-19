@@ -58,7 +58,7 @@ COPY --from=builder /app/server ./server
 COPY --from=builder /app/.agents ./.agents
 COPY --from=builder /app/data ./data
 
-RUN mkdir -p data && chown -R nextjs:nodejs data
+RUN mkdir -p data && chown -R nextjs:nodejs data && chmod -R 755 data
 
 USER root
 
