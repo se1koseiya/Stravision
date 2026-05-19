@@ -8,7 +8,7 @@ RUN corepack enable && corepack prepare pnpm@10.30.1 --activate
 # Production dependencies only
 FROM base AS deps
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
-    apk add --no-cache libc6-compat
+    apk add --no-cache libc6-compat git
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml .npmrc ./
