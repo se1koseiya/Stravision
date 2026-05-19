@@ -29,12 +29,14 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Increase memory limit for build - critical for large Next.js apps
-ENV NODE_OPTIONS="--max-old-space-size=8192"
+# For 4GB servers, use 3GB to leave room for system
+ENV NODE_OPTIONS="--max-old-space-size=3072"
 
 # Disable source maps in production to reduce memory usage
 ENV GENERATE_SOURCEMAP=false
 
-RUN pnpm build
+# Use webpack instead of turbopack for lower memory usage on 4GB servers
+RUN pnpm build --webpack || pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner

@@ -134,6 +134,30 @@ pnpm build
 2. **Enable BuildKit caching** (see above)
 3. **Use a faster registry mirror** (already configured in Dockerfile)
 
+### "ENOENT: Command failed with ENOENT: git init"
+
+**Cause:** Git is not installed, but required for GitHub dependencies
+
+**Solution:**
+1. Verify Dockerfile includes git in apk packages: `apk add --no-cache ... git`
+2. Check if any dependencies use `github:` protocol in package.json
+3. Rebuild Docker image with updated Dockerfile
+
+**Common GitHub Dependencies:**
+- `@nanostores/react: "github:ai/react"`
+- Any package with `github:owner/repo` format
+- Any package with `git+https://` or `git://` URLs
+
+### pnpm version errors
+
+**Cause:** Version mismatch between local and Docker
+
+**Solution:**
+1. Check `packageManager` field in package.json
+2. Verify Dockerfile has: `corepack prepare pnpm@10.30.1 --activate`
+3. Run locally: `corepack prepare pnpm@10.30.1 --activate`
+4. Verify: `pnpm --version` should show 10.30.1
+
 ## Production Deployment
 
 For production, consider:
