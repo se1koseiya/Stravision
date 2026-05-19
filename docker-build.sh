@@ -64,19 +64,18 @@ case $BUILD_TYPE in
         ;;
         
     "low-memory")
-        echo "📦 Building with low memory settings (slower but safer)..."
-        echo "Memory limit: 6g"
-        echo "Memory swap: 8g"
-        echo "CPUs: 2"
+        echo "📦 Building with low memory settings (for 4GB servers)..."
+        echo "Memory limit: 3.5g"
+        echo "Memory swap: 7g"
+        echo "Using: Dockerfile.low-memory"
         echo ""
         
         docker build \
-            --memory=6g \
-            --memory-swap=8g \
-            --cpus=2 \
+            --memory=3.5g \
+            --memory-swap=7g \
             --progress=plain \
             -t $IMAGE_NAME:latest \
-            -f Dockerfile \
+            -f Dockerfile.low-memory \
             .
         ;;
         
