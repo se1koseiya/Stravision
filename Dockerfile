@@ -1,5 +1,10 @@
 FROM docker.m.daocloud.io/node:20-alpine AS base
 
+# Install pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
 # Install dependencies only when needed
 FROM base AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
@@ -8,10 +13,9 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm config set legacy-peer-deps true && \
-    npm install --legacy-peer-deps
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm config set registry https://registry.npmmirror.com && \
+    pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -22,12 +26,15 @@ COPY . .
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Increase memory limit for build
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Increase memory limit for build - critical for large Next.js apps
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 
-RUN npm run build
+# Disable source maps in production to reduce memory usage
+ENV GENERATE_SOURCEMAP=false
+
+RUN pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -82,7 +89,7 @@ RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
     echo '# Start WebSocket server in background' >> /app/entrypoint.sh && \
     echo 'su-exec nextjs node /app/server/ws-server.js &' >> /app/entrypoint.sh && \
     echo '# Start Next.js' >> /app/entrypoint.sh && \
-    echo 'exec su-exec nextjs npm start' >> /app/entrypoint.sh && \
+    echo 'exec su-exec nextjs pnpm start' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
 CMD ["/app/entrypoint.sh"]
