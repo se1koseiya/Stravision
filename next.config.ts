@@ -12,19 +12,38 @@ const nextConfig: NextConfig = {
   experimental: {
     // This is default in recent versions but good to be explicit if issues arise
     optimizePackageImports: ['lucide-react', '@heroicons/react', '@tabler/icons-react'],
+    // Mark server-only packages to prevent client-side bundling
+    serverComponentsExternalPackages: ['better-sqlite3', 'pg', 'bcryptjs'],
   },
   // Fix mermaid module resolution issues - works with both Turbopack and Webpack
   transpilePackages: ['mermaid'],
+  // Skip optional dependencies like lightningcss native binaries on Alpine Linux
+  // This prevents "Cannot find module '../lightningcss.linux-x64-musl.node'" errors
+  serverExternalPackages: ['lightningcss'],
   // Turbopack configuration (Next.js 16+)
   turbopack: {
     resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   // Webpack configuration (fallback for --webpack flag)
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.extensionAlias = {
       '.js': ['.js', '.ts', '.tsx', '.jsx'],
       '.mjs': ['.mjs', '.mts'],
     };
+    
+    // Exclude Node.js built-in modules from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+      };
+    }
+    
     return config;
   },
   /* config options here */
