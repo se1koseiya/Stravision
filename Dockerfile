@@ -18,11 +18,9 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 # 配置 pnpm 和 git 以处理网络问题
 RUN pnpm config set registry https://registry.npmmirror.com && \
     pnpm config set network-timeout 300000 && \
-    pnpm config set optional false && \
     git config --global http.postBuffer 524288000 && \
     git config --global http.sslVerify false && \
-    pnpm install --frozen-lockfile --no-optional || \
-    pnpm install --no-frozen-lockfile --no-optional
+    (pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile)
 
 # Rebuild the source code only when needed
 FROM base AS builder

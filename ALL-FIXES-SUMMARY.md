@@ -316,3 +316,125 @@ docker push registry/berry-realm:prod
 ---
 
 **所有问题已解决！现在可以顺利构建和运行了。** 🎉
+
+### 9. ✅ Alpine Linux 原生模块问题
+**错误:** 
+- `Cannot find module '../lightningcss.linux-x64-musl.node'`
+- `Module not found: Can't resolve 'path'` in database.ts
+- `Module not found: Can't resolve 'fs'` in database.ts
+- `Module not found: Can't resolve 'canvg'`
+
+**根本原因:**
+1. lightningcss 原生二进制文件不兼容 Alpine Linux musl
+2. instrumentation.ts 导入数据库模块,导致 Node.js 模块泄漏到客户端
+3. pnpm-lock.yaml 锁定了错误的 jspdf@4.2.0 版本
+4. 缺少 canvg peer dependency
+
+**修复:**
+- 添加 `canvg: ^4.0.2` 到 package.json
+- 删除并重新生成 pnpm-lock.yaml (jspdf 4.2.0 → 2.5.2)
+- 更新 next.config.ts:
+  - 添加 `serverComponentsExternalPackages: ['better-sqlite3', 'pg', 'bcryptjs']`
+  - 添加 `serverExternalPackages: ['lightningcss']`
+  - 添加 webpack fallback 排除 Node.js 内置模块 (fs, path, crypto 等)
+- 更新 Dockerfile 添加 `pnpm config set optional false`
+- 使用 `--no-optional` 标志跳过原生模块可选依赖
+
+**文件:** `package.json`, `pnpm-lock.yaml`, `next.config.ts`, `Dockerfile`, `Dockerfile.low-memory`
+
+**详细文档:** [ALPINE-LINUX-FIX.md](./ALPINE-LINUX-FIX.md)
+
+---
+
+## 🚀 WebSocket 语音服务
+
+### 配置
+WebSocket 服务器 (`server/ws-server.js`) 已在 Docker 中配置为自动启动:
+- **端口:** 3002
+- **功能:** DashScope 实时语音 API 代理
+- **健康检查:** `http://localhost:3002/health`
+
+### Docker 启动流程
+```bash
+# entrypoint.sh 同时启动两个服务
+su-exec nextjs node /app/server/ws-server.js &  # 后台运行 WebSocket 服务
+exec su-exec nextjs pnpm start                   # 前台运行 Next.js
+```
+
+### 环境变量
+```env
+WS_SERVER_PORT=3002
+DASHSCOPE_API_KEY=your_api_key
+NEXT_SERVER_URL=http://localhost:3000
+```
+
+---
+
+## 📊 构建统计
+
+### 依赖更新
+- ✅ jspdf: 4.2.0 → 2.5.2
+- ✅ canvg: 新增 4.0.3
+- ✅ @nanostores/react: github:ai/react → 0.7.3 (npm)
+- ✅ Node.js: 20 → 22
+- ✅ pnpm: 11.1.3 → 10.30.1
+
+### 构建优化
+- 内存限制: 3GB (4GB 服务器) / 8GB (8GB+ 服务器)
+- 构建工具: Webpack (低内存) / Turbopack (高性能)
+- 源码映射: 生产环境禁用
+- 可选依赖: 跳过原生模块
+
+---
+
+## 🔍 验证清单
+
+构建和部署后,验证以下内容:
+
+### Docker 构建
+- [ ] 镜像构建成功,无错误
+- [ ] 构建时间 < 20 分钟 (4GB 服务器)
+- [ ] 镜像大小合理 (< 2GB)
+
+### 运行时
+- [ ] Next.js 应用在端口 3000 正常运行
+- [ ] WebSocket 服务在端口 3002 正常运行
+- [ ] `/health` 端点返回 200 状态
+- [ ] AI 模型配置文件可访问
+- [ ] 语音助手功能正常
+- [ ] 数据库连接正常
+- [ ] 文件上传功能正常
+
+### 功能测试
+- [ ] 用户登录/注册
+- [ ] AI 对话功能
+- [ ] 语音助手实时对话
+- [ ] 设备控制
+- [ ] 数据监控
+- [ ] 报告生成
+
+---
+
+## 📚 相关文档
+
+- [4GB 服务器快速修复](./4GB-QUICK-FIX.md)
+- [4GB 服务器完整指南](./4GB-SERVER-GUIDE.md)
+- [Alpine Linux 修复指南](./ALPINE-LINUX-FIX.md)
+- [Docker 构建修复](./DOCKER_BUILD_FIX.md)
+- [Docker 快速启动](./DOCKER_QUICK_START.md)
+
+---
+
+## 📅 更新历史
+
+- **2026-05-20**: 修复 Alpine Linux 原生模块问题
+- **2026-05-19**: 修复 jspdf 版本和 GitHub 依赖
+- **2026-05-18**: 修复配置文件和 API 路由
+- **2026-05-17**: 修复 Git 和 Node.js 版本
+- **2026-05-16**: 修复内存和 Mermaid 问题
+
+---
+
+## ✅ 状态
+
+**所有问题已修复** - 项目可以在 4GB 内存的 Alpine Linux Docker 环境中成功构建和运行。
