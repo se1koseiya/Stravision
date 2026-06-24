@@ -1,11 +1,14 @@
 "use client"
 
 import { Hero } from "@/components/landing-art/hero"
-import { Monitor } from "@/components/landing-art/monitor"
-import { Warning } from "@/components/landing-art/warning"
-import { Logic } from "@/components/landing-art/logic"
-import { Topology } from "@/components/landing-art/topology"
-import { Footer } from "@/components/landing-art/footer"
+import dynamic from "next/dynamic"
+
+// 首屏以下的 section 使用 dynamic import，滚动到时才加载 JS
+const Monitor = dynamic(() => import("@/components/landing-art/monitor").then(m => ({ default: m.Monitor })), { ssr: false })
+const Warning = dynamic(() => import("@/components/landing-art/warning").then(m => ({ default: m.Warning })), { ssr: false })
+const Logic = dynamic(() => import("@/components/landing-art/logic").then(m => ({ default: m.Logic })), { ssr: false })
+const Topology = dynamic(() => import("@/components/landing-art/topology").then(m => ({ default: m.Topology })), { ssr: false })
+const Footer = dynamic(() => import("@/components/landing-art/footer").then(m => ({ default: m.Footer })), { ssr: false })
 
 export default function ArtPage() {
   return (

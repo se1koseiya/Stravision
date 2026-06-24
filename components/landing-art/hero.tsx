@@ -41,8 +41,8 @@ export function Hero() {
         <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 flex items-center justify-center">
-              <Image src="/icon.png" alt="StraVision Logo" width={40} height={40} className="group-hover:scale-110 transition-transform" />
+            <div className="w-8 h-8 flex items-center justify-center">
+              <Image src="/logo.png" alt="StraVision Logo" width={32} height={32} className="group-hover:scale-110 transition-transform" />
             </div>
             <span className={`font-bold text-lg tracking-tight hidden sm:inline transition-colors font-alimama ${
               isScrolled ? 'text-black' : 'text-black'

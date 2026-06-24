@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { UserPublic } from "@/lib/db/user-service"
@@ -35,6 +35,8 @@ import { DashboardVersionSettings } from "@/components/admin/dashboard-version-s
 import { SpectrumSourceSettings } from "@/components/admin/spectrum-source-settings"
 import { AIFeaturesSettings } from "@/components/admin/ai-features-settings"
 import { AIModelsManager } from "@/components/admin/ai-models-manager"
+import { AIProvidersManager } from "@/components/admin/ai-providers-manager"
+import { ModelMarketplace } from "@/components/admin/model-marketplace"
 
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -131,7 +133,7 @@ export default function AdminPage() {
       <nav className="fixed top-0 w-full h-20 px-8 md:px-12 flex items-center justify-between z-50 bg-[#FAFAFA]/80 dark:bg-[#050505]/80 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <div className="size-8 relative">
-            <Image src="/icon.png" alt="Logo" fill className="object-contain grayscale hover:grayscale-0 transition-all duration-500" />
+            <Image src="/logo.png" alt="Logo" fill className="object-contain grayscale hover:grayscale-0 transition-all duration-500" />
           </div>
           <span className="text-xs font-bold tracking-[0.2em] uppercase hidden md:block opacity-40">Stravision OS</span>
         </div>
@@ -211,6 +213,18 @@ export default function AdminPage() {
               AI Models
             </TabsTrigger>
             <TabsTrigger
+              value="ai-providers"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              AI Providers
+            </TabsTrigger>
+            <TabsTrigger
+              value="model-marketplace"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              Model Market
+            </TabsTrigger>
+            <TabsTrigger
               value="security"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-black dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 pb-4 pt-2 font-mono text-sm uppercase tracking-wider text-zinc-500 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 transition-all hover:text-zinc-900 dark:hover:text-zinc-100"
             >
@@ -244,6 +258,14 @@ export default function AdminPage() {
 
           <TabsContent value="ai-models" className="mt-0 outline-none animate-in fade-in-50">
             <AIModelsManager />
+          </TabsContent>
+
+          <TabsContent value="ai-providers" className="mt-0 outline-none animate-in fade-in-50">
+            <AIProvidersManager />
+          </TabsContent>
+
+          <TabsContent value="model-marketplace" className="mt-0 outline-none animate-in fade-in-50">
+            <ModelMarketplace />
           </TabsContent>
 
           <TabsContent value="users" className="mt-0 outline-none animate-in fade-in-50">

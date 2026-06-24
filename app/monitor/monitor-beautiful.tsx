@@ -57,19 +57,7 @@ const GreenhouseModel = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="relative w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
-            <div className="relative w-16 h-16 mx-auto">
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
-                <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl opacity-20" />
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center text-2xl">🏡</div>
-            </div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">加载 3D 模型中...</p>
-          </div>
-        </div>
-      </div>
+      <div className="relative w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl overflow-hidden" />
     )
   }
 )
@@ -563,8 +551,8 @@ export default function MonitorPage() {
       
       {/* Logo - 左上角固定 */}
       <div className="fixed top-4 left-6 z-50 flex items-center gap-4">
-        <div className="relative size-12 shrink-0">
-          <Image src="/icon.png" alt="logo" fill className="object-contain drop-shadow-sm" />
+        <div className="relative size-9 shrink-0">
+          <Image src="/logo.png" alt="logo" fill className="object-contain drop-shadow-sm" />
         </div>
         <div className="leading-tight">
           <div className="text-sm font-bold tracking-wide text-slate-900 dark:text-white">STRAVISION</div>

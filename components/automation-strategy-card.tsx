@@ -1,253 +1,135 @@
-"use client";
+"use client"
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Bolt, Save, Edit, Play, Check, Loader2, ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { useState } from "react"
+import { Button, Card, Flex, Space, Statistic, Tag, Typography, theme } from "antd"
+import { Bolt, Save, Edit, Play, Check, Loader2, ExternalLink } from "lucide-react"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+
+const { Text, Title } = Typography
 
 interface AutomationStrategyCardProps {
-  strategy: {
-    nodes: any[];
-    edges: any[];
-  };
-  description?: string;
-  onSave?: (ruleId: string) => void;
+  strategy: { nodes: any[]; edges: any[] }
+  description?: string
+  onSave?: (ruleId: string) => void
 }
 
 export function AutomationStrategyCard({ strategy, description, onSave }: AutomationStrategyCardProps) {
-  const router = useRouter();
-  const [isSaving, setIsSaving] = useState(false);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [ruleId, setRuleId] = useState<string | null>(null);
+  const router = useRouter()
+  const { token } = theme.useToken()
+  const [isSaving, setIsSaving] = useState(false)
+  const [isExecuting, setIsExecuting] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [ruleId, setRuleId] = useState<string | null>(null)
+
+  const nodeCount = strategy.nodes?.length || 0
+  const triggerNodes = strategy.nodes?.filter((n: any) => n.type === "triggerNode") || []
+  const actionNodes = strategy.nodes?.filter((n: any) => n.type === "actionNode") || []
 
   const handleSave = async () => {
-    setIsSaving(true);
+    setIsSaving(true)
     try {
-      const res = await fetch('/api/automation/rules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/automation/rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: description || '由 AI 助手生成的自动化策略',
-          description: description || '',
+          name: description || "由 AI 助手生成的自动化策略",
+          description: description || "",
           graph_data: strategy,
-          trigger_type: strategy.nodes.find((n: any) => n.type === 'triggerNode')?.data?.type || 'manual',
-          is_active: true
-        })
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || '保存失败');
-      }
-
-      setSaved(true);
-      setRuleId(data.data.id);
-      toast.success('自动化策略已保存', {
-        description: '策略已激活，系统将自动执行',
-        duration: 3000
-      });
-      
-      if (onSave) {
-        onSave(data.data.id);
-      }
+          trigger_type: strategy.nodes.find((n: any) => n.type === "triggerNode")?.data?.type || "manual",
+          is_active: true,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || "保存失败")
+      setSaved(true)
+      setRuleId(data.data.id)
+      toast.success("自动化策略已保存")
+      onSave?.(data.data.id)
     } catch (error) {
-      console.error('Save error:', error);
-      toast.error('保存失败', {
-        description: error instanceof Error ? error.message : '未知错误',
-        duration: 5000
-      });
+      toast.error("保存失败", { description: error instanceof Error ? error.message : "未知错误" })
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   const handleExecute = async () => {
-    setIsExecuting(true);
+    setIsExecuting(true)
     try {
-      const res = await fetch('/api/automation/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          graph_data: strategy,
-          force: true
-        })
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || data.error || '执行失败');
-      }
-
-      const actionCount = data.actions?.length || 0;
-      if (actionCount > 0) {
-        toast.success('执行成功', {
-          description: `已执行 ${actionCount} 个动作`,
-          duration: 3000
-        });
-      } else {
-        toast.info('执行完成', {
-          description: data.message || '当前条件未触发任何动作',
-          duration: 3000
-        });
-      }
+      const res = await fetch("/api/automation/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ graph_data: strategy, force: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "执行失败")
+      const count = data.actions?.length || 0
+      toast.success(count > 0 ? `已执行 ${count} 个动作` : "执行完成")
     } catch (error) {
-      console.error('Execute error:', error);
-      toast.error('执行失败', {
-        description: error instanceof Error ? error.message : '未知错误',
-        duration: 5000
-      });
+      toast.error("执行失败", { description: error instanceof Error ? error.message : "未知错误" })
     } finally {
-      setIsExecuting(false);
+      setIsExecuting(false)
     }
-  };
-
-  const handleEdit = () => {
-    if (ruleId) {
-      router.push(`/automation/editor?id=${ruleId}`);
-    } else {
-      // 临时保存到 sessionStorage，然后跳转到编辑器
-      sessionStorage.setItem('temp_automation_strategy', JSON.stringify(strategy));
-      router.push('/automation/editor?from=ai-assistant');
-    }
-  };
-
-  const nodeCount = strategy.nodes?.length || 0;
-  const triggerNodes = strategy.nodes?.filter((n: any) => n.type === 'triggerNode') || [];
-  const actionNodes = strategy.nodes?.filter((n: any) => n.type === 'actionNode') || [];
+  }
 
   return (
-    <Card className="my-4 border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50/50 to-emerald-50/30 dark:from-green-950/20 dark:to-emerald-950/10 shadow-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1">
-            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400">
-              <Bolt className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <CardTitle className="text-base font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
-                自动化策略
-                {saved && (
-                  <Badge variant="outline" className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
-                    <Check className="w-3 h-3 mr-1" />
-                    已保存
-                  </Badge>
-                )}
-              </CardTitle>
-              {description && (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  {description}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* 策略概览 */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white/60 dark:bg-zinc-900/40 rounded-lg p-3 border border-green-100 dark:border-green-900/50">
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">节点总数</div>
-            <div className="text-lg font-bold text-green-600 dark:text-green-400">{nodeCount}</div>
-          </div>
-          <div className="bg-white/60 dark:bg-zinc-900/40 rounded-lg p-3 border border-green-100 dark:border-green-900/50">
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">触发器</div>
-            <div className="text-lg font-bold text-green-600 dark:text-green-400">{triggerNodes.length}</div>
-          </div>
-          <div className="bg-white/60 dark:bg-zinc-900/40 rounded-lg p-3 border border-green-100 dark:border-green-900/50">
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">动作</div>
-            <div className="text-lg font-bold text-green-600 dark:text-green-400">{actionNodes.length}</div>
-          </div>
-        </div>
+    <Card style={{ borderColor: token.colorSuccessBorder, background: `linear-gradient(135deg, ${token.colorSuccessBg}, ${token.colorSuccessBgHover})` }}>
+      <Flex vertical gap={16}>
+        {/* Header */}
+        <Flex align="flex-start" gap={12}>
+          <Flex align="center" justify="center" style={{
+            width: 36, height: 36, borderRadius: token.borderRadius, background: token.colorSuccessBgHover, color: token.colorSuccess,
+          }}>
+            <Bolt size={18} />
+          </Flex>
+          <Flex vertical flex={1}>
+            <Space>
+              <Title level={5} style={{ margin: 0, color: token.colorSuccessText }}>自动化策略</Title>
+              {saved && <Tag color="success" style={{ margin: 0 }}><Check size={10} /> 已保存</Tag>}
+            </Space>
+            {description && <Text type="secondary" style={{ fontSize: 13 }}>{description}</Text>}
+          </Flex>
+        </Flex>
 
-        {/* 节点预览 */}
-        <div className="space-y-2">
-          <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">策略流程</div>
-          <div className="flex flex-wrap gap-2">
+        {/* Stats */}
+        <Flex gap={12}>
+          <Statistic title="节点总数" value={nodeCount} valueStyle={{ color: token.colorSuccess, fontSize: 20 }} />
+          <Statistic title="触发器" value={triggerNodes.length} valueStyle={{ color: token.colorSuccess, fontSize: 20 }} />
+          <Statistic title="动作" value={actionNodes.length} valueStyle={{ color: token.colorSuccess, fontSize: 20 }} />
+        </Flex>
+
+        {/* Node preview */}
+        <Flex vertical gap={4}>
+          <Text type="secondary" style={{ fontSize: 12 }}>策略流程</Text>
+          <Flex gap={4} wrap>
             {strategy.nodes?.slice(0, 5).map((node: any, i: number) => (
-              <Badge 
-                key={i} 
-                variant="outline" 
-                className={cn(
-                  "text-xs",
-                  node.type === 'triggerNode' && "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300",
-                  node.type === 'logicNode' && "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300",
-                  node.type === 'actionNode' && "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300"
-                )}
+              <Tag
+                key={i}
+                color={node.type === "triggerNode" ? "success" : node.type === "logicNode" ? "purple" : "orange"}
               >
                 {node.data?.label || node.type}
-              </Badge>
+              </Tag>
             ))}
-            {nodeCount > 5 && (
-              <Badge variant="outline" className="text-xs">
-                +{nodeCount - 5} 更多
-              </Badge>
-            )}
-          </div>
-        </div>
+            {nodeCount > 5 && <Tag>+{nodeCount - 5} 更多</Tag>}
+          </Flex>
+        </Flex>
 
-        {/* 操作按钮 */}
-        <div className="flex gap-2 pt-2">
+        {/* Actions */}
+        <Flex gap={8}>
           {!saved ? (
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  保存策略
-                </>
-              )}
+            <Button type="primary" icon={<Save size={14} />} loading={isSaving} onClick={handleSave} block>
+              保存策略
             </Button>
           ) : (
-            <Button
-              onClick={handleEdit}
-              variant="outline"
-              className="flex-1 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/30"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
+            <Button icon={<ExternalLink size={14} />} onClick={() => ruleId ? router.push(`/automation/editor?id=${ruleId}`) : router.push("/automation/editor?from=ai-assistant")}>
               查看详情
             </Button>
           )}
-          
-          <Button
-            onClick={handleEdit}
-            variant="outline"
-            className="border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/30"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            编辑
-          </Button>
-          
-          <Button
-            onClick={handleExecute}
-            disabled={isExecuting}
-            variant="outline"
-            className="border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/30"
-          >
-            {isExecuting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Play className="w-4 h-4 mr-2" />
-            )}
+          <Button icon={<Play size={14} />} loading={isExecuting} onClick={handleExecute}>
             测试运行
           </Button>
-        </div>
-      </CardContent>
+        </Flex>
+      </Flex>
     </Card>
-  );
+  )
 }

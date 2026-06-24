@@ -9,9 +9,8 @@ import { useEffect, useState } from "react";
 import { AutomationRule } from "@/lib/db/automation-service";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PageNavigation } from "@/components/page-navigation";
 import { PageHeader } from "@/components/page-header";
-import { UserAvatarMenu } from "@/components/user-avatar-menu";
+import { PageHeaderRight } from "@/components/page-header-right";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -100,15 +99,17 @@ export default function AutomationPage() {
       <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
         {/* Header */}
         <PageHeader user={currentUser}>
-          <div className="relative hidden md:block mr-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder="搜索规则..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-[200px] bg-white/40 dark:bg-slate-900/40 backdrop-blur border-slate-200/50 dark:border-slate-800/50 focus:w-[260px] transition-all h-9 rounded-full text-sm"
-            />
-          </div>
+          <PageHeaderRight>
+            <div className="relative hidden md:block">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 w-[160px] h-8 rounded-lg text-sm border-transparent bg-muted/50 focus:w-[200px] transition-all"
+              />
+            </div>
+          </PageHeaderRight>
         </PageHeader>
 
         {/* Content Area */}

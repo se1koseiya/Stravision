@@ -196,7 +196,7 @@ export default function MyMCPPage() {
            
            <div className="flex items-center gap-4 cursor-pointer" onClick={() => router.push('/')}>
               <div className="size-8 relative shrink-0">
-                 <Image src="/icon.png" alt="Logo" fill className="object-contain grayscale hover:grayscale-0 transition-all duration-500" />
+                 <Image src="/logo.png" alt="Logo" fill className="object-contain grayscale hover:grayscale-0 transition-all duration-500" />
               </div>
               <motion.div
                 animate={{ 

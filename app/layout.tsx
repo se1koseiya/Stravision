@@ -4,28 +4,19 @@ import { WeatherProvider } from "@/lib/contexts/weather-context";
 import { DeviceProvider } from "@/lib/contexts/device-context";
 import { ElderFriendlyProvider } from "@/lib/contexts/elder-friendly-context";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SchedulerInit } from "@/components/scheduler-init";
 import { PageTransition } from "@/components/page-transition";
-import { SmoothScroll } from "@/components/smooth-scroll";
-import { EnvironmentAlert } from "@/components/environment-alert";
-import { ToasterWrapper } from "@/components/toaster-wrapper";
-import { MessageNotificationListener } from "@/components/message-notification-listener";
+import { LazyProviders } from "@/components/lazy-providers";
 import { headers } from "next/headers";
 import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-service";
 import NextTopLoader from "nextjs-toploader";
-import { SWRegister } from "@/components/sw-register";
-import { DesktopInstallPrompt } from "@/components/desktop-install-prompt";
-import { FloatingXiaozhi } from "@/components/xiaozhi/FloatingXiaozhi";
-import { FeatureAnnouncementDialog } from "@/components/dashboard/feature-announcement-dialog";
-import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "STRAVISION 莓界 · 智慧农业平台",
   description: "AI驱动的物联网草莓种植管理平台",
   icons: {
-    icon: "/logo.svg",
-    shortcut: "/logo.svg",
-    apple: "/icon.png",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
   manifest: "/manifest.json",
 };
@@ -106,20 +97,6 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        <Script
-          id="aliyun-captcha-config"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `window.AliyunCaptchaConfig=window.AliyunCaptchaConfig||{region:${JSON.stringify(process.env.NEXT_PUBLIC_ALIYUN_CAPTCHA_REGION || "cn")},prefix:${JSON.stringify(process.env.NEXT_PUBLIC_ALIYUN_CAPTCHA_PREFIX || "")}};`,
-          }}
-        />
-        <Script
-          id="aliyun-captcha-sdk"
-          strategy="beforeInteractive"
-          src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"
-        />
-      </head>
       <body className={`antialiased font-jinbuti`}>
         <NextTopLoader color="var(--primary)" showSpinner={false} />
         <ThemeProvider
@@ -129,21 +106,13 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <ElderFriendlyProvider>
-            <SchedulerInit />
             <WeatherProvider>
               <DeviceProvider>
-                <EnvironmentAlert />
-                <SmoothScroll>
+                <LazyProviders>
                   <PageTransition>
                     {children}
                   </PageTransition>
-                  <ToasterWrapper />
-                  <MessageNotificationListener />
-                  <SWRegister />
-                  <DesktopInstallPrompt />
-                  <FloatingXiaozhi />
-                  <FeatureAnnouncementDialog autoFetch />
-                </SmoothScroll>
+                </LazyProviders>
               </DeviceProvider>
             </WeatherProvider>
           </ElderFriendlyProvider>

@@ -156,7 +156,7 @@ export async function sendVerificationEmail(email: string): Promise<{ success: b
               <div class="container">
                 <!-- Header -->
                 <div class="header">
-                  <img src="https://stravision.cheesestrawberry.top/icon.png" alt="Stravision" class="logo">
+                  <img src="https://stravision.cheesestrawberry.top/logo.png" alt="Stravision" class="logo">
                 </div>
 
                 <!-- Content -->
@@ -443,7 +443,7 @@ export async function sendPasswordResetEmail(email: string): Promise<{ success: 
               <div class="container">
                 <!-- Header -->
                 <div class="header">
-                  <img src="https://stravision.cheesestrawberry.top/icon.png" alt="Stravision" class="logo">
+                  <img src="https://stravision.cheesestrawberry.top/logo.png" alt="Stravision" class="logo">
                 </div>
 
                 <!-- Content -->

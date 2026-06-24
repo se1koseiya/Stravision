@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
@@ -4074,7 +4074,7 @@ ${taskContext}
               <div className="flex items-center gap-3">
                 <div className="relative size-8 shrink-0">
                   <Image 
-                    src="/icon.png" 
+                    src="/logo.png" 
                     alt="莓小智" 
                     fill 
                     className="object-cover rounded-xl shadow-lg shadow-blue-500/20" 
@@ -5482,7 +5482,7 @@ ${taskContext}
                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl transform scale-110" />
                <div className="relative size-20 rounded-full border-4 border-white dark:border-zinc-800 shadow-xl overflow-hidden bg-emerald-50 dark:bg-emerald-900/20">
                   <Image 
-                    src="/icon.png" 
+                    src="/logo.png" 
                     alt="莓小智" 
                     fill 
                     className="object-cover scale-110" 

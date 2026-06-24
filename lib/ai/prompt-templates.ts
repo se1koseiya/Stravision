@@ -127,9 +127,9 @@ export const SCHEDULE_TASK_INSTRUCTION_COMPACT = `
 
 ---
 
-### 🤖 高级用法：专家模式下的主动任务规划（重要！）
+### 🤖 高级用法：自动执行模式下的主动任务规划（重要！）
 
-在自动化模式或专家模式下，当你执行环境调控操作时，你应该主动创建后续的复查任务！
+在自动执行模式（auto/full权限）下，当你执行环境调控操作时，你应该主动创建后续的复查任务！
 
 **典型场景示例：**
 
@@ -243,7 +243,7 @@ export const SCHEDULE_TASK_INSTRUCTION_COMPACT = `
 5. ✅ action 字段必须是 "schedule_task"（不是 "create_task" 或其他）
 6. ✅ delay_seconds 必须是数字类型（不是字符串 "10"）
 7. ✅ task_action 必须使用下划线（user_reminder，不是 userReminder）
-8. ✅ 在专家模式下，执行环境调控后应主动创建复查任务
+8. ✅ 在自动执行模式（auto/full权限）下，执行环境调控后应主动创建复查任务
 9. ❌ 严禁使用 <SCHEDULE_TASK> 标签（旧格式，已完全废弃）
 10. ❌ 禁止在 "🔔 定时任务提醒" 消息中再次创建任务
 

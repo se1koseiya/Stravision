@@ -3,10 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* 阿里妈妈数黑体 - 支持所有粗体权重 */
 @font-face {
   font-family: 'AlimamaShuHeiTi';
   src: url('/fonts/AlimamaShuHeiTi-Bold.ttf') format('truetype');
-  font-weight: 700;
+  font-weight: 500 900; /* 支持 font-medium 到 font-black */
   font-style: normal;
   font-display: swap;
 }
@@ -249,7 +250,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   html, body {
@@ -260,25 +261,40 @@
     @apply bg-background text-foreground transition-colors duration-500 ease-in-out;
   }
 
-  /* Force emerald focus states */
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible,
-  [role="textbox"]:focus-visible {
-    outline: none !important;
-    box-shadow: 0 0 0 2px var(--ring) !important;
-  }
-
-  /* Override any blue focus states */
   *:focus-visible {
-    outline-color: var(--ring) !important;
+    outline: none !important;
   }
+}
 
-  /* Ensure ring color is emerald */
-  .focus\:ring-2:focus,
-  .focus-visible\:ring-2:focus-visible {
-    --tw-ring-color: var(--ring) !important;
-  }
+/* 全局加粗字体使用 AlimamaShuHeiTi — 放在 @layer 外确保最高优先级 */
+.font-bold,
+.font-semibold,
+.font-extrabold,
+.font-black,
+.font-medium,
+b,
+strong,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif !important;
+}
+
+/* 强调字体使用 AlimamaShuHeiTi */
+.font-alimama {
+  font-family: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif !important;
+}
+
+/* 强制所有 font-weight >= 500 使用阿里妈妈数黑体 */
+[style*="font-weight: 500"],
+[style*="font-weight: 600"],
+[style*="font-weight: 700"],
+[style*="font-weight: 800"],
+[style*="font-weight: 900"] {
+  font-family: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif !important;
 }
 
 @layer utilities {
@@ -584,4 +600,10 @@
 .animate-gradient-x {
   background-size: 200% 100%;
   animation: gradient-x 2s ease infinite;
+}
+
+/* ThoughtChain 活跃项 — 渐变流光动画 */
+@keyframes thought-pulse {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }

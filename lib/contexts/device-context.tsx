@@ -62,7 +62,35 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
+  const timeoutCheckRef = useRef<NodeJS.Timeout | null>(null)
   // Remove maxReconnectAttempts to allow infinite reconnects but with capped delay
+
+  // 超时检测：如果超过10秒没有收到数据更新，认为连接超时
+  const TIMEOUT_DURATION = 10000 // 10秒
+
+  const startTimeoutCheck = useCallback(() => {
+    // 清除之前的超时检测
+    if (timeoutCheckRef.current) {
+      clearTimeout(timeoutCheckRef.current)
+    }
+    
+    // 设置新的超时检测
+    timeoutCheckRef.current = setTimeout(() => {
+      console.warn('[SSE] Timeout: No data received for', TIMEOUT_DURATION / 1000, 'seconds')
+      setConnectionStatus(prev => ({
+        ...prev,
+        connected: false,
+        error: 'Connection timeout - no data received'
+      }))
+    }, TIMEOUT_DURATION)
+  }, [])
+
+  const stopTimeoutCheck = useCallback(() => {
+    if (timeoutCheckRef.current) {
+      clearTimeout(timeoutCheckRef.current)
+      timeoutCheckRef.current = null
+    }
+  }, [])
 
   const connect = useCallback(() => {
     // Clean up existing connection
@@ -75,6 +103,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
+
+    // Stop timeout check
+    stopTimeoutCheck()
 
     try {
       // Only log in development to reduce console noise
@@ -96,6 +127,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
           lastUpdate: new Date()
         }))
         reconnectAttemptsRef.current = 0
+        // 启动超时检测
+        startTimeoutCheck()
       }
 
       eventSource.onmessage = (event) => {
@@ -149,6 +182,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
               ...prev,
               lastUpdate: new Date()
             }))
+            
+            // 收到数据，重置超时检测
+            startTimeoutCheck()
           }
         } catch (error) {
           console.error('[SSE] Error parsing message:', error)
@@ -159,6 +195,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         console.error('[SSE] Connection error:', error)
         eventSource.close()
         eventSourceRef.current = null
+        
+        // 停止超时检测
+        stopTimeoutCheck()
         
         setConnectionStatus(prev => ({
           ...prev,
@@ -177,12 +216,13 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
 
     } catch (error) {
       console.error('[SSE] Setup error:', error)
+      stopTimeoutCheck()
       setConnectionStatus(prev => ({
         ...prev,
         error: 'Failed to setup connection'
       }))
     }
-  }, [])
+  }, [startTimeoutCheck, stopTimeoutCheck])
 
   useEffect(() => {
     connect()
@@ -193,6 +233,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
+      }
+      if (timeoutCheckRef.current) {
+        clearTimeout(timeoutCheckRef.current)
       }
     }
   }, [connect])

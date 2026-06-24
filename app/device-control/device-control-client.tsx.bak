@@ -1,0 +1,1384 @@
+"use client"
+
+import { useState, useEffect, useCallback, useMemo } from "react"
+import {
+  Card,
+  Switch,
+  Slider,
+  Button,
+  Badge,
+  Row,
+  Col,
+  Space,
+  Tag,
+  Typography,
+  Statistic,
+  InputNumber,
+  Input,
+  Divider,
+  Tooltip,
+  message,
+  Modal,
+  Alert,
+  Spin,
+  Empty,
+  Descriptions,
+  Segmented,
+  Progress,
+  Popconfirm,
+} from "antd"
+import {
+  ApiOutlined,
+  DashboardOutlined,
+  HistoryOutlined,
+  LeftCircleOutlined,
+  StopOutlined,
+  RightCircleOutlined,
+  UndoOutlined,
+  SettingOutlined,
+  EyeOutlined,
+  ThunderboltOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  PoweroffOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  QuestionCircleOutlined,
+  SyncOutlined,
+  WarningOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+} from "@ant-design/icons"
+import { useDeviceData } from "@/lib/hooks/use-device-data"
+import { useDeviceControl } from "@/lib/hooks/use-device-control"
+import { useRouter } from "next/navigation"
+import type { UserPublic } from "@/lib/db/user-service"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import Link from "next/link"
+import { PageHeader } from "@/components/page-header"
+import { ModeToggle } from "@/components/mode-toggle"
+import { WeatherCard } from "@/components/weather-card"
+import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { cn } from "@/lib/utils"
+
+const { Title, Text, Paragraph } = Typography
+
+// ==================== Ant Design 设计令牌 ====================
+const TOKENS = {
+  fontSize: {
+    xs: 12,
+    sm: 14,
+    base: 16,
+    lg: 20,
+    xl: 24,
+    xxl: 32,
+  },
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    xxl: 32,
+    xxxl: 48,
+  },
+  borderRadius: {
+    sm: 4,
+    md: 6,
+    lg: 8,
+    xl: 12,
+  }
+}
+
+// 统一配色方案 (Ant Design 色板)
+const THEME = {
+  primary: "#1677ff",
+  success: "#52c41a",
+  warning: "#faad14",
+  error: "#ff4d4f",
+  textPrimary: "#1f1f1f",
+  textSecondary: "#8c8c8c",
+  border: "#f0f0f0",
+  background: "#fafafa",
+}
+
+// ==================== 类型定义 ====================
+interface DeviceConfig {
+  key: number
+  title: string
+  subtitle: string
+  icon: React.ReactNode
+  color: string
+  description?: string
+  isCritical?: boolean // 标记是否为关键设备
+}
+
+// ==================== 设备配置数据 ====================
+const DEVICES_CONFIG: DeviceConfig[] = [
+  {
+    key: 5,
+    title: "水泵系统",
+    subtitle: "Relay 5 · 自动灌溉控制",
+    icon: <ApiOutlined />,
+    color: '#1890ff',
+    description: '控制灌溉水泵开关',
+    isCritical: true, // 水泵是关键设备，需要确认
+  },
+  {
+    key: 6,
+    title: "通风风扇",
+    subtitle: "Relay 6 · 环境空气循环",
+    icon: <ThunderboltOutlined />,
+    color: '#13c2c2',
+    description: '调节环境空气流通',
+    isCritical: false,
+  },
+  {
+    key: 7,
+    title: "全光谱补光灯",
+    subtitle: "Relay 7 · 植物生长光照",
+    icon: <SettingOutlined />,
+    color: '#faad14',
+    description: '提供植物全光谱光照',
+    isCritical: false,
+  },
+  {
+    key: 8,
+    title: "光照补光灯",
+    subtitle: "Relay 8 · 辅助照明系统",
+    icon: <EyeOutlined />,
+    color: '#eb2f96',
+    description: '辅助照明和补光功能',
+    isCritical: false,
+  },
+]
+
+export default function DeviceControlClient() {
+  const router = useRouter()
+
+  // RGB LED 状态
+  const [r, setR] = useState(0)
+  const [g, setG] = useState(0)
+  const [b, setB] = useState(0)
+  const [w, setW] = useState(0)
+
+  // 步进电机参数
+  const [stepPulses, setStepPulses] = useState(1600)
+  const [presetPulses, setPresetPulses] = useState(112000)
+  const [presetSpeed, setPresetSpeed] = useState(10000)
+
+  // 视图模式切换
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+  // 日志状态
+  const [logs, setLogs] = useState<any[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
+
+  // 用户认证状态
+  const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+
+  // 老年友好模式
+  const { isElderFriendlyMode } = useElderFriendly()
+
+  // 连接实时数据
+  const { deviceData, connectionStatus } = useDeviceData()
+
+  // 设备控制 hook
+  const { status: controlStatus, toggleRelay, setLEDs, controlStepper, resetStepperPosition, sendStepperPreset } = useDeviceControl()
+
+  // ==================== 数据获取函数 ====================
+
+  // 获取当前用户信息
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        const data = await response.json()
+
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user)
+        } else {
+          router.push("/login")
+        }
+      } catch (error) {
+        console.error("获取用户信息失败:", error)
+        router.push("/login")
+      } finally {
+        setIsLoadingUser(false)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [router])
+
+  // 获取操作日志
+  const fetchLogs = useCallback(async () => {
+    setLoadingLogs(true)
+    try {
+      const res = await fetch("/api/device-logs?limit=50")
+      const data = await res.json()
+      if (data.success) {
+        setLogs(data.logs)
+      }
+    } catch (error) {
+      console.error("Failed to fetch logs:", error)
+      message.error('获取操作日志失败')
+    } finally {
+      setLoadingLogs(false)
+    }
+  }, [])
+
+  // 创建操作日志
+  const createLog = useCallback(async (deviceName: string, action: string, details?: string) => {
+    if (!currentUser) return
+    try {
+      await fetch("/api/device-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          device_name: deviceName,
+          action,
+          operator: currentUser.username || currentUser.email,
+          details
+        })
+      })
+      fetchLogs()
+    } catch (error) {
+      console.error("Failed to create log:", error)
+    }
+  }, [currentUser, fetchLogs])
+
+  // 初始化加载日志
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
+
+  // 初始化 LED 值
+  useEffect(() => {
+    if (deviceData && r === 0 && g === 0 && b === 0) {
+      setB(deviceData.led1 || 0)
+      setR(deviceData.led2 || 0)
+      setG(deviceData.led3 || 0)
+    }
+  }, [deviceData, r, g, b])
+
+  // ==================== 操作处理函数（优化版）====================
+
+  /**
+   * 设备切换处理 - 根据设备重要性决定是否需要确认
+   * 关键设备（如水泵）需要确认对话框
+   * 非关键设备使用轻量级 Popconfirm
+   */
+  const handleRelayToggle = async (relayNum: number) => {
+    if (!deviceData) return
+
+    const currentState = deviceData[`relay${relayNum}` as keyof typeof deviceData] as number || 0
+    const newState = currentState === 1 ? 0 : 1
+    const deviceConfig = DEVICES_CONFIG.find(d => d.key === relayNum)!
+    const deviceName = deviceConfig.title
+
+    // 执行切换操作
+    const executeToggle = async () => {
+      const success = await toggleRelay(relayNum, currentState)
+      if (success) {
+        createLog(deviceName, newState === 1 ? "开启" : "关闭")
+        message.success(`${deviceName} 已${newState === 1 ? '开启' : '关闭'}`)
+      }
+    }
+
+    // 关键设备使用 Modal 确认
+    if (deviceConfig.isCritical) {
+      Modal.confirm({
+        title: newState === 1 ? '确认开启设备' : '确认关闭设备',
+        icon: newState === 1 ? <PlayCircleOutlined /> : <PauseCircleOutlined />,
+        content: (
+          <div>
+            <p>您确定要{newState === 1 ? '开启' : '关闭'} <strong>{deviceName}</strong> 吗？</p>
+            <Alert
+              type={newState === 1 ? "info" : "warning"}
+              showIcon
+              message={newState === 1 ? "将启动水泵进行灌溉" : "将停止水泵运行"}
+              style={{ marginTop: TOKENS.spacing.md }}
+            />
+          </div>
+        ),
+        okText: newState === 1 ? '确认开启' : '确认关闭',
+        okType: newState === 1 ? 'primary' : 'danger',
+        cancelText: '取消',
+        centered: true,
+        onOk: executeToggle,
+      })
+    } else {
+      // 非关键设备直接执行（可通过 UI 反馈让用户确认）
+      await executeToggle()
+    }
+  }
+
+  /**
+   * 批量控制 - 一键全部开启/关闭
+   * 使用统一的确认对话框，清晰展示影响范围
+   */
+  const handleBatchControl = async (action: 'on' | 'off') => {
+    const isOn = action === 'on'
+    const affectedDevices = DEVICES_CONFIG.filter(device =>
+      isOn
+        ? (deviceData?.[`relay${device.key}` as keyof typeof deviceData] as number || 0) !== 1
+        : (deviceData?.[`relay${device.key}` as keyof typeof deviceData] as number || 0) === 1
+    )
+
+    if (affectedDevices.length === 0) {
+      message.info(isOn ? '所有设备已处于开启状态' : '所有设备已处于关闭状态')
+      return
+    }
+
+    Modal.confirm({
+      title: `批量${isOn ? '开启' : '关闭'}设备`,
+      icon: <PoweroffOutlined />,
+      content: (
+        <div>
+          <p>确定要{isOn ? '开启' : '关闭'}以下 <strong>{affectedDevices.length}</strong> 个设备吗？</p>
+          <div style={{
+            marginTop: TOKENS.spacing.md,
+            padding: TOKENS.spacing.md,
+            backgroundColor: THEME.background,
+            borderRadius: TOKENS.borderRadius.md,
+          }}>
+            {affectedDevices.map(d => (
+              <Tag key={d.key} color={d.color} style={{ margin: TOKENS.spacing.xs }}>
+                {d.icon} {d.title}
+              </Tag>
+            ))}
+          </div>
+          <Alert
+            type={isOn ? "warning" : "error"}
+            showIcon
+            icon={isOn ? <WarningOutlined /> : <ExclamationCircleOutlined />}
+            message={isOn ? "注意：此操作将同时启动多个设备" : "警告：此操作将停止所有运行中的设备"}
+            style={{ marginTop: TOKENS.spacing.md }}
+          />
+        </div>
+      ),
+      okText: isOn ? '全部开启' : '全部关闭',
+      okType: isOn ? 'primary' : 'danger',
+      cancelText: '取消',
+      centered: true,
+      onOk: async () => {
+        for (const device of affectedDevices) {
+          await toggleRelay(device.key, isOn ? 0 : 1)
+        }
+        message.success(`已${isOn ? '开启' : '关闭'} ${affectedDevices.length} 个设备`)
+        createLog("批量控制", isOn ? "全部开启" : "全部关闭", `影响设备: ${affectedDevices.map(d => d.title).join(', ')}`)
+      },
+    })
+  }
+
+  /**
+   * LED 颜色更新 - 实时预览 + 确认应用
+   */
+  const handleLEDUpdate = async () => {
+    const brightness = Math.round((w / 255) * 100)
+
+    Modal.confirm({
+      title: '更新 LED 颜色设置',
+      icon: <SettingOutlined />,
+      content: (
+        <div>
+          <Descriptions size="small" column={2} bordered>
+            <Descriptions.Item label="红色 (R)">
+              <Tag color="red">{r}</Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="绿色 (G)">
+              <Tag color="green">{g}</Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="蓝色 (B)">
+              <Tag color="blue">{b}</Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="亮度">
+              <Progress percent={brightness} size="small" style={{ width: 100 }} />
+            </Descriptions.Item>
+          </Descriptions>
+          <div style={{
+            marginTop: TOKENS.spacing.lg,
+            padding: TOKENS.spacing.md,
+            backgroundColor: `rgb(${r}, ${g}, ${b})`,
+            borderRadius: TOKENS.borderRadius.lg,
+            textAlign: 'center',
+            color: r + g + b > 400 ? '#000' : '#fff',
+          }}>
+            <Text strong>颜色预览</Text>
+          </div>
+        </div>
+      ),
+      okText: '应用设置',
+      cancelText: '取消',
+      onOk: async () => {
+        const success = await setLEDs(b, r, g, w)
+        if (success) {
+          createLog("RGB 补光灯", "更新颜色", `R:${r} G:${g} B:${b} W:${w}`)
+          message.success('LED 颜色已成功更新')
+        }
+      },
+    })
+  }
+
+  /**
+   * 步进电机控制 - 方向控制 + 即时停止
+   */
+  const handleStepperControl = async (orientation: number) => {
+    const pulses = orientation === 0 ? undefined : stepPulses
+    const orientationNames = ['停止', '左移', '右移']
+
+    // 停止操作不需要确认（紧急情况）
+    if (orientation === 0) {
+      const success = await controlStepper(orientation, pulses)
+      if (success) {
+        createLog("摄像头云台", "停止", "步进电机紧急停止")
+        message.info('步进电机已停止')
+      }
+      return
+    }
+
+    // 移动操作需要确认
+    const distance = (pulses! / 160).toFixed(1)
+    Modal.confirm({
+      title: `步进电机 ${orientationNames[orientation]}`,
+      icon: orientation === 1 ? <LeftCircleOutlined /> : <RightCircleOutlined />,
+      content: (
+        <Space orientation="vertical" size="middle">
+          <Text>将摄像头云台向<strong>{orientationNames[orientation]}</strong>移动</Text>
+          <Statistic
+            title="移动距离"
+            value={distance}
+            suffix="mm"
+            styles={{ content: { fontSize: TOKENS.fontSize.xl } }}
+          />
+        </Space>
+      ),
+      okText: '确认执行',
+      onOk: async () => {
+        const success = await controlStepper(orientation, pulses)
+        if (success) {
+          createLog("摄像头云台", orientationNames[orientation], `步进电机${orientationNames[orientation]} ${distance}mm`)
+          message.success(`指令发送成功: ${orientationNames[orientation]} ${distance}mm`)
+        }
+      },
+    })
+  }
+
+  /**
+   * 复位归零 - 显示当前位置信息
+   */
+  const handleResetStepper = async () => {
+    const currentPosition = ((deviceData?.stepper_position || 0) / 160).toFixed(1)
+
+    Modal.confirm({
+      title: '复位云台位置',
+      icon: <UndoOutlined />,
+      content: (
+        <Space orientation="vertical" size="middle">
+          <Text>确定要将摄像头云台复位到起始位置吗？</Text>
+          <Alert
+            type="info"
+            showIcon
+            message={`当前位置: ${currentPosition}mm → 目标位置: 0.0mm`}
+          />
+        </Space>
+      ),
+      okText: '确认复位',
+      okType: 'danger',
+      onOk: async () => {
+        const success = await resetStepperPosition()
+        if (success) {
+          createLog("摄像头云台", "复位归零", `从 ${currentPosition}mm 复位到 0mm`)
+          message.success('云台已开始复位到起始位置')
+        }
+      },
+    })
+  }
+
+  /**
+   * 发送预设参数 - 高级功能，详细参数展示
+   */
+  const handleStepperPreset = async () => {
+    if (!connectionStatus.connected) {
+      message.error('未连接到设备服务器')
+      return
+    }
+
+    const distance = (presetPulses / 160).toFixed(1)
+
+    Modal.confirm({
+      title: '发送高级预设参数',
+      icon: <SettingOutlined />,
+      content: (
+        <Descriptions size="small" column={1} bordered>
+          <Descriptions.Item label="目标脉冲数">
+            <Text code>{presetPulses}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="运行速度">
+            <Text code>{presetSpeed}</Text> pulses/s
+          </Descriptions.Item>
+          <Descriptions.Item label="预估行程">
+            <Text strong style={{ color: THEME.primary }}>{distance} mm</Text>
+          </Descriptions.Item>
+        </Descriptions>
+      ),
+      okText: '发送并执行',
+      onOk: async () => {
+        const success = await sendStepperPreset(presetPulses, presetSpeed)
+        if (success) {
+          message.success(`预设参数已发送 - 目标: ${distance}mm`)
+          await createLog("摄像头云台", "预设参数", `脉冲: ${presetPulses}, 速度: ${presetSpeed}`)
+        }
+      },
+    })
+  }
+
+  // ==================== 计算属性 ====================
+
+  // 系统统计数据
+  const systemStats = useMemo(() => ({
+    activeDevices: DEVICES_CONFIG.filter(d =>
+      (deviceData?.[`relay${d.key}` as keyof typeof deviceData] as number || 0) === 1
+    ).length,
+    stepperPosition: ((deviceData?.stepper_position || 0) / 160).toFixed(1),
+    ledBrightness: Math.round((w / 255) * 100),
+    stepperStatus: deviceData?.stepper_orientation === 1 ? '左移中' :
+                    deviceData?.stepper_orientation === 2 ? '右移中' : '已停止',
+  }), [deviceData, w])
+
+  // ==================== 渲染函数 ====================
+
+  // 加载状态
+  if (isLoadingUser) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: THEME.background,
+      }}>
+        <Space orientation="vertical" align="center" size={TOKENS.spacing.lg}>
+          <Spin size="large" indicator={<SyncOutlined spin />} />
+          <Space orientation="vertical" align="center" size={TOKENS.spacing.xs}>
+            <Text strong style={{ fontSize: TOKENS.fontSize.base }}>正在加载设备控制系统</Text>
+            <Text type="secondary" style={{ fontSize: TOKENS.fontSize.sm }}>请稍候...</Text>
+          </Space>
+        </Space>
+      </div>
+    )
+  }
+
+  // 未登录状态
+  if (!currentUser) {
+    return null
+  }
+
+  return (
+    <div className={cn(
+      "min-h-screen w-full overflow-hidden",
+      isElderFriendlyMode && "elder-friendly-text"
+    )} style={{ backgroundColor: THEME.background }}>
+      {/* ====== 顶部导航栏 ====== */}
+      <PageHeader user={currentUser}>
+        <Sheet onOpenChange={(open) => { if (open) fetchLogs() }}>
+          <SheetTrigger asChild>
+            <Button type="text" icon={<HistoryOutlined />} loading={loadingLogs}>
+              操作记录
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>设备控制历史</SheetTitle>
+            </SheetHeader>
+            <ScrollArea className="h-[calc(100vh-80px)] mt-4 pr-4">
+              <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                {loadingLogs ? (
+                  <Spin tip="加载中..." />
+                ) : logs.length === 0 ? (
+                  <Empty description="暂无操作记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                  logs.map((log) => (
+                    <Card key={log.id} size="small" hoverable>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: TOKENS.spacing.sm
+                      }}>
+                        <Text strong>{log.device_name}</Text>
+                        <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+                          {new Date(log.created_at).toLocaleString()}
+                        </Text>
+                      </div>
+                      <Space wrap>
+                        <Tag color={log.action === "开启" ? "success" : "default"}>{log.action}</Tag>
+                        <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>操作人: {log.operator}</Text>
+                      </Space>
+                      {log.details && (
+                        <Paragraph type="secondary" style={{
+                          marginTop: TOKENS.spacing.sm,
+                          marginBottom: 0,
+                          fontSize: TOKENS.fontSize.xs
+                        }}>
+                          {log.details}
+                        </Paragraph>
+                      )}
+                    </Card>
+                  ))
+                )}
+              </Space>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
+
+        <ModeToggle />
+
+        <Badge
+          status={connectionStatus.connected ? "success" : "error"}
+          text={connectionStatus.connected ? "在线" : (connectionStatus.error || '离线')}
+        />
+      </PageHeader>
+
+      {/* ====== 主内容区域 ====== */}
+      <div style={{
+        padding: `${TOKENS.spacing.xl}px`,
+        maxWidth: 1400,
+        margin: '0 auto'
+      }}>
+        <Row gutter={[TOKENS.spacing.xl, TOKENS.spacing.xl]}>
+          {/* 左侧主区域 */}
+          <Col xs={24} xl={16}>
+            <Space orientation="vertical" size={TOKENS.spacing.xxl} style={{ width: '100%' }}>
+
+              {/* ========== 第一部分：系统概览 ========== */}
+              <Card
+                title={
+                  <Space size="middle">
+                    <DashboardOutlined />
+                    <span>系统概览</span>
+                  </Space>
+                }
+                extra={
+                  <Space>
+                    <Badge
+                      status={connectionStatus.connected ? "success" : "error"}
+                      text={
+                        <Text type="secondary">
+                          {connectionStatus.connected ? "设备在线" : "设备离线"}
+                        </Text>
+                      }
+                    />
+                    {!connectionStatus.connected && (
+                      <Tooltip title="点击刷新连接状态">
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<SyncOutlined spin={!connectionStatus.connected} />}
+                          onClick={() => window.location.reload()}
+                        >
+                          刷新
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </Space>
+                }
+              >
+                <Row gutter={[TOKENS.spacing.lg, TOKENS.spacing.lg]}>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title={<Text type="secondary">活跃设备</Text>}
+                      value={systemStats.activeDevices}
+                      suffix="/ 4"
+                      valueStyle={{ color: THEME.primary }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title={<Text type="secondary">云台位置</Text>}
+                      value={systemStats.stepperPosition}
+                      suffix="mm"
+                      prefix={<SettingOutlined />}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title={<Text type="secondary">LED亮度</Text>}
+                      value={systemStats.ledBrightness}
+                      suffix="%"
+                      styles={{ content: { color: systemStats.ledBrightness > 50 ? THEME.warning : THEME.success } }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Statistic
+                      title={<Text type="secondary">电机状态</Text>}
+                      value={systemStats.stepperStatus}
+                      valueStyle={{
+                        color: systemStats.stepperStatus === '已停止' ? THEME.textSecondary : THEME.primary,
+                        fontSize: TOKENS.fontSize.sm
+                      }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* ========== 第二部分：继电器设备控制 ========== */}
+              <Card
+                title={
+                  <Space size="middle" align="center">
+                    <ThunderboltOutlined />
+                    <span>设备控制面板</span>
+                    <Segmented
+                      size="small"
+                      value={viewMode}
+                      onChange={(value) => setViewMode(value as 'grid' | 'list')}
+                      options={[
+                        { value: 'grid', icon: <AppstoreOutlined /> },
+                        { value: 'list', icon: <UnorderedListOutlined /> },
+                      ]}
+                    />
+                  </Space>
+                }
+                extra={
+                  <Space>
+                    <Button
+                      size="small"
+                      icon={<PoweroffOutlined />}
+                      type="primary"
+                      ghost
+                      onClick={() => handleBatchControl('on')}
+                    >
+                      全部开启
+                    </Button>
+                    <Popconfirm
+                      title="确定要关闭所有设备吗？"
+                      description="此操作将停止所有运行中的设备"
+                      onConfirm={() => handleBatchControl('off')}
+                      okText="确认关闭"
+                      okType="danger"
+                      cancelText="取消"
+                    >
+                      <Button size="small" danger ghost icon={<PoweroffOutlined />}>
+                        全部关闭
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                }
+              >
+                {/* Grid 视图 */}
+                {viewMode === 'grid' ? (
+                  <Row gutter={[TOKENS.spacing.lg, TOKENS.spacing.lg]}>
+                    {DEVICES_CONFIG.map((device) => {
+                      const isActive = (deviceData?.[`relay${device.key}` as keyof typeof deviceData] as number || 0) === 1
+
+                      return (
+                        <Col key={device.key} xs={12} sm={12} md={6}>
+                          <Card
+                            size="small"
+                            hoverable
+                            style={{
+                              height: '100%',
+                              borderLeft: `3px solid ${isActive ? device.color : THEME.border}`,
+                              transition: 'all 0.3s ease',
+                            }}
+                            styles={{ body: { padding: TOKENS.spacing.lg } }}
+                          >
+                            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                              {/* 设备头部信息 */}
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                              }}>
+                                <Space>
+                                  <div style={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: TOKENS.borderRadius.lg,
+                                    backgroundColor: isActive ? device.color : THEME.background,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: isActive ? '#fff' : THEME.textSecondary,
+                                    transition: 'all 0.3s ease',
+                                  }}>
+                                    {device.icon}
+                                  </div>
+                                  <div>
+                                    <Text strong style={{ display: 'block' }}>{device.title}</Text>
+                                    <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+                                      {device.subtitle}
+                                    </Text>
+                                  </div>
+                                </Space>
+                                <Switch
+                                  checked={isActive}
+                                  onChange={() => handleRelayToggle(device.key)}
+                                  checkedChildren="开"
+                                  unCheckedChildren="关"
+                                />
+                              </div>
+
+                              {/* 状态指示器 */}
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: TOKENS.spacing.sm,
+                              }}>
+                                <Badge
+                                  status={isActive ? "success" : "default"}
+                                  text={
+                                    <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+                                      {isActive ? '运行中' : '已关闭'}
+                                    </Text>
+                                  }
+                                />
+                                {device.isCritical && (
+                                  <Tooltip title="关键设备 - 操作需要确认">
+                                    <WarningOutlined style={{ color: THEME.warning }} />
+                                  </Tooltip>
+                                )}
+                              </div>
+
+                              {/* 设备描述 */}
+                              <Paragraph
+                                type="secondary"
+                                style={{
+                                  fontSize: TOKENS.fontSize.xs,
+                                  marginBottom: 0,
+                                  lineHeight: 1.5,
+                                }}
+                              >
+                                {device.description}
+                              </Paragraph>
+                            </Space>
+                          </Card>
+                        </Col>
+                      )
+                    })}
+                  </Row>
+                ) : (
+                  /* List 视图 */
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                    {DEVICES_CONFIG.map((device) => {
+                      const isActive = (deviceData?.[`relay${device.key}` as keyof typeof deviceData] as number || 0) === 1
+
+                      return (
+                        <Card
+                          key={device.key}
+                          size="small"
+                          hoverable
+                          style={{
+                            borderLeft: `3px solid ${isActive ? device.color : THEME.border}`,
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}>
+                            <Space size="large">
+                              <div style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: TOKENS.borderRadius.lg,
+                                backgroundColor: isActive ? device.color : THEME.background,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: isActive ? '#fff' : THEME.textSecondary,
+                                fontSize: TOKENS.fontSize.lg,
+                                transition: 'all 0.3s ease',
+                              }}>
+                                {device.icon}
+                              </div>
+                              <div>
+                                <Text strong style={{ display: 'block', fontSize: TOKENS.fontSize.base }}>
+                                  {device.title}
+                                </Text>
+                                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.sm }}>
+                                  {device.subtitle}
+                                </Text>
+                                <div style={{ marginTop: TOKENS.spacing.xs }}>
+                                  <Space size="small">
+                                    <Badge
+                                      status={isActive ? "success" : "default"}
+                                      text={
+                                        <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+                                          {isActive ? '运行中' : '已关闭'}
+                                        </Text>
+                                      }
+                                    />
+                                    {device.isCritical && (
+                                      <Tag color="warning" style={{ fontSize: TOKENS.fontSize.xs, marginLeft: 0 }}>
+                                        关键设备
+                                      </Tag>
+                                    )}
+                                  </Space>
+                                </div>
+                              </div>
+                            </Space>
+                            <Switch
+                              checked={isActive}
+                              onChange={() => handleRelayToggle(device.key)}
+                              checkedChildren="开"
+                              unCheckedChildren="关"
+                              size="default"
+                            />
+                          </div>
+                        </Card>
+                      )
+                    })}
+                  </Space>
+                )}
+              </Card>
+
+              {/* ========== 第三部分：RGB LED 控制 ========== */}
+              <Card
+                title={
+                  <Space size="middle">
+                    <SettingOutlined />
+                    <span>RGB LED 控制</span>
+                  </Space>
+                }
+                extra={
+                  <Button
+                    type="primary"
+                    icon={<CheckCircleOutlined />}
+                    onClick={handleLEDUpdate}
+                  >
+                    应用颜色
+                  </Button>
+                }
+              >
+                <Row gutter={[TOKENS.spacing.xl, TOKENS.spacing.xl]} align="middle">
+                  {/* 颜色预览区域 */}
+                  <Col xs={24} sm={8} style={{ textAlign: 'center' }}>
+                    <div style={{
+                      width: 150,
+                      height: 150,
+                      borderRadius: TOKENS.borderRadius.xl,
+                      backgroundColor: `rgb(${r}, ${g}, ${b})`,
+                      margin: '0 auto',
+                      boxShadow: `0 4px 20px rgba(${r}, ${g}, ${b}, 0.3)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                    }}>
+                      <div style={{
+                        textAlign: 'center',
+                        color: r + g + b > 400 ? '#000' : '#fff',
+                      }}>
+                        <div style={{ fontSize: TOKENS.fontSize.xl, fontWeight: 600 }}>
+                          {Math.round((w / 255) * 100)}%
+                        </div>
+                        <div style={{ fontSize: TOKENS.fontSize.xs, opacity: 0.8 }}>
+                          当前亮度
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: TOKENS.spacing.md }}>
+                      <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+                        HEX: #{r.toString(16).padStart(2, '0')}{g.toString(16).padStart(2, '0')}{b.toString(16).padStart(2, '0')}
+                      </Text>
+                    </div>
+                  </Col>
+
+                  {/* 滑块控制区域 */}
+                  <Col xs={24} sm={16}>
+                    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                      {/* 红色通道 */}
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: TOKENS.spacing.xs,
+                        }}>
+                          <Text strong style={{ color: '#ff4d4f' }}>
+                            <Tag color="red">R</Tag> 红色通道
+                          </Text>
+                          <Text code>{r}</Text>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={255}
+                          value={r}
+                          onChange={setR}
+                          trackStyle={{ backgroundColor: '#ff4d4f' }}
+                          handleStyle={{ borderColor: '#ff4d4f' }}
+                        />
+                      </div>
+
+                      {/* 绿色通道 */}
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: TOKENS.spacing.xs,
+                        }}>
+                          <Text strong style={{ color: '#52c41a' }}>
+                            <Tag color="green">G</Tag> 绿色通道
+                          </Text>
+                          <Text code>{g}</Text>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={255}
+                          value={g}
+                          onChange={setG}
+                          trackStyle={{ backgroundColor: '#52c41a' }}
+                          handleStyle={{ borderColor: '#52c41a' }}
+                        />
+                      </div>
+
+                      {/* 蓝色通道 */}
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: TOKENS.spacing.xs,
+                        }}>
+                          <Text strong style={{ color: '#1677ff' }}>
+                            <Tag color="blue">B</Tag> 蓝色通道
+                          </Text>
+                          <Text code>{b}</Text>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={255}
+                          value={b}
+                          onChange={setB}
+                          trackStyle={{ backgroundColor: '#1677ff' }}
+                          handleStyle={{ borderColor: '#1677ff' }}
+                        />
+                      </div>
+
+                      {/* 亮度控制 */}
+                      <Divider titlePlacement="left" plain>
+                        <Text strong>亮度控制</Text>
+                      </Divider>
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: TOKENS.spacing.xs,
+                        }}>
+                          <Text strong>整体亮度 (W)</Text>
+                          <Space.Compact style={{ width: '100%' }}>
+                            <InputNumber
+                              min={0}
+                              max={255}
+                              value={w}
+                              onChange={(v) => setW(v || 0)}
+                              size="small"
+                              style={{ flex: 1 }}
+                            />
+                            <Input
+                              value="%"
+                              size="small"
+                              disabled
+                              style={{ width: 40, textAlign: 'center', backgroundColor: '#f5f5f5' }}
+                            />
+                          </Space.Compact>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={255}
+                          value={w}
+                          onChange={setW}
+                          marks={{
+                            0: '0%',
+                            64: '25%',
+                            128: '50%',
+                            192: '75%',
+                            255: '100%',
+                          }}
+                        />
+                      </div>
+                    </Space>
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* ========== 第四部分：步进电机控制 ========== */}
+              <Card
+                title={
+                  <Space size="middle">
+                    <SettingOutlined />
+                    <span>步进电机控制</span>
+                    <Badge
+                      status={deviceData?.stepper_orientation !== 0 ? "processing" : "default"}
+                      text={
+                        <Text type="secondary" style={{ fontSize: TOKENS.fontSize.sm }}>
+                          {systemStats.stepperStatus}
+                        </Text>
+                      }
+                    />
+                  </Space>
+                }
+              >
+                <Row gutter={[TOKENS.spacing.xl, TOKENS.spacing.xl]}>
+                  {/* 左侧：方向控制 */}
+                  <Col xs={24} md={12}>
+                    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                      {/* 快捷方向按钮 */}
+                      <Card size="small" title="快捷控制">
+                        <Row gutter={[TOKENS.spacing.md, TOKENS.spacing.md]}>
+                          <Col span={8}>
+                            <Button
+                              block
+                              size="large"
+                              icon={<LeftCircleOutlined />}
+                              disabled={!connectionStatus.connected || deviceData?.stepper_orientation !== 0}
+                              onClick={() => handleStepperControl(1)}
+                              style={{ height: 56 }}
+                            >
+                              左移
+                            </Button>
+                          </Col>
+                          <Col span={8}>
+                            <Button
+                              block
+                              size="large"
+                              danger
+                              icon={<StopOutlined />}
+                              disabled={!connectionStatus.connected || deviceData?.stepper_orientation === 0}
+                              onClick={() => handleStepperControl(0)}
+                              style={{ height: 56 }}
+                            >
+                              停止
+                            </Button>
+                          </Col>
+                          <Col span={8}>
+                            <Button
+                              block
+                              size="large"
+                              icon={<RightCircleOutlined />}
+                              disabled={!connectionStatus.connected || deviceData?.stepper_orientation !== 0}
+                              onClick={() => handleStepperControl(2)}
+                              style={{ height: 56 }}
+                            >
+                              右移
+                            </Button>
+                          </Col>
+                        </Row>
+                      </Card>
+
+                      {/* 步进脉冲设置 */}
+                      <Card size="small" title="移动参数">
+                        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                          <div>
+                            <Text type="secondary" style={{ display: 'block', marginBottom: TOKENS.spacing.xs }}>
+                              单次移动距离
+                            </Text>
+                            <Space.Compact>
+                              <InputNumber
+                                min={160}
+                                max={112000}
+                                step={160}
+                                value={stepPulses}
+                                onChange={(v) => setStepPulses(v || 160)}
+                                style={{ width: 'calc(100% - 80px)' }}
+                              />
+                              <Input
+                                value="pulses"
+                                disabled
+                                style={{ width: 80, textAlign: 'center', backgroundColor: '#f5f5f5' }}
+                              />
+                            </Space.Compact>
+                            <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs, display: 'block', marginTop: TOKENS.spacing.xs }}>
+                              ≈ {(stepPulses / 160).toFixed(1)} mm
+                            </Text>
+                          </div>
+                        </Space>
+                      </Card>
+                    </Space>
+                  </Col>
+
+                  {/* 右侧：高级控制和状态 */}
+                  <Col xs={24} md={12}>
+                    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                      {/* 位置显示 */}
+                      <Card size="small" title="当前位置">
+                        <Statistic
+                          title="丝杆滑台位置"
+                          value={systemStats.stepperPosition}
+                          suffix="mm"
+                          styles={{ content: { color: THEME.primary, fontSize: TOKENS.fontSize.xxl } }}
+                          prefix={<SettingOutlined style={{ fontSize: TOKENS.fontSize.xl }} />}
+                        />
+                        <Progress
+                          percent={Math.min((parseFloat(systemStats.stepperPosition) / 700) * 100, 100)}
+                          status="active"
+                          strokeColor={THEME.primary}
+                          style={{ marginTop: TOKENS.spacing.md }}
+                        />
+                      </Card>
+
+                      {/* 高级操作 */}
+                      <Card size="small" title="高级操作">
+                        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                          <Button
+                            block
+                            icon={<UndoOutlined />}
+                            onClick={handleResetStepper}
+                            disabled={!connectionStatus.connected}
+                          >
+                            复位归零
+                          </Button>
+
+                          <Divider plain><Text type="secondary">预设参数</Text></Divider>
+
+                          <div>
+                            <Row gutter={[TOKENS.spacing.sm, TOKENS.spacing.sm]}>
+                              <Col span={12}>
+                                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>目标脉冲</Text>
+                                <InputNumber
+                                  min={160}
+                                  max={112000}
+                                  value={presetPulses}
+                                  onChange={(v) => setPresetPulses(v || 160)}
+                                  style={{ width: '100%', marginTop: TOKENS.spacing.xs }}
+                                  size="small"
+                                />
+                              </Col>
+                              <Col span={12}>
+                                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>运行速度</Text>
+                                <InputNumber
+                                  min={1000}
+                                  max={50000}
+                                  value={presetSpeed}
+                                  onChange={(v) => setPresetSpeed(v || 10000)}
+                                  style={{ width: '100%', marginTop: TOKENS.spacing.xs }}
+                                  size="small"
+                                />
+                              </Col>
+                            </Row>
+                          </div>
+
+                          <Button
+                            block
+                            type="primary"
+                            icon={<SettingOutlined />}
+                            onClick={handleStepperPreset}
+                            disabled={!connectionStatus.connected}
+                          >
+                            发送预设 ({(presetPulses / 160).toFixed(1)}mm)
+                          </Button>
+                        </Space>
+                      </Card>
+                    </Space>
+                  </Col>
+                </Row>
+              </Card>
+
+            </Space>
+          </Col>
+
+          {/* 右侧边栏 */}
+          <Col xs={24} xl={8}>
+            <Space orientation="vertical" size={TOKENS.spacing.xxl} style={{ width: '100%' }}>
+
+              {/* 天气卡片 */}
+              <WeatherCard />
+
+              {/* 快速操作指南 */}
+              <Card
+                title={
+                  <Space size="middle">
+                    <QuestionCircleOutlined />
+                    <span>快速指南</span>
+                  </Space>
+                }
+                size="small"
+              >
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                  <Alert
+                    type="info"
+                    showIcon
+                    icon={<InfoCircleOutlined />}
+                    message="操作提示"
+                    description={
+                      <ul style={{ margin: 0, paddingLeft: TOKENS.spacing.lg }}>
+                        <li>关键设备（水泵）操作需要二次确认</li>
+                        <li>步进电机停止按钮可随时紧急制动</li>
+                        <li>LED 颜色更改后需点击"应用"生效</li>
+                        <li>支持键盘快捷键操作（开发中）</li>
+                      </ul>
+                    }
+                  />
+                </Space>
+              </Card>
+
+              {/* 最近操作记录 */}
+              <Card
+                title={
+                  <Space size="middle">
+                    <HistoryOutlined />
+                    <span>最近操作</span>
+                  </Space>
+                }
+                size="small"
+                extra={
+                  <Link href="/device-logs" style={{ fontSize: TOKENS.fontSize.xs }}>
+                    查看全部
+                  </Link>
+                }
+              >
+                <Space orientation="vertical" size="small" style={{ width: '100%' }}>
+                  {logs.slice(0, 5).map((log) => (
+                    <div
+                      key={log.id}
+                      style={{
+                        padding: `${TOKENS.spacing.sm}px 0`,
+                        borderBottom: `1px solid ${THEME.border}`,
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: TOKENS.spacing.xs,
+                      }}>
+                        <Text strong style={{ fontSize: TOKENS.fontSize.sm }}>
+                          {log.device_name}
+                        </Text>
+                        <Tag
+                          color={log.action === "开启" ? "success" : log.action === "关闭" ? "error" : "default"}
+                          style={{ fontSize: TOKENS.fontSize.xs, margin: 0 }}
+                        >
+                          {log.action}
+                        </Tag>
+                      </div>
+                      <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+                        {new Date(log.created_at).toLocaleString()}
+                      </Text>
+                    </div>
+                  ))}
+                  {logs.length === 0 && (
+                    <Empty description="暂无记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  )}
+                </Space>
+              </Card>
+
+            </Space>
+          </Col>
+        </Row>
+      </div>
+    </div>
+  )
+}
+
+// 缺少的图标导入
+const InfoCircleOutlined = QuestionCircleOutlined

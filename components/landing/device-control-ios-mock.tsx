@@ -136,7 +136,7 @@ export function DeviceControlIOSMock() {
               <p className="text-[10px] text-muted-foreground font-medium">设备运行正常</p>
             </div>
             <div className="relative size-9 rounded-full overflow-hidden border border-gray-100 shadow-sm bg-white p-1.5">
-              <Image src="/logo.svg" alt="logo" fill className="object-contain p-1" />
+              <Image src="/logo.png" alt="logo" fill className="object-contain p-1" />
             </div>
           </div>
 

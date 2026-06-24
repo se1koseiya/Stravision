@@ -76,7 +76,7 @@ export function MobilePwaPrompt() {
               <div className="flex flex-col items-center text-center space-y-4">
                 {/* Icon */}
                 <div className="w-16 h-16 bg-white rounded-[1.2rem] shadow-md border border-slate-100 dark:border-slate-800 p-1 mb-2">
-                    <img src="/icon.png" alt="App Icon" className="w-full h-full object-contain rounded-[0.8rem]" />
+                    <img src="/logo.png" alt="App Icon" className="w-full h-full object-contain rounded-[0.8rem]" />
                 </div>
 
                 <div className="space-y-1">

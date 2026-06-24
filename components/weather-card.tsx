@@ -1,25 +1,56 @@
 "use client"
 
 import {
-  Cloud,
-  CloudRain,
-  CloudSnow,
-  Sun,
-  Wind,
-  Droplets,
-  Gauge,
-  Thermometer,
-  Leaf,
-  Sprout,
-  Zap,
-  CloudDrizzle,
-  CloudFog,
-} from "lucide-react"
-import { motion } from "framer-motion"
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Typography,
+  Space,
+  Tag,
+  Divider,
+  Spin,
+  Empty,
+  Tooltip,
+  Progress,
+} from "antd"
+import {
+  CloudOutlined,
+  SunOutlined,
+  ThunderboltOutlined,
+  MedicineBoxOutlined,
+  ExperimentOutlined,
+  FireOutlined,
+  InfoCircleOutlined,
+  CalendarOutlined,
+  EnvironmentOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { usePlantGrowth } from "@/lib/hooks/use-plant-growth"
-import { useRef, useState } from "react"
 
+const { Text, Title, Paragraph } = Typography
+
+// ==================== Ant Design 设计令牌 ====================
+const TOKENS = {
+  fontSize: { xs: 12, sm: 14, base: 16, lg: 20, xl: 24, xxl: 32 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 },
+  borderRadius: { sm: 4, md: 6, lg: 8, xl: 12 },
+}
+
+// 配色方案
+const THEME = {
+  primary: "#1677ff",
+  success: "#52c41a",
+  warning: "#faad14",
+  error: "#ff4d4f",
+  textPrimary: "#1f1f1f",
+  textSecondary: "#8c8c8c",
+  border: "#f0f0f0",
+  background: "#fafafa",
+}
+
+// 设备数据类型
 interface DeviceData {
   temperature: number
   humidity: number
@@ -46,516 +77,480 @@ interface WeatherCardProps {
   deviceData?: DeviceData | null
 }
 
+// 天气类型映射
+type WeatherType = "sunny" | "cloudy" | "rainy" | "snowy" | "foggy"
+
 export function WeatherCard({ deviceData }: WeatherCardProps) {
   const { weatherData, loading, requestLocation } = useWeatherContext()
   const { plantData } = usePlantGrowth()
-  
-  // 拖动滚动状态
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [startY, setStartY] = useState(0)
-  const [scrollTop, setScrollTop] = useState(0)
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current) return
-    setIsDragging(true)
-    setStartY(e.pageY - scrollRef.current.offsetTop)
-    setScrollTop(scrollRef.current.scrollTop)
-    scrollRef.current.style.cursor = 'grabbing'
+  // ==================== 工具函数 ====================
+
+  // 获取天气类型
+  const getWeatherType = (code: number): WeatherType => {
+    if (code === 1000) return "sunny"
+    if ([1003, 1006, 1009].includes(code)) return "cloudy"
+    if ([1030, 1135, 1147].includes(code)) return "foggy"
+    if ([1066, 1114, 1117, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258, 1279, 1282].includes(code)) return "snowy"
+    return "rainy"
   }
 
-  const handleMouseUp = () => {
-    setIsDragging(false)
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = 'grab'
+  // 获取天气图标配置
+  const getWeatherIconConfig = (type?: WeatherType) => {
+    const weatherType = type || (weatherData?.current ? getWeatherType(weatherData.current.condition.code) : "cloudy")
+
+    const configs = {
+      sunny: { icon: <SunOutlined />, color: "#faad14", bg: "#fff7e6" },
+      cloudy: { icon: <CloudOutlined />, color: "#8c8c8c", bg: "#fafafa" },
+      rainy: { icon: <CloudOutlined />, color: "#1677ff", bg: "#e6f7ff" },
+      snowy: { icon: <CloudOutlined />, color: "#69b1ff", bg: "#f0f5ff" },
+      foggy: { icon: <CloudOutlined />, color: "#bfbfbf", bg: "#f5f5f5" },
     }
+
+    return configs[weatherType]
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollRef.current) return
-    e.preventDefault()
-    const y = e.pageY - scrollRef.current.offsetTop
-    const walk = (y - startY) * 1.5
-    scrollRef.current.scrollTop = scrollTop - walk
+  // 格式化日期
+  const formatDate = () => {
+    const now = new Date()
+    const weekday = now.toLocaleDateString("zh-CN", { weekday: "short" })
+    const dateStr = now.toLocaleDateString("zh-CN", { month: "long", day: "numeric" })
+    return { weekday, dateStr }
   }
 
-  const handleMouseLeave = () => {
-    setIsDragging(false)
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = 'grab'
-    }
+  // 获取温度颜色
+  const getTempColor = (temp: number) => {
+    if (temp >= 35) return THEME.error
+    if (temp >= 28) return THEME.warning
+    if (temp >= 18) return THEME.success
+    return THEME.primary
   }
 
-  const getWeatherType = (code: number): "sun" | "cloud" | "rain" | "snow" | "drizzle" | "fog" => {
-    if (code === 1000) return "sun"
-    if ([1003, 1006, 1009].includes(code)) return "cloud"
-    if ([1030, 1135, 1147].includes(code)) return "fog"
-    if ([1150, 1153, 1168, 1171].includes(code)) return "drizzle"
-    if ([1063, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246, 1273, 1276].includes(code)) return "rain"
-    if ([1066, 1114, 1117, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258, 1279, 1282].includes(code)) return "snow"
-    return "cloud"
+  // 获取湿度状态
+  const getHumidityStatus = (humidity: number) => {
+    if (humidity >= 80) return { status: "exception" as const, text: "过高", color: THEME.error }
+    if (humidity >= 60) return { status: "normal" as const, text: "适宜", color: THEME.success }
+    if (humidity >= 40) return { status: "active" as const, text: "偏低", color: THEME.warning }
+    return { status: "exception" as const, text: "过低", color: THEME.error }
   }
-
-  const now = new Date()
-  const weekday = now.toLocaleDateString("zh-CN", { weekday: "short" })
-  const dateStr = now.toLocaleDateString("zh-CN", { month: "long", day: "numeric" })
-
-  const tomorrowForecast = weatherData?.forecast?.forecastday?.[1]
 
   // 渲染天气图标
-  const renderWeatherIcon = (type?: string, size: "large" | "small" = "large") => {
-    const weatherType = type || (weatherData?.current ? getWeatherType(weatherData.current.condition.code) : "cloud")
+  const renderWeatherIcon = (size: "large" | "small" = "large") => {
+    const config = getWeatherIconConfig()
     const isLarge = size === "large"
-    const iconSize = isLarge ? "w-28 h-28" : "w-10 h-10"
-    
+
     if (loading && isLarge) {
-      return <Cloud className={`${iconSize} text-muted-foreground/30 animate-pulse`} />
+      return (
+        <div style={{
+          width: isLarge ? 80 : 40,
+          height: isLarge ? 80 : 40,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: isLarge ? 32 : 16 }} />} />
+        </div>
+      )
     }
 
-    switch (weatherType) {
-      case "sun":
-        if (isLarge) {
-          return (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-radial from-yellow-200/40 via-orange-100/20 to-transparent rounded-full blur-xl scale-150" />
-              <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-400 shadow-[0_0_60px_rgba(251,191,36,0.4)]" />
-              <div className="absolute -top-2 right-4 w-2 h-2 rounded-full bg-yellow-300" />
-              <div className="absolute top-2 -right-1 w-1.5 h-1.5 rounded-full bg-yellow-300" />
-              <div className="absolute top-8 -right-3 w-2 h-2 rounded-full bg-yellow-300" />
-              <div className="absolute -top-4 right-12 w-1.5 h-1.5 rounded-full bg-yellow-300" />
-            </div>
-          )
-        }
-        return <Sun className={`${iconSize} text-yellow-500`} />
-      
-      case "cloud":
-        if (isLarge) {
-          return (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-radial from-slate-300/30 to-transparent rounded-full blur-xl scale-125" />
-              <Cloud className="w-28 h-28 text-slate-400 dark:text-slate-300" strokeWidth={1.2} />
-            </div>
-          )
-        }
-        return <Cloud className={`${iconSize} text-slate-400`} />
-      
-      case "rain":
-        if (isLarge) {
-          return (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-radial from-blue-300/30 to-transparent rounded-full blur-xl scale-125" />
-              <CloudRain className="w-28 h-28 text-blue-400" strokeWidth={1.2} />
-            </div>
-          )
-        }
-        return <CloudRain className={`${iconSize} text-blue-400`} />
-      
-      case "drizzle":
-        if (isLarge) {
-          return (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-radial from-blue-200/30 to-transparent rounded-full blur-xl scale-125" />
-              <CloudDrizzle className="w-28 h-28 text-blue-300" strokeWidth={1.2} />
-            </div>
-          )
-        }
-        return <CloudDrizzle className={`${iconSize} text-blue-300`} />
-      
-      case "snow":
-        if (isLarge) {
-          return (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-radial from-blue-100/40 to-transparent rounded-full blur-xl scale-125" />
-              <CloudSnow className="w-28 h-28 text-blue-200" strokeWidth={1.2} />
-            </div>
-          )
-        }
-        return <CloudSnow className={`${iconSize} text-blue-200`} />
-      
-      case "fog":
-        if (isLarge) {
-          return (
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-radial from-slate-200/30 to-transparent rounded-full blur-xl scale-125" />
-              <CloudFog className="w-28 h-28 text-slate-300" strokeWidth={1.2} />
-            </div>
-          )
-        }
-        return <CloudFog className={`${iconSize} text-slate-300`} />
-      
-      default:
-        return <Cloud className={`${iconSize} text-muted-foreground/30`} />
-    }
+    return (
+      <div style={{
+        width: isLarge ? 80 : 40,
+        height: isLarge ? 80 : 40,
+        borderRadius: TOKENS.borderRadius.xl,
+        backgroundColor: config.bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: isLarge ? TOKENS.fontSize.xxl : TOKENS.fontSize.lg,
+        color: config.color,
+        transition: 'all 0.3s ease',
+      }}>
+        {config.icon}
+      </div>
+    )
   }
 
+  const { weekday, dateStr } = formatDate()
+  const currentTemp = weatherData?.current ? Math.round(weatherData.current.temp_c) : null
+  const tomorrowForecast = weatherData?.forecast?.forecastday?.[1]
+
   return (
-    <div className="h-full flex flex-col">
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto scrollbar-hide cursor-grab select-none"
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      >
-        
-        {/* 主天气区域 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mb-6"
+    <Card
+      title={
+        <Space size="small">
+          <EnvironmentOutlined />
+          <Text strong>环境监测</Text>
+        </Space>
+      }
+      size="small"
+      styles={{ body: { padding: TOKENS.spacing.md } }}
+    >
+      {/* ====== 第一部分：室外天气概览 ====== */}
+      <Space direction="vertical" size={TOKENS.spacing.lg} style={{ width: '100%' }}>
+
+        {/* 位置和日期 */}
+        <div
+          onClick={requestLocation}
+          style={{ cursor: 'pointer' }}
         >
-          {/* 位置和日期 */}
-          <div 
-            className="mb-4 cursor-pointer"
-            onClick={requestLocation}
-            title="点击重新定位"
-          >
-            <h2 className="text-2xl font-bold text-foreground">
-              当前地区,
-            </h2>
-            <p className="text-muted-foreground">{weekday}, {dateStr}</p>
-          </div>
+          <Space direction="vertical" size={TOKENS.spacing.xs}>
+            <Title level={5} style={{ margin: 0 }}>
+              当前地区
+              <Tooltip title="点击更新定位">
+                <InfoCircleOutlined
+                  style={{
+                    fontSize: TOKENS.fontSize.sm,
+                    color: THEME.textSecondary,
+                    marginLeft: TOKENS.spacing.xs,
+                  }}
+                />
+              </Tooltip>
+            </Title>
+            <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
+              <CalendarOutlined style={{ marginRight: TOKENS.spacing.xs }} />
+              {weekday}, {dateStr}
+            </Text>
+          </Space>
+        </div>
 
-          {/* 天气图标和温度 */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="text-7xl font-light text-foreground mb-1">
-                {weatherData?.current ? Math.round(weatherData.current.temp_c) : '--'}°c
+        {/* 温度和图标 */}
+        <Row gutter={[TOKENS.spacing.lg, 0]} align="middle">
+          <Col flex="auto">
+            <Space direction="vertical" size={TOKENS.spacing.xs}>
+              <div style={{ fontSize: TOKENS.fontSize.xxl, fontWeight: 600, lineHeight: 1 }}>
+                {currentTemp !== null ? `${currentTemp}` : '--'}
+                <span style={{ fontSize: TOKENS.fontSize.xl, fontWeight: 300 }}>°C</span>
               </div>
-              <div className="text-xl text-muted-foreground">
-                {weatherData?.current?.condition?.text || (
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                    <span>获取天气中</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              {renderWeatherIcon()}
-            </div>
-          </div>
+              <Text type="secondary" style={{ fontSize: TOKENS.fontSize.sm }}>
+                {weatherData?.current?.condition?.text || (loading ? '获取中...' : '暂无数据')}
+              </Text>
+            </Space>
+          </Col>
+          <Col flex="none">
+            {renderWeatherIcon("large")}
+          </Col>
+        </Row>
 
-          {/* 最高最低温度 */}
-          <div className="inline-flex items-center gap-4 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 text-sm">
-            <span className="flex items-center gap-1">
-              <span className="text-muted-foreground">↑ 最高:</span>
-              <span className="font-medium text-foreground">
-                {weatherData?.forecast?.forecastday?.[0]?.day?.maxtemp_c 
-                  ? Math.round(weatherData.forecast.forecastday[0].day.maxtemp_c) 
-                  : '--'}°
-              </span>
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="flex items-center gap-1">
-              <span className="text-muted-foreground">↓ 最低:</span>
-              <span className="font-medium text-foreground">
-                {weatherData?.forecast?.forecastday?.[0]?.day?.mintemp_c 
-                  ? Math.round(weatherData.forecast.forecastday[0].day.mintemp_c) 
-                  : '--'}°
-              </span>
-            </span>
-          </div>
-        </motion.div>
+        {/* 温度范围 */}
+        <div style={{
+          display: 'flex',
+          gap: TOKENS.spacing.md,
+          padding: `${TOKENS.spacing.sm}px ${TOKENS.spacing.md}px`,
+          backgroundColor: THEME.background,
+          borderRadius: TOKENS.borderRadius.lg,
+        }}>
+          <Space size={TOKENS.spacing.xs}>
+            <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>最高</Text>
+            <Text strong style={{ fontSize: TOKENS.fontSize.sm }}>
+              {weatherData?.forecast?.forecastday?.[0]?.day?.maxtemp_c
+                ? Math.round(weatherData.forecast.forecastday[0].day.maxtemp_c)
+                : '--'}°
+            </Text>
+          </Space>
+          <Divider type="vertical" />
+          <Space size={TOKENS.spacing.xs}>
+            <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>最低</Text>
+            <Text strong style={{ fontSize: TOKENS.fontSize.sm }}>
+              {weatherData?.forecast?.forecastday?.[0]?.day?.mintemp_c
+                ? Math.round(weatherData.forecast.forecastday[0].day.mintemp_c)
+                : '--'}°
+            </Text>
+          </Space>
+        </div>
 
-        {/* 室外天气参数 */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 gap-x-8 gap-y-4 mb-6"
-        >
-          <div className="flex items-center gap-3">
-            <Droplets className="w-5 h-5 text-primary" />
-            <div>
-              <div className="text-xs text-muted-foreground">空气湿度</div>
-              <div className="text-lg font-semibold text-foreground">
-                {weatherData?.current?.humidity ?? '--'}%
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Wind className="w-5 h-5 text-primary" />
-            <div>
-              <div className="text-xs text-muted-foreground">风速</div>
-              <div className="text-lg font-semibold text-foreground">
-                {weatherData?.current?.wind_kph ? Math.round(weatherData.current.wind_kph) : '--'}km/h
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Gauge className="w-5 h-5 text-primary" />
-            <div>
-              <div className="text-xs text-muted-foreground">大气压强</div>
-              <div className="text-lg font-semibold text-foreground">
-                {weatherData?.current?.pressure_mb ? Math.round(weatherData.current.pressure_mb / 10) : '--'}hPa
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Wind className="w-5 h-5 text-primary rotate-45" />
-            <div>
-              <div className="text-xs text-muted-foreground">风向</div>
-              <div className="text-lg font-semibold text-foreground">
-                {weatherData?.current?.wind_dir || '--'}
-              </div>
-            </div>
-          </div>
-        </motion.div>
+        {/* 室外气象参数 */}
+        <Row gutter={[TOKENS.spacing.md, TOKENS.spacing.md]}>
+          <Col span={12}>
+            <Statistic
+              title={<Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>湿度</Text>}
+              value={weatherData?.current?.humidity ?? '--'}
+              suffix="%"
+              valueStyle={{ fontSize: TOKENS.fontSize.lg }}
+              prefix={<MedicineBoxOutlined style={{ color: THEME.primary }} />}
+            />
+          </Col>
+          <Col span={12}>
+            <Statistic
+              title={<Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>风速</Text>}
+              value={weatherData?.current?.wind_kph ? Math.round(weatherData.current.wind_kph) : '--'}
+              suffix="km/h"
+              valueStyle={{ fontSize: TOKENS.fontSize.lg }}
+              prefix={<ThunderboltOutlined style={{ color: THEME.primary }} />}
+            />
+          </Col>
+          <Col span={12}>
+            <Statistic
+              title={<Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>气压</Text>}
+              value={weatherData?.current?.pressure_mb ? Math.round(weatherData.current.pressure_mb / 10) : '--'}
+              suffix="hPa"
+              valueStyle={{ fontSize: TOKENS.fontSize.lg }}
+              prefix={<ExperimentOutlined style={{ color: THEME.primary }} />}
+            />
+          </Col>
+          <Col span={12}>
+            <Statistic
+              title={<Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>风向</Text>}
+              value={weatherData?.current?.wind_dir || '--'}
+              valueStyle={{ fontSize: TOKENS.fontSize.base }}
+              prefix={<ThunderboltOutlined style={{ color: THEME.primary }} />}
+            />
+          </Col>
+        </Row>
 
         {/* 明日预报 */}
         {tomorrowForecast && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="flex items-center justify-between p-4 rounded-2xl bg-primary/5 border border-primary/10 mb-6"
-          >
-            <div>
-              <div className="text-sm text-muted-foreground">明日预报</div>
-              <div className="text-xl font-semibold text-foreground">
-                {Math.round(tomorrowForecast.day.maxtemp_c)}°c / {Math.round(tomorrowForecast.day.mintemp_c)}°c
-              </div>
-            </div>
-            {renderWeatherIcon(getWeatherType(tomorrowForecast.day.condition.code), "small")}
-          </motion.div>
+          <div style={{
+            padding: `${TOKENS.spacing.md}px`,
+            backgroundColor: THEME.background,
+            borderRadius: TOKENS.borderRadius.lg,
+            borderLeft: `3px solid ${THEME.primary}`,
+          }}>
+            <Row align="middle" justify="space-between">
+              <Col>
+                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs, display: 'block', marginBottom: TOKENS.spacing.xs }}>
+                  明日预报
+                </Text>
+                <Text strong style={{ fontSize: TOKENS.fontSize.base }}>
+                  {Math.round(tomorrowForecast.day.maxtemp_c)}° / {Math.round(tomorrowForecast.day.mintemp_c)}°
+                </Text>
+              </Col>
+              <Col>{renderWeatherIcon("small")}</Col>
+            </Row>
+          </div>
         )}
 
-        {/* 七天天气预报 */}
-        {weatherData?.forecast?.forecastday && weatherData.forecast.forecastday.length > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="mb-6"
-          >
-            <div className="text-sm font-medium text-muted-foreground mb-3">未来天气预报</div>
-            <div className="space-y-2">
-              {weatherData.forecast.forecastday.slice(0, 7).map((day: any, index: number) => {
-                const date = new Date(day.date)
-                const isToday = index === 0
-                const dayName = isToday ? '今天' : date.toLocaleDateString('zh-CN', { weekday: 'short' })
-                const dateStr = date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
-                
-                return (
-                  <div 
-                    key={day.date}
-                    className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10"
-                  >
-                    <div className="flex items-center gap-3 min-w-[80px]">
-                      <div className="text-sm font-medium text-foreground">{dayName}</div>
-                      <div className="text-xs text-muted-foreground">{dateStr}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {renderWeatherIcon(getWeatherType(day.day.condition.code), "small")}
-                      <span className="text-xs text-muted-foreground w-12">{day.day.condition.text}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-foreground font-medium">{Math.round(day.day.maxtemp_c)}°</span>
-                      <span className="text-muted-foreground">/</span>
-                      <span className="text-muted-foreground">{Math.round(day.day.mintemp_c)}°</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </motion.div>
-        )}
+        <Divider style={{ margin: `${TOKENS.spacing.sm}px 0` }} />
 
-        {/* 分隔线 */}
-        <div className="border-t border-border/50 my-4" />
+        {/* ====== 第二部分：大棚室内环境 ====== */}
+        <div>
+          <Text strong style={{
+            fontSize: TOKENS.fontSize.sm,
+            display: 'block',
+            marginBottom: TOKENS.spacing.md,
+            color: THEME.textPrimary,
+          }}>
+            <ThunderboltOutlined style={{ marginRight: TOKENS.spacing.xs, color: THEME.primary }} />
+            大棚环境参数
+          </Text>
 
-        {/* 大棚环境参数标题 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-4"
-        >
-          <h3 className="text-lg font-bold text-foreground">大棚环境参数</h3>
-        </motion.div>
-
-        {/* 大棚核心参数 */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="grid grid-cols-2 gap-3 mb-4"
-        >
-          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Thermometer className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">室内温度</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground">
-              {deviceData ? deviceData.temperature.toFixed(1) : '--'}
-              <span className="text-sm font-normal text-muted-foreground ml-1">°C</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Droplets className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">室内湿度</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground">
-              {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
-              <span className="text-sm font-normal text-muted-foreground ml-1">%</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Wind className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">二氧化碳浓度</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground">
-              {deviceData ? deviceData.co2 : '--'}
-              <span className="text-sm font-normal text-muted-foreground ml-1">ppm</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Sun className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">光照强度</span>
-            </div>
-            <div className="text-2xl font-bold text-foreground">
-              {deviceData ? deviceData.light : '--'}
-              <span className="text-sm font-normal text-muted-foreground ml-1">lux</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 土壤参数 */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-4"
-        >
-          <div className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-            <Sprout className="w-4 h-4 text-primary" />
-            土壤参数
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-              <div className="text-xs text-muted-foreground mb-1">土壤温度</div>
-              <div className="text-lg font-bold text-foreground">
-                {deviceData?.earth_temp ? deviceData.earth_temp.toFixed(1) : '--'}°C
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-              <div className="text-xs text-muted-foreground mb-1">土壤湿度</div>
-              <div className="text-lg font-bold text-foreground">
-                {deviceData?.earth_water ? deviceData.earth_water.toFixed(1) : '--'}%
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-              <div className="text-xs text-muted-foreground mb-1">电导率</div>
-              <div className="text-lg font-bold text-foreground">
-                {deviceData?.earth_ec ?? '--'}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 土壤养分 NPK */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="mb-4"
-        >
-          <div className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-            <Leaf className="w-4 h-4 text-primary" />
-            土壤养分
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-              <div className="text-xs text-muted-foreground mb-1">氮 (N)</div>
-              <div className="text-lg font-bold text-foreground">
-                {deviceData?.earth_n ?? '--'}
-                <span className="text-xs font-normal text-muted-foreground ml-0.5">mg/kg</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-              <div className="text-xs text-muted-foreground mb-1">磷 (P)</div>
-              <div className="text-lg font-bold text-foreground">
-                {deviceData?.earth_p ?? '--'}
-                <span className="text-xs font-normal text-muted-foreground ml-0.5">mg/kg</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-              <div className="text-xs text-muted-foreground mb-1">钾 (K)</div>
-              <div className="text-lg font-bold text-foreground">
-                {deviceData?.earth_k ?? '--'}
-                <span className="text-xs font-normal text-muted-foreground ml-0.5">mg/kg</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 生长阶段 */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="p-4 rounded-2xl bg-primary/5 border border-primary/10"
-        >
-          <div className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            草莓生长阶段
-          </div>
-          <div className="flex items-center justify-between mb-2">
-            {["🌱", "🌿", "🌸", "🍓", "🍓"].map((emoji, i) => {
-              const stage = i + 1
-              const isActive = plantData && stage <= plantData.stage
-              const isCurrent = plantData && stage === plantData.stage
-              return (
-                <div
-                  key={i}
-                  className={`text-2xl transition-all ${
-                    isActive
-                      ? isCurrent
-                        ? "opacity-100 scale-125"
-                        : "opacity-100"
-                      : "opacity-30 grayscale"
-                  }`}
-                >
-                  {emoji}
-                </div>
-              )
-            })}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            当前：{plantData
-              ? ["幼苗期", "生长期", "花芽分化期", "开花结果期", "果实成熟期"][plantData.stage - 1] || `第${plantData.stage}阶段`
-              : "等待数据..."}
-          </div>
-          {plantData?.healthScore && (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">健康度</span>
-              <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary"
-                  style={{ width: `${plantData.healthScore}%` }}
+          <Row gutter={[TOKENS.spacing.md, TOKENS.spacing.md]}>
+            {/* 室内温度 */}
+            <Col span={12}>
+              <div style={{
+                padding: `${TOKENS.spacing.md}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.lg,
+                borderLeft: `3px solid ${getTempColor(deviceData?.temperature || 20)}`,
+              }}>
+                <Statistic
+                  title={
+                    <Space size={4}>
+                      <FireOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.error }} />
+                      <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>室内温度</Text>
+                    </Space>
+                  }
+                  value={deviceData ? deviceData.temperature.toFixed(1) : '--'}
+                  suffix="°C"
+                  valueStyle={{
+                    fontSize: TOKENS.fontSize.xl,
+                    color: getTempColor(deviceData?.temperature || 20),
+                  }}
                 />
               </div>
-              <span className="text-xs font-medium text-primary">{plantData.healthScore}</span>
-            </div>
-          )}
-        </motion.div>
+            </Col>
 
-      </div>
-    </div>
+            {/* 室内湿度 */}
+            <Col span={12}>
+              <div style={{
+                padding: `${TOKENS.spacing.md}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.lg,
+                borderLeft: `3px solid ${getHumidityStatus(deviceData?.humidity || 50).color}`,
+              }}>
+                <Space direction="vertical" size={TOKENS.spacing.xs} style={{ width: '100%' }}>
+                  <Space size={4}>
+                    <MedicineBoxOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.primary }} />
+                    <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>室内湿度</Text>
+                  </Space>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: TOKENS.spacing.xs }}>
+                    <Text strong style={{ fontSize: TOKENS.fontSize.xl }}>
+                      {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}%
+                    </Text>
+                    <Tag
+                      color={getHumidityStatus(deviceData?.humidity || 50).color === THEME.error ? 'error' :
+                            getHumidityStatus(deviceData?.humidity || 50).color === THEME.warning ? 'warning' : 'success'}
+                      style={{ fontSize: TOKENS.fontSize.xs, marginLeft: 0 }}
+                    >
+                      {getHumidityStatus(deviceData?.humidity || 50).text}
+                    </Tag>
+                  </div>
+                  <Progress
+                    percent={deviceData ? Math.min((deviceData.humidity / 10), 100) : 0}
+                    size="small"
+                    status={getHumidityStatus(deviceData?.humidity || 50).status}
+                    showInfo={false}
+                    strokeColor={getHumidityStatus(deviceData?.humidity || 50).color}
+                  />
+                </Space>
+              </div>
+            </Col>
+
+            {/* CO2 浓度 */}
+            <Col span={12}>
+              <div style={{
+                padding: `${TOKENS.spacing.md}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.lg,
+              }}>
+                <Statistic
+                  title={
+                    <Space size={4}>
+                      <ExperimentOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.primary }} />
+                      <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>CO₂浓度</Text>
+                    </Space>
+                  }
+                  value={deviceData?.co2 ?? '--'}
+                  suffix="ppm"
+                  valueStyle={{ fontSize: TOKENS.fontSize.lg }}
+                />
+              </div>
+            </Col>
+
+            {/* 光照强度 */}
+            <Col span={12}>
+              <div style={{
+                padding: `${TOKENS.spacing.md}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.lg,
+              }}>
+                <Statistic
+                  title={
+                    <Space size={4}>
+                      <SunOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.warning }} />
+                      <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>光照强度</Text>
+                    </Space>
+                  }
+                  value={deviceData?.light ?? '--'}
+                  suffix="lux"
+                  valueStyle={{ fontSize: TOKENS.fontSize.lg }}
+                />
+              </div>
+            </Col>
+          </Row>
+        </div>
+
+        <Divider style={{ margin: `${TOKENS.spacing.sm}px 0` }} />
+
+        {/* ====== 第三部分：土壤参数 ====== */}
+        <div>
+          <Text strong style={{
+            fontSize: TOKENS.fontSize.sm,
+            display: 'block',
+            marginBottom: TOKENS.spacing.md,
+            color: THEME.textPrimary,
+          }}>
+            <ExperimentOutlined style={{ marginRight: TOKENS.spacing.xs, color: THEME.success }} />
+            土壤监测
+          </Text>
+
+          {/* 核心土壤指标 */}
+          <Row gutter={[TOKENS.spacing.sm, TOKENS.spacing.sm]} style={{ marginBottom: TOKENS.spacing.md }}>
+            <Col span={8}>
+              <div style={{
+                textAlign: 'center',
+                padding: `${TOKENS.spacing.sm}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.md,
+              }}>
+                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs, display: 'block', marginBottom: 2 }}>
+                  地温
+                </Text>
+                <Text strong style={{ fontSize: TOKENS.fontSize.base }}>
+                  {deviceData?.earth_temp ? deviceData.earth_temp.toFixed(1) : '--'}°C
+                </Text>
+              </div>
+            </Col>
+            <Col span={8}>
+              <div style={{
+                textAlign: 'center',
+                padding: `${TOKENS.spacing.sm}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.md,
+              }}>
+                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs, display: 'block', marginBottom: 2 }}>
+                  湿度
+                </Text>
+                <Text strong style={{ fontSize: TOKENS.fontSize.base }}>
+                  {deviceData?.earth_water ? deviceData.earth_water.toFixed(1) : '--'}%
+                </Text>
+              </div>
+            </Col>
+            <Col span={8}>
+              <div style={{
+                textAlign: 'center',
+                padding: `${TOKENS.spacing.sm}px`,
+                backgroundColor: THEME.background,
+                borderRadius: TOKENS.borderRadius.md,
+              }}>
+                <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs, display: 'block', marginBottom: 2 }}>
+                  EC值
+                </Text>
+                <Text strong style={{ fontSize: TOKENS.fontSize.base }}>
+                  {deviceData?.earth_ec ?? '--'}
+                </Text>
+              </div>
+            </Col>
+          </Row>
+
+          {/* NPK 养分 */}
+          <div style={{
+            padding: `${TOKENS.spacing.md}px`,
+            backgroundColor: THEME.background,
+            borderRadius: TOKENS.borderRadius.lg,
+          }}>
+            <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs, display: 'block', marginBottom: TOKENS.spacing.sm }}>
+              养分含量 (N-P-K)
+            </Text>
+            <Row gutter={[TOKENS.spacing.sm, 0]}>
+              <Col span={8} style={{ textAlign: 'center' }}>
+                <div>
+                  <Tag color="green" style={{ marginBottom: TOKENS.spacing.xs }}>N</Tag>
+                  <div style={{ fontSize: TOKENS.fontSize.base, fontWeight: 600 }}>
+                    {deviceData?.earth_n ?? '--'}
+                    <span style={{ fontSize: TOKENS.fontSize.xs, fontWeight: 400, color: THEME.textSecondary }}>
+                      mg/kg
+                    </span>
+                  </div>
+                </div>
+              </Col>
+              <Col span={8} style={{ textAlign: 'center' }}>
+                <div>
+                  <Tag color="orange" style={{ marginBottom: TOKENS.spacing.xs }}>P</Tag>
+                  <div style={{ fontSize: TOKENS.fontSize.base, fontWeight: 600 }}>
+                    {deviceData?.earth_p ?? '--'}
+                    <span style={{ fontSize: TOKENS.fontSize.xs, fontWeight: 400, color: THEME.textSecondary }}>
+                      mg/kg
+                    </span>
+                  </div>
+                </div>
+              </Col>
+              <Col span={8} style={{ textAlign: 'center' }}>
+                <div>
+                  <Tag color="red" style={{ marginBottom: TOKENS.spacing.xs }}>K</Tag>
+                  <div style={{ fontSize: TOKENS.fontSize.base, fontWeight: 600 }}>
+                    {deviceData?.earth_k ?? '--'}
+                    <span style={{ fontSize: TOKENS.fontSize.xs, fontWeight: 400, color: THEME.textSecondary }}>
+                      mg/kg
+                    </span>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </div>
+        </div>
+
+      </Space>
+    </Card>
   )
 }

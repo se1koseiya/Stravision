@@ -92,7 +92,7 @@ export default function PlansPage() {
         </div>
         <div className="flex items-center gap-4">
            <div className="size-8 relative">
-              <Image src="/icon.png" alt="Logo" fill className="object-contain grayscale hover:grayscale-0 transition-all duration-500" />
+              <Image src="/logo.png" alt="Logo" fill className="object-contain grayscale hover:grayscale-0 transition-all duration-500" />
            </div>
            <span className="text-xs font-bold tracking-[0.2em] uppercase hidden md:block opacity-40">Stravision Plans</span>
         </div>

@@ -25,7 +25,7 @@ export const MCP_SERVERS: MCPServer[] = [
     displayName: "Stravision光谱传感器",
     description: "连接Stravision光谱传感器。获取指定通道的光谱值或全波段数据，用于物质分析和环境监测。",
     category: "agriculture",
-    icon: "/icon.png",
+    icon: "/logo.png",
     iconBg: "bg-purple-600",
     provider: "Stravision",
     requiresApiKey: false,

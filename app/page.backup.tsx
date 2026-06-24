@@ -27,7 +27,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 lg:px-12 py-4 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 relative">
-            <Image src="/logo.svg" alt="Logo" fill className="object-contain" />
+            <Image src="/logo.png" alt="Logo" fill className="object-contain" />
           </div>
           <span className="text-sm text-muted-foreground">/ support@stravision.ai</span>
         </div>
@@ -232,7 +232,7 @@ export default function LandingPage() {
               {/* Stravision 团队 */}
               <div className="flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
                 <div className="w-10 h-10 relative">
-                  <Image src="/logo.svg" alt="Stravision" fill className="object-contain" />
+                  <Image src="/logo.png" alt="Stravision" fill className="object-contain" />
                 </div>
                 <span className="text-sm md:text-base font-semibold tracking-wide text-gray-200 uppercase">Stravision 团队</span>
               </div>
@@ -466,7 +466,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 relative">
-                <Image src="/logo.svg" alt="Logo" fill className="object-contain" />
+                <Image src="/logo.png" alt="Logo" fill className="object-contain" />
               </div>
               <span className="font-semibold">Stravision 莓界</span>
             </div>

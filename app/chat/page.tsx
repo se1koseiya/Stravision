@@ -28,7 +28,7 @@ import { MapPin } from "@/components/animate-ui/icons/map-pin"
 import { Trash2 } from "@/components/animate-ui/icons/trash-2"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/page-header"
-import { ModeToggle } from "@/components/mode-toggle"
+import { PageHeaderRight } from "@/components/page-header-right"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import Image from "next/image"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
@@ -696,7 +696,7 @@ export default function ChatPage() {
         {/* Header */}
         {!isMobile && (
           <PageHeader user={currentUser as any}>
-            <ModeToggle />
+            <PageHeaderRight />
           </PageHeader>
         )}
 

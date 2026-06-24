@@ -38,7 +38,7 @@ export function MessageNotificationListener() {
               if (Notification.permission === "granted" && (document.hidden || pathname !== '/chat')) {
                 new Notification(title, {
                   body: body,
-                  icon: msg.sender_avatar || "/logo.svg",
+                  icon: msg.sender_avatar || "/logo.png",
                   tag: `msg-${msg.id}`, // Deduplicate notifications
                   silent: false
                 })

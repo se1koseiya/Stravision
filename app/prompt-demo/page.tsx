@@ -2102,7 +2102,7 @@ AI输出：
                         : "bg-zinc-200 dark:bg-zinc-700"
                     )}>
                       {msg.role === "assistant" ? (
-                        <Image src="/icon.png" alt="AI" width={32} height={32} className="object-cover" />
+                        <Image src="/logo.png" alt="AI" width={32} height={32} className="object-cover" />
                       ) : (
                         <div className="size-full flex items-center justify-center">
                           <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">U</span>
@@ -2131,7 +2131,7 @@ AI输出：
                 {isLoading && (
                   <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="size-8 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-primary to-cyan-500">
-                      <Image src="/icon.png" alt="AI" width={32} height={32} className="object-cover animate-pulse" />
+                      <Image src="/logo.png" alt="AI" width={32} height={32} className="object-cover animate-pulse" />
                     </div>
                     <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-4 py-3">
                       <div className="flex items-center gap-2 text-zinc-500">

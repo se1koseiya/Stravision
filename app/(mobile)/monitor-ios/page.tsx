@@ -400,7 +400,7 @@ export default function MonitorIOSPage() {
               </div>
             </div>
             <div className="relative size-16 animate-[breathe_4s_ease-in-out_infinite]">
-              <Image src="/logo.svg" alt="logo" fill className="object-contain" />
+              <Image src="/logo.png" alt="logo" fill className="object-contain" />
             </div>
           </div>
         </div>

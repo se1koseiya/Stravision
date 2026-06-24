@@ -62,7 +62,7 @@ export function DesktopInstallPrompt() {
         >
           <div className="flex items-center gap-3.5">
              <div className="size-11 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700">
-                <img src="/icon.png" alt="App Icon" className="w-full h-full object-cover" />
+                <img src="/logo.png" alt="App Icon" className="w-full h-full object-cover" />
              </div>
              <div>
                 <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight mb-0.5">安装桌面应用</h4>

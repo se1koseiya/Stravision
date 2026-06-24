@@ -81,7 +81,7 @@ export default function MCPPromoPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center mix-blend-difference">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
            <div className="size-8 relative">
-              <Image src="/icon.png" alt="Logo" fill className="object-contain grayscale" />
+              <Image src="/logo.png" alt="Logo" fill className="object-contain grayscale" />
            </div>
            <span className="font-bold tracking-[0.2em] text-sm text-white/80 font-mono hidden sm:inline-block">STRAVISION OS</span>
         </div>

@@ -8,6 +8,7 @@ export async function GET() {
 
 import { getEnhancedSystemPrompt } from '@/lib/ai-system-prompt'
 import { generateMemoryEnhancedPrompt } from '@/lib/ai/memory-prompt-enhancer'
+import { resolveProvider, normalizeOpenAIChatCompletionsUrl } from '@/lib/ai/provider-resolver'
 import { learnFromConversation } from '@/lib/ai/auto-learning-service'
 import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
@@ -104,71 +105,60 @@ export async function POST(req: Request) {
     // 兼容前端传来的 deviceData 字段
     const deviceStatus = deviceData;
 
+    // ====== 多提供商解析 ======
+    // 优先级：用户自配 > 已配置提供商 > 系统环境变量
     const stripWrappingQuotes = (value: unknown) => {
       const s = String(value ?? "").trim()
       return s.replace(/^[`"']+/, "").replace(/[`"']+$/, "").trim()
     }
 
-    const normalizeOpenAIChatCompletionsUrl = (value: unknown) => {
-      let s = stripWrappingQuotes(value)
-      if (!s) return s
+    const userApiKey = rawApiKey ? stripWrappingQuotes(rawApiKey) : undefined
+    const userApiUrl = rawApiUrl ? normalizeOpenAIChatCompletionsUrl(rawApiUrl) : undefined
+    let effectiveModel = model || 'auto'
 
-      const qIndex = s.indexOf("?")
-      const hashIndex = s.indexOf("#")
-      const cutIndex = qIndex === -1 ? hashIndex : (hashIndex === -1 ? qIndex : Math.min(qIndex, hashIndex))
-      const suffix = cutIndex === -1 ? "" : s.slice(cutIndex)
-      s = cutIndex === -1 ? s : s.slice(0, cutIndex)
+    const resolved = await resolveProvider(effectiveModel === 'auto' ? 'qwen3.6-plus' : effectiveModel, userApiKey, userApiUrl)
 
-      s = s.replace(/\/+$/, "")
+    // 如果有用户自定义的 apiKey（未在提供商中匹配到），使用原有逻辑
+    let apiKey: string
+    let targetUrl: string
 
-      if (/\/chat\/completions$/.test(s)) return s + suffix
-      if (/\/v1$/.test(s)) return `${s}/chat/completions${suffix}`
-      if (/^https?:\/\/[\w.-]+(?::\d+)?$/.test(s)) return `${s}/v1/chat/completions${suffix}`
-      return s + suffix
-    }
+    if (userApiKey && !resolved) {
+      // 用户提供了自定义 key 但未匹配到提供商 → 使用原有逻辑
+      apiKey = userApiKey
+      targetUrl = userApiUrl || ''
 
-    let apiKey = stripWrappingQuotes(rawApiKey)
-    let targetUrl = normalizeOpenAIChatCompletionsUrl(rawApiUrl)
-
-    // 检查是否使用系统托管 Key
-    const useSystemKey = !apiKey && !rawApiUrl;
-
-    if (useSystemKey) {
-      // 1. 检查配额
-      const quota = await getUserAiQuota(user.id as number)
-      if (!quota.can_use) {
-        const reason = quota.reason === 'limit_reached' ? '今日免费额度已用完' : '余额不足'
-        return Response.json(
-          { error: `${reason}，请明天再来或联系管理员充值。` },
-          { status: 403 }
-        )
-      }
-
-      // 2. 注入系统 Key
-      apiKey = process.env.SYSTEM_OPENAI_API_KEY || ""
-      const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ""
-      
-      // 强制兼容性：如果使用了 DashScope (Qwen)，确保 URL 正确
-      // 对于 Qwen 模型，我们通常使用兼容模式的 endpoint
-      
-      if (systemBaseUrl) {
-        targetUrl = normalizeOpenAIChatCompletionsUrl(systemBaseUrl)
+      // 检查是否需要系统托管 Key
+      if (!apiKey && !rawApiUrl) {
+        const quota = await getUserAiQuota(user.id as number)
+        if (!quota.can_use) {
+          const reason = quota.reason === 'limit_reached' ? '今日免费额度已用完' : '余额不足'
+          return Response.json({ error: `${reason}，请明天再来或联系管理员充值。` }, { status: 403 })
+        }
+        apiKey = process.env.SYSTEM_OPENAI_API_KEY || ''
+        const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ''
+        if (systemBaseUrl) {
+          targetUrl = normalizeOpenAIChatCompletionsUrl(systemBaseUrl)
+        }
       }
 
       if (!apiKey) {
-        return Response.json(
-          { error: "System AI service is not configured. Please contact admin." },
-          { status: 503 }
-        )
+        return Response.json({ error: "API Key is required. Please configure it in settings." }, { status: 400 })
       }
-    }
-
-    if (!apiKey) {
+    } else if (resolved) {
+      // 从提供商配置中解析成功
+      apiKey = resolved.apiKey
+      targetUrl = resolved.baseUrl
+      console.log(`[Chat API] Resolved provider: ${resolved.providerId}, model: ${effectiveModel}`)
+    } else {
+      // 未找到任何匹配
       return Response.json(
-        { error: "API Key is required. Please configure it in settings." },
-        { status: 400 }
+        { error: "No AI provider configured. Please add a provider in admin settings." },
+        { status: 503 }
       )
     }
+
+    // 是否使用系统托管 Key（用于配额扣减判断）
+    const useSystemKey = !userApiKey || !!resolved
 
 
 
@@ -762,14 +752,15 @@ export async function POST(req: Request) {
       : ""
 
     // 检测是否使用DashScope API
-    // 注意：如果 URL 指向本地 (localhost/127.0.0.1)，即使模型名包含 qwen 也不是 DashScope
+    // 优先使用已解析的提供商类型，其次回退到 URL/模型名启发式判断
     const isLocal = targetUrl?.includes("localhost") || targetUrl?.includes("127.0.0.1")
     const isDashScope =
       !isLocal && (
+        resolved?.type === 'dashscope' ||
         targetUrl?.includes("dashscope.aliyuncs.com") ||
         model?.startsWith("qwen")
       )
-    const isCompatibleMode = targetUrl?.includes("compatible-mode/v1") ?? false
+    const isCompatibleMode = ((resolved?.type === 'dashscope') || targetUrl?.includes("compatible-mode/v1")) ?? false
     const isDashScopeAppCall = /\/api\/v1\/apps\/[^/]+\/completion(\?|$)/.test(targetUrl || "")
 
     let userMessages = [...messages];
@@ -881,7 +872,7 @@ export async function POST(req: Request) {
     }
 
     // 智能模式 (Auto) 模型选择逻辑
-    let effectiveModel = model || ''
+    effectiveModel = model || ''
 
     if (effectiveModel === 'auto') {
       if (enableReasoning) {
@@ -1573,19 +1564,61 @@ export async function POST(req: Request) {
           headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
         })
       } else {
-        // 非SSE：读取完整JSON并封装为一次性OpenAI SSE
+        // 非SSE：读取完整JSON后模拟流式输出，避免用户长时间白屏等待
         const data = await response.json()
         const content: string = data?.output?.text || data?.output?.choices?.[0]?.message?.content || ""
-        const payload = {
-          id: data?.request_id || `${Date.now()}`,
-          object: "chat.completion.chunk",
-          created: Date.now(),
-          model: model,
-          choices: [{ index: 0, delta: { content }, finish_reason: "stop" }],
-          skill_selection: matchedSkills?.map(s => ({ id: s.id, name: s.name }))
-        }
-        const body = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`
-        return new Response(body, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" } })
+        
+        console.log(`[Chat API] Provider returned non-SSE response, simulating stream for ${content.length} chars`)
+
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream({
+          async start(controller) {
+            // 发送知识模块
+            if (matchedSkills && matchedSkills.length > 0) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                id: `skill-selection-${Date.now()}`, object: "chat.completion.chunk",
+                created: Date.now(), model: effectiveModel,
+                skill_selection: matchedSkills.map(s => ({ id: s.id, name: s.name }))
+              })}\n\n`))
+            }
+
+            // 模拟流式：按 token 级切块（平均3-7字符/token），每批 20ms 间隔
+            const CHUNK_SIZE = 6 // 每次发送约1个token
+            const DELAY_MS = 15  // 约60 tokens/秒，接近真实打字速度
+            const requestId = data?.request_id || `${Date.now()}`
+
+            for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+              const chunk = content.slice(i, i + CHUNK_SIZE)
+              const payload = {
+                id: requestId,
+                object: "chat.completion.chunk",
+                created: Date.now(),
+                model: model,
+                choices: [{ index: 0, delta: { content: chunk }, finish_reason: null }],
+              }
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
+              
+              // 小延迟模拟流式效果（最后一个chunk不需要延迟）
+              if (i + CHUNK_SIZE < content.length) {
+                await new Promise(r => setTimeout(r, DELAY_MS))
+              }
+            }
+
+            // 发送 finish
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              id: requestId,
+              object: "chat.completion.chunk",
+              created: Date.now(),
+              model: model,
+              choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+            })}\n\n`))
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+            controller.close()
+          }
+        })
+        return new Response(stream, {
+          headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
+        })
       }
     } else if (isDashScope && !useCompatibleMode) {
       // DashScope返回SSE格式，需要转换

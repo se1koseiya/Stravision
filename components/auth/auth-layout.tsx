@@ -153,7 +153,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             className="flex items-center bg-black rounded-full p-1.5 w-fit shadow-lg"
           >
             <div className="flex items-center gap-2.5 px-4.5 py-1.5 text-white">
-              <img src="/icon.png" alt="stravision logo" className="w-5 h-5 rounded-full object-cover" />
+              <img src="/logo.png" alt="stravision logo" className="w-5 h-5 rounded-full object-cover" />
               <span className="font-semibold text-sm tracking-wider font-alimama" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>stravision</span>
             </div>
             <div className="hidden md:flex items-center gap-1 px-4 text-white/70 text-xs font-medium border-l border-white/20">
@@ -262,7 +262,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
               </div>
             </Link>
             <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 shadow-lg bg-black">
-              <img src="/icon.png" alt="Avatar" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
             </div>
           </motion.div>
 

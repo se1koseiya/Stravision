@@ -85,6 +85,20 @@ const BerryOrb: React.FC<BerryOrbProps> = ({
   const eyeX = useSpring(mouseX, springConfig);
   const eyeY = useSpring(mouseY, springConfig);
 
+  const rectRef = useRef<DOMRect | null>(null);
+
+  useEffect(() => {
+    const handleScrollOrResize = () => {
+      rectRef.current = null;
+    };
+    window.addEventListener("scroll", handleScrollOrResize, { passive: true });
+    window.addEventListener("resize", handleScrollOrResize, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScrollOrResize);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
+  }, []);
+
   useEffect(() => {
     let animationFrameId: number;
 
@@ -92,7 +106,10 @@ const BerryOrb: React.FC<BerryOrbProps> = ({
       // 使用 requestAnimationFrame 优化性能
       animationFrameId = requestAnimationFrame(() => {
         if (!orbRef.current) return;
-        const rect = orbRef.current.getBoundingClientRect();
+        if (!rectRef.current) {
+          rectRef.current = orbRef.current.getBoundingClientRect();
+        }
+        const rect = rectRef.current;
         // 计算球体中心点
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;

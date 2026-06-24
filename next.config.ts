@@ -11,15 +11,36 @@ const nextConfig: NextConfig = {
   // Improve memory usage
   experimental: {
     // This is default in recent versions but good to be explicit if issues arise
-    optimizePackageImports: ['lucide-react', '@heroicons/react', '@tabler/icons-react'],
-    // Mark server-only packages to prevent client-side bundling
-    serverComponentsExternalPackages: ['better-sqlite3', 'pg', 'bcryptjs'],
+    optimizePackageImports: [
+      'lucide-react',
+      '@heroicons/react',
+      '@tabler/icons-react',
+      'framer-motion',
+      '@radix-ui/react-icons',
+      '@lobehub/icons',
+      '@lobehub/ui',
+      'recharts',
+      'echarts',
+      'antd',
+      '@ant-design/x',
+      '@ant-design/icons',
+      'date-fns',
+      'react-markdown',
+      'remark-gfm',
+      'mermaid',
+      'three',
+      '@react-three/fiber',
+      '@react-three/drei',
+      'gsap',
+      'cmdk',
+      'zod',
+      'mqtt',
+    ],
   },
   // Fix mermaid module resolution issues - works with both Turbopack and Webpack
   transpilePackages: ['mermaid'],
-  // Skip optional dependencies like lightningcss native binaries on Alpine Linux
-  // This prevents "Cannot find module '../lightningcss.linux-x64-musl.node'" errors
-  serverExternalPackages: ['lightningcss'],
+  // Mark server-only packages to prevent client-side bundling (moved from experimental in Next.js 16+)
+  serverExternalPackages: ['lightningcss', 'better-sqlite3', 'pg', 'bcryptjs'],
   // Turbopack configuration (Next.js 16+)
   turbopack: {
     resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],

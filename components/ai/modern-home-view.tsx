@@ -137,7 +137,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
           </div>
         </div>
 
-        {/* 专家模式卡片 */}
+        {/* AI 深度分析卡片 */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -150,7 +150,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
           </div>
           <div className="text-left">
             <div className="text-sm font-bold text-white flex items-center gap-2">
-              专家模式：深度分析
+              AI 深度分析
               <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full">推荐</span>
             </div>
             <div className="text-xs text-zinc-400">

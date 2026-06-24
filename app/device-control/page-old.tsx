@@ -166,7 +166,7 @@ export default function DeviceControlPage() {
       <div className="grid grid-rows-[72px_1fr] h-full w-full">
         <div className="relative flex items-center px-8 border-b border-white/5 bg-[#0a0e1a]/50 backdrop-blur-sm">
           <div className="flex items-center gap-4 text-white">
-            <Image src="/logo.svg" alt="logo" width={64} height={64} />
+            <Image src="/logo.png" alt="logo" width={64} height={64} />
             <div className="leading-tight">
               <div className="text-base font-bold tracking-wide">STRAVISION</div>
               <div className="text-xs text-white/60">莓界 · 智慧农业平台</div>

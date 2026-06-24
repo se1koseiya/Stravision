@@ -32,7 +32,7 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 animate-pulse" />
           <div className="absolute inset-2 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center">
             <img 
-              src="/logo.gif" 
+              src="/logo.png" 
               alt="Loading" 
               className="w-12 h-12 object-contain"
             />

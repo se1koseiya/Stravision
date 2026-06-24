@@ -92,7 +92,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3 group cursor-pointer"
           >
-            <Image src="/icon.png" alt="logo" width={42} height={42} className="rounded-xl shadow-2xl shadow-emerald-500/20 group-hover:rotate-6 transition-transform" />
+            <Image src="/logo.png" alt="logo" width={32} height={32} className="rounded-xl shadow-2xl shadow-emerald-500/20 group-hover:rotate-6 transition-transform" />
             <div className="flex flex-col leading-tight">
               <span className="text-2xl font-black tracking-tighter text-white">STRAVISION</span>
               <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Agri Hub v4.0</span>
@@ -139,7 +139,7 @@ export default function LandingPage() {
             <div className="flex justify-between items-start z-10">
               <div className="flex items-center gap-4">
                  <motion.div animate={{ rotate: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 4 }}>
-                    <Image src="/icon.png" alt="icon" width={56} height={56} />
+                    <Image src="/logo.png" alt="icon" width={56} height={56} />
                  </motion.div>
                  <span className="text-2xl font-black uppercase tracking-tighter italic">STRAVISION.P</span>
               </div>
@@ -360,7 +360,7 @@ export default function LandingPage() {
                   whileHover={{ rotate: 5, scale: 1.05 }}
                   className="p-6 bg-black rounded-[2.5rem] shadow-[12px_12px_0px_rgba(16,185,129,1)]"
                 >
-                   <Image src="/icon.png" alt="qr" width={100} height={100} className="invert" />
+                   <Image src="/logo.png" alt="qr" width={100} height={100} className="invert" />
                 </motion.div>
                 <div className="flex flex-col">
                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">APP CLUSTER</span>
@@ -481,7 +481,7 @@ export default function LandingPage() {
            <div className="mt-48 w-full flex flex-col md:flex-row justify-between items-center gap-16 py-12 border-t-4 border-white/5">
               <div className="flex items-center gap-5 group cursor-pointer">
                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 40, ease: "linear" }}>
-                   <Image src="/icon.png" alt="logo" width={64} height={64} />
+                   <Image src="/logo.png" alt="logo" width={48} height={48} />
                  </motion.div>
                  <div className="flex flex-col leading-none">
                     <span className="text-3xl font-black tracking-tighter uppercase italic">STRAVISION</span>

@@ -439,7 +439,7 @@ export default function ProfilePage() {
               </DialogHeader>
               <div className="flex flex-col items-center py-4">
                 <div className="size-24 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center mb-4">
-                  <Image src="/logo.svg" alt="Logo" width={48} height={48} className="size-12" />
+                  <Image src="/logo.png" alt="Logo" width={48} height={48} className="size-12" />
                 </div>
                 <h3 className="text-xl font-bold mb-1">Stravision IoT</h3>
                 <p className="text-sm text-slate-500 mb-8">Version 1.0.0</p>
