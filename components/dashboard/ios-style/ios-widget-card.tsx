@@ -134,8 +134,8 @@ export function IOSWidgetCard({
             e.stopPropagation();
           }}
         >
-          <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm pointer-events-none">
-             <Minus className="w-4 h-4 text-slate-600" strokeWidth={3} />
+          <div className="w-6 h-6 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+             <Minus className="w-4 h-4 text-slate-600 dark:text-slate-200" strokeWidth={3} />
           </div>
         </div>
       )}

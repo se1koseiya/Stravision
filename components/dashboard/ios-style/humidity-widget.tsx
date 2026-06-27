@@ -34,28 +34,28 @@ export function HumidityWidget({
       status: "潮湿",
       label: "潮湿",
       colorClass: "text-blue-500",
-      bgClass: "bg-blue-50",
+      bgClass: "bg-blue-50 dark:bg-blue-900/30",
       hexColor: "#3b82f6"
     }
     if (humidity >= 40) return {
       status: "舒适",
       label: "舒适",
       colorClass: "text-sky-500",
-      bgClass: "bg-sky-50",
+      bgClass: "bg-sky-50 dark:bg-sky-900/30",
       hexColor: "#0ea5e9"
     }
     if (humidity >= 20) return {
       status: "偏干",
       label: "偏干",
       colorClass: "text-cyan-500",
-      bgClass: "bg-cyan-50",
+      bgClass: "bg-cyan-50 dark:bg-cyan-900/30",
       hexColor: "#06b6d4"
     }
     return {
       status: "干燥",
       label: "干燥",
       colorClass: "text-amber-500",
-      bgClass: "bg-amber-50",
+      bgClass: "bg-amber-50 dark:bg-amber-900/30",
       hexColor: "#f59e0b"
     }
   }
@@ -77,7 +77,7 @@ export function HumidityWidget({
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white text-slate-900 shadow-sm border-0", className)}
+      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
       header={size !== 'small' ? Header : null}
       isEditing={isEditing}
       widgetId={widgetId}
@@ -98,7 +98,7 @@ export function HumidityWidget({
             <div className="mt-auto">
               <div className="flex items-start">
                 <span className={cn(
-                  "font-bold tracking-tighter text-slate-900",
+                  "font-bold tracking-tighter text-slate-900 dark:text-white",
                   isElderFriendlyMode ? "text-5xl" : "text-4xl"
                 )}>{value.toFixed(0)}</span>
                 <span className={cn(
@@ -121,7 +121,7 @@ export function HumidityWidget({
           <div className="flex flex-col h-full w-full">
             <div className="flex items-end gap-2 mb-2">
                 <div className="flex items-start">
-                    <span className="text-5xl font-bold tracking-tighter text-slate-900">{value.toFixed(1)}</span>
+                    <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">{value.toFixed(1)}</span>
                     <span className="text-2xl font-medium mt-1 text-slate-400">%</span>
                 </div>
                 <div className="mb-2">
@@ -143,14 +143,14 @@ export function HumidityWidget({
              <div className="flex items-end justify-between mb-4">
                 <div className="flex flex-col">
                     <div className="flex items-start">
-                        <span className="text-6xl font-bold tracking-tighter text-slate-900">{value.toFixed(1)}</span>
+                        <span className="text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">{value.toFixed(1)}</span>
                         <span className="text-3xl font-medium mt-1 text-slate-400">%</span>
                     </div>
                     <span className={cn("mt-1 text-sm font-medium", config.colorClass)}>{config.status} • {config.label}</span>
                 </div>
-                <div className="flex flex-col items-end gap-1 text-sm text-slate-500 bg-slate-50 p-3 rounded-2xl">
-                    <span className="flex items-center gap-1 font-medium">露点 <span className="text-slate-900">12°C</span></span>
-                    <span className="flex items-center gap-1 text-xs">目标范围 <span className="text-slate-900">45-55%</span></span>
+                <div className="flex flex-col items-end gap-1 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl">
+                    <span className="flex items-center gap-1 font-medium">露点 <span className="text-slate-900 dark:text-white">12°C</span></span>
+                    <span className="flex items-center gap-1 text-xs">目标范围 <span className="text-slate-900 dark:text-white">45-55%</span></span>
                 </div>
              </div>
             

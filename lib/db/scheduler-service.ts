@@ -83,3 +83,25 @@ export async function updateTaskStatus(id: number, isActive: boolean): Promise<v
     id
   ])
 }
+
+export async function updateTask(id: number, data: Partial<CreateTaskDTO> & { is_active?: boolean }): Promise<void> {
+  await initDB()
+  const fields: string[] = []
+  const values: any[] = []
+  let i = 1
+
+  if (data.title !== undefined) { fields.push(`title = $${i++}`); values.push(data.title) }
+  if (data.cron_expression !== undefined) { fields.push(`cron_expression = $${i++}`); values.push(data.cron_expression || null) }
+  if (data.execute_at !== undefined) { fields.push(`execute_at = $${i++}`); values.push(data.execute_at || null) }
+  if (data.action_type !== undefined) { fields.push(`action_type = $${i++}`); values.push(data.action_type) }
+  if (data.device_id !== undefined) { fields.push(`device_id = $${i++}`); values.push(data.device_id || null) }
+  if (data.params !== undefined) { fields.push(`params = $${i++}`); values.push(JSON.stringify(data.params)) }
+  if (data.is_active !== undefined) { fields.push(`is_active = $${i++}`); values.push(data.is_active ? 1 : 0) }
+
+  if (fields.length === 0) return
+  fields.push(`updated_at = $${i++}`)
+  values.push(Date.now())
+  values.push(id)
+
+  await execute(`UPDATE scheduled_tasks SET ${fields.join(", ")} WHERE id = $${i}`, values)
+}

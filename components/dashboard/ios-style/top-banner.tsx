@@ -35,31 +35,31 @@ export function TopBanner({
 
   return (
     <div className={cn(
-      "w-full bg-white rounded-[32px] p-6 flex items-center justify-between shadow-sm",
+      "w-full bg-white dark:bg-slate-900 rounded-[32px] p-6 flex items-center justify-between shadow-sm border border-transparent dark:border-slate-800",
       isElderFriendlyMode && "elder-friendly-text",
       className
     )}>
-      
+
       {/* Left side: Date and Task Button */}
       <div className="flex items-center gap-6">
          {/* Date Circle */}
          <div className="flex items-center gap-3">
             <div className={cn(
-              "rounded-full border border-slate-200 flex items-center justify-center bg-slate-50 shrink-0",
+              "rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800 shrink-0",
               isElderFriendlyMode ? "w-20 h-20" : "w-16 h-16"
             )}>
                <span className={cn(
-                 "font-bold text-slate-900",
+                 "font-bold text-slate-900 dark:text-white",
                  isElderFriendlyMode ? "text-3xl" : "text-2xl"
                )}>{dateStr}</span>
             </div>
             <div className="flex flex-col">
                <span className={cn(
-                 "font-semibold text-slate-900 leading-tight",
+                 "font-semibold text-slate-900 dark:text-white leading-tight",
                  isElderFriendlyMode ? "text-base" : "text-sm"
                )}>{dayStr},</span>
                <span className={cn(
-                 "text-slate-500 leading-tight",
+                 "text-slate-500 dark:text-slate-400 leading-tight",
                  isElderFriendlyMode ? "text-base" : "text-sm"
                )}>{monthStr}</span>
             </div>
@@ -70,7 +70,7 @@ export function TopBanner({
            "rounded-full bg-orange-500 hover:bg-orange-600 text-white border-0 px-6 font-medium shadow-md shadow-orange-500/20 group hidden md:flex",
            isElderFriendlyMode ? "h-14 text-lg" : "h-12"
          )}>
-            查看任务 
+            查看任务
             <ArrowRight className={cn(
               "ml-2 group-hover:translate-x-1 transition-transform",
               isElderFriendlyMode ? "w-5 h-5" : "w-4 h-4"
@@ -79,14 +79,14 @@ export function TopBanner({
 
          {/* Calendar Icon Button */}
          <div className={cn(
-           "rounded-full border border-slate-200 flex items-center justify-center bg-slate-50 shrink-0 relative cursor-pointer hover:bg-slate-100 transition-colors hidden sm:flex",
+           "rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800 shrink-0 relative cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors hidden sm:flex",
            isElderFriendlyMode ? "w-14 h-14" : "w-12 h-12"
          )}>
             <Calendar className={cn(
-              "text-slate-600",
+              "text-slate-600 dark:text-slate-300",
               isElderFriendlyMode ? "w-6 h-6" : "w-5 h-5"
             )} />
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white" />
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white dark:border-slate-900" />
          </div>
       </div>
 
@@ -95,7 +95,7 @@ export function TopBanner({
          <div className="flex flex-col items-end text-right hidden sm:flex">
             <div className="flex items-center gap-2">
                <span className={cn(
-                 "font-bold text-slate-900 tracking-tight",
+                 "font-bold text-slate-900 dark:text-white tracking-tight",
                  isElderFriendlyMode ? "text-3xl" : "text-2xl"
                )}>你好 {userName}，需要帮忙吗？</span>
                <span className={cn(
@@ -103,13 +103,13 @@ export function TopBanner({
                )}>👋</span>
             </div>
             <span className={cn(
-              "text-slate-400 font-medium tracking-tight mt-1",
+              "text-slate-400 dark:text-slate-500 font-medium tracking-tight mt-1",
               isElderFriendlyMode ? "text-2xl" : "text-xl"
             )}>| 随时向我提问！</span>
          </div>
-         
+
          <div className={cn(
-           "shrink-0 flex items-center justify-center bg-slate-50 rounded-full border border-slate-100",
+           "shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700",
            isElderFriendlyMode ? "w-24 h-24" : "w-20 h-20"
          )}>
             {/* The real voice orb integrated directly with dashboard-specific system prompt */}

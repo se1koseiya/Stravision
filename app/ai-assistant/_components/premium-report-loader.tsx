@@ -1,21 +1,50 @@
 "use client"
 
-import { FileText, Sprout, Cpu, Brain, Loader2, CheckCircle2 } from "lucide-react"
-
 /**
- * Premium glassmorphic loading stepper for report generation.
- * Extracted from app/ai-assistant/page.tsx
+ * 🍓 报告生成进度卡片 — Ant Design + XCard + A2UI 协议
+ *
+ * 1. 视觉层：Ant Design Card / Progress / Tag / Flex / Space / Button / Typography
+ * 2. 渲染层：XCard.Box（统一入口，通过 BerryXCard 包装）
+ * 3. 协议层：A2UI v0.9 commands + berry-realm-catalog-v1
+ *
+ * 颜色统一 BERRY_THEME.primary (#1677ff)，与 AI 助手主对话流一致
  */
+
+import { useMemo } from "react"
+import {
+  FileText, Sprout, Cpu, Brain, CheckCircle2, Loader2,
+} from "lucide-react"
+import { CloseOutlined } from "@ant-design/icons"
+import { Card, Progress, Tag, Flex, Space, Typography, Button, Row, Col, Avatar } from "antd"
+import { BerryXCard } from "@/components/ui/berry-xcard"
+import { buildCommands } from "@/lib/a2ui/berry-protocol"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import type { A2UICommand_v0_9, ActionPayload } from "@ant-design/x-card"
+
+const { Text, Title } = Typography
+
+// ===== 4 步进度定义 =====
+const STEPS = [
+  { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout, key: "capture" },
+  { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu, key: "metric" },
+  { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain, key: "diagnosis" },
+  { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText, key: "render" },
+] as const
+
 export function PremiumReportLoader({
   reportTitle = "分析报告",
   htmlContent = "",
   isComplete = false,
+  onCancel,
 }: {
   reportTitle?: string
   htmlContent?: string
   isComplete?: boolean
+  onCancel?: () => void
 }) {
   const cleanHtml = htmlContent.trim()
+
+  // 阶段判定（基于 token 扫描）
   let currentStep = 0
   let progress = 10
   let activeStatusText = "正在初始化环境监测报告容器..."
@@ -52,115 +81,266 @@ export function PremiumReportLoader({
     }
   }
 
-  const steps = [
-    { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout },
-    { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu },
-    { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain },
-    { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText },
-  ]
+  // ===== A2UI 命令构建（v0.9） =====
+  const surfaceId = `report-loader-${Date.now()}`
+  const a2uiCommands: A2UICommand_v0_9[] = useMemo(() => {
+    return buildCommands(
+      surfaceId,
+      [
+        { id: 'report-header', component: 'CardHeader',
+          title: `正在生成：${reportTitle}`,
+          subtitle: activeStatusText,
+          icon: 'FileText',
+          status: isComplete ? 'success' : 'processing' },
+        { id: 'progress', component: 'Metric',
+          title: '生成进度', value: String(progress), unit: '%',
+          color: BERRY_THEME.primary },
+        { id: 'steps', component: 'TaskList', tasks: STEPS.map((s, idx) => ({
+          title: s.label,
+          desc: s.desc,
+          status: idx < currentStep ? 'success' : idx === currentStep ? 'processing' : 'pending',
+          icon: s.key,
+        })) },
+        { id: 'cancel-btn', component: 'ActionButton',
+          label: '取消生成', action: 'cancel-report',
+          type: 'default', icon: 'CloseOutlined' },
+      ],
+      ['report-header', 'progress', 'steps', 'cancel-btn']
+    )
+  }, [surfaceId, reportTitle, activeStatusText, isComplete, progress, currentStep])
 
-  return (
-    <div className="w-full my-4 rounded-2xl bg-white/60 dark:bg-zinc-950/40 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden transition-all duration-300">
-      {/* Dynamic Progress Bar */}
-      <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-850/40 relative overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-500 ease-out relative"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+  // ===== A2UI Action 处理 =====
+  const handleAction = (payload: ActionPayload) => {
+    if (payload.name === 'cancel-report') onCancel?.()
+  }
 
-      <div className="p-5 space-y-4">
-        {/* Header Block */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
-              <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <h4 className="text-sm font-black font-alimama tracking-wide text-zinc-800 dark:text-zinc-200">
+  // ===== 兜底渲染（Ant Design 直渲） =====
+  const fallbackUI = (
+    <Card
+      bordered
+      style={{
+        background: BERRY_THEME.gradients.cardHero(BERRY_THEME.primary),
+        borderColor: `${BERRY_THEME.primary}25`,
+        borderRadius: 16,
+        boxShadow: BERRY_THEME.shadow.sm,
+        marginBlock: 16,
+        overflow: 'hidden',
+      }}
+      styles={{ body: { padding: 0 } }}
+    >
+      {/* ============ 顶部进度条 ============ */}
+      <Progress
+        percent={progress}
+        showInfo={false}
+        size="small"
+        strokeColor={{ '0%': BERRY_THEME.primary, '100%': BERRY_THEME.primaryHover }}
+        trailColor="rgba(0,0,0,0.04)"
+        style={{ margin: 0 }}
+      />
+
+      <div style={{ padding: '20px 24px 18px' }}>
+        {/* ============ Header 区 ============ */}
+        <Flex align="flex-start" justify="space-between" gap={16} style={{ marginBlockEnd: 20 }}>
+          <Flex align="center" gap={14} style={{ minWidth: 0, flex: 1 }}>
+            <Avatar
+              size={48}
+              shape="square"
+              icon={<FileText style={{ fontSize: 22 }} />}
+              style={{
+                background: `linear-gradient(135deg, ${BERRY_THEME.primary} 0%, ${BERRY_THEME.primaryHover} 100%)`,
+                borderRadius: 12,
+                flexShrink: 0,
+              }}
+            />
+            <Flex vertical gap={4} style={{ minWidth: 0, flex: 1 }}>
+              <Title
+                level={5}
+                style={{
+                  margin: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.4,
+                  color: 'rgba(0,0,0,0.88)',
+                }}
+              >
                 正在生成：{reportTitle}
-              </h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400/80 mt-0.5 flex items-center gap-1.5">
-                {!isComplete ? (
-                  <>
-                    <Loader2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400 animate-spin" />
-                    <span>{activeStatusText}</span>
-                  </>
-                ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{activeStatusText}</span>
+              </Title>
+              <Space size={6} align="center" style={{ minWidth: 0 }}>
+                {!isComplete && (
+                  <Loader2
+                    style={{ color: BERRY_THEME.primary, fontSize: 13 }}
+                    className="animate-spin"
+                  />
                 )}
-              </p>
-            </div>
-          </div>
+                <Text type="secondary" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  {activeStatusText}
+                </Text>
+              </Space>
+            </Flex>
+          </Flex>
 
-          <div className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-            {progress}%
-          </div>
-        </div>
+          {/* 右侧大百分比指示器 */}
+          <Flex
+            vertical
+            align="center"
+            justify="center"
+            gap={2}
+            style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${BERRY_THEME.primary}15 0%, ${BERRY_THEME.primary}08 100%)`,
+              border: `2px solid ${BERRY_THEME.primary}40`,
+              flexShrink: 0,
+            }}
+          >
+            <span style={{
+              fontSize: 16, fontWeight: 700, lineHeight: 1,
+              color: BERRY_THEME.primary,
+            }}>
+              {progress}
+            </span>
+            <span style={{ fontSize: 10, color: BERRY_THEME.primaryText, fontWeight: 500, lineHeight: 1 }}>
+              %
+            </span>
+          </Flex>
+        </Flex>
 
-        {/* Stepper Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
-          {steps.map((step, idx) => {
+        {/* ============ 4 步进度网格 ============ */}
+        <Row gutter={[10, 10]} style={{ marginBlockEnd: 16 }}>
+          {STEPS.map((step, idx) => {
             const Icon = step.icon
             const isDone = currentStep > idx
             const isActive = currentStep === idx
 
             return (
-              <div
-                key={idx}
-                className={`relative flex flex-row md:flex-col gap-3 p-3 rounded-xl border transition-all duration-300 ${
-                  isActive
-                    ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/40 shadow-[0_4px_12px_rgba(16,185,129,0.03)]"
-                    : isDone
-                    ? "bg-zinc-50/30 dark:bg-zinc-900/10 border-zinc-100 dark:border-zinc-900/30 opacity-70"
-                    : "bg-transparent border-transparent opacity-40"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                      isActive
-                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+              <Col xs={12} sm={6} key={step.key}>
+                <div
+                  style={{
+                    position: 'relative',
+                    height: '100%',
+                    minHeight: 96,
+                    padding: '12px 12px 10px',
+                    borderRadius: 12,
+                    background: isActive
+                      ? `linear-gradient(135deg, ${BERRY_THEME.primary}18 0%, ${BERRY_THEME.primary}06 100%)`
+                      : isDone
+                        ? `${BERRY_THEME.primary}08`
+                        : 'rgba(0,0,0,0.02)',
+                    border: `1px solid ${
+                      isActive ? `${BERRY_THEME.primary}50` : isDone ? `${BERRY_THEME.primary}25` : 'rgba(0,0,0,0.06)'
+                    }`,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  {/* "进行中" 徽章 — 右上角 */}
+                  {isActive && (
+                    <Tag
+                      color="processing"
+                      style={{
+                        position: 'absolute',
+                        top: 8, right: 8,
+                        margin: 0,
+                        fontSize: 10,
+                        lineHeight: '16px',
+                        padding: '0 6px',
+                        borderRadius: 4,
+                        fontWeight: 600,
+                      }}
+                    >
+                      进行中
+                    </Tag>
+                  )}
+
+                  {/* 图标 + 步骤号 */}
+                  <Flex align="center" justify="space-between" gap={8}>
+                    <div
+                      style={{
+                        width: 30, height: 30, borderRadius: 9,
+                        background: isActive
+                          ? BERRY_THEME.primary
+                          : isDone
+                            ? `${BERRY_THEME.primary}20`
+                            : 'rgba(0,0,0,0.05)',
+                        color: isActive ? '#fff' : isDone ? BERRY_THEME.primary : 'rgba(0,0,0,0.35)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        boxShadow: isActive ? `0 3px 8px ${BERRY_THEME.primary}50` : 'none',
+                        transition: 'all 0.3s',
+                      }}
+                    >
+                      {isDone
+                        ? <CheckCircle2 style={{ fontSize: 16 }} />
+                        : <Icon style={{ fontSize: 15 }} />
+                      }
+                    </div>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, lineHeight: 1,
+                      color: isActive
+                        ? BERRY_THEME.primary
                         : isDone
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800/50 dark:text-zinc-600"
-                    }`}
-                  >
-                    {isDone ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : (
-                      <Icon className={`w-4 h-4 ${isActive ? "animate-pulse" : ""}`} />
-                    )}
+                          ? `${BERRY_THEME.primary}80`
+                          : 'rgba(0,0,0,0.35)',
+                    }}>
+                      0{idx + 1}
+                    </span>
+                  </Flex>
+
+                  {/* 标签 */}
+                  <div style={{
+                    fontSize: 13, fontWeight: 600, lineHeight: 1.3,
+                    color: isActive
+                      ? BERRY_THEME.primaryText
+                      : isDone
+                        ? 'rgba(0,0,0,0.75)'
+                        : 'rgba(0,0,0,0.4)',
+                    paddingRight: isActive ? 36 : 0,
+                  }}>
+                    {step.label}
                   </div>
 
-                  {isActive && (
-                    <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 animate-pulse">
-                      进行中
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-1 md:mt-1 space-y-0.5 text-left">
-                  <p
-                    className={`text-xs font-black font-alimama tracking-wider ${
-                      isActive
-                        ? "text-emerald-700 dark:text-emerald-300"
-                        : isDone
-                        ? "text-zinc-600 dark:text-zinc-400"
-                        : "text-zinc-400 dark:text-zinc-600"
-                    }`}
-                  >
-                    {step.label}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-normal hidden md:block">
+                  {/* 描述 */}
+                  <div style={{
+                    fontSize: 11, lineHeight: 1.45,
+                    color: isActive
+                      ? 'rgba(0,0,0,0.6)'
+                      : isDone
+                        ? 'rgba(0,0,0,0.5)'
+                        : 'rgba(0,0,0,0.35)',
+                    marginTop: 'auto',
+                  }}>
                     {step.desc}
-                  </p>
+                  </div>
                 </div>
-              </div>
+              </Col>
             )
           })}
-        </div>
+        </Row>
+
+        {/* ============ Footer：取消按钮 ============ */}
+        {!isComplete && onCancel && (
+          <Flex justify="flex-end" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: 12, marginTop: 4 }}>
+            <Button
+              size="small"
+              type="text"
+              icon={<CloseOutlined />}
+              onClick={onCancel}
+              style={{ color: 'rgba(0,0,0,0.45)' }}
+            >
+              取消生成
+            </Button>
+          </Flex>
+        )}
       </div>
-    </div>
+    </Card>
+  )
+
+  return (
+    <BerryXCard
+      surfaceId={surfaceId}
+      commands={a2uiCommands}
+      onAction={handleAction}
+      components={{}}  // 报告生成场景下 A2UI 协议仅描述结构（走兜底直渲）
+      fallback={fallbackUI}
+      timeout={400}
+    />
   )
 }

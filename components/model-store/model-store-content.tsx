@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Check, Plus, Bot, Laptop, Settings, Cpu, Globe, Box } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Search, ShieldCheck, Check, X, Sparkles, Bot, Cpu, Globe, Box, Laptop, Settings, Plus, Tag as TagIcon, BookOpen
+} from "lucide-react"
 import { Qwen, DeepSeek, Moonshot, Zhipu, OpenAI, Anthropic, Google, Meta } from '@lobehub/icons'
-import { motion } from "framer-motion"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Empty, Spin } from "antd"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ModelDetailDialog } from "@/components/model-store/model-detail-dialog"
 
@@ -31,7 +33,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "由通义千问驱动的系统级预置引擎。每日自动分配免费额度，对新手极为友好，无需配置环境即可进行农业问答与视觉分析。",
     category: "大语言模型",
     official: true,
-    icon: Bot,
+    icon: Sparkles,
     lobehubIcon: Qwen,
     defaultUrl: "",
     defaultModel: ""
@@ -43,7 +45,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "针对国内开发者的极速基座。需自备百炼平台API Key，完整支持 Qwen-Max, Qwen-VL 等地表最强开源系模型能力及其商业版。",
     category: "大语言模型",
     official: true,
-    icon: Bot,
+    icon: Sparkles,
     lobehubIcon: Qwen,
     defaultUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     defaultModel: "qwen-plus"
@@ -145,40 +147,323 @@ export const AI_PROVIDERS: AIProvider[] = [
   }
 ]
 
-const ProviderIcon = ({ provider, className }: { provider: AIProvider, className?: string }) => {
-  const LobehubIcon = provider.lobehubIcon
-  
-  if (LobehubIcon) {
+// ================================================================
+//  装饰插图（与 skill-store / mcp-store 保持一致）
+// ================================================================
+const ModelsIllustration = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    width="200"
+    height="110"
+    viewBox="0 0 200 110"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden
+  >
+    <path
+      d="M5 85 C 35 35, 75 25, 110 50 S 175 70, 195 45"
+      stroke="#1677ff"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      fill="none"
+      opacity="0.85"
+    />
+    <circle cx="60" cy="48" r="22" fill="rgba(22,119,255,0.10)" />
+    {[42, 48, 54, 60, 66, 72, 78].map(x => (
+      <line key={x} x1={x} y1={28} x2={x} y2={68} stroke="#1677ff" strokeWidth="1" opacity="0.55" />
+    ))}
+    <circle cx="115" cy="58" r="24" fill="rgba(22,119,255,0.18)" />
+    <circle cx="108" cy="22" r="4" fill="#1677ff" />
+    <text
+      x="100"
+      y="55"
+      fontSize="11"
+      fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+      fill="#1677ff"
+      fontWeight="600"
+    >{`</>`}</text>
+    <g transform="translate(165, 22)">
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="-6.5" x2="6.5" y2="6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="6.5" x2="6.5" y2="-6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+    </g>
+    <circle cx="20" cy="20" r="1.6" fill="#1677ff" />
+    <circle cx="180" cy="60" r="1.6" fill="#1677ff" />
+    <circle cx="195" cy="80" r="1" fill="#1677ff" opacity="0.6" />
+    <circle cx="40" cy="95" r="1.2" fill="#1677ff" opacity="0.5" />
+  </svg>
+)
+
+// ================================================================
+//  Provider 卡片图标（lobehub 优先 + lucide 兜底）
+// ================================================================
+const ProviderBadge = ({ provider, size = "md" }: { provider: AIProvider, size?: "sm" | "md" | "lg" }) => {
+  const dim =
+    size === "lg" ? "size-12" :
+      size === "sm" ? "size-8" :
+        "size-10"
+
+  if (provider.lobehubIcon) {
     try {
-      const ColorIcon = LobehubIcon.Color
+      const ColorIcon = provider.lobehubIcon.Color
       if (ColorIcon) {
         return (
-          <div className={cn("flex items-center justify-center overflow-hidden bg-gray-100", className)}>
-            <ColorIcon size={24} />
+          <div
+            className={cn(
+              dim,
+              "rounded-full flex items-center justify-center overflow-hidden bg-white border border-gray-200 shrink-0"
+            )}
+          >
+            <ColorIcon size={size === "lg" ? 28 : size === "sm" ? 18 : 22} />
           </div>
         )
       }
     } catch (e) {
-      return (
-        <div className={cn("flex items-center justify-center overflow-hidden bg-gray-100", className)}>
-          <LobehubIcon size={24} />
-        </div>
-      )
+      // fall through
     }
   }
 
   const Icon = provider.icon
   return (
-    <div className={cn("flex items-center justify-center text-gray-700 bg-gray-100", className)}>
-      <Icon size={20} />
+    <div
+      className={cn(
+        dim,
+        "rounded-full flex items-center justify-center text-gray-700 bg-gray-100 border border-gray-200 shrink-0"
+      )}
+    >
+      <Icon size={size === "lg" ? 22 : size === "sm" ? 14 : 18} />
     </div>
   )
 }
+
+// ================================================================
+//  详情视图（参考 skill-store SkillDetailView）
+// ================================================================
+const ModelDetailView = ({
+  provider,
+  isActive,
+  onClose,
+  onConfig
+}: {
+  provider: AIProvider
+  isActive: boolean
+  onClose: () => void
+  onConfig: () => void
+}) => {
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-2xl max-h-[88vh] bg-white border border-gray-200/80 flex flex-col overflow-hidden"
+        style={{ borderRadius: 12 }}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          style={{ borderRadius: 8 }}
+          title="关闭"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-6 pt-6 pb-5">
+            {/* 顶部：图标 + 标题 + 按钮 */}
+            <div className="flex items-start gap-3.5">
+              <ProviderBadge provider={provider} size="lg" />
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h2 className="text-[18px] font-semibold leading-tight text-gray-900 tracking-tight">
+                  {provider.name}
+                </h2>
+                <p className="text-[12.5px] text-gray-500 leading-relaxed mt-1.5 pr-2">
+                  {provider.description}
+                </p>
+              </div>
+              <Button
+                onClick={(e) => { e.stopPropagation(); onConfig() }}
+                className={cn(
+                  "h-8 px-3.5 text-[12.5px] font-medium shrink-0 gap-1.5",
+                  isActive
+                    ? "!bg-white !text-blue-600 !border !border-blue-200 hover:!bg-blue-50 hover:!border-blue-300"
+                    : "!bg-gray-900 hover:!bg-gray-800 !text-white !border-gray-900"
+                )}
+                style={{ borderRadius: 8 }}
+              >
+                {isActive ? (
+                  <><Check size={13} />已启用</>
+                ) : (
+                  <><Plus size={13} strokeWidth={2.5} />配置模型</>
+                )}
+              </Button>
+            </div>
+
+            {/* 推荐 Prompt */}
+            <div className="mt-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles size={12} className="text-gray-400" />
+                <span className="text-[12.5px] font-semibold text-gray-700">推荐 Prompt</span>
+              </div>
+              <textarea
+                defaultValue={`使用 ${provider.name} 帮我分析一下当前草莓大棚的环境数据。`}
+                rows={2}
+                className="w-full px-3 py-2 text-[12.5px] text-gray-700 bg-white border border-gray-200 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors resize-none leading-relaxed placeholder:text-gray-300"
+                style={{ borderRadius: 8 }}
+                placeholder="输入推荐用法描述…"
+              />
+            </div>
+
+            {/* 接入信息 */}
+            <div className="mt-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <BookOpen size={12} className="text-gray-400" />
+                <span className="text-[12.5px] font-semibold text-gray-700">接入信息</span>
+              </div>
+              <pre
+                className="text-[12px] font-mono text-gray-300 bg-gray-900 px-3.5 py-3 overflow-auto max-h-[180px] leading-relaxed scrollbar-thin whitespace-pre-wrap break-words"
+                style={{ borderRadius: 8 }}
+              >
+{`Endpoint: ${provider.defaultUrl || "(内置预设)"}\nModel:    ${provider.defaultModel || "(自动选择)"}\nProvider: ${provider.provider}\nProtocol: OpenAI-compatible / v1/chat/completions`}
+              </pre>
+            </div>
+
+            {/* 核心能力 */}
+            <div className="mt-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Cpu size={12} className="text-gray-400" />
+                <span className="text-[12.5px] font-semibold text-gray-700">核心能力</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {[
+                  "多轮对话",
+                  "工具调用 (Function Calling)",
+                  "流式响应",
+                  "Markdown / 代码渲染",
+                ].map((feature, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-2.5 py-1.5 border border-gray-200"
+                    style={{ borderRadius: 6 }}
+                  >
+                    <Check size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
+                    <span className="text-[12px] text-gray-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 元信息 */}
+            <div className="mt-4 flex items-center gap-3 text-[11.5px] text-gray-400 flex-wrap">
+              <span className="flex items-center gap-1">
+                <Globe size={11} />{provider.provider}
+              </span>
+              <span className="w-px h-3 bg-gray-200" />
+              <span className="flex items-center gap-1">
+                <TagIcon size={11} />{provider.category}
+              </span>
+              {provider.official && (
+                <>
+                  <span className="w-px h-3 bg-gray-200" />
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck size={11} />官方推荐
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ================================================================
+//  卡片
+// ================================================================
+const ModelCard = ({
+  provider,
+  isActive,
+  onClick,
+  onConfig
+}: {
+  provider: AIProvider
+  isActive: boolean
+  onClick: () => void
+  onConfig: (e: React.MouseEvent) => void
+}) => {
+  return (
+    <div
+      onClick={onClick}
+      className="group relative flex flex-col gap-2.5 px-4 pt-4 pb-3.5 bg-white border border-gray-200/80 hover:border-blue-300 transition-colors cursor-pointer"
+      style={{ borderRadius: 12 }}
+    >
+      <div className="flex items-start gap-3">
+        <ProviderBadge provider={provider} size="md" />
+        <div className="flex-1 min-w-0 pt-0.5">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-[14px] font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
+              {provider.name}
+            </h3>
+            {provider.official && (
+              <ShieldCheck size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+            )}
+          </div>
+          <span className="text-[11px] text-gray-400 mt-0.5 inline-block">· {provider.category}</span>
+        </div>
+      </div>
+      <p className="text-[12.5px] text-gray-500 leading-relaxed line-clamp-3 min-h-[3.6em]">
+        {provider.description}
+      </p>
+      <div className="mt-auto flex items-center justify-between pt-1">
+        <span className="text-[11.5px] text-gray-400 flex items-center gap-1">
+          <Globe size={11} />
+          {provider.provider}
+        </span>
+        {isActive ? (
+          <span className="text-[11px] text-blue-600 flex items-center gap-1 font-medium">
+            <Check size={11} strokeWidth={3} />
+            使用中
+          </span>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onConfig(e) }}
+            className="size-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            style={{ borderRadius: 6 }}
+            title="配置"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ================================================================
+//  主组件：模型商店（参考 skill-store 重设计）
+// ================================================================
+type MainTab = "recommended" | "official" | "opensource" | "local"
+type SubTab = "all" | "official" | "other"
 
 export function ModelStoreContent({ searchQuery = "" }: { searchQuery?: string }) {
   const [currentApiType, setCurrentApiType] = useState<string>("system")
   const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+
+  const [mainTab, setMainTab] = useState<MainTab>("recommended")
+  const [subTab, setSubTab] = useState<SubTab>("all")
+  const [localSearch, setLocalSearch] = useState(searchQuery)
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -199,6 +484,10 @@ export function ModelStoreContent({ searchQuery = "" }: { searchQuery?: string }
     }
     loadSettings()
   }, [])
+
+  useEffect(() => {
+    setLocalSearch(searchQuery)
+  }, [searchQuery])
 
   const fallbackLocalSettings = () => {
     const saved = localStorage.getItem("ai-settings")
@@ -233,93 +522,211 @@ export function ModelStoreContent({ searchQuery = "" }: { searchQuery?: string }
     }
   }
 
-  const filteredProviders = AI_PROVIDERS.filter(provider => {
-    const matchesSearch = provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      provider.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      provider.provider.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
-  })
+  // 过滤
+  const filteredProviders = useMemo(() => {
+    const q = localSearch.trim().toLowerCase()
+    return AI_PROVIDERS.filter(p => {
+      // 主标签
+      if (mainTab === "official" && !p.official) return false
+      if (mainTab === "opensource" && p.official) return false
+      if (mainTab === "local" && p.id !== "ollama" && p.id !== "custom") return false
+      if (mainTab === "recommended") {
+        // 推荐：官方 + 常用引擎
+        if (!p.official) return false
+      }
+      // 子标签
+      if (subTab === "official" && !p.official) return false
+      if (subTab === "other" && p.official) return false
+      // 搜索
+      if (q && !p.name.toLowerCase().includes(q) && !p.description.toLowerCase().includes(q) && !p.provider.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [mainTab, subTab, localSearch])
 
-  const systemProviders = filteredProviders.filter(p => p.id === "system")
-  const otherProviders = filteredProviders.filter(p => p.id !== "system")
+  // 计数
+  const subCounts = useMemo(() => {
+    const base = AI_PROVIDERS.filter(p => {
+      if (mainTab === "official" && !p.official) return false
+      if (mainTab === "opensource" && p.official) return false
+      if (mainTab === "local" && p.id !== "ollama" && p.id !== "custom") return false
+      if (mainTab === "recommended" && !p.official) return false
+      return true
+    })
+    return {
+      all: base.length,
+      official: base.filter(p => p.official).length,
+      other: base.filter(p => !p.official).length,
+    }
+  }, [mainTab])
+
+  const mainTabs: { key: MainTab; label: string }[] = [
+    { key: "recommended", label: "推荐" },
+    { key: "official", label: "官方" },
+    { key: "opensource", label: "开源社区" },
+    { key: "local", label: "本地部署" },
+  ]
+
+  const subTabs: { key: SubTab; label: string }[] = [
+    { key: "all", label: "全部" },
+    { key: "official", label: "官方推荐" },
+    { key: "other", label: "其他" },
+  ]
 
   const handleConfigSaved = (apiType: string) => {
     setCurrentApiType(apiType)
   }
 
-  const renderProviderRow = (provider: AIProvider) => {
-    const isConfigured = currentApiType === provider.id
-    return (
-      <div
-        key={provider.id}
-        onClick={() => { setSelectedProvider(provider); setDetailDialogOpen(true); }}
-        className="group flex gap-4 cursor-pointer items-center py-3 select-none border-b border-gray-100 last:border-0"
-      >
-        <ProviderIcon provider={provider} className="size-11 rounded-xl shadow-sm ring-1 ring-gray-200/80 shrink-0 overflow-hidden" />
-        <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <h4 className="font-bold text-[14px] text-gray-900 group-hover:text-gray-950 transition-colors truncate">{provider.name}</h4>
-              {provider.official && <Check className="size-3 text-emerald-500 stroke-[3px]" />}
-            </div>
-            <p className="text-xs text-gray-400 line-clamp-1 max-w-[280px] md:max-w-[340px]">{provider.description}</p>
-          </div>
-          <div className="shrink-0 flex items-center justify-center">
-            {isConfigured ? (
-              <Check className="size-4 text-gray-400 stroke-[3px]" />
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedProvider(provider)
-                  setDetailDialogOpen(true)
-                }}
-                className="size-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all active:scale-95"
-              >
-                <Plus size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
+  const handleOpenConfig = (provider: AIProvider) => {
+    setDetailDialogOpen(true)
   }
 
   return (
-    <div className="w-full flex flex-col bg-white text-gray-800">
-      <div className="w-full max-w-4xl mx-auto space-y-10">
-
-        {/* System Presets Section */}
-        {systemProviders.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-[15px] font-black text-gray-900 tracking-wider border-b border-gray-200 pb-2">系统</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
-              {systemProviders.map(renderProviderRow)}
-            </div>
-          </div>
-        )}
-
-        {/* Other Providers Section */}
-        {otherProviders.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-[15px] font-black text-gray-900 tracking-wider border-b border-gray-200 pb-2">第三方引擎</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
-              {otherProviders.map(renderProviderRow)}
-            </div>
-          </div>
-        )}
-
-        {filteredProviders.length === 0 && (
-          <div className="text-center py-20 text-gray-400 text-sm font-medium">
-            未搜索到匹配的大模型引擎
-          </div>
-        )}
+    <div className="w-full">
+      {/* 标题区 */}
+      <div className="flex items-center justify-between gap-6 mb-7">
+        <div>
+          <h1 className="text-[32px] font-bold text-gray-900 leading-none tracking-tight" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+            Models
+          </h1>
+          <p className="text-[13px] text-gray-500 mt-2.5 flex items-center gap-1">
+            <span>驱动 AI 的引擎</span>
+            <button
+              onClick={() => {
+                setSelectedProvider(AI_PROVIDERS.find(p => p.id === "custom") || null)
+                setDetailDialogOpen(true)
+              }}
+              className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium inline-flex items-center gap-0.5"
+            >
+              自定义节点
+              <span aria-hidden>→</span>
+            </button>
+          </p>
+        </div>
+        <ModelsIllustration className="hidden md:block shrink-0" />
       </div>
+
+      {/* 主标签 + 搜索 */}
+      <div className="flex items-center justify-between gap-4 mb-3">
+        <div className="flex items-center gap-1 bg-gray-100/70 p-1 rounded-xl">
+          {mainTabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setMainTab(t.key)}
+              className={cn(
+                "px-5 py-1.5 text-[13px] font-medium transition-all rounded-lg",
+                mainTab === t.key
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="搜索模型"
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-gray-200 text-gray-700 placeholder-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors"
+            style={{ borderRadius: 10 }}
+          />
+        </div>
+      </div>
+
+      {/* 子标签 */}
+      <div className="flex items-center gap-6 mb-5 border-b border-gray-200/80">
+        {subTabs.map((t, i) => (
+          <button
+            key={t.key}
+            onClick={() => setSubTab(t.key)}
+            className={cn(
+              "relative pb-2.5 text-[13px] font-medium transition-colors",
+              subTab === t.key
+                ? "text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            <span className="inline-flex items-center gap-1">
+              {t.label}
+              <span className={cn(
+                "text-[11px] tabular-nums",
+                subTab === t.key ? "text-gray-500" : "text-gray-400"
+              )}>
+                {i === 0 ? `(${subCounts.all})` : subCounts[t.key as keyof typeof subCounts]}
+              </span>
+            </span>
+            {subTab === t.key && (
+              <motion.span
+                layoutId="model-subtab-underline"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600"
+                transition={{ duration: 0.2 }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* 卡片网格 */}
+      {filteredProviders.length === 0 ? (
+        <div className="py-20 flex flex-col items-center justify-center text-center">
+          <Empty
+            description={
+              <span className="text-[13px] text-gray-500">
+                {localSearch ? `未搜索到 "${localSearch}" 相关模型` : "暂无模型"}
+              </span>
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProviders.map(provider => {
+            const isActive = currentApiType === provider.id
+            return (
+              <ModelCard
+                key={provider.id}
+                provider={provider}
+                isActive={isActive}
+                onClick={() => setSelectedProvider(provider)}
+                onConfig={() => {
+                  setSelectedProvider(provider)
+                  handleOpenConfig(provider)
+                }}
+              />
+            )
+          })}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selectedProvider && (
+          <ModelDetailView
+            key={selectedProvider.id}
+            provider={selectedProvider}
+            isActive={currentApiType === selectedProvider.id}
+            onClose={() => setSelectedProvider(null)}
+            onConfig={() => {
+              setDetailDialogOpen(true)
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <ModelDetailDialog
         provider={selectedProvider}
         open={detailDialogOpen}
-        onOpenChange={setDetailDialogOpen}
+        onOpenChange={(open) => {
+          setDetailDialogOpen(open)
+          if (!open) {
+            // 重新加载设置
+            const savedStr = localStorage.getItem("ai-settings")
+            if (savedStr) {
+              determineActiveType(JSON.parse(savedStr))
+            }
+          }
+        }}
         onSave={handleConfigSaved}
       />
     </div>

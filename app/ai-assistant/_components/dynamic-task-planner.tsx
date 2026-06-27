@@ -1,33 +1,489 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import React from "react"
-import { Globe, Activity, Zap, CheckCircle2, Loader2, ChevronDown, ChevronUp, Play, Pause, Circle } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronDown, ChevronUp, Check, Loader2, Circle, Clock3 } from "lucide-react"
+import { XCard, registerCatalog } from "@ant-design/x-card"
+import type { A2UICommand_v0_9, ActionPayload, Catalog } from "@ant-design/x-card"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { formatTime } from "@/app/ai-assistant/_utils/helpers"
 
-interface SubAction {
-  icon: React.ReactNode
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface TaskItem {
+  type?: string
   text: string
-  status: string
 }
 
-interface TaskData {
-  tasks: Array<{
-    id: string
-    title: string
-    status: string
-    subActions?: SubAction[]
-  }>
+interface Task {
+  id?: string
+  title: string
+  status: "pending" | "in_progress" | "completed" | "failed"
+  items?: TaskItem[]
 }
+
+interface TaskListData {
+  status?: string
+  tasks: Task[]
+}
+
+// ---------------------------------------------------------------------------
+// Parser
+// ---------------------------------------------------------------------------
+
+function parseTaskList(content: string): TaskListData | null {
+  if (!content) return null
+  try {
+    const match = content.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
+    if (!match) return null
+    const parsed = JSON.parse(match[1])
+    if (!parsed || !Array.isArray(parsed.tasks)) return null
+    return parsed as TaskListData
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// A2UI Catalog 注册
+// ---------------------------------------------------------------------------
+
+const CATALOG_ID = "berry-task-planner-catalog-v1"
+
+const catalog: Catalog = {
+  catalogId: CATALOG_ID,
+  components: {
+    Column: { type: "object", properties: {}, required: [] as string[] },
+    Card: { type: "object", properties: { id: { type: "string" } }, required: ["id"] as string[] },
+    CardHeader: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        status: { type: "string" },
+        progress: { type: "number" },
+        elapsed: { type: "string" },
+        collapsible: { type: "boolean" },
+      },
+      required: ["title"] as string[],
+    },
+    TaskList: {
+      type: "object",
+      properties: { tasks: { type: "array", items: { type: "object" } } },
+      required: ["tasks"] as string[],
+    },
+    TaskNode: {
+      type: "object",
+      properties: {
+        index: { type: "number" },
+        title: { type: "string" },
+        status: { type: "string" },
+        items: { type: "array", items: { type: "object" } },
+        isLast: { type: "boolean" },
+      },
+      required: ["title", "status"] as string[],
+    },
+    StatusBadge: {
+      type: "object",
+      properties: { status: { type: "string" }, text: { type: "string" } },
+      required: ["status", "text"] as string[],
+    },
+  },
+}
+registerCatalog(catalog)
+
+// ---------------------------------------------------------------------------
+// 主题色（统一 Ant Design 蓝）
+// ---------------------------------------------------------------------------
+const PRIMARY = BERRY_THEME.primary
+const PRIMARY_BG = `${PRIMARY}0a`
+const PRIMARY_BORDER = `${PRIMARY}30`
+
+// ---------------------------------------------------------------------------
+// A2UI 组件实现
+// ---------------------------------------------------------------------------
+
+function Column({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return <div className={className || "flex flex-col"}>{children}</div>
+}
+
+function StatusBadge({ status, text }: { status?: string; text?: string }) {
+  const cfg: Record<string, { bg: string; color: string; dot: string }> = {
+    in_progress: { bg: `${PRIMARY}14`, color: PRIMARY, dot: PRIMARY },
+    completed: { bg: "#52c41a14", color: "#52c41a", dot: "#52c41a" },
+    pending: { bg: "#9ca3af14", color: "#9ca3af", dot: "#9ca3af" },
+    failed: { bg: "#ff4d4f14", color: "#ff4d4f", dot: "#ff4d4f" },
+  }
+  const c = cfg[status || "pending"] || cfg.pending
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none"
+      style={{ background: c.bg, color: c.color }}
+    >
+      <span
+        className="inline-block w-1.5 h-1.5 rounded-full"
+        style={{ background: c.dot }}
+      />
+      {text}
+    </span>
+  )
+}
+
+function TaskNodeComponent({
+  index,
+  title,
+  status,
+  items,
+  isLast,
+}: {
+  index?: number
+  title?: string
+  status?: string
+  items?: TaskItem[]
+  isLast?: boolean
+}) {
+  const isCompleted = status === "completed"
+  const isInProgress = status === "in_progress"
+  const isFailed = status === "failed"
+
+  const indicator = isCompleted ? (
+    <span
+      className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full text-white"
+      style={{ background: "#52c41a" }}
+    >
+      <Check size={10} strokeWidth={3} />
+    </span>
+  ) : isInProgress ? (
+    <span
+      className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
+      style={{ background: PRIMARY }}
+    >
+      <Loader2 size={10} className="animate-spin text-white" />
+    </span>
+  ) : isFailed ? (
+    <span
+      className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
+      style={{ background: "#ff4d4f" }}
+    >
+      <span className="text-white text-[10px] font-bold">!</span>
+    </span>
+  ) : (
+    <span
+      className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
+      style={{ background: "transparent", border: "1.5px solid #d1d5db" }}
+    >
+      <Circle size={6} className="text-gray-400" />
+    </span>
+  )
+
+  const titleColor = isCompleted
+    ? "text-gray-400 line-through"
+    : isInProgress
+    ? "text-gray-900 dark:text-white"
+    : isFailed
+    ? "text-red-500"
+    : "text-gray-500 dark:text-gray-400"
+
+  return (
+    <div className="relative flex gap-3 pb-3.5 last:pb-0">
+      {/* 左侧时间线 */}
+      <div className="flex flex-col items-center shrink-0">
+        {indicator}
+        {!isLast && (
+          <span
+            className="flex-1 w-px mt-1"
+            style={{
+              background: isCompleted ? "#52c41a" : isInProgress ? `${PRIMARY}40` : "#e5e7eb",
+            }}
+          />
+        )}
+      </div>
+
+      {/* 右侧内容 */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="flex items-center gap-2">
+          {typeof index === "number" && (
+            <span
+              className="text-[10px] font-mono tabular-nums"
+              style={{ color: isInProgress ? PRIMARY : "#9ca3af" }}
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
+          )}
+          <span className={`text-[13px] font-medium leading-tight ${titleColor}`}>
+            {title}
+          </span>
+        </div>
+
+        {items && items.length > 0 && (
+          <div className="mt-1.5 space-y-1">
+            {items.map((item, i) => {
+              const subCompleted = isCompleted
+              const subInProgress = isInProgress && i === (items.length - 1)
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 text-[12px] leading-relaxed"
+                >
+                  {subCompleted ? (
+                    <Check size={10} className="text-green-500 shrink-0" strokeWidth={2.5} />
+                  ) : subInProgress ? (
+                    <Loader2 size={10} className="text-blue-500 animate-spin shrink-0" />
+                  ) : (
+                    <Clock3 size={10} className="text-gray-300 shrink-0" />
+                  )}
+                  <span
+                    className={
+                      subCompleted
+                        ? "text-gray-400 line-through"
+                        : subInProgress
+                        ? "text-gray-700 dark:text-gray-300"
+                        : "text-gray-400"
+                    }
+                  >
+                    {item.text}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TaskListComponent({ tasks }: { tasks?: Task[] }) {
+  if (!tasks || tasks.length === 0) return null
+  return (
+    <div className="py-1">
+      {tasks.map((t, idx) => (
+        <TaskNodeComponent
+          key={t.id || idx}
+          index={idx}
+          title={t.title}
+          status={t.status}
+          items={t.items}
+          isLast={idx === tasks.length - 1}
+        />
+      ))}
+    </div>
+  )
+}
+
+function CardHeaderComponent({
+  title,
+  status,
+  progress,
+  elapsed,
+  collapsible,
+  collapsed,
+  onToggleCollapsed,
+  onToggleCollapse,
+}: {
+  title?: string
+  status?: string
+  progress?: number
+  elapsed?: string
+  collapsible?: boolean
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
+  onToggleCollapse?: (collapsed: boolean) => void
+}) {
+  const isCompleted = status === "completed"
+  return (
+    <button
+      onClick={onToggleCollapsed}
+      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]"
+    >
+      {/* 状态点 */}
+      <span className="relative flex items-center justify-center shrink-0">
+        <span
+          className={`block w-1.5 h-1.5 rounded-full ${isCompleted ? "" : "animate-pulse"}`}
+          style={{ background: isCompleted ? "#52c41a" : PRIMARY }}
+        />
+      </span>
+
+      {/* 标题 */}
+      <span className="text-[13px] font-medium text-gray-900 dark:text-white shrink-0">
+        {title}
+      </span>
+
+      {/* 状态标签 */}
+      <StatusBadge
+        status={status || "in_progress"}
+        text={isCompleted ? "已完成" : "执行中"}
+      />
+
+      {/* 进度条 + 时间（折叠态） */}
+      {collapsed && (
+        <>
+          <div className="flex-1 flex items-center gap-2 min-w-0 ml-1">
+            <div className="flex-1 h-1 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${progress || 0}%`,
+                  background: isCompleted ? "#52c41a" : PRIMARY,
+                }}
+              />
+            </div>
+            <span
+              className="text-[10px] font-mono tabular-nums shrink-0"
+              style={{ color: PRIMARY }}
+            >
+              {progress || 0}%
+            </span>
+          </div>
+          <span className="text-[10px] font-mono tabular-nums text-gray-400 shrink-0">
+            {elapsed}
+          </span>
+        </>
+      )}
+
+      {/* 折叠/展开箭头 */}
+      {collapsible && (
+        <span className="ml-auto text-gray-400 shrink-0">
+          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 直接渲染的兜底 UI（不依赖 x-card 命令管道）
+// ---------------------------------------------------------------------------
+
+function DirectRenderFallback({
+  taskData,
+  isCollapsed,
+  setIsCollapsed,
+  elapsedTime,
+  isPaused,
+  onTogglePause,
+}: {
+  taskData: TaskListData
+  isCollapsed: boolean
+  setIsCollapsed: (v: boolean) => void
+  elapsedTime: number
+  isPaused?: boolean
+  onTogglePause?: (paused: boolean) => void
+}) {
+  const tasks = taskData.tasks || []
+  const completedCount = tasks.filter((t) => t.status === "completed").length
+  const allCompleted = tasks.length > 0 && completedCount === tasks.length
+  const inProgressCount = tasks.filter((t) => t.status === "in_progress").length
+  const currentIndex = tasks.findIndex((t) => t.status === "in_progress")
+  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
+
+  return (
+    <div
+      className="my-4 w-full rounded-xl border bg-white dark:bg-zinc-900/50 overflow-hidden"
+      style={{ borderColor: PRIMARY_BORDER }}
+    >
+      <CardHeaderComponent
+        title="任务规划"
+        status={allCompleted ? "completed" : "in_progress"}
+        progress={progressPercent}
+        elapsed={formatTime(elapsedTime)}
+        collapsible
+        collapsed={isCollapsed}
+        onToggleCollapsed={() => setIsCollapsed(!isCollapsed)}
+      />
+
+      <AnimatePresence initial={false}>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="px-3.5 pb-3">
+              {/* 进度条 + 统计 */}
+              <div
+                className="flex items-center gap-3 px-3 py-2 rounded-lg mb-3"
+                style={{ background: PRIMARY_BG }}
+              >
+                <div className="flex-1 h-1 rounded-full bg-white/80 dark:bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${progressPercent}%`,
+                      background: allCompleted ? "#52c41a" : PRIMARY,
+                    }}
+                  />
+                </div>
+                <span
+                  className="text-[10px] font-mono tabular-nums shrink-0"
+                  style={{ color: PRIMARY }}
+                >
+                  {progressPercent}%
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 tabular-nums">
+                  {completedCount}/{tasks.length}
+                </span>
+              </div>
+
+              {/* 任务列表（时间线） */}
+              <TaskListComponent tasks={tasks} />
+
+              {/* 底部状态 */}
+              <div
+                className="flex items-center justify-between pt-2.5 mt-1"
+                style={{ borderTop: "1px solid #f0f0f0" }}
+              >
+                <span className="text-[10px] text-gray-400">
+                  {allCompleted
+                    ? "所有任务已完成"
+                    : isPaused
+                    ? "任务已暂停"
+                    : inProgressCount > 0
+                    ? `正在执行第 ${currentIndex + 1} 项`
+                    : "等待开始"}
+                </span>
+                {!allCompleted && onTogglePause && (
+                  <button
+                    onClick={() => onTogglePause?.(!isPaused)}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded transition-colors"
+                    style={{
+                      background: isPaused ? PRIMARY : "transparent",
+                      color: isPaused ? "#fff" : PRIMARY,
+                      border: `1px solid ${isPaused ? PRIMARY : PRIMARY_BORDER}`,
+                    }}
+                  >
+                    {isPaused ? "继续" : "挂起"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 主组件
+// ---------------------------------------------------------------------------
 
 /**
- * Dynamic Task Planner — rendered inside AI messages to show task execution progress.
- * Extracted from app/ai-assistant/page.tsx
+ * Dynamic Task Planner — 任务规划器（XCard / A2UI 协议 + 极简版式）
+ *
+ * 优化点：
+ * 1. 全图标缩到 10-14px（原 24px 过大）
+ * 2. 移除渐变背景与厚重 Tag，采用单色描边 + 轻量 Badge
+ * 3. 任务节点使用时间线样式（圆形指示器 + 连接线），更紧凑
+ * 4. 优先 A2UI 协议渲染，500ms 超时自动切换直接渲染兜底
+ * 5. 统一 Ant Design 蓝 #1677ff，零渐变、零阴影
  */
 export function DynamicTaskPlanner({
   content,
-  onOpenStudio,
   isPaused,
   onTogglePause,
 }: {
@@ -36,293 +492,121 @@ export function DynamicTaskPlanner({
   isPaused?: boolean
   onTogglePause?: (paused: boolean) => void
 }) {
-  const [isVisible] = useState(true)
-  const [isCollapsed, setIsCollapsed] = useState(true)
-  const [autoCollapse, setAutoCollapse] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("task-planner-auto-collapse")
-      return saved === "true"
-    }
-    return false
-  })
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [useDirectMode, setUseDirectMode] = useState(false)
+  const boxMountedRef = useRef(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [elapsedTime, setElapsedTime] = useState(0)
 
-  // Persist autoCollapse
+  // 解析任务数据
+  const taskData = useMemo(() => parseTaskList(content), [content])
+  const tasks = taskData?.tasks || []
+  const completedCount = tasks.filter((t) => t.status === "completed").length
+  const allCompleted = tasks.length > 0 && completedCount === tasks.length
+  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
+
+  // 计时器
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("task-planner-auto-collapse", String(autoCollapse))
-    }
-  }, [autoCollapse])
-
-  const tasksData: TaskData | null = (() => {
-    try {
-      const match = content.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
-      if (!match) return null
-      return JSON.parse(match[1])
-    } catch {
-      return null
-    }
-  })()
-
-  const tasks = tasksData?.tasks || []
-  const allCompleted = tasks.length > 0 && tasks.every((t) => t.status === "completed")
-
-  // Auto-collapse when tasks complete
-  useEffect(() => {
-    if (autoCollapse && allCompleted && !isCollapsed) {
-      const timer = setTimeout(() => {
-        setIsCollapsed(true)
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [autoCollapse, allCompleted, isCollapsed])
-
-  // Elapsed time timer
-  useEffect(() => {
-    if (!isVisible || isPaused || allCompleted) return
+    if (isPaused || allCompleted || tasks.length === 0) return
     const timer = setInterval(() => setElapsedTime((p) => p + 1), 1000)
     return () => clearInterval(timer)
-  }, [isVisible, isPaused, allCompleted])
+  }, [isPaused, allCompleted, tasks.length])
 
-  if (!isVisible) return null
+  // x-card 挂载超时检测
+  useEffect(() => {
+    if (!taskData || tasks.length === 0) return
+    timeoutRef.current = setTimeout(() => {
+      if (!boxMountedRef.current) {
+        setUseDirectMode(true)
+      }
+    }, 500)
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [taskData, tasks.length])
 
-  try {
-    const activeIndex = tasks.findIndex((t) => t.status === "in_progress")
-    const currentIndex = activeIndex !== -1 ? activeIndex : tasks.length - 1
-    const activeTask = tasks[currentIndex] || tasks[0]
+  const handleAction = useCallback((_payload: ActionPayload) => {
+    boxMountedRef.current = true
+  }, [])
 
-    const getMockSubActions = (title: string, _taskStatus: string): SubAction[] => [
-      { icon: <Globe size={14} />, text: `正在通过 MCP 工具搜索 "${title}" 相关的最佳实践...`, status: "completed" },
-      { icon: <Activity size={14} />, text: `正在调用大棚传感器获取实时环境数据...`, status: "completed" },
-      { icon: <Zap size={14} />, text: `正在生成控制指令流...`, status: _taskStatus === "completed" || allCompleted ? "completed" : "in_progress" },
-    ]
+  if (!taskData || tasks.length === 0) return null
 
-    const subActions = (activeTask?.subActions || getMockSubActions(activeTask?.title || "任务", activeTask?.status)).map(
-      (sa: SubAction) =>
-        allCompleted || activeTask?.status === "completed" ? { ...sa, status: "completed" } : sa
-    )
+  // 构建 A2UI 命令
+  const commands: A2UICommand_v0_9[] = useMemo(
+    () => [
+      { version: "v0.9", createSurface: { surfaceId: "task-planner", catalogId: CATALOG_ID } },
+      {
+        version: "v0.9",
+        updateComponents: {
+          surfaceId: "task-planner",
+          components: [
+            { id: "root", component: "Column", children: ["header", "list"] },
+            {
+              id: "header",
+              component: "CardHeader",
+              title: "任务规划",
+              status: allCompleted ? "completed" : "in_progress",
+              progress: progressPercent,
+              elapsed: formatTime(elapsedTime),
+              collapsible: true,
+            },
+            {
+              id: "list",
+              component: "TaskList",
+              tasks: tasks.map((t) => ({ ...t, _index: 0 })),
+            },
+          ],
+        },
+      },
+    ],
+    [allCompleted, progressPercent, elapsedTime, tasks]
+  )
 
+  // ===== 优先 x-card 协议渲染 =====
+  if (!useDirectMode) {
     return (
-      <div className="my-8 w-full max-w-2xl bg-white/70 backdrop-blur-xl rounded-[28px] border border-zinc-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] overflow-hidden relative group/planner animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans dark:bg-[#1C1C1E]/90 dark:border-white/10 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]">
-        {/* Header */}
-        <div
-          className={cn(
-            "px-6 py-4 flex items-center justify-between border-b border-zinc-100/80 dark:border-white/5 bg-white/30 dark:bg-black/20 cursor-pointer select-none transition-colors hover:bg-zinc-50/50 dark:hover:bg-white/5",
-            isCollapsed && "border-b-0"
-          )}
-          onClick={() => setIsCollapsed(!isCollapsed)}
+      <div className="my-4 w-full">
+        <XCard.Box
+          commands={commands}
+          onAction={handleAction}
+          components={{
+            Column,
+            Card: (props: any) => (
+              <div
+                className="rounded-xl border bg-white dark:bg-zinc-900/50 overflow-hidden"
+                style={{ borderColor: PRIMARY_BORDER }}
+                {...props}
+              />
+            ),
+            CardHeader: (props: any) => (
+              <CardHeaderComponent
+                {...props}
+                collapsed={isCollapsed}
+                onToggleCollapsed={() => setIsCollapsed(!isCollapsed)}
+              />
+            ),
+            TaskList: TaskListComponent,
+            TaskNode: TaskNodeComponent,
+            StatusBadge,
+          }}
         >
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div
-              className={cn(
-                "size-2 rounded-full shrink-0",
-                allCompleted ? "bg-primary shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-blue-500 animate-pulse"
-              )}
-            />
-            <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-zinc-400 dark:text-zinc-500 shrink-0">
-              <span>
-                {allCompleted ? "任务已全部达成" : "执行中"} | 执行用时: {formatTime(elapsedTime)}
-              </span>
-            </div>
-            {isCollapsed && !allCompleted && activeTask && (
-              <div className="flex items-center gap-2 ml-2 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0" />
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Loader2 size={11} className="text-blue-500 animate-spin shrink-0" />
-                  <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 truncate">
-                    {activeTask.title}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-blue-500 dark:text-blue-400 shrink-0 tabular-nums">
-                  {currentIndex + 1}/{tasks.length}
-                </span>
-              </div>
-            )}
-            {isCollapsed && allCompleted && (
-              <div className="flex items-center gap-2 ml-2 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0" />
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={11} className="text-primary shrink-0" />
-                  <span className="text-[11px] font-semibold text-primary dark:text-emerald-400">全部完成</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setAutoCollapse(!autoCollapse)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
-                autoCollapse
-                  ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-              )}
-              title={autoCollapse ? "已启用自动折叠" : "点击启用自动折叠"}
-            >
-              {autoCollapse ? <CheckCircle2 size={12} /> : <Circle size={12} />}
-              <span>自动折叠</span>
-            </button>
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
-              title={isCollapsed ? "展开任务" : "折叠任务"}
-            >
-              {isCollapsed ? (
-                <ChevronDown size={16} className="text-zinc-600 dark:text-zinc-400" />
-              ) : (
-                <ChevronUp size={16} className="text-zinc-600 dark:text-zinc-400" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Collapsible Body */}
-        {!isCollapsed && (
-          <div className="p-6 pt-2 animate-in slide-in-from-top-2 fade-in duration-300">
-            {/* Progress Timeline */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-3 flex-1">
-                  {tasks.map((task, idx) => (
-                    <div
-                      key={task.id || idx}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all duration-500",
-                        task.status === "completed"
-                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                          : task.status === "in_progress"
-                          ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.15)]"
-                          : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "size-1.5 rounded-full",
-                          task.status === "completed"
-                            ? "bg-emerald-500"
-                            : task.status === "in_progress"
-                            ? "bg-blue-500 animate-pulse"
-                            : "bg-zinc-300 dark:bg-zinc-600"
-                        )}
-                      />
-                      {task.title}
-                    </div>
-                  ))}
-                </div>
-                <span
-                  className={cn(
-                    "text-[10px] font-bold tabular-nums shrink-0",
-                    allCompleted ? "text-emerald-500" : "text-blue-500"
-                  )}
-                >
-                  {allCompleted ? "完成 100%" : `步骤 ${currentIndex + 1}/${tasks.length}`}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {subActions.map((action: SubAction, idx: number) => {
-                const isSubActive = action.status === "in_progress"
-                const isSubPast = action.status === "completed"
-                return (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "group/action flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border border-transparent",
-                      isSubActive
-                        ? "bg-white dark:bg-zinc-800/80 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border-zinc-200/50 dark:border-white/5 ring-1 ring-blue-500/10 scale-[1.02]"
-                        : "hover:bg-zinc-100/50 dark:hover:bg-white/5"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex items-center justify-center size-9 rounded-xl transition-all duration-500",
-                        isSubActive
-                          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                          : isSubPast
-                          ? "bg-emerald-100 text-primary dark:bg-emerald-950/30 dark:text-primary"
-                          : "bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-600"
-                      )}
-                    >
-                      {isSubActive ? (
-                        <Loader2 size={18} className="animate-spin" />
-                      ) : action.icon ? (
-                        React.cloneElement(action.icon as React.ReactElement<{ size: number }>, { size: 18 })
-                      ) : (
-                        <Zap size={18} />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className={cn(
-                          "text-[13px] transition-colors truncate",
-                          isSubActive
-                            ? "text-zinc-900 dark:text-white font-bold"
-                            : "text-zinc-600 dark:text-zinc-400 font-medium"
-                        )}
-                      >
-                        {action.text}
-                      </div>
-                      {isSubActive && (
-                        <div className="flex items-center gap-1 mt-1 text-[10px] text-blue-500/80 font-bold uppercase tracking-tighter">
-                          <span className="animate-pulse">Active Process</span>
-                          <span className="size-1 rounded-full bg-blue-500 animate-bounce" />
-                        </div>
-                      )}
-                    </div>
-
-                    {isSubPast && (
-                      <div className="size-5 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-primary">
-                        <CheckCircle2 size={12} strokeWidth={3} />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Execution Controls */}
-            <div className="mt-10 flex items-center justify-between pt-6 border-t border-zinc-100/80 dark:border-white/5">
-              <div className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 flex items-center gap-2">
-                <Activity size={12} />
-                <span>{allCompleted ? "所有自动化任务已圆满完成" : "实时自动化执行流已锁定"}</span>
-              </div>
-
-              {!allCompleted ? (
-                <div className="flex items-center gap-3">
-                  {isPaused ? (
-                    <button
-                      onClick={() => onTogglePause?.(false)}
-                      className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-white bg-primary hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
-                    >
-                      <Play size={14} className="fill-current" />
-                      继续流水线
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onTogglePause?.(true)}
-                      className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold text-zinc-700 bg-white border border-zinc-200/50 hover:bg-zinc-50 rounded-2xl transition-all shadow-sm hover:shadow-md active:scale-95 dark:text-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700"
-                    >
-                      <Pause size={14} className="fill-current" />
-                      挂起任务
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/50 dark:border-primary/20 animate-in zoom-in duration-500">
-                  <CheckCircle2 size={16} className="text-primary" />
-                  <span className="text-xs font-bold text-primary dark:text-emerald-400">流水线执行完毕</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          <XCard.Card id="task-planner" />
+        </XCard.Box>
       </div>
     )
-  } catch (e) {
-    console.error("Failed to parse task list", e)
-    return null
   }
+
+  // ===== 直接渲染兜底 =====
+  return (
+    <DirectRenderFallback
+      taskData={taskData}
+      isCollapsed={isCollapsed}
+      setIsCollapsed={setIsCollapsed}
+      elapsedTime={elapsedTime}
+      isPaused={isPaused}
+      onTogglePause={onTogglePause}
+    />
+  )
 }
+
+export default DynamicTaskPlanner

@@ -32,7 +32,7 @@ export function NutrientWidget({
       case 'N':
         return {
           colorClass: "text-purple-600",
-          bgClass: "bg-purple-50",
+          bgClass: "bg-purple-50 dark:bg-purple-900/30",
           label: "氮",
           symbol: "N",
           fullName: "氮含量",
@@ -42,7 +42,7 @@ export function NutrientWidget({
       case 'P':
         return {
           colorClass: "text-pink-600",
-          bgClass: "bg-pink-50",
+          bgClass: "bg-pink-50 dark:bg-pink-900/30",
           label: "磷",
           symbol: "P",
           fullName: "磷含量",
@@ -52,7 +52,7 @@ export function NutrientWidget({
       case 'K':
         return {
           colorClass: "text-amber-600",
-          bgClass: "bg-amber-50",
+          bgClass: "bg-amber-50 dark:bg-amber-900/30",
           label: "钾",
           symbol: "K",
           fullName: "钾含量",
@@ -81,7 +81,7 @@ export function NutrientWidget({
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white text-slate-900 shadow-sm border-0", className)}
+      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
       header={size !== 'small' ? Header : null}
       isEditing={isEditing}
       widgetId={widgetId}
@@ -101,7 +101,7 @@ export function NutrientWidget({
             
             <div className="mt-auto">
               <div className="flex items-start">
-                <span className="text-3xl font-bold tracking-tighter text-slate-900">{displayValue}</span>
+                <span className="text-3xl font-bold tracking-tighter text-slate-900 dark:text-white">{displayValue}</span>
                 <span className="text-xs font-medium mt-1 text-slate-400 ml-1">mg/kg</span>
               </div>
               <div className="text-xs font-medium text-slate-500 mt-1 truncate">
@@ -116,7 +116,7 @@ export function NutrientWidget({
           <div className="flex flex-col h-full w-full">
             <div className="flex items-end gap-2 mb-2">
                <div className="flex items-start">
-                <span className="text-5xl font-bold tracking-tighter text-slate-900">{displayValue}</span>
+                <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">{displayValue}</span>
                 <span className="text-xl font-medium mt-2 text-slate-400 ml-2">mg/kg</span>
               </div>
               <div className="mb-2">
@@ -138,7 +138,7 @@ export function NutrientWidget({
               <div className="flex items-end justify-between mb-4">
                  <div className="flex flex-col">
                      <div className="flex items-start">
-                         <span className="text-6xl font-bold tracking-tighter text-slate-900">{displayValue}</span>
+                         <span className="text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">{displayValue}</span>
                          <span className="text-3xl font-medium mt-1 text-slate-400 ml-2">mg/kg</span>
                      </div>
                      <span className={cn("mt-1 text-sm font-medium", config.colorClass)}>{config.fullName}</span>

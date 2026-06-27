@@ -502,12 +502,21 @@ export function AIProvidersManager() {
   const [editing, setEditing] = useState<AIProvider | null>(null)
   const [deleting, setDeleting] = useState<AIProvider | null>(null)
 
+  // 默认/自动选择模型
+  const [defaultModelId, setDefaultModelId] = useState<string | null>(null)
+  const [defaultModelDraft, setDefaultModelDraft] = useState<string>('')
+  const [savingDefault, setSavingDefault] = useState(false)
+
   const fetchProviders = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/ai-providers')
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
       setProviders(data.providers || [])
+      if (typeof data.defaultModelId === 'string') {
+        setDefaultModelId(data.defaultModelId)
+        setDefaultModelDraft(data.defaultModelId)
+      }
     } catch (e) {
       console.error(e)
       toast.error('加载提供商失败')
@@ -585,6 +594,44 @@ export function AIProvidersManager() {
     }
   }
 
+  // 保存默认/自动选择模型
+  const handleSaveDefaultModel = async () => {
+    setSavingDefault(true)
+    try {
+      const res = await fetch('/api/admin/ai-providers/default-model', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: defaultModelDraft }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || '保存失败')
+      }
+      const data = await res.json()
+      setDefaultModelId(data.configuredDefaultModelId ?? null)
+      toast.success('默认模型已更新')
+    } catch (e: any) {
+      toast.error(e.message || '保存失败')
+    } finally {
+      setSavingDefault(false)
+    }
+  }
+
+  // 构造可选的默认模型列表（来自所有 enabled provider 的 enabled model）
+  const availableDefaultModels = providers
+    .filter(p => p.enabled)
+    .flatMap(p => p.models.filter(m => m.enabled).map(m => ({ p, m })))
+    .sort((a, b) => a.p.priority - b.p.priority || a.m.id.localeCompare(b.m.id))
+
+  // 查找当前 effective 默认（与后端 resolveDefaultModelId 一致：configured > 第一项）
+  const effectiveDefaultId = (() => {
+    if (defaultModelId && availableDefaultModels.some(x => x.m.id === defaultModelId)) {
+      return defaultModelId
+    }
+    return availableDefaultModels[0]?.m.id ?? null
+  })()
+  const effectiveDefaultLabel = availableDefaultModels.find(x => x.m.id === effectiveDefaultId)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -609,6 +656,72 @@ export function AIProvidersManager() {
           <Plus className="w-4 h-4" /> 添加提供商
         </Button>
       </div>
+
+      {/* 默认/自动选择模型 */}
+      <Card className="border-zinc-200 dark:border-zinc-800">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4 flex-wrap">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold">自动选择模型</span>
+                <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200 dark:text-blue-300 dark:border-blue-800">
+                  刷新后生效
+                </Badge>
+              </div>
+              <p className="text-xs text-zinc-500 mt-1">
+                每次刷新 AI 助手页面时，未手动选择模型的用户将自动使用该模型。
+                {effectiveDefaultLabel
+                  ? `当前生效：${effectiveDefaultLabel.p.name} · ${effectiveDefaultLabel.m.name}`
+                  : '当前没有可用的启用模型。'}
+              </p>
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <Select
+                  value={defaultModelDraft || undefined}
+                  onValueChange={(v) => setDefaultModelDraft(v)}
+                  disabled={availableDefaultModels.length === 0}
+                >
+                  <SelectTrigger className="w-[320px] h-9 text-sm">
+                    <SelectValue placeholder="选择自动选择的模型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDefaultModels.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-zinc-500">
+                        暂无可用的启用模型
+                      </div>
+                    )}
+                    {availableDefaultModels.map(({ p, m }) => (
+                      <SelectItem key={`${p.id}::${m.id}`} value={m.id}>
+                        <span className="flex items-center gap-2">
+                          {getModelIcon(m.icon)}
+                          <span className="font-medium">{m.name}</span>
+                          <span className="text-zinc-400 text-xs">· {p.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="h-9"
+                  onClick={handleSaveDefaultModel}
+                  disabled={savingDefault || defaultModelDraft === (defaultModelId ?? '') || availableDefaultModels.length === 0}
+                >
+                  {savingDefault && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                  保存
+                </Button>
+                {defaultModelId && defaultModelId !== effectiveDefaultId && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    配置的默认模型已失效，将自动回退到当前生效项
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 提供商列表 */}
       {providers.length === 0 ? (

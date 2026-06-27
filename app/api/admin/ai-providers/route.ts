@@ -35,6 +35,8 @@ export interface AIProvider {
 
 export interface ProvidersConfig {
   providers: AIProvider[]
+  /** admin 后台配置的默认/自动选择模型 ID（可选） */
+  defaultModelId?: string
 }
 
 // ====== 默认配置 ======
@@ -57,7 +59,9 @@ const DEFAULT_CONFIG: ProvidersConfig = {
       isDefault: true,
       priority: 1,
     }
-  ]
+  ],
+  // 默认自动选择第一个 provider 的第一个模型
+  defaultModelId: 'qwen3.6-plus',
 }
 
 // ====== 工具函数 ======
@@ -108,7 +112,10 @@ export async function GET(request: NextRequest) {
     apiKey: p.apiKey ? `${p.apiKey.slice(0, 4)}${'*'.repeat(Math.max(0, p.apiKey.length - 8))}${p.apiKey.slice(-4)}` : '',
   }))
 
-  return NextResponse.json({ providers: maskedProviders })
+  return NextResponse.json({
+    providers: maskedProviders,
+    defaultModelId: config.defaultModelId ?? null,
+  })
 }
 
 // POST - 创建新提供商

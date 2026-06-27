@@ -2,182 +2,316 @@
 
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
-import { cn } from "@/lib/utils"
-import { 
-  Fan, 
-  Droplets, 
-  Lightbulb, 
-  Zap,
-  Power,
-  Loader2
-} from "lucide-react"
-import { motion } from "framer-motion"
-import { Switch } from "@/components/ui/switch"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { motion } from "framer-motion"
+import { Card, Switch, Typography, Row, Col, Space, theme } from "antd"
+import { Loader2, Droplets, Fan, Zap, Lightbulb } from "lucide-react"
+import { BerryXCard } from "@/components/ui/berry-xcard"
+import { buildCommands } from "@/lib/a2ui/berry-protocol"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import type { A2UICommand_v0_9, ActionPayload } from "@ant-design/x-card"
 
+const { Text, Title } = Typography
+
+interface DeviceMeta {
+  id: number
+  name: string
+  icon: any
+  color: string
+  relayKey: "relay5" | "relay6" | "relay7" | "relay8"
+  action: string
+}
+
+const DEVICES: DeviceMeta[] = [
+  {
+    id: 5,
+    name: "灌溉水泵",
+    icon: Droplets,
+    color: "#3b82f6",
+    relayKey: "relay5",
+    action: "toggle-device-pump",
+  },
+  {
+    id: 6,
+    name: "通风风扇",
+    icon: Fan,
+    color: "#06b6d4",
+    relayKey: "relay6",
+    action: "toggle-device-fan",
+  },
+  {
+    id: 7,
+    name: "补光灯",
+    icon: Zap,
+    color: "#a855f7",
+    relayKey: "relay7",
+    action: "toggle-device-grow-light",
+  },
+  {
+    id: 8,
+    name: "白光照明",
+    icon: Lightbulb,
+    color: "#f59e0b",
+    relayKey: "relay8",
+    action: "toggle-device-white-light",
+  },
+]
+
+/**
+ * 🍓 ControlBentoGrid — Ant Design + XCard + A2UI 三件套
+ *
+ * 1. 视觉层：Ant Design Card / Switch / Row+Col / Typography（语义化 token）
+ * 2. 渲染层：XCard.Box（统一入口）+ DeviceToggle 组件
+ * 3. 协议层：A2UI v0.9 commands + berry-realm-catalog-v1
+ *
+ * 排版规则：
+ * - 桌面端 xs/sm/md/lg 4 列等分，移动端 2 列
+ * - 卡片高度统一 132px，icon + switch + name + status 四层结构
+ * - 状态色用色板 token（off = text-tertiary，on = primary）
+ */
 export function ControlBentoGrid() {
   const { deviceData } = useDeviceData()
   const { toggleRelay } = useDeviceControl()
+  const { token } = theme.useToken()
   const [loading, setLoading] = useState<number | null>(null)
 
-  const handleToggle = async (relayId: number, currentState: number) => {
-    setLoading(relayId)
+  // 兜底数据（设备离线时使用）
+  const data = deviceData || {
+    relay5: 0,
+    relay6: 0,
+    relay7: 0,
+    relay8: 0,
+  } as Record<string, number>
+
+  // ===== 业务逻辑：设备开关 =====
+  const handleToggle = async (device: DeviceMeta) => {
+    if (loading) return
+    const currentState = data[device.relayKey] ?? 0
+    setLoading(device.id)
     try {
-      const success = await toggleRelay(relayId, currentState)
+      const success = await toggleRelay(device.id, currentState)
       if (success) {
         const newState = currentState === 1 ? 0 : 1
-        toast.success(`设备 ${relayId} 已${newState ? '开启' : '关闭'}`)
+        toast.success(`${device.name} 已${newState ? "开启" : "关闭"}`)
       }
-    } catch (error) {
+    } catch {
       // toast handled in hook
     } finally {
       setLoading(null)
     }
   }
 
-  // Mock data if no real data
-  const data = deviceData || {
-    relay5: 0, // Water Pump
-    relay6: 0, // Fan
-    relay7: 0, // Grow Light
-    relay8: 0, // White Light
-  }
+  // ===== 单个设备卡片（Ant Design 直渲） =====
+  const renderDeviceCard = (device: DeviceMeta) => {
+    const state = data[device.relayKey] ?? 0
+    const isOn = state === 1
+    const isLoading = loading === device.id
+    const Icon = device.icon
+    const isFanActive = device.id === 6 && isOn
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  }
+    // 状态语义化色板
+    const iconBg = isOn ? `${device.color}15` : token.colorFillTertiary
+    const iconBorder = isOn ? `${device.color}30` : "transparent"
+    const iconColor = isOn ? device.color : token.colorTextQuaternary
+    const cardBorder = isOn ? `${BERRY_THEME.primary}50` : token.colorBorderSecondary
+    const cardShadow = isOn
+      ? `0 6px 20px -8px ${BERRY_THEME.primary}40`
+      : token.boxShadowTertiary
 
-  const item = {
-    hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
-  }
-
-  const devices = [
-    {
-      id: 5,
-      name: "灌溉水泵",
-      icon: Droplets,
-      state: data.relay5,
-      color: "text-blue-500 dark:text-blue-400",
-      bg: "bg-blue-50 dark:bg-blue-900/20",
-      activeBg: "bg-blue-500 text-white dark:bg-blue-500",
-      border: "border-blue-100 dark:border-blue-900/30"
-    },
-    {
-      id: 6,
-      name: "通风风扇",
-      icon: Fan,
-      state: data.relay6,
-      color: "text-cyan-500 dark:text-cyan-400",
-      bg: "bg-cyan-50 dark:bg-cyan-900/20",
-      activeBg: "bg-cyan-500 text-white dark:bg-cyan-500",
-      border: "border-cyan-100 dark:border-cyan-900/30"
-    },
-    {
-      id: 7,
-      name: "补光灯",
-      icon: Zap,
-      state: data.relay7,
-      color: "text-purple-500 dark:text-purple-400",
-      bg: "bg-purple-50 dark:bg-purple-900/20",
-      activeBg: "bg-purple-500 text-white dark:bg-purple-500",
-      border: "border-purple-100 dark:border-purple-900/30"
-    },
-    {
-      id: 8,
-      name: "白光照明",
-      icon: Lightbulb,
-      state: data.relay8,
-      color: "text-amber-500 dark:text-amber-400",
-      bg: "bg-amber-50 dark:bg-amber-900/20",
-      activeBg: "bg-amber-500 text-white dark:bg-amber-500",
-      border: "border-amber-100 dark:border-amber-900/30"
-    }
-  ]
-
-  return (
-    <motion.div 
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="w-full max-w-4xl mx-auto p-2"
-    >
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {devices.map((device) => (
-          <motion.div
-            key={device.id}
-            variants={item}
-            className={cn(
-              "relative overflow-hidden rounded-[24px] p-5 shadow-sm border transition-all duration-300 group cursor-pointer",
-              "bg-white dark:bg-zinc-900 hover:shadow-md",
-              device.state ? device.border : "border-zinc-100 dark:border-white/5"
-            )}
-            onClick={() => handleToggle(device.id, device.state)}
+    return (
+      <Card
+        size="small"
+        bordered
+        hoverable={!isLoading}
+        onClick={() => handleToggle(device)}
+        style={{
+          height: 132,
+          background: isOn
+            ? `linear-gradient(135deg, ${BERRY_THEME.primary}08 0%, ${device.color}05 100%)`
+            : token.colorBgContainer,
+          borderColor: cardBorder,
+          borderRadius: token.borderRadiusLG,
+          boxShadow: cardShadow,
+          cursor: isLoading ? "wait" : "pointer",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+        styles={{ body: { padding: 16, height: "100%" } }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            height: "100%",
+          }}
+        >
+          {/* Top: icon + switch */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
           >
-            {/* Background glow when active */}
-            <div className={cn(
-              "absolute inset-0 opacity-0 transition-opacity duration-500",
-              device.state ? "opacity-10" : "opacity-0",
-              device.activeBg.split(' ')[0] // Extract bg color class
-            )} />
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: token.borderRadius,
+                background: iconBg,
+                border: `1px solid ${iconBorder}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.3s",
+              }}
+            >
+              {isLoading ? (
+                <Loader2
+                  size={16}
+                  strokeWidth={2}
+                  style={{ color: BERRY_THEME.primary }}
+                  className="animate-spin"
+                />
+              ) : (
+                <Icon
+                  size={16}
+                  strokeWidth={2}
+                  style={{
+                    color: iconColor,
+                    transition: "color 0.3s",
+                    animation: isFanActive ? "spin 2s linear infinite" : undefined,
+                  }}
+                />
+              )}
+            </div>
 
-            <div className="flex flex-col justify-between h-full gap-6 relative z-10">
-              <div className="flex items-start justify-between">
-                <div className={cn(
-                  "size-10 rounded-full flex items-center justify-center transition-all duration-300",
-                  device.state ? device.activeBg : "bg-zinc-100 dark:bg-white/10 text-zinc-400 dark:text-zinc-500"
-                )}>
-                  <device.icon 
-                    size={20} 
-                    className={cn(
-                      "transition-transform duration-500",
-                      device.id === 6 && device.state ? "animate-spin" : "",
-                      device.state ? "scale-110" : "scale-100"
-                    )} 
+            <div onClick={(e) => e.stopPropagation()}>
+              {isLoading ? (
+                <div
+                  style={{
+                    width: 28,
+                    height: 16,
+                    borderRadius: 999,
+                    background: token.colorFillTertiary,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Loader2
+                    size={10}
+                    style={{ color: BERRY_THEME.primary }}
+                    className="animate-spin"
                   />
                 </div>
-                
-                <div className="relative">
-                   {loading === device.id ? (
-                     <div className="size-6 flex items-center justify-center">
-                       <Loader2 size={16} className="animate-spin text-zinc-400" />
-                     </div>
-                   ) : (
-                     <div className={cn(
-                       "w-10 h-6 rounded-full transition-colors duration-300 relative",
-                       device.state ? "bg-zinc-900 dark:bg-white" : "bg-zinc-200 dark:bg-zinc-700"
-                     )}>
-                        <div className={cn(
-                          "absolute top-1 left-1 size-4 rounded-full bg-white transition-transform duration-300 shadow-sm",
-                          device.state ? "translate-x-4 bg-white dark:bg-black" : "translate-x-0"
-                        )} />
-                     </div>
-                   )}
-                </div>
-              </div>
-
-              <div>
-                <div className="font-bold text-zinc-900 dark:text-white text-base mb-1 group-hover:text-black dark:group-hover:text-white transition-colors">{device.name}</div>
-                <div className="flex items-center gap-2">
-                   <span className={cn(
-                     "text-xs font-medium transition-colors",
-                     device.state ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-500"
-                   )}>
-                     {device.state ? "运行中" : "已关闭"}
-                   </span>
-                </div>
-              </div>
+              ) : (
+                <Switch
+                  size="small"
+                  checked={isOn}
+                  onChange={() => handleToggle(device)}
+                />
+              )}
             </div>
-          </motion.div>
+          </div>
+
+          {/* Bottom: name + status */}
+          <div>
+            <Title
+              level={5}
+              style={{
+                margin: 0,
+                fontSize: 14,
+                lineHeight: 1.4,
+                fontWeight: 600,
+                color: isOn ? token.colorTextHeading : token.colorTextSecondary,
+                letterSpacing: 0.2,
+              }}
+            >
+              {device.name}
+            </Title>
+            <Space size={4} align="center" style={{ marginTop: 2 }}>
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: isOn ? BERRY_THEME.primary : token.colorTextQuaternary,
+                  transition: "background 0.3s",
+                }}
+              />
+              <Text
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  color: isOn ? BERRY_THEME.primary : token.colorTextTertiary,
+                  fontWeight: isOn ? 500 : 400,
+                }}
+              >
+                {isLoading ? "执行中…" : isOn ? "运行中" : "已关闭"}
+              </Text>
+            </Space>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  // ===== A2UI 命令构建（v0.9） =====
+  const surfaceId = useMemo(() => `device-grid-${Date.now()}`, [])
+  const a2uiCommands: A2UICommand_v0_9[] = useMemo(() => {
+    return buildCommands(
+      surfaceId,
+      [
+        // 4 个设备开关（DeviceToggle）
+        ...DEVICES.map((device) => ({
+          id: `toggle-${device.id}`,
+          component: "DeviceToggle",
+          deviceId: String(device.id),
+          deviceName: device.name,
+          isOn: data[device.relayKey] === 1,
+          icon: device.icon.name,
+        })),
+      ],
+      DEVICES.map((d) => `toggle-${d.id}`)
+    )
+  }, [surfaceId, data])
+
+  // ===== A2UI Action 处理 =====
+  const handleAction = (payload: ActionPayload) => {
+    const device = DEVICES.find((d) => d.action === payload.name)
+    if (device) {
+      handleToggle(device)
+    }
+  }
+
+  // ===== 兜底渲染（Ant Design 直渲） =====
+  const fallbackUI = (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      style={{ width: "100%" }}
+    >
+      <Row gutter={[12, 12]} wrap>
+        {DEVICES.map((device) => (
+          <Col key={device.id} xs={12} sm={12} md={6} lg={6} xl={6} flex="1 1 0">
+            {renderDeviceCard(device)}
+          </Col>
         ))}
-      </div>
+      </Row>
     </motion.div>
+  )
+
+  return (
+    <BerryXCard
+      surfaceId={surfaceId}
+      commands={a2uiCommands}
+      onAction={handleAction}
+      components={{}}
+      fallback={fallbackUI}
+      timeout={400}
+    />
   )
 }

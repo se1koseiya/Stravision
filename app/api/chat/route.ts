@@ -8,7 +8,7 @@ export async function GET() {
 
 import { getEnhancedSystemPrompt } from '@/lib/ai-system-prompt'
 import { generateMemoryEnhancedPrompt } from '@/lib/ai/memory-prompt-enhancer'
-import { resolveProvider, normalizeOpenAIChatCompletionsUrl } from '@/lib/ai/provider-resolver'
+import { resolveProvider, normalizeOpenAIChatCompletionsUrl, readProvidersConfig } from '@/lib/ai/provider-resolver'
 import { learnFromConversation } from '@/lib/ai/auto-learning-service'
 import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
@@ -39,51 +39,104 @@ async function getAIFeaturesConfig(): Promise<AIFeatureConfig | undefined> {
 /**
  * 🔥 智能过滤器：拦截裸露的 TASK_LIST JSON
  * 防止 AI 错误输出导致 JSON 暴露在用户界面
- * 
+ *
  * 重要：只过滤裸露的 JSON，保留正确包裹在 <TASK_LIST> 标签内的 JSON
+ *
+ * @param chunkContent 当前流式 chunk 的内容
+ * @param accumulatedContent 累积的全部内容（用于判断是否已处于 <TASK_LIST> 块内）
  */
-function filterBareTaskListJson(content: string): string {
-  if (!content) return content
-  
-  // 检查是否在 TASK_LIST 标签内
-  const hasOpenTag = content.includes('<TASK_LIST>')
-  const hasCloseTag = content.includes('</TASK_LIST>')
-  
-  // 如果内容包含 TASK_LIST 标签，说明是正确的格式，不要过滤
-  if (hasOpenTag || hasCloseTag) {
-    return content
+function filterBareTaskListJson(chunkContent: string, accumulatedContent: string = ''): string {
+  if (!chunkContent) return chunkContent
+
+  // 使用累积内容判断是否已经处于 <TASK_LIST> 块内
+  // 如果累积内容中已有 <TASK_LIST> 开标签但还没有 </TASK_LIST> 闭标签，
+  // 说明当前 chunk 是 TASK_LIST 块内部内容，不应过滤
+  const accHasOpenTag = accumulatedContent.includes('<TASK_LIST>')
+  const accHasCloseTag = accumulatedContent.includes('</TASK_LIST>')
+  const chunkHasOpenTag = chunkContent.includes('<TASK_LIST>')
+  const chunkHasCloseTag = chunkContent.includes('</TASK_LIST>')
+
+  // 如果累积内容或当前 chunk 包含 TASK_LIST 标签，说明是正确的格式，不要过滤
+  if (accHasOpenTag || accHasCloseTag || chunkHasOpenTag || chunkHasCloseTag) {
+    return chunkContent
   }
-  
+
+  // 🔥 关键修复：先识别并保留 schedule_task JSON 代码块
+  // schedule_task JSON 绝不能被 TASK_LIST 过滤器误删
+  // 用占位符替换，过滤完再恢复
+  const scheduleTaskBlocks: string[] = []
+  let stashed = chunkContent
+  stashed = stashed.replace(/```json\s*[\s\S]*?"action"\s*:\s*"schedule_task"[\s\S]*?(?:```|$)/g, (match) => {
+    scheduleTaskBlocks.push(match)
+    return `\x00ST_BLOCK_${scheduleTaskBlocks.length - 1}\x00`
+  })
+
+  // 🔥 关键修复：同时识别并保留自动化策略 JSON
+  // 自动化策略是含 nodes/edges 的图结构，含 triggerNode/logicNode/actionNode
+  // 使用非贪婪匹配直到遇到 ``` 或字符串结尾；不要求 JSON 已闭合（流式支持）
+  const automationBlocks: string[] = []
+  stashed = stashed.replace(/```json\s*[\s\S]*?(?:```|$)/g, (match) => {
+    const jsonText = match.replace(/^```json\s*/, "").replace(/```$/, "").trim()
+    // 任何含策略标记的代码块都保护
+    if (jsonText.includes('"triggerNode"') || jsonText.includes('"logicNode"') || jsonText.includes('"actionNode"')) {
+      automationBlocks.push(match)
+      return `\x00AUTO_BLOCK_${automationBlocks.length - 1}\x00`
+    }
+    return match
+  })
+
+  // 🔥 关键修复：保护无 fence 的裸策略 JSON（如 { "nodes": [...], "edges": [...] }）
+  // 避免被下方的 TASK_LIST 模式误识别（虽然一般不会匹配，但作为保险）
+  stashed = stashed.replace(/\{\s*"(?:nodes|edges)"[\s\S]*?"nodes"\s*:\s*\[[\s\S]*?\}\s*(?=\n|$)/g, (match) => {
+    if (match.includes('"triggerNode"') || match.includes('"logicNode"') || match.includes('"actionNode"')) {
+      automationBlocks.push('```json\n' + match + '\n```')
+      return `\x00AUTO_BLOCK_${automationBlocks.length - 1}\x00`
+    }
+    return match
+  })
+
   // 只有在没有标签包裹的情况下，才过滤裸露的 JSON
-  
+
   // 1. 拦截完整的裸露 TASK_LIST JSON 对象
   // 匹配模式：{ "status": "in_progress", "tasks": [...] }
   const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
-  const hasTaskListJson = taskListJsonPattern.test(content)
-  
+  const hasTaskListJson = taskListJsonPattern.test(stashed)
+
   if (hasTaskListJson) {
-    content = content.replace(taskListJsonPattern, (match) => {
+    stashed = stashed.replace(taskListJsonPattern, (match) => {
+      // 二次防御：不能是 schedule_task JSON
+      if (match.includes('"action": "schedule_task"')) return match
       console.warn('[TASK_LIST Filter] Intercepted BARE TASK_LIST JSON (no tags):', match.slice(0, 100))
       return '' // 完全移除裸露的 JSON
     })
   }
-  
+
   // 2. 拦截不完整的裸露 TASK_LIST JSON 片段（流式输出时）
   // 匹配模式：{ "status": "in_progress", "tasks": [{ "id": "task-1"...
   const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
-  if (incompleteTaskPattern.test(content)) {
-    const lastBrace = content.lastIndexOf('{')
+  if (incompleteTaskPattern.test(stashed)) {
+    const lastBrace = stashed.lastIndexOf('{')
     if (lastBrace !== -1) {
-      const potentialJson = content.slice(lastBrace)
-      // 确认这是 TASK_LIST JSON 的特征
-      if (potentialJson.includes('"tasks"') || (potentialJson.includes('"status"') && potentialJson.includes('"in_progress"'))) {
+      const potentialJson = stashed.slice(lastBrace)
+      // 二次防御：必须包含 tasks 或 status，且不能是 schedule_task
+      if (
+        (potentialJson.includes('"tasks"') || (potentialJson.includes('"status"') && potentialJson.includes('"in_progress"'))) &&
+        !potentialJson.includes('"action": "schedule_task"')
+      ) {
         console.warn('[TASK_LIST Filter] Intercepted incomplete BARE TASK_LIST JSON (no tags)')
-        content = content.slice(0, lastBrace).trim()
+        stashed = stashed.slice(0, lastBrace).trim()
       }
     }
   }
-  
-  return content
+
+  // 还原 schedule_task 代码块
+  const result = stashed.replace(/\x00ST_BLOCK_(\d+)\x00/g, (_, idx) => {
+    return scheduleTaskBlocks[Number(idx)] || ''
+  })
+  // 还原自动化策略代码块
+  return result.replace(/\x00AUTO_BLOCK_(\d+)\x00/g, (_, idx) => {
+    return automationBlocks[Number(idx)] || ''
+  })
 }
 
 export async function POST(req: Request) {
@@ -99,11 +152,13 @@ export async function POST(req: Request) {
     const aiFeatures = await getAIFeaturesConfig()
     console.log('[Chat API] AI Features Config:', aiFeatures ? 'Loaded' : 'Using defaults')
     
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline } =
       await req.json()
 
     // 兼容前端传来的 deviceData 字段
     const deviceStatus = deviceData;
+    // 🔥 设备离线时禁用控制能力，避免 AI 生成无效控制指令浪费 token
+    const isDeviceOnline = deviceOnline !== false;
 
     // ====== 多提供商解析 ======
     // 优先级：用户自配 > 已配置提供商 > 系统环境变量
@@ -233,9 +288,9 @@ export async function POST(req: Request) {
                  })
                  
                  if (matchedTool) {
-                     console.log(`[MCP] User explicitly mentioned @${mentionedName}, forcing usage of tool: ${matchedTool.function.name}`)
-                     forcedToolPrompt = `\n\n**重要指令：**\n用户在消息中显式使用了 "@${mentionedName}" 标记。\n你必须**优先**调用与 "${mentionedName}" 相关的工具（如 \`${matchedTool.function.name}\`）来回答用户的请求。\n不要拒绝调用，即使你认为没有必要。请直接执行工具调用。`
-                 }
+                         console.log(`[MCP] User explicitly mentioned @${mentionedName}, forcing usage of tool: ${matchedTool.function.name}`)
+                         forcedToolPrompt = `\n\n**重要指令：** 用户使用了 "@${mentionedName}"，必须优先调用 \`${matchedTool.function.name}\` 工具回答请求，不要拒绝。`
+                     }
              } else {
                  // 自动触发逻辑：根据用户意图自动选择工具
                  const lowerMsg = lastUserContent.toLowerCase()
@@ -260,7 +315,7 @@ export async function POST(req: Request) {
                      
                      if (bestTool) {
                          console.log(`[MCP] Detected search intent, forcing usage of tool: ${bestTool.function.name}`)
-                         forcedToolPrompt = `\n\n**🚨 强制搜索指令：**\n用户的请求包含搜索意图："${lastUserContent}"\n\n你**必须立即**调用搜索工具（如 \`${bestTool.function.name}\`）来获取真实信息。\n\n**严禁行为：**\n- ❌ 不能凭记忆回答\n- ❌ 不能编造任何链接或信息\n- ❌ 不能猜测或推测内容\n\n**必须行为：**\n- ✅ 立即调用 \`${bestTool.function.name}\` 工具\n- ✅ 基于真实搜索结果回答\n- ✅ 提供真实的链接和信息\n\n请注意：${firecrawl ? '优先使用 Firecrawl 进行深度抓取。如果抓取失败或返回内容为空，请立即尝试使用 Exa/Brave 进行搜索作为备选。' : (exa ? '优先使用 Exa 进行语义搜索。' : '使用 Brave 进行网络搜索。')}`
+                         forcedToolPrompt = `\n\n**强制搜索指令：** 用户请求包含搜索意图，必须立即调用 \`${bestTool.function.name}\` 获取真实信息。严禁凭记忆回答或编造链接。${firecrawl ? '优先 Firecrawl 抓取，失败则用 Exa/Brave 备选。' : (exa ? '使用 Exa 语义搜索。' : '使用 Brave 搜索。')}`
                      }
                  }
              }
@@ -334,75 +389,26 @@ export async function POST(req: Request) {
     }
     
     if (missingTools.length > 0) {
-      mcpInstallationHint = `\n\n## ⚠️ 外部工具能力未启用\n\n` +
-        `检测到你可能需要以下能力，但当前没有安装相应的 MCP 工具：\n` +
-        missingTools.map(t => `- ${t}`).join('\n') + `\n\n` +
-        `**推荐的 MCP 工具：**\n` +
-        `- **Exa Search**: 专业的 AI 搜索引擎，适合获取最新的技术文档和知识\n` +
-        `- **Brave Search**: 隐私友好的通用搜索引擎，适合日常信息查询\n` +
-        `- **Firecrawl**: 网页内容抓取工具，可以深度提取网页信息\n` +
-        `- **彩云天气 / 高德天气 / 和风天气**: 实时天气查询服务\n\n` +
-        `**如何安装：**\n` +
-        `1. 点击右上角的设置图标 ⚙️\n` +
-        `2. 进入 "MCP 工具商店" 标签页\n` +
-        `3. 搜索并安装上述工具\n` +
-        `4. 根据提示配置 API Key（部分工具需要）\n` +
-        `5. 启用工具后即可使用\n\n` +
-        `**当前回复限制：**\n` +
-        `由于缺少相应工具，我只能基于已有知识回答，可能无法提供最新、最准确或实时的信息。\n` +
-        `**建议：如果你经常需要这些能力，请先安装对应的 MCP 工具以获得最佳体验。**\n\n` +
-        `**重要提示：**\n` +
-        `- 你应该在回复中友好地告知用户这个限制\n` +
-        `- 不要假装调用了工具或编造数据\n` +
-        `- 可以建议用户安装工具后再次询问`
+      mcpInstallationHint = `\n\n## ⚠️ 外部工具能力未启用\n检测到可能需要：${missingTools.join('、')}。当前未安装相应 MCP 工具，只能基于已有知识回答。请在设置 → MCP 工具商店中安装对应工具。回复时友好告知用户此限制，不要假装调用工具或编造数据。`
     }
 
     // 只将光谱数据获取推给 MCP，恢复基础设备状态的直接注入
-    contextInfo += `\n\n## 光谱数据获取方式\n当需要获取光谱数据时，请使用以下 MCP 工具：\n- 使用 \`get_all_spectrum\` 获取完整的 18 通道光谱数据\n- 使用 \`get_channel\` 获取特定波长的光谱值\n\n这些工具会实时从 MQTT 获取最新的传感器数据。\n⚠️ **重要**：获取到光谱数据后，严禁以原始 JSON 格式输出给用户（会被系统限制过滤），你**必须**将其整理成易于阅读的 **Markdown 表格形式**（列可包含波长、数值、描述等）输出给用户。\n`
+    contextInfo += `\n\n## 光谱数据获取\n使用 \`get_all_spectrum\`（18通道全量）或 \`get_channel\`（特定波长）MCP 工具获取。获取后必须转为 Markdown 表格输出，禁止输出原始 JSON。\n`
 
-    contextInfo += `\n\n【任务规划器指令】
-当用户下达复杂或多步骤任务时（特别是农业自动化、分析或控制），你必须使用 <TASK_LIST> 标签输出任务计划。
-请遵循“SOP 标准作业程序”：
-1. **搜寻标准**：先根据【当前季节/月份】搜索最佳农业实践（如：“${currentMonth}月 草莓大棚 温湿度管理标准”）。
-2. **分析差距**：对比搜索到的标准值与当前设备传感器数据。
-3. **制定策略**：基于差距生成调控指令。
+    contextInfo += `\n\n## 任务规划器与 MCP 工具调用
+**任务规划器**：复杂多步骤任务时用 <TASK_LIST> 标签输出计划。SOP：1.按当前【${currentMonth}月/${currentSeason}】搜索农业标准 → 2.对比传感器数据分析差距 → 3.生成调控指令。
+**MCP 工具规则**：
+1. 禁止搜索设备操作指令（开关灯/水泵/摄像头等是自带能力，直接输出 JSON 控制）
+2. 搜索农业知识（生长标准、温湿度范围、病害防治）
+3. 搜索关键词须含【月份/季节】，如 \`${currentMonth}月 草莓大棚 通风策略\`
+4. 基于搜索结果对比当前数据生成调控建议`
 
-格式如下：
-<TASK_LIST>
-{
-  "status": "in_progress",
-  "tasks": [
-    {
-      "title": "搜索${currentSeason}草莓种植标准",
-      "status": "in_progress",
-      "subActions": [
-        { "text": "正在调用搜索工具获取${currentMonth}月管理要点...", "status": "in_progress" }
-      ]
-    },
-    {
-      "title": "分析环境数据差距",
-      "status": "pending",
-      "subActions": []
-    },
-    {
-      "title": "执行环境调控",
-      "status": "pending",
-      "subActions": []
-    }
-  ]
-}
-</TASK_LIST>
-
-【MCP工具调用指令】
-你是农业平台智能助手。请积极使用系统提供的 MCP 工具。
-**重要规则：**
-1. **禁止搜索设备指令**：严禁搜索“打开水泵”、“如何开关灯”、“截取摄像头”、“查看监控”等设备操作指令。设备控制、视觉巡检和获取截图是你自带的能力，请直接输出相应的 JSON 控制指令。
-2. **搜索农业知识**：当用户要求“调控环境”时，你应该搜索“作物生长标准”、“最佳温湿度范围”、“病害防治方法”等知识。
-3. **上下文感知搜索**：搜索关键词必须包含当前的【月份】、【季节】或【作物生长阶段】。例如搜索 \`"${currentMonth}月 草莓大棚 通风 策略"\` 而不是简单的 \`"大棚通风"\`。
-4. **基于结果调控**：获取到搜索结果（如“白天适宜25度”）后，再对比当前温度，如果当前是30度，则生成“开启风扇”的建议。`
 
     // 直接注入基础设备状态和环境数据
-    if (deviceStatus && mandatorySkillsEnabled !== false) {
+    // 🔥 设备离线时跳过设备状态注入，并明确告知 AI 不可控制设备
+    if (!isDeviceOnline) {
+      contextInfo += `\n\n## ⚠️ 设备离线\n当前温室设备处于离线状态（未连接或通信超时），无法读取实时传感器数据，也无法执行任何设备控制指令。\n**严禁输出任何设备控制 JSON（toggle_relay, set_led, control_camera, reset_camera, move_camera_and_look 等）**，这些指令将无法执行。\n如果用户要求控制设备或查看实时数据，请直接告知设备已离线，建议检查设备连接后再试。\n`
+    } else if (deviceStatus && mandatorySkillsEnabled !== false) {
       // 计算丝杆滑台位置信息
       const stepperPos = deviceStatus.stepper_position || 0
       const stepperPosMM = (stepperPos / 160).toFixed(1)
@@ -501,7 +507,15 @@ export async function POST(req: Request) {
       console.error('[Memory] Failed to enhance prompt with memory:', e);
     }
 
-    const finalSystemPrompt = enhancedSystemPrompt + contextInfo + `
+    // 🔥 Token 优化：按需注入报告生成指令（仅在用户请求报告时加载完整模板）
+    const reportKeywords = ['报告', '导出报告', '生成报告', '分析报告', 'report']
+    const needsReportInstruction = reportKeywords.some(k => lastUserText.toLowerCase().includes(k))
+
+    // 🔥 Token 优化：按需注入定时任务详细指令
+    const scheduleKeywords = ['定时', '定时任务', '提醒', '分钟后', '小时后', '秒后', '每天', '每周', 'cron', 'schedule', '复查', '复查任务', '自动执行']
+    const needsScheduleTaskDetail = scheduleKeywords.some(k => lastUserText.toLowerCase().includes(k))
+
+    const reportInstructionFull = `
 
 【报告生成能力 - 创意排版设计】
 你现在具备生成精美HTML报告的能力。当用户请求"生成报告"、"导出报告"、"分析报告"时：
@@ -554,7 +568,7 @@ export async function POST(req: Request) {
 
 [REPORT:报告标题]
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
-  
+
   <!-- 头部横幅 -->
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
@@ -596,27 +610,24 @@ export async function POST(req: Request) {
 - **数据分析报告**：紫色系 (#8b5cf6, #7c3aed)
 
 记住：HTML必须用 [REPORT:标题] 和 [/REPORT] 包裹，不要使用代码块！
+`
 
+    const reportInstructionShort = `
+
+【报告生成能力】
+你具备生成HTML报告的能力。当用户请求"生成报告"、"导出报告"时：
+1. 先输出 <REPORT_GENERATING>正在生成报告，请稍候...</REPORT_GENERATING>
+2. 输出简短说明和配额提醒（每天5次配额，生成后提醒剩余次数，提醒文字须在 [REPORT:] 标签之前）
+3. 用 [REPORT:标题] 和 [/REPORT] 包裹完整HTML代码（不要用代码块），报告须为回复最后一个内容
+4. 设计：根据主题选配色（环境=绿色/设备=蓝色/警告=橙红），使用卡片式布局、渐变背景、圆角阴影
+`
+
+    const capabilitiesInstructionText = `
 【AI 助手能力展示】
-当用户询问你的能力、功能、可以做什么、有哪些功能等问题时，请直接在回复中插入 <CAPABILITIES/> 标签（自闭合标签）。这将展示一个美观的交互式功能卡片，用户可以点击查看详情和示例。
+当用户询问你的能力、功能、可以做什么等问题时，插入 <CAPABILITIES/> 标签展示功能卡片，可简短补充说明，无需详细列举功能。
+`
 
-**触发关键词**：
-- "你能做什么"
-- "你有什么功能"
-- "你可以帮我做什么"
-- "介绍一下你的能力"
-- "你都会什么"
-- "你的功能有哪些"
-
-**输出格式**：
-\`\`\`
-<CAPABILITIES/>
-
-我是莓小智，你的智慧农业助手。上面的卡片展示了我的核心能力，你可以点击任意卡片查看详细说明和使用示例。
-\`\`\`
-
-**注意**：输出标签后，你可以简短地补充说明，但不需要详细列举所有功能（卡片会展示）。
-` + forcedToolPrompt
+    const finalSystemPrompt = enhancedSystemPrompt + contextInfo + (needsReportInstruction ? reportInstructionFull : reportInstructionShort) + capabilitiesInstructionText + forcedToolPrompt
 
     const deviceControlInstruction =
       "## IoT 设备控制规范与硬件 ID 映射 (必读)\n" +
@@ -771,8 +782,11 @@ export async function POST(req: Request) {
     const stringifyContent = (content: any) => typeof content === 'string' ? content : JSON.stringify(content)
     const stringifyMessages = (msgs: any[]) => msgs.map(m => m.role + stringifyContent(m.content)).join('\n')
     
-    const MAX_CHAR_COUNT = 25000 // 设定一个阈值（约1.5万Token左右的长度）
-    const GRAND_SUMMARY_THRESHOLD = 8000 // 总结如果超过此长度，重新大一统总结一次
+    // 🔥 智能压缩 v2 阈值策略
+    const MAX_CHAR_COUNT = 60000 // 触发压缩的字符数阈值（约 20k tokens，适配 128k+ 上下文窗口）
+    const GRAND_SUMMARY_THRESHOLD = 12000 // 旧摘要超过此长度时要求深度精简
+    const MIN_KEEP_RECENT = 4 // 至少保留最近 N 轮对话不压缩
+    const MIN_HISTORY_TO_COMPRESS = 800 // 历史片段至少 N 字符才值得压缩
     
     // 找出之前的记忆标记
     let existingMemoryIndex = userMessages.findIndex(m => stringifyContent(m.content).includes('<PAST_MEMORY>'))
@@ -786,35 +800,57 @@ export async function POST(req: Request) {
     }
 
     const currentOverflowCount = stringifyMessages(nonMemoryMessages).length
-    const messagesToKeep = 4;
-    const historyToSummarize = nonMemoryMessages.slice(0, nonMemoryMessages.length - messagesToKeep)
+    // 🔥 智能压缩 v2：按"对"边界保留最近对话（user + assistant 各 1 算 1 轮）
+    const historyToSummarize = nonMemoryMessages.slice(0, Math.max(0, nonMemoryMessages.length - MIN_KEEP_RECENT))
     const historyToSummarizeLength = stringifyMessages(historyToSummarize).length
-    
-    if (currentOverflowCount > MAX_CHAR_COUNT && nonMemoryMessages.length > 5 && historyToSummarizeLength > 1000) {
+
+    if (
+      currentOverflowCount > MAX_CHAR_COUNT &&
+      nonMemoryMessages.length > MIN_KEEP_RECENT + 1 &&
+      historyToSummarizeLength > MIN_HISTORY_TO_COMPRESS
+    ) {
        console.log(`[Chat API] Context overflow (${currentOverflowCount}), summarizing ${historyToSummarizeLength} chars of history...`)
-       
-       const recentMessages = nonMemoryMessages.slice(nonMemoryMessages.length - messagesToKeep)
+
+       const recentMessages = nonMemoryMessages.slice(nonMemoryMessages.length - MIN_KEEP_RECENT)
        
        try {
            const summarizeTargetUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
            const summarizeKey = process.env.SYSTEM_OPENAI_API_KEY || apiKey
            
-           // 多级总结逻辑
+           // 多级总结逻辑：基于滑动窗口 + 增量更新 + 结构化 JSON 输出
            let summaryPrompt = ""
            let summaryInput = ""
-           
+
+           // 🔥 智能压缩 v2：统一要求输出结构化 JSON，便于前端卡片化渲染
+           const STRUCTURED_OUTPUT_SPEC = `【输出格式 - 严格 JSON】
+你必须输出**严格的 JSON 对象**（不要 Markdown 代码块包裹，不要其他任何文字），结构如下：
+{
+  "timeframe": "对话时间范围（简短描述）",
+  "user_intent": "用户当前主要意图（1 句话）",
+  "key_facts": ["核心事实 1", "核心事实 2", ...],
+  "actions_taken": ["AI 已执行的行动 1", ...],
+  "decisions": ["关键决策或结论 1", ...],
+  "pending_tasks": ["待办事项 1", ...],
+  "current_state": "当前状态/进展的简短描述"
+}
+要求：
+- 每个数组最多 4 项，每项 ≤ 30 字
+- 客观陈述，去除寒暄和重复内容
+- 保留具体设备/任务名/参数等关键信息
+- 若某类无内容，输出空数组`
+
            if (!existingMemoryText) {
                // 第一级：首次总结
-               summaryPrompt = "你是一个专门总结并在不丢失核心信息前提下压缩上下文的助手。请用一段极简的语言，提炼出以下截断的对话历史中的核心事实、用户主要意图以及AI已采取的关键行动。你的总结将作为下一轮AI对话的'过去的记忆'提供。"
+               summaryPrompt = `你是一个对话历史压缩专家，擅长从冗长对话中提取结构化记忆。${STRUCTURED_OUTPUT_SPEC}`
                summaryInput = "请压缩以下对话记录：\n" + stringifyMessages(historyToSummarize)
            } else {
-               // 第二级：增量叠加
-               summaryPrompt = "你是一个专门合并并优化对话记忆的助手。我会给你一段【旧的历史记忆摘要】和一段【新增的对话记录】。请将它们合并在一起，形成一份连贯、精简且包含所有关键信息的【最新历史记忆摘要】。请保持客观叙事风格。"
+               // 第二级：增量合并
+               summaryPrompt = `你是一个对话记忆合并优化专家，需要将旧记忆与新对话合并为最新结构化记忆。${STRUCTURED_OUTPUT_SPEC}`
                summaryInput = `【旧的历史记忆摘要】\n${existingMemoryText}\n\n【新增的对话记录】\n${stringifyMessages(historyToSummarize)}`
-               
-               // 第三级：如果旧摘要已经很大，要求大一统精简
+
+               // 第三级：旧摘要过大时要求深度精简
                if (existingMemoryText.length > GRAND_SUMMARY_THRESHOLD) {
-                   summaryPrompt += "\n警告：旧摘要已经非常冗长，请在合并时进行深度压缩和去重，只保留最核心的价值信息，将整体长度缩减 40% 以上。"
+                   summaryPrompt += "\n警告：旧摘要冗长，请在合并时深度压缩去重，整体缩减 40% 以上。"
                }
            }
 
@@ -830,16 +866,42 @@ export async function POST(req: Request) {
                       { role: "system", content: summaryPrompt },
                       { role: "user", content: summaryInput }
                   ],
-                  temperature: 0.1
+                  temperature: 0.1,
+                  response_format: { type: "json_object" }
                })
            })
-           
+
            if (summarizeRes.ok) {
                const summarizeData = await summarizeRes.json()
-               const summaryText = summarizeData.choices?.[0]?.message?.content
-               if (summaryText) {
+               const rawSummary = summarizeData.choices?.[0]?.message?.content
+               if (rawSummary) {
+                   // 🔥 智能压缩 v2：尝试解析结构化 JSON，失败则回退为纯文本
+                   let normalizedSummary: string
+                   try {
+                       const parsed = JSON.parse(rawSummary)
+                       if (parsed && typeof parsed === 'object') {
+                           // 校验关键字段，缺失时补空
+                           const safe = {
+                               timeframe: typeof parsed.timeframe === 'string' ? parsed.timeframe : '历史对话',
+                               user_intent: typeof parsed.user_intent === 'string' ? parsed.user_intent : '',
+                               key_facts: Array.isArray(parsed.key_facts) ? parsed.key_facts.slice(0, 4) : [],
+                               actions_taken: Array.isArray(parsed.actions_taken) ? parsed.actions_taken.slice(0, 4) : [],
+                               decisions: Array.isArray(parsed.decisions) ? parsed.decisions.slice(0, 4) : [],
+                               pending_tasks: Array.isArray(parsed.pending_tasks) ? parsed.pending_tasks.slice(0, 4) : [],
+                               current_state: typeof parsed.current_state === 'string' ? parsed.current_state : ''
+                           }
+                           normalizedSummary = JSON.stringify(safe)
+                       } else {
+                           normalizedSummary = rawSummary
+                       }
+                   } catch {
+                       // LLM 没严格按 JSON 输出时，尝试抽取首个 JSON 块
+                       const jsonMatch = rawSummary.match(/\{[\s\S]*\}/)
+                       normalizedSummary = jsonMatch ? jsonMatch[0] : rawSummary
+                   }
+
                    userMessages = [
-                       { role: "assistant", content: `[系统消息：为了节省上下文长度，早期的历史已被提炼如下]\n<PAST_MEMORY>\n${summaryText}\n</PAST_MEMORY>` },
+                       { role: "assistant", content: `[系统消息：为了节省上下文长度，早期的历史已被提炼如下]\n<PAST_MEMORY>\n${normalizedSummary}\n</PAST_MEMORY>` },
                        ...recentMessages
                    ]
                    contextCompressed = true;
@@ -876,22 +938,72 @@ export async function POST(req: Request) {
 
     if (effectiveModel === 'auto') {
       if (enableReasoning) {
-        effectiveModel = 'deepseek-v3.2' // 优先使用推理模型
+        // 优先从 admin 配置里挑一个 supportsReasoning 的模型
+        try {
+          const cfg = await readProvidersConfig()
+          const reasoningModel = cfg.providers
+            .filter(p => p.enabled)
+            ?.flatMap(p => p.models.filter(m => m.enabled && m.supportsReasoning).map(m => ({ ...m, _providerPriority: p.priority ?? 999 })))
+            ?.sort((a, b) => a._providerPriority - b._providerPriority)?.[0]
+          if (reasoningModel?.id) {
+            effectiveModel = reasoningModel.id
+          } else {
+            // 兜底：模型名启发式
+            const lower = String(effectiveModel).toLowerCase()
+            const heuristic = lower.includes('deepseek') || lower.includes('reasoner') || lower.includes('r1') || lower.includes('thinking')
+            effectiveModel = heuristic ? effectiveModel : 'deepseek-v3.2'
+          }
+        } catch {
+          effectiveModel = 'deepseek-v3.2' // 配置读取失败时的最后兜底
+        }
       } else if (hasImageContent) {
-        effectiveModel = 'qwen3.6-plus' // 优先使用视觉模型
+        // 优先使用视觉模型
+        effectiveModel = 'qwen3.6-plus'
       } else {
         effectiveModel = 'qwen3.6-plus' // 默认使用通用增强模型
       }
     }
 
+    // 判断当前模型是否支持视觉（多模态）
+    // 优先级：admin 后台配置（modelInfo.supportsVision）> 模型名启发式（兜底）
     const modelLower = String(effectiveModel).toLowerCase()
-    const isVLMModel = (
+    const adminSupportsVision = resolved?.modelInfo?.supportsVision
+    const heuristicSupportsVision = (
       modelLower.includes('vision') ||
       modelLower.includes('-vl-') ||
       /qwen\d*-vl/.test(modelLower) ||
       modelLower.includes('qvq') ||
       modelLower.includes('qwen3.6') // Qwen3.6 系列支持视觉
     )
+    const isVLMModel = typeof adminSupportsVision === 'boolean'
+      ? adminSupportsVision
+      : heuristicSupportsVision
+
+    // 判断当前模型是否支持深度推理
+    // 优先级：admin 后台配置（modelInfo.supportsReasoning）> 模型名启发式（兜底）
+    const adminSupportsReasoning = resolved?.modelInfo?.supportsReasoning
+    const heuristicSupportsReasoning = (
+      modelLower.includes('deepseek') ||
+      modelLower.includes('reasoner') ||
+      modelLower.includes('thinking') ||
+      /qwen3.*-r1/.test(modelLower) ||
+      /\bqwq\b/.test(modelLower) ||
+      /\bo1\b/.test(modelLower) ||
+      /\bo3\b/.test(modelLower) ||
+      modelLower.includes('r1-')
+    )
+    const isReasoningModel = typeof adminSupportsReasoning === 'boolean'
+      ? adminSupportsReasoning
+      : heuristicSupportsReasoning
+
+    if (enableReasoning && !isReasoningModel && effectiveModel !== 'auto') {
+      // 用户在非 auto 模式下开启了深度推理，但当前模型不支持推理
+      // 记录一条 warning，由前端根据此字段提示用户
+      console.warn(`[Chat API] Model "${effectiveModel}" does not support reasoning, but enableReasoning=true`)
+    }
+
+    // 实际生效的推理开关：必须同时满足「用户开启」+「模型支持」
+    const shouldEnableReasoning = !!enableReasoning && isReasoningModel
 
     if (hasImageContent && !isLocal) {
       if (!isVLMModel) {
@@ -949,11 +1061,12 @@ export async function POST(req: Request) {
       // 使用精简的系统提示词以减少Token消耗
       const compactSystemPrompt = generateCompactSystemPrompt({
         basePrompt: finalSystemPrompt,
-        enableDeviceControl: mandatorySkillsEnabled !== false,
-        enableReasoning: enableReasoning,
+        enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
+        enableReasoning: shouldEnableReasoning,
         mcpToolNames: mcpToolDefs.map(t => t.function.name),
         contextCompressed: contextCompressed,
-        aiFeatures: aiFeatures
+        aiFeatures: aiFeatures,
+        includeScheduleTaskDetail: needsScheduleTaskDetail
       });
 
       fullMessages = [
@@ -984,11 +1097,12 @@ export async function POST(req: Request) {
       // 使用精简的系统提示词
       const systemMessage = generateCompactSystemPrompt({
         basePrompt: finalSystemPrompt,
-        enableDeviceControl: mandatorySkillsEnabled !== false,
-        enableReasoning: enableReasoning,
+        enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
+        enableReasoning: shouldEnableReasoning,
         mcpToolNames: mcpToolDefs.map(t => t.function.name),
         contextCompressed: contextCompressed,
-        aiFeatures: aiFeatures
+        aiFeatures: aiFeatures,
+        includeScheduleTaskDetail: needsScheduleTaskDetail
       }) + mcpInstallationHint;
 
       // 转换消息格式：OpenAI format -> DashScope format
@@ -1034,11 +1148,12 @@ export async function POST(req: Request) {
       // 使用精简的系统提示词
       const compactSystemPrompt = generateCompactSystemPrompt({
         basePrompt: finalSystemPrompt,
-        enableDeviceControl: mandatorySkillsEnabled !== false,
-        enableReasoning: enableReasoning,
+        enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
+        enableReasoning: shouldEnableReasoning,
         mcpToolNames: mcpToolDefs.map(t => t.function.name),
         contextCompressed: contextCompressed,
-        aiFeatures: aiFeatures
+        aiFeatures: aiFeatures,
+        includeScheduleTaskDetail: needsScheduleTaskDetail
       });
       
       fullMessages = [
@@ -1204,9 +1319,9 @@ export async function POST(req: Request) {
 
                       if (delta?.content) {
                         accumulatedContent += delta.content
-                        
-                        // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON
-                        let filteredContent = filterBareTaskListJson(delta.content)
+
+                        // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON（传入累积内容用于上下文判断）
+                        let filteredContent = filterBareTaskListJson(delta.content, accumulatedContent)
                         
                         // 🔥 应用功能禁用过滤器
                         filteredContent = filterDisabledFeatures(filteredContent, aiFeatures)
@@ -1536,8 +1651,8 @@ export async function POST(req: Request) {
                         }
 
                         if (next) {
-                          // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON
-                          const filteredNext = filterBareTaskListJson(next)
+                          // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON（传入累积内容用于上下文判断）
+                          const filteredNext = filterBareTaskListJson(next, acc)
                           
                           if (filteredNext) {
                             const openaiFormat = {

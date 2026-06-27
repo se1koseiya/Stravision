@@ -7,10 +7,10 @@ import { getPublicProviders } from '@/lib/ai/provider-resolver'
  */
 export async function GET() {
   try {
-    const providers = await getPublicProviders()
-    return NextResponse.json({ providers })
+    const data = await getPublicProviders()
+    return NextResponse.json(data)
   } catch (error) {
     console.error('[AI Providers Public] Error:', error)
-    return NextResponse.json({ providers: [] })
+    return NextResponse.json({ providers: [], defaultModelId: null })
   }
 }

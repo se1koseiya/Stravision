@@ -1,4 +1,4 @@
-﻿
+
 "use client"
 
 import React, { useState, useCallback, useRef } from 'react';
@@ -89,6 +89,84 @@ function AutomationEditor() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [isSaving, setIsSaving] = useState(false);
+
+  // 🔥 关键修复：规范化 nodes，确保每个节点都有合法的 position 和 id 字段，
+  // 否则 React Flow 内部访问 node.position.x 时会抛出 "Cannot read properties of undefined (reading 'x')"
+  // 同时智能归类未知 type，让 AI 输出的 "aiNode"/"deviceNode"/"controlNode" 等都能渲染
+  const SUPPORTED_NODE_TYPES = new Set(['triggerNode', 'logicNode', 'aiNode', 'actionNode'])
+
+  // 根据 label 智能推断节点类型
+  const inferNodeType = (label: string, subType?: string): 'triggerNode' | 'logicNode' | 'aiNode' | 'actionNode' => {
+    const text = `${label || ''} ${subType || ''}`.toLowerCase()
+    // AI 节点特征
+    if (/ai|智能|llm|大模型|诊断|分析|预测|识别|识别|学习|推理|gpt|claude|诊断|trend|recommend|diagnose/.test(text)) {
+      return 'aiNode'
+    }
+    // 动作/控制节点特征
+    if (/控制|开关|开启|关闭|打开|启动|停止|执行|发送|通知|告警|推送|控制|action|control|notify|device|send|alert|推送|设备/.test(text)) {
+      return 'actionNode'
+    }
+    // 触发器特征
+    if (/监测|传感|定时|阈值|触发|检测|温度|湿度|光照|浓度|当...时|如果|若|trigger|sensor|schedule|threshold|monitor/.test(text)) {
+      return 'triggerNode'
+    }
+    // 逻辑判断
+    if (/判断|比较|范围|逻辑|且|或|非|条件|大于|小于|等于|compare|range|condition|and|or/.test(text)) {
+      return 'logicNode'
+    }
+    // 默认归类为 logicNode
+    return 'logicNode'
+  }
+
+  const sanitizeNodes = useCallback((rawNodes: any[]): Node[] => {
+    if (!Array.isArray(rawNodes)) return []
+    return rawNodes
+      .filter((n: any) => n && (n.id || n.type))
+      .map((n: any, index: number) => {
+        // 自动布局：按列排布（每行 3 个节点，间距 300x200）
+        const col = index % 3
+        const row = Math.floor(index / 3)
+        const defaultPosition = { x: 100 + col * 320, y: 100 + row * 220 }
+        const pos = n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number'
+          ? n.position
+          : defaultPosition
+        // 🔥 智能 type 归类：未知 type 尝试根据 label 推断，仍失败则归为 logicNode
+        const rawType = n.type
+        const inferredLabel = n.data?.label || n.label || n.data?.description || n.id || `节点 ${index + 1}`
+        const nodeType = SUPPORTED_NODE_TYPES.has(rawType)
+          ? rawType
+          : inferNodeType(inferredLabel, n.data?.type)
+        return {
+          ...n,
+          id: String(n.id || `node-${index}`),
+          type: nodeType,
+          position: pos,
+          data: {
+            label: inferredLabel,
+            ...n.data,
+            // 保留原始 type 以便调试，但 React Flow 实际使用的是顶层 type
+          },
+        } as Node
+      })
+  }, [])
+
+  // 🔥 规范化 edges，确保 source/target 指向真实存在的 node id
+  const sanitizeEdges = useCallback((rawEdges: any[], validNodeIds: Set<string>): Edge[] => {
+    if (!Array.isArray(rawEdges)) return []
+    return rawEdges
+      .filter((e: any) => e && e.source && e.target && validNodeIds.has(e.source) && validNodeIds.has(e.target))
+      .map((e: any, index: number) => ({
+        id: String(e.id || `e-${index}`),
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+        type: e.type,
+        data: e.data,
+        label: e.label,
+        animated: e.animated,
+      } as Edge))
+  }, [])
   const [ruleName, setRuleName] = useState('新自动化策略');
   const [isDeviceSheetOpen, setIsDeviceSheetOpen] = useState(false);
   const [isNodeLibraryCollapsed, setIsNodeLibraryCollapsed] = useState(false);
@@ -103,8 +181,12 @@ function AutomationEditor() {
         const tempStrategy = sessionStorage.getItem('temp_automation_strategy');
         if (tempStrategy) {
           const strategy = JSON.parse(tempStrategy);
-          if (strategy.nodes) setNodes(strategy.nodes);
-          if (strategy.edges) setEdges(strategy.edges);
+          if (strategy.nodes) {
+            const safeNodes = sanitizeNodes(strategy.nodes)
+            const nodeIds = new Set(safeNodes.map(n => n.id))
+            setNodes(safeNodes);
+            if (strategy.edges) setEdges(sanitizeEdges(strategy.edges, nodeIds));
+          }
           setRuleName('由 AI 助手生成的自动化策略');
           // Clear temporary storage
           sessionStorage.removeItem('temp_automation_strategy');
@@ -133,8 +215,12 @@ function AutomationEditor() {
                 if (rule.graph_data) {
                     try {
                         const graphData = JSON.parse(rule.graph_data);
-                        if (graphData.nodes) setNodes(graphData.nodes);
-                        if (graphData.edges) setEdges(graphData.edges);
+                        if (graphData.nodes) {
+                          const safeNodes = sanitizeNodes(graphData.nodes)
+                          const nodeIds = new Set(safeNodes.map(n => n.id))
+                          setNodes(safeNodes);
+                          if (graphData.edges) setEdges(sanitizeEdges(graphData.edges, nodeIds));
+                        }
                     } catch (e) {
                         console.error('Failed to parse graph data:', e);
                     }
@@ -255,7 +341,9 @@ function AutomationEditor() {
       const newNode: Node = {
         id: `${type}-${nodes.length + 1}`,
         type,
-        position,
+        position: position && typeof position.x === 'number' && typeof position.y === 'number'
+          ? position
+          : { x: 100 + nodes.length * 50, y: 100 },
         data: { label, type: subType },
       };
 
@@ -480,8 +568,10 @@ function AutomationEditor() {
         }
       }));
       
-      setNodes(validatedNodes);
-      setEdges(data.edges || []);
+      const safeNodes = sanitizeNodes(validatedNodes);
+      const nodeIds = new Set(safeNodes.map(n => n.id));
+      setNodes(safeNodes);
+      setEdges(sanitizeEdges(data.edges || [], nodeIds));
       
       toast.success('AI 策略生成成功！', { 
         description: `已生成 ${validatedNodes.length} 个节点`,

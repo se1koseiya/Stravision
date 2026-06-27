@@ -4,6 +4,7 @@ import React from "react"
 import ReactECharts from "echarts-for-react"
 import { Card, Flex, Space, Tag, Typography, theme } from "antd"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 
 const { Text, Title } = Typography
 
@@ -62,7 +63,14 @@ export function SpectralCard({ data }: SpectralCardProps) {
   }
 
   return (
-    <Card style={{ width: "100%", maxWidth: 400 }}>
+    <Card
+      style={{
+        width: "100%",
+        maxWidth: 400,
+        background: BERRY_THEME.gradients.cardHero(BERRY_THEME.primary),
+        borderColor: `${BERRY_THEME.primary}30`,
+      }}
+    >
       <Flex vertical gap={12}>
         <Flex justify="space-between" align="flex-start">
           <Flex vertical gap={2}>

@@ -275,14 +275,102 @@ export const SCHEDULE_TASK_INSTRUCTION_COMPACT = `
 - [ ] 最后输出了 <SCHEDULED_TASKS></SCHEDULED_TASKS>
 `;
 
-export const UI_TAGS_INSTRUCTION_COMPACT = `
-## UI 标签
-- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片
-- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板
-- <MONITOR></MONITOR> - 监控画面
-- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务管理列表（已存入数据库的任务）
-- <TASK_LIST></TASK_LIST> - 当前实时任务规划器（大模型正在执行的步骤计划）
-- <CHART type="echarts">...</CHART> - 图表
+export const SCHEDULE_TASK_INSTRUCTION_SHORT = `
+## ⏰ 定时任务创建
+当用户要求创建定时任务时，输出 JSON 代码块（\`\`\`json ... \`\`\`），然后输出 <SCHEDULED_TASKS></SCHEDULED_TASKS> 标签。
+
+**JSON 格式：**
+\`\`\`json
+{
+  "action": "schedule_task",
+  "title": "任务标题",
+  "delay_seconds": 300,
+  "task_action": "user_reminder"
+}
+\`\`\`
+
+**字段说明：**
+- \`task_action\`: user_reminder | agent_analysis | toggle_relay | set_led
+- \`delay_seconds\`: 延迟秒数（数字）或使用 \`cron\` 字符串表达式
+- toggle_relay 需额外包含 \`device\`（5=水泵 6=风扇 7=RGB灯 8=白光灯）和 \`value\`（1=开 0=关）
+
+**⚠️ 严禁使用 <SCHEDULE_TASK> 标签（已废弃）。**
+**自动模式下执行环境调控后，应主动创建复查任务（如5-10分钟后复查）。**
+`;
+
+export const TASK_LIST_INSTRUCTION_COMPACT = `
+## 📋 任务规划器 <TASK_LIST>（按任务复杂度判断是否启用）
+
+### 🧠 复杂度判断协议（先打分，再决定！）
+
+在每次回复前，你**必须**先在内心对本次任务做一次"复杂度评估"，按下列 4 个维度打分（0-2 分），**总分 ≥ 3 才输出 <TASK_LIST>**：
+
+| 维度 | 0 分 | 1 分 | 2 分 |
+|---|---|---|---|
+| **步骤数** | 1 步搞定 | 2 步 | ≥ 3 步 |
+| **工具/设备数** | 0 个 | 1 个 | ≥ 2 个 |
+| **闭环度** | 单点查询/单动作 | 采集→动作 | 采集→分析→决策→执行→复查 |
+| **领域跨度** | 单领域 | 2 领域 | ≥ 3 领域（环境/设备/光谱/视觉/知识/报告等） |
+
+**决策规则：**
+- **总分 ≥ 3** → ✅ **必须**输出 <TASK_LIST>
+- **总分 ≤ 2** → ❌ **不输出** <TASK_LIST>，直接回答/执行
+- **遇到模糊场景时**，优先保守（不输出），避免无意义的任务列表
+
+### ✅ 强触发关键词（任一命中直接触发，无需打分）
+- "系统化分析""全面诊断""综合方案""完整方案""完整流程""完整报告"
+- "先…再…最后…""第一步…第二步…""分步骤""逐步""一步步"
+- 任何涉及 **报告生成**（周报/月报/分析报告）的请求
+- 自动执行模式（auto/full）下涉及**环境调控 + 复查**的组合
+
+### ❌ 强不触发场景（即使有"分析"字眼也不输出）
+- "现在环境怎么样" / "温度多少" → 简单查询
+- "把水泵打开" / "关闭风扇" → 单步设备控制
+- "水泵和风扇都打开" → 仅 2 个设备的批量控制，步骤少且无分析
+- "你好" / "介绍下你自己" → 闲聊
+- 知识问答："草莓白粉病怎么治" → 单点知识检索
+
+### 📦 JSON 格式
+<TASK_LIST>
+{"status":"in_progress","tasks":[
+  {"id":"1","title":"数据采集","status":"in_progress","items":[
+    {"type":"text","text":"拉取温湿度传感器数据"},
+    {"type":"text","text":"拉取土壤 EC 传感器数据"}
+  ]},
+  {"id":"2","title":"指标分析","status":"pending","items":[
+    {"type":"text","text":"对比草莓适宜生长区间"}
+  ]},
+  {"id":"3","title":"执行调控","status":"pending","items":[
+    {"type":"text","text":"根据偏差输出设备控制指令"}
+  ]}
+]}
+</TASK_LIST>
+
+### 📐 字段约束
+- \`status\`：固定 "in_progress"（首条）
+- \`tasks[].status\`：pending | in_progress | completed | failed
+- \`tasks[].id\`：从 "1" 起递增字符串，**多轮对话保持 ID 稳定**
+- \`tasks[].items\`：子步骤，可选，建议 2-4 条
+- 单条任务 title ≤ 20 字，子项 text ≤ 30 字
+- 任务数：3-5 个为佳，**最少 2 个，最多 6 个**
+
+### 🎯 实际打分示例
+
+| 用户请求 | 步骤 | 工具 | 闭环 | 跨度 | 总分 | 是否输出 |
+|---|---|---|---|---|---|---|
+| "现在温度多少" | 0 | 0 | 0 | 0 | 0 | ❌ |
+| "把水泵打开" | 0 | 1 | 0 | 0 | 1 | ❌ |
+| "把水泵和风扇都打开" | 1 | 2 | 0 | 1 | 4 | ✅ |
+| "分析当前大棚环境并给出调整建议" | 2 | 2 | 2 | 2 | 8 | ✅ |
+| "写一份完整草莓种植周报" | 2 | 1 | 2 | 2 | 7 | ✅ |
+| "先检测土壤，再决定是否浇水" | 2 | 1 | 1 | 1 | 5 | ✅ |
+| "草莓白粉病怎么治" | 0 | 0 | 0 | 0 | 0 | ❌ |
+
+### 🚫 严禁
+- ❌ 简单问答、单步操作也输出 TASK_LIST（浪费 token，干扰阅读）
+- ❌ 输出不带 <TASK_LIST> 标签的裸任务 JSON（系统无法识别）
+- ❌ 任务数 > 6 或 < 2（建议 3-5 个为佳）
+- ❌ 闲聊/自我介绍时输出任务列表
 `;
 
 export interface AIFeatureConfig {
@@ -299,6 +387,7 @@ export interface AIFeatureConfig {
   enableScheduleTask?: boolean
   enableDeviceControl?: boolean
   enableVisionInspection?: boolean
+  enableAutomationStrategy?: boolean
   enableHTMLPreview?: boolean
   enableWebPreview?: boolean
 }
@@ -396,12 +485,12 @@ ${disabledDescriptions.join('\n')}
  */
 function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): string {
   if (!aiFeatures) {
-    return UI_TAGS_INSTRUCTION_COMPACT
+    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\\n```json\\n{\\n  "nodes": [\\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\\n  ],\\n  "edges": [\\n    { "id": "e1", "source": "T1", "target": "L1" },\\n    { "id": "e2", "source": "L1", "target": "A1" }\\n  ]\\n}\\n```\\n</AUTOMATION_STRATEGY>\\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。\n- <CHART type="echarts">...</CHART> - 图表'
   }
-  
+
   const enabledTags: string[] = []
-  
-  if (aiFeatures.enableTaskList !== false) enabledTags.push('- <TASK_LIST></TASK_LIST> - 任务规划器')
+
+  if (aiFeatures.enableTaskList !== false) enabledTags.push('- <TASK_LIST></TASK_LIST> - 任务规划器（复杂多步任务使用）')
   if (aiFeatures.enableDeviceBento !== false) enabledTags.push('- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片')
   if (aiFeatures.enableControlBento !== false) enabledTags.push('- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板')
   if (aiFeatures.enableMonitor !== false) enabledTags.push('- <MONITOR></MONITOR> - 监控画面')
@@ -410,6 +499,22 @@ function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): strin
   if (aiFeatures.enableSpectral !== false) enabledTags.push('- <SPECTRAL></SPECTRAL> - 光谱数据')
   if (aiFeatures.enableSources !== false) enabledTags.push('- <SOURCES>...</SOURCES> - 引用来源')
   if (aiFeatures.enableWebPreview !== false) enabledTags.push('- <WEB_PREVIEW>...</WEB_PREVIEW> - 网页预览')
+  if (aiFeatures.enableAutomationStrategy !== false) {
+    const strategyJsonExample = '{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "温度超过30℃", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断温度阈值", "type": "compare" } },\n    { "id": "A1", "type": "aiNode",       "data": { "label": "AI 诊断原因", "type": "llm" } },\n    { "id": "A2", "type": "actionNode",  "data": { "label": "打开通风设备", "type": "device" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" },\n    { "id": "e3", "source": "A1", "target": "A2" }\n  ]\n}'
+    const strategyTag = '- <AUTOMATION_STRATEGY description="策略简述">\n```json\n' + strategyJsonExample + '\n```\n</AUTOMATION_STRATEGY>'
+    const strategyRequirements = [
+      '**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON，**禁止**在标签外写多余的解释文字。description 属性值必须是 ≤30 字的简短描述（如"草莓黄叶智能诊断与干预策略"）。',
+      '',
+      '**节点 type 必须是以下 4 种之一**（不支持其他类型）：',
+      '- `triggerNode`（触发器）：data.type ∈ {sensor(传感器) | schedule(定时) | device(设备状态) | manual(手动)}',
+      '- `logicNode`（逻辑判断）：data.type ∈ {compare(数值比较) | range(范围判断) | and/or(组合逻辑) | condition(条件)}',
+      '- `aiNode`（AI 智能节点）：data.type ∈ {llm(LLM 分析) | trend(趋势预测) | diagnose(智能诊断) | recommend(智能推荐)}',
+      '- `actionNode`（执行动作）：data.type ∈ {device(设备控制) | notification(发送通知) | record(记录日志)}',
+      '',
+      'edges 的 source/target 必须对应 nodes 数组中已定义的 id。节点 id 推荐用 T1/T2、AN1/AN2、L1/L2、A1/A2 前缀便于阅读。'
+    ].join('\n')
+    enabledTags.push(strategyTag + '\n' + strategyRequirements)
+  }
   
   if (enabledTags.length === 0) {
     return '## UI 标签\n所有 UI 标签功能已被禁用。'
@@ -431,6 +536,7 @@ export function generateCompactSystemPrompt(options: {
   mcpToolNames: string[];
   contextCompressed: boolean;
   aiFeatures?: AIFeatureConfig;
+  includeScheduleTaskDetail?: boolean;
 }): string {
   const parts = [];
   
@@ -445,7 +551,12 @@ export function generateCompactSystemPrompt(options: {
 
   // 🔥 定时任务创建指令（提高优先级，放在前面）
   if (options.aiFeatures?.enableScheduleTask !== false) {
-    parts.push(SCHEDULE_TASK_INSTRUCTION_COMPACT);
+    // 🔥 Token 优化：仅在用户意图涉及定时任务时注入完整指令，否则使用精简版
+    if (options.includeScheduleTaskDetail === false) {
+      parts.push(SCHEDULE_TASK_INSTRUCTION_SHORT);
+    } else {
+      parts.push(SCHEDULE_TASK_INSTRUCTION_COMPACT);
+    }
   } else {
     parts.push('## 🚫 定时任务创建已禁用\n严禁创建或输出定时任务 JSON。\n如果用户要求创建定时任务，请告知该功能当前不可用。');
   }
@@ -453,12 +564,12 @@ export function generateCompactSystemPrompt(options: {
   // 设备控制指令
   if (options.enableDeviceControl && options.aiFeatures?.enableDeviceControl !== false) {
     parts.push(DEVICE_CONTROL_INSTRUCTION_COMPACT);
-  } else if (options.aiFeatures?.enableDeviceControl === false) {
+  } else {
     parts.push('## 🚫 设备控制已禁用\n严禁输出任何设备控制 JSON 指令（toggle_relay, set_led, control_camera, reset_camera 等）。\n如果用户要求控制设备，请告知该功能当前不可用。');
   }
-  
-  // 视觉巡检指令
-  if (options.aiFeatures?.enableVisionInspection === false) {
+
+  // 视觉巡检指令（依赖设备在线，设备控制不可用时一并禁用）
+  if (options.aiFeatures?.enableVisionInspection === false || !options.enableDeviceControl) {
     parts.push('## 🚫 视觉巡检已禁用\n严禁输出视觉巡检 JSON 指令（move_camera_and_look, take_camera_snapshot）。\n如果用户要求查看摄像头或巡检，请告知该功能当前不可用。');
   }
 
@@ -484,6 +595,11 @@ export function generateCompactSystemPrompt(options: {
 
   // 上下文说明
   parts.push(CONTEXT_INSTRUCTION_COMPACT);
+
+  // 📋 任务规划器指令（仅启用时注入；放在 UI 标签前面，确保 AI 优先看到触发条件）
+  if (options.aiFeatures?.enableTaskList !== false) {
+    parts.push(TASK_LIST_INSTRUCTION_COMPACT);
+  }
 
   // 可用功能列表
   parts.push(generateEnabledFeaturesInstruction(options.aiFeatures));
@@ -535,6 +651,13 @@ export function filterDisabledFeatures(content: string, aiFeatures?: AIFeatureCo
     filtered = filtered.replace(/<SCHEDULED_TASKS\s*\/?>/g, '')
     filtered = filtered.replace(/<SCHEDULED_TASKS>[\s\S]*?<\/SCHEDULED_TASKS>/g, '')
     console.log('[Filter] Removed SCHEDULED_TASKS tags')
+  }
+
+  // 过滤 AUTOMATION_STRATEGY
+  if (aiFeatures.enableAutomationStrategy === false) {
+    filtered = filtered.replace(/<AUTOMATION_STRATEGY[^>]*>[\s\S]*?<\/AUTOMATION_STRATEGY>/g, '')
+    filtered = filtered.replace(/<AUTOMATION_STRATEGY[\s\S]*?$/g, '')
+    console.log('[Filter] Removed AUTOMATION_STRATEGY tags')
   }
   
   // 过滤 CHART

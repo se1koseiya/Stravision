@@ -1,12 +1,12 @@
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { X, Search, ChevronDown, Settings, MoreHorizontal, LayoutGrid, Box, ChevronRight } from "lucide-react"
+import { motion } from "framer-motion"
+import { X, ChevronRight, PanelLeftOpen, Plus, Settings, MoreHorizontal, LayoutGrid, Box, ChevronDown, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { SkillStore } from "@/components/ai/skill-store"
 import { MCPStoreContent } from "@/components/mcp/mcp-store-content"
-import { ModelStoreContent } from "@/components/model-store/model-store-content"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
@@ -17,15 +17,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { MCPServer } from "@/lib/data/mcp-servers"
+import { MCP_SERVERS as MCP_SERVERS_STATIC } from "@/lib/data/mcp-servers"
 import type { StoreSkill } from "@/lib/db/skill-store-service"
 
 interface UnifiedExploreProps {
   onClose: () => void
   darkMode?: boolean
+  /** sidebar 是否展开；收起时面板 left 收缩到 12px */
+  sidebarOpen?: boolean
+  /** sidebar 收起时面板内显示的展开按钮回调 */
+  onExpandSidebar?: () => void
+  /** sidebar 收起时面板内显示的新建对话按钮回调 */
+  onNewChat?: () => void
 }
 
 type ViewMode = "browse" | "manage"
-type ManageTab = "plugins" | "apps" | "mcp" | "skills" | "market"
+type ManageTab = "plugins" | "skills"
 
 // 管理视图中的项目项（统一接口）
 interface ManageItem {
@@ -37,48 +44,87 @@ interface ManageItem {
   category: "plugin" | "mcp" | "skill" | "model" | "app"
 }
 
-export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProps) {
+// 管理列表里的图标：图片加载失败时回退到首字母，避免裂开占位符
+function ManageItemIcon({ icon, name, darkMode }: { icon: string; name: string; darkMode: boolean }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return (
+      <span className={cn(
+        "font-bold text-sm",
+        darkMode ? "text-zinc-400" : "text-blue-600"
+      )} style={{ color: !darkMode ? BERRY_THEME.primary : undefined }}>{name.charAt(0)}</span>
+    )
+  }
+  return (
+    <img
+      src={icon}
+      alt={name}
+      className="size-6 object-contain"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, onExpandSidebar, onNewChat }: UnifiedExploreProps) {
   const [activeTab, setActiveTab] = useState<"plugins" | "skills">("plugins")
   const [viewMode, setViewMode] = useState<ViewMode>("browse")
   const [manageTab, setManageTab] = useState<ManageTab>("plugins")
   const [searchQuery, setSearchQuery] = useState("")
   const [manageSearchQuery, setManageSearchQuery] = useState("")
-  const [pluginFilter, setPluginFilter] = useState<"all" | "mcp" | "models">("all")
-  const [skillFilter, setSkillFilter] = useState<"all" | "builtin" | "installed">("all")
 
-  // ===== 真实数据源 =====
-  const [mcpServers, setMcpServers] = useState<MCPServer[]>([])
+  // 真实数据源（先用静态数据兜底，避免 manage 视图空白）
+  const [mcpServers, setMcpServers] = useState<MCPServer[]>(MCP_SERVERS_STATIC as MCPServer[])
   const [skills, setSkills] = useState<StoreSkill[]>([])
   const [installedServerIds, setInstalledServerIds] = useState<Set<string>>(new Set())
   const [installedSkillIds, setInstalledSkillIds] = useState<string[]>([])
-  const [loadingManage, setLoadingManage] = useState(true)
+  const [loadingManage, setLoadingManage] = useState(false)
 
-  // 加载真实数据
+  // 加载真实数据（带静态兜底）
   useEffect(() => {
     if (viewMode !== "manage") return
 
     const loadAll = async () => {
       setLoadingManage(true)
       try {
-        // MCP 服务器列表
-        const mcpRes = await fetch('/api/mcp-store')
-        const mcpData = await mcpRes.json()
-        setMcpServers(Array.isArray(mcpData) ? mcpData : [])
+        // MCP 服务器列表：失败时保留静态数据
+        try {
+          const mcpRes = await fetch('/api/mcp-store')
+          if (mcpRes.ok) {
+            const mcpData = await mcpRes.json()
+            if (Array.isArray(mcpData) && mcpData.length > 0) {
+              setMcpServers(mcpData)
+            }
+          }
+        } catch (e) {
+          console.warn("[UnifiedExplore] /api/mcp-store 失败，使用静态数据", e)
+        }
 
-        // 技能商店列表
-        const skillsRes = await fetch('/api/skills/store')
-        const skillsData = await skillsRes.json()
-        setSkills(Array.isArray(skillsData) ? skillsData : [])
+        // 技能商店列表：失败时保留静态数据
+        try {
+          const skillsRes = await fetch('/api/skills/store')
+          if (skillsRes.ok) {
+            const skillsData = await skillsRes.json()
+            if (Array.isArray(skillsData) && skillsData.length > 0) {
+              setSkills(skillsData)
+            }
+          }
+        } catch (e) {
+          console.warn("[UnifiedExplore] /api/skills/store 失败，使用静态数据", e)
+        }
 
         // 已安装的 MCP 服务器
         const savedServers = localStorage.getItem("mcp-installed-servers")
         if (savedServers) setInstalledServerIds(new Set(JSON.parse(savedServers)))
 
         // 已安装的技能
-        const userRes = await fetch('/api/skills/user')
-        if (userRes.ok) {
-          const userData = await userRes.json()
-          setInstalledSkillIds(userData?.installedIds || [])
+        try {
+          const userRes = await fetch('/api/skills/user')
+          if (userRes.ok) {
+            const userData = await userRes.json()
+            setInstalledSkillIds(userData?.installedIds || [])
+          }
+        } catch (e) {
+          // 未登录或接口失败，保持空数组
         }
       } catch (e) {
         console.error("[UnifiedExplore] 加载管理数据失败", e)
@@ -165,10 +211,7 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
   // 各 tab 计数
   const manageCounts = useMemo(() => ({
     plugins: manageItems.filter(i => i.category === "mcp").length,
-    apps: 0,
-    mcp: manageItems.filter(i => i.category === "mcp").length,
     skills: manageItems.filter(i => i.category === "skill").length,
-    market: 0,
   }), [manageItems])
 
   // 当前 tab 过滤后的列表
@@ -177,10 +220,7 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
 
     // 按 tab 过滤
     if (manageTab === "plugins") items = items.filter(i => i.category === "mcp")
-    else if (manageTab === "apps") return []
-    else if (manageTab === "mcp") items = items.filter(i => i.category === "mcp")
     else if (manageTab === "skills") items = items.filter(i => i.category === "skill")
-    else if (manageTab === "market") return []
 
     // 搜索过滤
     if (manageSearchQuery) {
@@ -196,10 +236,7 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
 
   const manageTabs: { key: ManageTab; label: string; count: number }[] = [
     { key: "plugins", label: "插件", count: manageCounts.plugins },
-    { key: "apps", label: "应用", count: manageCounts.apps },
-    { key: "mcp", label: "MCP", count: manageCounts.mcp },
     { key: "skills", label: "技能", count: manageCounts.skills },
-    { key: "market", label: "市场", count: manageCounts.market },
   ]
 
   // ===== 深浅色通用样式 =====
@@ -207,19 +244,53 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "absolute inset-0 z-[100] flex flex-col font-sans rounded-tr-xl",
+        "fixed z-[150] flex flex-col font-sans overflow-hidden",
+        "top-3 right-3 bottom-3",
+        sidebarOpen ? "left-[272px]" : "left-3",
         isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900"
       )}
+      style={{ borderRadius: 12 }}
     >
       {/* Header */}
       <div className={cn(
-        "h-16 border-b flex items-center justify-between px-8 shrink-0",
-        isDark ? "border-zinc-800/60 bg-zinc-950" : "border-gray-200/60 bg-white"
+        "h-16 flex items-center gap-3 px-8 shrink-0",
+        isDark ? "bg-zinc-950" : "bg-white"
       )}>
+        {/* 展开 + 新建对话（仅 sidebar 收起时显示在最左侧） */}
+        {!sidebarOpen && (
+          <div className="flex items-center gap-1">
+            {onExpandSidebar && (
+              <button
+                onClick={onExpandSidebar}
+                className={cn(
+                  "size-9 rounded-xl flex items-center justify-center transition-colors",
+                  isDark ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"
+                )}
+                title="展开侧边栏"
+              >
+                <PanelLeftOpen size={17} />
+              </button>
+            )}
+            {onNewChat && (
+              <button
+                onClick={onNewChat}
+                className={cn(
+                  "size-9 rounded-xl flex items-center justify-center transition-colors",
+                  isDark ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"
+                )}
+                title="新建对话"
+              >
+                <Plus size={17} />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Left Tabs / Breadcrumb */}
         {viewMode === "manage" ? (
           <div className="flex items-center gap-1.5 text-sm">
@@ -263,7 +334,7 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
         )}
 
         {/* Right Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-auto">
           <button
             onClick={() => setViewMode(viewMode === "manage" ? "browse" : "manage")}
             className={cn(
@@ -337,20 +408,14 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
       </div>
 
       {/* Main Content Area */}
-      <AnimatePresence mode="wait">
+      <div className="flex-1 overflow-hidden flex flex-col">
         {viewMode === "manage" ? (
           /* ===== 管理视图 ===== */
-          <motion.div
-            key="manage"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 overflow-hidden flex flex-col"
-          >
+          <div className="flex-1 overflow-hidden flex flex-col">
             {/* 工具栏：Tab + 搜索 */}
             <div className={cn(
               "flex items-center justify-between px-6 py-4 shrink-0 border-b",
-              isDark ? "border-zinc-800/60" : "border-gray-200/80 bg-gray-50/30"
+              isDark ? "border-zinc-800/60 bg-zinc-950/30" : "border-gray-200/80 bg-blue-50/30"
             )}>
               {/* Tab 栏 */}
               <div className="flex items-center gap-1">
@@ -359,19 +424,20 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
                     key={tab.key}
                     onClick={() => { setManageTab(tab.key); setManageSearchQuery("") }}
                     className={cn(
-                      "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all",
+                      "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all",
                       manageTab === tab.key
-                        ? (isDark ? "bg-zinc-800 text-zinc-100" : "bg-gray-900 text-white")
-                        : (isDark ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/60")
+                        ? (isDark ? "bg-zinc-100 text-zinc-900" : "bg-white text-blue-600 shadow-sm border border-blue-200/60")
+                        : (isDark ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40" : "text-gray-500 hover:text-gray-700 hover:bg-white/60")
                     )}
+                    style={{ borderRadius: BERRY_THEME.radius.sm }}
                   >
                     <span>{tab.label}</span>
                     <span className={cn(
-                      "text-[10px] leading-none px-1.5 py-0.5 rounded-md",
+                      "text-[10px] leading-none px-1.5 py-0.5",
                       manageTab === tab.key
-                        ? (isDark ? "bg-zinc-700 text-zinc-400" : "bg-black/10 text-gray-500")
+                        ? (isDark ? "bg-zinc-200 text-zinc-600" : "bg-blue-50 text-blue-500")
                         : (isDark ? "bg-zinc-800/60 text-zinc-600" : "bg-gray-200/60 text-gray-400")
-                    )}>
+                    )} style={{ borderRadius: 6 }}>
                       {tab.count}
                     </span>
                   </button>
@@ -390,11 +456,12 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
                   value={manageSearchQuery}
                   onChange={(e) => setManageSearchQuery(e.target.value)}
                   className={cn(
-                    "w-full border rounded-lg pl-9 pr-3 py-1.5 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+                    "w-full border pl-9 pr-3 py-1.5 text-xs transition-colors focus:outline-none focus:ring-2",
                     isDark
                       ? "bg-zinc-900 border-zinc-800 text-zinc-300 placeholder-zinc-600 focus:border-zinc-700"
-                      : "bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:border-gray-300"
+                      : "bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:border-blue-300"
                   )}
+                  style={{ borderRadius: BERRY_THEME.radius.sm, boxShadow: 'none' }}
                 />
               </div>
             </div>
@@ -424,26 +491,28 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
                   <div
                     key={item.id}
                     className={cn(
-                      "group flex items-center gap-4 px-4 py-3 rounded-xl transition-colors",
-                      isDark ? "hover:bg-zinc-900/60" : "hover:bg-gray-50"
+                      "group flex items-center gap-4 px-4 py-3 border transition-colors shadow-sm",
+                      isDark ? "bg-zinc-900/40 hover:bg-zinc-900/80 border-zinc-800/60" : "bg-white hover:bg-blue-50/40 border-gray-200/60"
                     )}
+                    style={{ borderRadius: BERRY_THEME.radius.md }}
                   >
                     {/* 图标 */}
-                    <div className={cn(
-                      "size-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden",
-                      isDark ? "bg-zinc-800" : "bg-gray-100"
-                    )}>
-                      {item.icon ? (
-                        item.icon.length <= 2 ? (
-                          <span className="text-lg">{item.icon}</span>
-                        ) : (
-                          <img src={item.icon} alt={item.name} className="size-6 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                        )
+                    <div
+                      className={cn(
+                        "size-10 flex items-center justify-center shrink-0 overflow-hidden",
+                        isDark ? "bg-zinc-800" : "bg-blue-50"
+                      )}
+                      style={{ borderRadius: BERRY_THEME.radius.sm }}
+                    >
+                      {item.icon && item.icon.length <= 2 ? (
+                        <span className="text-lg">{item.icon}</span>
+                      ) : item.icon ? (
+                        <ManageItemIcon icon={item.icon} name={item.name} darkMode={isDark} />
                       ) : (
                         <span className={cn(
                           "font-bold text-sm",
-                          isDark ? "text-zinc-400" : "text-gray-500"
-                        )}>{item.name.charAt(0)}</span>
+                          isDark ? "text-zinc-400" : "text-blue-600"
+                        )} style={{ color: !isDark ? BERRY_THEME.primary : undefined }}>{item.name.charAt(0)}</span>
                       )}
                     </div>
 
@@ -458,9 +527,9 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
                       "flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     )}>
                       <button className={cn(
-                        "size-7 rounded-md flex items-center justify-center transition-colors",
+                        "size-7 flex items-center justify-center transition-colors",
                         isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                      )}>
+                      )} style={{ borderRadius: BERRY_THEME.radius.sm }}>
                         <MoreHorizontal size={14} />
                       </button>
                     </div>
@@ -478,109 +547,32 @@ export function UnifiedExplore({ onClose, darkMode = false }: UnifiedExploreProp
                 ))}
               </div>
             </ScrollArea>
-          </motion.div>
+          </div>
         ) : (
-          /* ===== 浏览视图（原有内容） ===== */
-          <motion.div
-            key="browse"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 overflow-hidden flex flex-col"
-          >
+          /* ===== 浏览视图（与 skill-store / mcp-store / model-store 统一设计） ===== */
+          <div className="flex-1 overflow-hidden flex flex-col">
             <ScrollArea className="flex-1">
-              <div className="max-w-6xl mx-auto px-8 pt-16 pb-32 flex flex-col items-center">
+              <div className="max-w-6xl mx-auto px-6 pt-6 pb-12 flex flex-col">
 
-                {/* Centered Title */}
-                <h1 className={cn(
-                  "text-4.5xl font-black tracking-tight mb-8 font-alimama",
-                  isDark ? "text-zinc-100" : "text-gray-900"
-                )}>
-                  让 BerryZ 按你的方式工作
-                </h1>
-
-                {/* Search and Filter Bar */}
-                <div className="flex items-center gap-3 mb-12 w-full max-w-2xl justify-center">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder={activeTab === "plugins" ? "搜索插件" : "搜索技能"}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-gray-50/80 border border-gray-200/80 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-blue-500/10 transition-colors"
-                    />
-                  </div>
-
-                  {activeTab === "plugins" ? (
-                    <div className="relative">
-                      <select
-                        value={pluginFilter}
-                        onChange={(e) => setPluginFilter(e.target.value as any)}
-                        className="appearance-none bg-gray-50/80 border border-gray-200/80 text-gray-600 rounded-xl pl-4 pr-10 py-2.5 text-sm font-semibold cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-blue-500/10"
-                      >
-                        <option value="all">全部插件</option>
-                        <option value="mcp">MCP 工具</option>
-                        <option value="models">模型引擎</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <select
-                        value={skillFilter}
-                        onChange={(e) => setSkillFilter(e.target.value as any)}
-                        className="appearance-none bg-gray-50/80 border border-gray-200/80 text-gray-600 rounded-xl pl-4 pr-10 py-2.5 text-sm font-semibold cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-blue-500/10"
-                      >
-                        <option value="all">全部</option>
-                        <option value="builtin">系统</option>
-                        <option value="installed">个人</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Content Lists */}
-                <div className="w-full">
-                  <AnimatePresence mode="wait">
-                    {activeTab === "skills" ? (
-                      <motion.div
-                        key="skills"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-full"
-                      >
-                        <SkillStore searchQuery={searchQuery} filter={skillFilter} />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="plugins"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-full space-y-12"
-                      >
-                        {pluginFilter !== "models" ? (
-                          <MCPStoreContent searchQuery={searchQuery} filter={pluginFilter} darkMode={isDark} onTryInChat={(toolName) => {
-                            window.dispatchEvent(new CustomEvent('berry:mention-tool', { detail: { toolName } }))
-                          }} />
-                        ) : (
-                          <ModelStoreContent searchQuery={searchQuery} />
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                {activeTab === "skills" ? (
+                  /* 技能 tab：SkillStore 自带标题/插图/标签/搜索/子标签/卡片网格 */
+                  <SkillStore />
+                ) : (
+                  /* 插件 tab：与技能 tab 一致，MCPStoreContent 自带完整页面结构（标题/插图/标签/搜索/子标签/卡片网格/详情） */
+                  <MCPStoreContent
+                    searchQuery={searchQuery}
+                    darkMode={isDark}
+                    onTryInChat={(toolName) => {
+                      window.dispatchEvent(new CustomEvent('berry:mention-tool', { detail: { toolName } }))
+                    }}
+                  />
+                )}
 
               </div>
             </ScrollArea>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </motion.div>
   )
 }

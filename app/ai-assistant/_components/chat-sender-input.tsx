@@ -20,6 +20,7 @@ import {
 import type { GetProp } from "antd/es/config-provider/context"
 import type { FlexProps } from "antd"
 import { toast } from "sonner"
+import type { ChatAttachment } from "@/app/ai-assistant/types"
 
 const Switch = Sender.Switch
 type SuggestionItems = Exclude<GetProp<typeof Suggestion, "items">, () => void>
@@ -55,7 +56,7 @@ export interface ChatSenderProps {
   setInput: (value: string) => void
   onSend: (text: string) => void
   isLoading: boolean
-  attachments: string[]
+  attachments: ChatAttachment[]
   onSelectFiles: React.ChangeEventHandler<HTMLInputElement>
   onRemoveAttachment: (index: number) => void
   onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void
@@ -101,15 +102,16 @@ export function ChatSenderInput({
   const [approvalPanelOpen, setApprovalPanelOpen] = useState(false)
   const [pluginSubOpen, setPluginSubOpen] = useState(false)
 
-  // Convert string[] attachments to Attachments items format
+  // Convert ChatAttachment[] to Attachments items format
   const attachmentItems: AttachmentsProps["items"] = useMemo(
     () =>
-      attachments.map((url, i) => ({
+      attachments.map((att, i) => ({
         uid: `att-${i}`,
-        name: `附件 ${i + 1}`,
+        name: att.name || `附件 ${i + 1}`,
         status: "done" as const,
-        url,
-        thumbUrl: url,
+        url: att.dataUrl,
+        thumbUrl: att.dataUrl,
+        type: att.type,
       })),
     [attachments],
   )
@@ -164,10 +166,10 @@ export function ChatSenderInput({
   }, [availableTools, insertToolTag])
 
   const slashItems: SuggestionItems = useMemo(() => [
-    { label: "生成报告", value: "/report", icon: <FileText size={14} className="text-emerald-500" /> },
-    { label: "环境诊断", value: "/diagnose", icon: <Activity size={14} className="text-blue-500" /> },
-    { label: "深度推理", value: "/reason", icon: <Brain size={14} className="text-purple-500" /> },
-    { label: "全网检索", value: "/search", icon: <Globe size={14} className="text-emerald-500" /> },
+    { label: "生成报告", value: "/report", icon: <FileText size={14} className="text-[#1677ff]" /> },
+    { label: "环境诊断", value: "/diagnose", icon: <Activity size={14} className="text-[#1677ff]" /> },
+    { label: "深度推理", value: "/reason", icon: <Brain size={14} className="text-[#1677ff]" /> },
+    { label: "全网检索", value: "/search", icon: <Globe size={14} className="text-[#1677ff]" /> },
   ], [])
 
   const senderHeader = useMemo(
@@ -264,7 +266,7 @@ export function ChatSenderInput({
               style={{ boxShadow: "none" }}
               footer={(actionNode) => (
                 <Flex justify="space-between" align="center" style={{ position: "relative" }}>
-                  {/* 左侧：+ 菜单 + 权限模式 */}
+                  {/* 左侧：+ 菜单 + 思考 + 研究 + 权限模式 */}
                   <Flex gap={0} align="center">
                     {/* + 号展开菜单 */}
                     <div style={{ position: "relative" }}>
@@ -338,7 +340,7 @@ export function ChatSenderInput({
                               style={{
                                 width: 34, height: 20, borderRadius: 20,
                                 border: "none", cursor: "pointer",
-                                background: enablePlanning ? (darkMode ? "#5b21b6" : "#7c3aed") : (darkMode ? "#3f3f46" : "#d1d5db"),
+                                background: enablePlanning ? (darkMode ? "rgba(22,119,255,0.20)" : "rgba(22,119,255,0.18)") : (darkMode ? "#3f3f46" : "#d1d5db"),
                                 position: "relative", transition: "background 0.2s",
                                 flexShrink: 0,
                               }}
@@ -376,7 +378,7 @@ export function ChatSenderInput({
                               style={{
                                 width: 34, height: 20, borderRadius: 20,
                                 border: "none", cursor: "pointer",
-                                background: enableSearch ? (darkMode ? "#5b21b6" : "#7c3aed") : (darkMode ? "#3f3f46" : "#d1d5db"),
+                                background: enableSearch ? (darkMode ? "rgba(22,119,255,0.20)" : "rgba(22,119,255,0.18)") : (darkMode ? "#3f3f46" : "#d1d5db"),
                                 position: "relative", transition: "background 0.2s",
                                 flexShrink: 0,
                               }}
@@ -490,7 +492,7 @@ export function ChatSenderInput({
                                           background: darkMode ? "#3f3f46" : "#f3f4f6",
                                           flexShrink: 0,
                                         }}>
-                                          <Zap size={13} style={{ color: darkMode ? "#a78bfa" : "#7c3aed" }} />
+                                          <Zap size={13} style={{ color: "#1677ff" }} />
                                         </div>
                                       )}
                                       <div style={{ minWidth: 0 }}>
@@ -531,6 +533,80 @@ export function ChatSenderInput({
                         className="hidden"
                       />
                     </div>
+
+                    {/* 思考（深度思考）— 内联按钮 */}
+                    <button
+                      onClick={() => setEnableReasoning(!enableReasoning)}
+                      title="深度思考：让模型进行更深入的推理"
+                      className="inline-flex items-center gap-1.5"
+                      style={{
+                        marginLeft: 2,
+                        padding: "4px 10px",
+                        borderRadius: 8,
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 400,
+                        whiteSpace: "nowrap",
+                        background: enableReasoning
+                          ? (darkMode ? "rgba(22,119,255,0.18)" : "rgba(22,119,255,0.10)")
+                          : "transparent",
+                        color: enableReasoning
+                          ? "#1677ff"
+                          : (darkMode ? "#a1a1aa" : "#6b7280"),
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!enableReasoning) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!enableReasoning) e.currentTarget.style.background = "transparent"
+                      }}
+                    >
+                      <Brain size={14} strokeWidth={1.75} />
+                      <span>思考</span>
+                    </button>
+
+                    {/* 研究（联网搜索）— 内联按钮 */}
+                    <button
+                      onClick={() => {
+                        const hasSearchTool = availableTools.some(
+                          (t) => t.name.includes("search") || t.name.includes("exa") || t.name.includes("brave"),
+                        )
+                        if (!hasSearchTool && !enableSearch) {
+                          toast.error("未安装搜索工具", { description: "请先安装搜索类 MCP 工具" })
+                          return
+                        }
+                        setEnableSearch(!enableSearch)
+                      }}
+                      title="联网搜索：让模型检索最新信息"
+                      className="inline-flex items-center gap-1.5"
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 8,
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 400,
+                        whiteSpace: "nowrap",
+                        background: enableSearch
+                          ? (darkMode ? "rgba(22,119,255,0.18)" : "rgba(22,119,255,0.10)")
+                          : "transparent",
+                        color: enableSearch
+                          ? "#1677ff"
+                          : (darkMode ? "#a1a1aa" : "#6b7280"),
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!enableSearch) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!enableSearch) e.currentTarget.style.background = "transparent"
+                      }}
+                    >
+                      <Globe size={14} strokeWidth={1.75} />
+                      <span>研究</span>
+                    </button>
 
                     {/* 权限模式 — 向上弹出面板 */}
                     {setApprovalMode && (
@@ -580,7 +656,7 @@ export function ChatSenderInput({
                               <a
                                 href="#"
                                 onClick={(e) => e.preventDefault()}
-                                style={{ fontSize: 11.5, color: darkMode ? "#a78bfa" : "#7c3aed", textDecoration: "underline" }}
+                                style={{ fontSize: 11.5, color: "#1677ff", textDecoration: "underline" }}
                               >
                                 了解更多
                               </a>

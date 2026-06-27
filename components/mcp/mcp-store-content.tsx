@@ -1,350 +1,691 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Check, Plus, Loader2, ChevronRight, Sprout, Leaf, Sun, Droplets, CloudSun } from "lucide-react"
-import { motion } from "framer-motion"
+import { useState, useEffect, useMemo } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Search, ShieldCheck, User, Check,
+  X, Terminal, Copy, Tag as TagIcon,
+  BookOpen, Plus, Sparkles, Server, Zap
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Empty, Spin } from "antd"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { MCPServerDetailDialog } from "@/components/mcp/mcp-server-detail-dialog"
-import { CustomMCPDialog } from "@/components/mcp/custom-mcp-dialog"
 import type { MCPServer } from "@/lib/data/mcp-servers"
+import { cn } from "@/lib/utils"
+import { CustomMCPDialog } from "@/components/mcp/custom-mcp-dialog"
 
-const AppIcon = ({ icon, name, className, isDark }: { icon: string, name: string, className?: string, isDark?: boolean }) => {
-  const [error, setError] = useState(false)
-  if (error || !icon) {
-    const firstLetter = name.charAt(0).toUpperCase()
+// ================================================================
+//  装饰插图（匹配参考图：曲线 + 圆 + </> + * + 点）
+// ================================================================
+const PluginsIllustration = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    width="200"
+    height="110"
+    viewBox="0 0 200 110"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden
+  >
+    {/* 左下蓝色曲线 */}
+    <path
+      d="M5 85 C 35 35, 75 25, 110 50 S 175 70, 195 45"
+      stroke="#1677ff"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      fill="none"
+      opacity="0.85"
+    />
+    {/* 左圆：竖线纹理 */}
+    <circle cx="60" cy="48" r="22" fill="rgba(22,119,255,0.10)" />
+    {[42, 48, 54, 60, 66, 72, 78].map(x => (
+      <line
+        key={x}
+        x1={x}
+        y1={28}
+        x2={x}
+        y2={68}
+        stroke="#1677ff"
+        strokeWidth="1"
+        opacity="0.55"
+      />
+    ))}
+    {/* 右圆：实心淡蓝 */}
+    <circle cx="115" cy="58" r="24" fill="rgba(22,119,255,0.18)" />
+    {/* 圆上小圆点 */}
+    <circle cx="108" cy="22" r="4" fill="#1677ff" />
+    {/* </> 符号 */}
+    <text
+      x="100"
+      y="55"
+      fontSize="11"
+      fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+      fill="#1677ff"
+      fontWeight="600"
+    >{`</>`}</text>
+    {/* 星号 */}
+    <g transform="translate(165, 22)">
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="-6.5" x2="6.5" y2="6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="6.5" x2="6.5" y2="-6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+    </g>
+    {/* 散点 */}
+    <circle cx="20" cy="20" r="1.6" fill="#1677ff" />
+    <circle cx="180" cy="60" r="1.6" fill="#1677ff" />
+    <circle cx="195" cy="80" r="1" fill="#1677ff" opacity="0.6" />
+    <circle cx="40" cy="95" r="1.2" fill="#1677ff" opacity="0.5" />
+  </svg>
+)
+
+// ================================================================
+//  卡片图标：单字符 + 主题色圆（按名称哈希选色）
+// ================================================================
+const PALETTE = [
+  { bg: "rgba(124,58,237,0.10)", text: "#7c3aed", border: "rgba(124,58,237,0.20)" }, // purple
+  { bg: "rgba(22,119,255,0.10)", text: "#1677ff", border: "rgba(22,119,255,0.22)" }, // blue
+  { bg: "rgba(82,196,26,0.10)", text: "#389e0d", border: "rgba(82,196,26,0.22)" },   // green
+  { bg: "rgba(250,140,22,0.10)", text: "#d46b08", border: "rgba(250,140,22,0.22)" }, // orange
+  { bg: "rgba(235,47,150,0.10)", text: "#c41d7f", border: "rgba(235,47,150,0.22)" }, // magenta
+  { bg: "rgba(19,194,194,0.10)", text: "#08979c", border: "rgba(19,194,194,0.22)" }, // cyan
+]
+
+const hashIndex = (s: string) => {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h % PALETTE.length
+}
+
+const ServerIcon = ({
+  server,
+  size = "md",
+  shape = "circle"
+}: {
+  server: MCPServer
+  size?: "sm" | "md" | "lg"
+  shape?: "circle" | "square"
+}) => {
+  const dim =
+    size === "lg" ? "size-12 text-[20px]" :
+      size === "sm" ? "size-8 text-[13px]" :
+        "size-10 text-[15px]"
+  const radius = shape === "square" ? "rounded-md" : "rounded-full"
+
+  // 退回到首字母（优先用英文 name，再退到 displayName 中的首个英文字符）+ 颜色
+  const getFirstLetter = (s: MCPServer): string => {
+    const a = s.name || ""
+    const b = s.displayName || ""
+    const re = /[A-Za-z]/
+    const m1 = a.match(re)
+    if (m1) return m1[0].toUpperCase()
+    const m2 = b.match(re)
+    if (m2) return m2[0].toUpperCase()
+    return (b.trim().charAt(0) || "?").toUpperCase()
+  }
+
+  // 跟踪图标是否加载失败：失败时也展示首字母兜底
+  const [imgFailed, setImgFailed] = useState(false)
+
+  // 图标缺失 / 加载失败时直接展示首字母 + 配色
+  if (!server.icon || imgFailed) {
+    const first = getFirstLetter(server)
+    const c = PALETTE[hashIndex(server.name || server.displayName || "?")]
     return (
-      <div className={cn(
-        className,
-        "text-white font-black flex items-center justify-center text-xl shrink-0 bg-gradient-to-br from-emerald-500 to-green-600"
-      )}>
-        {firstLetter}
+      <div
+        className={cn(
+          dim,
+          radius,
+          "flex items-center justify-center font-semibold shrink-0 select-none"
+        )}
+        style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}
+      >
+        {first}
       </div>
     )
   }
+
+  // 优先使用服务器图标（加载失败时回退到首字母）
   return (
-    <div className={cn(className, "relative overflow-hidden flex items-center justify-center")}>
+    <div
+      className={cn(
+        dim,
+        radius,
+        "flex items-center justify-center shrink-0 select-none bg-white border border-gray-200"
+      )}
+    >
       <img
-        src={icon}
-        alt={name}
-        className="size-[62%] object-contain shrink-0 relative z-10"
-        onError={() => setError(true)}
+        src={server.icon}
+        alt={server.displayName}
+        className="size-[60%] object-contain"
+        onError={() => setImgFailed(true)}
       />
-      {/* 统一翠绿色调遮罩，让所有图标视觉配色一致 */}
-      <div className={cn(
-        "absolute inset-0 z-20 pointer-events-none mix-blend-multiply",
-        isDark ? "bg-emerald-900/40" : "bg-emerald-100/50"
-      )} />
     </div>
   )
 }
 
-export function MCPStoreContent({ searchQuery = "", filter = "all", darkMode = false, onTryInChat }: { searchQuery?: string, filter?: string, darkMode?: boolean, onTryInChat?(toolName: string): void }) {
-  const isDark = darkMode
+// ================================================================
+//  插件详情视图（参考 skill-store SkillDetailView）
+// ================================================================
+const ServerDetailView = ({
+  server,
+  installedIds,
+  onClose,
+  onInstall,
+  onUninstall,
+  onCustom
+}: {
+  server: MCPServer
+  installedIds: Set<string>
+  onClose: () => void
+  onInstall: (e: React.MouseEvent, server: MCPServer) => void
+  onUninstall: (e: React.MouseEvent, server: MCPServer) => void
+  onCustom: () => void
+}) => {
+  const isInstalled = installedIds.has(server.id)
+  const isOfficial = server.official === true
+  const [copied, setCopied] = useState(false)
+  // 每个插件的专属推荐 Prompt：admin 可在后台编辑，详情页打开时自动加载
+  const [prompt, setPrompt] = useState<string>(
+    server.recommended_prompt || server.recommendedPrompt || ""
+  )
+
+  const handleCopyPrompt = () => {
+    if (!prompt) return
+    navigator.clipboard.writeText(prompt)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    toast.success("推荐 Prompt 已复制")
+  }
+
+  const c = PALETTE[hashIndex(server.displayName || "?")]
+  const commandLine = `${server.command} ${(server.args || []).join(' ')}`
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-2xl max-h-[88vh] bg-white border border-gray-200/80 flex flex-col overflow-hidden"
+        style={{ borderRadius: 12 }}
+      >
+        {/* 关闭按钮 */}
+        <button
+          onClick={onClose}
+          className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          style={{ borderRadius: 8 }}
+          title="关闭"
+        >
+          <X size={16} />
+        </button>
+
+        <ScrollArea className="flex-1">
+          <div className="px-6 pt-6 pb-5">
+            {/* 顶部：图标 + 标题 + 添加按钮 */}
+            <div className="flex items-start gap-3.5">
+              <ServerIcon server={server} size="lg" shape="square" />
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h2 className="text-[18px] font-semibold leading-tight text-gray-900 tracking-tight">
+                  {server.displayName}
+                </h2>
+                <p className="text-[12.5px] text-gray-500 leading-relaxed mt-1.5 pr-2">
+                  {server.description}
+                </p>
+              </div>
+              <Button
+                onClick={(e) => isInstalled ? onUninstall(e, server) : onInstall(e, server)}
+                className={cn(
+                  "h-8 px-3.5 text-[12.5px] font-medium shrink-0 gap-1.5",
+                  isInstalled
+                    ? "!bg-white !text-red-500 !border !border-red-200 hover:!bg-red-50 hover:!border-red-300"
+                    : "!bg-gray-900 hover:!bg-gray-800 !text-white !border-gray-900"
+                )}
+                style={{ borderRadius: 8 }}
+              >
+                {isInstalled ? (
+                  <><Check size={13} />已添加</>
+                ) : (
+                  <><Plus size={13} strokeWidth={2.5} />添加插件</>
+                )}
+              </Button>
+            </div>
+
+            {/* 推荐 Prompt */}
+            <div className="mt-5">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={12} className="text-gray-400" />
+                  <span className="text-[12.5px] font-semibold text-gray-700">推荐 Prompt</span>
+                </div>
+                <button
+                  onClick={handleCopyPrompt}
+                  className="size-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  style={{ borderRadius: 6 }}
+                  title="复制"
+                >
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                </button>
+              </div>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="输入推荐用法描述…"
+                rows={2}
+                className="w-full px-3 py-2 text-[12.5px] text-gray-700 bg-white border border-gray-200 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors resize-none leading-relaxed placeholder:text-gray-300"
+                style={{ borderRadius: 8 }}
+              />
+            </div>
+
+            {/* 启动命令 */}
+            <div className="mt-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Terminal size={12} className="text-gray-400" />
+                <span className="text-[12.5px] font-semibold text-gray-700">启动命令</span>
+              </div>
+              <pre
+                className="text-[12px] font-mono text-gray-300 bg-gray-900 px-3.5 py-3 overflow-auto max-h-[180px] leading-relaxed scrollbar-thin whitespace-pre-wrap break-words"
+                style={{ borderRadius: 8 }}
+              >
+{commandLine || "（暂无命令）"}
+              </pre>
+            </div>
+
+            {/* 核心功能 */}
+            {server.features && server.features.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Zap size={12} className="text-gray-400" />
+                  <span className="text-[12.5px] font-semibold text-gray-700">核心功能</span>
+                  <span className="text-[11px] text-gray-400">({server.features.length})</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {server.features.map((feature, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 px-2.5 py-1.5 border border-gray-200"
+                      style={{ borderRadius: 6 }}
+                    >
+                      <Check size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
+                      <span className="text-[12px] text-gray-700">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 元信息：提供者 / 分类 / 协议 */}
+            <div className="mt-4 flex items-center gap-3 text-[11.5px] text-gray-400 flex-wrap">
+              <span className="flex items-center gap-1">
+                <Server size={11} />{server.provider || "第三方"}
+              </span>
+              <span className="w-px h-3 bg-gray-200" />
+              <span className="flex items-center gap-1">
+                <TagIcon size={11} />{server.category}
+              </span>
+              {isOfficial && (
+                <>
+                  <span className="w-px h-3 bg-gray-200" />
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck size={11} />官方认证
+                  </span>
+                </>
+              )}
+              <span className="w-px h-3 bg-gray-200" />
+              <span className="flex items-center gap-1">
+                <BookOpen size={11} />MCP 协议
+              </span>
+            </div>
+          </div>
+        </ScrollArea>
+      </motion.div>
+    </div>
+  )
+}
+
+// ================================================================
+//  插件卡片
+// ================================================================
+const ServerCard = ({
+  server,
+  installed,
+  onClick,
+  onInstall
+}: {
+  server: MCPServer
+  installed: boolean
+  onClick: () => void
+  onInstall: (e: React.MouseEvent) => void
+}) => {
+  const isOfficial = server.official === true
+  return (
+    <div
+      onClick={onClick}
+      className="group relative flex flex-col gap-2.5 px-4 pt-4 pb-3.5 bg-white border border-gray-200/80 hover:border-blue-300 transition-colors cursor-pointer"
+      style={{ borderRadius: 12 }}
+    >
+      <div className="flex items-start gap-3">
+        <ServerIcon server={server} size="md" shape="circle" />
+        <div className="flex-1 min-w-0 pt-0.5">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-[14px] font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
+              {server.displayName}
+            </h3>
+            {isOfficial && (
+              <ShieldCheck size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+            )}
+          </div>
+          {server.category && (
+            <span className="text-[11px] text-gray-400 mt-0.5 inline-block">· {server.category}</span>
+          )}
+        </div>
+      </div>
+      <p className="text-[12.5px] text-gray-500 leading-relaxed line-clamp-3 min-h-[3.6em]">
+        {server.description}
+      </p>
+      <div className="mt-auto flex items-center justify-between pt-1">
+        <span className="text-[11.5px] text-gray-400 flex items-center gap-1">
+          <Server size={11} />
+          {server.provider || "第三方"}
+        </span>
+        {installed ? (
+          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+            <Check size={11} strokeWidth={3} />
+            已添加
+          </span>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onInstall(e) }}
+            className="size-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            style={{ borderRadius: 6 }}
+            title="添加至会话"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ================================================================
+//  主组件：MCP 插件商店（参考 skill-store 重设计）
+// ================================================================
+type MainTab = "recommended" | "official" | "mcphub" | "opensource"
+type SubTab = "all" | "official" | "other"
+
+export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInChat }: { searchQuery?: string, darkMode?: boolean, onTryInChat?(toolName: string): void }) {
   const [servers, setServers] = useState<MCPServer[]>([])
-  const [loading, setLoading] = useState(true)
-  const [installedServers, setInstalledServers] = useState<Set<string>>(new Set())
-  const [installing, setInstalling] = useState<string | null>(null)
-  const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null)
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
-  const [customDialogOpen, setCustomDialogOpen] = useState(false)
   const [customServers, setCustomServers] = useState<MCPServer[]>([])
+  const [installedIds, setInstalledIds] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null)
+  const [customDialogOpen, setCustomDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchServers()
-    const installed = localStorage.getItem("mcp-installed-servers")
-    if (installed) setInstalledServers(new Set(JSON.parse(installed)))
-    const custom = localStorage.getItem("mcp-custom-servers")
-    if (custom) setCustomServers(JSON.parse(custom))
-  }, [])
+  const [mainTab, setMainTab] = useState<MainTab>("recommended")
+  const [subTab, setSubTab] = useState<SubTab>("all")
+  const [localSearch, setLocalSearch] = useState(searchQuery)
 
-  const fetchServers = async () => {
-    setLoading(true)
+  const fetchData = async () => {
     try {
       const res = await fetch('/api/mcp-store')
       const data = await res.json()
       setServers(Array.isArray(data) ? data : [])
-    } catch (e) {
-      toast.error("加载工具商店失败")
+
+      const installed = localStorage.getItem("mcp-installed-servers")
+      if (installed) setInstalledIds(new Set(JSON.parse(installed)))
+
+      const custom = localStorage.getItem("mcp-custom-servers")
+      if (custom) setCustomServers(JSON.parse(custom))
+    } catch (error) {
+      console.error("Failed to fetch mcp servers", error)
+      toast.error("加载插件商店失败")
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredServers = [...servers, ...customServers].filter(server => {
-    const matchesSearch = server.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          server.description.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
-  }).sort((a, b) => (b.official ? 1 : 0) - (a.official ? 1 : 0))
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-  // 种植场景优先：agriculture 分类的插件作为"种植精选"展示
-  const agricultureServers = filteredServers.filter(s => s.category === "agriculture")
-  const otherServers = filteredServers.filter(s => s.category !== "agriculture")
-  const featured = agricultureServers.slice(0, 4)
-  const others = [...agricultureServers.slice(4), ...otherServers]
+  // 当外部 searchQuery 变化时同步
+  useEffect(() => {
+    setLocalSearch(searchQuery)
+  }, [searchQuery])
 
-  const handleInstall = async (server: MCPServer, config?: Record<string, string>) => {
-    setInstalling(server.id)
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800))
-      const newInstalled = new Set(installedServers)
-      newInstalled.add(server.id)
-      setInstalledServers(newInstalled)
-      localStorage.setItem("mcp-installed-servers", JSON.stringify([...newInstalled]))
+  const handleInstall = async (e: React.MouseEvent, server: MCPServer) => {
+    e.stopPropagation()
+    const next = new Set(installedIds)
+    next.add(server.id)
+    setInstalledIds(next)
+    localStorage.setItem("mcp-installed-servers", JSON.stringify([...next]))
+    const config = { ...server, envVars: { ...server.envVars } }
+    localStorage.setItem(`mcp-config-${server.id}`, JSON.stringify(config))
+    toast.success(`${server.displayName} 已准备就绪`)
+  }
 
-      const serverConfig = { ...server, envVars: { ...server.envVars, ...config } }
-      localStorage.setItem(`mcp-config-${server.id}`, JSON.stringify(serverConfig))
-      toast.success(`${server.displayName} 已准备就绪`)
-    } catch (e) {
-      toast.error("安装失败")
-    } finally {
-      setInstalling(null)
+  const handleUninstall = async (e: React.MouseEvent, server: MCPServer) => {
+    e.stopPropagation()
+    const next = new Set(installedIds)
+    next.delete(server.id)
+    setInstalledIds(next)
+    localStorage.setItem("mcp-installed-servers", JSON.stringify([...next]))
+    toast.success(`已移除 ${server.displayName}`)
+  }
+
+  // 全部服务器（含自定义）
+  const allServers = useMemo(() => {
+    return [...servers, ...customServers]
+  }, [servers, customServers])
+
+  // 过滤逻辑
+  const filteredServers = useMemo(() => {
+    const q = localSearch.trim().toLowerCase()
+    return allServers.filter(s => {
+      // 主标签
+      if (mainTab === "official" && !s.official) return false
+      if (mainTab === "mcphub" && s.official) return false
+      if (mainTab === "opensource" && s.official) return false
+      if (mainTab === "recommended") {
+        // 推荐：仅显示官方 + 农业类
+        if (!s.official && s.category !== "agriculture") return false
+      }
+      // 子标签
+      if (subTab === "official" && !s.official) return false
+      if (subTab === "other" && s.official) return false
+      // 搜索
+      if (q && !s.displayName.toLowerCase().includes(q) && !s.description.toLowerCase().includes(q)) return false
+      return true
+    }).sort((a, b) => (b.official ? 1 : 0) - (a.official ? 1 : 0))
+  }, [allServers, mainTab, subTab, localSearch])
+
+  // 计数
+  const subCounts = useMemo(() => {
+    const base = allServers.filter(s => {
+      if (mainTab === "official" && !s.official) return false
+      if (mainTab === "mcphub" && s.official) return false
+      if (mainTab === "opensource" && s.official) return false
+      if (mainTab === "recommended") {
+        if (!s.official && s.category !== "agriculture") return false
+      }
+      return true
+    })
+    return {
+      all: base.length,
+      official: base.filter(s => s.official).length,
+      other: base.filter(s => !s.official).length,
     }
-  }
+  }, [allServers, mainTab])
 
-  const handleTryInChat = () => {
-    onTryInChat?.("光谱")
-  }
+  const mainTabs: { key: MainTab; label: string }[] = [
+    { key: "recommended", label: "推荐" },
+    { key: "official", label: "官方" },
+    { key: "mcphub", label: "MCP Hub" },
+    { key: "opensource", label: "开源社区" },
+  ]
+
+  const subTabs: { key: SubTab; label: string }[] = [
+    { key: "all", label: "全部" },
+    { key: "official", label: "官方自研" },
+    { key: "other", label: "其他" },
+  ]
 
   if (loading) {
     return (
-      <div className={cn(
-        "flex items-center justify-center py-20 font-medium text-sm",
-        isDark ? "text-zinc-500" : "text-gray-500"
-      )}>
-        加载工具列表中...
+      <div className="flex items-center justify-center py-20">
+        <Spin />
       </div>
     )
   }
-
-  const renderServerRow = (server: MCPServer) => {
-    const isInstalled = installedServers.has(server.id)
-    return (
-      <div
-        key={server.id}
-        onClick={() => { setSelectedServer(server); setDetailDialogOpen(true); }}
-        className={cn(
-          "group flex gap-4 cursor-pointer items-center py-3.5 px-3 -mx-3 rounded-2xl select-none transition-all",
-          isDark ? "hover:bg-zinc-800/50" : "hover:bg-emerald-50/60"
-        )}
-      >
-        <AppIcon
-          icon={server.icon}
-          name={server.displayName}
-          isDark={isDark}
-          className={cn(
-            "size-11 rounded-2xl shadow-sm ring-1 shrink-0",
-            isDark
-              ? "ring-emerald-700/40 bg-emerald-950/60"
-              : "ring-emerald-200/80 bg-emerald-50"
-          )}
-        />
-        <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h4 className={cn(
-                "font-bold text-[14px] truncate transition-colors",
-                isDark ? "text-zinc-100 group-hover:text-white" : "text-gray-900 group-hover:text-emerald-700"
-              )}>{server.displayName}</h4>
-              {server.official && <Check className={cn("size-3.5 stroke-[3px]", isDark ? "text-emerald-400" : "text-emerald-500")} />}
-            </div>
-            <p className={cn(
-              "text-xs line-clamp-1 max-w-[280px] md:max-w-[340px]",
-              isDark ? "text-zinc-500" : "text-gray-400"
-            )}>{server.description}</p>
-          </div>
-          <div className="shrink-0 flex items-center justify-center">
-            {isInstalled ? (
-              <Check className={cn("size-4 stroke-[3px]", isDark ? "text-zinc-500" : "text-gray-400")} />
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleInstall(server)
-                }}
-                disabled={installing === server.id}
-                className={cn(
-                  "size-7 rounded-full flex items-center justify-center transition-all active:scale-95",
-                  isDark
-                    ? "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-emerald-400 hover:border-emerald-600/50 hover:bg-zinc-700"
-                    : "bg-white border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50"
-                )}
-              >
-                {installing === server.id ? (
-                  <Loader2 size={12} className={cn("animate-spin", isDark ? "text-zinc-400" : "text-gray-400")} />
-                ) : (
-                  <Plus size={14} />
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // 种植场景能力卡片配置（图标统一翠绿色调）
-  const capabilityCards = [
-    { icon: Sun, title: "环境感知", desc: "光谱 · 气象 · 光照监测" },
-    { icon: Droplets, title: "水肥管控", desc: "土壤 · 灌溉 · 养分调控" },
-    { icon: Leaf, title: "植保诊断", desc: "病害识别 · 虫害预警" },
-    { icon: CloudSun, title: "数据决策", desc: "农场数据 · 生长分析" },
-  ]
 
   return (
-    <div className={cn(
-      "w-full flex flex-col",
-      isDark ? "text-zinc-200" : "text-gray-800"
-    )}>
-      <div className="w-full max-w-4xl mx-auto space-y-10">
-
-        {/* 种植场景 Hero Banner */}
-        {searchQuery === "" && (
-          <div className={cn(
-            "w-full relative rounded-3xl overflow-hidden border flex flex-col p-8 gap-6 shadow-lg",
-            isDark
-              ? "bg-gradient-to-br from-emerald-950/80 via-zinc-900 to-green-950/60 border-emerald-800/40"
-              : "bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 border-emerald-200/60"
-          )}>
-            {/* 装饰光斑 */}
-            <div className="absolute -top-16 -left-16 size-56 bg-emerald-400/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -right-16 size-56 bg-rose-300/10 dark:bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* 标题与副标题 */}
-            <div className="relative space-y-2">
-              <h2 className={cn(
-                "text-3xl font-black tracking-tight",
-                isDark ? "text-zinc-50" : "text-gray-900"
-              )}>
-                让每一颗草莓都被精准守护
-              </h2>
-              <p className={cn(
-                "text-sm font-medium max-w-lg",
-                isDark ? "text-zinc-400" : "text-gray-500"
-              )}>
-                集成光谱传感、土壤监测、气象预警与病害诊断，为莓园提供从感知到决策的全链路智能支持。
-              </p>
-            </div>
-
-            {/* 能力卡片网格 */}
-            <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3">
-              {capabilityCards.map((cap, i) => {
-                const Icon = cap.icon
-                return (
-                  <motion.div
-                    key={cap.title}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    className={cn(
-                      "rounded-2xl p-4 border backdrop-blur-sm",
-                      isDark ? "bg-zinc-900/60 border-zinc-800/60" : "bg-white/70 border-emerald-100"
-                    )}
-                  >
-                    <div className={cn(
-                      "size-9 rounded-xl flex items-center justify-center mb-2.5",
-                      isDark ? "bg-emerald-500/15 text-emerald-400" : "bg-emerald-100 text-emerald-600"
-                    )}>
-                      <Icon size={18} />
-                    </div>
-                    <div className={cn(
-                      "text-sm font-bold mb-0.5",
-                      isDark ? "text-zinc-100" : "text-gray-900"
-                    )}>{cap.title}</div>
-                    <div className={cn(
-                      "text-[11px] leading-tight",
-                      isDark ? "text-zinc-500" : "text-gray-400"
-                    )}>{cap.desc}</div>
-                  </motion.div>
-                )
-              })}
-            </div>
-
-            {/* 试用入口 */}
-            <div className="relative flex items-center gap-3">
-              <button
-                onClick={handleTryInChat}
-                className={cn(
-                  "text-xs font-bold px-5 py-2.5 rounded-full shadow-md transition-all active:scale-95 flex items-center gap-2",
-                  isDark
-                    ? "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/30"
-                )}
-              >
-                在对话中试用光谱工具
-                <ChevronRight size={13} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 种植精选 Section */}
-        {featured.length > 0 && (
-          <div className="space-y-4">
-            <div className={cn(
-              "flex items-center justify-between border-b pb-2.5",
-              isDark ? "border-zinc-800" : "border-gray-200"
-            )}>
-              <div className="flex items-center gap-2">
-                <Sprout className={cn("size-4", isDark ? "text-emerald-400" : "text-emerald-600")} />
-                <h3 className={cn(
-                  "text-[15px] font-black tracking-wide",
-                  isDark ? "text-zinc-100" : "text-gray-900"
-                )}>种植精选</h3>
-              </div>
-              <button
-                onClick={() => setCustomDialogOpen(true)}
-                className={cn(
-                  "text-xs px-3 py-1.5 rounded-lg font-bold transition-all active:scale-95",
-                  isDark
-                    ? "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-                    : "bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200"
-                )}
-              >
-                自定义添加
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
-              {featured.map(renderServerRow)}
-            </div>
-          </div>
-        )}
-
-        {/* 更多工具 Section */}
-        {others.length > 0 && (
-          <div className="space-y-4">
-            <div className={cn(
-              "flex items-center gap-2 border-b pb-2.5",
-              isDark ? "border-zinc-800" : "border-gray-200"
-            )}>
-              <h3 className={cn(
-                "text-[15px] font-black tracking-wide",
-                isDark ? "text-zinc-100" : "text-gray-900"
-              )}>更多工具</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
-              {others.map(renderServerRow)}
-            </div>
-          </div>
-        )}
-
-        {filteredServers.length === 0 && (
-          <div className={cn(
-            "text-center py-20 text-sm font-medium",
-            isDark ? "text-zinc-600" : "text-gray-400"
-          )}>
-            未搜索到匹配的工具插件
-          </div>
-        )}
+    <div className="w-full">
+      {/* 标题区 */}
+      <div className="flex items-center justify-between gap-6 mb-7">
+        <div>
+          <h1 className="text-[32px] font-bold text-gray-900 leading-none tracking-tight" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+            Plugins
+          </h1>
+          <p className="text-[13px] text-gray-500 mt-2.5 flex items-center gap-1">
+            <span>扩展 AI 工具，连接万物</span>
+          </p>
+        </div>
+        <PluginsIllustration className="hidden md:block shrink-0" />
       </div>
 
-      <MCPServerDetailDialog server={selectedServer} open={detailDialogOpen} onOpenChange={setDetailDialogOpen} onInstall={handleInstall} />
-      <CustomMCPDialog open={customDialogOpen} onOpenChange={setCustomDialogOpen} onSave={(server) => {
-          const newCustomServers = [...customServers, server]
-          setCustomServers(newCustomServers)
-          localStorage.setItem("mcp-custom-servers", JSON.stringify(newCustomServers))
-          handleInstall(server)
-      }} />
+      {/* 主标签 + 搜索 */}
+      <div className="flex items-center justify-between gap-4 mb-3">
+        <div className="flex items-center gap-1 bg-gray-100/70 p-1 rounded-xl">
+          {mainTabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setMainTab(t.key)}
+              className={cn(
+                "px-5 py-1.5 text-[13px] font-medium transition-all rounded-lg",
+                mainTab === t.key
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="搜索插件"
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-gray-200 text-gray-700 placeholder-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors"
+            style={{ borderRadius: 10 }}
+          />
+        </div>
+      </div>
+
+      {/* 子标签 */}
+      <div className="flex items-center gap-6 mb-5 border-b border-gray-200/80">
+        {subTabs.map((t, i) => (
+          <button
+            key={t.key}
+            onClick={() => setSubTab(t.key)}
+            className={cn(
+              "relative pb-2.5 text-[13px] font-medium transition-colors",
+              subTab === t.key
+                ? "text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            <span className="inline-flex items-center gap-1">
+              {t.label}
+              <span className={cn(
+                "text-[11px] tabular-nums",
+                subTab === t.key ? "text-gray-500" : "text-gray-400"
+              )}>
+                {i === 0 ? `(${subCounts.all})` : subCounts[t.key as keyof typeof subCounts]}
+              </span>
+            </span>
+            {subTab === t.key && (
+              <motion.span
+                layoutId="plugin-subtab-underline"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600"
+                transition={{ duration: 0.2 }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* 卡片网格 */}
+      {filteredServers.length === 0 ? (
+        <div className="py-20 flex flex-col items-center justify-center text-center">
+          <Empty
+            description={
+              <span className="text-[13px] text-gray-500">
+                {localSearch ? `未搜索到 "${localSearch}" 相关插件` : "暂无插件"}
+              </span>
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredServers.map(server => {
+            const installed = installedIds.has(server.id)
+            return (
+              <ServerCard
+                key={server.id}
+                server={server}
+                installed={installed}
+                onClick={() => setSelectedServer(server)}
+                onInstall={(e) => handleInstall(e, server)}
+              />
+            )
+          })}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selectedServer && (
+          <ServerDetailView
+            key={selectedServer.id}
+            server={selectedServer}
+            installedIds={installedIds}
+            onClose={() => setSelectedServer(null)}
+            onInstall={handleInstall}
+            onUninstall={handleUninstall}
+            onCustom={() => setCustomDialogOpen(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      <CustomMCPDialog
+        open={customDialogOpen}
+        onOpenChange={setCustomDialogOpen}
+        onSave={(server) => {
+          const next = [...customServers, server]
+          setCustomServers(next)
+          localStorage.setItem("mcp-custom-servers", JSON.stringify(next))
+          // 自动安装
+          const installed = new Set(installedIds)
+          installed.add(server.id)
+          setInstalledIds(installed)
+          localStorage.setItem("mcp-installed-servers", JSON.stringify([...installed]))
+          const config = { ...server, envVars: { ...server.envVars } }
+          localStorage.setItem(`mcp-config-${server.id}`, JSON.stringify(config))
+          toast.success(`${server.displayName} 已添加并准备就绪`)
+        }}
+      />
     </div>
   )
 }

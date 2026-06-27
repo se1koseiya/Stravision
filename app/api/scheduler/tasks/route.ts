@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
-import { createTask, getAllTasks, deleteTask, CreateTaskDTO } from "@/lib/db/scheduler-service"
+import { createTask, getAllTasks, deleteTask, updateTask, updateTaskStatus, CreateTaskDTO } from "@/lib/db/scheduler-service"
 import { SchedulerRunner } from "@/lib/scheduler/runner"
 import { CronExpressionParser } from "cron-parser"
 import { initDB } from "@/lib/db/database"
+
 
 // Force dynamic to ensure we don't cache the list
 export const dynamic = 'force-dynamic'
@@ -70,6 +71,53 @@ export async function DELETE(req: Request) {
     await SchedulerRunner.getInstance().refreshTasks()
     
     return NextResponse.json({ success: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    await initDB()
+    const body = await req.json()
+    const id = Number(body?.id)
+    if (!id) {
+      return NextResponse.json({ error: "ID required" }, { status: 400 })
+    }
+
+    if (body.is_active !== undefined && Object.keys(body).filter(k => k !== "id").length === 1) {
+      // 快速切换 is_active
+      await updateTaskStatus(id, !!body.is_active)
+    } else {
+      const { id: _omit, ...rest } = body
+      await updateTask(id, rest)
+    }
+
+    await SchedulerRunner.getInstance().refreshTasks()
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    await initDB()
+    const body = await req.json()
+    const id = Number(body?.id)
+    const action = body?.action
+
+    if (!id) {
+      return NextResponse.json({ error: "ID required" }, { status: 400 })
+    }
+
+    if (action === "run_now") {
+      // 立即执行指定任务
+      await SchedulerRunner.getInstance().runNow(id)
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

@@ -363,10 +363,24 @@ export function MCPMarketManager() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
-              <Textarea 
-                placeholder="What does this server do?" 
+              <Textarea
+                placeholder="What does this server do?"
                 value={editingServer?.description || ""}
                 onChange={(e) => setEditingServer({ ...editingServer, description: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-blue-500" />
+                推荐 Prompt
+                <span className="text-[10px] text-zinc-400 font-normal">（插件详情页打开时自动加载）</span>
+              </label>
+              <Textarea
+                placeholder="为这个插件推荐一个具体的使用 Prompt，例如：读取 1 号棚的近红外光谱值并判断氮素含量。"
+                className="h-20"
+                value={editingServer?.recommended_prompt || ""}
+                onChange={(e) => setEditingServer({ ...editingServer, recommended_prompt: e.target.value })}
               />
             </div>
 

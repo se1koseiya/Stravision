@@ -17,6 +17,15 @@ export function WidgetTrendChart({ type, color, unit = "", className }: WidgetTr
     const [timeRange, setTimeRange] = useState("7h") // default to 7h as user requested 1day, 7h, 10min
     const [historyData, setHistoryData] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(false)
+    const [isDark, setIsDark] = useState(false)
+
+    useEffect(() => {
+        const update = () => setIsDark(document.documentElement.classList.contains('dark'))
+        update()
+        const observer = new MutationObserver(update)
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+        return () => observer.disconnect()
+    }, [])
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -48,17 +57,18 @@ export function WidgetTrendChart({ type, color, unit = "", className }: WidgetTr
             },
             tooltip: {
                 trigger: 'axis',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                borderColor: '#f1f5f9',
+                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                borderColor: isDark ? '#1e293b' : '#f1f5f9',
                 textStyle: {
-                    color: '#0f172a'
+                    color: isDark ? '#f8fafc' : '#0f172a'
                 },
                 formatter: (params: any) => {
                     const date = new Date(params[0].value[0])
                     const timeStr = timeRange === '1d'
                         ? `${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
                         : `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
-                    return `<div class="text-xs text-slate-500 mb-1">${timeStr}</div><div class="font-bold">${params[0].value[1]} ${unit}</div>`
+                    const subColor = isDark ? '#94a3b8' : '#64748b'
+                    return `<div class="text-xs mb-1" style="color:${subColor}">${timeStr}</div><div class="font-bold">${params[0].value[1]} ${unit}</div>`
                 }
             },
             xAxis: {
@@ -107,7 +117,7 @@ export function WidgetTrendChart({ type, color, unit = "", className }: WidgetTr
     return (
         <div className={`relative flex flex-col w-full h-full ${className}`}>
             {/* Custom Range Toggle */}
-            <div className="absolute top-0 right-0 z-10 flex bg-slate-100/80 backdrop-blur-sm rounded-full p-0.5">
+            <div className="absolute top-0 right-0 z-10 flex bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full p-0.5">
                 {[
                     { label: '10分钟', value: '10m' },
                     { label: '7小时', value: '7h' },
@@ -118,8 +128,8 @@ export function WidgetTrendChart({ type, color, unit = "", className }: WidgetTr
                         onClick={() => setTimeRange(range.value)}
                         className={`text-[10px] font-semibold px-2 py-1 rounded-full transition-colors ${
                             timeRange === range.value 
-                                ? 'bg-white text-slate-900 shadow-sm' 
-                                : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                         }`}
                     >
                         {range.label}

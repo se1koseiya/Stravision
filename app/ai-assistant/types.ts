@@ -9,6 +9,16 @@ export interface Citation {
   quote?: string
 }
 
+/** 聊天附件（图片/文件） */
+export interface ChatAttachment {
+  /** 文件名（含扩展名） */
+  name: string
+  /** MIME 类型，如 image/png */
+  type: string
+  /** dataURL（base64 编码内联，可直接用于 image_url） */
+  dataUrl: string
+}
+
 export interface TaskItemModel {
   type: "text" | "file"
   text: string

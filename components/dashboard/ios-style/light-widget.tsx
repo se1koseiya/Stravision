@@ -31,21 +31,21 @@ export function LightWidget({
       status: "明亮",
       label: "强光",
       colorClass: "text-amber-500",
-      bgClass: "bg-amber-50",
+      bgClass: "bg-amber-50 dark:bg-amber-900/30",
       hexColor: "#f59e0b"
     }
     if (lux >= 1000) return {
       status: "适中",
       label: "适中",
       colorClass: "text-yellow-500",
-      bgClass: "bg-yellow-50",
+      bgClass: "bg-yellow-50 dark:bg-yellow-900/30",
       hexColor: "#eab308"
     }
     return {
       status: "昏暗",
       label: "昏暗",
       colorClass: "text-indigo-500",
-      bgClass: "bg-indigo-50",
+      bgClass: "bg-indigo-50 dark:bg-indigo-900/30",
       hexColor: "#6366f1"
     }
   }
@@ -68,7 +68,7 @@ export function LightWidget({
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white text-slate-900 shadow-sm border-0", className)}
+      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
       header={size !== 'small' ? Header : null}
       isEditing={isEditing}
       widgetId={widgetId}
@@ -88,7 +88,7 @@ export function LightWidget({
             
             <div className="mt-auto">
               <div className="flex items-start">
-                <span className="text-4xl font-bold tracking-tighter text-slate-900">
+                <span className="text-4xl font-bold tracking-tighter text-slate-900 dark:text-white">
                     {value >= 1000 ? (value / 1000).toFixed(1) : value}
                 </span>
                 <span className="text-sm font-medium mt-1 text-slate-400 ml-1">
@@ -107,7 +107,7 @@ export function LightWidget({
           <div className="flex flex-col h-full w-full">
             <div className="flex items-end gap-2 mb-2">
                 <div className="flex items-start">
-                    <span className="text-5xl font-bold tracking-tighter text-slate-900">
+                    <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">
                          {value >= 1000 ? (value / 1000).toFixed(1) : value}
                     </span>
                     <span className="text-xl font-medium mt-1 text-slate-400 ml-2">
@@ -133,7 +133,7 @@ export function LightWidget({
              <div className="flex items-end justify-between mb-4">
                 <div className="flex flex-col">
                     <div className="flex items-start">
-                        <span className="text-6xl font-bold tracking-tighter text-slate-900">
+                        <span className="text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">
                              {value >= 1000 ? (value / 1000).toFixed(1) : value}
                         </span>
                         <span className="text-2xl font-medium mt-1 text-slate-400 ml-2">
@@ -144,18 +144,18 @@ export function LightWidget({
                 </div>
                 
                 <div className="flex flex-col gap-2">
-                    <div className="bg-slate-50 rounded-xl p-2 px-3 flex items-center gap-3">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2 px-3 flex items-center gap-3">
                         <Sunrise className="w-4 h-4 text-amber-500" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-slate-400 uppercase font-semibold">日出</span>
-                            <span className="text-sm font-bold text-slate-700 leading-none">06:12 AM</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">日出</span>
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none">06:12 AM</span>
                         </div>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-2 px-3 flex items-center gap-3">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2 px-3 flex items-center gap-3">
                         <Sunset className="w-4 h-4 text-indigo-500" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-slate-400 uppercase font-semibold">日落</span>
-                            <span className="text-sm font-bold text-slate-700 leading-none">07:45 PM</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">日落</span>
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none">07:45 PM</span>
                         </div>
                     </div>
                 </div>

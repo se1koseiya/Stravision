@@ -22,16 +22,54 @@ export interface ResolvedProvider {
   modelInfo: ProviderModel | undefined
 }
 
-// ====== 读取配置（内部使用，返回完整信息含 apiKey）=====
+// ====== 读取配置（内部使用，返回完整信息含 apiKey）======
 
-export async function readProvidersConfig(): Promise<{ providers: AIProvider[] }> {
+// 扩展配置：包含 admin 设置的默认模型 ID
+export interface ProvidersConfig {
+  providers: AIProvider[]
+  /** admin 后台配置的默认/自动选择模型 ID（可选） */
+  defaultModelId?: string
+}
+
+export async function readProvidersConfig(): Promise<ProvidersConfig> {
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf-8')
-    return JSON.parse(data)
+    const parsed = JSON.parse(data) as ProvidersConfig
+    // 兼容老配置：未设置 defaultModelId 时不抛错
+    return parsed
   } catch {
     // 返回空配置
     return { providers: [] }
   }
+}
+
+/**
+ * 解析默认/自动选择的模型 ID
+ * 优先级：admin 配置 > 默认 provider 的第一个 enabled 模型 > 第一个 enabled 模型的 ID
+ * 若配置无效（model 不存在或被禁用）则回退到下一级
+ */
+export function resolveDefaultModelId(config: ProvidersConfig): string | null {
+  // 1) admin 配置的 defaultModelId
+  if (config.defaultModelId) {
+    for (const p of config.providers) {
+      if (!p.enabled) continue
+      for (const m of p.models) {
+        if (m.id === config.defaultModelId && m.enabled) {
+          return m.id
+        }
+      }
+    }
+  }
+
+  // 2) 默认 provider 的第一个 enabled 模型
+  const sorted = [...config.providers].sort((a, b) => a.priority - b.priority)
+  for (const p of sorted) {
+    if (!p.enabled) continue
+    for (const m of p.models) {
+      if (m.enabled) return m.id
+    }
+  }
+  return null
 }
 
 /**
@@ -182,21 +220,26 @@ function detectTypeFromUrl(url: string): AIProvider['type'] {
  */
 export async function getPublicProviders() {
   const config = await readProvidersConfig()
+  const defaultModelId = resolveDefaultModelId(config)
 
-  return config.providers
-    .filter(p => p.enabled)
-    .map(p => ({
-      id: p.id,
-      name: p.name,
-      type: p.type,
-      isDefault: p.isDefault || false,
-      models: p.models.filter(m => m.enabled).map(m => ({
-        id: m.id,
-        name: m.name,
-        description: m.description,
-        icon: m.icon,
-        supportsVision: m.supportsVision,
-        supportsReasoning: m.supportsReasoning,
+  return {
+    providers: config.providers
+      .filter(p => p.enabled)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        isDefault: p.isDefault || false,
+        models: p.models.filter(m => m.enabled).map(m => ({
+          id: m.id,
+          name: m.name,
+          description: m.description,
+          icon: m.icon,
+          supportsVision: m.supportsVision,
+          supportsReasoning: m.supportsReasoning,
+        })),
       })),
-    }))
+    // admin 配置的默认模型 ID（如果配置无效则自动回退到第一个 enabled 模型）
+    defaultModelId,
+  }
 }

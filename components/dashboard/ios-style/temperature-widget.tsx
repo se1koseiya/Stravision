@@ -36,28 +36,28 @@ export function TemperatureWidget({
       status: "高温",
       label: "高温警报",
       colorClass: "text-red-500",
-      bgClass: "bg-red-50",
+      bgClass: "bg-red-50 dark:bg-red-900/30",
       hexColor: "#ef4444"
     }
     if (temp >= 25) return {
       status: "偏热",
       label: "温暖舒适",
       colorClass: "text-orange-500",
-      bgClass: "bg-orange-50",
+      bgClass: "bg-orange-50 dark:bg-orange-900/30",
       hexColor: "#f97316"
     }
     if (temp >= 18) return {
       status: "适宜",
       label: "适宜温度",
       colorClass: "text-primary",
-      bgClass: "bg-emerald-50",
+      bgClass: "bg-emerald-50 dark:bg-emerald-900/30",
       hexColor: "#10b981"
     }
     return {
       status: "偏冷",
       label: "凉爽低温",
       colorClass: "text-blue-500",
-      bgClass: "bg-blue-50",
+      bgClass: "bg-blue-50 dark:bg-blue-900/30",
       hexColor: "#3b82f6"
     }
   }
@@ -80,7 +80,7 @@ export function TemperatureWidget({
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white text-slate-900 shadow-sm border-0", className)}
+      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
       header={size !== 'small' ? Header : null}
       isEditing={isEditing}
       widgetId={widgetId}
@@ -97,7 +97,7 @@ export function TemperatureWidget({
                 <Thermometer className={cn("w-5 h-5", config.colorClass)} />
               </div>
               {trend !== 'stable' && (
-                <div className={cn("flex items-center p-1 rounded-full bg-slate-50", 
+                <div className={cn("flex items-center p-1 rounded-full bg-slate-50 dark:bg-slate-800",
                   trend === 'up' ? "text-primary" : "text-red-500")}>
                    {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 </div>
@@ -107,7 +107,7 @@ export function TemperatureWidget({
             <div className="mt-auto">
               <div className="flex items-start">
                 <span className={cn(
-                  "font-bold tracking-tighter text-slate-900",
+                  "font-bold tracking-tighter text-slate-900 dark:text-white",
                   isElderFriendlyMode ? "text-5xl" : "text-4xl"
                 )}>{value.toFixed(0)}</span>
                 <span className={cn(
@@ -131,7 +131,7 @@ export function TemperatureWidget({
             <div className="flex items-end gap-2 mb-2">
                 <div className="flex items-start">
                     <span className={cn(
-                      "font-bold tracking-tighter text-slate-900",
+                      "font-bold tracking-tighter text-slate-900 dark:text-white",
                       isElderFriendlyMode ? "text-6xl" : "text-5xl"
                     )}>{value.toFixed(1)}</span>
                     <span className={cn(
@@ -164,7 +164,7 @@ export function TemperatureWidget({
                 <div className="flex flex-col">
                     <div className="flex items-start">
                         <span className={cn(
-                          "font-bold tracking-tighter text-slate-900",
+                          "font-bold tracking-tighter text-slate-900 dark:text-white",
                           isElderFriendlyMode ? "text-7xl" : "text-6xl"
                         )}>{value.toFixed(1)}</span>
                         <span className={cn(
@@ -179,10 +179,10 @@ export function TemperatureWidget({
                     )}>{config.status} • {config.label}</span>
                 </div>
                 <div className={cn(
-                  "flex flex-col items-end gap-1 text-slate-500 bg-slate-50 p-3 rounded-2xl",
+                  "flex flex-col items-end gap-1 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl",
                   isElderFriendlyMode ? "text-base" : "text-sm"
                 )}>
-                    <span className="flex items-center gap-1 font-medium">体感 <span className="text-slate-900">{(value + 2).toFixed(1)}°</span></span>
+                    <span className="flex items-center gap-1 font-medium">体感 <span className="text-slate-900 dark:text-white">{(value + 2).toFixed(1)}°</span></span>
                     <span className={cn(
                       "flex items-center gap-1",
                       isElderFriendlyMode ? "text-sm" : "text-xs"

@@ -9,6 +9,7 @@ import {
   Activity, BarChart3, MessageSquare, ArrowRight, X
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { BERRY_THEME } from '@/lib/ui/berry-theme'
 
 // ====== 能力数据定义 ======
 
@@ -25,47 +26,47 @@ const CAPABILITIES: Capability[] = [
   {
     id: 'device-control', iconName: 'Zap', title: '智能设备控制',
     description: '控制温室内的水泵、风扇、补光灯等设备，实现精准的环境调控',
-    color: '#1677ff', examples: ['打开水泵', '关闭风扇', '调节补光灯亮度', '移动摄像头到左侧'],
+    color: BERRY_THEME.primary, examples: ['打开水泵', '关闭风扇', '调节补光灯亮度', '移动摄像头到左侧'],
   },
   {
     id: 'environment-monitor', iconName: 'Activity', title: '环境监测分析',
     description: '实时监测温度、湿度、CO2、光照等环境参数，提供专业分析建议',
-    color: '#52c41a', examples: ['当前温室环境如何', '分析今日环境数据', '湿度是否正常', '光照强度够吗'],
+    color: BERRY_THEME.primary, examples: ['当前温室环境如何', '分析今日环境数据', '湿度是否正常', '光照强度够吗'],
   },
   {
     id: 'spectrum-analysis', iconName: 'BarChart3', title: '光谱数据分析',
     description: '获取18通道光谱数据，计算NDVI指数，评估植物健康状态',
-    color: '#722ed1', examples: ['获取光谱数据', '计算NDVI指数', '分析植物健康状况', '检测植物胁迫'],
+    color: BERRY_THEME.primary, examples: ['获取光谱数据', '计算NDVI指数', '分析植物健康状况', '检测植物胁迫'],
   },
   {
     id: 'visual-inspection', iconName: 'Camera', title: '视觉巡检',
     description: '控制摄像头移动并捕获画面，进行病虫害识别和生长状态评估',
-    color: '#fa8c16', examples: ['巡检温室', '拍摄植物照片', '检测病虫害', '评估生长状态'],
+    color: BERRY_THEME.primary, examples: ['巡检温室', '拍摄植物照片', '检测病虫害', '评估生长状态'],
   },
   {
     id: 'schedule-task', iconName: 'Calendar', title: '定时任务管理',
     description: '创建和管理定时任务，实现自动化灌溉、通风、补光等操作',
-    color: '#1677ff', examples: ['每天早上8点打开补光灯', '每2小时检查一次温度', '查看所有定时任务', '取消明天的浇水任务'],
+    color: BERRY_THEME.primary, examples: ['每天早上8点打开补光灯', '每2小时检查一次温度', '查看所有定时任务', '取消明天的浇水任务'],
   },
   {
     id: 'report-generation', iconName: 'FileText', title: '报告生成',
     description: '生成精美的环境监测报告、数据分析报告，支持HTML和PDF导出',
-    color: '#eb2f96', examples: ['生成今日环境报告', '导出本周数据分析', '生成设备运行报告', '创建种植管理报告'],
+    color: BERRY_THEME.primary, examples: ['生成今日环境报告', '导出本周数据分析', '生成设备运行报告', '创建种植管理报告'],
   },
   {
     id: 'knowledge-search', iconName: 'Search', title: '农业知识搜索',
     description: '搜索最新的农业种植技术、病虫害防治方法、最佳实践等专业知识',
-    color: '#13c2c2', examples: ['草莓白粉病怎么防治', '5月份草莓管理要点', '如何提高草莓产量', '温室通风策略'],
+    color: BERRY_THEME.primary, examples: ['草莓白粉病怎么防治', '5月份草莓管理要点', '如何提高草莓产量', '温室通风策略'],
   },
   {
     id: 'smart-advice', iconName: 'Brain', title: '智能决策建议',
     description: '基于当前环境数据和农业知识，提供专业的种植管理建议',
-    color: '#722ed1', examples: ['现在需要浇水吗', '如何优化当前环境', '制定本周管理计划', '分析产量提升方案'],
+    color: BERRY_THEME.primary, examples: ['现在需要浇水吗', '如何优化当前环境', '制定本周管理计划', '分析产量提升方案'],
   },
   {
     id: 'chat', iconName: 'MessageSquare', title: '自然对话交互',
     description: '支持自然语言对话，理解复杂指令，提供友好的交互体验',
-    color: '#36cfc9', examples: ['帮我分析一下现在的环境', '温度太高了怎么办', '今天需要做什么', '给我一些种植建议'],
+    color: BERRY_THEME.primary, examples: ['帮我分析一下现在的环境', '温度太高了怎么办', '今天需要做什么', '给我一些种植建议'],
   },
 ]
 

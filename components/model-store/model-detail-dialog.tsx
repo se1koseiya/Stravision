@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  X, Check, Shield, Star, Globe, Download, 
+import {
+  X, Check, Shield, Star, Globe, Download,
   ExternalLink, Zip, Info, ShieldCheck,
   Package, Layout, Cpu, Save, Key, Link as LinkIcon, Database
 } from "lucide-react"
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { AIProvider } from "@/app/model-store/page"
 
 interface ModelDetailDialogProps {
@@ -116,16 +117,17 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
     }
   }
 
+  // 🔥 Berry 蓝色系渐变（与业务卡片统一）
   const gradients = [
-    "from-indigo-600 via-blue-700 to-cyan-500",
-    "from-primary via-teal-600 to-cyan-600",
-    "from-purple-600 via-fuchsia-700 to-pink-600",
-    "from-orange-500 via-rose-600 to-red-600"
+    "from-blue-500 via-blue-600 to-cyan-500",
+    "from-sky-500 via-blue-600 to-indigo-600",
+    "from-indigo-500 via-blue-600 to-blue-700",
+    "from-blue-400 via-blue-500 to-cyan-600",
   ]
 
   const IconComponent = ({ icon: Icon, className }: { icon: any, className?: string }) => {
     return (
-      <div className={cn("flex items-center justify-center text-white bg-zinc-800", className)}>
+      <div className={cn("flex items-center justify-center text-white", className)} style={{ background: `linear-gradient(135deg, ${BERRY_THEME.primary}, ${BERRY_THEME.primaryActive})` }}>
          <Icon size={48} />
       </div>
     )
@@ -147,10 +149,11 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-5xl h-full md:h-[90vh] bg-zinc-50 dark:bg-zinc-950 md:rounded-[3rem] overflow-hidden shadow-2xl flex flex-col border border-white/5 font-sans"
+            className="relative w-full max-w-5xl h-full md:h-[90vh] bg-zinc-50 dark:bg-zinc-950 overflow-hidden shadow-2xl flex flex-col border border-white/5 font-sans"
+            style={{ borderRadius: BERRY_THEME.radius.xl }}
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => onOpenChange(false)}
               className="absolute top-6 right-6 z-50 size-10 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
             >
@@ -160,25 +163,29 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
             <ScrollArea className="flex-1 overflow-x-hidden">
               <div className="flex flex-col">
                 {/* Hero Header */}
-                <div className="relative h-[350px] shrink-0 overflow-hidden">
+                <div className="relative h-[450px] shrink-0 overflow-hidden">
                    <div className={cn("absolute inset-0 bg-gradient-to-br", gradients[provider.name.length % gradients.length])} />
-                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-50 dark:from-zinc-950 via-transparent to-black/30" />
-                   
+                   <div className="absolute inset-0 opacity-15 pointer-events-none">
+                     <div className="absolute top-16 right-24 size-40 rounded-full bg-white/20 -rotate-12 blur-xl" />
+                     <div className="absolute top-32 left-20 size-28 rounded-full bg-white/15 rotate-6 blur-lg" />
+                   </div>
+                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-50 dark:from-zinc-950 via-zinc-950/30 to-black/30" />
+
                    {/* Floating Icon and Title */}
                    <div className="absolute bottom-0 inset-x-0 p-12 flex items-end gap-10">
-                      <IconComponent icon={provider.icon} className="size-36 rounded-[2.5rem] ring-8 ring-zinc-50 dark:ring-zinc-950 shrink-0 shadow-2xl" />
+                      <IconComponent icon={provider.icon} className="size-40 ring-8 ring-zinc-50 dark:ring-zinc-950 shrink-0" style={{ borderRadius: BERRY_THEME.radius.lg + 4 }} />
                       <div className="flex-1 pb-4 space-y-4">
-                         <div className="flex items-center gap-3">
+                         <div className="flex items-center gap-3 flex-wrap">
                             <Badge className="bg-white/10 backdrop-blur-md text-white/80 border-white/10 uppercase tracking-widest text-[10px] py-1 px-3">
                               {provider.category}
                             </Badge>
                             {provider.official && (
-                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/20 py-1 px-3">
+                              <Badge className="py-1 px-3" style={{ background: `${BERRY_THEME.primary}33`, color: '#bae0ff', borderColor: `${BERRY_THEME.primary}33` }}>
                                 <ShieldCheck className="size-3.5 mr-1.5" /> 官方推荐
                               </Badge>
                             )}
                          </div>
-                         <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none drop-shadow-sm text-zinc-900 dark:text-white">
+                         <h2 className="text-6xl font-black tracking-tight leading-none drop-shadow-sm text-zinc-900 dark:text-white">
                            {provider.name}
                          </h2>
                          <div className="flex items-center gap-6 text-zinc-500 dark:text-zinc-400 font-medium">
@@ -201,7 +208,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                    <div className="lg:col-span-2 space-y-12">
                       <section className="space-y-6">
                          <h3 className="text-2xl font-bold flex items-center gap-3">
-                            <Cpu className="size-6 text-blue-500" />
+                            <Cpu className="size-6" style={{ color: BERRY_THEME.primary }} />
                             引擎简介
                          </h3>
                          <p className="text-xl leading-relaxed text-zinc-600 dark:text-zinc-400 font-medium">
@@ -210,16 +217,16 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                       </section>
 
                       {/* Config Section */}
-                      <section className="space-y-6 p-10 rounded-[3rem] bg-indigo-500/[0.03] dark:bg-indigo-500/[0.05] border border-indigo-500/10">
+                      <section className="space-y-6 p-10 border" style={{ borderRadius: BERRY_THEME.radius.lg, background: `${BERRY_THEME.primary}0A`, borderColor: `${BERRY_THEME.primary}26` }}>
                          <div className="flex items-center justify-between">
                             <h3 className="text-2xl font-bold flex items-center gap-3">
-                              <Shield className="size-6 text-indigo-500" />
+                              <Shield className="size-6" style={{ color: BERRY_THEME.primary }} />
                               环境配置
                             </h3>
                          </div>
-                         
+
                          {provider.id === 'system' ? (
-                           <div className="bg-indigo-500/10 p-6 rounded-2xl flex items-start gap-4 text-indigo-700 dark:text-indigo-300">
+                           <div className="p-6 flex items-start gap-4" style={{ background: `${BERRY_THEME.primary}1A`, color: BERRY_THEME.primaryText, borderRadius: BERRY_THEME.radius.md }}>
                              <ShieldCheck className="size-8 shrink-0" />
                              <div className="space-y-1">
                                 <h4 className="font-bold text-lg">系统免密直连</h4>
@@ -233,28 +240,30 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                                   <Label htmlFor="apiKey" className="text-sm font-bold opacity-60 flex items-center gap-2">
                                      <Key size={16} /> API Key 鉴权密钥
                                   </Label>
-                                  <Input 
+                                  <Input
                                     id="apiKey"
                                     type="password"
                                     placeholder={`sk-...${provider.id === 'google' ? '或者 AIza...' : ''}`}
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
-                                    className="h-14 px-5 rounded-2xl bg-white dark:bg-zinc-900 border-black/10 dark:border-white/10 font-mono text-lg focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                    className="h-14 px-5 bg-white dark:bg-zinc-900 border-black/10 dark:border-white/10 font-mono text-lg focus:ring-2 shadow-sm"
+                                    style={{ borderRadius: BERRY_THEME.radius.md }}
                                   />
                                 </div>
                               )}
-                              
+
                               <div className="space-y-2.5">
                                 <Label htmlFor="apiUrl" className="text-sm font-bold opacity-60 flex items-center gap-2">
                                    <LinkIcon size={16} /> API 请求接入点 (Base URL)
                                 </Label>
-                                <Input 
+                                <Input
                                   id="apiUrl"
                                   type="text"
                                   placeholder={provider.defaultUrl || "https://..."}
                                   value={apiUrl}
                                   onChange={(e) => setApiUrl(e.target.value)}
-                                  className="h-14 px-5 rounded-2xl bg-white dark:bg-zinc-900 border-black/10 dark:border-white/10 font-mono text-lg focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                  className="h-14 px-5 bg-white dark:bg-zinc-900 border-black/10 dark:border-white/10 font-mono text-lg focus:ring-2 shadow-sm"
+                                  style={{ borderRadius: BERRY_THEME.radius.md }}
                                 />
                               </div>
 
@@ -262,16 +271,17 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                                 <Label htmlFor="modelName" className="text-sm font-bold opacity-60 flex items-center gap-2">
                                    <Database size={16} /> 模型识别码 (Model Name)
                                 </Label>
-                                <Input 
+                                <Input
                                   id="modelName"
                                   type="text"
                                   placeholder={provider.defaultModel || "例如: gpt-3.5-turbo"}
                                   value={modelName}
                                   onChange={(e) => setModelName(e.target.value)}
-                                  className="h-14 px-5 rounded-2xl bg-white dark:bg-zinc-900 border-black/10 dark:border-white/10 font-mono text-lg focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                  className="h-14 px-5 bg-white dark:bg-zinc-900 border-black/10 dark:border-white/10 font-mono text-lg focus:ring-2 shadow-sm"
+                                  style={{ borderRadius: BERRY_THEME.radius.md }}
                                 />
                                 {provider.id === 'ollama' && (
-                                  <p className="text-xs text-indigo-600/60 dark:text-indigo-400/60 font-bold ml-1 pt-1">
+                                  <p className="text-xs font-bold ml-1 pt-1" style={{ color: BERRY_THEME.primary }}>
                                     提示：必须确保本地已运行该模型 (例如 `ollama run llama3`)
                                   </p>
                                 )}
@@ -283,8 +293,11 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
 
                    {/* Right Column: Meta Info */}
                    <div className="space-y-8">
-                      <div className="p-10 rounded-[3rem] bg-white dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 space-y-6 shadow-sm">
-                         <h4 className="text-lg font-bold">节点详情</h4>
+                      <div className="p-10 bg-white dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 space-y-6 shadow-sm" style={{ borderRadius: BERRY_THEME.radius.lg }}>
+                         <h4 className="text-lg font-bold flex items-center gap-2">
+                            <Info className="size-4" style={{ color: BERRY_THEME.primary }} />
+                            节点详情
+                         </h4>
                          <div className="space-y-4">
                             <div className="flex justify-between items-center py-3 border-b border-black/5 dark:border-white/5">
                                <span className="text-zinc-500 font-medium italic">发行方</span>
@@ -296,27 +309,34 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                             </div>
                             <div className="flex justify-between items-center pt-3">
                                <span className="text-zinc-500 font-medium italic">MCP 工具流</span>
-                               <span className="font-bold text-primary flex items-center gap-1 underline decoration-dotted underline-offset-4">
+                               <span className="font-bold flex items-center gap-1 underline decoration-dotted underline-offset-4" style={{ color: BERRY_THEME.primary }}>
                                  全面兼容
                                </span>
                             </div>
                          </div>
                       </div>
 
-                      <div className="p-10 rounded-[3rem] bg-primary/[0.03] dark:bg-primary/[0.05] border border-primary/10 space-y-4 shadow-sm">
-                          <div className="flex items-center gap-3 text-primary dark:text-emerald-400">
+                      <div className="p-10 border space-y-4 shadow-sm" style={{ borderRadius: BERRY_THEME.radius.lg, background: `${BERRY_THEME.primary}0A`, borderColor: `${BERRY_THEME.primary}26` }}>
+                          <div className="flex items-center gap-3" style={{ color: BERRY_THEME.primary }}>
                              <Info size={20} />
                              <h4 className="font-bold">平台保障</h4>
                           </div>
-                          <p className="text-sm leading-relaxed text-emerald-700/80 dark:text-emerald-300/80 italic font-medium">
+                          <p className="text-sm leading-relaxed italic font-medium" style={{ color: `${BERRY_THEME.primaryText}CC` }}>
                             您的 API Key 将仅保存在本地浏览器或安全后端环境中，不会被传输至任何第三方非信任节点。请保护好您的密钥。
                           </p>
                       </div>
 
-                      <Button 
+                      <Button
                         onClick={handleSave}
                         disabled={isSaving || (provider.id !== 'system' && !apiUrl)}
-                        className="w-full h-24 rounded-[3rem] bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-black shadow-xl shadow-indigo-500/30 active:scale-[0.98] transition-all disabled:opacity-50"
+                        className="w-full h-24 text-white text-2xl font-black active:scale-[0.98] transition-all disabled:opacity-50"
+                        style={{
+                          borderRadius: BERRY_THEME.radius.lg,
+                          background: BERRY_THEME.primary,
+                          boxShadow: `0 12px 28px -8px ${BERRY_THEME.primary}66`,
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = BERRY_THEME.primaryHover }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = BERRY_THEME.primary }}
                       >
                          {isSaving ? (
                             <div className="flex items-center gap-3">

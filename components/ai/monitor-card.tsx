@@ -8,6 +8,7 @@ import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 
 const MemoizedLiveStreamPlayer = memo(LiveStreamPlayer)
 
@@ -150,11 +151,21 @@ export function MonitorCard() {
 
   return (
     <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-    <div className="w-full max-w-sm bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl rounded-[24px] p-4 border border-white/50 dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.04)] my-4">
+    <div
+      className="w-full max-w-sm backdrop-blur-xl rounded-[24px] p-4 border my-4"
+      style={{
+        background: BERRY_THEME.gradients.cardHero(BERRY_THEME.primary),
+        borderColor: `${BERRY_THEME.primary}30`,
+        boxShadow: BERRY_THEME.shadow.md,
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
+          <div
+            className="size-10 rounded-full flex items-center justify-center text-white"
+            style={{ background: BERRY_THEME.primary }}
+          >
             <Eye size={20} />
           </div>
           <div>

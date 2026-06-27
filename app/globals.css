@@ -369,7 +369,124 @@ h6 {
     -webkit-mask-image: linear-gradient(to right, black 85%, transparent);
   }
 
-  /* React Lenis Recommended Styles */
+  /* ================================
+ * Ant Design 业务卡片 Tag 风格统一
+ * 解决"立起来/凸起"问题
+ * ================================ */
+.ant-tag {
+  /* 移除默认的内阴影 / 边框光泽，呈现纯扁平 */
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  padding: 0 6px !important;
+  line-height: 18px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.ant-tag > .anticon + span,
+.ant-tag > span + .anticon {
+  margin-left: 3px !important;
+}
+
+/* 默认色 (default) —— 浅灰底，扁平 */
+.ant-tag-default {
+  background: #f3f4f6 !important;
+  color: #4b5563 !important;
+  border-color: #e5e7eb !important;
+}
+
+/* 蓝 (blue / processing) —— 极浅蓝底 */
+.ant-tag-blue,
+.ant-tag-processing {
+  background: #e6f4ff !important;
+  color: #0958d9 !important;
+  border-color: #91caff !important;
+}
+
+/* 青 (cyan) —— 极浅青底 */
+.ant-tag-cyan {
+  background: #e6fffb !important;
+  color: #08979c !important;
+  border-color: #87e8de !important;
+}
+
+/* 绿 (success / green) */
+.ant-tag-success,
+.ant-tag-green {
+  background: #f6ffed !important;
+  color: #389e0d !important;
+  border-color: #b7eb8f !important;
+}
+
+/* 橙 (orange / warning) */
+.ant-tag-warning,
+.ant-tag-orange,
+.ant-tag-gold {
+  background: #fffbe6 !important;
+  color: #d48806 !important;
+  border-color: #ffe58f !important;
+}
+
+/* 红 (red / error) */
+.ant-tag-error,
+.ant-tag-red {
+  background: #fff1f0 !important;
+  color: #cf1322 !important;
+  border-color: #ffa39e !important;
+}
+
+/* 紫 (purple) */
+.ant-tag-purple {
+  background: #f9f0ff !important;
+  color: #531dab !important;
+  border-color: #d3adf7 !important;
+}
+
+/* 深色模式 Tag 适配 */
+.dark .ant-tag-default {
+  background: #27272a !important;
+  color: #a1a1aa !important;
+  border-color: #3f3f46 !important;
+}
+.dark .ant-tag-blue,
+.dark .ant-tag-processing {
+  background: rgba(22, 119, 255, 0.12) !important;
+  color: #91caff !important;
+  border-color: rgba(22, 119, 255, 0.3) !important;
+}
+.dark .ant-tag-cyan {
+  background: rgba(19, 194, 194, 0.12) !important;
+  color: #5cdbd3 !important;
+  border-color: rgba(19, 194, 194, 0.3) !important;
+}
+.dark .ant-tag-success,
+.dark .ant-tag-green {
+  background: rgba(82, 196, 26, 0.12) !important;
+  color: #95de64 !important;
+  border-color: rgba(82, 196, 26, 0.3) !important;
+}
+.dark .ant-tag-warning,
+.dark .ant-tag-orange,
+.dark .ant-tag-gold {
+  background: rgba(250, 173, 20, 0.12) !important;
+  color: #ffd666 !important;
+  border-color: rgba(250, 173, 20, 0.3) !important;
+}
+.dark .ant-tag-error,
+.dark .ant-tag-red {
+  background: rgba(255, 77, 79, 0.12) !important;
+  color: #ff7875 !important;
+  border-color: rgba(255, 77, 79, 0.3) !important;
+}
+.dark .ant-tag-purple {
+  background: rgba(114, 46, 209, 0.12) !important;
+  color: #b37feb !important;
+  border-color: rgba(114, 46, 209, 0.3) !important;
+}
+
+/* React Lenis Recommended Styles */
   html.lenis, html.lenis body {
     height: auto;
   }
@@ -497,6 +614,185 @@ h6 {
 
   .elder-friendly-text .text-lg {
     @apply text-xl;
+  }
+
+  /* ==========================================================
+   * 报告查看 Drawer 内容排版（紧凑 520px 抽屉用）
+   * 目标：大厂UI 简约感 — 紧凑留白 / 精致字重 / 细线分割
+   * ========================================================== */
+  .berry-report-content {
+    color: inherit;
+  }
+  .berry-report-content h1,
+  .berry-report-content h2,
+  .berry-report-content h3,
+  .berry-report-content h4 {
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 1.4em;
+    margin-bottom: 0.6em;
+    letter-spacing: -0.01em;
+  }
+  .berry-report-content h1 { font-size: 18px; }
+  .berry-report-content h2 { font-size: 16px; }
+  .berry-report-content h3 { font-size: 14px; }
+  .berry-report-content h4 { font-size: 13px; color: #1677ff; }
+  .berry-report-content h1:first-child,
+  .berry-report-content h2:first-child,
+  .berry-report-content h3:first-child { margin-top: 0; }
+
+  .berry-report-content p { margin: 0 0 0.85em; }
+
+  .berry-report-content ul,
+  .berry-report-content ol {
+    padding-left: 1.2em;
+    margin: 0 0 0.85em;
+  }
+  .berry-report-content li { margin-bottom: 0.25em; }
+  .berry-report-content li::marker { color: #1677ff; }
+
+  .berry-report-content strong { font-weight: 600; color: inherit; }
+
+  .berry-report-content code {
+    font-size: 12px;
+    background: rgba(22, 119, 255, 0.08);
+    color: #1677ff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .berry-report-content pre {
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.55;
+    margin: 0 0 0.85em;
+  }
+
+  .berry-report-content blockquote {
+    margin: 0 0 0.85em;
+    padding: 6px 12px;
+    border-left: 2px solid #1677ff;
+    background: rgba(22, 119, 255, 0.04);
+    color: rgba(0, 0, 0, 0.7);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .berry-report-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 0.85em;
+    font-size: 12px;
+  }
+  .berry-report-content th,
+  .berry-report-content td {
+    padding: 6px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    text-align: left;
+  }
+  .berry-report-content th {
+    background: rgba(0, 0, 0, 0.025);
+    font-weight: 600;
+  }
+
+  .berry-report-content hr {
+    border: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    margin: 1.2em 0;
+  }
+
+  /* 暗色模式适配 */
+  .dark .berry-report-content blockquote {
+    background: rgba(22, 119, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .dark .berry-report-content pre {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .dark .berry-report-content th {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .dark .berry-report-content th,
+  .dark .berry-report-content td {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .dark .berry-report-content hr {
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+  .dark .berry-report-content code {
+    background: rgba(22, 119, 255, 0.15);
+  }
+
+  /* Sources 引用区 — 比正文更淡，弱化视觉权重 */
+  .berry-sources-footer {
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 12px;
+  }
+  .berry-sources-footer .ant-sources-title,
+  .berry-sources-footer .ant-sources-title * {
+    color: rgba(0, 0, 0, 0.4) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+  }
+  .berry-sources-footer .ant-sources-item-title,
+  .berry-sources-footer .ant-sources-item-title *,
+  .berry-sources-footer a {
+    color: rgba(0, 0, 0, 0.5) !important;
+    font-weight: 400 !important;
+  }
+  .berry-sources-footer .ant-sources-item-description {
+    color: rgba(0, 0, 0, 0.35) !important;
+    font-size: 11px !important;
+  }
+  .berry-sources-footer .ant-sources-item {
+    background: rgba(0, 0, 0, 0.015) !important;
+    border-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  .berry-sources-footer .ant-sources-item:hover {
+    background: rgba(22, 119, 255, 0.04) !important;
+  }
+  .berry-sources-footer .ant-sources-item:hover a,
+  .berry-sources-footer .ant-sources-item:hover .ant-sources-item-title {
+    color: #1677ff !important;
+  }
+  .berry-sources-footer .ant-sources-item-icon,
+  .berry-sources-footer .ant-sources-item-icon * {
+    color: rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* 暗色模式 */
+  .dark .berry-sources-footer {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .dark .berry-sources-footer .ant-sources-title,
+  .dark .berry-sources-footer .ant-sources-title * {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+  .dark .berry-sources-footer .ant-sources-item-title,
+  .dark .berry-sources-footer .ant-sources-item-title *,
+  .dark .berry-sources-footer a {
+    color: rgba(255, 255, 255, 0.55) !important;
+  }
+  .dark .berry-sources-footer .ant-sources-item-description {
+    color: rgba(255, 255, 255, 0.35) !important;
+  }
+  .dark .berry-sources-footer .ant-sources-item {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .dark .berry-sources-footer .ant-sources-item:hover {
+    background: rgba(22, 119, 255, 0.08) !important;
+  }
+  .dark .berry-sources-footer .ant-sources-item:hover a,
+  .dark .berry-sources-footer .ant-sources-item:hover .ant-sources-item-title {
+    color: #4096ff !important;
+  }
+  .dark .berry-sources-footer .ant-sources-item-icon,
+  .dark .berry-sources-footer .ant-sources-item-icon * {
+    color: rgba(255, 255, 255, 0.35) !important;
   }
 
   .elder-friendly-text .text-xl {

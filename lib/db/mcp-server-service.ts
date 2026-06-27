@@ -22,6 +22,7 @@ export interface MCPServer {
   priority: number
   is_published: number
   cover_image?: string
+  recommended_prompt?: string
   created_at?: number
   updated_at?: number
 }
@@ -73,6 +74,9 @@ export async function initMCPStoreTables(): Promise<void> {
   try {
     await execute(`ALTER TABLE mcp_servers ADD COLUMN IF NOT EXISTS cover_image TEXT`)
   } catch(e) {}
+  try {
+    await execute(`ALTER TABLE mcp_servers ADD COLUMN IF NOT EXISTS recommended_prompt TEXT NOT NULL DEFAULT ''`)
+  } catch(e) {}
 }
 
 // ========== Admin CRUD ==========
@@ -89,7 +93,8 @@ export async function getAllMCPServers(): Promise<MCPServer[]> {
     features: r.features ? r.features.split(',') : [],
     args: r.args ? JSON.parse(r.args) : [],
     envVars: r.env_vars ? JSON.parse(r.env_vars) : {},
-    cover_image: r.cover_image
+    cover_image: r.cover_image,
+    recommended_prompt: r.recommended_prompt || ''
   }))
 }
 
@@ -105,7 +110,8 @@ export async function getPublishedMCPServers(): Promise<MCPServer[]> {
     features: r.features ? r.features.split(',') : [],
     args: r.args ? JSON.parse(r.args) : [],
     envVars: r.env_vars ? JSON.parse(r.env_vars) : {},
-    cover_image: r.cover_image
+    cover_image: r.cover_image,
+    recommended_prompt: r.recommended_prompt || ''
   }))
 }
 
@@ -113,31 +119,32 @@ export async function createMCPServer(server: Omit<MCPServer, 'created_at' | 'up
   await initMCPStoreTables()
   const now = Date.now()
   const result = await execute(
-    `INSERT INTO mcp_servers (id, name, display_name, description, category, icon, icon_bg, provider, requires_api_key, api_key_url, api_key_instructions, command, args, env_vars, features, popularity, official, priority, is_published, cover_image, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+    `INSERT INTO mcp_servers (id, name, display_name, description, category, icon, icon_bg, provider, requires_api_key, api_key_url, api_key_instructions, command, args, env_vars, features, popularity, official, priority, is_published, cover_image, recommended_prompt, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
      RETURNING *`,
     [
-      server.id, 
-      server.name, 
-      server.displayName, 
-      server.description, 
-      server.category, 
-      server.icon, 
-      server.iconBg, 
-      server.provider, 
-      server.requiresApiKey ? 1 : 0, 
-      server.apiKeyUrl || null, 
-      server.apiKeyInstructions || null, 
-      server.command, 
-      server.args, 
-      server.envVars || '{}', 
-      server.features || '', 
-      server.popularity || 0, 
-      server.official ? 1 : 0, 
-      server.priority || 0, 
-      server.is_published, 
+      server.id,
+      server.name,
+      server.displayName,
+      server.description,
+      server.category,
+      server.icon,
+      server.iconBg,
+      server.provider,
+      server.requiresApiKey ? 1 : 0,
+      server.apiKeyUrl || null,
+      server.apiKeyInstructions || null,
+      server.command,
+      server.args,
+      server.envVars || '{}',
+      server.features || '',
+      server.popularity || 0,
+      server.official ? 1 : 0,
+      server.priority || 0,
+      server.is_published,
       server.cover_image || null,
-      now, 
+      server.recommended_prompt || '',
+      now,
       now
     ]
   )
@@ -153,10 +160,11 @@ export async function updateMCPServer(id: string, updates: Partial<MCPServer>): 
     official: 'official',
     envVars: 'env_vars',
     apiKeyUrl: 'api_key_url',
-    apiKeyInstructions: 'api_key_instructions'
+    apiKeyInstructions: 'api_key_instructions',
+    recommended_prompt: 'recommended_prompt'
   }
-  
-  const allowedFields = ['name', 'displayName', 'description', 'category', 'icon', 'iconBg', 'provider', 'requiresApiKey', 'apiKeyUrl', 'apiKeyInstructions', 'command', 'args', 'envVars', 'features', 'popularity', 'official', 'priority', 'is_published', 'cover_image']
+
+  const allowedFields = ['name', 'displayName', 'description', 'category', 'icon', 'iconBg', 'provider', 'requiresApiKey', 'apiKeyUrl', 'apiKeyInstructions', 'command', 'args', 'envVars', 'features', 'popularity', 'official', 'priority', 'is_published', 'cover_image', 'recommended_prompt']
   const sets: string[] = []
   const values: any[] = []
   let idx = 1
@@ -193,7 +201,7 @@ export async function deleteMCPServer(id: string): Promise<boolean> {
 export async function seedMCPServers(): Promise<void> {
   await initMCPStoreTables()
   const { MCP_SERVERS } = require('../data/mcp-servers')
-  
+
   for (const server of MCP_SERVERS) {
     const existing = await queryOne('SELECT id FROM mcp_servers WHERE id = $1', [server.id])
     if (existing) continue
@@ -205,7 +213,26 @@ export async function seedMCPServers(): Promise<void> {
       features: server.features.join(','),
       is_published: 1,
       priority: server.id === 'spectrum-stravision' ? 100 : 0,
-      cover_image: server.id === 'spectrum-stravision' ? 'https://images.unsplash.com/photo-1579546678183-a84bc53bd177?auto=format&fit=crop&q=80&w=2070' : null
+      cover_image: server.id === 'spectrum-stravision' ? 'https://images.unsplash.com/photo-1579546678183-a84bc53bd177?auto=format&fit=crop&q=80&w=2070' : null,
+      recommended_prompt: server.recommendedPrompt || ''
     })
   }
+}
+
+// ========== Backfill recommended_prompt for existing rows ==========
+// 已有数据迁移：把静态 MCP_SERVERS 中每条记录的 recommendedPrompt 同步到数据库
+export async function backfillMCPServerPrompts(): Promise<number> {
+  await initMCPStoreTables()
+  const { MCP_SERVERS } = require('../data/mcp-servers')
+  let updated = 0
+  for (const server of MCP_SERVERS) {
+    const prompt = server.recommendedPrompt || ''
+    if (!prompt) continue
+    const result = await execute(
+      `UPDATE mcp_servers SET recommended_prompt = $1, updated_at = $2 WHERE id = $3 AND (recommended_prompt IS NULL OR recommended_prompt = '')`,
+      [prompt, Date.now(), server.id]
+    )
+    updated += (result.rowCount ?? 0)
+  }
+  return updated
 }

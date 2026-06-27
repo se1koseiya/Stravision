@@ -640,7 +640,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                           <div className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-900/30">
                             <Leaf className="w-4 h-4 text-primary" />
                           </div>
-                          {getCurrentWidgetSize('fertility') !== 'small' && <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">土壤肥力</span>}
+                          {getCurrentWidgetSize('fertility') !== 'small' && <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">土壤肥力</span>}
                         </div>
                       }
                     >

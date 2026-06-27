@@ -1,23 +1,20 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Image } from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input } from "antd"
+import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
-import { Conversations, Prompts } from "@ant-design/x"
-import type { PromptsProps } from "@ant-design/x"
-import { BulbOutlined, InfoCircleOutlined, RocketOutlined, SmileOutlined } from '@ant-design/icons'
+import { Conversations } from "@ant-design/x"
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2 } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
 const MessageWithReport = dynamic(() => import("@/components/ai/message-with-report").then(mod => ({ default: mod.MessageWithReport })), { ssr: false })
-const ReportRenderer = dynamic(() => import("@/components/ai/report-renderer"), { ssr: false })
 const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
   ssr: false,
   loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
@@ -97,6 +94,7 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { SmartPrompts } from "@/components/ai/smart-prompts"
 import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai/reasoning"
 import { MonitorCard } from "@/components/ai/monitor-card"
@@ -116,7 +114,9 @@ import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { AgentThoughtChain, type AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
-import { parseScheduleTask, removeScheduleTaskTag, getScheduleTaskSystemPrompt } from '@/lib/ai/schedule-task-parser'
+import { parseScheduleTask, removeScheduleTaskTag } from '@/lib/ai/schedule-task-parser'
+import { SchedulerSidebarPanel } from "@/components/ai/scheduler-sidebar-panel"
+import { MySpaceSidebarPanel } from "@/components/ai/my-space-sidebar-panel"
 import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 
 // BrowserActivity, WebPreview — 已改为 dynamic import
@@ -124,12 +124,13 @@ import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 // DeviceControlCard, HTMLPreviewCard — 已改为 dynamic import
 import { AIControlBorderEffect } from "@/components/ai/ai-control-border-effect"
 import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
+import { useAIModels } from "@/lib/hooks/use-ai-models"
 
 // LiveStreamPlayer — 已改为 dynamic import
 import { ModernHomeView } from "@/components/ai/modern-home-view"
 import { MateChatHome } from "@/components/ai/matechat-home"
 import { CapabilitiesCard } from "@/components/ai/capabilities-card"
-import type { Citation, TaskItemModel, TaskModel, Message, AISettings, SessionMeta } from "@/app/ai-assistant/types"
+import type { Citation, TaskItemModel, TaskModel, Message, AISettings, SessionMeta, ChatAttachment } from "@/app/ai-assistant/types"
 import { isVLMModel, getCanonicalSignature, isIoTCommand as checkIoTCommand, filterDisabledFeatures as filterFeatures, DEVICE_NAMES, MCP_SERVER_TOOLS, getGreetingByHour } from "@/app/ai-assistant/_utils/helpers"
 import { DynamicTaskPlanner } from "@/app/ai-assistant/_components/dynamic-task-planner"
 import { PremiumReportLoader } from "@/app/ai-assistant/_components/premium-report-loader"
@@ -139,9 +140,54 @@ import { ChatSenderInput } from "@/app/ai-assistant/_components/chat-sender-inpu
 import { useTTSEngine } from "@/app/ai-assistant/_hooks/use-tts-engine"
 import { handleDownloadPDF, createSelectFilesHandler, createPasteHandler, handleSettingsSave as saveSettings, copyMessageText } from "@/app/ai-assistant/_utils/message-actions"
 
+/** 从消息列表中提取最后一条用户/助手消息，包装 SmartPrompts 避免每次重渲染重新计算。 */
+function SmartPromptsWrapper({
+  messages,
+  aiSettings,
+  darkMode,
+  onPick,
+}: {
+  messages: Message[]
+  aiSettings: AISettings | null
+  darkMode: boolean
+  onPick: (text: string) => void
+}) {
+  const { lastUser, lastAssistant } = React.useMemo(() => {
+    const extract = (c: Message["content"]): string => {
+      if (typeof c === "string") return c
+      if (Array.isArray(c)) return c.filter((p) => p?.type === "text").map((p) => p.text || "").join("\n")
+      return ""
+    }
+    let lastUser: string | undefined
+    let lastAssistant: string | undefined
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i]
+      if (m.role === "assistant" && !lastAssistant) lastAssistant = extract(m.content)
+      else if (m.role === "user" && !lastUser) lastUser = extract(m.content)
+      if (lastUser && lastAssistant) break
+    }
+    return { lastUser, lastAssistant }
+  }, [messages])
+
+  return (
+    <SmartPrompts
+      lastUser={lastUser}
+      lastAssistant={lastAssistant}
+      aiSettings={aiSettings}
+      darkMode={darkMode}
+      onPick={onPick}
+      fallback={[
+        { key: "f1", description: "对上面的内容做进一步分析" },
+        { key: "f2", description: "当前环境适合采取什么设备操作" },
+        { key: "f3", description: "将分析结果生成可视化报告" },
+      ]}
+    />
+  )
+}
+
 export default function AIAssistantPage() {
   return (
-    <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-emerald-400">Loading AI Assistant...</div>}>
+    <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-[#1677ff]">Loading AI Assistant...</div>}>
       <AIAssistantContent />
     </React.Suspense>
   )
@@ -166,7 +212,16 @@ function AIAssistantContent() {
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
   const [enableSearch, setEnableSearch] = useState(false)
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false)
+  // 提供商/模型的推理能力缓存：{ [modelId]: boolean | undefined }
+  const [modelSupportsReasoning, setModelSupportsReasoning] = useState<Record<string, boolean | undefined>>({})
+  // 记录是否已尝试加载（避免重复请求）
+  const [providerConfigLoaded, setProviderConfigLoaded] = useState(false)
+  const [searchTab, setSearchTab] = useState<"history" | "space" | "agent">("history")
+  const [searchKeyword, setSearchKeyword] = useState("")
   const [enableReasoning, setEnableReasoning] = useState(false)
+  // 用 useAIModels 拉取一次 providers 配置（与下拉框共用同一份数据），保证 modelSupportsReasoning 与下拉框完全一致
+  const { config: aiConfig, loading: aiConfigLoading, refetch: aiConfigRefetch, getDefaultModelId } = useAIModels()
   const [enablePlanning, setEnablePlanning] = useState(false) // 计划模式：生成任务规划
   const [approvalMode, setApprovalMode] = useState<"request" | "auto" | "full">(() => {
     // 从localStorage读取上次选择的权限模式，默认为request
@@ -181,6 +236,121 @@ function AIAssistantContent() {
   const [agentStatus, setAgentStatus] = useState("")
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([])
   const [enableMcp, setEnableMcp] = useState(true) // MCP Toggle
+
+  // ===== 智能提示集自动隐藏逻辑 =====
+  const [showSmartPrompts, setShowSmartPrompts] = useState(false)
+  const hidePromptsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const SMART_PROMPTS_HIDE_DELAY_MS = 8000
+  const clearHidePromptsTimer = () => {
+    if (hidePromptsTimerRef.current) {
+      clearTimeout(hidePromptsTimerRef.current)
+      hidePromptsTimerRef.current = null
+    }
+  }
+
+  // ===== 思考链自动隐藏逻辑 =====
+  const [showThoughtChain, setShowThoughtChain] = useState(false)
+  const hideThoughtChainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const THOUGHT_CHAIN_HIDE_DELAY_MS = 6000
+  const clearHideThoughtChainTimer = () => {
+    if (hideThoughtChainTimerRef.current) {
+      clearTimeout(hideThoughtChainTimerRef.current)
+      hideThoughtChainTimerRef.current = null
+    }
+  }
+
+  // 卸载时清理所有计时器
+  useEffect(() => {
+    return () => {
+      if (hidePromptsTimerRef.current) clearTimeout(hidePromptsTimerRef.current)
+      if (hideThoughtChainTimerRef.current) clearTimeout(hideThoughtChainTimerRef.current)
+    }
+  }, [])
+
+  // 监听最后一条消息：如果是 assistant 且不在 loading / agent status 中，则显示并开始倒计时
+  useEffect(() => {
+    if (isLoading || agentStatus) {
+      clearHidePromptsTimer()
+      setShowSmartPrompts(false)
+      return
+    }
+    const last = messages[messages.length - 1]
+    if (!last || last.role !== "assistant") {
+      setShowSmartPrompts(false)
+      return
+    }
+    setShowSmartPrompts(true)
+    clearHidePromptsTimer()
+    hidePromptsTimerRef.current = setTimeout(() => {
+      setShowSmartPrompts(false)
+      hidePromptsTimerRef.current = null
+    }, SMART_PROMPTS_HIDE_DELAY_MS)
+    return clearHidePromptsTimer
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, isLoading, agentStatus])
+
+  // 用户在输入框打字时立刻隐藏
+  useEffect(() => {
+    if (input.trim().length > 0) {
+      clearHidePromptsTimer()
+      setShowSmartPrompts(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
+
+  // 悬停时暂停倒计时，移开后重新计时
+  const onPromptsHoverStart = () => clearHidePromptsTimer()
+  const onPromptsHoverEnd = () => {
+    if (!showSmartPrompts) return
+    clearHidePromptsTimer()
+    hidePromptsTimerRef.current = setTimeout(() => {
+      setShowSmartPrompts(false)
+      hidePromptsTimerRef.current = null
+    }, SMART_PROMPTS_HIDE_DELAY_MS)
+  }
+
+  // 思考链：AI 正在处理或存在步骤时显示；AI 完成后 N 秒自动隐藏
+  useEffect(() => {
+    if (isLoading || agentStatus) {
+      clearHideThoughtChainTimer()
+      setShowThoughtChain(true)
+      return
+    }
+    if (agentSteps.length === 0) {
+      clearHideThoughtChainTimer()
+      setShowThoughtChain(false)
+      return
+    }
+    setShowThoughtChain(true)
+    clearHideThoughtChainTimer()
+    hideThoughtChainTimerRef.current = setTimeout(() => {
+      setShowThoughtChain(false)
+      hideThoughtChainTimerRef.current = null
+    }, THOUGHT_CHAIN_HIDE_DELAY_MS)
+    return clearHideThoughtChainTimer
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, agentStatus, agentSteps.length])
+
+  // 用户在输入框打字时立刻隐藏思考链
+  useEffect(() => {
+    if (input.trim().length > 0) {
+      clearHideThoughtChainTimer()
+      setShowThoughtChain(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input])
+
+  // 思考链悬停暂停倒计时
+  const onThoughtChainHoverStart = () => clearHideThoughtChainTimer()
+  const onThoughtChainHoverEnd = () => {
+    if (!showThoughtChain) return
+    if (isLoading || agentStatus || agentSteps.length === 0) return
+    clearHideThoughtChainTimer()
+    hideThoughtChainTimerRef.current = setTimeout(() => {
+      setShowThoughtChain(false)
+      hideThoughtChainTimerRef.current = null
+    }, THOUGHT_CHAIN_HIDE_DELAY_MS)
+  }
   const [useModernView, setUseModernView] = useState(true) // 使用现代化首页视图
 
   // 对话菜单功能状态
@@ -201,6 +371,7 @@ function AIAssistantContent() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("collapsed-groups") || "[]")) } catch { return new Set() }
   })
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
   const [newGroupName, setNewGroupName] = useState("")
   const [showNewGroupInput, setShowNewGroupInput] = useState(false)
   
@@ -237,41 +408,38 @@ function AIAssistantContent() {
     })
   }
 
-  // ===== 我的空间 - 报告操作函数 =====
-  
-  /** 格式化报告时间 */
-  const formatReportTime = (timestamp: number): string => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const isToday = date.toDateString() === now.toDateString()
-    if (isToday) {
-      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-')
+  // ===== 搜索面板：根据当前 tab + 关键词过滤 =====
+  const getFilteredItems = () => {
+    const kw = searchKeyword.trim().toLowerCase()
+    if (searchTab === "history") {
+      return sessions
+        .filter(s => !kw || (s.title || "").toLowerCase().includes(kw))
+        .map(s => ({ id: s.id, title: s.title || "新对话" }))
     }
-    return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + 
-           ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-')
+    if (searchTab === "space") {
+      return spaceReports
+        .filter(r => !kw || (r.title || "").toLowerCase().includes(kw))
+        .map(r => ({ id: r.id, title: r.title || "未命名报告" }))
+    }
+    return []
   }
 
-  /** 下载报告为HTML文件 */
-  const downloadReport = (report: SpaceReport) => {
-    if (!report.html) return
-    const blob = new Blob([report.html], { type: 'text/html;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${report.title}_${formatReportTime(report.timestamp)}.html`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const handlePickSearchItem = (item: { id: string; title: string }) => {
+    if (searchTab === "history") {
+      setSessionId(item.id)
+      loadSessionMessages(item.id as any)
+    } else if (searchTab === "space") {
+      const report = spaceReports.find(r => r.id === item.id)
+      if (report?.html) {
+        // 打开我的空间并展示该报告
+        setMySpaceOpen(true)
+      }
+    }
+    setSearchPanelOpen(false)
+    setSearchKeyword("")
   }
 
-  /** 在新标签页中打开查看报告 */
-  const openReportInNewWindow = (report: SpaceReport) => {
-    if (!report.html) return
-    const blob = new Blob([report.html], { type: 'text/html;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-  }
+  // ===== 我的空间 - 报告操作函数 =====
 
   /** 删除我的空间中的报告 */
   const deleteSpaceReport = (id: string) => {
@@ -445,7 +613,7 @@ function AIAssistantContent() {
   const [devicePillExpanded, setDevicePillExpanded] = useState(false) // 控制胶囊展开动画
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("")
-  const [attachments, setAttachments] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
   const [showPlanDialog, setShowPlanDialog] = useState(false)
@@ -477,7 +645,7 @@ function AIAssistantContent() {
   const scheduleTask = async (description: string, delayMinutes: number, taskType: string, payload: any) => {
     const execute_at = Date.now() + delayMinutes * 60 * 1000
     try {
-      await fetch('/api/scheduler/tasks', {
+      const res = await fetch('/api/scheduler/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -487,9 +655,20 @@ function AIAssistantContent() {
           params: payload || {}
         })
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `HTTP ${res.status}`)
+      }
       console.log('[Unified Scheduler] Legacy tag task saved to DB:', description)
+      // 🔥 通知前端所有监听者（包括 SidebarPanel）立即刷新任务列表
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('scheduler:tasks-changed', { detail: { source: 'ai-scheduleTask' } }))
+        }
+      } catch {}
     } catch (e) {
       console.error('[Unified Scheduler] Failed to save legacy tag task:', e)
+      throw e
     }
   }
 
@@ -507,8 +686,8 @@ function AIAssistantContent() {
           // 只处理活跃的 agent 或 reminder 任务
           if (task.is_active === 1 && (task.action_type === 'agent' || task.action_type === 'reminder')) {
             const executeTime = task.execute_at
-            // 如果已到执行时间（容忍2分钟过期）
-            if (executeTime && executeTime <= now && (now - executeTime < 120000)) {
+            // 如果已到执行时间（容忍 7 天过期）
+            if (executeTime && executeTime <= now && (now - executeTime < 7 * 24 * 60 * 60 * 1000)) {
               console.log('[Unified Scheduler] Executing due task:', task.title)
               
               // 1. 先标记为已完成（删除），防止重复触发
@@ -526,8 +705,9 @@ function AIAssistantContent() {
                   duration: 10000
                 })
               }
-            } else if (executeTime && now - executeTime >= 120000) {
-              // 已经过期太久的任务，直接删除
+            } else if (executeTime && now - executeTime >= 7 * 24 * 60 * 60 * 1000) {
+              // 已经过期太久的任务（超过 7 天），才直接删除
+              console.log('[Unified Scheduler] Deleting stale task (>7d):', task.title)
               await fetch(`/api/scheduler/tasks?id=${task.id}`, { method: 'DELETE' })
             }
           }
@@ -552,6 +732,10 @@ function AIAssistantContent() {
   
   // Explore State
   const [exploreOpen, setExploreOpen] = useState(false)
+
+  // Scheduler Sidebar Panel State
+  const [schedulerPanelOpen, setSchedulerPanelOpen] = useState(false)
+  const [mySpaceOpen, setMySpaceOpen] = useState(false)
   
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -610,7 +794,7 @@ function AIAssistantContent() {
   const [browserScreenshot, setBrowserScreenshot] = useState<string | null>(null) // 新增：浏览器截图数据
   const [reportData, setReportData] = useState<{title: string, html: string, timestamp: number} | null>(null) // 报告数据
   
-  // 打开Studio并显示报告（仅打开，不保存）
+  // 打开Studio并显示报告（仅打开，不保存）— 通过 Drawer 真正展示报告内容
   const onOpenStudio = (reportTitle: string, reportHtml: string) => {
     console.log('[onOpenStudio] Called with:', { reportTitle, htmlLength: reportHtml.length })
     setReportData({
@@ -618,8 +802,6 @@ function AIAssistantContent() {
       html: reportHtml,
       timestamp: Date.now()
     })
-    setStudioTab('report')
-    setStudioOpen(true)
   }
 
   // 生成报告时调用：打开 + 自动保存到我的空间（去重）
@@ -669,6 +851,8 @@ function AIAssistantContent() {
   
   const [visionInspectionUrl, setVisionInspectionUrl] = useState<string | null>(null) // AI 视觉巡检的摄像头 URL
   const [visionInspectionStatus, setVisionInspectionStatus] = useState<string>('') // 巡检状态文本
+  const [visionCapturedImage, setVisionCapturedImage] = useState<string | null>(null) // 巡检截获的画面（用于 Agent 展示）
+  const [visionVideoElementId, setVisionVideoElementId] = useState<string>('studio-vision-camera') // 当前巡检使用的视频元素 ID
 
   // 全局任务暂停状态 (Real Execution Pause)
   const [isTaskPaused, setIsTaskPaused] = useState(false)
@@ -764,14 +948,14 @@ function AIAssistantContent() {
       }
       
       // 设置附件
-      setAttachments([imageData])
+      setAttachments([{ name: 'camera-capture.png', type: 'image/png', dataUrl: imageData }])
       
       // 设置输入框内容
       setInput(prompt)
       
       // 自动发送消息
       setTimeout(() => {
-        handleSend(prompt, [imageData])
+        handleSend(prompt, [{ name: 'camera-capture.png', type: 'image/png', dataUrl: imageData }])
       }, 500)
       
     } catch (error) {
@@ -829,15 +1013,17 @@ function AIAssistantContent() {
     adjustHeight(textareaRefInitial.current)
     adjustHeight(textareaRefChat.current)
   }, [input])
-  const { deviceData } = useDeviceData()
+  const { deviceData, connectionStatus } = useDeviceData()
   const { weatherData } = useWeatherContext()
 
   // 使用 Ref 追踪最新的数据，避免闭包陷阱
   const deviceDataRef = useRef(deviceData)
   const weatherDataRef = useRef(weatherData)
+  const deviceOnlineRef = useRef(connectionStatus.connected)
 
   useEffect(() => { deviceDataRef.current = deviceData }, [deviceData])
   useEffect(() => { weatherDataRef.current = weatherData }, [weatherData])
+  useEffect(() => { deviceOnlineRef.current = connectionStatus.connected }, [connectionStatus.connected])
 
   // 命令执行历史记录，用于防抖和循环检测
   const commandHistoryRef = useRef<{ signature: string, timestamp: number }[]>([])
@@ -972,6 +1158,127 @@ function AIAssistantContent() {
       if (es) setEnableSearch(es === "true")
     } catch { }
   }, [])
+
+  // 自动选择模型回退：admin 配置的 defaultModelId > useAIModels 第一个 enabled 模型
+  // 触发时机：
+  //   1) 用户刷新后 aiSettings?.model / selectedModel 均为空
+  //   2) 已保存的 aiSettings?.model 不在 enabled 模型列表中（被禁用/删除）
+  // 一次性回退，避免覆盖用户后续手动选择
+  useEffect(() => {
+    if (aiConfigLoading) return
+    if (!aiConfig) return
+    const enabledIds = new Set(aiConfig.models.filter(m => m.enabled).map(m => m.id))
+    if (enabledIds.size === 0) return
+
+    const current = selectedModel || aiSettings?.model || ""
+    if (current && enabledIds.has(current)) {
+      // 当前模型有效，无需回退
+      return
+    }
+    // 当前模型为空或已失效 → 使用 admin 默认
+    const fallback = getDefaultModelId()
+    if (!fallback) return
+    if (current === fallback) return
+    console.log('[AI Assistant] Fallback to default model:', fallback, '(was:', current || '<empty>', ')')
+    setSelectedModel(fallback)
+    // 同步写入 aiSettings.model，避免被其它 effect 反复重置
+    if (typeof window !== 'undefined') {
+      try {
+        const s = localStorage.getItem("ai-settings")
+        const parsed = s ? JSON.parse(s) : {}
+        parsed.model = fallback
+        localStorage.setItem("ai-settings", JSON.stringify(parsed))
+        setAiSettings(parsed)
+      } catch { }
+    }
+    // 仅在 aiConfig 加载完成时执行一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiConfig, aiConfigLoading])
+
+  // 加载 admin 配置的模型推理能力缓存
+  // 复用 useAIModels 的数据源，与下拉框保持完全一致
+  useEffect(() => {
+    if (aiConfigLoading) return
+    if (providerConfigLoaded) return
+    const map: Record<string, boolean> = {}
+    const providers = aiConfig?.providers || []
+    for (const p of providers) {
+      if (!p.enabled) continue
+      for (const m of (p.models || [])) {
+        if (m && m.id) {
+          map[m.id] = !!m.supportsReasoning
+        }
+      }
+    }
+    setModelSupportsReasoning(map)
+    setProviderConfigLoaded(true)
+    if (typeof window !== 'undefined' && (window as any).__berryDebugReasoning) {
+      console.log('[Reasoning] map built from useAIModels, keys =', Object.keys(map), 'map =', map)
+    }
+  }, [aiConfig, aiConfigLoading, providerConfigLoaded])
+
+  // 页面回到前台时重新拉一次 providers 配置，兼容用户在 admin 改完回来
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        aiConfigRefetch()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [aiConfigRefetch])
+
+  // 判断指定 modelId 是否支持深度推理
+  // 优先级：admin 配置 > 模型名启发式
+  // 返回值：
+  //   true  - 支持
+  //   false - 不支持
+  //   null  - 未知（配置未加载完成或无法确定），调用方应放行
+  const checkModelSupportsReasoning = useCallback(
+    (modelId: string | undefined | null): boolean | null => {
+      if (!modelId) return null
+      // 1) 配置已加载：优先用 admin 配置（含 false 也算确定结果）
+      if (providerConfigLoaded) {
+        // 同时按 id 和 name 双向匹配，兼容不同来源的 selectedModel
+        const idHit = modelId in modelSupportsReasoning
+        if (idHit) {
+          const v = modelSupportsReasoning[modelId]
+          if (typeof window !== 'undefined' && (window as any).__berryDebugReasoning) {
+            console.log('[Reasoning] hit by id:', modelId, '=>', v)
+          }
+          return v === true
+        }
+        // 反向匹配：如果 selectedModel 是 name，而 map 的 key 是 id，按 name 查一次
+        for (const key of Object.keys(modelSupportsReasoning)) {
+          if (key === modelId) {
+            const v = modelSupportsReasoning[key]
+            if (typeof window !== 'undefined' && (window as any).__berryDebugReasoning) {
+              console.log('[Reasoning] hit by key:', key, '=>', v)
+            }
+            return v === true
+          }
+        }
+        // 配置已加载但没记录该模型：走兜底启发式
+        const m = String(modelId).toLowerCase()
+        const heuristic =
+          m.includes('deepseek') ||
+          m.includes('reasoner') ||
+          m.includes('thinking') ||
+          /qwen3.*-r1/.test(m) ||
+          /\bqwq\b/.test(m) ||
+          /\bo1\b/.test(m) ||
+          /\bo3\b/.test(m) ||
+          m.includes('r1-')
+        if (typeof window !== 'undefined' && (window as any).__berryDebugReasoning) {
+          console.log('[Reasoning] miss, fallback heuristic for', modelId, '=>', heuristic)
+        }
+        return heuristic
+      }
+      // 2) 配置未加载：返回 null，调用方应放行
+      return null
+    },
+    [modelSupportsReasoning, providerConfigLoaded],
+  )
 
   // Load Sessions
   useEffect(() => {
@@ -1409,7 +1716,11 @@ function AIAssistantContent() {
 
           // 打开工作室面板
           setStudioOpen(true)
+          setIsInspecting(true)
+          setInspectionCamera(cameraId)
           setVisionInspectionStatus("初始化巡检任务...")
+          setVisionVideoElementId('studio-vision-camera')
+          setVisionCapturedImage(null)
 
           // Step 1: 移动云台（如果direction不为0）- 通过 Agent Loop 调用
           if (direction !== 0) {
@@ -1509,6 +1820,8 @@ function AIAssistantContent() {
           if (!cameraUrl) {
             setVisionInspectionUrl(null)
             setVisionInspectionStatus('')
+            setVisionCapturedImage(null)
+            setIsInspecting(false)
             showNotice("❌ 视觉巡检失败", "摄像头未配置或不可用", "error")
             // 告知 AI 摄像头不可用
             handleSend(`【系统反馈】视觉巡检失败：摄像头${cameraId === 'b' ? 'B' : 'A'}未配置或不可用。管理员尚未在后台设置摄像头地址。请告知用户无法进行视觉巡检，并使用传感器数据替代。`, [], true, true)
@@ -1636,6 +1949,8 @@ function AIAssistantContent() {
             console.error('Camera capture failed:', err)
             setVisionInspectionUrl(null)
             setVisionInspectionStatus('')
+            setVisionCapturedImage(null)
+            setIsInspecting(false)
             showNotice("❌ 截图失败", err?.message || '未知错误', "error")
             // 告知 AI 截图失败
             handleSend(`【系统反馈】视觉巡检截图失败：${err?.message || '未知错误'}。摄像头画面可能尚未加载完成或网络问题。请告知用户截图失败，并建议稍后重试或使用传感器数据。严禁编造画面内容。`, [], true, true)
@@ -1647,6 +1962,8 @@ function AIAssistantContent() {
 
           if (!capturedImageBase64) {
             setIsInspecting(false)
+            setVisionCapturedImage(null)
+            setVisionInspectionStatus('')
             showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
             handleSend('【系统反馈】视觉巡检截图为空，摄像头可能未正常工作。严禁编造画面内容。', [], true, true)
             hasSentCustomFeedback = true
@@ -1673,20 +1990,24 @@ function AIAssistantContent() {
           // 这将阻止 executeCommands 末尾再次发送“指令已执行完毕”的闭环反馈
           hasSentCustomFeedback = true
           
+          // 展示已捕获的画面，并切换到 AI 分析阶段
+          setVisionCapturedImage(capturedImageBase64)
+          setVisionInspectionStatus("画面已发送给 AI 进行视觉分析...")
           setInspectionStatus("完成巡检分析。");
           showNotice("✅ 视觉巡检", "画面已发送给 AI 分析", "success")
 
-          // 立即清理视觉巡检状态，避免闪烁
-          setVisionInspectionUrl(null)
-          setVisionInspectionStatus('')
-          
           // 直接调用 handleSend 发送多模态消息 (bypass loading guard via isSilent=true)
           // isFeedback=true 确保允许穿透 loading 锁
           // isSilent=true 确保这条包含截图的丑陋 Prompt 消息不会显示在用户的聊天气泡中，仅作为 AI 视角的内部输入
           handleSend(visionMessage as any, [], true, true)
           
-          // 延迟清理 isInspecting 状态
-          setTimeout(() => setIsInspecting(false), 500)
+          // 延迟清理视觉巡检状态，让用户看到分析阶段和已捕获的画面
+          setTimeout(() => {
+            setVisionInspectionUrl(null)
+            setVisionInspectionStatus('')
+            setVisionCapturedImage(null)
+            setIsInspecting(false)
+          }, 3000)
           
           // 重要：完成视觉巡检后立即跳出当前指令执行循环，避免后续代码继续触发全局反馈循环
           break;
@@ -1713,6 +2034,9 @@ function AIAssistantContent() {
           setIsInspecting(true)
           setInspectionCamera(cameraId)
           setInspectionStatus("正在获取摄像头实时画面...")
+          setVisionInspectionStatus("正在获取摄像头实时画面...")
+          setVisionVideoElementId('hidden-ai-camera')
+          setVisionCapturedImage(null)
           showNotice("📷 获取截图", "正在连接摄像头...", "loading")
 
           let cameraUrl = ''
@@ -1792,6 +2116,7 @@ function AIAssistantContent() {
 
           const playableUrl = getPlayableUrl(cameraUrl)
           setInspectionCameraUrl(playableUrl)
+          setVisionInspectionUrl(playableUrl)
 
           let capturedImageBase64 = ''
           try {
@@ -1805,6 +2130,7 @@ function AIAssistantContent() {
                 if (video && video.readyState >= 3 && video.videoWidth > 0) {
                   clearInterval(checkFrame)
                   setInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
+                  setVisionInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
                   
                   // Wait a bit longer to ensure video is clearly rendering
                   setTimeout(() => {
@@ -1832,6 +2158,8 @@ function AIAssistantContent() {
           } catch (err: any) {
             console.error('Camera capture failed:', err)
             setIsInspecting(false)
+            setVisionInspectionUrl(null)
+            setVisionInspectionStatus('')
             showNotice("❌ 截图失败", err?.message || '未知错误', "error")
             handleSend(`【系统反馈】截图失败：${err?.message || '未知错误'}。`, [], true, true)
             hasSentCustomFeedback = true
@@ -1840,6 +2168,7 @@ function AIAssistantContent() {
             // 延迟一点关闭，避免 UI 突然消失造成闪烁
             setTimeout(() => {
                setInspectionCameraUrl(null)
+               setVisionInspectionUrl(null)
                setIsInspecting(false);
             }, 1000)
           }
@@ -1852,6 +2181,8 @@ function AIAssistantContent() {
           }
 
           setInspectionStatus("完成截图。");
+          setVisionCapturedImage(capturedImageBase64)
+          setVisionInspectionStatus("截图完成，已获取画面")
           showNotice("✅ 截图成功", "已获取摄像头画面", "success")
 
           // 1. 先把图片像以前一样以 assistant 的身份直接显示在对话流里
@@ -2140,7 +2471,7 @@ ${taskContext}
 
   const handleSend = async (
     overrideText?: any, 
-    overrideAttachments?: string[], 
+    overrideAttachments?: ChatAttachment[], 
     isFeedback: boolean = false, 
     isSilent: boolean = false,
     useSystemApi: boolean = false // 新参数：强制使用系统API（用于定时任务）
@@ -2220,14 +2551,20 @@ ${taskContext}
       }
     }
 
-    const userMessageContent: Message['content'] = typeof overrideText !== "undefined"
-      ? overrideText // 如果有 overrideText，直接使用它（可能已经是包含图片的数组）
-      : (currentAttachments.length > 0
-        ? [
-          { type: "text", text: userMsg },
-          ...currentAttachments.map(url => ({ type: "image_url" as const, image_url: { url } }))
+    const userMessageContent: Message['content'] = (() => {
+      // overrideText 是数组（已包含图片等结构）时直接使用
+      if (Array.isArray(overrideText)) return overrideText
+      // 取基础文本：overrideText 优先（自动触发场景），否则用输入框文本
+      const baseText = typeof overrideText === "string" ? overrideText : userMsg
+      // 合并附件图片（覆盖自动触发和手动发送两种场景）
+      if (currentAttachments.length > 0) {
+        return [
+          { type: "text", text: baseText },
+          ...currentAttachments.map((att) => ({ type: "image_url" as const, image_url: { url: att.dataUrl } }))
         ]
-        : userMsg)
+      }
+      return baseText
+    })()
 
     if (userMsg === "是" || userMsg === "执行") {
       const lastAssistantMsg = messages[messages.length - 1]
@@ -2238,7 +2575,9 @@ ${taskContext}
           for (const match of jsonMatches) {
             try { commands.push(JSON.parse(match[1])) } catch { }
           }
-          if (commands.length > 0) await executeCommands(commands)
+          // 过滤掉 schedule_task — 由 ScheduleCard 自动处理
+          const executableCommands = commands.filter(cmd => cmd && cmd.action !== "schedule_task")
+          if (executableCommands.length > 0) await executeCommands(executableCommands)
         }
       }
       return
@@ -2327,8 +2666,8 @@ ${taskContext}
         effectiveSystemPrompt += `\n\n### 用户扩展功能模块 ###\n${storePrompt}`;
       }
 
-      // ⚠️ 添加定时任务功能说明（放在前面，确保AI能看到）
-      effectiveSystemPrompt += `\n\n${getScheduleTaskSystemPrompt()}`;
+      // ⚠️ 定时任务功能说明已由 generateCompactSystemPrompt 中的 SCHEDULE_TASK_INSTRUCTION_COMPACT 统一提供
+      // 不再追加旧的 getScheduleTaskSystemPrompt()，避免新旧格式指令冲突导致 AI 输出错误
 
       if (autoExecuteCommands) {
         effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动执行模式。\n严禁提问！严禁等待用户确认！\n必须直接输出 IoT 设备控制指令 JSON (如 toggle_relay)。\n注意：对于 MCP 工具 (如天气、搜索)，仍必须使用 Native Tool Calling！\n如果遇到问题，请自行尝试解决或跳过。";
@@ -2418,6 +2757,56 @@ ${taskContext}
 - 示例：用户说"优化草莓生长环境" → 先输出完整的 TASK_LIST 规划 → 然后逐步执行`;
       }
 
+      // 🔥 智能拆解：自动检测复杂任务并要求 AI 进行任务规划
+      // 当用户未显式启用 enablePlanning 但请求明显是复杂任务时，自动注入规划指令
+      const lastUserText = (() => {
+        for (let i = currentMessagesForApi.length - 1; i >= 0; i--) {
+          const m = currentMessagesForApi[i]
+          if (m && m.role === 'user') {
+            const c = m.content
+            if (typeof c === 'string') return c
+            if (Array.isArray(c)) {
+              const t = c.find((p: any) => p?.type === 'text')
+              return t?.text || ''
+            }
+          }
+        }
+        return ''
+      })()
+      if (!enablePlanning && lastUserText) {
+        const complexKeywords = [
+          '优化', '调节', '制定', '规划', '分析', '诊断', '处理', '解决',
+          '管理', '评估', '监控', '巡检', '部署', '安装', '升级', '改造',
+          '完整', '整套', '从...到', '依次', '按顺序', '流程', '全流程',
+          '多', '所有', '全面', '完整方案', '策略', '方案', '计划',
+          '生长', '种植', '灌溉', '施肥', '通风', '控温', '调光',
+        ]
+        // 长度阈值 + 关键词命中，至少满足其一才算复杂
+        const isLong = lastUserText.length > 40
+        const keywordHits = complexKeywords.filter(k => lastUserText.includes(k)).length
+        if (isLong && keywordHits >= 1) {
+          effectiveSystemPrompt += `\n\n【自动任务规划 - 系统检测到这是一个复杂任务】
+你必须先使用 <TASK_LIST> 标签输出结构化的任务执行计划，**然后**再开始执行第一个任务。
+
+<TASK_LIST>
+{
+  "status": "in_progress",
+  "tasks": [
+    { "title": "步骤 1（信息收集/分析）", "items": [{"type":"text","text":"..."}], "status": "in_progress" },
+    { "title": "步骤 2（方案制定）", "items": [{"type":"text","text":"..."}], "status": "pending" },
+    { "title": "步骤 3（执行操作）", "items": [{"type":"text","text":"..."}], "status": "pending" },
+    { "title": "步骤 4（验证反馈）", "items": [{"type":"text","text":"..."}], "status": "pending" }
+  ]
+}
+</TASK_LIST>
+
+规则：
+- 任务数 3-6 个，每任务 items 数 2-4 个
+- 第一个任务 status="in_progress"，其余 "pending"
+- 简短概述每步骤的子动作，让用户清楚看到执行路径`
+        }
+      }
+
       // 获取 MCP 配置
       let mcpConfigs = []
       if (enableMcp) {
@@ -2483,6 +2872,7 @@ ${taskContext}
           enableSearch,
           enableReasoning,
           deviceData: deviceDataRef.current,
+          deviceOnline: deviceOnlineRef.current,
           weatherData: weatherDataRef.current,
           mcpConfigs, // 添加 MCP 配置
           mandatorySkillsEnabled, // 传递核心技能开启状态
@@ -2533,16 +2923,8 @@ ${taskContext}
           id: nextStepId("initial-thinking"),
           type: "thinking",
           status: "active",
-          title: enablePlanning 
-            ? "📋 规划任务中" 
-            : approvalMode === "full" 
-              ? "🧠 深度分析中" 
-              : "💬 智能识别意图中",
-          detail: enablePlanning
-            ? "生成详细的任务执行计划和步骤分解"
-            : approvalMode === "full" 
-              ? "结合设备数据与历史经验进行多维度诊断" 
-              : "解析上下文并匹配最佳知识模块",
+          title: "💭 等待 AI 响应",
+          detail: "正在等待模型返回首个 token…",
           startedAt: Date.now()
         }
       ]
@@ -2807,6 +3189,13 @@ ${taskContext}
                 // 当开始接收AI的文本回复时：清理 agentStatus，并在链上加 Final Answer 步骤
                 if (content.trim() && agentStatus) {
                   setAgentStatus("")
+                  // ✅ 关闭所有仍处于 active 的步骤（如未被 skill_selection / tool_calls 关闭的 initial thinking）
+                  for (const s of currentAgentSteps) {
+                    if (s.status === "active") {
+                      s.status = "completed"
+                      s.duration = Date.now() - (s.startedAt || startTs)
+                    }
+                  }
                   // ✅ Fix #1: 添加 Final Answer 步骤到执行链
                   if (currentAgentSteps.length > 0 && !currentAgentSteps.some(s => s.type === 'answer')) {
                     currentAgentSteps.push({
@@ -2836,24 +3225,113 @@ ${taskContext}
                 if (typeof assistantMsg.content === "string") {
                     // 🔥 首先过滤 TOOL_USED 标签（这些不应该显示给用户）
                     assistantMsg.content = assistantMsg.content.replace(/<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)/g, '')
-                    
-                    // 🔥 过滤空的或不完整的 AUTOMATION_STRATEGY 标签
-                    // 检测空的 AUTOMATION_STRATEGY 标签（没有 JSON 内容的）
+
+                    // 🔥 过滤空的 AUTOMATION_STRATEGY 标签（只有开始+结束，没有内容）
                     assistantMsg.content = assistantMsg.content.replace(/<\s*AUTOMATION_STRATEGY\s+[^>]*>\s*<\/\s*AUTOMATION_STRATEGY\s*>/g, (match) => {
                         console.warn('[Stream Filter] Removed empty AUTOMATION_STRATEGY tag')
-                        return '' // 移除空标签
+                        return ''
                     })
-                    
-                    // 检测不完整的 AUTOMATION_STRATEGY 标签（只有开始标签，没有结束标签或内容）
-                    const hasCompleteAutomationTag = /<\s*AUTOMATION_STRATEGY\s+[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>/.test(assistantMsg.content)
-                    if (!hasCompleteAutomationTag) {
-                        // 移除孤立的开始标签
-                        assistantMsg.content = assistantMsg.content.replace(/<\s*AUTOMATION_STRATEGY\s+[^>]*>(?![\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>)/g, (match) => {
-                            console.warn('[Stream Filter] Removed incomplete AUTOMATION_STRATEGY opening tag')
+
+                    // 🔥 检测并移除孤立的 </AUTOMATION_STRATEGY> 结束标签（开场被过滤后残留的）
+                    // ⚠️ 不要移除孤立的开始标签 — 它会与流末尾到达的 JSON 一起渲染
+                    assistantMsg.content = assistantMsg.content.replace(/<\/\s*AUTOMATION_STRATEGY\s*>/g, (match, offset, full) => {
+                        // 只移除没有对应开始标签的结束标签
+                        const before = full.substring(0, offset)
+                        if (!/<\s*AUTOMATION_STRATEGY[\s>][^>]*>/.test(before)) {
+                            console.warn('[Stream Filter] Removed orphan </AUTOMATION_STRATEGY> closing tag')
                             return ''
-                        })
+                        }
+                        return match
+                    })
+
+                    // 🔥 关键修复：早期包裹（与报告同款）
+                    // 一旦流中出现完整的 ```json ... ``` 代码块且含 triggerNode/logicNode/actionNode
+                    // 立即包裹为 <AUTOMATION_STRATEGY> 标签，避免后续 chunk 到来时被部分过滤
+                    if (!assistantMsg.content.includes('<AUTOMATION_STRATEGY')) {
+                        // 鲁棒的描述提取：1) 标题格式  2) "X策略"中的核心名词  3) 回退
+                        const extractStrategyDescription = (before: string): string => {
+                          if (!before) return 'AI 生成的自动化策略'
+                          // 1) Markdown 标题/粗体：### 标题：xxx / **策略名称**：xxx
+                          const m1 = before.match(/(?:#{1,6}\s*)?(?:\*\*|__)?(?:策略名称|方案名称|名称|标题|主题)[：:]\s*[\*\*「]?([^\*\*「」\n。]{2,40})[\*\*」]?/)
+                          if (m1 && m1[1]) return m1[1].trim()
+                          // 2) 抓取最后一个"策略"/"方案"前的核心名词
+                          const m2 = before.match(/(?:是|为|的|了|，|：|:)\s*([^\n。\s，：:]{2,40}?)\s*(?:策略|方案)/)
+                          if (m2 && m2[1]) return m2[1].trim()
+                          return 'AI 生成的自动化策略'
+                        }
+
+                        // ① 优先匹配完整的 fenced JSON 代码块（含 triggerNode/logicNode/actionNode）
+                        const fencedJsonRegex = /```json\s*([\s\S]*?)\s*```/g
+                        const fencedMatches: { full: string; body: string; index: number }[] = []
+                        let m
+                        while ((m = fencedJsonRegex.exec(assistantMsg.content)) !== null) {
+                            const body = m[1]
+                            if (body.includes('"triggerNode"') || body.includes('"logicNode"') || body.includes('"actionNode"')) {
+                                fencedMatches.push({ full: m[0], body, index: m.index })
+                            }
+                        }
+                        if (fencedMatches.length > 0) {
+                            // 取第一个匹配的代码块并包裹
+                            const target = fencedMatches[0]
+                            // 尝试从代码块前的文本中提取描述
+                            const beforeText = assistantMsg.content.substring(0, target.index).trim()
+                            const description = extractStrategyDescription(beforeText)
+                            const wrapped = `<AUTOMATION_STRATEGY description="${description}">\n${target.full}\n</AUTOMATION_STRATEGY>`
+                            assistantMsg.content =
+                                beforeText
+                                    ? `${beforeText}\n\n${wrapped}`
+                                    : wrapped
+                            console.log(`[Stream Filter] ✅ Early-wrapped automation strategy: "${description}"`)
+                        } else {
+                            // ② 兜底：检测未闭合的 ```json ... （流式过程中 fence 还没到）但 JSON 已平衡且含策略标记
+                            // 用花括号平衡匹配：找到第一个 ```json 后的 {，向后扫描到匹配的 }
+                            const openFenceIdx = assistantMsg.content.indexOf('```json')
+                            if (openFenceIdx !== -1) {
+                                const afterFence = assistantMsg.content.substring(openFenceIdx + '```json'.length)
+                                const firstBrace = afterFence.indexOf('{')
+                                if (firstBrace !== -1) {
+                                    let depth = 0
+                                    let inString = false
+                                    let escape = false
+                                    let endIdx = -1
+                                    for (let i = firstBrace; i < afterFence.length; i++) {
+                                        const ch = afterFence[i]
+                                        if (escape) { escape = false; continue }
+                                        if (inString) {
+                                            if (ch === '\\') escape = true
+                                            else if (ch === '"') inString = false
+                                            continue
+                                        }
+                                        if (ch === '"') { inString = true; continue }
+                                        if (ch === '{') depth++
+                                        else if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break } }
+                                    }
+                                    // 平衡 + 含策略标记 + 后面没有紧跟 ```（避免重复包裹）
+                                    if (endIdx !== -1) {
+                                        const jsonBody = afterFence.substring(firstBrace, endIdx + 1)
+                                        if (jsonBody.includes('"triggerNode"') || jsonBody.includes('"logicNode"') || jsonBody.includes('"actionNode"')) {
+                                            const rest = afterFence.substring(endIdx + 1)
+                                            // 跳过空白后若已有关闭 fence 则不重复处理
+                                            if (!/^\s*```/.test(rest)) {
+                                                const fenceStart = openFenceIdx
+                                                const fenceEnd = openFenceIdx + '```json'.length + firstBrace + endIdx + 1
+                                                const fencedJson = assistantMsg.content.substring(fenceStart, fenceEnd)
+                                                const beforeText = assistantMsg.content.substring(0, fenceStart).trim()
+                                                const description = extractStrategyDescription(beforeText)
+                                                const wrapped = `<AUTOMATION_STRATEGY description="${description}">\n${fencedJson}\n</AUTOMATION_STRATEGY>`
+                                                assistantMsg.content =
+                                                    beforeText
+                                                        ? `${beforeText}\n\n${wrapped}\n${rest}`
+                                                        : `${wrapped}\n${rest}`
+                                                console.log(`[Stream Filter] ✅ Early-wrapped unclosed-fence strategy: "${description}"`)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    
+
                     // 🔥 检测并自动包裹裸露的 HTML 报告代码
                     // 检查是否已经有 [REPORT:...] 标签包裹或已有开始标记（避免在AI已经原生输出[REPORT:时进行干扰）
                     const hasReportTag = assistantMsg.content.includes('[REPORT:') || /\[REPORT:[^\]]+\][\s\S]*?\[\/REPORT\]/.test(assistantMsg.content)
@@ -2989,36 +3467,85 @@ ${taskContext}
                     
                     // 注意：不要移除正确包裹的 <TASK_LIST>...</TASK_LIST>
                     // 只移除裸露的 JSON 和错误的标签
-                    
+
                     // 1. 拦截裸露的 TASK_LIST JSON（没有标签包裹的）
-                    // 先检查是否有完整的标签对
-                    const hasCompleteTag = /<TASK_LIST>[\s\S]*?<\/TASK_LIST>/.test(assistantMsg.content)
-                    
-                    if (!hasCompleteTag) {
-                        // 只有在没有完整标签的情况下才过滤裸露的 JSON
-                        
+                    // 检查是否有开标签（流式输出时闭标签可能还没到，只要有开标签就说明 JSON 在 TASK_LIST 块内）
+                    const hasOpenTag = assistantMsg.content.includes('<TASK_LIST>')
+                    const hasCloseTag = assistantMsg.content.includes('</TASK_LIST>')
+
+                    if (!hasOpenTag && !hasCloseTag) {
+                        // 只有在完全没有 TASK_LIST 标签的情况下才过滤裸露的 JSON
+
+                        // 🔥 关键修复：先识别并保留 schedule_task JSON
+                        // schedule_task JSON 是 markdown 代码块，**绝不**能被 TASK_LIST 过滤器误删
+                        // 临时移除所有 schedule_task 代码块，过滤完后再恢复
+                        const scheduleTaskBlocks: string[] = []
+                        let stashedContent = assistantMsg.content
+                        stashedContent = stashedContent.replace(/```json\s*[\s\S]*?"action"\s*:\s*"schedule_task"[\s\S]*?(?:```|$)/g, (match) => {
+                            scheduleTaskBlocks.push(match)
+                            return `\x00SCHEDULE_TASK_BLOCK_${scheduleTaskBlocks.length - 1}\x00`
+                        })
+
+                        // 🔥 关键修复：同时识别并保留自动化策略 JSON
+                        // 自动化策略 JSON 是含 nodes/edges 的图结构代码块
+                        // 使用非贪婪匹配直到遇到 ``` 或字符串结尾；不要求 JSON 已闭合（流式支持）
+                        const automationBlocks: string[] = []
+                        stashedContent = stashedContent.replace(/```json\s*[\s\S]*?(?:```|$)/g, (match) => {
+                            // 提取 JSON 文本，检测是否含 triggerNode / logicNode / actionNode
+                            const jsonText = match.replace(/^```json\s*/, "").replace(/```$/, "").trim()
+                            if (jsonText.includes('"triggerNode"') || jsonText.includes('"logicNode"') || jsonText.includes('"actionNode"')) {
+                                automationBlocks.push(match)
+                                return `\x00AUTOMATION_BLOCK_${automationBlocks.length - 1}\x00`
+                            }
+                            return match
+                        })
+
+                        // 🔥 关键修复：保护无 fence 的裸策略 JSON（如 { "nodes": [...], "edges": [...] }）
+                        // 避免被下方的 TASK_LIST 模式误识别（虽然一般不会匹配，但作为保险）
+                        stashedContent = stashedContent.replace(/\{\s*"(?:nodes|edges)"[\s\S]*?"nodes"\s*:\s*\[[\s\S]*?\}\s*(?=\n|$)/g, (match) => {
+                            if (match.includes('"triggerNode"') || match.includes('"logicNode"') || match.includes('"actionNode"')) {
+                                automationBlocks.push('```json\n' + match + '\n```')
+                                return `\x00AUTOMATION_BLOCK_${automationBlocks.length - 1}\x00`
+                            }
+                            return match
+                        })
+
                         // 匹配包含 "tasks" 数组和 "status" 字段的 JSON 对象 - 增强版
                         const taskListJsonPattern = /\{\s*"(?:status|tasks)"[\s\S]*?"(?:tasks|status)"[\s\S]*?\}/g
-                        assistantMsg.content = assistantMsg.content.replace(taskListJsonPattern, (match) => {
-                            // 只移除包含 tasks 数组和 status 字段的 JSON
-                            if (match.includes('"tasks"') && match.includes('"status"')) {
+                        stashedContent = stashedContent.replace(taskListJsonPattern, (match) => {
+                            // 🔥 二次防御：必须同时包含 "status" 和 "tasks" 才过滤
+                            // 防止误删带 "status" 字段的 schedule_task JSON
+                            if (match.includes('"tasks"') && match.includes('"status"') && !match.includes('"action": "schedule_task"')) {
                                 console.warn('[Stream Filter] Intercepted bare TASK_LIST JSON')
                                 return '' // 完全移除
                             }
                             return match // 保留其他 JSON
                         })
-                        
+
                         // 拦截不完整的 TASK_LIST JSON（流式输出时）
                         const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
-                        if (incompleteTaskPattern.test(assistantMsg.content)) {
-                            const lastBrace = assistantMsg.content.lastIndexOf('{')
+                        if (incompleteTaskPattern.test(stashedContent)) {
+                            const lastBrace = stashedContent.lastIndexOf('{')
                             if (lastBrace !== -1) {
-                                const potentialJson = assistantMsg.content.slice(lastBrace)
-                                if (potentialJson.includes('"tasks"') || potentialJson.includes('"status"')) {
-                                    assistantMsg.content = assistantMsg.content.slice(0, lastBrace).trim()
+                                const potentialJson = stashedContent.slice(lastBrace)
+                                if (potentialJson.includes('"tasks"') || (potentialJson.includes('"status"') && potentialJson.includes('"in_progress"'))) {
+                                    // 🔥 二次防御：确保不是 schedule_task JSON
+                                    if (!potentialJson.includes('"action": "schedule_task"')) {
+                                        stashedContent = stashedContent.slice(0, lastBrace).trim()
+                                    }
                                 }
                             }
                         }
+
+                        // 还原 schedule_task 代码块
+                        stashedContent = stashedContent.replace(/\x00SCHEDULE_TASK_BLOCK_(\d+)\x00/g, (_, idx) => {
+                            return scheduleTaskBlocks[Number(idx)] || ''
+                        })
+                        // 还原自动化策略代码块
+                        stashedContent = stashedContent.replace(/\x00AUTOMATION_BLOCK_(\d+)\x00/g, (_, idx) => {
+                            return automationBlocks[Number(idx)] || ''
+                        })
+                        assistantMsg.content = stashedContent
                     }
                     
                     // 2. 移除孤立的开始或结束标签（不成对的）
@@ -3319,7 +3846,148 @@ ${taskContext}
           console.log('[Final HTML Check] No bare HTML detected in final output')
         }
       }
-      
+
+      // 🔥 流结束后的最终自动化策略检测和包裹（兜底方案）
+      // 处理两种情况：
+      //  1. 裸 ```json ... ``` 代码块（早期包裹失败）
+      //  2. 裸无 fence 的 JSON { "nodes": [...], "edges": [...] }（如用户截图所示）
+      if (typeof assistantMsg.content === 'string' && !assistantMsg.content.includes('<AUTOMATION_STRATEGY')) {
+        console.log('[Final Automation Check] Checking for bare automation strategy in completed response...')
+        let finalContent2 = assistantMsg.content
+
+        // 🔥 更鲁棒的描述提取：
+        // 优先级：1) 标题/粗体格式  2) "X策略"中的核心名词  3) 通用回退
+        const extractDescription = (before: string): string => {
+          if (!before) return 'AI 生成的自动化策略'
+          // 1) Markdown 标题/粗体：### 标题：xxx / **策略名称**：xxx
+          const m1 = before.match(/(?:#{1,6}\s*)?(?:\*\*|__)?(?:策略名称|方案名称|名称|标题|主题)[：:]\s*[\*\*「]?([^\*\*「」\n。]{2,40})[\*\*」]?/)
+          if (m1 && m1[1]) return m1[1].trim()
+          // 2) 抓取最后一个"策略"/"方案"前的核心名词（"草莓大棚自动化控制策略" → "草莓大棚自动化控制"）
+          //    要求前面有"是"/"为"/"的"/"了"/"，"，避免抓取到修饰词
+          const m2 = before.match(/(?:是|为|的|了|，|：|:)\s*([^\n。\s，：:]{2,40}?)\s*(?:策略|方案)/)
+          if (m2 && m2[1]) return m2[1].trim()
+          return 'AI 生成的自动化策略'
+        }
+
+        // 检测函数
+        const containsStrategyMarker = (s: string) =>
+          s.includes('"triggerNode"') || s.includes('"logicNode"') || s.includes('"actionNode"')
+
+        // 情况 1: 裸 ```json ... ``` 代码块
+        const fencedRegex = /```json\s*([\s\S]*?)\s*```/g
+        let hasStrategy = false
+        finalContent2 = finalContent2.replace(fencedRegex, (full, body) => {
+          if (containsStrategyMarker(body)) {
+            hasStrategy = true
+            return full // 暂不替换，最后整体包裹
+          }
+          return full
+        })
+
+        // 情况 2: 裸无 fence 的 JSON（平衡花括号扫描）
+        if (!hasStrategy && containsStrategyMarker(finalContent2)) {
+          // 找到第一个 { 之后，向后扫描直到匹配的 }
+          const firstBrace = finalContent2.indexOf('{')
+          if (firstBrace !== -1) {
+            let depth = 0
+            let inString = false
+            let escape = false
+            let endIdx = -1
+            for (let i = firstBrace; i < finalContent2.length; i++) {
+              const ch = finalContent2[i]
+              if (escape) { escape = false; continue }
+              if (inString) {
+                if (ch === '\\') escape = true
+                else if (ch === '"') inString = false
+                continue
+              }
+              if (ch === '"') { inString = true; continue }
+              if (ch === '{') depth++
+              else if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break } }
+            }
+            if (endIdx !== -1) {
+              const jsonText = finalContent2.substring(firstBrace, endIdx + 1)
+              if (containsStrategyMarker(jsonText)) {
+                hasStrategy = true
+                // 重新组合：说明文字 + 包裹的 ```json```
+                const before = finalContent2.substring(0, firstBrace).trim()
+                const description = extractDescription(before)
+                const wrappedJson = '```json\n' + jsonText + '\n```'
+                finalContent2 = before
+                  ? `${before}\n\n<AUTOMATION_STRATEGY description="${description}">\n${wrappedJson}\n</AUTOMATION_STRATEGY>`
+                  : `<AUTOMATION_STRATEGY description="${description}">\n${wrappedJson}\n</AUTOMATION_STRATEGY>`
+                console.log(`[Final Automation Check] ✅ Wrapped bare strategy: "${description}"`)
+              }
+            }
+          }
+        }
+
+        // 情况 1 的处理：把首个含标记的代码块包裹
+        if (hasStrategy && !finalContent2.includes('<AUTOMATION_STRATEGY')) {
+          finalContent2 = finalContent2.replace(fencedRegex, (full, body) => {
+            if (containsStrategyMarker(body)) {
+              const beforeMatchIdx = assistantMsg.content.indexOf(full)
+              const before = beforeMatchIdx > 0 ? assistantMsg.content.substring(0, beforeMatchIdx).trim() : ''
+              const description = extractDescription(before)
+              return before
+                ? `${before}\n\n<AUTOMATION_STRATEGY description="${description}">\n${full}\n</AUTOMATION_STRATEGY>`
+                : `<AUTOMATION_STRATEGY description="${description}">\n${full}\n</AUTOMATION_STRATEGY>`
+            }
+            return full
+          })
+        }
+
+        if (hasStrategy && finalContent2 !== assistantMsg.content) {
+          assistantMsg.content = finalContent2
+          // 更新消息显示
+          if (streamSessionId === sessionId) {
+            setMessages(prev => {
+              const newMsgs = [...prev]
+              newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+              return newMsgs
+            })
+          }
+        } else {
+          console.log('[Final Automation Check] No bare automation strategy detected')
+        }
+      }
+
+      // 🔥 最终兜底：处理 AUTOMATION_STRATEGY 标签不完整或纯文本策略的情况
+      if (typeof assistantMsg.content === 'string') {
+        const finalContent3 = assistantMsg.content
+        let modified3 = false
+
+        // 情况 A：有开始标签但没结束标签（流被截断或 AI 忘记关闭）
+        if (finalContent3.includes('<AUTOMATION_STRATEGY') && !finalContent3.includes('</AUTOMATION_STRATEGY>')) {
+          assistantMsg.content = finalContent3 + '\n</AUTOMATION_STRATEGY>'
+          modified3 = true
+          console.log('[Final Automation Fix] Added missing </AUTOMATION_STRATEGY> closing tag')
+        }
+
+        // 情况 B：完全没有 AUTOMATION_STRATEGY 标签，但内容是纯文本策略描述
+        // 检测特征：包含 2+ 个策略段头（触发条件/动作执行/诊断逻辑/联动控制 等）
+        if (!assistantMsg.content.includes('<AUTOMATION_STRATEGY')) {
+          const text = assistantMsg.content
+          const sectionHeaders = text.match(/(?:^|\n)\s*(?:#{1,6}\s*|\*\*)?\s*(?:策略说明|触发条件|触发|监测条件|诊断逻辑|诊断|判断条件|判断|逻辑判断|动作执行|执行动作|动作|联动控制|联动|控制步骤|控制|响应措施|响应)\s*[:：]?/g) || []
+          if (sectionHeaders.length >= 2) {
+            // 提取描述
+            const descMatch = text.match(/(?:是|为|的|了|，|：|:)\s*([^\n。\s，：:]{2,40}?)\s*(?:策略|方案)/)
+            const description = descMatch ? descMatch[1].trim() : 'AI 生成的自动化策略'
+            assistantMsg.content = `<AUTOMATION_STRATEGY description="${description}">\n${text}\n</AUTOMATION_STRATEGY>`
+            modified3 = true
+            console.log(`[Final Automation Fix] ✅ Wrapped text-based strategy (${sectionHeaders.length} sections): "${description}"`)
+          }
+        }
+
+        if (modified3 && streamSessionId === sessionId) {
+          setMessages(prev => {
+            const newMsgs = [...prev]
+            newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+            return newMsgs
+          })
+        }
+      }
+
       if (ensuredSessionId) {
         const lastMsg = {  
           ...assistantMsg, 
@@ -3341,7 +4009,7 @@ ${taskContext}
         if (jsonMatches.length > 0) {
           const commands = []
           for (const match of jsonMatches) {
-            try { 
+            try {
               const parsed = JSON.parse(match[1])
               if (Array.isArray(parsed)) {
                 // 处理数组形式的命令
@@ -3354,13 +4022,15 @@ ${taskContext}
               }
             } catch { }
           }
-          if (commands.length > 0) {
-            console.log('[Auto Execute] Executing commands automatically:', commands)
+          // 过滤掉 schedule_task 命令 — 这些由 ScheduleCard 组件自动处理，不应进入 executeCommands
+          const executableCommands = commands.filter(cmd => cmd.action !== "schedule_task")
+          if (executableCommands.length > 0) {
+            console.log('[Auto Execute] Executing commands automatically:', executableCommands)
             // 再次检查是否已停止
             if (isStoppedRef.current) return;
             // 重要：如果在这次调用中已经触发了设备执行，标记本次会话不再需要通用反馈
             // 通过将 hasSentCustomFeedback 置为 true 避免循环嵌套
-            await executeCommands(commands, assistantMsg.content as string)
+            await executeCommands(executableCommands, assistantMsg.content as string)
           }
         }
       }
@@ -3617,7 +4287,7 @@ ${taskContext}
       const reader = new FileReader()
       reader.onload = () => {
         const url = typeof reader.result === "string" ? reader.result : ""
-        if (url) setAttachments((prev) => [...prev, url])
+        if (url) setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", dataUrl: url }])
       }
       reader.readAsDataURL(file)
     })
@@ -3650,7 +4320,7 @@ ${taskContext}
         const reader = new FileReader()
         reader.onload = () => {
           const url = typeof reader.result === "string" ? reader.result : ""
-          if (url) setAttachments((prev) => [...prev, url])
+          if (url) setAttachments((prev) => [...prev, { name: file.name || `pasted-${Date.now()}.png`, type: file.type || "image/png", dataUrl: url }])
         }
         reader.readAsDataURL(file)
       })
@@ -3770,6 +4440,7 @@ ${taskContext}
           apiUrl: aiSettings?.apiUrl,
           systemPrompt: aiSettings?.systemPrompt,
           deviceData,
+          deviceOnline: connectionStatus.connected,
           weatherData,
           stream: false // 语音对话不使用流式响应
         })
@@ -3848,7 +4519,7 @@ ${taskContext}
       theme={{
         algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#10b981",
+          colorPrimary: "#1677ff",
           borderRadius: 12,
         },
       }}
@@ -3868,7 +4539,7 @@ ${taskContext}
     <div
       className={cn(
         "fixed inset-0 w-full h-full overflow-hidden flex font-sans transition-colors duration-300",
-        darkMode ? "bg-zinc-950 text-zinc-100" : "bg-gray-50 text-zinc-900",
+        darkMode ? "bg-zinc-900 text-zinc-100" : "bg-[#f7f8fa] text-zinc-900",
         isExecutingControl && "ai-control-active",
         isElderFriendlyMode && "elder-friendly-text"
       )}
@@ -3940,12 +4611,13 @@ ${taskContext}
           trigger={null}
           collapsible
           style={{
-            background: darkMode ? "#18181b" : "#f7f8fa",
+            background: "transparent",
             display: "flex",
             flexDirection: "column",
-            height: "100%",
+            height: "100vh",
+            minHeight: "100vh",
             overflow: "hidden",
-            borderRight: darkMode ? "1px solid #27272a" : "none",
+            borderRight: "none",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -3953,7 +4625,7 @@ ${taskContext}
             <div style={{ display: "flex", alignItems: "center", padding: "18px 16px 14px" }}>
               <span style={{ fontFamily: "AlimamaShuHeiTi, sans-serif", fontSize: 22, fontWeight: 700, color: darkMode ? "#e4e4e7" : "#111827" }}>莓小智</span>
               <div style={{ flex: 1 }} />
-              <button onClick={() => setEnableSearch(!enableSearch)}
+              <button onClick={() => setSearchPanelOpen(true)}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center",
                   width: 32, height: 32, borderRadius: 8, border: "none", background: "transparent",
                   cursor: "pointer", color: darkMode ? "#a1a1aa" : "#6b7280" }}
@@ -3995,7 +4667,7 @@ ${taskContext}
             </div>
 
             {/* ===== 分组与列表区域 ===== */}
-            <div className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 10px 0" }}>
+            <div data-lenis-prevent className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 10px 0" }}>
               {/* 隐藏滚动条 */}
               <style>{`
                 .sidebar-scroll::-webkit-scrollbar { width: 5px; }
@@ -4012,163 +4684,96 @@ ${taskContext}
                 .sidebar-scroll:hover, .sidebar-scroll:active { scrollbar-color: #d1d5db transparent; }
               `}</style>
 
-              {/* 我的空间（可折叠） - 报告列表 */}
+              {/* 探索入口 */}
               <div>
-                <div onClick={() => toggleGroupCollapse("my-space")}
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 4px 6px", cursor: "pointer", userSelect: "none", color: darkMode ? "#a1a1aa" : "#4b5563" }}
+                <div
+                  onClick={() => setExploreOpen(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7,
+                    padding: "10px 4px 6px", cursor: "pointer", userSelect: "none",
+                    color: darkMode ? "#a1a1aa" : "#4b5563",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
                 >
-                  {collapsedGroups.has("my-space") ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                  <Compass size={15} strokeWidth={1.5} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>探索</span>
+                </div>
+              </div>
+
+              {/* 我的空间 - 点击右侧面板占满对话区 */}
+              <div>
+                <div
+                  onClick={() => setMySpaceOpen(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7,
+                    padding: "10px 4px 6px", cursor: "pointer", userSelect: "none",
+                    color: darkMode ? "#a1a1aa" : "#4b5563",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
+                >
                   <FolderOpen size={15} strokeWidth={1.5} />
                   <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>我的空间</span>
+                  {spaceReports.length > 0 && (
+                    <span style={{
+                      fontSize: 10,
+                      color: darkMode ? "#a1a1aa" : "#9ca3af",
+                      background: darkMode ? "#27272a" : "#f3f4f6",
+                      padding: "0 5px",
+                      borderRadius: 8,
+                      minWidth: 16,
+                      textAlign: "center",
+                      lineHeight: "16px",
+                      height: 16,
+                    }}>{spaceReports.length}</span>
+                  )}
                 </div>
-                
-                {/* 报告列表 */}
-                {!collapsedGroups.has("my-space") && spaceReports.length > 0 && (
-                  <div style={{ marginLeft: 8, marginTop: 2 }}>
-                    {spaceReports.map((report) => (
-                      <div key={report.id}
-                        onClick={() => openReportInNewWindow(report)}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          padding: "7px 8px", borderRadius: 6,
-                          cursor: "pointer",
-                          transition: "background 0.15s",
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                      >
-                        {/* 左侧：图标 + 标题 + 标签 */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                          <FileText size={13} strokeWidth={1.5} className="text-indigo-500 flex-shrink-0" />
-                          <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                            <span style={{
-                              fontSize: 12.5,
-                              color: darkMode ? "#e4e4e7" : "#374151",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              maxWidth: 140
-                            }}>{report.title}</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{
-                                fontSize: 10,
-                                color: darkMode ? "#a1a1aa" : "#9ca3af",
-                                background: darkMode ? "#27272a" : "#f3f4f6",
-                                padding: "1px 5px",
-                                borderRadius: 3
-                              }}>{report.type}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* 右侧：时间 + 操作 */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                          <span style={{ fontSize: 10, color: darkMode ? "#71717a" : "#bbb", whiteSpace: "nowrap" }}>
-                            {formatReportTime(report.timestamp)}
-                          </span>
-                          
-                          {/* 下载按钮 */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (report.html) {
-                                downloadReport(report)
-                              }
-                            }}
-                            style={{
-                              width: 22, height: 22,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              border: "none", background: "none",
-                              cursor: "pointer", borderRadius: 4,
-                              color: darkMode ? "#71717a" : "#9ca3af"
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.color = darkMode ? "#a1a1aa" : "#6b7280"}
-                            onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.color = darkMode ? "#71717a" : "#9ca3af"}
-                            title="下载报告"
-                          >
-                            <Download size={12} strokeWidth={1.5} />
-                          </button>
-                          
-                          {/* 更多操作 */}
-                          <Dropdown menu={{ items: [
-                            {
-                              key: 'open',
-                              label: '打开查看',
-                              icon: <Eye size={12} />,
-                              onClick: () => openReportInNewWindow(report)
-                            },
-                            {
-                              key: 'download',
-                              label: '下载报告',
-                              icon: <Download size={12} />,
-                              onClick: () => report.html && downloadReport(report)
-                            },
-                            { type: 'divider' },
-                            {
-                              key: 'delete',
-                              label: <span style={{ color: '#ef4444' }}>删除</span>,
-                              icon: <Trash2 size={12} style={{ color: '#ef4444' }} />,
-                              danger: true,
-                              onClick: () => deleteSpaceReport(report.id)
-                            }
-                          ]}} trigger={['click']}>
-                            <button
-                              onClick={(e) => e.stopPropagation()}
-                              style={{
-                                width: 22, height: 22,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                border: "none", background: "none",
-                                cursor: "pointer", borderRadius: 4,
-                                color: darkMode ? "#71717a" : "#9ca3af"
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.color = darkMode ? "#a1a1aa" : "#6b7280"}
-                              onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.color = darkMode ? "#71717a" : "#9ca3af"}
-                            >
-                              <MoreHorizontal size={13} />
-                            </button>
-                          </Dropdown>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* 空状态提示 */}
-                {!collapsedGroups.has("my-space") && spaceReports.length === 0 && (
-                  <div style={{
-                    marginLeft: 8, marginTop: 4, padding: "16px 12px",
-                    textAlign: "center", fontSize: 11, color: "#c4c4c4"
-                  }}>
-                    暂无生成内容
-                  </div>
-                )}
               </div>
 
-              {/* 智能体（可折叠） */}
+              {/* 定时任务入口 */}
               <div>
-                <div onClick={() => toggleGroupCollapse("agents")}
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 4px 6px", cursor: "pointer", userSelect: "none" }}
+                <div
+                  onClick={() => setSchedulerPanelOpen(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7,
+                    padding: "8px 4px 6px", cursor: "pointer", userSelect: "none",
+                    color: darkMode ? "#a1a1aa" : "#4b5563",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
                 >
-                  {collapsedGroups.has("agents") ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                  <List size={15} strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>智能体</span>
+                  <CalendarClock size={15} strokeWidth={1.5} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>定时任务</span>
                 </div>
               </div>
 
-              {/* 对话分组标题 + 新建 */}
-              <div style={{ padding: "12px 4px 6px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500 }}>对话分组</span>
-                  <button onClick={() => setShowNewGroupInput(true)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 2,
-                      fontSize: 11, color: "#9ca3af", background: "none",
-                      border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4 }}
-                  >
-                    <Plus size={11} /><span>新分组</span>
-                  </button>
-                </div>
+              {/* 对话分组标题（紧贴左侧，无 icon 占位） */}
+              <div style={{ padding: "12px 4px 4px" }}>
+                <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500 }}>对话分组</span>
+              </div>
+
+              {/* 新分组（独立行，与分组项同 icon x） */}
+              <div
+                onClick={() => setShowNewGroupInput(true)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7,
+                  padding: "6px 4px", cursor: "pointer", userSelect: "none",
+                  color: darkMode ? "#a1a1aa" : "#6b7280",
+                  borderRadius: 6,
+                  transition: "background 0.15s, color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"; e.currentTarget.style.color = "#1677ff" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#6b7280" }}
+              >
+                <Plus size={14} strokeWidth={1.5} />
+                <span style={{ fontSize: 12 }}>新分组</span>
+              </div>
                 {showNewGroupInput && (
-                  <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                  <div style={{ display: "flex", gap: 4, marginTop: 4, padding: "0 4px" }}>
                     <input autoFocus value={newGroupName}
                       onChange={(e) => setNewGroupName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") addGroup(newGroupName); if (e.key === "Escape") { setShowNewGroupInput(false); setNewGroupName("") } }}
@@ -4184,24 +4789,37 @@ ${taskContext}
                     />
                   </div>
                 )}
-              </div>
 
               {/* 自定义分组列表 */}
-              {groups.map(g => (
+              {groups.map(g => {
+                const isActiveGroup = activeGroupId === g.id
+                return (
                 <div key={g.id}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
-                    padding: "6px 4px 4px", cursor: "pointer", userSelect: "none" }}
-                    onClick={() => toggleGroupCollapse(g.id)}
+                  <div
+                    onClick={() => { toggleGroupCollapse(g.id); setActiveGroupId(g.id) }}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 7,
+                      padding: "6px 4px", cursor: "pointer", userSelect: "none",
+                      borderRadius: 6,
+                      background: isActiveGroup
+                        ? (darkMode ? "rgba(99,102,241,0.12)" : "rgba(22,119,255,0.08)")
+                        : "transparent",
+                      color: isActiveGroup
+                        ? "#1677ff"
+                        : (darkMode ? "#e4e4e7" : "#4b5563"),
+                      transition: "background 0.15s, color 0.15s",
+                    }}
+                    onMouseEnter={(e) => { if (!isActiveGroup) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
+                    onMouseLeave={(e) => { if (!isActiveGroup) e.currentTarget.style.background = "transparent" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       {collapsedGroups.has(g.id) ? (
-                        <ChevronRight size={13} style={{ color: darkMode ? "#a1a1aa" : "#6b7280" }} />
+                        <ChevronRight size={14} style={{ opacity: 0.7 }} />
                       ) : (
-                        <ChevronDown size={13} style={{ color: darkMode ? "#a1a1aa" : "#6b7280" }} />
+                        <ChevronDown size={14} style={{ opacity: 0.7 }} />
                       )}
-                      <FolderOpen size={13} strokeWidth={1.5} style={{ color: darkMode ? "#a1a1aa" : "#6b7280" }} />
-                      <span style={{ fontSize: 12, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#4b5563" }}>{g.name}</span>
-                      <span style={{ fontSize: 10, color: darkMode ? "#71717a" : "#9ca3af" }}>({sessionsByGroup[g.id]?.length || 0})</span>
+                      <FolderOpen size={15} strokeWidth={1.5} />
+                      <span style={{ fontSize: 12, fontWeight: isActiveGroup ? 600 : 500 }}>{g.name}</span>
                     </div>
                     <Dropdown trigger={["click"]} placement="bottomLeft"
                       menu={{
@@ -4215,10 +4833,11 @@ ${taskContext}
                       <button onClick={(e) => e.stopPropagation()}
                         style={{ display: "flex", alignItems: "center", justifyContent: "center",
                           width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent",
-                          cursor: "pointer", color: darkMode ? "#71717a" : "#c4c8cf", opacity: 0,
+                          cursor: "pointer", color: isActiveGroup ? "#1677ff" : (darkMode ? "#71717a" : "#9ca3af"),
+                          opacity: isActiveGroup ? 1 : 0,
                           transition: "opacity 0.15s" }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = ""}
+                        onMouseLeave={(e) => { if (!isActiveGroup) e.currentTarget.style.opacity = "0" }}
                       >
                         <MoreHorizontal size={12} />
                       </button>
@@ -4230,14 +4849,15 @@ ${taskContext}
                       onActiveChange={(key: string) => { setSessionId(String(key)); loadSessionMessages(String(key) as any) }}
                       onDelete={(info: any) => deleteSession(String(info.key))}
                       items={groupedSessionItems[g.id] || []}
-                      styles={{ item: { borderRadius: 8, padding: "6px 10px 6px 22px", marginBottom: 1 } }}
+                      styles={{ item: { borderRadius: 8, padding: "6px 10px 6px 32px", marginBottom: 1 } }}
                     />
                   )}
                 </div>
-              ))}
+                )
+              })}
 
-              {/* 最近对话（未分组的） */}
-              <div style={{ padding: "10px 4px 6px" }}>
+              {/* 最近对话（未分组的）- 紧贴左侧 */}
+              <div style={{ padding: "10px 4px 4px" }}>
                 <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500 }}>最近对话</span>
               </div>
 
@@ -4247,14 +4867,10 @@ ${taskContext}
                 onActiveChange={(key: string) => { setSessionId(String(key)); loadSessionMessages(String(key) as any) }}
                 onDelete={(info: any) => deleteSession(String(info.key))}
                 items={recentSessionItems}
-                styles={{ item: { borderRadius: 8, padding: "7px 10px", marginBottom: 1 } }}
+                styles={{ item: { borderRadius: 8, padding: "7px 10px 7px 32px", marginBottom: 1 } }}
               />
 
-              {/* 底部操作：探索 / 能力库 */}
-              <div style={{ display: "flex", gap: 2, padding: "12px 6px 4px", borderTop: darkMode ? "1px solid #27272a" : "1px solid #f0f0f0" }}>
-                <AntButton type="text" size="small" icon={<Compass size={13} />} onClick={() => setExploreOpen(true)}
-                  style={{ fontSize: 12, color: darkMode ? "#a1a1aa" : "#6b7280", flex: 1, justifyContent: "start", paddingLeft: 4 }}>探索</AntButton>
-              </div>
+              {/* 底部留白（探索入口已移至上方侧边栏） */}
 
             </div>
             {/* ===== 底部用户区 ===== */}
@@ -4274,10 +4890,10 @@ ${taskContext}
             >
               <div style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "12px 14px", borderTop: darkMode ? "1px solid #27272a" : "1px solid #efefef",
+                padding: "12px 14px",
                 cursor: "pointer",
               }}>
-                <AntAvatar size={32} src={user?.avatar_url} style={{ backgroundColor: "#e0e7ff", color: "#4f46e5", flexShrink: 0, fontSize: 14 }}>
+                <AntAvatar size={32} src={user?.avatar_url} style={{ backgroundColor: darkMode ? "rgba(22,119,255,0.18)" : "#e6f4ff", color: "#1677ff", flexShrink: 0, fontSize: 14 }}>
                   {user?.username?.[0]?.toUpperCase() || "B"}
                 </AntAvatar>
                 <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>
@@ -4308,28 +4924,52 @@ ${taskContext}
           />
         </Modal>
 
-        {/* Main */}
-        <AntLayout.Content style={{ display: "flex", flexDirection: "column", position: "relative", background: darkMode ? "#09090b" : "#f7f8fa" }}>
-          {/* Top bar */}
-          <div className={cn(
-            "h-12 flex items-center gap-3 px-4 shrink-0 rounded-tr-xl border-b",
-            darkMode ? "bg-zinc-900 border-zinc-800 text-zinc-100" : "bg-white border-gray-100 text-zinc-900"
-          )}>
-            {!sidebarOpen && (
-              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-                <PanelLeftOpen size={18} />
-              </Button>
-            )}
-            <div className="flex items-center justify-center">
-              <DynamicModelSelector value={selectedModel || aiSettings?.model || ""} onValueChange={setSelectedModel} />
+        {/* Main — 对话区域卡片浮在 sidebar 背景之上 */}
+        <AntLayout.Content style={{ display: "flex", flexDirection: "column", position: "relative", background: "transparent", padding: 12 }}>
+          {/* 卡片容器：圆角 + 白色背景 */}
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            background: darkMode ? "#0a0a0c" : "#fff",
+            borderRadius: 12, overflow: "hidden",
+            minHeight: 0,
+          }}>
+            {/* Top bar */}
+            <div className={cn(
+              "h-12 flex items-center gap-3 px-4 shrink-0",
+              darkMode ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
+            )}>
+              {!sidebarOpen && (
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}
+                    className={cn(
+                      "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                      darkMode ? "text-zinc-300" : "text-zinc-600"
+                    )}
+                    title="展开侧边栏"
+                  >
+                    <PanelLeftOpen size={17} />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={createNewSession}
+                    className={cn(
+                      "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                      darkMode ? "text-zinc-300" : "text-zinc-600"
+                    )}
+                    title="新建对话"
+                  >
+                    <Plus size={17} />
+                  </Button>
+                </div>
+              )}
+              <div className="flex items-center justify-center">
+                <DynamicModelSelector value={selectedModel || aiSettings?.model || ""} onValueChange={setSelectedModel} />
+              </div>
+              <div className="flex-1" />
             </div>
-            <div className="flex-1" />
-          </div>
 
-          {/* Chat area */}
-          <div id="ai-chat-main-container" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: darkMode ? "#09090b" : "#fff", margin: 0, borderRadius: "0 12px 0 0" }}>
-             {messages.length === 0 ? (
-               <MateChatHome
+            {/* Chat area */}
+            <div id="ai-chat-main-container" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
+               {messages.length === 0 ? (
+                 <MateChatHome
                 darkMode={darkMode}
                 onSendMessage={(msg) => handleSend(msg)}
                 input={input}
@@ -4337,6 +4977,25 @@ ${taskContext}
                 isLoading={isLoading}
                 approvalMode={approvalMode}
                 setApprovalMode={setApprovalMode}
+                enableReasoning={enableReasoning}
+                setEnableReasoning={(v) => {
+                  if (v) {
+                    // 开启思考时：检查当前模型是否支持深度推理
+                    const currentModel = selectedModel || aiSettings?.model || ""
+                    const supported = checkModelSupportsReasoning(currentModel)
+                    if (supported === false) {
+                      toast.warning("当前模型不支持深度思考", {
+                        description: `模型「${currentModel}」不具备深度推理能力，请到模型库选择支持思考的模型。`,
+                        duration: 4500,
+                      })
+                      return
+                    }
+                  }
+                  setEnableReasoning(v)
+                }}
+                enableSearch={enableSearch}
+                setEnableSearch={setEnableSearch}
+                hasSearchTool={availableTools.some(t => t.name.includes("search") || t.name.includes("exa") || t.name.includes("brave"))}
               />
              ) : (
               <ChatBubbleList
@@ -4344,14 +5003,25 @@ ${taskContext}
                 isLoading={isLoading}
                 agentSteps={agentSteps}
                 agentStatus={agentStatus}
+                showThoughtChain={showThoughtChain}
+                onThoughtChainHoverStart={onThoughtChainHoverStart}
+                onThoughtChainHoverEnd={onThoughtChainHoverEnd}
                 darkMode={darkMode}
+                visionInspection={{
+                  isActive: isInspecting,
+                  status: visionInspectionStatus,
+                  cameraUrl: visionInspectionUrl,
+                  cameraId: inspectionCamera,
+                  videoElementId: visionVideoElementId,
+                  capturedImage: visionCapturedImage,
+                }}
                 rendererProps={{
                   deviceData,
                   autoExecuteCommands,
                   assistantMode: approvalMode,
                   enableReasoning,
                   onOpenStudioFromTask: () => setStudioOpen(true),
-                  onOpenStudio: (title, html) => generateAndSaveReport(title, html),
+                  onOpenStudio,
                   onExecuteCommand: async (c) => { await executeCommands([c]) },
                   onRetryCommand: (errorMsg) => {
                     const retryPrompt = `上一次设备控制失败了。错误信息：${errorMsg}。请重新分析情况并给出正确的控制指令。`
@@ -4362,32 +5032,22 @@ ${taskContext}
                 }}
                 onTtsSpeak={enqueueTts}
                 footerContent={
-                  messages.length > 0 && !isLoading && messages[messages.length - 1]?.role === "assistant" ? (
+                  showSmartPrompts ? (
                     <motion.div
-                      className="scale-[0.82] origin-top-left -mb-10"
+                      className="origin-top-left -mb-10"
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease: 'easeOut' }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      onMouseEnter={onPromptsHoverStart}
+                      onMouseLeave={onPromptsHoverEnd}
                     >
-                    <Prompts
-                      title="🤔 你可能还想问："
-                      vertical
-                      styles={{
-                        item: { padding: '6px 12px', fontSize: 13 },
-                        title: { fontSize: 13, marginBottom: 6 },
-                        icon: { fontSize: 14 },
-                        description: { fontSize: 13 },
-                      }}
-                      items={[
-                        { key: "1", icon: <BulbOutlined style={{ color: '#FFD700' }} />, description: "对上面的内容做进一步分析" },
-                        { key: "2", icon: <InfoCircleOutlined style={{ color: '#1890FF' }} />, description: "当前环境适合采取什么设备操作" },
-                        { key: "3", icon: <RocketOutlined style={{ color: '#722ED1' }} />, description: "将分析结果生成可视化报告" },
-                        { key: "4", icon: <SmileOutlined style={{ color: '#52C41A' }} />, description: "用几句话概括重点内容" },
-                      ]}
-                      onItemClick={(info) => {
-                        handleSend(info.data.description || "")
-                      }}
-                    />
+                      <SmartPromptsWrapper
+                        messages={messages}
+                        aiSettings={aiSettings}
+                        darkMode={darkMode}
+                        onPick={(text) => handleSend(text)}
+                      />
                     </motion.div>
                   ) : undefined
                 }
@@ -4405,32 +5065,36 @@ ${taskContext}
                 onPaste={handlePaste}
                 enableReasoning={enableReasoning}
                 setEnableReasoning={(v) => {
-                  setEnableReasoning(v)
                   if (v) {
-                    const reasoningModels = ['qwen3-max-2026-01-23', 'qwen-plus-2025-12-01', 'deepseek-v3.2']
-                    const randomModel = reasoningModels[Math.floor(Math.random() * reasoningModels.length)]
-                    setSelectedModel(randomModel)
-                    if (aiSettings) {
-                      const newSettings = { ...aiSettings, model: randomModel }
-                      setAiSettings(newSettings)
-                      localStorage.setItem("ai-settings", JSON.stringify(newSettings))
+                    // 开启思考时：检查当前模型是否支持深度推理
+                    const currentModel = selectedModel || aiSettings?.model || ""
+                    const supported = checkModelSupportsReasoning(currentModel)
+                    if (supported === false) {
+                      toast.warning("当前模型不支持深度思考", {
+                        description: `模型「${currentModel}」不具备深度推理能力，请到模型库选择支持思考的模型。`,
+                        duration: 4500,
+                      })
+                      return
                     }
                   }
+                  setEnableReasoning(v)
                 }}
                 enablePlanning={enablePlanning}
                 setEnablePlanning={(v) => {
                   setEnablePlanning(v)
                   if (v) {
                     // 启用计划模式时，同时启用推理模式
-                    setEnableReasoning(true)
-                    const reasoningModels = ['qwen3-max-2026-01-23', 'qwen-plus-2025-12-01', 'deepseek-v3.2']
-                    const randomModel = reasoningModels[Math.floor(Math.random() * reasoningModels.length)]
-                    setSelectedModel(randomModel)
-                    if (aiSettings) {
-                      const newSettings = { ...aiSettings, model: randomModel }
-                      setAiSettings(newSettings)
-                      localStorage.setItem("ai-settings", JSON.stringify(newSettings))
+                    const currentModel = selectedModel || aiSettings?.model || ""
+                    const supported = checkModelSupportsReasoning(currentModel)
+                    if (supported === false) {
+                      toast.warning("当前模型不支持深度思考", {
+                        description: `计划模式需要深度推理能力，模型「${currentModel}」不支持。`,
+                        duration: 4500,
+                      })
+                      // 阻止启用计划模式
+                      return
                     }
+                    setEnableReasoning(true)
                   }
                 }}
                 enableSearch={enableSearch}
@@ -4445,9 +5109,201 @@ ${taskContext}
         {/* Unified Explore — 覆盖对话区域 */}
         <AnimatePresence>
           {exploreOpen && (
-            <UnifiedExplore onClose={() => setExploreOpen(false)} darkMode={darkMode} />
+            <UnifiedExplore
+              onClose={() => setExploreOpen(false)}
+              darkMode={darkMode}
+              sidebarOpen={sidebarOpen}
+              onExpandSidebar={() => setSidebarOpen(true)}
+              onNewChat={createNewSession}
+            />
           )}
         </AnimatePresence>
+
+        {/* 定时任务侧边面板 */}
+        <SchedulerSidebarPanel
+          open={schedulerPanelOpen}
+          onClose={() => setSchedulerPanelOpen(false)}
+          darkMode={darkMode}
+          sidebarOpen={sidebarOpen}
+          onExpandSidebar={() => setSidebarOpen(true)}
+          onNewChat={createNewSession}
+          onConversationalCreate={(prompt) => {
+            // 将预设提示填入输入框并聚焦
+            setInput(prompt)
+          }}
+        />
+
+        {/* 我的空间侧边面板 */}
+        <MySpaceSidebarPanel
+          open={mySpaceOpen}
+          onClose={() => setMySpaceOpen(false)}
+          darkMode={darkMode}
+          sidebarOpen={sidebarOpen}
+          onExpandSidebar={() => setSidebarOpen(true)}
+          onNewChat={createNewSession}
+          items={spaceReports.map(r => ({ ...r, category: r.type === "报告" ? "creation" : "file" }))}
+          onDelete={(id) => deleteSpaceReport(id)}
+          onItemsChange={() => {
+            // 触发 storage 重新读取（如需）
+            try { setSpaceReports(JSON.parse(localStorage.getItem("my-space-reports") || "[]")) } catch {}
+          }}
+        />
+
+        {/* 报告查看 Drawer — 点击"查看报告"按钮真正展示报告内容 */}
+        <Drawer
+          open={!!reportData}
+          onClose={() => setReportData(null)}
+          placement="right"
+          width="min(520px, 92vw)"
+          destroyOnClose
+          closeIcon={<X size={14} strokeWidth={1.5} style={{ color: '#8c8c8c' }} />}
+          title={
+            <Flex align="center" gap={8}>
+              <FileText size={15} strokeWidth={1.75} style={{ color: '#1677ff' }} />
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.88)' }}>
+                {reportData?.title || "AI 智能生成报告"}
+              </span>
+            </Flex>
+          }
+          styles={{
+            body: { padding: 0, background: darkMode ? '#0a0a0a' : '#fafafa' },
+            header: {
+              padding: '12px 16px',
+              borderBottom: `1px solid ${darkMode ? '#27272a' : '#f0f0f0'}`,
+            },
+          }}
+        >
+          {reportData && (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* ============ 内容区 ============ */}
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: 'auto',
+                  padding: '20px 24px',
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  color: darkMode ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+                }}
+                className="berry-report-content"
+                dangerouslySetInnerHTML={{ __html: reportData.html }}
+              />
+
+              {/* ============ 底部操作条 ============ */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  padding: '10px 16px',
+                  borderTop: `1px solid ${darkMode ? '#27272a' : '#f0f0f0'}`,
+                  background: darkMode ? '#0f0f10' : '#fff',
+                }}
+              >
+                {/* 左侧：辅助操作 */}
+                <Flex gap={4} align="center">
+                  <Tooltip title="下载 HTML">
+                    <AntButton
+                      type="text"
+                      size="small"
+                      icon={<Download size={14} strokeWidth={1.5} />}
+                      onClick={() => {
+                        const blob = new Blob([reportData.html], { type: 'text/html;charset=utf-8' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${reportData.title}_${reportData.timestamp}.html`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                        toast.success("HTML 已下载")
+                      }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="下载 PDF">
+                    <AntButton
+                      type="text"
+                      size="small"
+                      icon={<FileText size={14} strokeWidth={1.5} />}
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/reports/generate-pdf', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              htmlContent: reportData.html,
+                              reportTitle: reportData.title,
+                              reportId: `report-${reportData.timestamp}`,
+                            }),
+                          })
+                          if (!res.ok) throw new Error('PDF生成失败')
+                          const blob = await res.blob()
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `${reportData.title}_${reportData.timestamp}.pdf`
+                          document.body.appendChild(a)
+                          a.click()
+                          document.body.removeChild(a)
+                          URL.revokeObjectURL(url)
+                        } catch {
+                          toast.error("PDF 下载失败")
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="新窗口打开">
+                    <AntButton
+                      type="text"
+                      size="small"
+                      icon={<ExternalLink size={14} strokeWidth={1.5} />}
+                      onClick={() => {
+                        const w = window.open('', '_blank')
+                        if (w) {
+                          w.document.write(reportData.html)
+                          w.document.close()
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                </Flex>
+
+                {/* 右侧：主操作 */}
+                <AntButton
+                  type="primary"
+                  size="small"
+                  icon={<FolderInput size={13} strokeWidth={1.75} />}
+                  onClick={() => {
+                    setSpaceReports(prev => {
+                      const exists = prev.some(r => r.title === reportData.title)
+                      if (exists) {
+                        toast.info("该报告已在我的空间中")
+                        return prev
+                      }
+                      const newReport: SpaceReport = {
+                        id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        title: reportData.title,
+                        type: "报告",
+                        timestamp: Date.now(),
+                        html: reportData.html,
+                      }
+                      const updated = [newReport, ...prev]
+                      try { localStorage.setItem("my-space-reports", JSON.stringify(updated)) } catch {}
+                      toast.success("已保存到我的空间")
+                      return updated
+                    })
+                  }}
+                >
+                  保存到我的空间
+                </AntButton>
+              </div>
+            </div>
+          )}
+        </Drawer>
+          </div>
         </AntLayout.Content>
       </AntLayout>
     </div>
@@ -4455,6 +5311,145 @@ ${taskContext}
       {/* 浏览器活动窗口 */}
       {/* 浏览器活动窗口 - 仅在全屏模式下渲染，小窗口预览不需要此组件 */}
       <BrowserActivity url={browsingUrl || ""} isOpen={!!browsingUrl && !studioOpen} onClose={() => setBrowsingUrl(null)} />
+
+      {/* 搜索面板（点击顶部放大镜弹出） */}
+      <AnimatePresence>
+        {searchPanelOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setSearchPanelOpen(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 300,
+              background: "rgba(0,0,0,0.2)", backdropFilter: "blur(2px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 560, maxWidth: "calc(100vw - 48px)",
+                background: darkMode ? "#1c1c1f" : "#fff",
+                borderRadius: 16, overflow: "hidden",
+                boxShadow: darkMode
+                  ? "0 20px 50px rgba(0,0,0,0.5)"
+                  : "0 20px 50px rgba(0,0,0,0.12)",
+              }}
+            >
+              {/* 标签栏 */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "16px 20px 0",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                  {([
+                    { key: "history", label: "历史对话" },
+                    { key: "space", label: "我的空间" },
+                    { key: "agent", label: "智能体" },
+                  ] as const).map(t => {
+                    const active = searchTab === t.key
+                    return (
+                      <button key={t.key} onClick={() => setSearchTab(t.key)}
+                        style={{
+                          position: "relative", padding: "4px 0 10px",
+                          fontSize: 14, fontWeight: active ? 600 : 400,
+                          color: active
+                            ? (darkMode ? "#e4e4e7" : "#111827")
+                            : (darkMode ? "#71717a" : "#9ca3af"),
+                          background: "none", border: "none", cursor: "pointer",
+                        }}
+                      >
+                        {t.label}
+                        {active && (
+                          <span style={{
+                            position: "absolute", left: "50%", bottom: 0,
+                            transform: "translateX(-50%)",
+                            width: 20, height: 2, borderRadius: 1,
+                            background: darkMode ? "#e4e4e7" : "#111827",
+                          }} />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button onClick={() => setSearchPanelOpen(false)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent",
+                    cursor: "pointer", color: darkMode ? "#a1a1aa" : "#6b7280" }}
+                  title="关闭"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* 搜索输入框 */}
+              <div style={{ padding: "14px 20px 10px" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "10px 12px",
+                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
+                  borderRadius: 10,
+                }}>
+                  <Search size={15} style={{ color: darkMode ? "#a1a1aa" : "#9ca3af" }} />
+                  <input autoFocus value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        // 简单回车跳转第一个匹配
+                        const first = getFilteredItems()[0]
+                        if (first) handlePickSearchItem(first)
+                      }
+                    }}
+                    placeholder="搜索"
+                    style={{
+                      flex: 1, fontSize: 14, outline: "none", border: "none",
+                      background: "transparent", color: darkMode ? "#e4e4e7" : "#111827",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 列表 */}
+              <div style={{ maxHeight: 360, overflowY: "auto", padding: "0 12px 12px" }}>
+                {searchTab === "history" && getFilteredItems().length === 0 && (
+                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#9ca3af", fontSize: 13 }}>
+                    {searchKeyword ? "没有匹配的对话" : "暂无历史对话"}
+                  </div>
+                )}
+                {searchTab === "space" && getFilteredItems().length === 0 && (
+                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#9ca3af", fontSize: 13 }}>
+                    {searchKeyword ? "没有匹配的空间文件" : "暂无空间文件"}
+                  </div>
+                )}
+                {searchTab === "agent" && (
+                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#9ca3af", fontSize: 13 }}>
+                    智能体功能开发中
+                  </div>
+                )}
+                {getFilteredItems().map((item: any) => (
+                  <div key={item.id} onClick={() => handlePickSearchItem(item)}
+                    style={{
+                      padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+                      color: darkMode ? "#e4e4e7" : "#374151", fontSize: 13,
+                      transition: "background 0.12s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    {item.title}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <VoiceChatModal
         open={voiceChatOpen}

@@ -35,7 +35,7 @@ export function CO2Widget({
       label: "空气差",
       icon: AlertTriangle,
       colorClass: "text-red-500",
-      bgClass: "bg-red-50",
+      bgClass: "bg-red-50 dark:bg-red-900/30",
       hexColor: "#ef4444"
     }
     if (ppm >= 1000) return {
@@ -43,7 +43,7 @@ export function CO2Widget({
       label: "需通风",
       icon: AlertTriangle,
       colorClass: "text-orange-500",
-      bgClass: "bg-orange-50",
+      bgClass: "bg-orange-50 dark:bg-orange-900/30",
       hexColor: "#f97316"
     }
     if (ppm >= 800) return {
@@ -51,7 +51,7 @@ export function CO2Widget({
       label: "一般",
       icon: Wind,
       colorClass: "text-yellow-500",
-      bgClass: "bg-yellow-50",
+      bgClass: "bg-yellow-50 dark:bg-yellow-900/30",
       hexColor: "#eab308"
     }
     return {
@@ -59,7 +59,7 @@ export function CO2Widget({
       label: "优良",
       icon: CheckCircle,
       colorClass: "text-primary",
-      bgClass: "bg-emerald-50",
+      bgClass: "bg-emerald-50 dark:bg-emerald-900/30",
       hexColor: "#10b981"
     }
   }
@@ -82,7 +82,7 @@ export function CO2Widget({
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white text-slate-900 shadow-sm border-0", className)}
+      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
       header={size !== 'small' ? Header : null}
       isEditing={isEditing}
       widgetId={widgetId}
@@ -103,7 +103,7 @@ export function CO2Widget({
             <div className="mt-auto">
               <div className="flex items-start">
                 <span className={cn(
-                  "font-bold tracking-tighter text-slate-900",
+                  "font-bold tracking-tighter text-slate-900 dark:text-white",
                   isElderFriendlyMode ? "text-4xl" : "text-3xl"
                 )}>{value}</span>
                 <span className={cn(
@@ -126,7 +126,7 @@ export function CO2Widget({
           <div className="flex flex-col h-full w-full">
              <div className="flex items-end gap-2 mb-2">
               <div className="flex items-start">
-                <span className="text-5xl font-bold tracking-tighter text-slate-900">{value}</span>
+                <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">{value}</span>
                 <span className="text-xl font-medium mt-1 text-slate-400 ml-2">ppm</span>
               </div>
               <div className="mb-2">
@@ -148,20 +148,20 @@ export function CO2Widget({
              <div className="flex items-end justify-between mb-4">
                 <div className="flex flex-col">
                     <div className="flex items-start">
-                        <span className="text-6xl font-bold tracking-tighter text-slate-900">{value}</span>
+                        <span className="text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">{value}</span>
                         <span className="text-3xl font-medium mt-1 text-slate-400 ml-2">ppm</span>
                     </div>
                     <span className={cn("mt-1 text-sm font-medium", config.colorClass)}>{config.status} • {config.label}</span>
                 </div>
                 
-                <div className="bg-slate-50 rounded-xl p-3 w-40">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 w-40">
                    <div className="flex justify-between items-center mb-2">
-                     <span className="text-xs text-slate-500">空气质量</span>
-                     <span className="text-xs font-bold text-slate-700">优良</span>
+                     <span className="text-xs text-slate-500 dark:text-slate-400">空气质量</span>
+                     <span className="text-xs font-bold text-slate-700 dark:text-slate-200">优良</span>
                    </div>
                    <div className="w-full h-1.5 bg-gradient-to-r from-emerald-400 via-yellow-400 to-red-500 rounded-full opacity-80" />
-                   <div 
-                      className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-slate-600 mt-1 transition-all duration-500"
+                   <div
+                      className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-slate-600 dark:border-b-slate-300 mt-1 transition-all duration-500"
                       style={{ marginLeft: `${Math.min(100, (value / 2000) * 100)}%` }}
                    />
                 </div>

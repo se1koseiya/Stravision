@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Check, ArrowLeft, Crown } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Check, ArrowLeft, Crown, Sparkles, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
@@ -148,69 +147,182 @@ export default function PlansPage() {
            </motion.div>
         </motion.div>
 
-        {/* Plans Grid - Minimalist Grid Layout */}
-        <motion.div 
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.4, duration: 0.5 }}
-           className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800"
-        >
-          {plans.map((plan) => (
-            <div 
-              key={plan.name}
-              className={cn(
-                "group relative bg-white dark:bg-black p-8 md:p-12 flex flex-col transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50",
-                plan.popular && "z-10 ring-1 ring-emerald-500/20 dark:ring-emerald-500/20"
-              )}
-            >
-              {plan.popular && (
-                <div className="absolute top-0 right-0 p-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary dark:text-emerald-400">
-                    <Crown size={14} className="fill-emerald-600 dark:fill-emerald-400" />
-                    Most Popular
-                  </div>
-                </div>
-              )}
+        {/* Plans Grid - Dramatic Gradient Cards */}
+        <div className="relative">
+          {/* 背景光晕 - 营造氛围 */}
+          <div className="absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(151,90,244,0.25),transparent_70%)] blur-3xl" />
+            <div className="absolute top-1/3 right-10 w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(47,124,248,0.18),transparent_70%)] blur-3xl" />
+            <div className="absolute bottom-10 left-10 w-[350px] h-[350px] rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.12),transparent_70%)] blur-3xl" />
+          </div>
 
-              <div className="mb-12">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mb-4">
-                  {plan.price === "联系我们" ? (
-                    <span className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">{plan.price}</span>
-                  ) : (
-                    <>
-                      <span className="text-6xl font-bold tracking-tighter text-zinc-900 dark:text-white">¥{plan.price}</span>
-                      <span className="text-zinc-400 font-mono text-sm">/{billingCycle === "monthly" ? "月" : "年"}</span>
-                    </>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-center"
+          >
+            {plans.map((plan, idx) => {
+              const isPro = plan.popular
+              const isFree = plan.name === "免费版"
+              const isEnterprise = plan.name === "企业版"
+
+              // 各版本渐变配置
+              const gradient = isPro
+                ? "linear-gradient(135deg, #975af4, #2f7cf8 40%, #78aafa 65%, #934cff 100%)"
+                : isEnterprise
+                  ? "linear-gradient(135deg, #d4af37, #f5d76e 40%, #e8c158 65%, #c9a227 100%)"
+                  : "linear-gradient(135deg, #3f3f46, #52525b 40%, #71717a 65%, #3f3f46 100%)"
+
+              const glow = isPro
+                ? "shadow-[0_0_60px_-10px_rgba(151,90,244,0.6)]"
+                : isEnterprise
+                  ? "shadow-[0_0_50px_-15px_rgba(212,175,55,0.5)]"
+                  : "shadow-[0_0_30px_-20px_rgba(0,0,0,0.8)]"
+
+              return (
+                <motion.div
+                  key={plan.name}
+                  initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.5 + idx * 0.12, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                  className={cn(
+                    "relative rounded-[32px] p-[3px] flex flex-col transition-all duration-300",
+                    glow,
+                    isPro && "md:scale-110 md:-my-4 z-10"
                   )}
-                </div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 min-h-[40px] leading-relaxed">
-                  {plan.description}
-                </p>
-              </div>
+                  style={{ background: gradient }}
+                >
+                  {/* 卡片内容 - 深色内卡 */}
+                  <div className="relative w-full rounded-[29px] p-7 md:p-8 flex flex-col gap-5 bg-[#0d0d12] overflow-hidden">
+                    {/* 内卡光效装饰 */}
+                    <div
+                      className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20 blur-2xl pointer-events-none"
+                      style={{ background: gradient }}
+                    />
+                    {/* Pro 流光动画 */}
+                    {isPro && (
+                      <motion.div
+                        className="absolute inset-0 opacity-30 pointer-events-none"
+                        style={{
+                          background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
+                        }}
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+                      />
+                    )}
 
-              <div className="flex-grow space-y-4 mb-12">
-                {plan.features.map((feature, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm text-zinc-600 dark:text-zinc-300">
-                    <Check size={16} className={cn("mt-0.5 shrink-0", plan.popular ? "text-primary dark:text-emerald-400" : "text-zinc-400")} />
-                    <span className="leading-tight">{feature}</span>
+                    {/* 标题 + 图标 */}
+                    <div className="relative flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                      <div
+                        className="flex items-center justify-center w-9 h-9 rounded-xl"
+                        style={{ background: `${gradient.split(")")[0]})`, opacity: 0.9 }}
+                      >
+                        {isPro ? (
+                          <Sparkles size={16} className="text-white" />
+                        ) : isEnterprise ? (
+                          <Crown size={16} className="text-white" />
+                        ) : (
+                          <Lock size={15} className="text-zinc-300" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 价格 - 渐变文字 */}
+                    <div className="relative flex items-baseline gap-1.5 min-h-[52px]">
+                      {plan.price === "联系我们" ? (
+                        <span className="text-3xl font-extrabold tracking-tight text-white">{plan.price}</span>
+                      ) : (
+                        <>
+                          <span
+                            className={cn(
+                              "text-5xl font-extrabold tracking-tighter bg-clip-text text-transparent",
+                              isPro
+                                ? "bg-[linear-gradient(135deg,#a78bfa,#60a5fa,#c4b5fd)]"
+                                : isEnterprise
+                                  ? "bg-[linear-gradient(135deg,#fbbf24,#fde68a,#f59e0b)]"
+                                  : "bg-[linear-gradient(135deg,#e4e4e7,#a1a1aa)]"
+                            )}
+                          >
+                            ¥{plan.price}
+                          </span>
+                          <span className="text-zinc-500 font-mono text-xs">
+                            /{billingCycle === "monthly" ? "月" : "年"}
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 描述 */}
+                    <p className="relative text-xs text-zinc-400 leading-relaxed min-h-[32px]">
+                      {plan.description}
+                    </p>
+
+                    {/* 分隔线 */}
+                    <div className="relative h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+                    {/* 功能列表 */}
+                    <div className="relative flex flex-col gap-3 flex-grow">
+                      {plan.features.map((feature, i) => (
+                        <div key={i} className="flex items-start gap-2.5 text-xs leading-tight">
+                          <div
+                            className="mt-0.5 shrink-0 flex items-center justify-center w-4 h-4 rounded-full"
+                            style={{
+                              background: isPro
+                                ? "rgba(151,90,244,0.2)"
+                                : isEnterprise
+                                  ? "rgba(212,175,55,0.2)"
+                                  : "rgba(113,113,122,0.2)",
+                            }}
+                          >
+                            <Check
+                              size={10}
+                              className={
+                                isPro ? "text-purple-400"
+                                  : isEnterprise ? "text-amber-400"
+                                    : "text-zinc-400"
+                              }
+                            />
+                          </div>
+                          <span className="text-zinc-300">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CTA 按钮 */}
+                    <button
+                      className={cn(
+                        "relative w-full py-3 rounded-xl text-white text-sm font-bold tracking-wide transition-all duration-300 cursor-pointer overflow-hidden group",
+                        isPro ? "mt-1" : ""
+                      )}
+                      style={{
+                        background: gradient,
+                        boxShadow: isPro
+                          ? "inset 0 2px 4px rgba(255,255,255,0.5), 0 8px 24px -6px rgba(151,90,244,0.6)"
+                          : isEnterprise
+                            ? "inset 0 2px 4px rgba(255,255,255,0.4), 0 6px 20px -6px rgba(212,175,55,0.5)"
+                            : "inset 0 1px 2px rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      <span className="relative z-10">{plan.cta}</span>
+                      {/* 按钮流光 */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            background: "linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%)",
+                          }}
+                        />
+                      </div>
+                    </button>
                   </div>
-                ))}
-              </div>
-
-              <Button 
-                className={cn(
-                  "w-full h-12 rounded-none font-bold tracking-wide uppercase text-xs transition-all",
-                  plan.popular 
-                    ? "bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200" 
-                    : "bg-white dark:bg-black text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                )}
-              >
-                {plan.cta}
-              </Button>
-            </div>
-          ))}
-        </motion.div>
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        </div>
 
         {/* FAQ or Extra Info Section - Optional, keeping it simple for now */}
         <div className="mt-20 border-t border-zinc-200 dark:border-zinc-800 pt-12 grid md:grid-cols-2 gap-12">

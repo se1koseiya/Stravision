@@ -41,6 +41,8 @@ export interface ModelsConfig {
   models: AIModel[]
   categories: Category[]
   providers?: AIProvider[]   // 新增：提供商列表
+  /** admin 后台配置的默认/自动选择模型 ID（可选） */
+  defaultModelId?: string | null
 }
 
 export function useAIModels() {
@@ -63,6 +65,7 @@ export function useAIModels() {
       let models: AIModel[] = []
       let categories: Category[] = []
       let providers: AIProvider[] = []
+      let defaultModelId: string | null = null
 
       // 解析旧版模型配置（兼容）
       if (modelsRes.status === 'fulfilled' && modelsRes.value.ok) {
@@ -75,6 +78,8 @@ export function useAIModels() {
       if (providersRes.status === 'fulfilled' && providersRes.value.ok) {
         const pData = await providersRes.value.json()
         providers = pData.providers || []
+        // admin 配置的默认模型 ID（自动回退到第一个 enabled 模型）
+        defaultModelId = pData.defaultModelId ?? null
 
         // 如果有提供商数据，用提供商的模型补充/覆盖旧模型列表
         if (providers.length > 0) {
@@ -110,7 +115,7 @@ export function useAIModels() {
         }
       }
 
-      setConfig({ models, categories, providers })
+      setConfig({ models, categories, providers, defaultModelId })
       setError(null)
     } catch (err) {
       console.error('[useAIModels] Error:', err)
@@ -157,6 +162,23 @@ export function useAIModels() {
     return config?.providers?.find(p => p.isDefault) || config?.providers?.[0] || null
   }
 
+  /**
+   * 获取 admin 配置的默认/自动选择模型 ID
+   * 优先级：admin 配置的 defaultModelId（且在 enabled 列表里） > 第一个 enabled provider 的第一个 enabled model
+   * 返回 null 表示没有任何可用的 enabled 模型
+   */
+  const getDefaultModelId = (): string | null => {
+    if (!config) return null
+    const enabledIds = new Set(
+      config.models.filter(m => m.enabled).map(m => m.id),
+    )
+    if (config.defaultModelId && enabledIds.has(config.defaultModelId)) {
+      return config.defaultModelId
+    }
+    const first = config.models.find(m => m.enabled)
+    return first?.id ?? null
+  }
+
   return {
     config,
     loading,
@@ -168,6 +190,7 @@ export function useAIModels() {
     getProviders,
     getModelsByProvider,
     getDefaultProvider,
+    getDefaultModelId,
     refetch: fetchModels
   }
 }

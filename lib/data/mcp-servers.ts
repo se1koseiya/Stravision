@@ -16,6 +16,11 @@ export interface MCPServer {
   features: string[]
   popularity: number
   official: boolean
+  cover_image?: string
+  priority?: number
+  is_published?: number
+  /** 该插件专属的推荐 Prompt，详情页打开时自动加载 */
+  recommendedPrompt?: string
 }
 
 export const MCP_SERVERS: MCPServer[] = [
@@ -46,7 +51,8 @@ export const MCP_SERVERS: MCPServer[] = [
     },
     features: ["单通道数据", "全波段扫描", "实时采集", "光谱分析", "设备状态"],
     popularity: 99,
-    official: true
+    official: true,
+    recommendedPrompt: "读取当前 1 号大棚的近红外 850nm 通道光谱值，结合近 24 小时数据判断草莓叶片氮素含量是否处于正常范围，并给出施肥建议。"
   },
   {
     id: "firecrawl",
@@ -65,7 +71,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "FIRECRAWL_API_KEY": "" },
     features: ["网页抓取", "网络搜索", "站点爬虫", "结构化提取", "自主代理"],
     popularity: 95,
-    official: true
+    official: true,
+    recommendedPrompt: "抓取近 7 天内关于 \"红颜草莓灰霉病防治\" 的中文技术文章，整理出 3 种主流化学防治方案与对应的用药剂量。"
   },
   {
     id: "puppeteer",
@@ -81,7 +88,8 @@ export const MCP_SERVERS: MCPServer[] = [
     args: ["-y", "@modelcontextprotocol/server-puppeteer"],
     features: ["浏览器控制", "网页截图", "PDF 生成", "表单自动化", "性能分析"],
     popularity: 90,
-    official: true
+    official: true,
+    recommendedPrompt: "打开某农资电商平台，自动搜索 \"草莓专用滴灌管 16mm\"，按销量排序，截取前 3 个商品的价格和评价数量。"
   },
   {
     id: "github",
@@ -100,7 +108,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "GITHUB_TOKEN": "" },
     features: ["仓库管理", "Issue 追踪", "PR 管理", "代码搜索", "提交历史"],
     popularity: 92,
-    official: true
+    official: true,
+    recommendedPrompt: "在我名为 strawberry-iot 的仓库中，列出最近一周所有未合并的 PR，按创建时间倒序，并给出每个 PR 的标题和作者。"
   },
   {
     id: "brave-search",
@@ -119,7 +128,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "BRAVE_API_KEY": "" },
     features: ["网络搜索", "新闻搜索", "本地搜索", "隐私保护"],
     popularity: 88,
-    official: true
+    official: true,
+    recommendedPrompt: "搜索 \"2025 年设施草莓 CO₂ 施肥最佳浓度\" 相关英文研究，列出 5 篇最新文章标题和来源。"
   },
   {
     id: "exa-search",
@@ -138,7 +148,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "EXA_API_KEY": "" },
     features: ["语义搜索", "自动提示优化", "内容高亮", "相似搜索"],
     popularity: 86,
-    official: true
+    official: true,
+    recommendedPrompt: "用语义搜索找 3 篇关于 \"AI 在植物病害早期识别中的应用\" 的深度技术博客，总结核心方法论差异。"
   },
   {
     id: "notion",
@@ -157,7 +168,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "NOTION_API_KEY": "" },
     features: ["页面管理", "数据库操作", "内容搜索", "协作编辑"],
     popularity: 85,
-    official: true
+    official: true,
+    recommendedPrompt: "在我的 \"草莓种植 SOP\" 数据库里，找出所有状态为 \"执行中\" 的 SOP 条目，按更新时间排序生成简报。"
   },
   {
     id: "slack",
@@ -176,7 +188,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "SLACK_BOT_TOKEN": "" },
     features: ["消息发送", "频道管理", "对话历史", "文件分享"],
     popularity: 82,
-    official: false
+    official: false,
+    recommendedPrompt: "在 #farm-alerts 频道发一条告警：3 号棚温度超过 32°C，请值班同事 10 分钟内确认是否开启遮阳网。"
   },
   {
     id: "postgres",
@@ -193,7 +206,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "POSTGRES_CONNECTION_STRING": "postgresql://user:password@localhost:5432/dbname" },
     features: ["SQL 查询", "表管理", "数据分析", "模式查看"],
     popularity: 80,
-    official: true
+    official: true,
+    recommendedPrompt: "查询 sensor_data 表近 24 小时所有环境数据，按大棚分组计算温度、湿度、光照的均值与最大值，输出可读报表。"
   },
   {
     id: "playwright",
@@ -209,7 +223,8 @@ export const MCP_SERVERS: MCPServer[] = [
     args: ["-y", "@modelcontextprotocol/server-playwright"],
     features: ["浏览器控制", "UI 测试", "表单填写", "截图功能"],
     popularity: 78,
-    official: true
+    official: true,
+    recommendedPrompt: "登录农场后台，自动进入 \"设备管理 > 摄像头\" 页面，截图保存并报告所有离线摄像头名称。"
   },
   {
     id: "e2b",
@@ -228,7 +243,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "E2B_API_KEY": "" },
     features: ["代码执行", "Shell 命令", "包管理", "隔离环境"],
     popularity: 75,
-    official: true
+    official: true,
+    recommendedPrompt: "在 E2B 沙箱里跑一段 Python：生成近 7 天 5 个大棚温度的折线图（matplotlib），并用均值/标准差给出波动性报告。"
   },
   {
     id: "vercel",
@@ -247,7 +263,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "VERCEL_TOKEN": "" },
     features: ["部署管理", "环境变量", "构建日志", "域名配置"],
     popularity: 72,
-    official: true
+    official: true,
+    recommendedPrompt: "查询 berry-realm 前端项目在 Vercel 上最近 5 次部署的状态，列出任何失败部署的错误摘要。"
   },
   {
     id: "linear",
@@ -266,7 +283,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "LINEAR_API_KEY": "" },
     features: ["Issue 管理", "标签管理", "优先级设置", "Sprint 追踪"],
     popularity: 70,
-    official: true
+    official: true,
+    recommendedPrompt: "在 \"草莓 v4.0\" 项目里创建一个高优先级 Issue，标题 \"补全所有官方插件的推荐 Prompt\"，描述留空，分配给我。"
   },
   {
     id: "google-drive",
@@ -285,7 +303,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": "" },
     features: ["文件搜索", "文档读取", "Sheets 编辑", "文件上传", "权限管理"],
     popularity: 88,
-    official: true
+    official: true,
+    recommendedPrompt: "在 Google Drive 找到名为 \"本周采摘记录\" 的 Sheet，把 \"产量(kg)\" 列累加求和，并把结果回写到表格底部的新一行。"
   },
   {
     id: "airtable",
@@ -304,7 +323,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "AIRTABLE_API_KEY": "" },
     features: ["记录查询", "数据创建", "批量更新", "视图管理", "关联字段"],
     popularity: 76,
-    official: true
+    official: true,
+    recommendedPrompt: "在 Airtable 基地 \"草莓溯源\" 的 \"批次表\" 中，找出近 30 天内采摘量大于 100kg 的所有批次，按采摘日期倒序列出。"
   },
   {
     id: "jira",
@@ -323,7 +343,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "JIRA_URL": "https://your-domain.atlassian.net", "JIRA_EMAIL": "", "JIRA_API_TOKEN": "" },
     features: ["Issue 管理", "Sprint 规划", "工作流", "报告", "自动化"],
     popularity: 84,
-    official: true
+    official: true,
+    recommendedPrompt: "在 FARM 项目下，列出当前 Sprint 中状态为 \"In Progress\" 的所有任务，输出标题、负责人和剩余工时。"
   },
   {
     id: "confluence",
@@ -342,7 +363,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "CONFLUENCE_URL": "https://your-domain.atlassian.net", "CONFLUENCE_EMAIL": "", "CONFLUENCE_API_TOKEN": "" },
     features: ["文档搜索", "页面创建", "内容编辑", "空间管理", "协作"],
     popularity: 79,
-    official: true
+    official: true,
+    recommendedPrompt: "在 Confluence 空间 \"种植知识库\" 中搜索 \"白粉病\" 相关页面，列出前 5 篇并附链接。"
   },
   {
     id: "sequential-thinking",
@@ -358,7 +380,8 @@ export const MCP_SERVERS: MCPServer[] = [
     args: ["-y", "@modelcontextprotocol/server-sequential-thinking"],
     features: ["问题分解", "步骤规划", "方案探索", "结果验证", "迭代优化"],
     popularity: 86,
-    official: true
+    official: true,
+    recommendedPrompt: "用顺序思考帮我分析：近期草莓烂果率从 2% 上升到 7%，可能的 5 个原因，并按可能性排序。"
   },
   {
     id: "memory-bank",
@@ -374,7 +397,8 @@ export const MCP_SERVERS: MCPServer[] = [
     args: ["-y", "@protocol-lattice/memory-bank-mcp"],
     features: ["向量存储", "语义搜索", "记忆持久化", "上下文检索", "知识积累"],
     popularity: 81,
-    official: false
+    official: false,
+    recommendedPrompt: "把今天讨论的 \"春季草莓温湿度管理 SOP\" 整理成结构化记忆，存入 memory bank，并打上 \"sop/2026-spring\" 标签。"
   },
   {
     id: "qdrant",
@@ -393,7 +417,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "QDRANT_URL": "https://your-cluster.qdrant.io", "QDRANT_API_KEY": "" },
     features: ["向量搜索", "相似度匹配", "RAG 支持", "批量操作", "过滤查询"],
     popularity: 77,
-    official: true
+    official: true,
+    recommendedPrompt: "在 strawberry-knowledge 集合中，搜索与 \"缺钙导致的草莓新叶焦边\" 最相似的 3 条知识条目。"
   },
   {
     id: "sentry",
@@ -412,7 +437,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "SENTRY_AUTH_TOKEN": "", "SENTRY_ORG": "" },
     features: ["错误追踪", "性能监控", "问题分析", "发布追踪", "用户反馈"],
     popularity: 73,
-    official: true
+    official: true,
+    recommendedPrompt: "列出 Sentry 上 berry-realm 项目近 24 小时未解决的 P0/P1 异常，按发生次数倒序，并给出 stack trace 关键行。"
   },
   {
     id: "stripe",
@@ -431,7 +457,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "STRIPE_SECRET_KEY": "" },
     features: ["支付管理", "订阅管理", "客户管理", "发票生成", "退款处理"],
     popularity: 74,
-    official: true
+    official: true,
+    recommendedPrompt: "查询本周莓小智小程序 Pro 会员的支付成功订单，按金额汇总，列出营收日报所需的字段。"
   },
   {
     id: "redis",
@@ -448,7 +475,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "REDIS_URL": "redis://localhost:6379" },
     features: ["缓存操作", "键值存储", "发布订阅", "数据结构", "过期管理"],
     popularity: 75,
-    official: true
+    official: true,
+    recommendedPrompt: "查询 Redis 中以 sensor:* 开头的键，统计每个大棚的最新上报时间，给出 5 分钟内未上报的传感器列表。"
   },
   {
     id: "caiyun-weather",
@@ -467,7 +495,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "CAIYUN_API_TOKEN": "" },
     features: ["实时天气", "小时预报", "周预报", "历史数据", "天气预警"],
     popularity: 85,
-    official: false
+    official: false,
+    recommendedPrompt: "查询山东寿光未来 24 小时的逐小时天气，特别关注降水概率 > 60% 的时段，决定是否提前关闭大棚通风口。"
   },
   {
     id: "gaode-weather",
@@ -486,7 +515,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "GAODE_API_KEY": "" },
     features: ["实时天气", "天气预报", "城市查询", "空气质量", "生活指数"],
     popularity: 88,
-    official: false
+    official: false,
+    recommendedPrompt: "查询 \"辽宁丹东\" 今天的实时天气和未来 3 天预报，给出是否适合户外作业的判断。"
   },
   {
     id: "hefeng-weather",
@@ -505,7 +535,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "HEFENG_API_KEY": "" },
     features: ["实时天气", "逐小时预报", "逐天预报", "灾害预警", "空气质量"],
     popularity: 87,
-    official: false
+    official: false,
+    recommendedPrompt: "查询 \"江苏徐州\" 未来 7 天天气，输出昼夜温差超过 15°C 的日期，提示可能影响草莓花芽分化。"
   },
   {
     id: "amap-route",
@@ -524,7 +555,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "AMAP_API_KEY": "" },
     features: ["路线规划", "地理编码", "距离计算", "导航服务", "位置搜索"],
     popularity: 82,
-    official: false
+    official: false,
+    recommendedPrompt: "规划一条从 \"寿光农产品物流园\" 到 \"济南遥墙机场\" 的驾车路线，避开高速收费，输出预计里程与时长。"
   },
   {
     id: "soil-sensor",
@@ -543,7 +575,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "IOT_ENDPOINT": "https://your-iot-platform.com/api", "IOT_API_KEY": "" },
     features: ["土壤湿度", "土壤温度", "pH值监测", "NPK养分", "实时数据"],
     popularity: 78,
-    official: false
+    official: false,
+    recommendedPrompt: "读取 2 号棚的土壤湿度、温度、pH、NPK 当前值，判断土壤是否需要追肥或灌溉，给出具体建议。"
   },
   {
     id: "crop-disease",
@@ -562,7 +595,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "CROP_DISEASE_API_KEY": "" },
     features: ["病害识别", "虫害诊断", "防治建议", "图像分析", "知识库"],
     popularity: 80,
-    official: false
+    official: false,
+    recommendedPrompt: "我上传了一张草莓叶背有白色粉状物的照片，请识别可能的病害，并给出有机防治和化学防治两套方案。"
   },
   {
     id: "irrigation-control",
@@ -581,7 +615,8 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "IRRIGATION_API_ENDPOINT": "", "IRRIGATION_API_KEY": "" },
     features: ["自动灌溉", "计划调度", "水量控制", "区域管理", "历史记录"],
     popularity: 76,
-    official: false
+    official: false,
+    recommendedPrompt: "查询所有灌溉阀门的当前状态和近 24 小时用水量，如果 1 号棚土壤湿度低于 60% 立即打开对应阀门 10 分钟。"
   },
   {
     id: "farm-data",
@@ -600,6 +635,7 @@ export const MCP_SERVERS: MCPServer[] = [
     envVars: { "FARM_DATA_API_URL": "", "FARM_DATA_API_KEY": "" },
     features: ["数据整合", "实时监控", "历史分析", "报表生成", "预警通知"],
     popularity: 79,
-    official: false
+    official: false,
+    recommendedPrompt: "汇总近 7 天所有大棚的环境数据、采摘数据、灌溉数据，生成一份农场运营周报（JSON + 可读摘要）。"
   }
 ]

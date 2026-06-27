@@ -46,6 +46,7 @@ import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
 import { MobileMessageContent } from "@/components/ai/mobile-message-content"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { useAIModels } from "@/lib/hooks/use-ai-models"
 import { cn } from "@/lib/utils"
 import XMarkdown from "@ant-design/x-markdown"
 import { toast } from "sonner"
@@ -176,6 +177,55 @@ interface AISettings {
 interface SessionMeta { id: string; title: string; createdAt: number; updatedAt: number }
 
 // ChatBubbleList组件 - 使用antdesignx的Bubble组件（深度优化版）
+// ---------------------------------------------------------------------------
+// MobileDeepThinking — 移动端推理过程展示（对齐 PC 端 DeepThinking 行为）
+// 流式中自动展开 + 光标动画；完成后自动折叠 + 显示耗时
+// ---------------------------------------------------------------------------
+function MobileDeepThinking({
+  reasoning,
+  isStreaming,
+}: {
+  reasoning?: { text: string; durationMs?: number }
+  isStreaming?: boolean
+}) {
+  const [expanded, setExpanded] = useState(true)
+
+  // 流式输出中 → 展开；完成 → 折叠
+  useEffect(() => {
+    if (isStreaming) setExpanded(true)
+    else if (reasoning?.text) setExpanded(false)
+  }, [isStreaming, reasoning?.text])
+
+  if (!reasoning?.text) return null
+
+  const isDone = !isStreaming && reasoning.text.length > 0
+  const title = isDone ? '深度思考完成' : '深度思考中...'
+  const duration = reasoning.durationMs ? `${(reasoning.durationMs / 1000).toFixed(1)}s` : null
+
+  return (
+    <Think
+      title={title}
+      loading={!isDone}
+      expanded={expanded}
+      onClick={() => setExpanded(!expanded)}
+      icon={<OpenAIOutlined />}
+      style={{ marginBottom: 8 }}
+    >
+      <div className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-words">
+        {reasoning.text}
+        {isStreaming && (
+          <span className="inline-block w-1.5 h-4 bg-emerald-500/70 animate-pulse rounded-sm ml-0.5 align-middle" />
+        )}
+      </div>
+      {duration && isDone && (
+        <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1">
+          思考耗时 <span className="font-mono font-medium">{duration}</span>
+        </div>
+      )}
+    </Think>
+  )
+}
+
 function ChatBubbleList({
   messages,
   isLoading,
@@ -300,16 +350,12 @@ function ChatBubbleList({
         role: 'ai',
         placement: 'start' as const,
         avatar: <BerryOrb size="36px" theme={darkMode ? 'dark' : 'light'} isActive={isLoading && index === messages.length - 1} />,
-        // 头部插槽：思考过程
+        // 头部插槽：思考过程（对齐 PC 端：流式展开、完成折叠、显示耗时）
         header: msg.reasoning ? (
-          <Think
-            title="深度思考"
-            loading={isLoading && index === messages.length - 1}
-            icon={<OpenAIOutlined />}
-            style={{ marginBottom: 8 }}
-          >
-            {msg.reasoning.text}
-          </Think>
+          <MobileDeepThinking
+            reasoning={msg.reasoning}
+            isStreaming={isLoading && index === messages.length - 1}
+          />
         ) : undefined,
         // 主内容：手机端业务卡片 + Markdown 渲染
         content: (
@@ -654,6 +700,8 @@ function AIAssistantIOSContent() {
   const [sessionId, setSessionId] = useState<string>("")
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
+  // 与 PC 端一致：拉取一次 providers 配置作为自动选择模型的兜底数据源
+  const { config: aiConfig, loading: aiConfigLoading, getDefaultModelId } = useAIModels()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
@@ -793,6 +841,35 @@ function AIAssistantIOSContent() {
       if (es) setEnableSearch(es === "true")
     } catch {}
   }, [])
+
+  // 自动选择模型回退：admin 配置的 defaultModelId > useAIModels 第一个 enabled 模型
+  // 触发时机：
+  //   1) 用户刷新后 aiSettings?.model / selectedModel 均为空
+  //   2) 已保存的 aiSettings?.model 不在 enabled 模型列表中（被禁用/删除）
+  useEffect(() => {
+    if (aiConfigLoading) return
+    if (!aiConfig) return
+    const enabledIds = new Set(aiConfig.models.filter(m => m.enabled).map(m => m.id))
+    if (enabledIds.size === 0) return
+
+    const current = selectedModel || aiSettings?.model || ""
+    if (current && enabledIds.has(current)) return
+
+    const fallback = getDefaultModelId()
+    if (!fallback || current === fallback) return
+    console.log('[iOS AI Assistant] Fallback to default model:', fallback, '(was:', current || '<empty>', ')')
+    setSelectedModel(fallback)
+    if (typeof window !== 'undefined') {
+      try {
+        const s = localStorage.getItem("ai-settings")
+        const parsed = s ? JSON.parse(s) : {}
+        parsed.model = fallback
+        localStorage.setItem("ai-settings", JSON.stringify(parsed))
+        setAiSettings(parsed)
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiConfig, aiConfigLoading])
 
   // Load Sessions
   useEffect(() => {
@@ -1022,22 +1099,122 @@ function AIAssistantIOSContent() {
       })
 
       if (!res.ok) {
-        showNotice("请求失败", `API错误: ${res.status}`, "error")
+        const errorText = await res.text().catch(() => "")
+        let errorMsg = `API错误: ${res.status}`
+        try {
+          const errData = JSON.parse(errorText)
+          if (errData?.error) errorMsg = typeof errData.error === "string" ? errData.error : JSON.stringify(errData.error)
+        } catch {}
+        showNotice("请求失败", errorMsg, "error")
         setIsLoading(false)
         return
       }
 
-      const data = await res.json()
-      const assistantContent = data.choices?.[0]?.message?.content || data.response || ""
-      
-      const finalMessages: Message[] = [...newMessages, { role: "assistant", content: assistantContent }]
+      // ⚠️ /api/chat 返回 SSE 流式响应（text/event-stream），不能用 res.json() 解析
+      // 否则 JSON.parse 失败 → 抛错 → 显示“网络请求失败”
+      const reader = res.body?.getReader()
+      if (!reader) {
+        showNotice("请求失败", "无响应数据", "error")
+        setIsLoading(false)
+        return
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let assistantContent = ""
+      let reasoningText = ""
+      let reasoningStartTs = 0
+      const startTs = Date.now()
+
+      // 先插入一条空的 assistant 消息，后续逐字更新实现流式效果
+      setMessages(prev => [...prev, { role: "assistant", content: "" }])
+      let lastRenderTs = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || trimmed.startsWith(":")) continue // skip keep-alive comments
+
+          if (trimmed === "data: [DONE]") {
+            continue
+          }
+          if (!trimmed.startsWith("data:")) continue
+
+          const payload = trimmed.replace(/^data:\s*/, "")
+          try {
+            const data = JSON.parse(payload)
+
+            // 后端显式错误
+            if (data.error) {
+              const errMsg = typeof data.error === "string" ? data.error : JSON.stringify(data.error)
+              assistantContent += `\n\n⚠️ ${errMsg}`
+              continue
+            }
+
+            // 推理过程（DeepSeek-R1 等）
+            const reasoningDelta =
+              data.choices?.[0]?.delta?.reasoning ||
+              data.choices?.[0]?.delta?.reasoning_content ||
+              data.reasoning
+            if (reasoningDelta) {
+              if (!reasoningStartTs) reasoningStartTs = Date.now()
+              reasoningText += reasoningDelta
+            }
+
+            // 主内容增量
+            const delta =
+              data.choices?.[0]?.delta?.content ??
+              data.choices?.[0]?.message?.content ??
+              data.response ??
+              data.content ??
+              ""
+            if (delta) {
+              assistantContent += delta
+              // 节流渲染（~30fps），避免每个 token 都触发 React 重渲染
+              const now = Date.now()
+              if (now - lastRenderTs > 33) {
+                lastRenderTs = now
+                setMessages(prev => {
+                  const next = [...prev]
+                  next[next.length - 1] = {
+                    role: "assistant",
+                    content: assistantContent,
+                    reasoning: reasoningText
+                      ? { text: reasoningText, durationMs: Date.now() - (reasoningStartTs || startTs) }
+                      : undefined,
+                  }
+                  return next
+                })
+              }
+            }
+          } catch {
+            // 单行 JSON 解析失败时跳过，避免整段流中断
+          }
+        }
+      }
+
+      // 最终一次同步渲染，确保完整内容落地
+      const finalReasoning = reasoningText
+        ? { text: reasoningText, durationMs: Date.now() - (reasoningStartTs || startTs) }
+        : undefined
+      const finalMessages: Message[] = [
+        ...newMessages,
+        { role: "assistant", content: assistantContent || "（无内容）", reasoning: finalReasoning },
+      ]
       setMessages(finalMessages)
 
       if (ensuredSessionId) {
-        await fetch(`/api/sessions/${ensuredSessionId}`, { 
-          method: "PUT", 
-          headers: { "Content-Type": "application/json" }, 
-          body: JSON.stringify({ messages: finalMessages.map(m => ({ role: m.role, content: m.content })) }) 
+        await fetch(`/api/sessions/${ensuredSessionId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: finalMessages.map(m => ({ role: m.role, content: m.content })) })
         })
       }
 

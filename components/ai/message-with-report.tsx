@@ -1,24 +1,52 @@
 "use client"
 
-import React from "react"
+import React, { useMemo } from "react"
 import { ReportRenderer } from "./report-renderer"
 import ReactMarkdown from "react-markdown"
 import { Loader2, Sprout, Cpu, Brain, FileText, CheckCircle2 } from "lucide-react"
+import { CloseOutlined } from "@ant-design/icons"
+import { Card, Progress, Tag, Space, Flex, Typography, Button } from "antd"
+import { BerryXCard } from "@/components/ui/berry-xcard"
+import { buildCommands } from "@/lib/a2ui/berry-protocol"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import type { ActionPayload, A2UICommand_v0_9 } from "@ant-design/x-card"
+
+const { Text, Title } = Typography
 
 interface MessageWithReportProps {
   content: string
   role: 'user' | 'assistant'
+  onCancel?: () => void
 }
 
-/**
- * Premium glassmorphic loading stepper for report generation
- */
-function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", isComplete = false }: {
+interface PremiumReportLoaderProps {
   reportTitle?: string
   htmlContent?: string
   isComplete?: boolean
-}) {
+  onCancel?: () => void
+}
+
+// ===== 4 步进度定义 =====
+const STEPS = [
+  { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout, key: "capture" },
+  { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu, key: "metric" },
+  { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain, key: "diagnosis" },
+  { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText, key: "render" },
+] as const
+
+/**
+ * Premium report loader — Ant Design + XCard + A2UI 协议三件套
+ *
+ * 1. 视觉层：Ant Design Card / Progress / Tag / Flex
+ * 2. 渲染层：XCard.Box（统一入口）
+ * 3. 协议层：A2UI v0.9 commands + berry-realm-catalog-v1
+ *
+ * 颜色统一 BERRY_THEME.primary (#1677ff)，与 AI 助手主对话流一致
+ */
+function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", isComplete = false, onCancel }: PremiumReportLoaderProps) {
   const cleanHtml = htmlContent.trim()
+
+  // 阶段判定（基于 token 扫描）
   let currentStep = 0
   let progress = 10
   let activeStatusText = "正在初始化环境监测报告容器..."
@@ -32,7 +60,6 @@ function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", i
     progress = 15
     activeStatusText = "正在唤醒 AI 引擎并捕获物联网实时数据..."
   } else {
-    // 真实 Token 扫描分析
     const hasSuggestions = /(建议|措施|调控|策略|农事|决策|Control|Suggestion|Action)/i.test(cleanHtml)
     const hasAnalysis = /(分析|诊断|评估|数据研判|质量评估|Quality|Analysis|Diagnosis)/i.test(cleanHtml)
     const hasMetrics = /(温度|湿度|光照|土壤|CO2|二氧化碳|指标|卡片|传感器|Sensor|Metric|Value)/i.test(cleanHtml)
@@ -56,112 +83,208 @@ function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", i
     }
   }
 
-  const steps = [
-    { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout },
-    { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu },
-    { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain },
-    { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText }
-  ]
+  // ===== A2UI 命令构建（v0.9） =====
+  const surfaceId = `report-loader-${Date.now()}`
+  const a2uiCommands: A2UICommand_v0_9[] = useMemo(() => {
+    return buildCommands(
+      surfaceId,
+      [
+        // 报告容器
+        { id: 'report-header', component: 'CardHeader',
+          title: `正在生成：${reportTitle}`,
+          subtitle: activeStatusText,
+          icon: 'FileText',
+          status: isComplete ? 'success' : 'processing' },
+        { id: 'progress', component: 'Metric',
+          title: '生成进度', value: String(progress), unit: '%',
+          color: BERRY_THEME.primary },
+        // 4 个步骤（TaskList）
+        { id: 'steps', component: 'TaskList', tasks: STEPS.map((s, idx) => ({
+          title: s.label,
+          desc: s.desc,
+          status: idx < currentStep ? 'success' : idx === currentStep ? 'processing' : 'pending',
+          icon: s.key,
+        })) },
+        // 取消按钮
+        { id: 'cancel-btn', component: 'ActionButton',
+          label: '取消生成', action: 'cancel-report',
+          type: 'default', icon: 'CloseOutlined' },
+      ],
+      ['report-header', 'progress', 'steps', 'cancel-btn']
+    )
+  }, [surfaceId, reportTitle, activeStatusText, isComplete, progress, currentStep])
+
+  // ===== A2UI Action 处理 =====
+  const handleAction = (payload: ActionPayload) => {
+    if (payload.name === 'cancel-report') {
+      onCancel?.()
+    }
+  }
+
+  // ===== 兜底渲染（Ant Design 直渲） =====
+  const fallbackUI = (
+    <Card
+      size="small"
+      bordered
+      style={{
+        background: BERRY_THEME.gradients.cardHero(BERRY_THEME.primary),
+        borderColor: `${BERRY_THEME.primary}30`,
+        borderRadius: BERRY_THEME.radius.lg,
+        boxShadow: BERRY_THEME.shadow.sm,
+        marginBlock: 16,
+      }}
+      styles={{ body: { padding: 16 } }}
+    >
+      {/* 进度条 */}
+      <Progress
+        percent={progress}
+        showInfo={false}
+        strokeColor={{
+          '0%': BERRY_THEME.primary,
+          '100%': BERRY_THEME.primaryHover,
+        }}
+        trailColor="rgba(0,0,0,0.04)"
+        style={{ marginBlockEnd: 12 }}
+      />
+
+      {/* Header */}
+      <Flex align="center" justify="space-between" style={{ marginBlockEnd: 12 }}>
+        <Flex align="center" gap={10}>
+          <Flex
+            align="center"
+            justify="center"
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: BERRY_THEME.primary,
+            }}
+          >
+            <FileText style={{ color: '#fff', fontSize: 18 }} />
+          </Flex>
+          <Flex vertical gap={2}>
+            <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
+              正在生成：{reportTitle}
+            </Title>
+            <Space size={6} align="center">
+              {!isComplete && <Loader2 style={{ color: BERRY_THEME.primary, fontSize: 12 }} spin />}
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {activeStatusText}
+              </Text>
+            </Space>
+          </Flex>
+        </Flex>
+
+        <Tag
+          color={isComplete ? 'success' : 'processing'}
+          style={{ borderRadius: 999, fontSize: 11, fontWeight: 600, padding: '0 8px' }}
+        >
+          {progress}%
+        </Tag>
+      </Flex>
+
+      {/* 4 步进度卡 */}
+      <Flex gap={8} wrap="wrap" style={{ marginBlockEnd: 12 }}>
+        {STEPS.map((step, idx) => {
+          const Icon = step.icon
+          const isDone = currentStep > idx
+          const isActive = currentStep === idx
+          const bgColor = isActive
+            ? `${BERRY_THEME.primary}15`
+            : isDone
+              ? `${BERRY_THEME.primary}08`
+              : 'transparent'
+          const borderColor = isActive
+            ? `${BERRY_THEME.primary}60`
+            : isDone
+              ? `${BERRY_THEME.primary}30`
+              : 'rgba(0,0,0,0.06)'
+          const iconBg = isActive
+            ? BERRY_THEME.primary
+            : isDone
+              ? `${BERRY_THEME.primary}30`
+              : 'rgba(0,0,0,0.05)'
+          const iconColor = isActive ? '#fff' : isDone ? BERRY_THEME.primary : 'rgba(0,0,0,0.35)'
+          const labelColor = isActive
+            ? BERRY_THEME.primaryText
+            : isDone
+              ? 'rgba(0,0,0,0.65)'
+              : 'rgba(0,0,0,0.35)'
+
+          return (
+            <div
+              key={step.key}
+              style={{
+                flex: '1 1 0',
+                minWidth: 120,
+                padding: 10,
+                borderRadius: 10,
+                background: bgColor,
+                border: `1px solid ${borderColor}`,
+                transition: 'all 0.3s',
+                display: 'flex',
+                gap: 8,
+                alignItems: 'flex-start',
+              }}
+            >
+              <div
+                style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: iconBg, color: iconColor,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: isActive ? `0 2px 6px ${BERRY_THEME.primary}40` : 'none',
+                }}
+              >
+                {isDone ? <CheckCircle2 style={{ fontSize: 14 }} /> : <Icon style={{ fontSize: 14 }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Flex align="center" justify="space-between" gap={4}>
+                  <Text style={{ fontSize: 12, fontWeight: 600, color: labelColor }}>
+                    {step.label}
+                  </Text>
+                  {isActive && (
+                    <Tag
+                      color="processing"
+                      style={{ margin: 0, fontSize: 10, lineHeight: '16px', padding: '0 4px' }}
+                    >
+                      进行中
+                    </Tag>
+                  )}
+                </Flex>
+                <Text type="secondary" style={{ fontSize: 10, lineHeight: 1.4, display: 'block', marginTop: 2 }}>
+                  {step.desc}
+                </Text>
+              </div>
+            </div>
+          )
+        })}
+      </Flex>
+
+      {/* Footer：取消按钮 */}
+      {!isComplete && onCancel && (
+        <Flex justify="flex-end">
+          <Button
+            size="small"
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={onCancel}
+            style={{ color: 'rgba(0,0,0,0.45)' }}
+          >
+            取消生成
+          </Button>
+        </Flex>
+      )}
+    </Card>
+  )
 
   return (
-    <div className="w-full my-4 rounded-2xl bg-white/60 dark:bg-zinc-950/40 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden transition-all duration-300">
-      {/* Dynamic Progress Bar */}
-      <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-850/40 relative overflow-hidden">
-        <div 
-          className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-500 ease-out relative"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      <div className="p-5 space-y-4">
-        {/* Header Block */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
-              <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <h4 className="text-sm font-black font-alimama tracking-wide text-zinc-800 dark:text-zinc-200">
-                正在生成：{reportTitle}
-              </h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400/80 mt-0.5 flex items-center gap-1.5">
-                {!isComplete ? (
-                  <>
-                    <Loader2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400 animate-spin" />
-                    <span>{activeStatusText}</span>
-                  </>
-                ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{activeStatusText}</span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-            {progress}%
-          </div>
-        </div>
-
-        {/* Stepper Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
-          {steps.map((step, idx) => {
-            const Icon = step.icon
-            const isDone = currentStep > idx
-            const isActive = currentStep === idx
-            
-            return (
-              <div 
-                key={idx}
-                className={`relative flex flex-row md:flex-col gap-3 p-3 rounded-xl border transition-all duration-300 ${
-                  isActive 
-                    ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/40 shadow-[0_4px_12px_rgba(16,185,129,0.03)]" 
-                    : isDone
-                      ? "bg-zinc-50/30 dark:bg-zinc-900/10 border-zinc-100 dark:border-zinc-900/30 opacity-70"
-                      : "bg-transparent border-transparent opacity-40"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                    isActive
-                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                      : isDone
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-zinc-100 text-zinc-400 dark:bg-zinc-805/50 dark:text-zinc-600"
-                  }`}>
-                    {isDone ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : (
-                      <Icon className={`w-4 h-4 ${isActive ? "animate-pulse" : ""}`} />
-                    )}
-                  </div>
-                  
-                  {isActive && (
-                    <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 animate-pulse">
-                      进行中
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-1 md:mt-1 space-y-0.5 text-left">
-                  <p className={`text-xs font-black font-alimama tracking-wider ${
-                    isActive 
-                      ? "text-emerald-700 dark:text-emerald-300" 
-                      : isDone
-                        ? "text-zinc-600 dark:text-zinc-400"
-                        : "text-zinc-400 dark:text-zinc-600"
-                  }`}>
-                    {step.label}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-normal hidden md:block">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
+    <BerryXCard
+      surfaceId={surfaceId}
+      commands={a2uiCommands}
+      onAction={handleAction}
+      components={{}}  // 报告生成场景下无自定义 A2UI 组件（走兜底直渲）
+      fallback={fallbackUI}
+      timeout={400}
+    />
   )
 }
 
@@ -169,7 +292,7 @@ function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", i
  * 检测消息中是否包含HTML报告
  * 报告格式: [REPORT:title]html内容[/REPORT]
  */
-function extractReport(content: string): { 
+function extractReport(content: string): {
   hasReport: boolean
   isComplete: boolean
   reportTitle?: string
@@ -211,7 +334,7 @@ function extractReport(content: string): {
   }
 }
 
-export function MessageWithReport({ content, role }: MessageWithReportProps) {
+export function MessageWithReport({ content, role, onCancel }: MessageWithReportProps) {
   const { hasReport, isComplete, reportTitle, reportHtml, remainingContent } = extractReport(content)
 
   if (role === 'user') {
@@ -246,6 +369,7 @@ export function MessageWithReport({ content, role }: MessageWithReportProps) {
             reportTitle={reportTitle}
             htmlContent={reportHtml || ""}
             isComplete={false}
+            onCancel={onCancel}
           />
         )
       )}
