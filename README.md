@@ -14,7 +14,7 @@ Stravision (莓界) 是一套面向现代农业生产场景的综合智能物联
 
 通过构建“感知-分析-决策-控制”的闭环体系，Stravision 实现了农业环境的实时可视化监测、自动化精准调控以及基于大模型的智能种植辅助，有效解决了传统农业依赖经验、管理粗放、抗风险能力弱等痛点，推动农业生产向标准化、无人化和智能化转型。
 
-官方网站：[https://stravision.cheesestrawberry.top/](https://stravision.cheesestrawberry.top/)
+官方网站：[https://stravision.site/](https://stravision.site/)
 
 ---
 
