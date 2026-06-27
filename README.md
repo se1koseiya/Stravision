@@ -1,6 +1,6 @@
 # Stravision 莓界 - 智慧农业物联网平台
 
-![Stravision Banner](public/stravision-readme-banner.png)
+![Stravision Banner](public/changelogimage/自动化策略.png)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black)](https://nextjs.org/)
