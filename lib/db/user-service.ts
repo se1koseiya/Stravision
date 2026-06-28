@@ -67,6 +67,10 @@ export interface UserPublic {
   permissions: UserPermissions
   notification_settings: NotificationSettings
   created_at: number
+  // AI 配额相关字段（用户自身可见，管理后台可编辑）
+  daily_ai_limit?: number
+  daily_ai_usage?: number
+  ai_balance?: number
 }
 
 /**
@@ -142,6 +146,9 @@ export function toPublicUser(user: User): UserPublic {
     permissions: permissions,
     notification_settings,
     created_at: user.created_at,
+    daily_ai_limit: user.daily_ai_limit,
+    daily_ai_usage: user.daily_ai_usage,
+    ai_balance: user.ai_balance,
   }
 }
 

@@ -48,6 +48,7 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useAIModels } from "@/lib/hooks/use-ai-models"
 import { cn } from "@/lib/utils"
+import { sanitizeHtml } from "@/lib/security/sanitize-html"
 import XMarkdown from "@ant-design/x-markdown"
 import { toast } from "sonner"
 import BerryOrb from "@/components/smoothui/berry-orb"
@@ -692,6 +693,8 @@ export default function AIAssistantIOSPage() {
 function AIAssistantIOSContent() {
   const router = useRouter()
   const [user, setUser] = useState<UserPublic | null>(null)
+  // 配额状态
+  const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number; daily_usage: number; balance: number; reason?: string } | null>(null)
   
   // Chat State
   const [input, setInput] = useState("")
@@ -815,7 +818,7 @@ function AIAssistantIOSContent() {
     setNotices(prev => prev.filter(n => n.id !== id))
   }
 
-  // Fetch User
+  // Fetch User + Quota
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -823,6 +826,12 @@ function AIAssistantIOSContent() {
         const res = await fetch("/api/auth/me")
         const data = await res.json()
         if (mounted && data?.authenticated && data?.user) setUser(data.user as UserPublic)
+      } catch {}
+      // 获取配额信息
+      try {
+        const qRes = await fetch("/api/user/settings")
+        const qData = await qRes.json()
+        if (mounted && qData?.quota) setQuotaInfo(qData.quota)
       } catch {}
     })()
     return () => { mounted = false }
@@ -1104,6 +1113,10 @@ function AIAssistantIOSContent() {
         try {
           const errData = JSON.parse(errorText)
           if (errData?.error) errorMsg = typeof errData.error === "string" ? errData.error : JSON.stringify(errData.error)
+          // 配额耗尽时同步更新配额状态并提示
+          if (res.status === 403 && errData?.quota) {
+            setQuotaInfo(errData.quota)
+          }
         } catch {}
         showNotice("请求失败", errorMsg, "error")
         setIsLoading(false)
@@ -1356,6 +1369,12 @@ function AIAssistantIOSContent() {
                     {user?.membership === 'plus' ? 'Plus 会员 · 无限使用' :
                      user?.membership === 'pro' ? 'Pro 会员 · 70次/天' :
                      '免费用户 · 升级解锁更多'}
+                    {quotaInfo && quotaInfo.reason !== 'membership_required' && quotaInfo.daily_limit < 999999 && (
+                      <span className="ml-1.5">
+                        （今日 {quotaInfo.daily_usage}/{quotaInfo.daily_limit}
+                        {quotaInfo.balance > 0 && <span className="text-[#1677ff]"> +{quotaInfo.balance}</span>}）
+                      </span>
+                    )}
                   </div>
                 </div>
                 <ChevronRight size={16} className={cn("shrink-0", darkMode ? "text-zinc-600" : "text-zinc-400")} />
@@ -1639,7 +1658,7 @@ function AIAssistantIOSContent() {
               <div className="h-full overflow-y-auto">
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none p-4"
-                  dangerouslySetInnerHTML={{ __html: reportViewer.html }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportViewer.html) }}
                 />
               </div>
             )}

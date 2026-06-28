@@ -25,10 +25,12 @@ export async function POST(req: Request) {
     if (useSystemKey) {
       const quota = await getUserAiQuota(user.id as number)
       if (!quota.can_use) {
-        return Response.json(
-          { error: quota.reason === 'limit_reached' ? '今日免费额度已用完' : '余额不足' },
-          { status: 403 }
-        )
+        const reason = quota.reason === 'membership_required'
+          ? 'AI 功能仅限 Pro/Plus 会员使用'
+          : quota.reason === 'limit_reached'
+            ? '今日配额已用完'
+            : '余额不足';
+        return Response.json({ error: reason, quota }, { status: 403 })
       }
 
       apiKey = process.env.SYSTEM_OPENAI_API_KEY || ""

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Settings as SettingsIcon } from "@/components/animate-ui/icons/settings"
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { cn } from "@/lib/utils"
@@ -77,6 +77,7 @@ export function AISettingsDialog({ open, onOpenChange, user }: AISettingsDialogP
         className="p-0 overflow-hidden gap-0 border-none shadow-2xl rounded-t-2xl sm:rounded-2xl [&>button]:hidden w-full max-h-[85dvh] sm:max-w-[720px] left-0 bottom-0 top-auto translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:translate-x-[-50%] sm:translate-y-[-50%]"
         style={{ background: "#fff" }}
       >
+        <DialogTitle className="sr-only">AI 助手设置</DialogTitle>
         <div className="flex flex-col sm:flex-row h-full">
           {/* 手机端顶部拖拽指示条 */}
           <div className="sm:hidden flex justify-center pt-2 pb-1 shrink-0 bg-[#f7f6f3]">

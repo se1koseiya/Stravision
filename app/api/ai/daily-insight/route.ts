@@ -18,11 +18,15 @@ export async function GET() {
     // Check Quota
     const quota = await getUserAiQuota(user.id as number);
     if (!quota.can_use) {
-      return NextResponse.json({ 
-        insight: "今日 AI 免费额度已用完", 
-        recommendation: "请充值或明天再来", 
+      const msg = quota.reason === 'membership_required'
+        ? 'AI 功能仅限 Pro/Plus 会员使用'
+        : '今日 AI 额度已用完';
+      return NextResponse.json({
+        insight: msg,
+        recommendation: quota.reason === 'membership_required' ? '请升级会员' : '请明天再来或联系管理员充值',
         riskLevel: "low",
-        error: "Quota Exceeded"
+        error: msg,
+        quota,
       }, { status: 403 });
     }
 

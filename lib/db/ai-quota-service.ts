@@ -8,7 +8,7 @@ export interface UserAiQuota {
   daily_usage: number
   balance: number
   can_use: boolean
-  reason?: 'limit_reached' | 'no_balance'
+  reason?: 'limit_reached' | 'no_balance' | 'membership_required'
 }
 
 /**
@@ -29,14 +29,21 @@ export async function getUserAiQuota(userId: number): Promise<UserAiQuota> {
 
   const today = new Date().toISOString().split('T')[0]
   let currentUsage = user.daily_ai_usage
-  
-  // Enforce membership limits
-  // Free users have 0 daily limit unless they have balance
-  // Pro/Plus limits are handled by daily_ai_limit in DB, but we can enforce defaults here too
-  let effectiveLimit = user.daily_ai_limit;
+
+  // 会员等级限制：免费用户完全禁止使用 AI 功能
   if (user.membership === 'free' || !user.membership) {
-    effectiveLimit = 0;
-  } else if (user.membership === 'plus') {
+    return {
+      daily_limit: 0,
+      daily_usage: 0,
+      balance: user.ai_balance,
+      can_use: false,
+      reason: 'membership_required'
+    }
+  }
+
+  // Pro/Plus 会员：按等级设置每日限额
+  let effectiveLimit = user.daily_ai_limit;
+  if (user.membership === 'plus') {
     effectiveLimit = 999999;
   }
 
@@ -72,14 +79,17 @@ export async function incrementAiUsage(userId: number): Promise<boolean> {
 
   if (!user) return false
 
+  // 免费用户完全禁止扣减 AI 配额
+  if (user.membership === 'free' || !user.membership) {
+    return false
+  }
+
   const today = new Date().toISOString().split('T')[0]
   let newUsage = user.daily_ai_usage
-  
-  // Enforce membership limits
+
+  // Pro/Plus 会员：按等级设置每日限额
   let effectiveLimit = user.daily_ai_limit;
-  if (user.membership === 'free' || !user.membership) {
-    effectiveLimit = 0;
-  } else if (user.membership === 'plus') {
+  if (user.membership === 'plus') {
     effectiveLimit = 999999;
   }
   

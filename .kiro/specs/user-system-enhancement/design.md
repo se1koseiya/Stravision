@@ -574,10 +574,10 @@ JWT_SECRET=your-secret-key-here-change-in-production
 DATABASE_PATH=./data/users.db
 
 # MQTT Configuration
-MQTT_HOST=be18721454da4600b14a92424bb1181c.s1.eu.hivemq.cloud
+MQTT_HOST=<set-in-env-or-secret-manager>
 MQTT_PORT=8883
-MQTT_USERNAME=meimeifarm
-MQTT_PASSWORD=Meimei83036666
+MQTT_USERNAME=<set-in-env-or-secret-manager>
+MQTT_PASSWORD=<set-in-env-or-secret-manager>
 MQTT_SUBSCRIBE_TOPIC=meimefarm/basic_env_data
 MQTT_PUBLISH_TOPIC=data/set
 MQTT_USE_SSL=true
@@ -585,7 +585,7 @@ MQTT_KEEPALIVE=60
 MQTT_RECONNECT_PERIOD=5000
 
 # Weather API
-WEATHER_API_KEY=64267a90ec4143ee84965157252111
+WEATHER_API_KEY=<set-in-env-or-secret-manager>
 ```
 
 ## 依赖项

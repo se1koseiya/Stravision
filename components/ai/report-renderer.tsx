@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { Download, Loader2, ExternalLink, Maximize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { sanitizeHtml } from "@/lib/security/sanitize-html"
 
 interface ReportRendererProps {
   htmlContent: string
@@ -20,6 +21,9 @@ export function ReportRenderer({
 }: ReportRendererProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
+
+  // XSS 防护：净化 AI 生成的 HTML，移除 <script>、事件属性、javascript: 协议等
+  const sanitizedHtml = useMemo(() => sanitizeHtml(htmlContent), [htmlContent])
 
   console.log('[ReportRenderer] Rendering with:', { reportTitle, htmlLength: htmlContent.length, reportId })
 
@@ -75,11 +79,11 @@ export function ReportRenderer({
     }
   }
 
-  // 在新窗口预览
+  // 在新窗口预览（使用净化后的 HTML，防止 XSS）
   const previewInNewWindow = () => {
     const newWindow = window.open('', '_blank')
     if (newWindow) {
-      newWindow.document.write(htmlContent)
+      newWindow.document.write(sanitizedHtml)
       newWindow.document.close()
     }
   }
@@ -148,9 +152,9 @@ export function ReportRenderer({
 
       {/* 报告内容预览 */}
       <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
-        <div 
+        <div
           className="prose prose-sm dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
         />
       </div>
     </motion.div>

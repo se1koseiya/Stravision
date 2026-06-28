@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGlobalAlertManager } from '@/lib/ai/agent-orchestrator/alert-manager';
+import { getCurrentUser } from '@/lib/auth';
+
+// 统一 admin 授权校验：仅 admin / super_admin 可访问
+async function requireAdmin() {
+  const currentUser = await getCurrentUser()
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+    return null
+  }
+  return currentUser
+}
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdmin()
+  if (!auth) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
+  }
   try {
     const { searchParams } = new URL(request.url);
     const severity = searchParams.get('severity') as any;
@@ -9,7 +23,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit');
 
     const alertManager = getGlobalAlertManager();
-    
+
     const options: any = {};
     if (severity) options.severity = severity;
     if (acknowledged !== null) options.acknowledged = acknowledged === 'true';
@@ -34,6 +48,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin()
+  if (!auth) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
+  }
   try {
     const body = await request.json();
     const { action, alertId } = body;

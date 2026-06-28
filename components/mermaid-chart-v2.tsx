@@ -30,7 +30,7 @@ const MermaidChartV2: React.FC<MermaidChartProps> = ({ chart }) => {
         mermaid.initialize({
           startOnLoad: false,
           theme: 'default',
-          securityLevel: 'loose',
+          securityLevel: 'strict',
           fontFamily: 'inherit',
           logLevel: 'error',
         })

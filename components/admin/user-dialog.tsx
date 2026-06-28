@@ -55,9 +55,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
         membership: user.membership || 'free',
         avatar_url: user.avatar_url || "",
         allowedControls: user.permissions?.allowedControls || [],
-        // @ts-expect-error - backend returns these fields
         daily_ai_limit: user.daily_ai_limit ?? 10,
-        // @ts-expect-error - backend returns these fields
         ai_balance: user.ai_balance ?? 0,
       })
     } else {

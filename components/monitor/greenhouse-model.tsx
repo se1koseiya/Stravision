@@ -9,6 +9,7 @@ import { Video, Thermometer, Droplets, Fan, Lightbulb, Sun, X, Plus, Bot, Sparkl
 import { SpectralCard } from "@/components/dashboard/spectral-card"
 import { SpectralPopup } from "@/components/monitor/spectral-popup"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
+import { sanitizeHtml } from "@/lib/security/sanitize-html"
 
 interface LightState {
   rgbLight: { r: number; g: number; b: number; intensity: number }
@@ -665,7 +666,9 @@ function AIAssistantCard({
       .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[10px]">$1</code>')
       .replace(/\n/g, '<br/>')
 
-    return <span dangerouslySetInnerHTML={{ __html: cleanContent }} />
+    // XSS 防护：净化后再注入 DOM，移除 AI 响应中可能的 <script>/事件属性等
+    const safeHtml = sanitizeHtml(cleanContent)
+    return <span dangerouslySetInnerHTML={{ __html: safeHtml }} />
   }, [showDeviceBento, showControlBento])
 
   const handleSend = useCallback(async () => {

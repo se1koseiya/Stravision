@@ -1,4 +1,13 @@
+import { assertSafeUrl } from "@/lib/security/ssrf-guard"
+import { getCurrentUser } from "@/lib/auth"
+
 export async function POST(req: Request) {
+  // 认证：必须登录才能调用（防止匿名 SSRF）
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const { messages, apiKey, apiUrl, model, systemPrompt, enableSearch } = await req.json()
     if (!apiKey) {
@@ -12,6 +21,17 @@ export async function POST(req: Request) {
         targetUrl = `${targetUrl}/chat/completions`
       }
     }
+
+    // SSRF 防护：apiUrl 由请求方提供，必须校验协议 + 内网 IP，
+    // 阻止指向 169.254.169.254 元数据端点或内网服务。
+    // 由于响应体会回显给客户端，此处盲 SSRF 会升级为完整内容泄露。
+    if (targetUrl) {
+      const safeCheck = await assertSafeUrl(targetUrl)
+      if (!safeCheck.ok) {
+        return Response.json({ error: "API URL not allowed" }, { status: 403 })
+      }
+    }
+
     const citationOnlyInstruction =
       "仅返回 <SOURCES> 与 </SOURCES> 包裹的 JSON 数组，数组项包含 number、title、url、description、quote。url 必须为真实可访问的 http/https 链接，来源必须来自联网检索结果，不得编造，不要返回正文。"
     const fullMessages = [
@@ -81,13 +101,33 @@ export async function POST(req: Request) {
     }).filter((x: Citation | null): x is Citation => !!x)
     const verifyUrl = async (u: string) => {
       try { new URL(u) } catch { return null }
+      // SSRF 防护：verifyUrl 抓取 AI 生成的 URL，可能被提示注入控制，
+      // 必须校验目标 IP 非内网/元数据地址
+      const safeCheck = await assertSafeUrl(u)
+      if (!safeCheck.ok) return null
       const ac = new AbortController()
       const to = setTimeout(() => ac.abort(), 7000)
       try {
-        const r = await fetch(u, { method: "GET", redirect: "follow", cache: "no-store", signal: ac.signal })
+        // 使用 manual 重定向，逐跳校验，防止重定向绕过
+        const r = await fetch(u, { method: "GET", redirect: "manual", cache: "no-store", signal: ac.signal })
         clearTimeout(to)
-        if (r.ok || (r.status >= 300 && r.status < 400)) return r.url
+        // 对 3xx 重定向，校验 Location 后跟随（最多 3 跳）
+        let currentUrl = u
+        let resp = r
+        let hops = 0
+        while ([301, 302, 303, 307, 308].includes(resp.status) && hops < 3) {
+          const location = resp.headers.get("location")
+          if (!location) break
+          const nextUrl = new URL(location, currentUrl).toString()
+          const nextSafe = await assertSafeUrl(nextUrl)
+          if (!nextSafe.ok) { clearTimeout(to); return null }
+          currentUrl = nextUrl
+          resp = await fetch(currentUrl, { method: "GET", redirect: "manual", cache: "no-store", signal: ac.signal })
+          hops++
+        }
+        if (resp.ok || (resp.status >= 300 && resp.status < 400)) return currentUrl
       } catch {}
+      clearTimeout(to)
       return null
     }
     const out: Citation[] = []

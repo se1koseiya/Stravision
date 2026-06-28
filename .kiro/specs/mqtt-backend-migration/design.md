@@ -234,10 +234,10 @@ export function validateMQTTConfig(config: MQTTConfig): boolean
 #### 环境变量
 
 ```bash
-MQTT_HOST=be18721454da4600b14a92424bb1181c.s1.eu.hivemq.cloud
+MQTT_HOST=<set-in-env-or-secret-manager>
 MQTT_PORT=8883
-MQTT_USERNAME=meimeifarm
-MQTT_PASSWORD=Meimei83036666
+MQTT_USERNAME=<set-in-env-or-secret-manager>
+MQTT_PASSWORD=<set-in-env-or-secret-manager>
 MQTT_SUBSCRIBE_TOPIC=meimefarm/basic_env_data
 MQTT_PUBLISH_TOPIC=data/set
 MQTT_USE_SSL=true

@@ -38,16 +38,16 @@ export const MCP_SERVERS: MCPServer[] = [
     apiKeyInstructions: "无需 API Key，通过 HTTP 端点直接访问",
     command: "uvx",
     args: ["mcp-server-spectrum-stravision"],
-    envVars: { 
+    envVars: {
         "SPECTRUM_API_URL": "http://8.153.175.190:8000/spectrum-stravision",
         "MCP_TRANSPORT": "stdio",
         "MQTT_PORT": "8883",
         "MQTT_TOPIC": "meimeifarm/Spectrum",
-        "MQTT_BROKER": "be18721454da4600b14a92424bb1181c.s1.eu.hivemq.cloud",
+        "MQTT_BROKER": process.env.MQTT_HOST || "",
         "PORT": "8000",
-        "MQTT_USER": "meimeifarm",
+        "MQTT_USER": process.env.MQTT_USERNAME || "",
         "HTTP_PORT": "8080",
-        "MQTT_PASSWORD": "Meimei83036666"
+        "MQTT_PASSWORD": process.env.MQTT_PASSWORD || ""
     },
     features: ["单通道数据", "全波段扫描", "实时采集", "光谱分析", "设备状态"],
     popularity: 99,

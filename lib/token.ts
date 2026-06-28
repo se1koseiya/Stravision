@@ -12,19 +12,22 @@ export interface JWTPayload {
 
 /**
  * Get JWT Secret
+ *
+ * 安全要求：JWT_SECRET 必须由环境变量提供，缺失时一律拒绝启动，
+ * 避免在 NODE_ENV 未正确设置或部署配置错误时静默使用已知弱密钥导致 token 伪造。
  */
 export function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
-  
+
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-       throw new Error("FATAL: JWT_SECRET is not defined in production environment!");
-    }
-    // console.warn("Warning: JWT_SECRET not set, using default dev secret");
+    throw new Error("FATAL: JWT_SECRET environment variable is not defined. Refusing to start to prevent JWT forgery via known weak default secret.");
   }
-  
-  const secretStr = secret || "dev-secret-change-in-production";
-  return new TextEncoder().encode(secretStr);
+
+  if (secret.length < 32) {
+    throw new Error("FATAL: JWT_SECRET must be at least 32 characters long to ensure HS256 security.");
+  }
+
+  return new TextEncoder().encode(secret);
 }
 
 /**

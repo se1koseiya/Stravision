@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Loader2, Send, Trash, RotateCcw, Sparkles, Copy, Code, Eye, EyeOff, SquarePen, Database, Wrench, Play, ChevronRight, ChevronLeft, Cpu, Camera, Radio, Upload, CheckCircle2, Circle, Clock, ArrowRight, Zap } from "lucide-react"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
+import { sanitizeHtml } from "@/lib/security/sanitize-html"
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
 
@@ -59,7 +60,7 @@ function MessageContent({ content, isStreaming }: { content: string; isStreaming
             </Button>
           </div>
           <div className="p-4">
-            <div dangerouslySetInnerHTML={{ __html: htmlCode }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlCode) }} />
           </div>
         </div>
         {afterHtml && (

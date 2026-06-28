@@ -182,20 +182,6 @@ export async function POST(req: Request) {
       apiKey = userApiKey
       targetUrl = userApiUrl || ''
 
-      // 检查是否需要系统托管 Key
-      if (!apiKey && !rawApiUrl) {
-        const quota = await getUserAiQuota(user.id as number)
-        if (!quota.can_use) {
-          const reason = quota.reason === 'limit_reached' ? '今日免费额度已用完' : '余额不足'
-          return Response.json({ error: `${reason}，请明天再来或联系管理员充值。` }, { status: 403 })
-        }
-        apiKey = process.env.SYSTEM_OPENAI_API_KEY || ''
-        const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ''
-        if (systemBaseUrl) {
-          targetUrl = normalizeOpenAIChatCompletionsUrl(systemBaseUrl)
-        }
-      }
-
       if (!apiKey) {
         return Response.json({ error: "API Key is required. Please configure it in settings." }, { status: 400 })
       }
@@ -214,6 +200,25 @@ export async function POST(req: Request) {
 
     // 是否使用系统托管 Key（用于配额扣减判断）
     const useSystemKey = !userApiKey || !!resolved
+
+    // 请求前校验配额：使用系统托管 Key 时必须检查配额，防止超额使用
+    if (useSystemKey) {
+      const quota = await getUserAiQuota(user.id as number)
+      if (!quota.can_use) {
+        let reason: string
+        if (quota.reason === 'membership_required') {
+          reason = 'AI 功能仅限 Pro/Plus 会员使用，请升级会员后继续使用'
+        } else if (quota.reason === 'limit_reached') {
+          reason = '今日额度已用完'
+        } else {
+          reason = '余额不足'
+        }
+        return Response.json(
+          { error: `${reason}。`, quota },
+          { status: 403 }
+        )
+      }
+    }
 
 
 

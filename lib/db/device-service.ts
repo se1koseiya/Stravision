@@ -91,8 +91,12 @@ export async function getSensorHistory(type: string, range: string) {
     'rainfall': 'rainfall'
   }
 
-  const col = colMap[type] || type
-  
+  // 严格白名单校验：未在 colMap 中的 type 一律拒绝，避免列名被拼接进 SQL 文本
+  const col = colMap[type]
+  if (!col) {
+    return []
+  }
+
   // 如果是 fertility，需要取 NPK 三个字段来计算
   if (type === 'fertility') {
     const rows = await query<any>(

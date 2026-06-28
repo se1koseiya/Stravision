@@ -16,10 +16,12 @@ export async function POST(req: Request) {
     // 检查配额
     const quota = await getUserAiQuota(user.id as number);
     if (!quota.can_use) {
-      return NextResponse.json({ 
-        error: '配额不足', 
-        reason: quota.reason === 'limit_reached' ? '今日免费配额已用完' : 'AI 余额不足' 
-      }, { status: 403 });
+      const reason = quota.reason === 'membership_required'
+        ? 'AI 功能仅限 Pro/Plus 会员使用'
+        : quota.reason === 'limit_reached'
+          ? '今日配额已用完'
+          : 'AI 余额不足';
+      return NextResponse.json({ error: reason, quota }, { status: 403 });
     }
 
     const { prompt, model } = await req.json();

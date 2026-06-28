@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { assertSafeUrl } from "@/lib/security/ssrf-guard"
 
 export const runtime = "nodejs"
 
@@ -69,9 +70,9 @@ function extractRealStreamUrl(url: string): string {
 }
 
 function isAllowedHost(host: string) {
+  // 已由 assertSafeUrl 做完整的内网/保留 IP 校验，此处仅保留兼容占位
   const h = host.toLowerCase()
   if (h === "localhost" || h === "127.0.0.1") return false
-  // 允许所有非本地 host, 因为视频流源可能非常多样
   return true
 }
 
@@ -81,7 +82,7 @@ export async function GET(req: Request) {
   if (!rawUrl) return NextResponse.json({ error: "Missing url" }, { status: 400 })
 
   const raw = extractRealStreamUrl(rawUrl)
-  
+
   let target: URL
   try {
     target = new URL(raw)
@@ -91,6 +92,13 @@ export async function GET(req: Request) {
 
   if (!(target.protocol === "http:" || target.protocol === "https:")) {
     return NextResponse.json({ error: "Unsupported protocol" }, { status: 400 })
+  }
+
+  // SSRF 防护：解析主机名 DNS 并校验所有 IP 均非内网/保留地址，
+  // 阻止访问 169.254.169.254 元数据端点、127.0.0.1、10.x、192.168.x 等
+  const safeCheck = await assertSafeUrl(target.toString())
+  if (!safeCheck.ok) {
+    return NextResponse.json({ error: "Host not allowed" }, { status: 403 })
   }
 
   if (!isAllowedHost(target.hostname)) {
@@ -105,17 +113,39 @@ export async function GET(req: Request) {
   reqHeaders.set("referer", "https://player.xstrive.com/")
   reqHeaders.set("origin", "https://player.xstrive.com")
 
-  const upstream = await fetch(target.toString(), {
-    redirect: "follow",
+  // 使用 redirect: "manual" 防止重定向绕过 SSRF 校验，
+  // 对每个重定向 Location 重新走 assertSafeUrl 校验
+  let currentUrl = target.toString()
+  let upstream = await fetch(currentUrl, {
+    redirect: "manual",
     headers: reqHeaders
   })
 
+  // 跟随重定向（最多 5 跳），每跳重新校验目标 URL
+  let hopCount = 0
+  while ([301, 302, 303, 307, 308].includes(upstream.status) && hopCount < 5) {
+    const location = upstream.headers.get("location")
+    if (!location) break
+    const nextUrl = new URL(location, currentUrl).toString()
+    const nextSafe = await assertSafeUrl(nextUrl)
+    if (!nextSafe.ok) {
+      return NextResponse.json({ error: "Redirect target not allowed" }, { status: 403 })
+    }
+    currentUrl = nextUrl
+    upstream = await fetch(currentUrl, {
+      redirect: "manual",
+      headers: reqHeaders
+    })
+    hopCount++
+  }
+
   const contentType = upstream.headers.get("content-type") ?? "application/octet-stream"
-  const isM3u8 = target.pathname.toLowerCase().endsWith(".m3u8") || contentType.includes("application/vnd.apple.mpegurl") || contentType.includes("application/x-mpegurl")
+  const finalUrl = new URL(currentUrl)
+  const isM3u8 = finalUrl.pathname.toLowerCase().endsWith(".m3u8") || contentType.includes("application/vnd.apple.mpegurl") || contentType.includes("application/x-mpegurl")
 
   if (isM3u8) {
     const text = await upstream.text()
-    const rewritten = rewriteM3u8(text, target.toString())
+    const rewritten = rewriteM3u8(text, finalUrl.toString())
     return new Response(rewritten, {
       status: upstream.status,
       headers: {

@@ -16,17 +16,39 @@ config({ path: resolve(process.cwd(), '.env.local') })
 
 import { createUser, updateUser, getUserByEmail } from '../lib/db/user-service'
 import { initDB, execute } from '../lib/db/database'
+import crypto from 'crypto'
+
+/**
+ * 生成随机强密码（cryptographically secure）
+ * 不使用 Math.random，因为该脚本创建的是超级管理员账号
+ */
+function generateRandomPassword(length = 16): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+  const bytes = crypto.randomBytes(length)
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars[bytes[i] % chars.length]
+  }
+  return result
+}
 
 async function createDemoAccount() {
   try {
     console.log('🚀 开始创建演示账号...\n')
+
+    // 安全守卫：生产环境禁止创建已知的演示超级管理员账号
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ 安全限制：禁止在生产环境创建演示账号（含公开密码的超级管理员账号）')
+      process.exit(1)
+    }
 
     // 初始化数据库
     await initDB()
     console.log('✅ 数据库初始化完成')
 
     const demoEmail = 'demo@example.com'
-    const demoPassword = 'Demo123456!'
+    // 密码从环境变量读取，缺失时随机生成，避免源码中存在已知的超级管理员密码
+    const demoPassword = process.env.DEMO_PASSWORD || generateRandomPassword()
     const demoUsername = '演示账号'
 
     // 检查账号是否已存在

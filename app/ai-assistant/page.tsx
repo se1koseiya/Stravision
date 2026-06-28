@@ -93,6 +93,7 @@ import { getVoiceSettings, AISettingsDialog } from "@/components/ai-settings-dia
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
+import { sanitizeHtml as sanitizeReportHtml } from "@/lib/security/sanitize-html"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { SmartPrompts } from "@/components/ai/smart-prompts"
 import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
@@ -2893,7 +2894,10 @@ ${taskContext}
         const errorText = await res.text()
         try {
           const errorData = JSON.parse(errorText)
-          if (res.status === 403 && errorData.error && errorData.error.includes("今日免费额度已用完")) {
+          // 配额耗尽/会员限制时弹出升级提示
+          if (res.status === 403 && errorData.error && (errorData.error.includes("额度") || errorData.error.includes("余额") || errorData.error.includes("升级"))) {
+            // 如果返回了最新配额信息，同步更新本地状态
+            if (errorData.quota) setQuotaInfo(errorData.quota)
             setShowPlanDialog(true)
             setIsLoading(false)
             return
@@ -4873,6 +4877,49 @@ ${taskContext}
               {/* 底部留白（探索入口已移至上方侧边栏） */}
 
             </div>
+            {/* ===== 配额指示器 ===== */}
+            {quotaInfo && (
+              <div
+                onClick={() => setShowPlanDialog(true)}
+                style={{
+                  padding: "8px 14px",
+                  cursor: "pointer",
+                  borderTop: darkMode ? "1px solid #27272a" : "1px solid #f0f0f0",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f5f5f5" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", fontWeight: 500 }}>
+                    AI 配额
+                  </span>
+                  <span style={{ fontSize: 11, color: darkMode ? "#d4d4d8" : "#374151" }}>
+                    {quotaInfo.reason === 'membership_required'
+                      ? <span style={{ color: "#1677ff" }}>升级解锁</span>
+                      : quotaInfo.daily_limit >= 999999
+                        ? "无限"
+                        : `${quotaInfo.daily_usage}/${quotaInfo.daily_limit}`
+                    }
+                    {quotaInfo.reason !== 'membership_required' && quotaInfo.balance > 0 && (
+                      <span style={{ color: "#1677ff", marginLeft: 6 }}>+{quotaInfo.balance}</span>
+                    )}
+                  </span>
+                </div>
+                {quotaInfo.reason !== 'membership_required' && quotaInfo.daily_limit < 999999 && quotaInfo.daily_limit > 0 && (
+                  <div style={{ height: 3, borderRadius: 2, background: darkMode ? "#27272a" : "#e5e7eb", overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${Math.min(100, (quotaInfo.daily_usage / quotaInfo.daily_limit) * 100)}%`,
+                      background: quotaInfo.daily_usage >= quotaInfo.daily_limit ? "#ef4444" : "#1677ff",
+                      borderRadius: 2,
+                      transition: "width 0.3s",
+                    }} />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ===== 底部用户区 ===== */}
             <Dropdown
               menu={{
@@ -5187,7 +5234,7 @@ ${taskContext}
                   color: darkMode ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
                 }}
                 className="berry-report-content"
-                dangerouslySetInnerHTML={{ __html: reportData.html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(reportData.html) }}
               />
 
               {/* ============ 底部操作条 ============ */}
@@ -5499,6 +5546,102 @@ ${taskContext}
           setIsTTSEnabled(voice.readAloud)
         }}
       />
+
+      {/* 配额耗尽 / 升级提示弹窗 */}
+      <Modal
+        open={showPlanDialog}
+        onCancel={() => setShowPlanDialog(false)}
+        footer={null}
+        width={420}
+        centered
+        title={null}
+        styles={{ body: { padding: 0 } }}
+      >
+        <div style={{ textAlign: "center", padding: "32px 24px 24px" }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: quotaInfo?.reason === 'membership_required'
+              ? (darkMode ? "rgba(22,119,255,0.12)" : "#eff6ff")
+              : (darkMode ? "rgba(239,68,68,0.12)" : "#fef2f2"),
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 16px",
+          }}>
+            <span style={{ fontSize: 26 }}>{quotaInfo?.reason === 'membership_required' ? '🔒' : '⚠'}</span>
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: darkMode ? "#e4e4e7" : "#111827" }}>
+            {quotaInfo?.reason === 'membership_required' ? '升级会员解锁 AI 功能' : 'AI 配额已用尽'}
+          </h3>
+          <p style={{ fontSize: 13, color: darkMode ? "#a1a1aa" : "#6b7280", marginBottom: 20, lineHeight: 1.6 }}>
+            {quotaInfo?.reason === 'membership_required'
+              ? 'AI 功能仅限 Pro/Plus 会员使用，升级会员后即可解锁全部 AI 能力。'
+              : quotaInfo?.reason === 'no_balance'
+                ? '您的每日额度和额外余额均已用完。额度将在每日 0:00 重置，或联系管理员充值。'
+                : '您的每日额度已用完。额度将在每日 0:00 重置，或联系管理员充值。'}
+          </p>
+
+          {/* 配额详情（仅非会员限制时显示） */}
+          {quotaInfo && quotaInfo.reason !== 'membership_required' && (
+            <div style={{
+              display: "flex", justifyContent: "center", gap: 24,
+              padding: "16px 0", marginBottom: 20,
+              borderTop: `1px solid ${darkMode ? "#27272a" : "#f0f0f0"}`,
+              borderBottom: `1px solid ${darkMode ? "#27272a" : "#f0f0f0"}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: "#1677ff" }}>
+                  {quotaInfo.daily_limit >= 999999 ? "∞" : quotaInfo.daily_limit}
+                </div>
+                <div style={{ fontSize: 11, color: darkMode ? "#71717a" : "#9ca3af", marginTop: 2 }}>每日限额</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: darkMode ? "#e4e4e7" : "#374151" }}>
+                  {quotaInfo.daily_usage}
+                </div>
+                <div style={{ fontSize: 11, color: darkMode ? "#71717a" : "#9ca3af", marginTop: 2 }}>今日已用</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: "#52c41a" }}>
+                  {quotaInfo.balance}
+                </div>
+                <div style={{ fontSize: 11, color: darkMode ? "#71717a" : "#9ca3af", marginTop: 2 }}>额外余额</div>
+              </div>
+            </div>
+          )}
+
+          {/* 会员等级说明 */}
+          <div style={{
+            background: darkMode ? "#18181b" : "#f9fafb",
+            borderRadius: 8, padding: "12px 16px", marginBottom: 20,
+            textAlign: "left",
+          }}>
+            <div style={{ fontSize: 12, color: darkMode ? "#71717a" : "#9ca3af", marginBottom: 6, fontWeight: 500 }}>会员等级</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <span style={{ color: darkMode ? "#d4d4d8" : "#374151" }}>免费用户</span>
+                <span style={{ color: darkMode ? "#71717a" : "#9ca3af" }}>不可使用 AI</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <span style={{ color: "#1677ff", fontWeight: 500 }}>Pro 会员</span>
+                <span style={{ color: "#1677ff" }}>70 次/天</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <span style={{ color: "#1677ff", fontWeight: 500 }}>Plus 会员</span>
+                <span style={{ color: "#1677ff" }}>无限使用</span>
+              </div>
+            </div>
+          </div>
+
+          <AntButton
+            type="primary"
+            block
+            onClick={() => setShowPlanDialog(false)}
+            style={{ height: 38, borderRadius: 8, fontWeight: 500 }}
+          >
+            我知道了
+          </AntButton>
+        </div>
+      </Modal>
+
     </>
     </App>
     </ConfigProvider>

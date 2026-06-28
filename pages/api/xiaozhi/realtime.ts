@@ -91,8 +91,11 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
     const quota = await getUserAiQuota(userId);
 
     if (!quota.can_use) {
-      console.log(`WS Connection rejected: Quota exceeded for user ${userId}`);
-      res.status(403).send('Quota Exceeded');
+      const reason = quota.reason === 'membership_required'
+        ? 'AI 功能仅限 Pro/Plus 会员使用'
+        : '配额已用完';
+      console.log(`WS Connection rejected: ${reason} for user ${userId}`);
+      res.status(403).send(reason);
       return;
     }
 

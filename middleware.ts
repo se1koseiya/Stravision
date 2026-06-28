@@ -206,7 +206,7 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
            const protocol = req.nextUrl.protocol
            const host = req.headers.get("host") || 'localhost:3000'
            const checkRes = await fetch(`${protocol}//${host}/api/internal/security/check?ip=${ip}`, {
-              headers: { "x-internal-secret": "stravision-internal-secret" }
+              headers: { "x-internal-secret": getInternalApiSecret() }
            })
            
            if (checkRes.ok) {

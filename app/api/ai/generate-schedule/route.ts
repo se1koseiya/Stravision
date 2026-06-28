@@ -26,8 +26,13 @@ export async function POST(req: Request) {
         await initDB()
         const quota = await getUserAiQuota(user.id as number)
         if (!quota.can_use) {
+            const reason = quota.reason === 'membership_required'
+                ? 'AI 功能仅限 Pro/Plus 会员使用'
+                : quota.reason === 'limit_reached'
+                    ? '今日配额已用完'
+                    : 'AI 余额不足';
             return Response.json(
-                { error: "Quota exceeded" },
+                { error: reason, quota },
                 { status: 403 }
             )
         }

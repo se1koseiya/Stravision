@@ -6,10 +6,15 @@ export type { JWTPayload };
 
 /**
  * Get JWT Secret (Re-export for compatibility if needed, though mostly internal)
+ *
+ * 安全要求：缺失 JWT_SECRET 时一律抛错，禁止回退到硬编码弱密钥。
  */
 export function getJwtSecret(): string {
    const secret = process.env.JWT_SECRET;
-   return secret || "dev-secret-change-in-production";
+   if (!secret) {
+     throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
+   }
+   return secret;
 }
 
 /**

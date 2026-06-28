@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
+import { getCurrentUser } from '@/lib/auth'
 
 const CONFIG_PATH = path.join(process.cwd(), 'data', 'ai-models-config.json')
+
+// 统一 admin 授权校验：仅 admin / super_admin 可访问
+async function requireAdmin() {
+  const currentUser = await getCurrentUser()
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+    return null
+  }
+  return currentUser
+}
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -27,6 +37,10 @@ const DEFAULT_CONFIG = {
 }
 
 export async function GET() {
+  const auth = await requireAdmin()
+  if (!auth) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  }
   try {
     // 尝试读取配置文件
     const data = await fs.readFile(CONFIG_PATH, 'utf-8')
@@ -60,6 +74,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin()
+  if (!auth) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  }
   try {
     const body = await request.json()
     

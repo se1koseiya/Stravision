@@ -211,9 +211,9 @@ export async function GET(req: Request) {
         // 最后的备用方案：使用 access_token 的一部分作为唯一标识
         if (!alipayUserId && accessToken) {
             console.warn("Using access token hash as fallback user ID")
-            // 使用 access_token 的 hash 作为临时用户ID
+            // 使用 SHA-256（而非 MD5）并取足够长度，降低碰撞导致的账号合并风险
             const crypto = require('crypto')
-            alipayUserId = 'alipay_' + crypto.createHash('md5').update(accessToken).digest('hex').substring(0, 16)
+            alipayUserId = 'alipay_' + crypto.createHash('sha256').update(accessToken).digest('hex').substring(0, 32)
             console.log("Generated fallback user ID:", alipayUserId)
         }
         
