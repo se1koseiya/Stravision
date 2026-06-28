@@ -91,36 +91,9 @@ ENV WS_SERVER_PORT 3002
 ENV HOSTNAME "0.0.0.0"
 ENV TZ Asia/Shanghai
 
-# Use a shell script to fix permissions and start both services
-RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
-    echo 'set -e' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo 'mkdir -p /app/public/uploads' >> /app/entrypoint.sh && \
-    echo 'chown -R nextjs:nodejs /app/public/uploads' >> /app/entrypoint.sh && \
-    echo 'chown -R nextjs:nodejs /app/data' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo '# Start WebSocket server in background with auto-restart' >> /app/entrypoint.sh && \
-    echo 'su-exec nextjs sh -c '\'' >> /app/entrypoint.sh && \
-    echo '  while true; do' >> /app/entrypoint.sh && \
-    echo '    echo "[Entrypoint] Starting WebSocket server..."' >> /app/entrypoint.sh && \
-    echo '    node /app/server/ws-server.js 2>&1' >> /app/entrypoint.sh && \
-    echo '    echo "[Entrypoint] WebSocket server exited (code: $?), restarting in 3s..."' >> /app/entrypoint.sh && \
-    echo '    sleep 3' >> /app/entrypoint.sh && \
-    echo '  done' >> /app/entrypoint.sh && \
-    echo '\'' &' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo '# Wait for WS server to be ready' >> /app/entrypoint.sh && \
-    echo 'for i in $(seq 1 10); do' >> /app/entrypoint.sh && \
-    echo '  if wget -q -O- http://localhost:3002/health >/dev/null 2>&1; then' >> /app/entrypoint.sh && \
-    echo '    echo "[Entrypoint] WebSocket server is ready"' >> /app/entrypoint.sh && \
-    echo '    break' >> /app/entrypoint.sh && \
-    echo '  fi' >> /app/entrypoint.sh && \
-    echo '  echo "[Entrypoint] Waiting for WebSocket server... ($i/10)"' >> /app/entrypoint.sh && \
-    echo '  sleep 1' >> /app/entrypoint.sh && \
-    echo 'done' >> /app/entrypoint.sh && \
-    echo '' >> /app/entrypoint.sh && \
-    echo '# Start Next.js' >> /app/entrypoint.sh && \
-    echo 'exec su-exec nextjs pnpm start' >> /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
+# Use a standalone shell script to fix permissions and start both services
+# Avoids fragile shell quoting issues from inline `echo` in RUN
+COPY docker-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 CMD ["/app/entrypoint.sh"]
