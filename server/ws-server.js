@@ -12,17 +12,26 @@ const WebSocket = require('ws');
 const http = require('http');
 const url = require('url');
 const https = require('https');
+const fs = require('fs');
 
-// Load environment variables
-require('dotenv').config({ path: '.env.local' });
+// Load environment variables from .env.local (if available) then .env
+// In Docker, env vars are passed via docker-compose, so these files may not exist
+try {
+  const dotenv = require('dotenv');
+  // Try .env.local first, then .env
+  if (fs.existsSync('.env.local')) dotenv.config({ path: '.env.local' });
+  if (fs.existsSync('.env')) dotenv.config({ path: '.env' });
+} catch (e) {
+  console.log('[WS Server] dotenv not available, relying on process.env');
+}
 
 const PORT = process.env.WS_SERVER_PORT || 3002;
 const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY || process.env.SYSTEM_OPENAI_API_KEY;
 const NEXT_SERVER_URL = process.env.NEXT_SERVER_URL || 'http://localhost:3000';
 
 if (!DASHSCOPE_API_KEY) {
-  console.error('ERROR: DASHSCOPE_API_KEY is not set in .env.local');
-  process.exit(1);
+  console.error('[WS Server] WARNING: DASHSCOPE_API_KEY is not set. WebSocket connections will be rejected.');
+  console.error('[WS Server] Set DASHSCOPE_API_KEY or SYSTEM_OPENAI_API_KEY in your environment.');
 }
 
 // Helper to check quota via Next.js API
@@ -154,8 +163,19 @@ wss.on('connection', async (clientWs, req) => {
   const query = url.parse(req.url, true).query;
   const model = query.model || 'qwen3-omni-flash-realtime';
   const cookie = req.headers.cookie || '';
-  
+
   console.log(`[WS Server] Client connecting, model: ${model}`);
+
+  // Reject if API key is not configured
+  if (!DASHSCOPE_API_KEY) {
+    console.error('[WS Server] Rejecting connection: DASHSCOPE_API_KEY not set');
+    clientWs.send(JSON.stringify({
+      type: 'error',
+      error: { message: '语音服务未配置 API Key，请联系管理员。' }
+    }));
+    clientWs.close(1011, 'Server not configured');
+    return;
+  }
   
   // Check quota (skip in development if no cookie)
   const isDev = process.env.NODE_ENV === 'development';

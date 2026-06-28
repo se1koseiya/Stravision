@@ -207,8 +207,8 @@ export async function uninstallSkill(userId: number, skillId: string): Promise<b
 // ========== Seed built-in skills from .agents/skills ==========
 export async function seedBuiltinSkills(): Promise<void> {
   await initSkillStoreTables()
-  const fs = require('fs')
-  const path = require('path')
+  const fs = require('node:fs')
+  const path = require('node:path')
 
   const skillsDir = path.join(process.cwd(), '.agents', 'skills')
   console.log('[SkillStore] Checking skills directory:', skillsDir)

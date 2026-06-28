@@ -2,8 +2,8 @@ if (typeof process !== "undefined" && process.env.NEXT_RUNTIME === "edge") {
   throw new Error("Database module cannot run in Edge runtime")
 }
 
-import path from "path"
-import { promises as fs } from "fs"
+import path from "node:path"
+import { promises as fs } from "node:fs"
 import { Pool, PoolClient } from "pg"
 
 let pool: Pool | null = null

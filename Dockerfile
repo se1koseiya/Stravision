@@ -55,7 +55,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
-    apk add --no-cache tzdata su-exec ffmpeg
+    apk add --no-cache tzdata su-exec ffmpeg wget
 
 COPY --from=builder /app/public ./public
 
@@ -93,11 +93,32 @@ ENV TZ Asia/Shanghai
 
 # Use a shell script to fix permissions and start both services
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'set -e' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
     echo 'mkdir -p /app/public/uploads' >> /app/entrypoint.sh && \
     echo 'chown -R nextjs:nodejs /app/public/uploads' >> /app/entrypoint.sh && \
     echo 'chown -R nextjs:nodejs /app/data' >> /app/entrypoint.sh && \
-    echo '# Start WebSocket server in background' >> /app/entrypoint.sh && \
-    echo 'su-exec nextjs node /app/server/ws-server.js &' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
+    echo '# Start WebSocket server in background with auto-restart' >> /app/entrypoint.sh && \
+    echo 'su-exec nextjs sh -c '\'' >> /app/entrypoint.sh && \
+    echo '  while true; do' >> /app/entrypoint.sh && \
+    echo '    echo "[Entrypoint] Starting WebSocket server..."' >> /app/entrypoint.sh && \
+    echo '    node /app/server/ws-server.js 2>&1' >> /app/entrypoint.sh && \
+    echo '    echo "[Entrypoint] WebSocket server exited (code: $?), restarting in 3s..."' >> /app/entrypoint.sh && \
+    echo '    sleep 3' >> /app/entrypoint.sh && \
+    echo '  done' >> /app/entrypoint.sh && \
+    echo '\'' &' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
+    echo '# Wait for WS server to be ready' >> /app/entrypoint.sh && \
+    echo 'for i in $(seq 1 10); do' >> /app/entrypoint.sh && \
+    echo '  if wget -q -O- http://localhost:3002/health >/dev/null 2>&1; then' >> /app/entrypoint.sh && \
+    echo '    echo "[Entrypoint] WebSocket server is ready"' >> /app/entrypoint.sh && \
+    echo '    break' >> /app/entrypoint.sh && \
+    echo '  fi' >> /app/entrypoint.sh && \
+    echo '  echo "[Entrypoint] Waiting for WebSocket server... ($i/10)"' >> /app/entrypoint.sh && \
+    echo '  sleep 1' >> /app/entrypoint.sh && \
+    echo 'done' >> /app/entrypoint.sh && \
+    echo '' >> /app/entrypoint.sh && \
     echo '# Start Next.js' >> /app/entrypoint.sh && \
     echo 'exec su-exec nextjs pnpm start' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh

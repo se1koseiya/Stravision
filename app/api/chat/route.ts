@@ -21,8 +21,8 @@ import type { AgentContext } from '@/lib/ai/agent-orchestrator/types'
 import { getRelevantSkillsContentCached } from '@/lib/ai/skill-router-cached'
 import { executeToolCallsSmart } from '@/lib/ai/parallel-tool-executor'
 import { generateCompactSystemPrompt, filterDisabledFeatures, type AIFeatureConfig } from '@/lib/ai/prompt-templates'
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 
 // 读取 AI 功能配置
 async function getAIFeaturesConfig(): Promise<AIFeatureConfig | undefined> {

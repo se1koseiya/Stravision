@@ -161,8 +161,8 @@ export async function getAllUsers(): Promise<UserPublic[]> {
   return users.map(toPublicUser)
 }
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * 获取随机默认头像

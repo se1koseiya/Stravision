@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
   // Fix mermaid module resolution issues - works with both Turbopack and Webpack
   transpilePackages: ['mermaid'],
   // Mark server-only packages to prevent client-side bundling (moved from experimental in Next.js 16+)
-  serverExternalPackages: ['lightningcss', 'better-sqlite3', 'pg', 'bcryptjs'],
+  serverExternalPackages: ['lightningcss', 'better-sqlite3', 'pg', 'pg-connection-string', 'bcryptjs'],
   // Turbopack configuration (Next.js 16+)
   turbopack: {
     resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],

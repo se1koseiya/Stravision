@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { writeFile, mkdir } from "fs/promises"
-import { join, relative, sep } from "path"
+import { writeFile, mkdir } from "node:fs/promises"
+import { join, relative, sep } from "node:path"
 import { v4 as uuidv4 } from "uuid"
 import { getCurrentUser } from "@/lib/auth"
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { getCurrentUser } from '@/lib/auth'
 import { readProvidersConfig, resolveDefaultModelId } from '@/lib/ai/provider-resolver'
 import type { ProvidersConfig } from '@/app/api/admin/ai-providers/route'

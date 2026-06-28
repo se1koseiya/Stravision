@@ -2,8 +2,8 @@
  * 技能加载器 - 从不同来源加载技能
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Skill, SkillLoaderOptions } from './types';
 import { getUserInstalledSkills } from '../../db/skill-store-service';
 

@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 // import matter from 'gray-matter'; // 手工解析 Frontmatter 以减少依赖
 
 export interface Skill {

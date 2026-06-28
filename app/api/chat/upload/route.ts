@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { promises as fs } from "fs"
-import path from "path"
+import { promises as fs } from "node:fs"
+import path from "node:path"
 import { Buffer } from "buffer"
 
 export async function POST(req: Request) {

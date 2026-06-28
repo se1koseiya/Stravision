@@ -4,8 +4,8 @@
  * 根据模型 ID 或提供商 ID 解析出对应的 baseUrl、apiKey 等信息
  */
 
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import type { AIProvider, ProviderModel } from '@/app/api/admin/ai-providers/route'
 
 const CONFIG_PATH = path.join(process.cwd(), 'data', 'ai-providers-config.json')

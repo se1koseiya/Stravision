@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { getCurrentUser } from '@/lib/auth'
 
 const CONFIG_PATH = path.join(process.cwd(), 'data', 'ai-models-config.json')

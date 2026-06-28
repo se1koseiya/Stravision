@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // We will store the announcements in a simple JSON file for persistence without needing a DB setup.
 const dataFilePath = path.join(process.cwd(), 'data', 'announcements.json')
