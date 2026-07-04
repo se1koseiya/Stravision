@@ -220,7 +220,7 @@ export function Warning() {
                       >
                         {tab.label}
                         {isActive && (
-                          <motion.div layoutId="activeTabUnderline" className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-blue-600 rounded-full" />
+                          <motion.div layoutId="activeTabUnderline" className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-blue-600 rounded-full pointer-events-none" />
                         )}
                       </button>
                     )

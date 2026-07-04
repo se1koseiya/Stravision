@@ -152,7 +152,7 @@ export async function POST(req: Request) {
     const aiFeatures = await getAIFeaturesConfig()
     console.log('[Chat API] AI Features Config:', aiFeatures ? 'Loaded' : 'Using defaults')
     
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId } =
       await req.json()
 
     // 兼容前端传来的 deviceData 字段
@@ -256,7 +256,135 @@ export async function POST(req: Request) {
     } else {
       console.log('[Chat API] Skill routing cache miss - computed fresh');
     }
-    
+
+    // 知识库上下文注入策略（全部走 admin knowledgeConfig / 用户操作）：
+    //   1. lockedCollectionId 非空（来自 KB 详情页）：强制锁定到该 collection
+    //   2. 用户消息含 `/<collection name>` 指令：解析后锁定到该 collection
+    //   3. 任意 query（>2 字）自动检索用户个人+已订阅市场 KB（去掉原 8-500 长度门限）
+    //   4. 显式 `/<title>` 引用：把整个条目内容也拉取作为强上下文（兼容旧 @知识库:<title> 语法）
+    const slugMatch = lastUserText.match(/\/([^\s/][^\n\r]{0,80}?)(?=\s+(?:请|帮|我要|帮我|麻烦|能不能|可以吗|怎么|如何|，|。|？|！|,|\.|\?)|[\s\n]|$)/)
+    const explicitCollectionRef = slugMatch?.[1]?.trim()
+    // 显式条目引用支持两种语法：
+    //   1. /<title>          （新：通过 / 指令）
+    //   2. @知识库:<title>   （旧：保留兼容）
+    const refMatch = lastUserText.match(/\/([^\s/][^\n\r]{0,80}?)(?=\s+(?:请|帮|我要|帮我|麻烦|能不能|可以吗|怎么|如何|，|。|？|！|,|\.|\?)|[\s\n]|$)/)
+      || lastUserText.match(/@知识库[:：]\s*([^\n]+?)(?=\s*(?:\n|$|，|。|；|？|！|请|帮|我要|帮我|麻烦|能不能|可以吗|？|!|,|\.|\?))/m)
+      || lastUserText.match(/@知识库[:：]\s*([^\n]+?)(?:\s+(?:请|帮|我要|帮我|麻烦|能不能|可以吗|怎么|如何|，|。))/m)
+      || lastUserText.match(/@知识库[:：]\s*([^\n]+)/)
+    const explicitItemRef = refMatch?.[1]?.trim().replace(/[\s,，。；;！!？?]+$/, '').slice(0, 100)
+    const hasExplicitRef = !!explicitItemRef
+    // 触发条件：详情页强制锁定 OR 显式引用 OR 普通 query（>2 字就触发，去掉 8-500 门限）
+    const enableKnowledge = lockedCollectionId != null
+      || hasExplicitRef
+      || (lastUserText.trim().length > 2)
+
+    if (enableKnowledge && lastUserText) {
+      try {
+        const { getRelevantContext } = await import('@/lib/ai/knowledge-search')
+        // 提取真正的查询（去掉 /<name> 和 @知识库:<title> 前缀）
+        let cleanQuery = lastUserText
+          .replace(/\/[^\s/][^\n\r]{0,80}?(?=\s+(?:请|帮|我要|帮我|麻烦|能不能|可以吗|怎么|如何|，|。|？|！|,|\.|\?)|[\s\n]|$)/, '')
+          .replace(/@知识库[:：][^\n]+?(?=\s*(?:\n|$|，|。|；|？|！|请|帮|我要|帮我|麻烦|能不能|可以吗|？|!|,|\.|\?))/m, '')
+          .replace(/@知识库[:：][^\n]+/g, '')
+          .trim()
+        // 解析 locked collectionId 优先级：body 显式 > 消息内 /<name> 引用
+        let effectiveCollectionId: number | null = null
+        // 标记 /<name> 是否已成功锁定到某个 collection —— 成功时跳过条目级 "未找到" 警告，
+        // 否则同一段文本既是 collection 名又是 item title 的尝试，会注入自相矛盾的提示
+        let collectionResolved = false
+        if (typeof lockedCollectionId === "number" && Number.isFinite(lockedCollectionId)) {
+          effectiveCollectionId = lockedCollectionId
+          collectionResolved = true
+        } else if (explicitCollectionRef) {
+          // 只在「用户可访问」的 collection 范围内解析（个人 KB + 已订阅的市场 KB）。
+          // 旧实现先查 listMarketCollections（返回所有市场 KB，includeSubscribed 形同虚设），
+          // 一旦名称/描述模糊命中某个未订阅的市场 KB 就锁定到它，导致 getRelevantContext
+          // 因访问权限被过滤为空 → AI 拿不到任何知识库内容。
+          try {
+            const { listAvailableCollectionsForAI } = await import('@/lib/db/knowledge-service')
+            const available = await listAvailableCollectionsForAI(user.id, { limit: 200 })
+            // 精确 → 前缀 → 包含
+            const match = available.find(c => c.name === explicitCollectionRef)
+              || available.find(c => c.name.startsWith(explicitCollectionRef))
+              || available.find(c => c.name.includes(explicitCollectionRef))
+            if (match) {
+              effectiveCollectionId = match.id
+              collectionResolved = true
+            } else {
+              console.warn(`[Chat API] /<name> collection "${explicitCollectionRef}" not in user's accessible collections`)
+            }
+          } catch (e) {
+            console.warn('[Chat API] failed to resolve /<name> collection:', e)
+          }
+        }
+        // 用户只输入了 /<name> 没有附带问题时，cleanQuery 会为空。
+        // 用 collection 名作为兜底查询，至少能按标题/内容命中该 KB 内的条目，
+        // 而不是把 "/<name>" 原样塞进检索（旧逻辑会走 lastUserText 兜底）。
+        if (!cleanQuery) {
+          cleanQuery = explicitCollectionRef || explicitItemRef || lastUserText
+        }
+        const contexts = await getRelevantContext(user.id, cleanQuery, {
+          maxChunks: 4,
+          maxChunkLength: 600,
+          collectionId: effectiveCollectionId
+        })
+        if (contexts.length > 0) {
+          const ctxText = contexts.map((c, i) =>
+            `[${i + 1}] 《${c.itemTitle}》 (相关度 ${(c.score * 100).toFixed(0)}%)\n${c.content}`
+          ).join('\n\n---\n\n')
+          // 锁定到具体 KB 时，给 AI 更明确的指示：只回答与该 KB 相关的内容
+          const lockedHint = effectiveCollectionId != null
+            ? `\n**重要**：以上内容来自用户锁定的特定知识库，请仅基于该知识库的内容回答用户问题，不要混入其他来源。\n`
+            : ''
+          enhancedSystemPrompt += `\n\n## 知识库检索结果${effectiveCollectionId != null ? '（已锁定到用户指定的知识库）' : '（来自用户个人知识库与已订阅的市场知识库）'}\n\n${ctxText}\n\n${lockedHint}**使用说明**：以上是从用户知识库中检索到的相关内容，请优先基于这些信息回答用户问题，并在引用时标注来源条目名称。如果知识库内容与问题不相关，请明确告知用户。`
+          console.log(`[Chat API] Injected ${contexts.length} knowledge contexts${effectiveCollectionId != null ? ` (locked to collection ${effectiveCollectionId})` : ''}`)
+        }
+        // 显式 /<title> 或 @知识库:<title> 引用：把整个条目内容也拉取作为强上下文。
+        // 注意：当 /<name> 已成功锁定到 collection 时，不再注入条目级 "未找到" 警告 ——
+        // 否则 AI 会同时看到 collection 检索结果和 "《xxx》未找到" 的矛盾提示。
+        if (hasExplicitRef && explicitItemRef) {
+          try {
+            const { query } = await import('@/lib/db/database')
+            // 多策略查询：先精确匹配，再模糊匹配（虚拟订阅：market items 也可命中）
+            const rows = await query<any>(
+              `SELECT i.id, i.title, i.content, i.summary, i.content_type, i.file_url, i.embedding_status, i.tags_cache, i.user_id
+               FROM knowledge_items i
+               WHERE i.is_archived = 0
+                 AND (i.user_id = $1
+                      OR EXISTS (SELECT 1 FROM knowledge_market_subscriptions s
+                                 WHERE s.user_id = $1 AND s.collection_id = i.collection_id))
+                 AND (i.title = $2 OR i.title ILIKE $3)
+               ORDER BY
+                 CASE WHEN i.user_id = $1 THEN 0 ELSE 1 END,
+                 CASE WHEN i.title = $2 THEN 0 ELSE 1 END,
+                 i.updated_at DESC
+               LIMIT 3`,
+              [user.id, explicitItemRef, `%${explicitItemRef}%`]
+            )
+            if (rows.length > 0) {
+              const fullCtx = rows.map((r, i) => {
+                const embStatus = r.embedding_status || 'pending'
+                const content = (r.content || r.summary || '').slice(0, 2000)
+                const isOwn = r.user_id === user.id ? '' : '（来自订阅的知识库市场）'
+                return `[强引用 ${i + 1}] 《${r.title}》${isOwn} (${r.content_type}, embedding=${embStatus})\n${content}`
+              }).join('\n\n---\n\n')
+              enhancedSystemPrompt += `\n\n## 用户明确引用的知识条目\n\n${fullCtx}\n\n**重要**：用户明确引用了以上条目，回答时必须基于这些内容。`
+              console.log(`[Chat API] Injected ${rows.length} explicit /<title> or @知识库 references for "${explicitItemRef}"`)
+            } else if (!collectionResolved) {
+              // 仅当 /<name> 不是已锁定的 collection 名时才提示 "未找到条目"，
+              // 避免 collection 引用成功后还附加矛盾警告
+              console.warn(`[Chat API] explicit reference not found for title: "${explicitItemRef}"`)
+              enhancedSystemPrompt += `\n\n## 知识库引用\n\n用户尝试引用《${explicitItemRef}》但未在知识库中找到完全匹配的条目（已搜索用户自己的 + 已订阅的市场知识库）。请检查条目是否存在或名字是否正确。`
+            }
+          } catch (e) {
+            console.warn('[Chat API] knowledge explicit lookup failed:', e)
+          }
+        }
+      } catch (e) {
+        console.warn('[Chat API] knowledge context injection failed:', e)
+      }
+    }
+
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
     const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页"]
@@ -1555,12 +1683,15 @@ export async function POST(req: Request) {
           } catch (err: any) {
             clearInterval(keepAlive)
             console.error('[Agent Loop Error]', err)
-            
+
             // 清理编排器
             globalOrchestratorManager.unregister(sessionId);
             orchestrator.cleanup();
-            
-            controller.enqueue(encoder.encode(`data: {"error": "Agent loop error: ${err.message}"}\n\n`))
+
+            // 与 chat API 非流式错误的格式保持一致：`AI API Error: <code> - <details>`，
+            // 避免在 SSE 里塞一个仅前端可见的 "Agent loop error: ..." 私有字段名。
+            const errMsg = err instanceof Error ? err.message : String(err)
+            controller.enqueue(encoder.encode(`data: {"error": ${JSON.stringify(`AI API Error: ${errMsg}`)}}\n\n`))
             controller.close()
           }
         }
@@ -1599,9 +1730,13 @@ export async function POST(req: Request) {
     })
 
     if (!response.ok) {
-      console.error(`[Chat API] Error from AI provider: ${response.status}`, await response.text().catch(() => ''))
+      // 与项目里其它上游 AI 路由（automation/generate、ai/generate-schedule、citations 等）
+      // 的错误风格保持一致：`AI API Error: <code> - <details>`，避免单独发明 `API Error: <code>` 这种格式。
+      const upstreamBody = await response.text().catch(() => '')
+      const errPayload = { error: `AI API Error: ${response.status}${upstreamBody ? ` - ${upstreamBody}` : ''}` }
+      console.error(`[Chat API] Error from AI provider: ${response.status}`, upstreamBody)
       return new Response(
-        JSON.stringify({ error: `API Error: ${response.status}` }),
+        JSON.stringify(errPayload),
         { status: response.status, headers: { 'Content-Type': 'application/json' } }
       )
     }

@@ -15,7 +15,7 @@ import {
 } from "@ant-design/icons"
 import {
   Brain, Globe, Zap, FileText, Activity, ShieldCheck, ShieldAlert, Shield,
-  Plus, ChevronDown, Check, ArrowRight, LayoutGrid,
+  Plus, ChevronDown, Check, ArrowRight, LayoutGrid, BookOpen, Library
 } from "lucide-react"
 import type { GetProp } from "antd/es/config-provider/context"
 import type { FlexProps } from "antd"
@@ -102,6 +102,33 @@ export function ChatSenderInput({
   const [approvalPanelOpen, setApprovalPanelOpen] = useState(false)
   const [pluginSubOpen, setPluginSubOpen] = useState(false)
 
+  // 知识库集合（个人 + 市场）— 用于 / 命令补全
+  const [kbCollections, setKbCollections] = useState<Array<{ id: number; name: string; source: "personal" | "market"; official?: number }>>([])
+
+  // 拉取个人 KB 集合 + AI 可访问的市场 KB 集合
+  useEffect(() => {
+    let aborted = false
+    ;(async () => {
+      try {
+        const [personalRes, aiRes] = await Promise.all([
+          fetch("/api/knowledge/collections?includeArchived=0").then(r => r.ok ? r.json() : { items: [] }).catch(() => ({ items: [] })),
+          fetch("/api/knowledge/market/ai-collections?limit=200").then(r => r.ok ? r.json() : { list: [] }).catch(() => ({ list: [] }))
+        ])
+        if (aborted) return
+        const personal: Array<{ id: number; name: string; source: "personal" | "market"; official?: number }> = (personalRes?.items || [])
+          .filter((c: any) => c && c.name)
+          .map((c: any) => ({ id: c.id, name: c.name, source: "personal" as const }))
+        const market: Array<{ id: number; name: string; source: "personal" | "market"; official?: number }> = (aiRes?.list || [])
+          .filter((c: any) => c && c.name)
+          .map((c: any) => ({ id: c.id, name: c.name, source: "market" as const, official: c.official }))
+        setKbCollections([...personal, ...market])
+      } catch {
+        // 静默失败，slash 菜单只显示 4 个默认指令
+      }
+    })()
+    return () => { aborted = true }
+  }, [])
+
   // Convert ChatAttachment[] to Attachments items format
   const attachmentItems: AttachmentsProps["items"] = useMemo(
     () =>
@@ -165,12 +192,30 @@ export function ChatSenderInput({
     return () => window.removeEventListener('berry:mention-tool', handler)
   }, [availableTools, insertToolTag])
 
-  const slashItems: SuggestionItems = useMemo(() => [
-    { label: "生成报告", value: "/report", icon: <FileText size={14} className="text-[#1677ff]" /> },
-    { label: "环境诊断", value: "/diagnose", icon: <Activity size={14} className="text-[#1677ff]" /> },
-    { label: "深度推理", value: "/reason", icon: <Brain size={14} className="text-[#1677ff]" /> },
-    { label: "全网检索", value: "/search", icon: <Globe size={14} className="text-[#1677ff]" /> },
-  ], [])
+  const slashItems: SuggestionItems = useMemo(() => {
+    const base: SuggestionItems = [
+      { label: "生成报告", value: "/report", icon: <FileText size={14} className="text-[#1677ff]" /> },
+      { label: "环境诊断", value: "/diagnose", icon: <Activity size={14} className="text-[#1677ff]" /> },
+      { label: "深度推理", value: "/reason", icon: <Brain size={14} className="text-[#1677ff]" /> },
+      { label: "全网检索", value: "/search", icon: <Globe size={14} className="text-[#1677ff]" /> },
+    ]
+    if (kbCollections.length === 0) return base
+    const kbItems: SuggestionItems = kbCollections.slice(0, 20).map(c => {
+      const tag = c.source === "personal" ? "个人"
+        : c.official === 1 ? "官方"
+        : "市场"
+      return {
+        label: `[${tag}] ${c.name}`,
+        value: `/${c.name}`,
+        icon: c.source === "personal"
+          ? <BookOpen size={14} className="text-emerald-600" />
+          : c.official === 1
+            ? <ShieldCheck size={14} className="text-[#1677ff]" />
+            : <Library size={14} className="text-[#722ed1]" />
+      }
+    })
+    return [...base, ...kbItems]
+  }, [kbCollections])
 
   const senderHeader = useMemo(
     () => (

@@ -1,0 +1,1067 @@
+﻿<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office'
+      xmlns:w='urn:schemas-microsoft-com:office:word'
+      xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+    <meta http-equiv="Content-Type" content="application/msword; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宁波城市职业技术学院_基于无人机TOF传感器的植物工厂自主测绘系统设计_2026年04月10日17时10分23秒</title>
+    <!--[if gte mso 9]>
+    <xml>
+    <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+    <w:DisplayBackgroundShape/>
+    </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style type="text/css">
+        body.c-word--body {
+            padding: 0;
+            margin: 0;
+            font-family: "Microsoft YaHei", SimHei, SimSun, "Times New Roman", Georgia, Serif;
+        }
+
+        .c-word--empty {
+            text-align: center;
+            font-size: 24px;
+            color: #ddd;
+            padding: 60px 20px;
+        }
+
+        .c-word--title {
+            padding: 9pt 1pt;
+            margin: 0;
+            text-align: center;
+        }
+
+        table.table {
+            width: 100%;
+            margin: 3pt auto;
+            border-collapse: collapse;
+            border-spacing: 1pt;
+        }
+
+        table.table-border {
+            border-collapse: collapse;
+        }
+
+            table.table-border tr th {
+                border: solid windowtext 1pt;
+                border-color: #000;
+                border-width: 1pt;
+            }
+
+            table.table-border tr td {
+                border: solid windowtext 1pt;
+                border-color: #000;
+                border-width: 1pt;
+            }
+
+        .text-center {
+            text-align: center;
+        }
+    </style>
+    
+    <link href="http://114.220.75.43:98/assets/dist/css/Areas/Item/Declare/ExportWord.css" rel="stylesheet" />
+
+    
+    <style>
+    p.MsoFooter, li.MsoFooter, div.MsoFooter {
+        margin: 0in;
+        margin-bottom: 0.001pt;
+        mso-pagination: widow-orphan;
+        tab-stops: center 3.0in right 6.0in;
+        font-size: 12.0pt;
+        font-family: 等线, 宋体,华文细黑,'Microsoft YaHei',仿宋, 黑体;
+    }
+
+    <!-- /* Style Definitions */
+    @page Section1 {
+        size: 8.5in 11.0in;
+        margin: 1.0in 1.0in 1.0in 1.0in;
+        mso-header-margin: 0.5in;
+        mso-footer-margin: 0.5in;
+        mso-title-page: yes;
+        mso-header: page-info-container--header;
+        mso-even-header: page-info-container--header-;
+        mso-footer: page-info-container--footer;
+        mso-first-header: page-info-container--header-;
+        mso-first-footer: page-info-container--footer;
+        mso-paper-source: 0;
+    }
+
+    div.Section1 {
+        page: Section1;
+    }
+
+    table#page-info-container {
+        margin: 0in 0in 0in 900in;
+        width: 0px;
+        height: 0px;
+        overflow: hidden;
+    }
+    -->
+</style>
+
+</head>
+<body class="c-word--body">
+    <div>
+        
+
+
+        <div class="Section1">
+            <div class="single-page">
+                <div class="word-title1">
+                    <div>大学生创新训练项目计划申请书</div>
+                </div>
+                <div class="word-userinfo-container" style="text-align:center;">
+                    <table class="word-userinfo">
+                        <tbody>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">项目编号</td>
+                                <td colspan="7" class="c-cell-value">
+                                    S202512645010
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">项目名称</td>
+                                <td colspan="7" class="c-cell-value">
+                                    基于无人机TOF传感器的植物工厂自主测绘系统设计
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">项目负责人</td>
+                                <td colspan="3" class="c-cell-value">
+                                    朱里洲
+                                </td>
+                                <td style="width:20%;" class="c-cell-title">联系电话</td>
+                                <td colspan="3" class="c-cell-value">
+                                    18367734442
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">所在学院</td>
+                                <td colspan="7" class="c-cell-value">
+                                    信息与智能工程学院
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">学号</td>
+                                <td colspan="3" class="c-cell-value">
+                                    243030545
+                                </td>
+                                <td style="width:20%;" class="c-cell-title">专业班级</td>
+                                <td colspan="3" class="c-cell-value">
+                                    24网络B
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">指导教师</td>
+                                <td colspan="7" class="c-cell-value">
+                                    葛科奇(15616914@qq.com)
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">申请日期</td>
+                                <td colspan="7" class="c-cell-value">
+                                    2025年6月12日
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:22%;" class="c-cell-title">起止年月</td>
+                                <td colspan="7" class="c-cell-value">
+                                            <span> 2025年6月至2026年6月</span>
+
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin:80pt 0 6pt;font-family:黑体,华文细黑;font-size:15.0pt;text-align:center;">
+                    宁波城市职业技术学院
+                </div>
+            </div>
+            <br clear="all" style="page-break-before:always;" />
+            <div class="single-page">
+                <div class="word-abstract">
+                    <div class="word-abstract-title" style="margin-top:32pt;margin-bottom:32pt;font-weight:600;text-align:center;font-size:18.0pt;font-family:宋体;">
+                        填写说明
+                    </div>
+                    <div class="word-abstract-content" style="margin-top:32pt;">
+                        <ol style="font-family:仿宋,宋体;font-size:15pt;line-height:32pt;">
+                            <li>本申请书所列各项内容均须实事求是，认真填写，表达明确严谨，简明扼要。</li>
+                            <li>申请人可以是个人，也可为创新团队，首页只填负责人。“项目编号”一栏不填。</li>
+                            <li>本申请书为大16开本（A4），左侧装订成册。可网上下载、自行复印或加页，但格式、内容、大小均须与原件一致。</li>
+                            <li>负责人所在学院认真审核, 经初评和答辩，签署意见后，将申请书（一式两份）报送宁波城市职业技术学院项目管理办公室。</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <br clear="all" style="page-break-before:always;" />
+            <div class="single-page">
+                <!--  一、	基本情况 开始-->
+                <div class="c-base-info">
+                    <h4 class="c-base-info-title">
+                        一、	基本情况
+                    </h4>
+                    <div class="c-base-info-content">
+                        <table class="c-base-info-table">
+                            <tbody>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">项目名称</td>
+                                    <td colspan="9" class="c-cell-value">
+                                        基于无人机TOF传感器的植物工厂自主测绘系统设计
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">项目级别</td>
+                                    <td colspan="9" class="c-cell-value">
+                                        省级
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">项目类型</td>
+                                    <td colspan="9" class="c-cell-value">
+                                        创新训练项目
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">所属学科</td>
+                                    <td colspan="9" class="c-cell-value">
+                                        <div class="c-cell-content">
+                                            <span>
+                                                <span class="c-title">学科一级门：</span>
+                                                <span class="c-value">工学</span>
+                                            </span>
+                                            <span>&nbsp;</span>
+                                            <span>
+                                                <span class="c-title">学科二级类：</span>
+                                                <span class="c-value">自动化类</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">申请金额</td>
+                                    <td class="c-cell-value" colspan="2" style="width:16%;">
+                                                <span>5000.00</span>
+
+                                        <span> 元</span>
+                                    </td>
+                                    <td class="c-cell-title" colspan="2" style="width:16%;">起止年月</td>
+                                    <td class="c-cell-value" colspan="5" style="width:60%;">
+                                                <span>2025年6月至2026年6月</span>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">负责人</td>
+                                    <td class="c-cell-value" colspan="1" style="width:10%;">
+                                        朱里洲
+                                    </td>
+                                    <td style="width:8%;" class="c-cell-title">性别</td>
+                                    <td class="c-cell-value" colspan="1" style="width:8%;">
+                                        男
+                                    </td>
+                                    <td style="width:8%;" class="c-cell-title">民族</td>
+                                    <td class="c-cell-value" colspan="2">
+                                        汉族
+                                    </td>
+                                    <td style="width:8%;" class="c-cell-title">出生年月</td>
+                                    <td class="c-cell-value" colspan="2" style="text-align:center;">
+                                                <span>&nbsp;年&nbsp;月</span>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:8%;" class="c-cell-title">学号</td>
+                                    <td colspan="1" class="c-cell-value" style="width:20%;">
+                                        243030545
+                                    </td>
+                                    <td style="width:5%;" class="c-cell-title">联系电话</td>
+                                    <td colspan="7" class="c-cell-value" style="width:65%;">
+                                        <div class="c-cell-content">
+                                            <span>
+                                                <span class="c-title">宅：</span>
+                                                <span class="c-value"></span>
+                                            </span>
+                                            <span>
+                                                <span class="c-title">手机：</span>
+                                                <span class="c-value">18367734442</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                            <tr>
+                                                <td style="width:8%;" class="c-cell-title">指导教师</td>
+                                                <td colspan="1" class="c-cell-value" style="width:20%;">
+                                                    葛科奇
+                                                </td>
+                                                <td style="width:5%;" class="c-cell-title">联系电话</td>
+                                                <td colspan="7" class="c-cell-value" style="width:65%;">
+                                                    <div class="c-cell-content">
+                                                        <span>
+                                                            <span class="c-title">宅：</span>
+                                                            <span class="c-value">13958206345</span>
+                                                        </span>
+                                                        <span>
+                                                            <span class="c-title">手机：</span>
+                                                            <span class="c-value">13958206345</span>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                <tr>
+                                    <td style="width:16%;text-align:left;" class="c-cell-title" colspan="2">项目简介</td>
+                                    <td class="c-cell-value" colspan="8" style="width:84%;">
+                                        <div class="c-cell-content">
+                                            本项目围绕植物工厂精准化管理需求，设计基于无人机TOF传感器的自主测绘系统。项目创新性地采用ESP32单片机作为主控，结合MicroPython语言实现低成本、高精度的三维建模与环境监测。系统可实现全区域、多维度的实时监测，应用于植物工厂作物生长参数采集、环境状态分析以及精准施肥等多场景，助力智慧农业发展。
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:16%;text-align:left;" class="c-cell-title" colspan="2">负责人曾经参与科研的情况</td>
+                                    <td class="c-cell-value" colspan="8" style="width:84%;">
+                                        <div class="c-cell-content">
+                                            <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">在参与省“智能飞行器应用技术”赛项中，主持研发了无人机控制系统，对无人机的控制相关知识进行了深入的学习，能使用</span><span style="font-size:12.0pt;">python</span><span style="font-size:12.0pt; font-family:宋体;">语言进行</span><span style="font-size:12.0pt;">AI</span><span style="font-size:12.0pt; font-family:宋体;">大模型在无人机相关领域的应用。</span><span style="font-size:12.0pt;"></span></p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:16%;text-align:left;" class="c-cell-title" colspan="2">指导教师承担科研课题情况</td>
+                                    <td class="c-cell-value" colspan="8" style="width:84%;">
+                                        <div class="c-cell-content">
+                                            <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">完成多个软件著作权，发表多篇核心论文</span><span style="font-size:12.0pt;"></span></p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:16%;text-align:left;" class="c-cell-title" colspan="2">指导教师对本项目的支持情况</td>
+                                    <td class="c-cell-value" colspan="8" style="width:84%;">
+                                        <div class="c-cell-content">
+                                            <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">提供项目指导，部分经费支持。</span><span style="font-size:12.0pt;"></span></p>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="width:5%;" class="c-cell-title" rowspan="6">项目组主要成员</td>
+                                    <td class="c-cell-title" style="width:5%;">姓名</td>
+                                    <td class="c-cell-title" style="width:15%;">学号</td>
+                                    <td class="c-cell-title" style="width:16%;">专业班级</td>
+                                    <td class="c-cell-title" style="width:16%;">所在学院</td>
+                                    <td class="c-cell-title" colspan="5" style="width:43%;">项目中的分工</td>
+                                </tr>
+                                        <tr class="c-liststudent-tr">
+                                            <td class="c-cell-value">
+                                                朱里洲
+                                            </td>
+                                            <td class="c-cell-value">
+                                                243030545
+                                            </td>
+                                            <td class="c-cell-value">
+                                                24网络B
+                                            </td>
+                                            <td class="c-cell-value">
+                                                信息与智能工程学院
+                                            </td>
+                                            <td class="c-cell-value" colspan="5">
+                                                前端框架机器主控开发
+                                            </td>
+                                        </tr>
+                                        <tr class="c-liststudent-tr">
+                                            <td class="c-cell-value">
+                                                李越
+                                            </td>
+                                            <td class="c-cell-value">
+                                                243030522
+                                            </td>
+                                            <td class="c-cell-value">
+                                                24网络B
+                                            </td>
+                                            <td class="c-cell-value">
+                                                信息与智能工程学院
+                                            </td>
+                                            <td class="c-cell-value" colspan="5">
+                                                软件算法开发
+                                            </td>
+                                        </tr>
+                                        <tr class="c-liststudent-tr">
+                                            <td class="c-cell-value">
+                                                王玲芝
+                                            </td>
+                                            <td class="c-cell-value">
+                                                243030533
+                                            </td>
+                                            <td class="c-cell-value">
+                                                24网络B
+                                            </td>
+                                            <td class="c-cell-value">
+                                                信息与智能工程学院
+                                            </td>
+                                            <td class="c-cell-value" colspan="5">
+                                                软件gui设计
+                                            </td>
+                                        </tr>
+                                        <tr class="c-liststudent-tr">
+                                            <td class="c-cell-value">
+                                                陆安强
+                                            </td>
+                                            <td class="c-cell-value">
+                                                243030524
+                                            </td>
+                                            <td class="c-cell-value">
+                                                24网络B
+                                            </td>
+                                            <td class="c-cell-value">
+                                                信息与智能工程学院
+                                            </td>
+                                            <td class="c-cell-value" colspan="5">
+                                                大数据智能模型训练
+                                            </td>
+                                        </tr>
+                                        <tr class="c-liststudent-tr">
+                                            <td class="c-cell-value">
+                                                董靖
+                                            </td>
+                                            <td class="c-cell-value">
+                                                243030504
+                                            </td>
+                                            <td class="c-cell-value">
+                                                24网络B
+                                            </td>
+                                            <td class="c-cell-value">
+                                                信息与智能工程学院
+                                            </td>
+                                            <td class="c-cell-value" colspan="5">
+                                                软硬件测试
+                                            </td>
+                                        </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!--  一、	基本情况 结束-->
+                <!--  二、	立项依据（可加页） 开始-->
+                <div class="c-base-info">
+                    <h4 class="c-base-info-title">
+                        二、	立项依据（可加页）
+                    </h4>
+                    <div class="c-base-info-content">
+                        <table class="c-lxyj-table">
+                            <tr>
+                                <td>
+                                                                        <div class="c-lxyj">
+                                                                            <h4 class="c-lxyj-title">
+                                                                                （一）研究目的
+                                                                            </h4>
+                                                                            <div class="c-lxyj-content">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1. </span><span style="font-size:12.0pt; font-family:宋体;">响应国家战略需求<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">紧扣国家“低空经济”与“农业新质生产力”政策，推动无人机技术在智慧农业领域的深度应用，填补植物工厂智能化管理技术的空白。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">2. </span><span style="font-size:12.0pt; font-family:宋体;">解决行业技术瓶颈<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">传统植物工厂依赖人工巡检或固定传感器网络，存在监测盲区多、数据维度单一、响应速度慢等问题。本项目通过自主测绘系统实现全区域、多维度、实时动态监测，有效提升管理效率。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">3. </span><span style="font-size:12.0pt; font-family:宋体;">降低应用门槛<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">基于低成本硬件设计和开源软件开发，降低中小型植物工厂的技术准入门槛，为智慧农业的普及化提供高性价比解决方案。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">4. </span><span style="font-size:12.0pt; font-family:宋体;">推动产业转型升级<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">项目的实施预计能使植物工厂的管理效率提升<span>40%</span>，资源浪费减少<span>25%</span>，为农业数字化转型提供技术支持，助力我国农业科技走向国际前沿。<span></span></span></p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="c-lxyj">
+                                                                            <h4 class="c-lxyj-title">
+                                                                                （二）研究内容
+                                                                            </h4>
+                                                                            <div class="c-lxyj-content">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1. </span><span style="font-size:12.0pt; font-family:宋体;">硬件开发<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">传感器适配与标定：优化<span>TOF</span>传感器的测距精度，研究复杂环境下的信号衰减规律；开发适应植物工厂多层架结构的动态标定方法。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">通信与续航优化：设计基于<span>ESP32</span>的低功耗通信方案，利用深度休眠模式实现单次续航时间提升至<span>0.5</span>小时以上。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">2. </span><span style="font-size:12.0pt; font-family:宋体;">软件算法研发<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">SLAM</span><span style="font-size:12.0pt; font-family:宋体;">与导航算法：开发轻量化同步定位与建图算法，实现无<span>GPS</span>环境下的厘米级定位；优化飞行路径规划与避障算法，适应复杂植被环境。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">数据融合与建模：集成<span>TOF</span>点云、多光谱影像及温湿度数据，构建作物三维生长模型；开发生长趋势预测与异常检测算法，提升环境监控的智能化水平。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">3. </span><span style="font-size:12.0pt; font-family:宋体;">系统集成与验证<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">实验验证：在模拟植物工厂环境中，测试系统的测绘精度、避障性能及数据回传稳定性。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">场景化应用：结合实际植物工厂需求，开展示范应用，验证系统在精准施肥、病虫害监测等场景下的适用性。<span></span></span></p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="c-lxyj">
+                                                                            <h4 class="c-lxyj-title">
+                                                                                （三）国、内外研究现状和发展动态
+                                                                            </h4>
+                                                                            <div class="c-lxyj-content">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1.</span><span style="font-size:12.0pt; font-family:宋体;">国内研究现状<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">技术应用：国内农业无人机已在大田作物监测、病虫害防控等场景广泛应用，但在封闭环境的植物工厂中仍处于探索阶段，缺乏成熟的自主测绘方案。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">政策支持：<span>2025</span>年中央一号文件明确提出“农业新质生产力”战略，强调智慧农业与无人机技术的深度融合。多地政府相继出台低空经济专项政策，推动无人机技术在农业领域的产业化。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">技术瓶颈：<span>TOF</span>传感器在密集植被环境中的信号干扰问题尚未完全解决，低成本嵌入式系统在实时数据处理和建模中的应用仍需深入研究。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">2.</span><span style="font-size:12.0pt; font-family:宋体;">国外研究动态<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">精准农业：欧美国家在多光谱成像与<span>LiDAR</span>测绘领域处于领先地位，但设备成本高、技术门槛高，难以普及到小型农业场景。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">植物工厂创新：日本和荷兰的垂直农场开始试验无人机巡检技术，但主要集中于病虫害检测，未能广泛应用于环境测绘。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">技术趋势：边缘计算与传感器融合技术的快速发展，为植物工厂的智能化测绘系统提供了新的解决路径。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">3.</span><span style="font-size:12.0pt; font-family:宋体;">发展动态<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">硬件微型化：<span>TOF</span>传感器的成本与体积逐年下降，为无人机小型化与低成本化提供了支持。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">算法开源化：国际开源社区不断发布<span>SLAM</span>、数据融合等相关算法，加速了技术普及。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">政策与资本驱动：国内外资本积极布局农业无人机市场，预计到<span>2025</span>年，全球农业无人机市场规模将突破<span>200</span>亿美元。<span></span></span></p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="c-lxyj">
+                                                                            <h4 class="c-lxyj-title">
+                                                                                （四）创新点与项目特色
+                                                                            </h4>
+                                                                            <div class="c-lxyj-content">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">创新点：<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1.</span><span style="font-size:12.0pt; font-family:宋体;">设计基于<span>ESP32</span>的低成本自主测绘系统，集成<span>TOF</span>与<span>SLAM</span>算法，满足植物工厂封闭环境的测绘需求。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">2.</span><span style="font-size:12.0pt; font-family:宋体;">提出多源数据融合算法，结合点云建模与多光谱影像，提供作物健康监测与异常识别的智能化解决方案。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">3.</span><span style="font-size:12.0pt; font-family:宋体;">采用轻量化设计与开源开发，降低技术门槛，填补小型植物工厂智能化管理的技术空白。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">项目特色：<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1.</span><span style="font-size:12.0pt; font-family:宋体;">高性价比：硬件设计采用<span>ESP32</span>与低成本<span>TOF</span>传感器，兼具高精度与经济性。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">2.</span><span style="font-size:12.0pt; font-family:宋体;">可扩展性：模块化硬件接口支持多种传感器快速集成，适配不同场景需求。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">3.</span><span style="font-size:12.0pt; font-family:宋体;">实时性与智能化：结合<span>SLAM</span>与深度学习模型，实现实时避障、环境监测与决策支持。<span></span></span></p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="c-lxyj">
+                                                                            <h4 class="c-lxyj-title">
+                                                                                （五）技术路线、拟解决的问题及预期成果
+                                                                            </h4>
+                                                                            <div class="c-lxyj-content">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">(1)</span><span style="font-size:12.0pt; font-family:宋体;">技术路线<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">本项目以低空经济和农业新质生产力政策为导向，围绕植物工厂高精度环境测绘需求，构建基于<span>TOF</span>传感器和<span>ESP32</span>主控的无人机自主测绘系统，技术路线分为以下四阶段：硬件架构设计、软件算法开发、系统集成与验证、应用场景拓展。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">(2)</span><span style="font-size:12.0pt; font-family:宋体;">拟解决的关键问题<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1.</span><span style="font-size:12.0pt; font-family:宋体;">复杂环境下<span>TOF</span>信号干扰与建模精度问题；<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">2.</span><span style="font-size:12.0pt; font-family:宋体;">多源数据融合及时空对齐难题<span>;</span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">3.</span><span style="font-size:12.0pt; font-family:宋体;">低功耗与实时性兼顾的性能优化<span>;</span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">(3)</span><span style="font-size:12.0pt; font-family:宋体;">预期成果<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">技术成果：轻量化自主测绘系统原型、开源代码库。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">应用成果：作物生长周期监测误差≤<span>5%</span>，资源利用率提升<span>30%</span>。<span></span></span></p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="c-lxyj">
+                                                                            <h4 class="c-lxyj-title">
+                                                                                （六）项目研究进度安排
+                                                                            </h4>
+                                                                            <div class="c-lxyj-content">
+                                                                                <h4><strong><span style="font-family:宋体;">进度安排</span></strong><strong><span style="font-family:" calibri="" light",sans-serif;="" font-weight:normal;"=""></span></strong></h4>
+
+<p class="MsoNormal"><span>&nbsp;</span></p>
+
+<table class="1" border="1" style="border-collapse:collapse; border:none;">
+ <tbody><tr style="">
+  <td width="65" valign="top" style="width:48.45pt; border:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal" style="text-align:center;"><span style="font-size:12.0pt; font-family:宋体;">阶段<span></span></span></p>
+  </td>
+  <td width="93" valign="top" style="width:69.8pt; border:solid #BFBFBF 1.0pt; border-left:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal" style="text-align:center;"><span style="font-size:12.0pt; font-family:宋体;">时间节点<span></span></span></p>
+  </td>
+  <td width="266" valign="top" style="width:199.6pt; border:solid #BFBFBF 1.0pt; border-left:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal" style="text-align:center;"><span style="font-size:12.0pt; font-family:宋体;">关键任务<span></span></span></p>
+  </td>
+  <td width="142" valign="top" style="width:106.65pt; border:solid #BFBFBF 1.0pt; border-left:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal" style="text-align:center;"><span style="font-size:12.0pt; font-family:宋体;">交付成果<span></span></span></p>
+  </td>
+ </tr>
+ <tr style="">
+  <td width="65" valign="top" style="width:48.45pt; border:solid #BFBFBF 1.0pt; border-top:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal" style="text-align:left;"><strong><span style="font-size:12.0pt; font-family:宋体;">硬件设计与开发</span></strong><span style="font-size:12.0pt; font-family:宋体;"></span></p>
+  </td>
+  <td width="93" valign="top" style="width:69.8pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">2025.06-2025.09</span></p>
+  </td>
+  <td width="266" valign="top" style="width:199.6pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">完成<span>TOF</span>传感器选型、<span>ESP32</span>主控板电路设计及通信模块集成<span></span></span></p>
+  </td>
+  <td width="142" valign="top" style="width:106.65pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">硬件原型机<span>1</span>台，通信测试报告<span>1</span>份<span></span></span></p>
+  </td>
+ </tr>
+ <tr style="">
+  <td width="65" valign="top" style="width:48.45pt; border:solid #BFBFBF 1.0pt; border-top:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><strong><span style="font-size:12.0pt; font-family:宋体;">算法开发与仿真</span></strong><span style="font-size:12.0pt; font-family:宋体;"></span></p>
+  </td>
+  <td width="93" valign="top" style="width:69.8pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">2025.10-2026.01</span></p>
+  </td>
+  <td width="266" valign="top" style="width:199.6pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">开发<span>SLAM</span>导航算法、多源数据融合模型，并在<span>ROS</span>仿真环境中验证性能<span></span></span></p>
+  </td>
+  <td width="142" valign="top" style="width:106.65pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">算法代码库<span>1</span>套，仿真测试报告<span>1</span>份<span></span></span></p>
+  </td>
+ </tr>
+ <tr style="">
+  <td width="65" valign="top" style="width:48.45pt; border:solid #BFBFBF 1.0pt; border-top:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><strong><span style="font-size:12.0pt; font-family:宋体;">系统集成与测试</span></strong><span style="font-size:12.0pt; font-family:宋体;"></span></p>
+  </td>
+  <td width="93" valign="top" style="width:69.8pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">2026.02-2026.06</span></p>
+  </td>
+  <td width="266" valign="top" style="width:199.6pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">在模拟植物工厂环境中完成避障、测绘及能耗测试，优化系统稳定性<span></span></span></p>
+  </td>
+  <td width="142" valign="top" style="width:106.65pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">测试数据集<span>1</span>套，优化版原型机<span>1</span>台<span></span></span></p>
+  </td>
+ </tr>
+ <tr style="">
+  <td width="65" valign="top" style="width:48.45pt; border:solid #BFBFBF 1.0pt; border-top:none; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><strong><span style="font-size:12.0pt; font-family:宋体;">应用示范与推广</span></strong><span style="font-size:12.0pt; font-family:宋体;"></span></p>
+  </td>
+  <td width="93" valign="top" style="width:69.8pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">2026.07-2026.12</span></p>
+  </td>
+  <td width="266" valign="top" style="width:199.6pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">与合作农业企业开展田间试验，生成标准化技术方案<span></span></span></p>
+  </td>
+  <td width="142" valign="top" style="width:106.65pt; border-top:none; border-left:none; border-bottom:solid #BFBFBF 1.0pt; border-right:solid #BFBFBF 1.0pt; padding:0cm 5.4pt 0cm 5.4pt;">
+  <p class="MsoNormal"><span style="font-size:12.0pt; font-family:宋体;">应用案例报告<span>1</span>份，技术白皮书<span>1</span>份<span></span></span></p>
+  </td>
+ </tr>
+</tbody></table>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm;"><span style="font-size:12.0pt; font-family:宋体;">&nbsp;</span></p>
+                                                                            </div>
+                                                                        </div>
+                                                        <div class="c-lxyj">
+                                                            <h4 class="c-lxyj-title">
+                                                                （七）已有基础
+                                                            </h4>
+                                                            <div class="c-lxyj-content">
+                                                                        <div class="c-lxyj-sub">
+                                                                            <div class="c-lxyj-sub-title">1.与本项目有关的研究积累和已取得的成绩</div>
+                                                                            <div class="c-lxyj-sub-contet">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">1. </span><span style="font-size:12.0pt; font-family:宋体;">研究积累与已有成绩<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">无人机平台开发经验：团队曾参与智能飞行器在智慧农业中的相关项目，掌握多旋翼无人机控制算法及传感器集成技术。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">TOF</span><span style="font-size:12.0pt; font-family:宋体;">技术研究：使用了多款<span>TOF</span>传感器，对各类型<span>TOF</span>传感器有了深厚的使用经验。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">植物工厂数据模型：曾使用过<span>YOLO</span>等多款<span>AI</span>模型。<span></span></span></p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="c-lxyj-sub">
+                                                                            <div class="c-lxyj-sub-title">2.已具备的条件，尚缺少的条件及解决方法</div>
+                                                                            <div class="c-lxyj-sub-contet">
+                                                                                <p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">已具备条件：<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">硬件：<span>ESP32</span>开发板<span>10</span>套、<span>VL53L5CX</span>传感器<span>5</span>组、无人机飞行平台多台。<span></span></span></p>
+
+<p class="MsoNormal" style="margin-top:6.0pt; margin-right:0cm; margin-bottom:6.0pt; margin-left:0cm; text-indent:24.0pt;"><span style="font-size:12.0pt; font-family:宋体;">软件：相关<span>AI</span>视觉等开发配套软件，开源<span>SLAM</span>算法库（<span>MicroSLAM</span>）。<span></span></span></p>
+
+<span style="font-size:12.0pt; font-family:宋体;">植物工厂试验场地：尚未接入规模化种植基地，在国家“乡村振兴”政策的号召下拟通过对接农业企业达到实验环境条件。</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                            </div>
+                                                        </div>
+
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <!--  二、	立项依据（可加页） 结束-->
+                <!--  三、	经费预算 开始-->
+                <div class="c-base-info">
+                    <h4 class="c-base-info-title">
+                        三、	经费预算
+                    </h4>
+                    <div class="c-base-info-content">
+                        <table class="c-jfys-table">
+                            <thead>
+                                <tr class="text-center">
+                                    <th rowspan="2">
+                                        开支科目
+                                    </th>
+                                    <th rowspan="2">
+                                        预算经费（元）
+                                    </th>
+                                    <th rowspan="2">
+                                        主要用途
+                                    </th>
+                                    <th colspan="2">
+                                        阶段下达经费计划（元）
+                                    </th>
+                                </tr>
+                                <tr class="text-center">
+                                    <th>前半阶段</th>
+                                    <th>后半阶段</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    预算经费总额
+                                                </td>
+                                                <td class="text-center">
+                                                    5000.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    2500.00
+                                                </td>
+                                                <td class="text-center">
+                                                    2500.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    1. 业务费
+                                                </td>
+                                                <td class="text-center">
+                                                    2000.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    1000.00
+                                                </td>
+                                                <td class="text-center">
+                                                    1000.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    （1）计算、分析、测试费
+                                                </td>
+                                                <td class="text-center">
+                                                    2000.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    1000.00
+                                                </td>
+                                                <td class="text-center">
+                                                    1000.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    （2）能源动力费
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    （3）会议、差旅费
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    （4）文献检索费
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    （5）论文出版费
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    2. 仪器设备购置费
+                                                </td>
+                                                <td class="text-center">
+                                                    3000.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    1500.00
+                                                </td>
+                                                <td class="text-center">
+                                                    1500.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    3. 实验装置试制费
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    4. 材料费
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    无
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                                <td class="text-center">
+                                                    0.00
+                                                </td>
+                                            </tr>
+                                        <tr class="text-center">
+                                            <td>
+                                                <b>学校批准经费</b>
+                                            </td>
+                                            <td colspan="4">
+                                                
+                                            </td>
+                                        </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!--  三、	经费预算 结束-->
+                <!--  四、	指导教师意见 开始-->
+                <div class="c-base-info">
+                    <h4 class="c-base-info-title">
+                        四、	指导教师意见
+                    </h4>
+                    <div class="c-base-info-content">
+                        <table class="c-yijian-table">
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div>
+                                                        <div class="c-yijian-content">
+                                                            &nbsp;
+                                                        </div>
+                                                        <div class="c-yijian-content">
+                                                            &nbsp;
+                                                        </div>
+
+                                            <div class="c-yijian-content">
+                                                &nbsp;
+                                            </div>
+                                            <div class="c-yijian-sign">
+                                                <div>导师（签章）：</div>
+                                                <div>&nbsp;&nbsp;年&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;月&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;日&nbsp;&nbsp;</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!--  四、	指导教师意见 结束-->
+                            <!--  五、	院系大学生创新创业训练计划专家组意见  开始-->
+                            <div class="c-base-info">
+                                <h4 class="c-base-info-title">
+                                    五、	院系大学生创新创业训练计划专家组意见
+                                </h4>
+                                <div class="c-base-info-content">
+                                    <table class="c-yijian-table">
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                        <div class="c-yijian-content">
+                                                            &nbsp;
+                                                        </div>
+                                                        <div class="c-yijian-content">
+                                                            &nbsp;
+                                                        </div>
+                                                    </div>
+                                                    <div class="c-yijian-content">
+                                                        &nbsp;
+                                                    </div>
+                                                    <div class="c-yijian-sign">
+                                                        <div>专家组组长（签章）：</div>
+                                                        <div>&nbsp;&nbsp;年&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;月&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;日&nbsp;&nbsp;</div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!--  五、	院系大学生创新创业训练计划专家组意见  结束-->
+                            <!--  六、	学校大学生创新创业训练计划专家组意见   开始-->
+                            <div class="c-base-info">
+                                <h4 class="c-base-info-title">
+                                    六、	学校大学生创新创业训练计划专家组意见
+                                </h4>
+                                <div class="c-base-info-content">
+                                    <table class="c-yijian-table">
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                                                    <div class="c-yijian-content">
+                                                                                        &nbsp;
+                                                                                    </div>
+                                                                                    <div class="c-yijian-content">
+                                                                                        &nbsp;
+                                                                                    </div>
+
+                                                        <div class="c-yijian-content">
+                                                            &nbsp;
+                                                        </div>
+                                                        <div class="c-yijian-sign">
+                                                            <div>负责人（签章）：</div>
+                                                            <div>&nbsp;&nbsp;年&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;月&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;日&nbsp;&nbsp;</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!--  六、	学校大学生创新创业训练计划专家组意见   结束-->
+                            <!--  七、	大学生创新创业训练计划领导小组审批意见 开始-->
+                            <div class="c-base-info">
+                                <h4 class="c-base-info-title">
+                                    七、	大学生创新创业训练计划领导小组审批意见
+                                </h4>
+                                <div class="c-base-info-content">
+                                    <table class="c-yijian-table">
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                                    <div class="c-yijian-content">
+                                                                        审核通过。
+                                                                    </div>
+
+                                                        <div class="c-yijian-content">
+                                                            &nbsp;
+                                                        </div>
+                                                        <div class="c-yijian-sign">
+                                                            <div>导师（签章）：</div>
+                                                            <div>&nbsp;&nbsp;年&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;月&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;日&nbsp;&nbsp;</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!--  七、	大学生创新创业训练计划领导小组审批意见 结束-->
+
+
+            </div>
+        </div>
+        <div>
+            <table id="page-info-container" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                    <td>
+                        <div style="mso-element:footer;" id="page-info-container--footer">
+                            <p class="MsoFooter" style="text-align:center;">
+                                <span style="mso-field-code:PAGE"><span style="mso-no-proof:yes"></span></span> / <span style="mso-field-code:NUMPAGES"></span>
+                            </p>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+
+    </div>
+</body>
+</html>

@@ -2,11 +2,11 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, Input, Button } from "antd"
 import { toast } from "sonner"
-import { Send, Megaphone, Loader2 } from "lucide-react"
+import { SendOutlined, CustomerServiceOutlined, LoadingOutlined } from "@ant-design/icons"
+
+const { TextArea } = Input
 
 export function AnnouncementSender() {
   const [content, setContent] = useState("")
@@ -43,43 +43,37 @@ export function AnnouncementSender() {
   }
 
   return (
-    <Card className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border-white/40 dark:border-white/10">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-primary" />
+    <Card
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CustomerServiceOutlined style={{ color: '#1890ff' }} />
           发布系统公告
-        </CardTitle>
-        <CardDescription>
-          以“莓小智”的身份向所有用户发送更新总结或通知。消息将直接出现在用户的聊天列表中。
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea
-          placeholder="输入公告内容... (支持换行)"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="min-h-[200px] bg-white/50 dark:bg-black/20 resize-none focus-visible:ring-emerald-500"
-        />
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleSend} 
-            disabled={loading || !content.trim()}
-            className="bg-primary hover:bg-primary text-white shadow-lg shadow-emerald-500/20"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                发送中...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                立即发送
-              </>
-            )}
-          </Button>
         </div>
-      </CardContent>
+      }
+    >
+      <div style={{ marginBottom: '16px' }}>
+        <p style={{ margin: 0, fontSize: '14px', color: '#8c8c8c' }}>
+          以"莓小智"的身份向所有用户发送更新总结或通知。消息将直接出现在用户的聊天列表中。
+        </p>
+      </div>
+      <TextArea
+        placeholder="输入公告内容... (支持换行)"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        autoSize={{ minRows: 8, maxRows: 12 }}
+        style={{ marginBottom: '16px', fontSize: '14px' }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          type="primary"
+          onClick={handleSend}
+          loading={loading}
+          disabled={!content.trim()}
+          icon={<SendOutlined />}
+        >
+          立即发送
+        </Button>
+      </div>
     </Card>
   )
 }

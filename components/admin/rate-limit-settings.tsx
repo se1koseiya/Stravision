@@ -1,13 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button, Input, Card, Typography, Space } from "antd"
 import { toast } from "sonner"
-import { Shield, Save } from "lucide-react";
-import { RefreshCcw } from "@/components/animate-ui/icons/refresh-ccw";
+import { SafetyCertificateOutlined, SaveOutlined, ReloadOutlined } from "@ant-design/icons"
+
+const { Text } = Typography
 
 interface RateLimitConfig {
   limit: number
@@ -75,88 +73,91 @@ export function RateLimitSettings() {
   if (!config) return <div>Error loading settings</div>
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <CardTitle>Auto-Ban Thresholds</CardTitle>
-          </div>
-          <Button variant="ghost" size="sm" onClick={fetchConfig}>
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="limit">Max Requests (per window)</Label>
+    <Card
+      title={
+        <Space>
+          <SafetyCertificateOutlined style={{ color: "#8b5cf6" }} />
+          <span>Auto-Ban Thresholds</span>
+        </Space>
+      }
+      extra={
+        <Button
+          type="text"
+          icon={<ReloadOutlined />}
+          onClick={fetchConfig}
+        />
+      }
+    >
+      <form onSubmit={handleSave}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Max Requests (per window)</Text>
               <Input
-                id="limit"
                 type="number"
                 value={config.limit}
                 onChange={(e) => handleChange("limit", e.target.value)}
                 min={1}
               />
-              <p className="text-xs text-muted-foreground">
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 Maximum requests allowed before rate limiting triggers.
-              </p>
+              </Text>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="windowMs">Window Duration (ms)</Label>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Window Duration (ms)</Text>
               <Input
-                id="windowMs"
                 type="number"
                 value={config.windowMs}
                 onChange={(e) => handleChange("windowMs", e.target.value)}
                 min={1000}
                 step={1000}
               />
-              <p className="text-xs text-muted-foreground">
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 Time window in milliseconds (e.g., 60000 = 1 minute).
-              </p>
+              </Text>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="violationLimit">Violation Limit</Label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Violation Limit</Text>
               <Input
-                id="violationLimit"
                 type="number"
                 value={config.violationLimit}
                 onChange={(e) => handleChange("violationLimit", e.target.value)}
                 min={1}
               />
-              <p className="text-xs text-muted-foreground">
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 Number of rate limit violations before IP is auto-banned.
-              </p>
+              </Text>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="banDuration">Ban Duration (ms)</Label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Ban Duration (ms)</Text>
               <Input
-                id="banDuration"
                 type="number"
                 value={config.banDuration}
                 onChange={(e) => handleChange("banDuration", e.target.value)}
                 min={1000}
                 step={1000}
               />
-              <p className="text-xs text-muted-foreground">
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 How long the IP remains banned (e.g., 86400000 = 24 hours).
-              </p>
+              </Text>
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={saving}>
-              <Save className="mr-2 h-4 w-4" />
+          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              disabled={saving}
+              icon={<SaveOutlined />}
+            >
               {saving ? "Saving..." : "Save Configuration"}
             </Button>
           </div>
-        </form>
-      </CardContent>
+        </div>
+      </form>
     </Card>
   )
 }

@@ -12,7 +12,7 @@ export interface ProviderModel {
 export interface AIProvider {
   id: string
   name: string
-  type: 'openai' | 'dashscope' | 'custom'
+  type: 'openai' | 'dashscope' | 'custom' | 'glm'
   isDefault: boolean
   models: ProviderModel[]
 }

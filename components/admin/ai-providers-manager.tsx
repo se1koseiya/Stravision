@@ -1,29 +1,15 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import type { FormInstance } from 'antd'
+import { Button, Input, InputNumber, Switch, Card, Select, Tag, Tabs, Modal, Form, Typography, Space, Badge as AntdBadge } from 'antd'
+import type { SizeType } from 'antd/es/config-provider/SizeContext'
 import { toast } from "sonner"
 import {
   Loader2, Plus, Trash2, Pencil, Check, X, Eye, EyeOff,
   Server, Zap, Globe, Key, Star, ArrowUpDown,
-  Sparkles, Brain, Camera, Cpu, Bot, CircleDot
+  Sparkles, Brain, Camera, Cpu, Bot, CircleDot, BookOpen
 } from "lucide-react"
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle
-} from "@/components/ui/card"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select"
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
 
 // ====== 类型 ======
 
@@ -35,6 +21,7 @@ export interface ProviderModel {
   enabled: boolean
   supportsVision: boolean
   supportsReasoning: boolean
+  supportsEmbedding?: boolean
   maxTokens?: number
   contextWindow?: number
 }
@@ -42,7 +29,7 @@ export interface ProviderModel {
 export interface AIProvider {
   id: string
   name: string
-  type: 'openai' | 'dashscope' | 'custom'
+  type: 'openai' | 'dashscope' | 'custom' | 'glm'
   baseUrl: string
   apiKey: string
   models: ProviderModel[]
@@ -59,6 +46,7 @@ const PROVIDER_TYPE_ICONS: Record<string, React.ReactNode> = {
   openai: <Bot className="w-4 h-4" />,
   dashscope: <Sparkles className="w-4 h-4" />,
   custom: <Globe className="w-4 h-4" />,
+  glm: <Brain className="w-4 h-4" />,
 }
 
 const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
@@ -66,6 +54,7 @@ const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
   deepseek: <Brain className="w-3.5 h-3.5" />,
   openai: <Cpu className="w-3.5 h-3.5" />,
   xiaomi: <Zap className="w-3.5 h-3.5" />,
+  zhipu: <Brain className="w-3.5 h-3.5" />,
   sparkles: <Sparkles className="w-3.5 h-3.5" />,
 }
 
@@ -73,10 +62,11 @@ function getModelIcon(icon?: string) {
   return MODEL_ICON_MAP[icon || ''] || <CircleDot className="w-3.5 h-3.5" />
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  openai: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
-  dashscope: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
-  custom: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800',
+const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  openai: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  dashscope: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  custom: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+  glm: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
 }
 
 // ====== 预设模板 ======
@@ -113,31 +103,72 @@ const PRESET_TEMPLATES = [
       { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', description: '推理增强', icon: 'deepseek', enabled: true, supportsVision: false, supportsReasoning: true },
     ],
   },
+  {
+    // 智谱 AI BigModel 平台 (https://docs.bigmodel.cn/cn/api/introduction)
+    id: 'zhipu-glm-preset',
+    name: '智谱 GLM (BigModel)',
+    type: 'glm' as const,
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    models: [
+      { id: 'glm-4.6',           name: 'GLM-4.6',           description: '最新旗舰，200K 上下文，支持思考',  icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: true,  contextWindow: 200000 },
+      { id: 'glm-4.5',           name: 'GLM-4.5',           description: '智能体基础模型',                  icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: true,  contextWindow: 128000 },
+      { id: 'glm-4.5-air',       name: 'GLM-4.5-Air',       description: '轻量智能体模型',                  icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: true,  contextWindow: 128000 },
+      { id: 'glm-4.5-flash',     name: 'GLM-4.5-Flash',     description: '免费超快模型',                    icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: false, contextWindow: 128000 },
+      { id: 'glm-4-plus',        name: 'GLM-4-Plus',        description: '上一代旗舰',                      icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: false, contextWindow: 128000 },
+      { id: 'glm-4-long',        name: 'GLM-4-Long',        description: '超长上下文 1M',                    icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: false, contextWindow: 1000000 },
+      { id: 'glm-4v-plus',       name: 'GLM-4V-Plus',       description: '视觉语言模型',                    icon: 'zhipu', enabled: true, supportsVision: true,  supportsReasoning: false, contextWindow: 8000 },
+      { id: 'glm-4v-flash',      name: 'GLM-4V-Flash',      description: '免费视觉模型',                    icon: 'zhipu', enabled: true, supportsVision: true,  supportsReasoning: false, contextWindow: 8000 },
+      { id: 'glm-zero-preview',  name: 'GLM-Zero-Preview',  description: '强化推理模型',                    icon: 'zhipu', enabled: true, supportsVision: false, supportsReasoning: true,  contextWindow: 16000 },
+    ],
+  },
 ]
 
 // ====== 空状态 ======
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-20 text-center"
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '80px 20px',
+        textAlign: 'center',
+      }}
     >
-      <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-6">
+      <div style={{
+        width: '64px',
+        height: '64px',
+        borderRadius: '16px',
+        backgroundColor: 'rgb(244 244 245)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '24px',
+      }}>
         <Server className="w-7 h-7 text-zinc-400" />
       </div>
-      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+      <h3 style={{
+        fontSize: '18px',
+        fontWeight: 600,
+        color: 'rgb(24 24 27)',
+        marginBottom: '8px',
+      }}>
         尚未配置 AI 提供商
       </h3>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 max-w-md">
+      <p style={{
+        fontSize: '14px',
+        color: 'rgb(113 113 122)',
+        marginBottom: '24px',
+        maxWidth: '400px',
+      }}>
         添加 OpenAI、DashScope、小米 MIMO 等 AI 服务商，为模型池提供多样化的 API 接入能力。
       </p>
-      <Button onClick={onAdd} className="gap-2">
-        <Plus className="w-4 h-4" />
+      <Button type="primary" icon={<Plus className="w-4 h-4" />} onClick={onAdd}>
         添加提供商
       </Button>
-    </motion.div>
+    </div>
   )
 }
 
@@ -156,100 +187,123 @@ function ProviderCard({
   onToggleDefault: () => void
   onToggleEnabled: () => void
 }) {
+  const colors = TYPE_COLORS[provider.type] || TYPE_COLORS.custom
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.2 }}
+    <Card
+      style={{
+        opacity: provider.enabled ? 1 : 0.6,
+        transition: 'all 0.2s',
+      }}
+      styles={{ body: { padding: '16px' } }}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.bg,
+            color: colors.text,
+            border: `1px solid ${colors.border}`,
+          }}>
+            {PROVIDER_TYPE_ICONS[provider.type]}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Typography.Text strong style={{ fontSize: '16px' }}>{provider.name}</Typography.Text>
+              {provider.isDefault && (
+                <Tag color="gold" icon={<Star className="w-3 h-3" />} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  默认
+                </Tag>
+              )}
+              <Tag style={{ 
+                fontSize: '12px',
+                backgroundColor: colors.bg,
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+              }}>
+                {provider.type}
+              </Tag>
+            </div>
+            <Typography.Text type="secondary" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+              {provider.baseUrl}
+            </Typography.Text>
+          </div>
+        </div>
+      }
+      extra={
+        <Space size={4}>
+          <Button type="text" size="small" icon={<Pencil className="w-3.5 h-3.5" />} onClick={onEdit} />
+          <Button type="text" size="small" danger icon={<Trash2 className="w-3.5 h-3.5" />} onClick={onDelete} />
+        </Space>
+      }
     >
-      <Card className={cn(
-        "transition-all duration-200 hover:shadow-md",
-        !provider.enabled && "opacity-60"
-      )}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center",
-                TYPE_COLORS[provider.type] || TYPE_COLORS.custom
-              )}>
-                {PROVIDER_TYPE_ICONS[provider.type]}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-base font-semibold">{provider.name}</CardTitle>
-                  {provider.isDefault && (
-                    <Badge variant="secondary" className="text-xs gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
-                      <Star className="w-3 h-3" /> 默认
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className={cn("text-xs", TYPE_COLORS[provider.type])}>
-                    {provider.type}
-                  </Badge>
-                </div>
-                <CardDescription className="text-xs mt-0.5 font-mono">
-                  {provider.baseUrl}
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-                <Pencil className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={onDelete}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+      {/* API Key 显示 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        backgroundColor: 'rgb(250 250 250)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        marginBottom: '16px',
+      }}>
+        <Key className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+        <span style={{ color: 'rgb(113 113 122)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {provider.apiKey || '(未设置)'}
+        </span>
+      </div>
 
-        <CardContent className="space-y-4">
-          {/* API Key 显示 */}
-          <div className="flex items-center gap-2 text-xs font-mono bg-zinc-50 dark:bg-zinc-900 px-3 py-2 rounded-lg">
-            <Key className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-            <span className="text-zinc-500 truncate">{provider.apiKey || '(未设置)'}</span>
-          </div>
+      {/* 模型列表 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+        {provider.models.map(m => (
+          <Tag key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+            {getModelIcon(m.icon)}
+            {m.name}
+            {m.supportsVision && <Camera className="w-3 h-3 text-blue-500" />}
+            {m.supportsReasoning && <Brain className="w-3 h-3 text-purple-500" />}
+            {m.supportsEmbedding && <BookOpen className="w-3 h-3 text-amber-500" />}
+          </Tag>
+        ))}
+        <Tag style={{ fontSize: '12px', color: 'rgb(113 113 122)' }}>
+          {provider.models.length} 个模型
+        </Tag>
+      </div>
 
-          {/* 模型列表 */}
-          <div className="flex flex-wrap gap-1.5">
-            {provider.models.map(m => (
-              <Badge key={m.id} variant="outline" className="text-xs gap-1 py-0.5">
-                {getModelIcon(m.icon)}
-                {m.name}
-                {m.supportsVision && <Camera className="w-3 h-3 text-blue-500" />}
-                {m.supportsReasoning && <Brain className="w-3 h-3 text-purple-500" />}
-              </Badge>
-            ))}
-            <Badge variant="outline" className="text-xs text-zinc-400">
-              {provider.models.length} 个模型
-            </Badge>
+      {/* 操作栏 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: '8px',
+        borderTop: '1px solid rgb(244 244 245)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Switch
+              checked={provider.enabled}
+              onChange={onToggleEnabled}
+              size="small"
+            />
+            <span style={{ fontSize: '12px', color: 'rgb(113 113 122)' }}>
+              {provider.enabled ? '已启用' : '已禁用'}
+            </span>
           </div>
-
-          {/* 操作栏 */}
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Switch
-                  checked={provider.enabled}
-                  onCheckedChange={onToggleEnabled}
-                  className="scale-90"
-                />
-                <span className="text-xs text-zinc-500">{provider.enabled ? '已启用' : '已禁用'}</span>
-              </label>
-            </div>
-            {!provider.isDefault ? (
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={onToggleDefault}>
-                <Star className="w-3 h-3" /> 设为默认
-              </Button>
-            ) : (
-              <span className="text-xs text-amber-600 font-medium">当前默认</span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+        {!provider.isDefault ? (
+          <Button type="text" size="small" icon={<Star className="w-3 h-3" />} onClick={onToggleDefault} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            设为默认
+          </Button>
+        ) : (
+          <span style={{ fontSize: '12px', color: 'rgb(217 119 6)', fontWeight: 500 }}>当前默认</span>
+        )}
+      </div>
+    </Card>
   )
 }
 
@@ -258,7 +312,7 @@ function ProviderCard({
 interface ProviderFormData {
   id: string
   name: string
-  type: 'openai' | 'dashscope' | 'custom'
+  type: 'openai' | 'dashscope' | 'custom' | 'glm'
   baseUrl: string
   apiKey: string
   isDefault: boolean
@@ -283,7 +337,8 @@ function ProviderDialog({
   onSave: (data: ProviderFormData) => Promise<void>
   editing: AIProvider | null
 }) {
-  const [form, setForm] = useState<ProviderFormData>({
+  const [form] = Form.useForm<ProviderFormData>()
+  const [formState, setFormState] = useState<ProviderFormData>({
     id: '', name: '', type: 'openai', baseUrl: '', apiKey: '',
     isDefault: false, enabled: true, priority: 1, models: [],
   })
@@ -293,203 +348,285 @@ function ProviderDialog({
 
   useEffect(() => {
     if (editing) {
-      setForm({
+      const newForm = {
         id: editing.id, name: editing.name, type: editing.type,
         baseUrl: editing.baseUrl, apiKey: editing.apiKey,
         isDefault: !!editing.isDefault, enabled: editing.enabled,
         priority: editing.priority, models: [...editing.models],
-      })
+      }
+      setFormState(newForm)
+      form.setFieldsValue(newForm)
     } else {
-      setForm({
+      const newForm: ProviderFormData = {
         id: '', name: '', type: 'openai', baseUrl: '', apiKey: '',
         isDefault: false, enabled: true, priority: 1, models: [],
-      })
+      }
+      setFormState(newForm)
+      form.setFieldsValue(newForm)
     }
     setShowKey(false)
-  }, [editing, open])
+  }, [editing, open, form])
 
   const addModel = () => {
-    setForm(prev => ({ ...prev, models: [...prev.models, { ...EMPTY_MODEL, id: `model-${Date.now()}` }] }))
+    const newModels = [...formState.models, { ...EMPTY_MODEL, id: `model-${Date.now()}` }]
+    setFormState(prev => ({ ...prev, models: newModels }))
+    form.setFieldsValue({ models: newModels })
   }
 
   const updateModel = (idx: number, field: keyof ProviderModel, value: any) => {
-    setForm(prev => ({
-      ...prev,
-      models: prev.models.map((m, i) => i === idx ? { ...m, [field]: value } : m),
-    }))
+    const newModels = formState.models.map((m, i) => i === idx ? { ...m, [field]: value } : m)
+    setFormState(prev => ({ ...prev, models: newModels }))
+    form.setFieldsValue({ models: newModels })
   }
 
   const removeModel = (idx: number) => {
-    setForm(prev => ({ ...prev, models: prev.models.filter((_, i) => i !== idx) }))
+    const newModels = formState.models.filter((_, i) => i !== idx)
+    setFormState(prev => ({ ...prev, models: newModels }))
+    form.setFieldsValue({ models: newModels })
   }
 
   const handleSave = async () => {
-    if (!form.id || !form.name || !form.baseUrl) {
-      toast.error('请填写必填字段：ID、名称、Base URL')
-      return
-    }
-    if (form.models.length === 0) {
-      toast.error('请至少添加一个模型')
-      return
-    }
-    setSaving(true)
     try {
-      await onSave(form)
-      onClose()
-    } finally {
-      setSaving(false)
+      const values = await form.validateFields()
+      if (!values.id || !values.name || !values.baseUrl) {
+        toast.error('请填写必填字段：ID、名称、Base URL')
+        return
+      }
+      if (formState.models.length === 0) {
+        toast.error('请至少添加一个模型')
+        return
+      }
+      setSaving(true)
+      try {
+        await onSave({ ...values, models: formState.models })
+        onClose()
+      } finally {
+        setSaving(false)
+      }
+    } catch {
+      // form validation failed
     }
   }
 
   const applyTemplate = (templateId: string) => {
     const template = PRESET_TEMPLATES.find(t => t.id === templateId)
     if (!template) return
-    setForm(prev => ({
-      ...prev,
+    const newForm = {
+      ...formState,
       id: template.id,
       name: template.name,
       type: template.type,
       baseUrl: template.baseUrl,
       models: template.models.map(m => ({ ...m })),
-    }))
+    }
+    setFormState(newForm)
+    form.setFieldsValue(newForm)
     toast.success(`已应用模板：${template.name}`)
   }
 
+  const modalFooter = (
+    <Space>
+      <Button onClick={onClose}>取消</Button>
+      <Button type="primary" onClick={handleSave} loading={saving} icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}>
+        {isEdit ? '保存修改' : '添加提供商'}
+      </Button>
+    </Space>
+  )
+
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? '编辑提供商' : '添加提供商'}</DialogTitle>
-          <DialogDescription>
-            配置 AI 服务商的 API 连接和可用模型列表
-          </DialogDescription>
-        </DialogHeader>
+    <Modal
+      open={open}
+      onCancel={onClose}
+      title={isEdit ? '编辑提供商' : '添加提供商'}
+      footer={modalFooter}
+      width={720}
+      styles={{ body: { maxHeight: 'calc(85vh - 200px)', overflowY: 'auto' } }}
+    >
+      <div style={{ marginBottom: '16px' }}>
+        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: '12px' }}>
+          配置 AI 服务商的 API 连接和可用模型列表
+        </Typography.Text>
 
         {/* 快速模板 */}
         {!isEdit && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <Label className="text-xs text-zinc-500">快速模板：</Label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <Typography.Text type="secondary" style={{ fontSize: '12px' }}>快速模板：</Typography.Text>
             {PRESET_TEMPLATES.map(t => (
-              <Button key={t.id} variant="outline" size="sm" className="text-xs h-7"
-                onClick={() => applyTemplate(t.id)}>
+              <Button key={t.id} variant="outlined" size="small" style={{ fontSize: '12px' }} onClick={() => applyTemplate(t.id)}>
                 {t.name}
               </Button>
             ))}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-sm">ID <span className="text-red-500">*</span></Label>
-            <Input placeholder="如 xiaomi-mimo" value={form.id}
-              onChange={e => setForm(p => ({ ...p, id: e.target.value.replace(/\s/g, '-') }))}
-              disabled={isEdit} className="font-mono text-sm" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm">显示名称 <span className="text-red-500">*</span></Label>
-            <Input placeholder="如 小米 MIMO" value={form.name}
-              onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm">API 类型</Label>
-            <Select value={form.type} onValueChange={(v: any) => setForm(p => ({ ...p, type: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">OpenAI 兼容</SelectItem>
-                <SelectItem value="dashscope">阿里云百炼</SelectItem>
-                <SelectItem value="custom">自定义</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm">优先级（数字越小越优先）</Label>
-            <Input type="number" min={1} max={100} value={form.priority}
-              onChange={e => setForm(p => ({ ...p, priority: parseInt(e.target.value) || 1 }))} />
-          </div>
-          <div className="col-span-2 space-y-1.5">
-            <Label className="text-sm">Base URL <span className="text-red-500">*</span></Label>
-            <Input placeholder="https://api.xiaomi.com/v1" value={form.baseUrl}
-              onChange={e => setForm(p => ({ ...p, baseUrl: e.target.value }))} className="font-mono text-sm" />
-          </div>
-          <div className="col-span-2 space-y-1.5">
-            <Label className="text-sm">API Key</Label>
-            <div className="relative">
-              <Input type={showKey ? 'text' : 'password'} placeholder="sk-..." value={form.apiKey}
-                onChange={e => setForm(p => ({ ...p, apiKey: e.target.value }))} className="font-mono text-sm pr-10" />
-              <button type="button" onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 开关 */}
-        <div className="flex items-center gap-6 pt-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Switch checked={form.enabled} onCheckedChange={v => setForm(p => ({ ...p, enabled: v }))} />
-            <span className="text-sm">启用</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Switch checked={form.isDefault} onCheckedChange={v => setForm(p => ({ ...p, isDefault: v }))} />
-            <span className="text-sm">设为默认</span>
-          </label>
-        </div>
-
-        {/* 模型列表 */}
-        <div className="space-y-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">模型列表 ({form.models.length})</Label>
-            <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={addModel}>
-              <Plus className="w-3 h-3" /> 添加模型
-            </Button>
-          </div>
-
-          <AnimatePresence>
-            {form.models.map((model, idx) => (
-              <motion.div
-                key={model.id || idx}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg"
+        <Form form={form} layout="vertical" initialValues={formState}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <Form.Item
+              name="id"
+              label="ID"
+              rules={[{ required: true, message: '请输入 ID' }]}
+            >
+              <Input placeholder="如 xiaomi-mimo" style={{ fontFamily: 'monospace', fontSize: '14px' }} disabled={isEdit} />
+            </Form.Item>
+            <Form.Item
+              name="name"
+              label="显示名称"
+              rules={[{ required: true, message: '请输入显示名称' }]}
+            >
+              <Input placeholder="如 小米 MIMO" />
+            </Form.Item>
+            <Form.Item
+              name="type"
+              label="API 类型"
+            >
+              <Select
+                value={formState.type}
+                onChange={(v) => {
+                  setFormState(p => ({ ...p, type: v }))
+                  form.setFieldsValue({ type: v })
+                }}
               >
-                <Input placeholder="模型 ID" value={model.id}
-                  onChange={e => updateModel(idx, 'id', e.target.value)} className="text-xs font-mono h-8" />
-                <Input placeholder="显示名" value={model.name}
-                  onChange={e => updateModel(idx, 'name', e.target.value)} className="text-xs h-8" />
-                <Input placeholder="描述(可选)" value={model.description || ''}
-                  onChange={e => updateModel(idx, 'description', e.target.value)} className="text-xs h-8" />
-                <div className="flex items-center gap-1">
-                  <label title="视觉" className="cursor-pointer">
-                    <input type="checkbox" checked={model.supportsVision}
-                      onChange={e => updateModel(idx, 'supportsVision', e.target.checked)}
-                      className="rounded border-zinc-300" />
-                  </label>
-                  <label title="推理" className="cursor-pointer">
-                    <input type="checkbox" checked={model.supportsReasoning}
-                      onChange={e => updateModel(idx, 'supportsReasoning', e.target.checked)}
-                      className="rounded border-zinc-300" />
-                  </label>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600"
-                    onClick={() => removeModel(idx)}>
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                <Select.Option value="openai">OpenAI 兼容</Select.Option>
+                <Select.Option value="dashscope">阿里云百炼</Select.Option>
+                <Select.Option value="glm">智谱 GLM (BigModel)</Select.Option>
+                <Select.Option value="custom">自定义</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              name="priority"
+              label="优先级（数字越小越优先）"
+            >
+              <Input type="number" min={1} max={100} />
+            </Form.Item>
+            <Form.Item
+              name="baseUrl"
+              label="Base URL"
+              rules={[{ required: true, message: '请输入 Base URL' }]}
+              style={{ gridColumn: 'span 2' }}
+            >
+              <Input
+                placeholder={
+                  formState.type === 'glm'
+                    ? 'https://open.bigmodel.cn/api/paas/v4'
+                    : formState.type === 'dashscope'
+                    ? 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+                    : 'https://api.xiaomi.com/v1'
+                }
+                style={{ fontFamily: 'monospace', fontSize: '14px' }}
+              />
+            </Form.Item>
+            <Form.Item
+              name="apiKey"
+              label="API Key"
+              style={{ gridColumn: 'span 2' }}
+            >
+              <Input.Password
+                placeholder="sk-..."
+                style={{ fontFamily: 'monospace', fontSize: '14px' }}
+                iconRender={(visible) => visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              />
+            </Form.Item>
+          </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>取消</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-            {isEdit ? '保存修改' : '添加提供商'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          {/* 开关 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', paddingTop: '8px' }}>
+            <Form.Item name="enabled" valuePropName="checked" style={{ marginBottom: 0 }}>
+              <Switch checked={formState.enabled} onChange={(v) => {
+                setFormState(p => ({ ...p, enabled: v }))
+                form.setFieldsValue({ enabled: v })
+              }} />
+            </Form.Item>
+            <Typography.Text>启用</Typography.Text>
+            <Form.Item name="isDefault" valuePropName="checked" style={{ marginBottom: 0 }}>
+              <Switch checked={formState.isDefault} onChange={(v) => {
+                setFormState(p => ({ ...p, isDefault: v }))
+                form.setFieldsValue({ isDefault: v })
+              }} />
+            </Form.Item>
+            <Typography.Text>设为默认</Typography.Text>
+          </div>
+
+          {/* 模型列表 */}
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgb(244 244 245)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <Typography.Text strong>模型列表 ({formState.models.length})</Typography.Text>
+              <Button variant="outlined" size="small" icon={<Plus className="w-3 h-3" />} onClick={addModel} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                添加模型
+              </Button>
+            </div>
+
+            {formState.models.map((model, idx) => (
+              <div
+                key={model.id || idx}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr auto',
+                  gap: '8px',
+                  padding: '12px',
+                  backgroundColor: 'rgb(250 250 250)',
+                  borderRadius: '8px',
+                  marginBottom: '8px',
+                }}
+              >
+                <Input
+                  placeholder="模型 ID"
+                  value={model.id}
+                  onChange={e => updateModel(idx, 'id', e.target.value)}
+                  style={{ fontSize: '12px', fontFamily: 'monospace', height: '32px' }}
+                />
+                <Input
+                  placeholder="显示名"
+                  value={model.name}
+                  onChange={e => updateModel(idx, 'name', e.target.value)}
+                  style={{ fontSize: '12px', height: '32px' }}
+                />
+                <Input
+                  placeholder="描述(可选)"
+                  value={model.description || ''}
+                  onChange={e => updateModel(idx, 'description', e.target.value)}
+                  style={{ fontSize: '12px', height: '32px' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <label title="视觉" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={model.supportsVision}
+                      onChange={e => updateModel(idx, 'supportsVision', e.target.checked)}
+                      style={{ marginRight: '4px' }}
+                    />
+                  </label>
+                  <label title="推理" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={model.supportsReasoning}
+                      onChange={e => updateModel(idx, 'supportsReasoning', e.target.checked)}
+                      style={{ marginRight: '4px' }}
+                    />
+                  </label>
+                  <label title="可用于 Embedding" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!model.supportsEmbedding}
+                      onChange={e => updateModel(idx, 'supportsEmbedding', e.target.checked)}
+                      style={{ marginRight: '4px' }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'rgb(217 119 6)' }}>Embed</span>
+                  </label>
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<X className="w-3 h-3" />}
+                    onClick={() => removeModel(idx)}
+                    style={{ display: 'flex', alignItems: 'center' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Form>
+      </div>
+    </Modal>
   )
 }
 
@@ -507,6 +644,21 @@ export function AIProvidersManager() {
   const [defaultModelDraft, setDefaultModelDraft] = useState<string>('')
   const [savingDefault, setSavingDefault] = useState(false)
 
+  // 知识库 embedding 配置
+  const [embeddingConfig, setEmbeddingConfig] = useState<{
+    providerId: string
+    model: string
+    dimension?: number
+    enabled: boolean
+  } | null>(null)
+  const [embProviderDraft, setEmbProviderDraft] = useState<string>('')
+  const [embModelDraft, setEmbModelDraft] = useState<string>('')
+  const [embDimDraft, setEmbDimDraft] = useState<number | null>(null)
+  const [embEnabledDraft, setEmbEnabledDraft] = useState<boolean>(true)
+  const [savingEmbedding, setSavingEmbedding] = useState(false)
+  const [testingEmbedding, setTestingEmbedding] = useState(false)
+  const [embedTestResult, setEmbedTestResult] = useState<{ ok: boolean; msg: string; provider?: string; model?: string; dim?: number; preview?: number[] } | null>(null)
+
   const fetchProviders = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/ai-providers')
@@ -517,6 +669,15 @@ export function AIProvidersManager() {
         setDefaultModelId(data.defaultModelId)
         setDefaultModelDraft(data.defaultModelId)
       }
+      if (data.embeddingConfig && typeof data.embeddingConfig === 'object') {
+        setEmbeddingConfig(data.embeddingConfig)
+        setEmbProviderDraft(data.embeddingConfig.providerId || '')
+        setEmbModelDraft(data.embeddingConfig.model || '')
+        setEmbDimDraft(data.embeddingConfig.dimension ?? null)
+        setEmbEnabledDraft(!!data.embeddingConfig.enabled)
+      } else {
+        setEmbeddingConfig(null)
+      }
     } catch (e) {
       console.error(e)
       toast.error('加载提供商失败')
@@ -524,6 +685,62 @@ export function AIProvidersManager() {
       setLoading(false)
     }
   }, [])
+
+  const handleSaveEmbedding = async () => {
+    setSavingEmbedding(true)
+    try {
+      const res = await fetch('/api/admin/ai-providers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          embeddingConfig: {
+            providerId: embProviderDraft,
+            model: embModelDraft,
+            dimension: embDimDraft ?? undefined,
+            enabled: embEnabledDraft
+          }
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || '保存失败')
+        return
+      }
+      setEmbeddingConfig(data.config.embeddingConfig || null)
+      toast.success('Embedding 配置已保存')
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setSavingEmbedding(false)
+    }
+  }
+
+  const handleTestEmbedding = async () => {
+    setTestingEmbedding(true)
+    setEmbedTestResult(null)
+    try {
+      const res = await fetch('/api/knowledge/embedding-config', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        setEmbedTestResult({
+          ok: true,
+          msg: `成功生成 ${data.vectorLength} 维向量`,
+          provider: data.provider,
+          model: data.model,
+          dim: data.dimension,
+          preview: data.vectorPreview
+        })
+        toast.success('Embedding 测试成功')
+      } else {
+        setEmbedTestResult({ ok: false, msg: data.error || '测试失败' })
+        toast.error('Embedding 测试失败')
+      }
+    } catch (e: any) {
+      setEmbedTestResult({ ok: false, msg: e.message })
+    } finally {
+      setTestingEmbedding(false)
+    }
+  }
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
 
@@ -634,7 +851,7 @@ export function AIProvidersManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
         <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
       </div>
     )
@@ -643,103 +860,249 @@ export function AIProvidersManager() {
   const totalModels = providers.reduce((sum, p) => sum + p.models.length, 0)
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* 头部 */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 className="text-xl font-bold tracking-tight">AI 提供商管理</h2>
-          <p className="text-sm text-zinc-500 mt-1">
+          <h2 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.025em', marginBottom: '4px' }}>AI 提供商管理</h2>
+          <p style={{ fontSize: '14px', color: 'rgb(113 113 122)', marginTop: '4px' }}>
             管理 AI 服务商接入，共 {providers.length} 个提供商 · {totalModels} 个可用模型
           </p>
         </div>
-        <Button onClick={() => { setEditing(null); setDialogOpen(true) }} className="gap-2">
-          <Plus className="w-4 h-4" /> 添加提供商
+        <Button type="primary" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditing(null); setDialogOpen(true) }}>
+          添加提供商
         </Button>
       </div>
 
       {/* 默认/自动选择模型 */}
-      <Card className="border-zinc-200 dark:border-zinc-800">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4 flex-wrap">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 shrink-0">
-              <Sparkles className="w-4 h-4" />
+      <Card
+        style={{ border: '1px solid rgb(244 244 245)' }}
+        styles={{ body: { paddingTop: '24px' } }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgb(239 246 255)',
+            color: 'rgb(37 99 235)',
+            border: '1px solid rgb(191 219 254)',
+            flexShrink: 0,
+          }}>
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div style={{ flex: 1, minWidth: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <Typography.Text strong>自动选择模型</Typography.Text>
+              <Tag style={{
+                fontSize: '10px',
+                color: 'rgb(37 99 235)',
+                border: '1px solid rgb(191 219 254)',
+                backgroundColor: 'rgb(239 246 255)',
+              }}>
+                刷新后生效
+              </Tag>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold">自动选择模型</span>
-                <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200 dark:text-blue-300 dark:border-blue-800">
-                  刷新后生效
-                </Badge>
-              </div>
-              <p className="text-xs text-zinc-500 mt-1">
-                每次刷新 AI 助手页面时，未手动选择模型的用户将自动使用该模型。
-                {effectiveDefaultLabel
-                  ? `当前生效：${effectiveDefaultLabel.p.name} · ${effectiveDefaultLabel.m.name}`
-                  : '当前没有可用的启用模型。'}
-              </p>
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <Select
-                  value={defaultModelDraft || undefined}
-                  onValueChange={(v) => setDefaultModelDraft(v)}
-                  disabled={availableDefaultModels.length === 0}
-                >
-                  <SelectTrigger className="w-[320px] h-9 text-sm">
-                    <SelectValue placeholder="选择自动选择的模型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDefaultModels.length === 0 && (
-                      <div className="px-3 py-2 text-xs text-zinc-500">
-                        暂无可用的启用模型
-                      </div>
-                    )}
-                    {availableDefaultModels.map(({ p, m }) => (
-                      <SelectItem key={`${p.id}::${m.id}`} value={m.id}>
-                        <span className="flex items-center gap-2">
-                          {getModelIcon(m.icon)}
-                          <span className="font-medium">{m.name}</span>
-                          <span className="text-zinc-400 text-xs">· {p.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  size="sm"
-                  className="h-9"
-                  onClick={handleSaveDefaultModel}
-                  disabled={savingDefault || defaultModelDraft === (defaultModelId ?? '') || availableDefaultModels.length === 0}
-                >
-                  {savingDefault && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
-                  保存
-                </Button>
-                {defaultModelId && defaultModelId !== effectiveDefaultId && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400">
-                    配置的默认模型已失效，将自动回退到当前生效项
-                  </span>
-                )}
-              </div>
+            <p style={{ fontSize: '12px', color: 'rgb(113 113 122)', marginTop: '4px', marginBottom: '12px' }}>
+              每次刷新 AI 助手页面时，未手动选择模型的用户将自动使用该模型。
+              {effectiveDefaultLabel
+                ? `当前生效：${effectiveDefaultLabel.p.name} · ${effectiveDefaultLabel.m.name}`
+                : '当前没有可用的启用模型。'}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Select
+                value={defaultModelDraft || undefined}
+                onChange={(v) => setDefaultModelDraft(v)}
+                disabled={availableDefaultModels.length === 0}
+                style={{ width: '320px' }}
+                placeholder="选择自动选择的模型"
+                options={availableDefaultModels.length === 0 ? [] : availableDefaultModels.map(({ p, m }) => ({
+                  value: m.id,
+                  label: (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getModelIcon(m.icon)}
+                      <span style={{ fontWeight: 500 }}>{m.name}</span>
+                      <span style={{ color: 'rgb(113 113 122)', fontSize: '12px' }}>· {p.name}</span>
+                    </span>
+                  ),
+                }))}
+              />
+              <Button
+                size="small"
+                type="primary"
+                onClick={handleSaveDefaultModel}
+                disabled={savingDefault || defaultModelDraft === (defaultModelId ?? '') || availableDefaultModels.length === 0}
+                icon={savingDefault ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              >
+                保存
+              </Button>
+              {defaultModelId && defaultModelId !== effectiveDefaultId && (
+                <span style={{ fontSize: '12px', color: 'rgb(217 119 6)' }}>
+                  配置的默认模型已失效，将自动回退到当前生效项
+                </span>
+              )}
             </div>
           </div>
-        </CardContent>
+        </div>
       </Card>
+
+      {/* 知识库 Embedding 配置 */}
+      <Card style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'rgb(245 158 11 / 0.1)',
+            color: 'rgb(217 119 6)',
+            border: '1px solid rgb(252 211 77)',
+            flexShrink: 0,
+          }}>
+            <BookOpen className="w-4 h-4" />
+          </div>
+          <div style={{ flex: 1, minWidth: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <Typography.Text strong>知识库 Embedding 模型</Typography.Text>
+              <Tag style={{
+                fontSize: '10px',
+                color: 'rgb(217 119 6)',
+                border: '1px solid rgb(252 211 77)',
+                backgroundColor: 'rgb(254 252 232)',
+              }}>
+                影响 @知识库:xxx 检索
+              </Tag>
+            </div>
+            <p style={{ fontSize: '12px', color: 'rgb(113 113 122)', marginTop: '4px', marginBottom: '12px' }}>
+              知识库对上传文档进行语义检索时，依赖 embedding 模型生成向量。下方选择任一提供商的 embedding 模型（需勾选"作为 Embedding"），保存后下次上传的文档将使用该模型。
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Select
+                value={embProviderDraft || undefined}
+                onChange={(v) => { setEmbProviderDraft(v); setEmbModelDraft('') }}
+                style={{ width: '200px' }}
+                placeholder="提供商"
+                options={providers.filter(p => p.enabled && p.apiKey).map(p => ({ value: p.id, label: p.name }))}
+              />
+              <Select
+                value={embModelDraft || undefined}
+                onChange={(v) => setEmbModelDraft(v)}
+                style={{ width: '240px' }}
+                placeholder={embProviderDraft ? '选择 embedding 模型' : '先选提供商'}
+                disabled={!embProviderDraft}
+                options={
+                  embProviderDraft
+                    ? (() => {
+                        const p = providers.find(x => x.id === embProviderDraft)
+                        if (!p) return []
+                        return p.models
+                          .filter(m => m.enabled && (m.supportsEmbedding || /embed/i.test(m.id)))
+                          .map(m => ({
+                            value: m.id,
+                            label: (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {getModelIcon(m.icon)}
+                                <span style={{ fontWeight: 500 }}>{m.name}</span>
+                                {m.contextWindow && (
+                                  <span style={{ color: 'rgb(113 113 122)', fontSize: '11px' }}>
+                                    · {m.contextWindow >= 1024 ? `${Math.round(m.contextWindow / 1024)}K` : m.contextWindow} ctx
+                                  </span>
+                                )}
+                              </span>
+                            )
+                          }))
+                      })()
+                    : []
+                }
+              />
+              <InputNumber
+                value={embDimDraft ?? undefined}
+                onChange={(v) => setEmbDimDraft(v ?? null)}
+                placeholder="维度（可选）"
+                min={64}
+                max={4096}
+                step={64}
+                style={{ width: '120px' }}
+              />
+              <Switch
+                checked={embEnabledDraft}
+                onChange={setEmbEnabledDraft}
+                checkedChildren="启用"
+                unCheckedChildren="关闭"
+              />
+              <Button
+                size="small"
+                type="primary"
+                onClick={handleSaveEmbedding}
+                disabled={savingEmbedding || !embProviderDraft || !embModelDraft}
+                icon={savingEmbedding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              >
+                保存
+              </Button>
+              <Button
+                size="small"
+                onClick={handleTestEmbedding}
+                loading={testingEmbedding}
+                icon={<Sparkles className="w-3.5 h-3.5" />}
+              >
+                测试 Embedding
+              </Button>
+            </div>
+            {embedTestResult && (
+              <div style={{
+                marginTop: '12px',
+                padding: '10px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                backgroundColor: embedTestResult.ok ? 'rgb(240 253 244)' : 'rgb(254 242 242)',
+                border: embedTestResult.ok ? '1px solid rgb(187 247 208)' : '1px solid rgb(254 202 202)',
+                color: embedTestResult.ok ? 'rgb(22 101 52)' : 'rgb(153 27 27)',
+              }}>
+                {embedTestResult.ok ? (
+                  <div>
+                    <div>✅ {embedTestResult.msg}</div>
+                    {embedTestResult.provider && <div style={{ marginTop: 4 }}>provider: <code>{embedTestResult.provider}</code> · model: <code>{embedTestResult.model}</code> · dim: <code>{embedTestResult.dim}</code></div>}
+                    {embedTestResult.preview && (
+                      <div style={{ marginTop: 4, fontFamily: 'monospace', fontSize: '11px' }}>
+                        前 8 维: [{embedTestResult.preview.join(', ')}]
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>❌ {embedTestResult.msg}</div>
+                )}
+              </div>
+            )}
+            {embeddingConfig && !embedTestResult && (
+              <div style={{ marginTop: '10px', fontSize: '12px', color: 'rgb(113 113 122)' }}>
+                当前：provider <code>{embeddingConfig.providerId}</code> · model <code>{embeddingConfig.model}</code>
+                {embeddingConfig.dimension && <> · {embeddingConfig.dimension} 维</>}
+                {embeddingConfig.enabled ? ' · 已启用' : ' · 已关闭'}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* 知识库全局行为配置（上传/分块/GLM/检索/UI），所有魔数 admin 可调 */}
+      <KnowledgeConfigCard />
 
       {/* 提供商列表 */}
       {providers.length === 0 ? (
         <EmptyState onAdd={() => { setEditing(null); setDialogOpen(true) }} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          <AnimatePresence mode="popLayout">
-            {providers.map(p => (
-              <ProviderCard
-                key={p.id}
-                provider={p}
-                onEdit={() => { setEditing(p); setDialogOpen(true) }}
-                onDelete={() => setDeleting(p)}
-                onToggleDefault={() => handleToggleDefault(p)}
-                onToggleEnabled={() => handleToggleEnabled(p)}
-              />
-            ))}
-          </AnimatePresence>
+        <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))' }}>
+          {providers.map(p => (
+            <ProviderCard
+              key={p.id}
+              provider={p}
+              onEdit={() => { setEditing(p); setDialogOpen(true) }}
+              onDelete={() => setDeleting(p)}
+              onToggleDefault={() => handleToggleDefault(p)}
+              onToggleEnabled={() => handleToggleEnabled(p)}
+            />
+          ))}
         </div>
       )}
 
@@ -752,20 +1115,513 @@ export function AIProvidersManager() {
       />
 
       {/* 删除确认 */}
-      <Dialog open={!!deleting} onOpenChange={() => setDeleting(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>
-              确定要删除提供商「{deleting?.name}」吗？此操作不可撤销。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleting(null)}>取消</Button>
-            <Button variant="destructive" onClick={handleDelete}>确认删除</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={!!deleting}
+        onCancel={() => setDeleting(null)}
+        title="确认删除"
+        footer={
+          <Space>
+            <Button onClick={() => setDeleting(null)}>取消</Button>
+            <Button type="primary" danger onClick={handleDelete}>确认删除</Button>
+          </Space>
+        }
+      >
+        <Typography.Paragraph>
+          确定要删除提供商「{deleting?.name}」吗？此操作不可撤销。
+        </Typography.Paragraph>
+      </Modal>
+    </div>
+  )
+}
+
+// ============== 知识库全局行为配置 ==============
+// 把 KnowledgeConfig（lib/ai/provider-resolver.ts）中所有魔数都暴露给 admin 调整
+// 保存走 POST /api/knowledge/config（admin 鉴权），随后客户端 / 后端 getKnowledgeConfig() 自动 reload
+
+const MB = 1024 * 1024
+
+type KCDraft = {
+  uploadLimits: { text: number; image: number; document: number; audio: number; video: number; other: number }
+  maxExtractedChars: number
+  chunking: { chunkSize: number; chunkOverlap: number; minChunkSize: number }
+  glm: {
+    autoOcr: boolean
+    enableRerank: boolean
+    ocrMaxPages: number
+    ocrMaxChars: number
+    rerankTopN: number
+    rerankBlend: number
+    fileSizeLimits: { image: number; document: number }
+  }
+  auto: { autoEmbed: boolean; embedTimeout: number }
+  search: {
+    hybridKeywordWeight: number
+    defaultLimit: number
+    recommendHistoryLimit: number
+    recommendMaxResults: number
+    tsVectorWeight: number
+    highlightPadding: number
+    highlightTailLength: number
+    snippetPadding: { before: number; after: number }
+    snippetMaxLen: number
+    snippetWindowMultiplier: number
+    maxCandidate: number
+    queryMaxLength: number
+    maxHighlights: number
+    similarDefaultLimit: number
+    minTokenLength: number
+    recommendCandidateMultiplier: number
+    requestOvershootMultiplier: number
+  }
+  list: {
+    defaultLimit: number
+    maxLimit: number
+    backupDefaultLimit: number
+    recommendationDefaultLimit: number
+  }
+  limits: {
+    itemTitleMax: number
+    collectionNameMax: number
+    tagNameMax: number
+    maxTagsPerItem: number
+    summaryMax: number
+  }
+  ui: {
+    listPageSize: number
+    searchDebounceMs: number
+    maxTagBadges: number
+    maxRecommendationCards: number
+    contextMaxChunks: number
+    contextMaxChunkLength: number
+    contextMaxChunksCeilingMin: number
+    listPreviewChars: number
+    recommendationPreviewChars: number
+    createItemTextareaMinRows: number
+    createItemTextareaMaxRows: number
+    detailEditorTextareaMinRows: number
+    detailEditorTextareaMaxRows: number
+    backupListMaxHeight: number
+    backupPollingIntervals: number[]
+  }
+  upload: {
+    xlsxMaxRows: number
+  }
+  backup: {
+    batchSize: number
+  }
+  embeddingTest: {
+    maxTestTextChars: number
+    vectorPreviewCount: number
+    previewTextChars: number
+  }
+}
+
+function toDraft(c: any): KCDraft {
+  return {
+    uploadLimits: { ...c.uploadLimits },
+    maxExtractedChars: c.maxExtractedChars,
+    chunking: { chunkSize: c.chunking.chunkSize, chunkOverlap: c.chunking.chunkOverlap, minChunkSize: c.chunking.minChunkSize },
+    glm: {
+      autoOcr: c.glm.autoOcr,
+      enableRerank: c.glm.enableRerank,
+      ocrMaxPages: c.glm.ocrMaxPages,
+      ocrMaxChars: c.glm.ocrMaxChars,
+      rerankTopN: c.glm.rerankTopN,
+      rerankBlend: c.glm.rerankBlend,
+      fileSizeLimits: { image: c.glm.fileSizeLimits?.image ?? 10 * MB, document: c.glm.fileSizeLimits?.document ?? 50 * MB }
+    },
+    auto: { autoEmbed: c.auto.autoEmbed, embedTimeout: c.auto.embedTimeout },
+    search: {
+      hybridKeywordWeight: c.search.hybridKeywordWeight,
+      defaultLimit: c.search.defaultLimit,
+      recommendHistoryLimit: c.search.recommendHistoryLimit,
+      recommendMaxResults: c.search.recommendMaxResults,
+      tsVectorWeight: c.search.tsVectorWeight,
+      highlightPadding: c.search.highlightPadding,
+      highlightTailLength: c.search.highlightTailLength ?? 20,
+      snippetPadding: { ...c.search.snippetPadding },
+      snippetMaxLen: c.search.snippetMaxLen,
+      snippetWindowMultiplier: c.search.snippetWindowMultiplier ?? 10,
+      maxCandidate: c.search.maxCandidate,
+      queryMaxLength: c.search.queryMaxLength ?? 500,
+      maxHighlights: c.search.maxHighlights ?? 2,
+      similarDefaultLimit: c.search.similarDefaultLimit ?? 5,
+      minTokenLength: c.search.minTokenLength ?? 2,
+      recommendCandidateMultiplier: c.search.recommendCandidateMultiplier ?? 2,
+      requestOvershootMultiplier: c.search.requestOvershootMultiplier ?? 2
+    },
+    list: {
+      defaultLimit: c.list?.defaultLimit ?? 50,
+      maxLimit: c.list?.maxLimit ?? 200,
+      backupDefaultLimit: c.list?.backupDefaultLimit ?? 50,
+      recommendationDefaultLimit: c.list?.recommendationDefaultLimit ?? 10
+    },
+    limits: {
+      itemTitleMax: c.limits?.itemTitleMax ?? 500,
+      collectionNameMax: c.limits?.collectionNameMax ?? 100,
+      tagNameMax: c.limits?.tagNameMax ?? 50,
+      maxTagsPerItem: c.limits?.maxTagsPerItem ?? 20,
+      summaryMax: c.limits?.summaryMax ?? 200
+    },
+    ui: {
+      listPageSize: c.ui.listPageSize,
+      searchDebounceMs: c.ui.searchDebounceMs,
+      maxTagBadges: c.ui.maxTagBadges,
+      maxRecommendationCards: c.ui.maxRecommendationCards,
+      contextMaxChunks: c.ui.contextMaxChunks,
+      contextMaxChunkLength: c.ui.contextMaxChunkLength,
+      contextMaxChunksCeilingMin: c.ui.contextMaxChunksCeilingMin ?? 20,
+      listPreviewChars: c.ui.listPreviewChars ?? 100,
+      recommendationPreviewChars: c.ui.recommendationPreviewChars ?? 60,
+      createItemTextareaMinRows: c.ui.createItemTextareaMinRows ?? 6,
+      createItemTextareaMaxRows: c.ui.createItemTextareaMaxRows ?? 20,
+      detailEditorTextareaMinRows: c.ui.detailEditorTextareaMinRows ?? 12,
+      detailEditorTextareaMaxRows: c.ui.detailEditorTextareaMaxRows ?? 30,
+      backupListMaxHeight: c.ui.backupListMaxHeight ?? 280,
+      backupPollingIntervals: Array.isArray(c.ui.backupPollingIntervals) ? c.ui.backupPollingIntervals : [1000, 4000]
+    },
+    upload: { xlsxMaxRows: c.upload?.xlsxMaxRows ?? 2000 },
+    backup: { batchSize: c.backup?.batchSize ?? 200 },
+    embeddingTest: {
+      maxTestTextChars: c.embeddingTest?.maxTestTextChars ?? 1000,
+      vectorPreviewCount: c.embeddingTest?.vectorPreviewCount ?? 8,
+      previewTextChars: c.embeddingTest?.previewTextChars ?? 100
+    }
+  }
+}
+
+function KnowledgeConfigCard() {
+  const [draft, setDraft] = useState<KCDraft | null>(null)
+  const [defaults, setDefaults] = useState<any>(null)
+  const [saving, setSaving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/knowledge/config")
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.config) setDraft(toDraft(data.config))
+      if (data.defaults) setDefaults(data.defaults)
+    } catch {}
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const update = (mut: (d: KCDraft) => void) => {
+    setDraft(prev => {
+      if (!prev) return prev
+      const next: KCDraft = JSON.parse(JSON.stringify(prev))
+      mut(next)
+      return next
+    })
+  }
+
+  const handleSave = async () => {
+    if (!draft) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/knowledge/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ knowledgeConfig: draft })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || "保存失败")
+        return
+      }
+      toast.success("知识库配置已保存")
+      if (data.config) setDraft(toDraft(data.config))
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleReset = () => {
+    if (!defaults) return
+    setDraft(toDraft(defaults))
+  }
+
+  if (!draft) {
+    return (
+      <Card style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 12, color: "rgb(113 113 122)" }}>加载知识库配置中…</div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 8,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backgroundColor: "rgb(22 119 255 / 0.1)",
+          color: "rgb(22 119 255)",
+          border: "1px solid rgb(145 202 255)",
+          flexShrink: 0,
+        }}>
+          <BookOpen className="w-4 h-4" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+            <Typography.Text strong>知识库全局配置</Typography.Text>
+            <Tag style={{ fontSize: 10, color: "rgb(22 119 255)", border: "1px solid rgb(145 202 255)", backgroundColor: "rgb(232 244 255)" }}>
+              所有魔数都可调
+            </Tag>
+            <div style={{ flex: 1 }} />
+            <Button size="small" onClick={() => setExpanded(v => !v)}>
+              {expanded ? "收起" : "展开编辑"}
+            </Button>
+            <Button size="small" onClick={handleReset} disabled={saving || !defaults}>
+              恢复默认
+            </Button>
+            <Button size="small" type="primary" onClick={handleSave} loading={saving} icon={!saving ? <Check className="w-3.5 h-3.5" /> : null}>
+              保存
+            </Button>
+          </div>
+          <p style={{ fontSize: 12, color: "rgb(113 113 122)", marginTop: 4, marginBottom: 12 }}>
+            上传/分块/GLM-OCR/Rerank/检索/UI 行为全部可在此调整。改动立即对所有用户生效。
+          </p>
+
+          {/* 始终可见：核心开关 */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", marginBottom: 12 }}>
+            <FieldSwitch
+              label="GLM-OCR"
+              hint="PDF/图片自动调用智谱解析"
+              checked={draft.glm.autoOcr}
+              onChange={(v) => update(d => { d.glm.autoOcr = v })}
+            />
+            <FieldSwitch
+              label="GLM Rerank"
+              hint="检索后用智谱重排序提升精度"
+              checked={draft.glm.enableRerank}
+              onChange={(v) => update(d => { d.glm.enableRerank = v })}
+            />
+            <FieldSwitch
+              label="自动向量化"
+              hint="上传后自动调用 embedding"
+              checked={draft.auto.autoEmbed}
+              onChange={(v) => update(d => { d.auto.autoEmbed = v })}
+            />
+          </div>
+
+          {expanded && (
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+              {/* 上传上限 */}
+              <ConfigGroup title="上传大小上限（MB）" icon="📁">
+                <FieldNumber label="文本" value={Math.round(draft.uploadLimits.text / MB)} onChange={(v) => update(d => { d.uploadLimits.text = v * MB })} min={1} max={1024} />
+                <FieldNumber label="图片" value={Math.round(draft.uploadLimits.image / MB)} onChange={(v) => update(d => { d.uploadLimits.image = v * MB })} min={1} max={1024} />
+                <FieldNumber label="文档" value={Math.round(draft.uploadLimits.document / MB)} onChange={(v) => update(d => { d.uploadLimits.document = v * MB })} min={1} max={1024} />
+                <FieldNumber label="音频" value={Math.round(draft.uploadLimits.audio / MB)} onChange={(v) => update(d => { d.uploadLimits.audio = v * MB })} min={1} max={1024} />
+                <FieldNumber label="视频" value={Math.round(draft.uploadLimits.video / MB)} onChange={(v) => update(d => { d.uploadLimits.video = v * MB })} min={1} max={4096} />
+                <FieldNumber label="其他" value={Math.round(draft.uploadLimits.other / MB)} onChange={(v) => update(d => { d.uploadLimits.other = v * MB })} min={1} max={1024} />
+                <FieldNumber label="提取最大字符" value={Math.round(draft.maxExtractedChars / 1000)} onChange={(v) => update(d => { d.maxExtractedChars = v * 1000 })} min={10} max={5000} suffix="K" />
+              </ConfigGroup>
+
+              {/* 分块 */}
+              <ConfigGroup title="Embedding 分块" icon="✂️">
+                <FieldNumber label="块大小" value={draft.chunking.chunkSize} onChange={(v) => update(d => { d.chunking.chunkSize = v })} min={50} max={4000} />
+                <FieldNumber label="重叠字符" value={draft.chunking.chunkOverlap} onChange={(v) => update(d => { d.chunking.chunkOverlap = v })} min={0} max={500} />
+                <FieldNumber label="最小块" value={draft.chunking.minChunkSize} onChange={(v) => update(d => { d.chunking.minChunkSize = v })} min={10} max={500} />
+                <FieldNumber label="嵌入超时(秒)" value={draft.auto.embedTimeout} onChange={(v) => update(d => { d.auto.embedTimeout = v })} min={5} max={120} />
+              </ConfigGroup>
+
+              {/* GLM 集成 */}
+              <ConfigGroup title="GLM 集成" icon="🧠">
+                <FieldNumber label="OCR 最大页数" value={draft.glm.ocrMaxPages} onChange={(v) => update(d => { d.glm.ocrMaxPages = v })} min={1} max={500} />
+                <FieldNumber label="OCR 截断(K字符)" value={Math.round(draft.glm.ocrMaxChars / 1000)} onChange={(v) => update(d => { d.glm.ocrMaxChars = v * 1000 })} min={50} max={5000} />
+                <FieldNumber label="OCR 图片上限(MB)" value={Math.round(draft.glm.fileSizeLimits.image / MB)} onChange={(v) => update(d => { d.glm.fileSizeLimits.image = v * MB })} min={1} max={50} />
+                <FieldNumber label="OCR 文档上限(MB)" value={Math.round(draft.glm.fileSizeLimits.document / MB)} onChange={(v) => update(d => { d.glm.fileSizeLimits.document = v * MB })} min={1} max={200} />
+                <FieldNumber label="Rerank 候选上限" value={draft.glm.rerankTopN} onChange={(v) => update(d => { d.glm.rerankTopN = v })} min={1} max={128} />
+                <FieldNumberFloat label="Rerank 混合权重" value={draft.glm.rerankBlend} onChange={(v) => update(d => { d.glm.rerankBlend = v })} min={0} max={1} step={0.05} />
+              </ConfigGroup>
+
+              {/* 检索 */}
+              <ConfigGroup title="混合检索" icon="🔍">
+                <FieldNumberFloat label="关键词权重" value={draft.search.hybridKeywordWeight} onChange={(v) => update(d => { d.search.hybridKeywordWeight = v })} min={0} max={1} step={0.05} />
+                <FieldNumber label="默认 limit" value={draft.search.defaultLimit} onChange={(v) => update(d => { d.search.defaultLimit = v })} min={1} max={200} />
+                <FieldNumber label="子检索上限" value={draft.search.maxCandidate} onChange={(v) => update(d => { d.search.maxCandidate = v })} min={5} max={500} />
+                <FieldNumber label="tsvector 倍数" value={draft.search.tsVectorWeight} onChange={(v) => update(d => { d.search.tsVectorWeight = v })} min={0} max={10} step={0.1} />
+                <FieldNumber label="高亮前缀" value={draft.search.highlightPadding} onChange={(v) => update(d => { d.search.highlightPadding = v })} min={5} max={200} />
+                <FieldNumber label="高亮尾部" value={draft.search.highlightTailLength} onChange={(v) => update(d => { d.search.highlightTailLength = v })} min={0} max={200} />
+                <FieldNumber label="高亮片段数" value={draft.search.maxHighlights} onChange={(v) => update(d => { d.search.maxHighlights = v })} min={1} max={10} />
+                <FieldNumber label="高亮窗口乘数" value={draft.search.snippetWindowMultiplier} onChange={(v) => update(d => { d.search.snippetWindowMultiplier = v })} min={1} max={50} />
+                <FieldNumber label="token 最小长度" value={draft.search.minTokenLength} onChange={(v) => update(d => { d.search.minTokenLength = v })} min={1} max={8} />
+                <FieldNumber label="相似推荐默认" value={draft.search.similarDefaultLimit} onChange={(v) => update(d => { d.search.similarDefaultLimit = v })} min={1} max={50} />
+                <FieldNumber label="摘要最大长度" value={draft.search.snippetMaxLen} onChange={(v) => update(d => { d.search.snippetMaxLen = v })} min={50} max={2000} />
+                <FieldNumber label="摘要前缀" value={draft.search.snippetPadding.before} onChange={(v) => update(d => { d.search.snippetPadding.before = v })} min={5} max={500} />
+                <FieldNumber label="摘要后缀" value={draft.search.snippetPadding.after} onChange={(v) => update(d => { d.search.snippetPadding.after = v })} min={5} max={500} />
+                <FieldNumber label="推荐历史数" value={draft.search.recommendHistoryLimit} onChange={(v) => update(d => { d.search.recommendHistoryLimit = v })} min={1} max={200} />
+                <FieldNumber label="推荐最大数" value={draft.search.recommendMaxResults} onChange={(v) => update(d => { d.search.recommendMaxResults = v })} min={1} max={50} />
+                <FieldNumber label="推荐候选倍数" value={draft.search.recommendCandidateMultiplier} onChange={(v) => update(d => { d.search.recommendCandidateMultiplier = v })} min={1} max={10} step={1} />
+                <FieldNumber label="请求 limit 放大倍数" value={draft.search.requestOvershootMultiplier} onChange={(v) => update(d => { d.search.requestOvershootMultiplier = v })} min={1} max={10} step={1} />
+                <FieldNumber label="query 最大长度" value={draft.search.queryMaxLength} onChange={(v) => update(d => { d.search.queryMaxLength = v })} min={10} max={2000} />
+              </ConfigGroup>
+
+              {/* 列表分页 */}
+              <ConfigGroup title="列表分页" icon="📄">
+                <FieldNumber label="items 默认 limit" value={draft.list.defaultLimit} onChange={(v) => update(d => { d.list.defaultLimit = v })} min={5} max={500} />
+                <FieldNumber label="items 最大 limit" value={draft.list.maxLimit} onChange={(v) => update(d => { d.list.maxLimit = v })} min={10} max={2000} />
+                <FieldNumber label="备份默认 limit" value={draft.list.backupDefaultLimit} onChange={(v) => update(d => { d.list.backupDefaultLimit = v })} min={5} max={500} />
+                <FieldNumber label="推荐缓存默认 limit" value={draft.list.recommendationDefaultLimit} onChange={(v) => update(d => { d.list.recommendationDefaultLimit = v })} min={5} max={200} />
+              </ConfigGroup>
+
+              {/* 字段长度上限 */}
+              <ConfigGroup title="字段长度上限（API 校验）" icon="📏">
+                <FieldNumber label="条目 title 最大" value={draft.limits.itemTitleMax} onChange={(v) => update(d => { d.limits.itemTitleMax = v })} min={20} max={2000} />
+                <FieldNumber label="集合 name 最大" value={draft.limits.collectionNameMax} onChange={(v) => update(d => { d.limits.collectionNameMax = v })} min={10} max={500} />
+                <FieldNumber label="标签 name 最大" value={draft.limits.tagNameMax} onChange={(v) => update(d => { d.limits.tagNameMax = v })} min={5} max={200} />
+                <FieldNumber label="单条最大 tag 数" value={draft.limits.maxTagsPerItem} onChange={(v) => update(d => { d.limits.maxTagsPerItem = v })} min={1} max={100} />
+                <FieldNumber label="摘要 maxLength" value={draft.limits.summaryMax} onChange={(v) => update(d => { d.limits.summaryMax = v })} min={20} max={2000} />
+              </ConfigGroup>
+
+              {/* UI */}
+              <ConfigGroup title="UI 行为" icon="🪟">
+                <FieldNumber label="列表分页" value={draft.ui.listPageSize} onChange={(v) => update(d => { d.ui.listPageSize = v })} min={10} max={1000} />
+                <FieldNumber label="搜索防抖(ms)" value={draft.ui.searchDebounceMs} onChange={(v) => update(d => { d.ui.searchDebounceMs = v })} min={0} max={2000} step={50} />
+                <FieldNumber label="标签云上限" value={draft.ui.maxTagBadges} onChange={(v) => update(d => { d.ui.maxTagBadges = v })} min={3} max={100} />
+                <FieldNumber label="推荐卡片上限" value={draft.ui.maxRecommendationCards} onChange={(v) => update(d => { d.ui.maxRecommendationCards = v })} min={1} max={20} />
+                <FieldNumber label="AI 上下文 chunks" value={draft.ui.contextMaxChunks} onChange={(v) => update(d => { d.ui.contextMaxChunks = v })} min={1} max={50} />
+                <FieldNumber label="每 chunk 长度" value={draft.ui.contextMaxChunkLength} onChange={(v) => update(d => { d.ui.contextMaxChunkLength = v })} min={100} max={5000} step={50} />
+                <FieldNumber label="context API 硬下限" value={draft.ui.contextMaxChunksCeilingMin} onChange={(v) => update(d => { d.ui.contextMaxChunksCeilingMin = v })} min={1} max={200} />
+                <FieldNumber label="列表预览字符" value={draft.ui.listPreviewChars} onChange={(v) => update(d => { d.ui.listPreviewChars = v })} min={20} max={500} step={10} />
+                <FieldNumber label="推荐预览字符" value={draft.ui.recommendationPreviewChars} onChange={(v) => update(d => { d.ui.recommendationPreviewChars = v })} min={10} max={300} step={10} />
+              </ConfigGroup>
+
+              {/* 详情 / 创建 TextArea 行数 */}
+              <ConfigGroup title="编辑 / 创建行数" icon="📝">
+                <FieldNumber label="创建-最小行" value={draft.ui.createItemTextareaMinRows} onChange={(v) => update(d => { d.ui.createItemTextareaMinRows = v })} min={2} max={30} />
+                <FieldNumber label="创建-最大行" value={draft.ui.createItemTextareaMaxRows} onChange={(v) => update(d => { d.ui.createItemTextareaMaxRows = v })} min={5} max={100} />
+                <FieldNumber label="详情-最小行" value={draft.ui.detailEditorTextareaMinRows} onChange={(v) => update(d => { d.ui.detailEditorTextareaMinRows = v })} min={2} max={50} />
+                <FieldNumber label="详情-最大行" value={draft.ui.detailEditorTextareaMaxRows} onChange={(v) => update(d => { d.ui.detailEditorTextareaMaxRows = v })} min={5} max={200} />
+              </ConfigGroup>
+
+              {/* 备份 */}
+              <ConfigGroup title="备份" icon="💾">
+                <FieldNumber label="单次拉取 batch" value={draft.backup.batchSize} onChange={(v) => update(d => { d.backup.batchSize = v })} min={10} max={2000} step={50} />
+                <FieldNumber label="列表最大高度(px)" value={draft.ui.backupListMaxHeight} onChange={(v) => update(d => { d.ui.backupListMaxHeight = v })} min={120} max={2000} step={20} />
+                <FieldIntervals
+                  label="轮询刷新间隔(ms)"
+                  value={draft.ui.backupPollingIntervals}
+                  onChange={(v) => update(d => { d.ui.backupPollingIntervals = v })}
+                />
+              </ConfigGroup>
+
+              {/* Embedding 测试 */}
+              <ConfigGroup title="Embedding 测试" icon="🧪">
+                <FieldNumber label="测试文本最大字符" value={draft.embeddingTest.maxTestTextChars} onChange={(v) => update(d => { d.embeddingTest.maxTestTextChars = v })} min={50} max={10000} step={50} />
+                <FieldNumber label="向量预览维度数" value={draft.embeddingTest.vectorPreviewCount} onChange={(v) => update(d => { d.embeddingTest.vectorPreviewCount = v })} min={1} max={32} />
+                <FieldNumber label="text 预览字符" value={draft.embeddingTest.previewTextChars} onChange={(v) => update(d => { d.embeddingTest.previewTextChars = v })} min={20} max={500} step={10} />
+              </ConfigGroup>
+
+              {/* 上传解析 */}
+              <ConfigGroup title="上传解析" icon="📥">
+                <FieldNumber label="XLSX 每 sheet 行数上限" value={draft.upload.xlsxMaxRows} onChange={(v) => update(d => { d.upload.xlsxMaxRows = v })} min={100} max={50000} step={100} />
+              </ConfigGroup>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function ConfigGroup({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
+  return (
+    <div style={{
+      border: "1px solid rgb(228 228 231)",
+      borderRadius: 8,
+      padding: 12,
+      backgroundColor: "rgb(250 250 250)"
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "rgb(63 63 70)", marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
+        {icon && <span>{icon}</span>}<span>{title}</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>{children}</div>
+    </div>
+  )
+}
+
+function FieldNumber({ label, value, onChange, min, max, step, suffix }: {
+  label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span style={{ fontSize: 11, color: "rgb(113 113 122)" }}>{label}{suffix ? `(${suffix})` : ""}</span>
+      <InputNumber
+        size="small"
+        value={value}
+        onChange={(v) => v !== null && onChange(Number(v))}
+        min={min}
+        max={max}
+        step={step ?? 1}
+        style={{ width: "100%" }}
+      />
+    </div>
+  )
+}
+
+function FieldNumberFloat({ label, value, onChange, min, max, step }: {
+  label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span style={{ fontSize: 11, color: "rgb(113 113 122)" }}>{label}</span>
+      <InputNumber
+        size="small"
+        value={value}
+        onChange={(v) => v !== null && onChange(Number(v))}
+        min={min}
+        max={max}
+        step={step ?? 0.1}
+        style={{ width: "100%" }}
+      />
+    </div>
+  )
+}
+
+function FieldSwitch({ label, hint, checked, onChange }: {
+  label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <Switch size="small" checked={checked} onChange={onChange} />
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "rgb(63 63 70)" }}>{label}</div>
+        {hint && <div style={{ fontSize: 10, color: "rgb(113 113 122)" }}>{hint}</div>}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 数组配置（用于 backupPollingIntervals 等 number[] 类型的字段）
+ * 逗号分隔输入，新增/删除自动同步
+ */
+function FieldIntervals({ label, value, onChange }: {
+  label: string; value: number[]; onChange: (v: number[]) => void
+}) {
+  const text = (Array.isArray(value) ? value : []).join(", ")
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, gridColumn: "1 / -1" }}>
+      <span style={{ fontSize: 11, color: "rgb(113 113 122)" }}>{label}</span>
+      <Input
+        size="small"
+        value={text}
+        placeholder="例如: 1000, 4000"
+        onChange={(e) => {
+          const arr = e.target.value
+            .split(/[，,]/)
+            .map(s => Number(s.trim()))
+            .filter(n => Number.isFinite(n) && n >= 0)
+          onChange(arr)
+        }}
+        style={{ width: "100%" }}
+      />
     </div>
   )
 }

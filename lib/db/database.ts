@@ -259,6 +259,175 @@ export async function initDB(): Promise<void> {
           result TEXT,
           created_at BIGINT NOT NULL,
           executed_at BIGINT
+        )`,
+        // 用户简报/我的空间存储 - 关联 user_id，支持跨设备同步
+        `CREATE TABLE IF NOT EXISTS user_reports (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          source TEXT NOT NULL DEFAULT 'manual',
+          source_id TEXT,
+          title TEXT NOT NULL,
+          html TEXT NOT NULL,
+          summary TEXT,
+          type TEXT NOT NULL DEFAULT 'report',
+          is_favorite INTEGER NOT NULL DEFAULT 0,
+          created_at BIGINT NOT NULL
+        )`,
+        // 知识库 - 集合（顶层分类/文件夹）
+        `CREATE TABLE IF NOT EXISTS knowledge_collections (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          parent_id BIGINT,
+          color TEXT DEFAULT '#1677ff',
+          icon TEXT DEFAULT 'folder',
+          sort_order INTEGER DEFAULT 0,
+          is_archived INTEGER DEFAULT 0,
+          item_count INTEGER DEFAULT 0,
+          -- ========== 知识库市场扩展字段（is_marketplace=1 时生效）==========
+          is_marketplace INTEGER NOT NULL DEFAULT 0,
+          category TEXT DEFAULT 'general',
+          cover_image TEXT,
+          popularity INTEGER NOT NULL DEFAULT 0,
+          official INTEGER NOT NULL DEFAULT 0,
+          publisher_id INTEGER,
+          published_at BIGINT,
+          -- =============================================
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        // 知识库 - 市场订阅记录（虚拟订阅：原 items 仍属 publisher，订阅用户可读）
+        `CREATE TABLE IF NOT EXISTS knowledge_market_subscriptions (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          collection_id BIGINT NOT NULL,
+          created_at BIGINT NOT NULL,
+          UNIQUE(user_id, collection_id)
+        )`,
+        // 知识库 - 标签
+        `CREATE TABLE IF NOT EXISTS knowledge_tags (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          color TEXT DEFAULT '#1677ff',
+          usage_count INTEGER DEFAULT 0,
+          created_at BIGINT NOT NULL,
+          UNIQUE(user_id, name)
+        )`,
+        // 知识库 - 知识条目
+        `CREATE TABLE IF NOT EXISTS knowledge_items (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          collection_id BIGINT,
+          title TEXT NOT NULL,
+          content TEXT,
+          content_type TEXT NOT NULL DEFAULT 'note',
+          file_url TEXT,
+          file_size BIGINT DEFAULT 0,
+          mime_type TEXT,
+          source_url TEXT,
+          source_metadata TEXT,
+          summary TEXT,
+          tags_cache TEXT DEFAULT '',
+          is_favorite INTEGER DEFAULT 0,
+          is_archived INTEGER DEFAULT 0,
+          access_level TEXT DEFAULT 'private',
+          current_version INTEGER DEFAULT 1,
+          view_count INTEGER DEFAULT 0,
+          search_count INTEGER DEFAULT 0,
+          last_accessed_at BIGINT,
+          embedding_model TEXT,
+          embedding_status TEXT DEFAULT 'pending',
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        // 知识库 - 条目标签关联
+        `CREATE TABLE IF NOT EXISTS knowledge_item_tags (
+          item_id BIGINT NOT NULL,
+          tag_id BIGINT NOT NULL,
+          PRIMARY KEY (item_id, tag_id)
+        )`,
+        // 知识库 - 历史版本
+        `CREATE TABLE IF NOT EXISTS knowledge_versions (
+          id BIGSERIAL PRIMARY KEY,
+          item_id BIGINT NOT NULL,
+          version_number INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT,
+          file_url TEXT,
+          change_summary TEXT,
+          change_type TEXT DEFAULT 'edit',
+          created_by INTEGER,
+          created_at BIGINT NOT NULL,
+          UNIQUE(item_id, version_number)
+        )`,
+        // 知识库 - 文本分块（用于检索）
+        `CREATE TABLE IF NOT EXISTS knowledge_chunks (
+          id BIGSERIAL PRIMARY KEY,
+          item_id BIGINT NOT NULL,
+          version_id BIGINT,
+          chunk_index INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          content_hash TEXT,
+          token_count INTEGER DEFAULT 0,
+          start_offset INTEGER DEFAULT 0,
+          end_offset INTEGER DEFAULT 0,
+          metadata TEXT,
+          embedding TEXT,
+          embedding_model TEXT,
+          created_at BIGINT NOT NULL
+        )`,
+        // 知识库 - 权限/共享
+        `CREATE TABLE IF NOT EXISTS knowledge_permissions (
+          id BIGSERIAL PRIMARY KEY,
+          item_id BIGINT,
+          collection_id BIGINT,
+          user_id INTEGER NOT NULL,
+          grantee_user_id INTEGER NOT NULL,
+          permission TEXT NOT NULL DEFAULT 'read',
+          granted_by INTEGER NOT NULL,
+          expires_at BIGINT,
+          created_at BIGINT NOT NULL
+        )`,
+        // 知识库 - 查询日志（用于推荐）
+        `CREATE TABLE IF NOT EXISTS knowledge_query_log (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          session_id TEXT,
+          query TEXT NOT NULL,
+          query_type TEXT DEFAULT 'keyword',
+          results_count INTEGER DEFAULT 0,
+          clicked_item_id BIGINT,
+          clicked_chunk_id BIGINT,
+          created_at BIGINT NOT NULL
+        )`,
+        // 知识库 - 备份记录
+        `CREATE TABLE IF NOT EXISTS knowledge_backups (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          backup_type TEXT NOT NULL DEFAULT 'full',
+          name TEXT,
+          item_count INTEGER DEFAULT 0,
+          file_path TEXT,
+          file_size BIGINT DEFAULT 0,
+          status TEXT DEFAULT 'pending',
+          include_files INTEGER DEFAULT 1,
+          metadata TEXT,
+          error_message TEXT,
+          created_at BIGINT NOT NULL,
+          completed_at BIGINT
+        )`,
+        // 知识库 - 推荐缓存
+        `CREATE TABLE IF NOT EXISTS knowledge_recommendations (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          item_id BIGINT NOT NULL,
+          score REAL DEFAULT 0,
+          reason TEXT,
+          reason_type TEXT DEFAULT 'history',
+          expires_at BIGINT,
+          created_at BIGINT NOT NULL
         )`
       ]
 
@@ -270,6 +439,22 @@ export async function initDB(): Promise<void> {
           if (error.code !== '42P07') { // 42P07 = duplicate_table
             console.error('Error creating table:', error.message)
           }
+        }
+      }
+
+      // 幂等添加 knowledge_collections 市场相关列（已存在的库也能平滑升级）
+      const kbAlterStatements = [
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS is_marketplace INTEGER NOT NULL DEFAULT 0`,
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general'`,
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS cover_image TEXT`,
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS popularity INTEGER NOT NULL DEFAULT 0`,
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS official INTEGER NOT NULL DEFAULT 0`,
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS publisher_id INTEGER`,
+        `ALTER TABLE knowledge_collections ADD COLUMN IF NOT EXISTS published_at BIGINT`,
+      ]
+      for (const stmt of kbAlterStatements) {
+        try { await p.query(stmt) } catch (e: any) {
+          // 已添加或类型冲突忽略（IF NOT EXISTS 已经处理大部分）
         }
       }
 
@@ -290,7 +475,34 @@ export async function initDB(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS idx_device_patterns_user_device ON device_patterns(user_id, device_id)",
         "CREATE INDEX IF NOT EXISTS idx_successful_strategies_user_id ON successful_strategies(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_user_session ON agent_execution_logs(user_id, session_id)",
-        "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_created_at ON agent_execution_logs(created_at)"
+        "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_created_at ON agent_execution_logs(created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_user_reports_user_created ON user_reports(user_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_user_reports_user_favorite ON user_reports(user_id, is_favorite)",
+        // 知识库索引
+        "CREATE INDEX IF NOT EXISTS idx_kb_collections_user ON knowledge_collections(user_id, parent_id, sort_order)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_tags_user ON knowledge_tags(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_user_updated ON knowledge_items(user_id, updated_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_user_collection ON knowledge_items(user_id, collection_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_user_favorite ON knowledge_items(user_id, is_favorite)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_user_archived ON knowledge_items(user_id, is_archived)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_user_type ON knowledge_items(user_id, content_type)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_embedding_status ON knowledge_items(user_id, embedding_status)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_item_tags_tag ON knowledge_item_tags(tag_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_versions_item ON knowledge_versions(item_id, version_number DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_chunks_item ON knowledge_chunks(item_id, chunk_index)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_chunks_hash ON knowledge_chunks(content_hash)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_perms_grantee ON knowledge_permissions(grantee_user_id, permission)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_perms_item ON knowledge_permissions(item_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_query_log_user_time ON knowledge_query_log(user_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_backups_user_time ON knowledge_backups(user_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_recommendations_user_score ON knowledge_recommendations(user_id, score DESC)",
+        // 知识库市场索引
+        "CREATE INDEX IF NOT EXISTS idx_kb_collections_market ON knowledge_collections(is_marketplace, category, popularity DESC, published_at DESC) WHERE is_marketplace = 1",
+        "CREATE INDEX IF NOT EXISTS idx_kb_collections_publisher ON knowledge_collections(publisher_id) WHERE publisher_id IS NOT NULL",
+        "CREATE INDEX IF NOT EXISTS idx_kb_market_subs_user ON knowledge_market_subscriptions(user_id, collection_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_market_subs_collection ON knowledge_market_subscriptions(collection_id)",
+        // 知识库全文搜索索引（PostgreSQL tsvector）
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_fts ON knowledge_items USING gin(to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(content, '')))"
       ]
 
       for (const statement of indexStatements) {

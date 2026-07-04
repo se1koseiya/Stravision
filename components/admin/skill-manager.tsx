@@ -1,29 +1,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
+import { Button, Input, Table, Modal, Tag, Space, Typography } from "antd"
+import type { ColumnsType } from "antd/es/table"
 import { toast } from "sonner"
-import { Loader2, Plus, Pencil, Trash2, Search, Globe, Lock, ExternalLink, Image as ImageIcon, Layout, Sparkles, Terminal } from "lucide-react"
-import { cn } from "@/lib/utils"
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  SearchOutlined,
+  GlobalOutlined,
+  LockOutlined,
+  LinkOutlined,
+  PictureOutlined,
+  LayoutOutlined,
+  FireOutlined,
+  CodeOutlined,
+} from "@ant-design/icons"
 import { ImageCropper } from "./image-cropper"
+
+const { Text } = Typography
 
 interface Skill {
   id: number
@@ -48,7 +44,7 @@ interface Skill {
 export function SkillManager() {
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
   const [editingSkill, setEditingSkill] = useState<Partial<Skill> | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -80,8 +76,8 @@ export function SkillManager() {
     }
 
     const method = editingSkill.id ? "PUT" : "POST"
-    const url = editingSkill.id 
-      ? `/api/skills/store/${editingSkill.skill_id}` 
+    const url = editingSkill.id
+      ? `/api/skills/store/${editingSkill.skill_id}`
       : "/api/skills/store"
 
     try {
@@ -93,7 +89,7 @@ export function SkillManager() {
 
       if (res.ok) {
         toast.success(editingSkill.id ? "Skill updated" : "Skill created")
-        setDialogOpen(false)
+        setModalOpen(false)
         fetchSkills()
       } else {
         const err = await res.json()
@@ -117,327 +113,407 @@ export function SkillManager() {
     }
   }
 
-  const filteredSkills = skills.filter(s => 
+  const filteredSkills = skills.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.skill_id.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const SkillIcon = ({ icon, name, className }: { icon: string, name: string, className?: string }) => {
     const isEmoji = /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(icon) || icon.length <= 2
-    if (isEmoji) return <div className={cn(className, "flex items-center justify-center text-4xl")}>{icon}</div>
-    
+    if (isEmoji) return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 32,
+        ...(className?.split(" ").reduce((acc, cls) => ({ ...acc, [cls]: true }), {}) || {}),
+      }}>
+        {icon}
+      </div>
+    )
+
     return (
-      <div className={cn(className, "flex items-center justify-center overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800")}>
-        <img 
-          src={icon} 
-          alt={name} 
-          className="size-full object-cover" 
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        backgroundColor: "#f4f4f5",
+        border: "1px solid #e4e4e7",
+        ...(className?.split(" ").reduce((acc, cls) => ({ ...acc, [cls]: true }), {}) || {}),
+      }}>
+        <img
+          src={icon}
+          alt={name}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
           onError={(e) => {
-             e.currentTarget.style.display = 'none'
-             e.currentTarget.parentElement!.innerHTML = `<span class="text-xs font-black">${name.charAt(0).toUpperCase()}</span>`
+            e.currentTarget.style.display = "none"
+            e.currentTarget.parentElement!.innerHTML = `<span style="font-size:12px;font-weight:900">${name.charAt(0).toUpperCase()}</span>`
           }}
         />
       </div>
     )
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-          <Input 
-            placeholder="Search skills..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+  const columns: ColumnsType<Skill> = [
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      render: (priority: number) => <Text strong style={{ color: "#8b5cf6" }}>#{priority}</Text>,
+    },
+    {
+      title: "Icon",
+      dataIndex: "icon",
+      key: "icon",
+      render: (_, record) => (
+        <SkillIcon icon={record.icon} name={record.name} className="size-10 rounded-lg" />
+      ),
+    },
+    {
+      title: "Skill ID",
+      dataIndex: "skill_id",
+      key: "skill_id",
+      render: (skill_id: string) => <Text copyable style={{ fontFamily: "monospace", fontSize: 12 }}>{skill_id}</Text>,
+    },
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <Text>{name}</Text>,
+    },
+    {
+      title: "Category",
+      dataIndex: "category",
+      key: "category",
+      render: (category: string) => (
+        <Tag style={{ textTransform: "uppercase", fontWeight: 700, fontSize: 10 }}>{category}</Tag>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "is_published",
+      key: "is_published",
+      render: (is_published: number, record) =>
+        is_published ? (
+          <Tag color="green">
+            <GlobalOutlined style={{ marginRight: 4 }} /> Published
+          </Tag>
+        ) : (
+          <Tag color="default">
+            <LockOutlined style={{ marginRight: 4 }} /> Draft
+          </Tag>
+        ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      align: "right",
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEditingSkill(record)
+              setModalOpen(true)
+            }}
           />
-        </div>
-        <Button onClick={() => {
-          setEditingSkill({ 
-            skill_id: "",
-            name: "",
-            description: "",
-            icon: "🧩", 
-            category: "工具", 
-            author: "StravisionAI",
-            version: "1.0.0",
-            keywords: "",
-            examples: "",
-            effects: "",
-            content: "",
-            is_published: 0, 
-            is_builtin: 0, 
-            priority: 0 
-          })
-          setDialogOpen(true)
-        }}>
-          <Plus className="size-4 mr-2" />
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.skill_id)}
+            disabled={record.is_builtin === 1}
+          />
+        </Space>
+      ),
+    },
+  ]
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <Input
+          placeholder="Search skills..."
+          prefix={<SearchOutlined style={{ color: "#71717a" }} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ maxWidth: 320 }}
+        />
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            setEditingSkill({
+              skill_id: "",
+              name: "",
+              description: "",
+              icon: "🧩",
+              category: "工具",
+              author: "StravisionAI",
+              version: "1.0.0",
+              keywords: "",
+              examples: "",
+              effects: "",
+              content: "",
+              is_published: 0,
+              is_builtin: 0,
+              priority: 0,
+            })
+            setModalOpen(true)
+          }}
+        >
           Add Skill
         </Button>
       </div>
 
-      <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Priority</TableHead>
-              <TableHead>Icon</TableHead>
-              <TableHead>Skill ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-4 animate-spin" />
-                    Loading...
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredSkills.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
-                  No skills found.
-                </TableCell>
-              </TableRow>
-            ) : filteredSkills.map((skill) => (
-              <TableRow key={skill.id}>
-                <TableCell className="font-bold text-primary">#{skill.priority}</TableCell>
-                <TableCell>
-                   <SkillIcon icon={skill.icon} name={skill.name} className="size-10 rounded-lg" />
-                </TableCell>
-                <TableCell className="font-mono text-xs">{skill.skill_id}</TableCell>
-                <TableCell className="font-medium">{skill.name}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-[10px] uppercase font-bold">{skill.category}</Badge>
-                </TableCell>
-                <TableCell>
-                  {skill.is_published ? (
-                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
-                      <Globe className="size-3 mr-1" /> Published
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-[10px] font-bold">
-                      <Lock className="size-3 mr-1" /> Draft
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      setEditingSkill(skill)
-                      setDialogOpen(true)
-                    }}>
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      onClick={() => handleDelete(skill.skill_id)}
-                      disabled={skill.is_builtin === 1}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredSkills}
+        rowKey="id"
+        loading={loading}
+        locale={{
+          emptyText: loading ? "Loading..." : "No skills found.",
+        }}
+        pagination={{ pageSize: 10 }}
+      />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingSkill?.id ? "Edit Skill" : "New Skill"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold opacity-60">Skill ID (Unique Slug)</label>
-                <Input 
-                  placeholder="e.g. agriculture-expert" 
-                  value={editingSkill?.skill_id || ""}
-                  onChange={(e) => setEditingSkill({ ...editingSkill, skill_id: e.target.value })}
-                  disabled={!!editingSkill?.id}
-                  className="h-12 px-4 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold opacity-60">Name</label>
-                <Input 
-                  placeholder="e.g. 农业专家" 
-                  value={editingSkill?.name || ""}
-                  onChange={(e) => setEditingSkill({ ...editingSkill, name: e.target.value })}
-                  className="h-12 px-4 rounded-xl font-bold"
-                />
-              </div>
-            </div>
-
-            {/* Image Fields Integrated with Cropper */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                   <Layout className="size-4" /> 图标 URL / Emoji
-                </label>
-                <div className="flex gap-3">
-                   <div className="size-12 rounded-xl flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 group relative overflow-hidden">
-                      {editingSkill?.icon && (
-                        (editingSkill.icon.startsWith('http') || editingSkill.icon.startsWith('/')) ? (
-                          <img src={editingSkill.icon} className="size-full object-cover" />
-                        ) : (
-                          <span className="text-2xl">{editingSkill.icon}</span>
-                        )
-                      )}
-                      {!editingSkill?.icon && <Plus className="size-5 text-zinc-400" />}
-                   </div>
-                   <div className="flex-1 space-y-2">
-                     <Input 
-                        placeholder="🧩 或 图片链接" 
-                        value={editingSkill?.icon || ""}
-                        onChange={(e) => setEditingSkill({ ...editingSkill, icon: e.target.value })}
-                        className="h-12 px-4 rounded-xl"
-                      />
-                      <Button variant="outline" size="sm" className="w-full h-8 text-[10px] uppercase font-black gap-2" onClick={() => { setCropperTarget("icon"); setCropperOpen(true); }}>
-                         <ImageIcon size={12} /> 上传并裁剪图标
-                      </Button>
-                   </div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                   <Sparkles className="size-4" /> 封面大图 URL (精选/详情页)
-                </label>
-                <div className="space-y-2">
-                   <Input 
-                      placeholder="https://images.unsplash.com/..." 
-                      value={editingSkill?.cover_image || ""}
-                      onChange={(e) => setEditingSkill({ ...editingSkill, cover_image: e.target.value })}
-                      className="h-12 px-4 rounded-xl"
-                    />
-                    <div className="flex items-center gap-3">
-                       <div className="flex-1 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-black/5 flex items-center justify-center overflow-hidden">
-                          {editingSkill?.cover_image ? (
-                             <img src={editingSkill.cover_image} className="size-full object-cover opacity-50" />
-                          ) : (
-                             <span className="text-[10px] text-zinc-500 font-bold">无预览图片</span>
-                          )}
-                       </div>
-                       <Button variant="outline" size="sm" className="h-8 text-[10px] uppercase font-black gap-2" onClick={() => { setCropperTarget("cover"); setCropperOpen(true); }}>
-                         <ImageIcon size={12} /> 上传封面
-                      </Button>
-                    </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold opacity-60">Category</label>
-                <Input 
-                  placeholder="精选/农业/系统..." 
-                  value={editingSkill?.category || "工具"}
-                  onChange={(e) => setEditingSkill({ ...editingSkill, category: e.target.value })}
-                  className="h-12 px-4 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold opacity-60">Priority (0-100)</label>
-                <Input 
-                  type="number"
-                  placeholder="100 = Top" 
-                  value={editingSkill?.priority || 0}
-                  onChange={(e) => setEditingSkill({ ...editingSkill, priority: parseInt(e.target.value) || 0 })}
-                  className="h-12 px-4 rounded-xl"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold opacity-60">Description (Brief)</label>
-              <Textarea 
-                placeholder="Brief description..." 
-                className="h-20 rounded-xl"
-                value={editingSkill?.description || ""}
-                onChange={(e) => setEditingSkill({ ...editingSkill, description: e.target.value })}
+      <Modal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        title={editingSkill?.id ? "Edit Skill" : "New Skill"}
+        footer={[
+          <Button key="cancel" onClick={() => setModalOpen(false)} style={{ borderRadius: 8 }}>
+            Cancel
+          </Button>,
+          <Button key="save" type="primary" onClick={handleSave} style={{ borderRadius: 8 }}>
+            Save Skill Asset
+          </Button>,
+        ]}
+        width={800}
+        styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "16px 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text strong style={{ opacity: 0.6 }}>Skill ID (Unique Slug)</Text>
+              <Input
+                placeholder="e.g. agriculture-expert"
+                value={editingSkill?.skill_id || ""}
+                onChange={(e) => setEditingSkill({ ...editingSkill, skill_id: e.target.value })}
+                disabled={!!editingSkill?.id}
+                style={{ height: 48, borderRadius: 12 }}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2 text-sm">
-                <label className="font-bold opacity-60">Status & Built-in</label>
-                <div className="flex items-center gap-6 py-2 border rounded-xl px-4 h-12 bg-zinc-50 dark:bg-zinc-900/50 border-black/5 dark:border-white/5">
-                   <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        id="skill-pub-check"
-                        checked={editingSkill?.is_published === 1}
-                        onChange={(e) => setEditingSkill({ ...editingSkill, is_published: e.target.checked ? 1 : 0 })}
-                      />
-                      <label htmlFor="skill-pub-check" className="font-bold text-xs">Published</label>
-                   </div>
-                   <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        id="skill-builtin-check"
-                        checked={editingSkill?.is_builtin === 1}
-                        onChange={(e) => setEditingSkill({ ...editingSkill, is_builtin: e.target.checked ? 1 : 0 })}
-                      />
-                      <label htmlFor="skill-builtin-check" className="font-bold text-xs">System Built-in</label>
-                   </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-amber-500">Interaction Examples (Comma Separated)</label>
-                <Input 
-                  placeholder="e.g. 你是谁？,当前环境如何？" 
-                  value={editingSkill?.examples || ""}
-                  onChange={(e) => setEditingSkill({ ...editingSkill, examples: e.target.value })}
-                  className="h-12 px-4 rounded-xl"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-primary flex items-center gap-2">
-                 <Terminal className="size-4" /> System Prompt (Core Instructions)
-              </label>
-              <Textarea 
-                placeholder="# Skill Instruction..." 
-                className="h-[350px] font-mono text-xs bg-zinc-50 dark:bg-zinc-950 p-6 rounded-[2rem] border-black/5 dark:border-white/5"
-                value={editingSkill?.content || ""}
-                onChange={(e) => setEditingSkill({ ...editingSkill, content: e.target.value })}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text strong style={{ opacity: 0.6 }}>Name</Text>
+              <Input
+                placeholder="e.g. 农业专家"
+                value={editingSkill?.name || ""}
+                onChange={(e) => setEditingSkill({ ...editingSkill, name: e.target.value })}
+                style={{ height: 48, borderRadius: 12, fontWeight: 700 }}
               />
             </div>
           </div>
-          <DialogFooter className="sticky bottom-0 bg-white dark:bg-zinc-900 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl px-8">Cancel</Button>
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary text-white rounded-xl px-12 font-bold shadow-lg shadow-emerald-500/20">
-               Save Skill Asset
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          {/* Image Fields Integrated with Cropper */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
+                <LayoutOutlined /> 图标 URL / Emoji
+              </Text>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #e4e4e7",
+                  backgroundColor: "white",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}>
+                  {editingSkill?.icon && (
+                    (editingSkill.icon.startsWith("http") || editingSkill.icon.startsWith("/")) ? (
+                      <img src={editingSkill.icon} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ fontSize: 24 }}>{editingSkill.icon}</span>
+                    )
+                  )}
+                  {!editingSkill?.icon && <PlusOutlined style={{ color: "#71717a" }} />}
+                </div>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Input
+                    placeholder="🧩 或 图片链接"
+                    value={editingSkill?.icon || ""}
+                    onChange={(e) => setEditingSkill({ ...editingSkill, icon: e.target.value })}
+                    style={{ height: 48, borderRadius: 12 }}
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    icon={<PictureOutlined />}
+                    onClick={() => { setCropperTarget("icon"); setCropperOpen(true); }}
+                  >
+                    上传并裁剪图标
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
+                <FireOutlined /> 封面大图 URL (精选/详情页)
+              </Text>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Input
+                  placeholder="https://images.unsplash.com/..."
+                  value={editingSkill?.cover_image || ""}
+                  onChange={(e) => setEditingSkill({ ...editingSkill, cover_image: e.target.value })}
+                  style={{ height: 48, borderRadius: 12 }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    flex: 1,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: "#f4f4f5",
+                    border: "1px solid rgba(0,0,0,0.05)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}>
+                    {editingSkill?.cover_image ? (
+                      <img src={editingSkill.cover_image} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }} />
+                    ) : (
+                      <span style={{ fontSize: 10, color: "#71717a", fontWeight: 700 }}>无预览图片</span>
+                    )}
+                  </div>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    icon={<PictureOutlined />}
+                    onClick={() => { setCropperTarget("cover"); setCropperOpen(true); }}
+                  >
+                    上传封面
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text strong style={{ opacity: 0.6 }}>Category</Text>
+              <Input
+                placeholder="精选/农业/系统..."
+                value={editingSkill?.category || "工具"}
+                onChange={(e) => setEditingSkill({ ...editingSkill, category: e.target.value })}
+                style={{ height: 48, borderRadius: 12 }}
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text strong style={{ opacity: 0.6 }}>Priority (0-100)</Text>
+              <Input
+                type="number"
+                placeholder="100 = Top"
+                value={editingSkill?.priority || 0}
+                onChange={(e) => setEditingSkill({ ...editingSkill, priority: parseInt(e.target.value) || 0 })}
+                style={{ height: 48, borderRadius: 12 }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Text strong style={{ opacity: 0.6 }}>Description (Brief)</Text>
+            <Input.TextArea
+              placeholder="Brief description..."
+              value={editingSkill?.description || ""}
+              onChange={(e) => setEditingSkill({ ...editingSkill, description: e.target.value })}
+              style={{ borderRadius: 12, height: 80 }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text strong style={{ opacity: 0.6 }}>Status & Built-in</Text>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 24,
+                padding: "12px 16px",
+                borderRadius: 12,
+                backgroundColor: "#fafafa",
+                border: "1px solid rgba(0,0,0,0.05)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    id="skill-pub-check"
+                    checked={editingSkill?.is_published === 1}
+                    onChange={(e) => setEditingSkill({ ...editingSkill, is_published: e.target.checked ? 1 : 0 })}
+                  />
+                  <label htmlFor="skill-pub-check" style={{ fontWeight: 700, fontSize: 12 }}>Published</label>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    id="skill-builtin-check"
+                    checked={editingSkill?.is_builtin === 1}
+                    onChange={(e) => setEditingSkill({ ...editingSkill, is_builtin: e.target.checked ? 1 : 0 })}
+                  />
+                  <label htmlFor="skill-builtin-check" style={{ fontWeight: 700, fontSize: 12 }}>System Built-in</label>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text strong style={{ color: "#f59e0b" }}>Interaction Examples (Comma Separated)</Text>
+              <Input
+                placeholder="e.g. 你是谁？,当前环境如何？"
+                value={editingSkill?.examples || ""}
+                onChange={(e) => setEditingSkill({ ...editingSkill, examples: e.target.value })}
+                style={{ height: 48, borderRadius: 12 }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Text strong style={{ color: "#8b5cf6", display: "flex", alignItems: "center", gap: 8 }}>
+              <CodeOutlined /> System Prompt (Core Instructions)
+            </Text>
+            <Input.TextArea
+              placeholder="# Skill Instruction..."
+              value={editingSkill?.content || ""}
+              onChange={(e) => setEditingSkill({ ...editingSkill, content: e.target.value })}
+              style={{
+                height: 350,
+                fontFamily: "monospace",
+                fontSize: 12,
+                backgroundColor: "#fafafa",
+                padding: 24,
+                borderRadius: 24,
+                border: "1px solid rgba(0,0,0,0.05)",
+              }}
+            />
+          </div>
+        </div>
+      </Modal>
 
       {/* Image Cropper Modal Integration */}
-      <ImageCropper 
+      <ImageCropper
         open={cropperOpen}
         onOpenChange={setCropperOpen}
         title={cropperTarget === "icon" ? "裁剪技能图标" : "裁剪技能封面图"}
         aspect={cropperTarget === "icon" ? 1 : 2.22}
         onCropComplete={(url) => {
-           if (cropperTarget === "icon") {
-             setEditingSkill(prev => ({ ...prev, icon: url }))
-           } else {
-             setEditingSkill(prev => ({ ...prev, cover_image: url }))
-           }
+          if (cropperTarget === "icon") {
+            setEditingSkill(prev => ({ ...prev, icon: url }))
+          } else {
+            setEditingSkill(prev => ({ ...prev, cover_image: url }))
+          }
         }}
       />
     </div>

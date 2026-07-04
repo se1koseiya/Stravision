@@ -158,20 +158,37 @@ const SkillDetailView = ({
   }
 
   const c = PALETTE[hashIndex(skill.name)]
+  const [open, setOpen] = useState(true)
+  const handleClose = () => {
+    if (!open) return
+    setOpen(false)
+    onClose()
+  }
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: open ? 1 : 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onAnimationComplete={() => { if (!open) onClose() }}
+      className={cn(
+        "fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-6",
+        !open && "pointer-events-none"
+      )}
+    >
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        animate={{ opacity: open ? 1 : 0 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        aria-hidden
       />
 
       <motion.div
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        animate={{ opacity: open ? 1 : 0, y: open ? 0 : 12, scale: open ? 1 : 0.98 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-2xl max-h-[88vh] bg-white border border-gray-200/80 flex flex-col overflow-hidden"
@@ -179,7 +196,7 @@ const SkillDetailView = ({
       >
         {/* 关闭按钮 */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           style={{ borderRadius: 8 }}
           title="关闭"
@@ -298,7 +315,7 @@ const SkillDetailView = ({
           </div>
         </ScrollArea>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -571,7 +588,7 @@ export function SkillStore({ searchQuery = "" }: { searchQuery?: string }) {
             {subTab === t.key && (
               <motion.span
                 layoutId="subtab-underline"
-                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600 pointer-events-none"
                 transition={{ duration: 0.2 }}
               />
             )}

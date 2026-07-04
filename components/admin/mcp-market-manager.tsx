@@ -1,29 +1,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
+import { Button, Input, Table, Modal, Tag, Space, Typography } from "antd"
+import type { ColumnsType } from "antd/es/table"
 import { toast } from "sonner"
-import { Loader2, Plus, Pencil, Trash2, Search, Globe, Lock, ShieldCheck, Layout, Sparkles, Image as ImageIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  SearchOutlined,
+  GlobalOutlined,
+  LockOutlined,
+  CheckCircleOutlined,
+  LayoutOutlined,
+  FireOutlined,
+  PictureOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons"
 import { ImageCropper } from "./image-cropper"
+
+const { Text } = Typography
 
 interface MCPServer {
   id: string
@@ -50,10 +46,10 @@ interface MCPServer {
 export function MCPMarketManager() {
   const [servers, setServers] = useState<MCPServer[]>([])
   const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<Partial<MCPServer> | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  
+
   // Cropper state
   const [cropperOpen, setCropperOpen] = useState(false)
   const [cropperTarget, setCropperTarget] = useState<"icon" | "cover">("icon")
@@ -94,7 +90,7 @@ export function MCPMarketManager() {
 
       if (res.ok) {
         toast.success(isEditing ? "Server updated" : "Server created")
-        setDialogOpen(false)
+        setModalOpen(false)
         fetchServers()
       } else {
         const err = await res.json()
@@ -118,335 +114,413 @@ export function MCPMarketManager() {
     }
   }
 
-  const filteredServers = servers.filter(s => 
+  const filteredServers = servers.filter(s =>
     s.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.id.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const AppIcon = ({ icon, name, className }: { icon: string, name: string, className?: string }) => {
+  const AppIcon = ({ icon, name }: { icon: string; name: string }) => {
     const [error, setError] = useState(false)
+    const baseStyle: React.CSSProperties = {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+      border: "1px solid #e4e4e7",
+      overflow: "hidden",
+      flexShrink: 0,
+    }
     if (error || !icon) {
       const firstLetter = name.charAt(0).toUpperCase()
-      const colors = ["bg-blue-500", "bg-rose-500", "bg-primary", "bg-amber-500", "bg-violet-500", "bg-indigo-500"]
+      const colors = ["#3b82f6", "#f43f5e", "#8b5cf6", "#f59e0b", "#6366f1", "#4f46e5"]
       const color = colors[name.length % colors.length]
       return (
-        <div className={cn(className, color, "text-white font-black flex items-center justify-center")}>
+        <div
+          style={{
+            ...baseStyle,
+            backgroundColor: color,
+            color: "white",
+            fontWeight: 900,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           {firstLetter}
         </div>
       )
     }
     return (
-      <img 
-        src={icon} 
-        alt={name} 
-        className={cn(className, "object-cover")} 
-        onError={() => setError(true)} 
+      <img
+        src={icon}
+        alt={name}
+        style={{ ...baseStyle, objectFit: "cover" }}
+        onError={() => setError(true)}
       />
     )
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-          <Input 
-            placeholder="Search MCP servers..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+  const columns: ColumnsType<MCPServer> = [
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      render: (priority: number) => <Text strong style={{ color: "#8b5cf6" }}>#{priority}</Text>,
+    },
+    {
+      title: "Icon",
+      dataIndex: "icon",
+      key: "icon",
+      render: (_, record) => (
+        <AppIcon icon={record.icon} name={record.displayName} />
+      ),
+    },
+    {
+      title: "ID (Slug)",
+      dataIndex: "id",
+      key: "id",
+      render: (id: string) => <Text copyable style={{ fontFamily: "monospace", fontSize: 12 }}>{id}</Text>,
+    },
+    {
+      title: "Display Name",
+      dataIndex: "displayName",
+      key: "displayName",
+      render: (displayName: string, record) => (
+        <Space>
+          <Text>{displayName}</Text>
+          {record.official && <CheckCircleOutlined style={{ color: "#3b82f6" }} />}
+        </Space>
+      ),
+    },
+    {
+      title: "Category",
+      dataIndex: "category",
+      key: "category",
+      render: (category: string) => <Tag>{category}</Tag>,
+    },
+    {
+      title: "Status",
+      dataIndex: "is_published",
+      key: "is_published",
+      render: (is_published: number) =>
+        is_published ? (
+          <Tag color="green">Published</Tag>
+        ) : (
+          <Tag color="default">Draft</Tag>
+        ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      align: "right",
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEditingServer(record)
+              setModalOpen(true)
+            }}
           />
-        </div>
-        <Button onClick={() => {
-          setEditingServer({ 
-            id: "",
-            name: "",
-            displayName: "",
-            description: "",
-            command: "npx", 
-            args: "[]", 
-            envVars: "{}", 
-            category: "web", 
-            is_published: 1, 
-            priority: 0,
-            iconBg: "bg-white",
-            official: false,
-            requiresApiKey: false,
-            provider: "Stravision",
-            features: "",
-            popularity: 95
-          })
-          setDialogOpen(true)
-        }}>
-          <Plus className="size-4 mr-2" />
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+          />
+        </Space>
+      ),
+    },
+  ]
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <Input
+          placeholder="Search MCP servers..."
+          prefix={<SearchOutlined style={{ color: "#71717a" }} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ maxWidth: 320 }}
+        />
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            setEditingServer({
+              id: "",
+              name: "",
+              displayName: "",
+              description: "",
+              command: "npx",
+              args: "[]",
+              envVars: "{}",
+              category: "web",
+              is_published: 1,
+              priority: 0,
+              iconBg: "bg-white",
+              official: false,
+              requiresApiKey: false,
+              provider: "Stravision",
+              features: "",
+              popularity: 95,
+            })
+            setModalOpen(true)
+          }}
+        >
           Add MCP Server
         </Button>
       </div>
 
-      <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Priority</TableHead>
-              <TableHead>Icon</TableHead>
-              <TableHead>ID (Slug)</TableHead>
-              <TableHead>Display Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-4 animate-spin" />
-                    Loading...
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredServers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-zinc-500">
-                  No MCP servers found.
-                </TableCell>
-              </TableRow>
-            ) : filteredServers.map((server) => (
-              <TableRow key={server.id}>
-                <TableCell className="font-bold text-primary">#{server.priority}</TableCell>
-                <TableCell>
-                   <AppIcon icon={server.icon} name={server.displayName} className={cn("size-10 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800", server.iconBg)} />
-                </TableCell>
-                <TableCell className="font-mono text-xs">{server.id}</TableCell>
-                <TableCell className="font-medium">
-                   <div className="flex items-center gap-2 text-sm">
-                      {server.displayName}
-                      {server.official && <ShieldCheck className="size-3 text-blue-500" />}
-                   </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-[10px]">{server.category}</Badge>
-                </TableCell>
-                <TableCell>
-                  {server.is_published ? (
-                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
-                      Published
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-[10px]">Draft</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      setEditingServer(server)
-                      setDialogOpen(true)
-                    }}>
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      onClick={() => handleDelete(server.id)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredServers}
+        rowKey="id"
+        loading={loading}
+        locale={{
+          emptyText: loading ? "Loading..." : "No MCP servers found.",
+        }}
+        pagination={{ pageSize: 10 }}
+      />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingServer?.id && servers.some(s => s.id === editingServer.id) ? "Edit MCP Server" : "New MCP Server"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Server ID (Slug)</label>
-                <Input 
-                  placeholder="e.g. firecrawl" 
-                  value={editingServer?.id || ""}
-                  onChange={(e) => setEditingServer({ ...editingServer, id: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Display Name</label>
-                <Input 
-                  placeholder="e.g. Firecrawl" 
-                  value={editingServer?.displayName || ""}
-                  onChange={(e) => setEditingServer({ ...editingServer, displayName: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                   <Layout className="size-4" /> 图标 URL / Emoji
-                </label>
-                <div className="flex gap-3">
-                   <div className={cn("size-12 rounded-xl flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 group relative overflow-hidden", editingServer?.iconBg)}>
-                      {editingServer?.icon && (
-                        editingServer.icon.startsWith('http') || editingServer.icon.startsWith('/') ? (
-                          <img src={editingServer.icon} className="size-full object-cover" />
-                        ) : (
-                          <span className="text-2xl">{editingServer.icon}</span>
-                        )
-                      )}
-                      {!editingServer?.icon && <Plus className="size-5 text-zinc-400" />}
-                   </div>
-                   <div className="flex-1 space-y-2">
-                     <Input 
-                        placeholder="🧩 或 图片链接" 
-                        value={editingServer?.icon || ""}
-                        onChange={(e) => setEditingServer({ ...editingServer, icon: e.target.value })}
-                        className="h-12 px-4 rounded-xl"
-                      />
-                      <Button variant="outline" size="sm" className="w-full h-8 text-[10px] uppercase font-black gap-2" onClick={() => { setCropperTarget("icon"); setCropperOpen(true); }}>
-                         <ImageIcon size={12} /> 上传并裁剪图标
-                      </Button>
-                   </div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                   <Sparkles className="size-4" /> 封面大图 URL (详情页/精选卡片)
-                </label>
-                <div className="space-y-2">
-                   <Input 
-                      placeholder="https://images.unsplash.com/..." 
-                      value={editingServer?.cover_image || ""}
-                      onChange={(e) => setEditingServer({ ...editingServer, cover_image: e.target.value })}
-                      className="h-12 px-4 rounded-xl"
-                    />
-                    <div className="flex items-center gap-3">
-                       <div className="flex-1 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-black/5 flex items-center justify-center overflow-hidden">
-                          {editingServer?.cover_image ? (
-                             <img src={editingServer.cover_image} className="size-full object-cover opacity-50" />
-                          ) : (
-                             <span className="text-[10px] text-zinc-500 font-bold">无预览图片</span>
-                          )}
-                       </div>
-                       <Button variant="outline" size="sm" className="h-8 text-[10px] uppercase font-black gap-2" onClick={() => { setCropperTarget("cover"); setCropperOpen(true); }}>
-                         <ImageIcon size={12} /> 上传封面
-                      </Button>
-                    </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                <label className="text-sm font-medium">Provider</label>
-                <Input 
-                  placeholder="e.g. Stravision" 
-                  value={editingServer?.provider || ""}
-                  onChange={(e) => setEditingServer({ ...editingServer, provider: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <Input 
-                  placeholder="agriculture/web..." 
-                  value={editingServer?.category || "web"}
-                  onChange={(e) => setEditingServer({ ...editingServer, category: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Textarea
-                placeholder="What does this server do?"
-                value={editingServer?.description || ""}
-                onChange={(e) => setEditingServer({ ...editingServer, description: e.target.value })}
+      <Modal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        title={editingServer?.id && servers.some(s => s.id === editingServer.id) ? "Edit MCP Server" : "New MCP Server"}
+        footer={[
+          <Button key="cancel" onClick={() => setModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button key="save" type="primary" onClick={handleSave}>
+            Save MCP Server
+          </Button>,
+        ]}
+        width={720}
+        styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "16px 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Server ID (Slug)</Text>
+              <Input
+                placeholder="e.g. firecrawl"
+                value={editingServer?.id || ""}
+                onChange={(e) => setEditingServer({ ...editingServer, id: e.target.value })}
               />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-1.5">
-                <Sparkles className="size-3.5 text-blue-500" />
-                推荐 Prompt
-                <span className="text-[10px] text-zinc-400 font-normal">（插件详情页打开时自动加载）</span>
-              </label>
-              <Textarea
-                placeholder="为这个插件推荐一个具体的使用 Prompt，例如：读取 1 号棚的近红外光谱值并判断氮素含量。"
-                className="h-20"
-                value={editingServer?.recommended_prompt || ""}
-                onChange={(e) => setEditingServer({ ...editingServer, recommended_prompt: e.target.value })}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Display Name</Text>
+              <Input
+                placeholder="e.g. Firecrawl"
+                value={editingServer?.displayName || ""}
+                onChange={(e) => setEditingServer({ ...editingServer, displayName: e.target.value })}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                <label className="text-sm font-medium">Command</label>
-                <Input 
-                  placeholder="npx / uvx" 
-                  value={editingServer?.command || "npx"}
-                  onChange={(e) => setEditingServer({ ...editingServer, command: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Args (JSON Array)</label>
-                <Input 
-                  placeholder='["-y", "@mendable/firecrawl-mcp"]' 
-                  value={editingServer?.args || "[]"}
-                  onChange={(e) => setEditingServer({ ...editingServer, args: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-blue-500">Default Env Vars (JSON Object)</label>
-              <Textarea 
-                placeholder='{"API_KEY": ""}' 
-                className="font-mono text-xs h-24"
-                value={editingServer?.envVars || "{}"}
-                onChange={(e) => setEditingServer({ ...editingServer, envVars: e.target.value })}
-              />
-            </div>
-
-            <div className="flex items-center gap-6 py-2 border rounded-lg px-4">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="mcp-pub-check" checked={editingServer?.is_published === 1} onChange={e => setEditingServer({...editingServer, is_published: e.target.checked?1:0})} />
-                  <label htmlFor="mcp-pub-check" className="text-sm">Published</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="mcp-off-check" checked={editingServer?.official} onChange={e => setEditingServer({...editingServer, official: e.target.checked})} />
-                  <label htmlFor="mcp-off-check" className="text-sm">Official Badge</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="mcp-key-check" checked={editingServer?.requiresApiKey} onChange={e => setEditingServer({...editingServer, requiresApiKey: e.target.checked})} />
-                  <label htmlFor="mcp-key-check" className="text-sm">Requires API Key</label>
-                </div>
             </div>
           </div>
-          <DialogFooter className="sticky bottom-0 bg-white dark:bg-zinc-900 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-500 text-white">Save MCP Server</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
+                <LayoutOutlined /> 图标 URL / Emoji
+              </Text>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #e4e4e7",
+                  backgroundColor: "white",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}>
+                  {editingServer?.icon && (
+                    editingServer.icon.startsWith("http") || editingServer.icon.startsWith("/") ? (
+                      <img src={editingServer.icon} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ fontSize: 24 }}>{editingServer.icon}</span>
+                    )
+                  )}
+                  {!editingServer?.icon && <PlusOutlined style={{ color: "#71717a" }} />}
+                </div>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Input
+                    placeholder="🧩 或 图片链接"
+                    value={editingServer?.icon || ""}
+                    onChange={(e) => setEditingServer({ ...editingServer, icon: e.target.value })}
+                    style={{ height: 48, borderRadius: 12 }}
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    icon={<PictureOutlined />}
+                    onClick={() => { setCropperTarget("icon"); setCropperOpen(true); }}
+                  >
+                    上传并裁剪图标
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
+                <FireOutlined /> 封面大图 URL (详情页/精选卡片)
+              </Text>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Input
+                  placeholder="https://images.unsplash.com/..."
+                  value={editingServer?.cover_image || ""}
+                  onChange={(e) => setEditingServer({ ...editingServer, cover_image: e.target.value })}
+                  style={{ height: 48, borderRadius: 12 }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    flex: 1,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: "#f4f4f5",
+                    border: "1px solid rgba(0,0,0,0.05)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}>
+                    {editingServer?.cover_image ? (
+                      <img src={editingServer.cover_image} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }} />
+                    ) : (
+                      <span style={{ fontSize: 10, color: "#71717a", fontWeight: 700 }}>无预览图片</span>
+                    )}
+                  </div>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    icon={<PictureOutlined />}
+                    onClick={() => { setCropperTarget("cover"); setCropperOpen(true); }}
+                  >
+                    上传封面
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Provider</Text>
+              <Input
+                placeholder="e.g. Stravision"
+                value={editingServer?.provider || ""}
+                onChange={(e) => setEditingServer({ ...editingServer, provider: e.target.value })}
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Category</Text>
+              <Input
+                placeholder="agriculture/web..."
+                value={editingServer?.category || "web"}
+                onChange={(e) => setEditingServer({ ...editingServer, category: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Text>Description</Text>
+            <Input.TextArea
+              placeholder="What does this server do?"
+              value={editingServer?.description || ""}
+              onChange={(e) => setEditingServer({ ...editingServer, description: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Text strong style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <FireOutlined style={{ color: "#3b82f6" }} />
+              推荐 Prompt
+              <span style={{ fontSize: 10, color: "#a1a1aa", fontWeight: 400 }}>（插件详情页打开时自动加载）</span>
+            </Text>
+            <Input.TextArea
+              placeholder="为这个插件推荐一个具体的使用 Prompt，例如：读取 1 号棚的近红外光谱值并判断氮素含量。"
+              value={editingServer?.recommended_prompt || ""}
+              onChange={(e) => setEditingServer({ ...editingServer, recommended_prompt: e.target.value })}
+              style={{ height: 80 }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Command</Text>
+              <Input
+                placeholder="npx / uvx"
+                value={editingServer?.command || "npx"}
+                onChange={(e) => setEditingServer({ ...editingServer, command: e.target.value })}
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Text>Args (JSON Array)</Text>
+              <Input
+                placeholder='["-y", "@mendable/firecrawl-mcp"]'
+                value={editingServer?.args || "[]"}
+                onChange={(e) => setEditingServer({ ...editingServer, args: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Text style={{ color: "#3b82f6" }}>Default Env Vars (JSON Object)</Text>
+            <Input.TextArea
+              placeholder='{"API_KEY": ""}'
+              style={{ fontFamily: "monospace", fontSize: 12, height: 96 }}
+              value={editingServer?.envVars || "{}"}
+              onChange={(e) => setEditingServer({ ...editingServer, envVars: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "12px 16px", borderRadius: 8, border: "1px solid #e4e4e7" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                id="mcp-pub-check"
+                checked={editingServer?.is_published === 1}
+                onChange={e => setEditingServer({ ...editingServer, is_published: e.target.checked ? 1 : 0 })}
+              />
+              <label htmlFor="mcp-pub-check">Published</label>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                id="mcp-off-check"
+                checked={editingServer?.official}
+                onChange={e => setEditingServer({ ...editingServer, official: e.target.checked })}
+              />
+              <label htmlFor="mcp-off-check">Official Badge</label>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                id="mcp-key-check"
+                checked={editingServer?.requiresApiKey}
+                onChange={e => setEditingServer({ ...editingServer, requiresApiKey: e.target.checked })}
+              />
+              <label htmlFor="mcp-key-check">Requires API Key</label>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       {/* Image Cropper Modal */}
-      <ImageCropper 
+      <ImageCropper
         open={cropperOpen}
         onOpenChange={setCropperOpen}
         title={cropperTarget === "icon" ? "裁剪工具图标" : "裁剪封面大图"}
         aspect={cropperTarget === "icon" ? 1 : 2.22}
         onCropComplete={(url) => {
-           if (cropperTarget === "icon") {
-             setEditingServer(prev => ({ ...prev, icon: url }))
-           } else {
-             setEditingServer(prev => ({ ...prev, cover_image: url }))
-           }
+          if (cropperTarget === "icon") {
+            setEditingServer(prev => ({ ...prev, icon: url }))
+          } else {
+            setEditingServer(prev => ({ ...prev, cover_image: url }))
+          }
         }}
       />
     </div>

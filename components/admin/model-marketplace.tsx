@@ -1,43 +1,42 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Input } from "@/components/ui/input"
+import { Input, Card, Tag, Button, Select, Typography, Spin } from "antd"
 import { toast } from "sonner"
 import {
-  Loader2, Search, Filter, Sparkles, Brain, Camera,
-  Bot, Globe, Zap, Cpu, CircleDot, CheckCircle2,
-  Eye, Star, ArrowUpDown
-} from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
-
-// 复用类型
+  SearchOutlined,
+  FilterOutlined,
+  FireOutlined,
+  GlobalOutlined,
+  ThunderboltOutlined,
+  CloudServerOutlined,
+  CheckCircleOutlined,
+  StarOutlined,
+  EyeOutlined,
+  RobotOutlined,
+} from "@ant-design/icons"
 import type { AIProvider, ProviderModel } from "./ai-providers-manager"
+
+const { Text } = Typography
 
 // ====== 图标映射 ======
 
 const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
-  qwen: <Sparkles className="w-4 h-4" />,
-  deepseek: <Brain className="w-4 h-4" />,
-  openai: <Cpu className="w-4 h-4" />,
-  xiaomi: <Zap className="w-4 h-4" />,
-  sparkles: <Sparkles className="w-4 h-4" />,
+  qwen: <FireOutlined />,
+  deepseek: <ThunderboltOutlined />,
+  openai: <CloudServerOutlined />,
+  xiaomi: <ThunderboltOutlined />,
+  sparkles: <FireOutlined />,
 }
 
 function getModelIcon(icon?: string) {
-  return MODEL_ICON_MAP[icon || ''] || <CircleDot className="w-4 h-4" />
+  return MODEL_ICON_MAP[icon || ""] || <CheckCircleOutlined />
 }
 
-const PROVIDER_COLORS: Record<string, string> = {
-  openai: 'from-blue-500/10 to-blue-600/5 border-blue-200/50 dark:border-blue-800/30',
-  dashscope: 'from-emerald-500/10 to-emerald-600/5 border-emerald-200/50 dark:border-emerald-800/30',
-  custom: 'from-violet-500/10 to-violet-600/5 border-violet-200/50 dark:border-violet-800/30',
+const PROVIDER_COLORS: Record<string, { border: string; bg: string }> = {
+  openai: { border: "#3b82f6", bg: "rgba(59, 130, 246, 0.05)" },
+  dashscope: { border: "#10b981", bg: "rgba(16, 185, 129, 0.05)" },
+  custom: { border: "#8b5cf6", bg: "rgba(139, 92, 246, 0.05)" },
 }
 
 // ====== 模型卡片 ======
@@ -56,83 +55,85 @@ function ModelCard({
   isDefaultProvider: boolean
 }) {
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.15 }}
+    <Card
+      hoverable
+      style={{
+        background: PROVIDER_COLORS[providerType]?.bg || PROVIDER_COLORS.custom.bg,
+        borderColor: PROVIDER_COLORS[providerType]?.border || PROVIDER_COLORS.custom.border,
+        opacity: !providerEnabled || !model.enabled ? 0.5 : 1,
+        cursor: !providerEnabled ? "not-allowed" : "pointer",
+        overflow: "hidden",
+      }}
     >
-      <Card className={cn(
-        "group cursor-pointer transition-all duration-200 hover:shadow-lg overflow-hidden bg-gradient-to-br",
-        PROVIDER_COLORS[providerType] || PROVIDER_COLORS.custom,
-        !providerEnabled && "opacity-50 pointer-events-none",
-        !model.enabled && "opacity-60"
-      )}>
-        <CardContent className="p-4">
-          {/* 顶部：图标 + 名称 + 状态 */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                model.enabled ? "bg-white dark:bg-zinc-800 shadow-sm" : "bg-zinc-100 dark:bg-zinc-900"
-              )}>
-                {model.enabled ? getModelIcon(model.icon) : (
-                  <span className="text-zinc-300">{getModelIcon(model.icon)}</span>
-                )}
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className={cn(
-                    "font-semibold text-sm",
-                    model.enabled ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400"
-                  )}>
-                    {model.name}
-                  </h3>
-                  {model.enabled ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <div className="w-3.5 h-3.5 rounded-full border border-zinc-300 dark:border-zinc-600" />
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 font-mono mt-0.5">{model.id}</p>
-              </div>
+      {/* 顶部：图标 + 名称 + 状态 */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: model.enabled ? "white" : "#f4f4f5",
+            boxShadow: model.enabled ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+          }}>
+            {model.enabled ? getModelIcon(model.icon) : (
+              <span style={{ color: "#d4d4d4" }}>{getModelIcon(model.icon)}</span>
+            )}
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Text strong style={{
+                fontSize: 14,
+                color: model.enabled ? "#18181b" : "#a1a1aa",
+              }}>
+                {model.name}
+              </Text>
+              {model.enabled ? (
+                <CheckCircleOutlined style={{ color: "#10b981", fontSize: 14 }} />
+              ) : (
+                <div style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  border: "1px solid #d4d4d4",
+                }} />
+              )}
             </div>
-
-            {isDefaultProvider && (
-              <Badge variant="secondary" className="text-[10px] gap-0.5 bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950 dark:text-amber-400">
-                <Star className="w-2.5 h-2.5" /> 默认源
-              </Badge>
-            )}
+            <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#71717a", marginTop: 2 }}>{model.id}</Text>
           </div>
+        </div>
 
-          {/* 描述 */}
-          {model.description && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-3 leading-relaxed">
-              {model.description}
-            </p>
-          )}
+        {isDefaultProvider && (
+          <Tag color="gold" style={{ fontSize: 10 }}>
+            <StarOutlined /> 默认源
+          </Tag>
+        )}
+      </div>
 
-          {/* 标签行 */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {model.supportsVision && (
-              <Badge variant="outline" className="text-[10px] gap-1 py-0 border-blue-200 text-blue-600 dark:border-blue-800 dark:text-blue-400">
-                <Camera className="w-2.5 h-2.5" /> 视觉
-              </Badge>
-            )}
-            {model.supportsReasoning && (
-              <Badge variant="outline" className="text-[10px] gap-1 py-0 border-purple-200 text-purple-600 dark:border-purple-800 dark:text-purple-400">
-                <Brain className="w-2.5 h-2.5" /> 推理
-              </Badge>
-            )}
-            <Badge variant="outline" className="text-[10px] text-zinc-500">
-              {providerName}
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+      {/* 描述 */}
+      {model.description && (
+        <Text style={{ fontSize: 12, color: "#71717a", display: "block", marginBottom: 12, lineHeight: 1.6 }} ellipsis={{ rows: 2 }}>
+          {model.description}
+        </Text>
+      )}
+
+      {/* 标签行 */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {model.supportsVision && (
+          <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>
+            <EyeOutlined /> 视觉
+          </Tag>
+        )}
+        {model.supportsReasoning && (
+          <Tag color="purple" style={{ fontSize: 10, margin: 0 }}>
+            <RobotOutlined /> 推理
+          </Tag>
+        )}
+        <Tag style={{ fontSize: 10, margin: 0 }}>{providerName}</Tag>
+      </div>
+    </Card>
   )
 }
 
@@ -141,17 +142,17 @@ function ModelCard({
 export function ModelMarketplace() {
   const [providers, setProviders] = useState<AIProvider[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filterType, setFilterType] = useState<string>('all')
-  const [filterCapability, setFilterCapability] = useState<string>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('enabled')
-  const [sortBy, setSortBy] = useState<string>('provider')
+  const [search, setSearch] = useState("")
+  const [filterType, setFilterType] = useState<string>("all")
+  const [filterCapability, setFilterCapability] = useState<string>("all")
+  const [filterStatus, setFilterStatus] = useState<string>("enabled")
+  const [sortBy, setSortBy] = useState<string>("provider")
 
   useEffect(() => {
-    fetch('/api/admin/ai-providers')
+    fetch("/api/admin/ai-providers")
       .then(r => r.json())
       .then(d => setProviders(d.providers || []))
-      .catch(() => toast.error('加载失败'))
+      .catch(() => toast.error("加载失败"))
       .finally(() => setLoading(false))
   }, [])
 
@@ -179,40 +180,40 @@ export function ModelMarketplace() {
         m.name.toLowerCase().includes(q) ||
         m.id.toLowerCase().includes(q) ||
         m.providerName.toLowerCase().includes(q) ||
-        (m.description || '').toLowerCase().includes(q)
+        (m.description || "").toLowerCase().includes(q)
       )
     }
 
     // 类型过滤
-    if (filterType !== 'all') {
+    if (filterType !== "all") {
       items = items.filter(m => m.providerType === filterType)
     }
 
     // 能力过滤
-    if (filterCapability === 'vision') {
+    if (filterCapability === "vision") {
       items = items.filter(m => m.supportsVision)
-    } else if (filterCapability === 'reasoning') {
+    } else if (filterCapability === "reasoning") {
       items = items.filter(m => m.supportsReasoning)
-    } else if (filterCapability === 'both') {
+    } else if (filterCapability === "both") {
       items = items.filter(m => m.supportsVision && m.supportsReasoning)
     }
 
     // 状态过滤
-    if (filterStatus === 'enabled') {
+    if (filterStatus === "enabled") {
       items = items.filter(m => m.enabled)
-    } else if (filterStatus === 'disabled') {
+    } else if (filterStatus === "disabled") {
       items = items.filter(m => !m.enabled)
     }
 
     // 排序
     switch (sortBy) {
-      case 'name':
+      case "name":
         items.sort((a, b) => a.name.localeCompare(b.name))
         break
-      case 'provider':
+      case "provider":
         items.sort((a, b) => a.providerName.localeCompare(b.providerName) || a.name.localeCompare(b.name))
         break
-      case 'type':
+      case "type":
         items.sort((a, b) => a.providerType.localeCompare(b.providerType) || a.name.localeCompare(b.name))
         break
     }
@@ -231,144 +232,170 @@ export function ModelMarketplace() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 80 }}>
+        <Spin size="large" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* 头部统计 */}
       <div>
-        <h2 className="text-xl font-bold tracking-tight">AI 模型市场</h2>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.025em", margin: 0 }}>AI 模型市场</h2>
+        <p style={{ fontSize: 14, color: "#71717a", marginTop: 4 }}>
           浏览所有已配置提供商的可用模型，共 {stats.total} 个模型（{stats.enabled} 个启用中）
         </p>
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         {[
-          { label: '总模型', value: stats.total, icon: <Bot className="w-4 h-4" />, color: 'text-zinc-600' },
-          { label: '已启用', value: stats.enabled, icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-emerald-600' },
-          { label: '视觉模型', value: stats.vision, icon: <Camera className="w-4 h-4" />, color: 'text-blue-600' },
-          { label: '推理模型', value: stats.reasoning, icon: <Brain className="w-4 h-4" />, color: 'text-purple-600' },
-          { label: '提供商', value: stats.providers, icon: <Globe className="w-4 h-4" />, color: 'text-orange-600' },
+          { label: "总模型", value: stats.total, icon: <RobotOutlined />, color: "#52525b" },
+          { label: "已启用", value: stats.enabled, icon: <CheckCircleOutlined />, color: "#059669" },
+          { label: "视觉模型", value: stats.vision, icon: <EyeOutlined />, color: "#2563eb" },
+          { label: "推理模型", value: stats.reasoning, icon: <RobotOutlined />, color: "#9333ea" },
+          { label: "提供商", value: stats.providers, icon: <GlobalOutlined />, color: "#ea580c" },
         ].map(s => (
-          <Card key={s.label} className="py-3 px-4">
-            <CardContent className="p-0 flex items-center gap-3">
-              <div className={cn("shrink-0", s.color)}>{s.icon}</div>
+          <Card key={s.label} style={{ padding: "12px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ color: s.color }}>{s.icon}</div>
               <div>
-                <div className="text-xl font-bold">{s.value}</div>
-                <div className="text-[11px] text-zinc-500">{s.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: "#71717a" }}>{s.label}</div>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ))}
       </div>
 
       {/* 搜索和筛选栏 */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Input
             placeholder="搜索模型名称、ID、描述..."
+            prefix={<SearchOutlined style={{ color: "#71717a" }} />}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9 text-sm"
+            style={{ flex: 1, minWidth: 200 }}
+          />
+          <Select
+            value={filterType}
+            onChange={setFilterType}
+            style={{ width: 140 }}
+            options={[
+              { label: "全部类型", value: "all" },
+              { label: "OpenAI 兼容", value: "openai" },
+              { label: "百炼 DashScope", value: "dashscope" },
+              { label: "自定义", value: "custom" },
+            ]}
+          />
+          <Select
+            value={filterCapability}
+            onChange={setFilterCapability}
+            style={{ width: 130 }}
+            options={[
+              { label: "全部能力", value: "all" },
+              { label: "视觉", value: "vision" },
+              { label: "推理", value: "reasoning" },
+              { label: "视觉+推理", value: "both" },
+            ]}
+          />
+          <Select
+            value={filterStatus}
+            onChange={setFilterStatus}
+            style={{ width: 110 }}
+            options={[
+              { label: "已启用", value: "enabled" },
+              { label: "已禁用", value: "disabled" },
+              { label: "全部", value: "all" },
+            ]}
+          />
+          <Select
+            value={sortBy}
+            onChange={setSortBy}
+            style={{ width: 120 }}
+            options={[
+              { label: "按提供商", value: "provider" },
+              { label: "按名称", value: "name" },
+              { label: "按类型", value: "type" },
+            ]}
           />
         </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[140px] text-sm"><SelectValue placeholder="API 类型" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部类型</SelectItem>
-            <SelectItem value="openai">OpenAI 兼容</SelectItem>
-            <SelectItem value="dashscope">百炼 DashScope</SelectItem>
-            <SelectItem value="custom">自定义</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterCapability} onValueChange={setFilterCapability}>
-          <SelectTrigger className="w-[130px] text-sm"><SelectValue placeholder="能力筛选" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部能力</SelectItem>
-            <SelectItem value="vision">视觉</SelectItem>
-            <SelectItem value="reasoning">推理</SelectItem>
-            <SelectItem value="both">视觉+推理</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[110px] text-sm"><SelectValue placeholder="状态" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="enabled">已启用</SelectItem>
-            <SelectItem value="disabled">已禁用</SelectItem>
-            <SelectItem value="all">全部</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[120px] text-sm"><SelectValue placeholder="排序" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="provider">按提供商</SelectItem>
-            <SelectItem value="name">按名称</SelectItem>
-            <SelectItem value="type">按类型</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* 结果计数 */}
-      <div className="text-xs text-zinc-500 font-medium">
+      <div style={{ fontSize: 12, color: "#71717a", fontWeight: 500 }}>
         显示 {flatModels.length} / {stats.total} 个模型
       </div>
 
       {/* 模型网格 */}
       {flatModels.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-16 text-center"
-        >
-          <Filter className="w-10 h-10 text-zinc-300 mb-4" />
-          <p className="text-sm text-zinc-500">没有匹配的模型</p>
-          <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => {
-            setSearch(''); setFilterType('all'); setFilterCapability('all'); setFilterStatus('enabled')
-          }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 64,
+          textAlign: "center",
+        }}>
+          <FilterOutlined style={{ fontSize: 40, color: "#d4d4d4", marginBottom: 16 }} />
+          <p style={{ fontSize: 14, color: "#71717a" }}>没有匹配的模型</p>
+          <Button
+            type="text"
+            size="small"
+            onClick={() => {
+              setSearch("")
+              setFilterType("all")
+              setFilterCapability("all")
+              setFilterStatus("enabled")
+            }}
+          >
             清除所有筛选
           </Button>
-        </motion.div>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <AnimatePresence mode="popLayout">
-            {flatModels.map((m, i) => (
-              <ModelCard key={`${m.providerId}-${m.id}`} model={m}
-                providerName={m.providerName}
-                providerType={m.providerType}
-                providerEnabled={m.providerEnabled}
-                isDefaultProvider={m.isDefaultProvider}
-              />
-            ))}
-          </AnimatePresence>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+          {flatModels.map((m) => (
+            <ModelCard
+              key={`${m.providerId}-${m.id}`}
+              model={m}
+              providerName={m.providerName}
+              providerType={m.providerType}
+              providerEnabled={m.providerEnabled}
+              isDefaultProvider={m.isDefaultProvider}
+            />
+          ))}
         </div>
       )}
 
       {/* 按提供商分组视图提示 */}
       {flatModels.length > 0 && (
-        <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">按提供商分布</h3>
-          <div className="space-y-2">
+        <div style={{ paddingTop: 24, borderTop: "1px solid #e4e4e7" }}>
+          <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#a1a1aa", marginBottom: 12 }}>
+            按提供商分布
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {providers.map(p => (
-              <div key={p.id} className="flex items-center gap-3 text-xs">
-                <span className="font-medium text-zinc-700 dark:text-zinc-300 min-w-[160px] truncate">{p.name}</span>
-                <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
+                <span style={{ fontWeight: 500, color: "#3f3f46", minWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.name}
+                </span>
+                <div style={{ flex: 1, height: 8, backgroundColor: "#f4f4f5", borderRadius: 4, overflow: "hidden" }}>
                   <div
-                    className={cn("h-full rounded-full transition-all duration-500",
-                      p.type === 'dashscope' ? "bg-emerald-400" :
-                      p.type === 'openai' ? "bg-blue-400" :
-                      "bg-violet-400"
-                    )}
-                    style={{ width: `${(p.models.length / Math.max(1, stats.total)) * 100}%` }}
+                    style={{
+                      height: "100%",
+                      borderRadius: 4,
+                      transition: "all 0.5s",
+                      backgroundColor:
+                        p.type === "dashscope" ? "#34d399" :
+                        p.type === "openai" ? "#60a5fa" :
+                        "#a78bfa",
+                      width: `${(p.models.length / Math.max(1, stats.total)) * 100}%`,
+                    }}
                   />
                 </div>
-                <span className="text-zinc-500 tabular-nums w-8 text-right">
+                <span style={{ color: "#71717a", tabularNums: true, width: 48, textAlign: "right" }}>
                   {p.models.length}/{p.models.filter(m => m.enabled).length}
                 </span>
               </div>

@@ -1,13 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
+import { Card, Switch, Typography, Button, Tag } from "antd"
 import { toast } from "sonner"
-import { Loader2, Sparkles, Save, RotateCcw } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { LoadingOutlined, FireOutlined, SaveOutlined, RotateLeftOutlined } from "@ant-design/icons"
 
 interface AIFeatureConfig {
   enableTaskList: boolean
@@ -187,196 +183,157 @@ export function AIFeaturesSettings() {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
-        </CardContent>
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px' }}>
+          <LoadingOutlined style={{ fontSize: '24px' }} />
+        </div>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Sparkles className="size-4 text-purple-500" />
-              AI 功能开关
-            </CardTitle>
-            <CardDescription className="text-sm">
-              控制 AI 助手的所有标签输出功能
-            </CardDescription>
-          </div>
-          <Badge variant="outline" className="font-mono text-xs">
-            {enabledCount}/{totalCount} 已启用
-          </Badge>
+    <Card
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FireOutlined style={{ color: '#722ed1' }} />
+          AI 功能开关
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* UI 组件类 */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-            <div className="size-1.5 rounded-full bg-blue-500" />
-            UI 组件类
-          </h3>
-          <div className="space-y-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
-            {(['enableTaskList', 'enableDeviceBento', 'enableControlBento', 'enableMonitor', 'enableScheduledTasks', 'enableChart', 'enableSpectral'] as const).map((key) => (
-              <div key={key} className="flex items-start justify-between gap-4 py-2">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
-                      {FEATURE_DESCRIPTIONS[key].label}
-                    </Label>
-                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono">
-                      {FEATURE_DESCRIPTIONS[key].tag}
-                    </code>
-                  </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {FEATURE_DESCRIPTIONS[key].description}
-                  </p>
+      }
+      extra={
+        <Tag style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+          {enabledCount}/{totalCount} 已启用
+        </Tag>
+      }
+      styles={{ body: { paddingTop: '16px' } }}
+    >
+      {/* UI 组件类 */}
+      <div style={{ marginBottom: '24px' }}>
+        <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1890ff', display: 'inline-block' }} />
+          UI 组件类
+        </Typography.Text>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+          {(['enableTaskList', 'enableDeviceBento', 'enableControlBento', 'enableMonitor', 'enableScheduledTasks', 'enableChart', 'enableSpectral'] as const).map((key) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                    {FEATURE_DESCRIPTIONS[key].tag}
+                  </code>
                 </div>
-                <Switch
-                  id={key}
-                  checked={config[key]}
-                  onCheckedChange={() => handleToggle(key)}
-                />
+                <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                  {FEATURE_DESCRIPTIONS[key].description}
+                </Typography.Text>
               </div>
-            ))}
-          </div>
+              <Switch checked={config[key]} onChange={() => handleToggle(key)} />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* 功能增强类 */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-            <div className="size-1.5 rounded-full bg-primary" />
-            功能增强类
-          </h3>
-          <div className="space-y-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
-            {(['enableReasoning', 'enableSources', 'enableToolUsed'] as const).map((key) => (
-              <div key={key} className="flex items-start justify-between gap-4 py-2">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
-                      {FEATURE_DESCRIPTIONS[key].label}
-                    </Label>
-                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono">
-                      {FEATURE_DESCRIPTIONS[key].tag}
-                    </code>
-                  </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {FEATURE_DESCRIPTIONS[key].description}
-                  </p>
+      {/* 功能增强类 */}
+      <div style={{ marginBottom: '24px' }}>
+        <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#722ed1', display: 'inline-block' }} />
+          功能增强类
+        </Typography.Text>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+          {(['enableReasoning', 'enableSources', 'enableToolUsed'] as const).map((key) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                    {FEATURE_DESCRIPTIONS[key].tag}
+                  </code>
                 </div>
-                <Switch
-                  id={key}
-                  checked={config[key]}
-                  onCheckedChange={() => handleToggle(key)}
-                />
+                <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                  {FEATURE_DESCRIPTIONS[key].description}
+                </Typography.Text>
               </div>
-            ))}
-          </div>
+              <Switch checked={config[key]} onChange={() => handleToggle(key)} />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* 操作执行类 */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-            <div className="size-1.5 rounded-full bg-amber-500" />
-            操作执行类
-          </h3>
-          <div className="space-y-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
-            {(['enableScheduleTask', 'enableDeviceControl', 'enableVisionInspection'] as const).map((key) => (
-              <div key={key} className="flex items-start justify-between gap-4 py-2">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
-                      {FEATURE_DESCRIPTIONS[key].label}
-                    </Label>
-                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono">
-                      {FEATURE_DESCRIPTIONS[key].tag}
-                    </code>
-                  </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {FEATURE_DESCRIPTIONS[key].description}
-                  </p>
+      {/* 操作执行类 */}
+      <div style={{ marginBottom: '24px' }}>
+        <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fa8c16', display: 'inline-block' }} />
+          操作执行类
+        </Typography.Text>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+          {(['enableScheduleTask', 'enableDeviceControl', 'enableVisionInspection'] as const).map((key) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                    {FEATURE_DESCRIPTIONS[key].tag}
+                  </code>
                 </div>
-                <Switch
-                  id={key}
-                  checked={config[key]}
-                  onCheckedChange={() => handleToggle(key)}
-                />
+                <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                  {FEATURE_DESCRIPTIONS[key].description}
+                </Typography.Text>
               </div>
-            ))}
-          </div>
+              <Switch checked={config[key]} onChange={() => handleToggle(key)} />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* 预览类 */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-            <div className="size-1.5 rounded-full bg-purple-500" />
-            预览类
-          </h3>
-          <div className="space-y-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
-            {(['enableHTMLPreview', 'enableWebPreview'] as const).map((key) => (
-              <div key={key} className="flex items-start justify-between gap-4 py-2">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
-                      {FEATURE_DESCRIPTIONS[key].label}
-                    </Label>
-                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono">
-                      {FEATURE_DESCRIPTIONS[key].tag}
-                    </code>
-                  </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {FEATURE_DESCRIPTIONS[key].description}
-                  </p>
+      {/* 预览类 */}
+      <div style={{ marginBottom: '24px' }}>
+        <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#722ed1', display: 'inline-block' }} />
+          预览类
+        </Typography.Text>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+          {(['enableHTMLPreview', 'enableWebPreview'] as const).map((key) => (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                    {FEATURE_DESCRIPTIONS[key].tag}
+                  </code>
                 </div>
-                <Switch
-                  id={key}
-                  checked={config[key]}
-                  onCheckedChange={() => handleToggle(key)}
-                />
+                <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                  {FEATURE_DESCRIPTIONS[key].description}
+                </Typography.Text>
               </div>
-            ))}
-          </div>
+              <Switch checked={config[key]} onChange={() => handleToggle(key)} />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                保存中...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                保存配置
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            disabled={saving}
-            className="border-zinc-300 dark:border-zinc-700"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            重置
-          </Button>
-        </div>
+      {/* 操作按钮 */}
+      <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+        <Button
+          type="primary"
+          onClick={handleSave}
+          loading={saving}
+          icon={<SaveOutlined />}
+          style={{ flex: 1 }}
+        >
+          保存配置
+        </Button>
+        <Button
+          onClick={handleReset}
+          disabled={saving}
+          icon={<RotateLeftOutlined />}
+        >
+          重置
+        </Button>
+      </div>
 
-        <div className="text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">
-          <strong>提示：</strong>关闭某个功能后，AI 将不会输出对应的标签，前端也不会渲染相关组件。
-          这可以用于调试或临时禁用某些功能。
-        </div>
-      </CardContent>
+      <div style={{ fontSize: '12px', color: '#8c8c8c', backgroundColor: '#fafafa', padding: '12px', borderRadius: '8px', marginTop: '16px' }}>
+        <strong>提示：</strong>关闭某个功能后，AI 将不会输出对应的标签，前端也不会渲染相关组件。
+        这可以用于调试或临时禁用某些功能。
+      </div>
     </Card>
   )
 }

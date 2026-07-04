@@ -5,6 +5,8 @@
 
 import { getPendingAICronJobs, updateAICronJobStatus, type AICronJob } from './ai-cron-service'
 import { getSensorHistory } from '@/lib/db/device-service'
+import { createUserReport } from '@/lib/db/user-reports-service'
+import { publishUserEvent } from '@/lib/server/user-event-bus'
 
 /**
  * 获取最新的设备状态（从传感器历史数据中获取最新记录）
@@ -112,15 +114,46 @@ async function executeAnalysisTask(job: AICronJob, payload: any): Promise<any> {
   }
   
   const result = await analysisResult.json()
-  
-  // 推送通知给用户
+
+  // 自动归档到我的空间（user_reports），并通过事件总线通知在线用户的浏览器
+  try {
+    const html = buildAnalysisReportHtml(result, deviceData, job.task_description)
+    const summary =
+      (typeof result?.summary === 'string' && result.summary) ||
+      (typeof result?.analysis === 'string' && result.analysis.slice(0, 300)) ||
+      job.task_description
+    const reportId = await createUserReport({
+      user_id: job.user_id,
+      title: `定时分析简报：${job.task_description}`.slice(0, 200),
+      html,
+      summary,
+      source: 'ai_cron',
+      source_id: String(job.id),
+      type: 'report'
+    })
+    publishUserEvent({
+      type: 'new_report',
+      userId: job.user_id,
+      report: {
+        id: reportId,
+        title: `定时分析简报：${job.task_description}`.slice(0, 200),
+        type: 'report',
+        source: 'ai_cron',
+        created_at: Date.now()
+      }
+    })
+  } catch (e) {
+    console.error('[AI Cron] Failed to archive analysis to my-space:', e)
+  }
+
+  // 保留旧的"系统内通知"通道（best-effort，不阻塞主流程）
   await sendNotificationToUser(job.user_id, {
     title: '定时分析完成',
     message: job.task_description,
     data: result,
     type: 'analysis'
   })
-  
+
   return result
 }
 
@@ -203,7 +236,7 @@ async function executeCustomTask(job: AICronJob, payload: any): Promise<any> {
  * 发送通知给用户
  */
 async function sendNotificationToUser(
-  userId: number, 
+  userId: number,
   notification: {
     title: string
     message: string
@@ -216,23 +249,66 @@ async function sendNotificationToUser(
   // 2. 浏览器通知
   // 3. 邮件通知
   // 4. 短信通知
-  
+
   console.log(`[AI Cron] Sending notification to user ${userId}:`, notification)
-  
-  // 存储到通知表（如果有的话）
-  try {
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/notifications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        ...notification,
-        createdAt: Date.now()
-      })
-    })
-  } catch (error) {
-    console.error('[AI Cron] Failed to store notification:', error)
-  }
+
+  // 注意：项目当前没有 /api/notifications 路由（之前是死路径），已通过 user-event-bus
+  // 把主要事件实时推送给在线浏览器，定时简报则通过 user_reports 表 + 上面 publishUserEvent
+  // 通知用户。
+}
+
+/**
+ * 把 analysis API 返回的结构化结果渲染为简报 HTML（存到 user_reports.html）。
+ * 故意保持简单、自包含、纯文本 + 列表结构，确保在"我的空间"面板里能直接打开查看。
+ */
+function buildAnalysisReportHtml(result: any, deviceData: any, taskDescription: string): string {
+  const escape = (s: any) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+
+  const fmt = (v: any) => (v === null || v === undefined || v === '' ? '-' : String(v))
+
+  const ts = new Date().toLocaleString('zh-CN', { hour12: false })
+
+  const analysisText = (() => {
+    if (typeof result?.analysis === 'string') return result.analysis
+    if (typeof result?.content === 'string') return result.content
+    if (typeof result?.summary === 'string') return result.summary
+    return ''
+  })()
+
+  const recommendations: string[] = Array.isArray(result?.recommendations)
+    ? result.recommendations.map((r: any) => fmt(r))
+    : []
+
+  return [
+    `<div class="berry-report" style="font-family:-apple-system,'Segoe UI',sans-serif;line-height:1.7;color:#1f2937">`,
+    `  <h2 style="margin:0 0 8px 0;font-size:18px;color:#0a0a0c">${escape(taskDescription)}</h2>`,
+    `  <div style="color:#6b7280;font-size:12px;margin-bottom:16px">生成时间：${escape(ts)}</div>`,
+    `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#374151">📊 设备数据快照</h3>`,
+    `  <table style="width:100%;border-collapse:collapse;font-size:13px">`,
+    `    <tr><td style="padding:6px 12px;background:#f9fafb;width:120px">温度</td><td style="padding:6px 12px">${fmt(deviceData?.temperature)} ℃</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#f9fafb">湿度</td><td style="padding:6px 12px">${fmt(deviceData?.humidity)} %</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#f9fafb">光照</td><td style="padding:6px 12px">${fmt(deviceData?.light)} lx</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#f9fafb">CO₂</td><td style="padding:6px 12px">${fmt(deviceData?.co2)} ppm</td></tr>`,
+    `  </table>`,
+    analysisText
+      ? `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#374151">🧠 AI 分析</h3>
+  <div style="white-space:pre-wrap;font-size:13px;background:#f9fafb;padding:12px;border-radius:6px">${escape(analysisText)}</div>`
+      : '',
+    recommendations.length
+      ? `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#374151">✅ 建议</h3>
+  <ul style="margin:0;padding-left:20px;font-size:13px">${recommendations
+    .map((r) => `    <li>${escape(r)}</li>`)
+    .join('\n')}</ul>`
+      : '',
+    `</div>`
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 /**

@@ -64,7 +64,7 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
                       {isActive && (
                         <motion.div
                           layoutId="activeTabBackground"
-                          className="absolute inset-0 bg-slate-900 dark:bg-white"
+                          className="absolute inset-0 bg-slate-900 dark:bg-white pointer-events-none"
                           initial={false}
                           transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         />

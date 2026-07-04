@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { RefreshCcw } from "@/components/animate-ui/icons/refresh-ccw";
+import { Card, Table, Button } from "antd"
+import { ReloadOutlined } from "@ant-design/icons"
 import { AccessLog } from "@/lib/db/security-service"
 import { format } from "date-fns"
 
@@ -31,59 +29,96 @@ export function AccessLogsViewer() {
     fetchLogs()
   }, [])
 
+  const columns = [
+    {
+      title: "Time",
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 120,
+      render: (val: number) => (
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8c8c8c' }}>
+          {format(new Date(Number(val)), "MM-dd HH:mm:ss")}
+        </span>
+      ),
+    },
+    {
+      title: "IP",
+      dataIndex: "ip",
+      key: "ip",
+      width: 140,
+      render: (val: string) => (
+        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{val}</span>
+      ),
+    },
+    {
+      title: "Method",
+      dataIndex: "method",
+      key: "method",
+      width: 80,
+      render: (val: string) => (
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600 }}>{val}</span>
+      ),
+    },
+    {
+      title: "Path",
+      dataIndex: "path",
+      key: "path",
+      ellipsis: true,
+      render: (val: string) => (
+        <span
+          style={{ fontFamily: 'monospace', fontSize: '12px', color: '#595959', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          title={val}
+        >
+          {val}
+        </span>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 80,
+      render: (val: number) => {
+        const isError = val >= 400
+        return (
+          <span style={{
+            padding: '2px 8px',
+            borderRadius: '0',
+            fontSize: '10px',
+            fontWeight: 500,
+            border: `1px solid ${isError ? '#ffccc7' : '#b7eb8f'}`,
+            backgroundColor: isError ? '#fff2f0' : '#f6ffed',
+            color: isError ? '#f5222d' : '#52c41a',
+          }}>
+            {val}
+          </span>
+        )
+      },
+    },
+  ]
+
   return (
-    <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-none shadow-none">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-bold">Recent Access Logs</CardTitle>
-        <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="rounded-none">
-          <RefreshCcw className={`h-3.5 w-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+    <Card
+      title="Recent Access Logs"
+      extra={
+        <Button
+          icon={<ReloadOutlined spin={loading} />}
+          onClick={fetchLogs}
+          loading={loading}
+        >
           Refresh
         </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <Table>
-            <TableHeader className="bg-zinc-50 dark:bg-zinc-800/50">
-              <TableRow className="border-b border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
-                <TableHead className="font-mono text-xs uppercase tracking-wider text-zinc-500">Time</TableHead>
-                <TableHead className="font-mono text-xs uppercase tracking-wider text-zinc-500">IP</TableHead>
-                <TableHead className="font-mono text-xs uppercase tracking-wider text-zinc-500">Method</TableHead>
-                <TableHead className="font-mono text-xs uppercase tracking-wider text-zinc-500">Path</TableHead>
-                <TableHead className="font-mono text-xs uppercase tracking-wider text-zinc-500">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-zinc-500">No logs found</TableCell>
-                </TableRow>
-              ) : (
-                logs.map((log) => (
-                  <TableRow key={log.id} className="border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50">
-                    <TableCell className="whitespace-nowrap font-mono text-xs text-zinc-500">
-                      {format(new Date(Number(log.created_at)), "MM-dd HH:mm:ss")}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{log.ip}</TableCell>
-                    <TableCell className="font-mono text-xs font-semibold">{log.method}</TableCell>
-                    <TableCell className="max-w-[200px] truncate font-mono text-xs text-zinc-600 dark:text-zinc-400" title={log.path}>
-                      {log.path}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-0.5 rounded-none text-[10px] font-medium border ${
-                        log.status >= 400 
-                          ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30' 
-                          : 'bg-emerald-50 text-primary border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
-                      }`}>
-                        {log.status}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+      }
+      styles={{ body: { padding: 0 } }}
+    >
+      <Table
+        columns={columns}
+        dataSource={logs}
+        rowKey="id"
+        pagination={false}
+        size="small"
+        locale={{ emptyText: 'No logs found' }}
+      />
     </Card>
   )
 }

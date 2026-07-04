@@ -32,7 +32,7 @@ export function TopNavLinks() {
             {isActive && (
               <motion.div
                 layoutId="top-nav-indicator"
-                className="absolute -top-4 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                className="absolute -top-4 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)] pointer-events-none"
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               />
             )}

@@ -390,6 +390,7 @@ export interface AIFeatureConfig {
   enableAutomationStrategy?: boolean
   enableHTMLPreview?: boolean
   enableWebPreview?: boolean
+  enableKnowledgeBase?: boolean
 }
 
 /**
@@ -449,6 +450,9 @@ function generateDisabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): stri
     disabledFeatures.push('<WEB_PREVIEW>')
     disabledDescriptions.push('- 网页预览（<WEB_PREVIEW>）：不要输出网页预览组件')
   }
+  if (aiFeatures.enableKnowledgeBase === false) {
+    disabledDescriptions.push('- 个人知识库引用（@知识库:xxx）：不要在对话中引用个人知识库内容')
+  }
   
   if (disabledFeatures.length === 0) return ''
   
@@ -485,7 +489,7 @@ ${disabledDescriptions.join('\n')}
  */
 function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): string {
   if (!aiFeatures) {
-    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\\n```json\\n{\\n  "nodes": [\\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\\n  ],\\n  "edges": [\\n    { "id": "e1", "source": "T1", "target": "L1" },\\n    { "id": "e2", "source": "L1", "target": "A1" }\\n  ]\\n}\\n```\\n</AUTOMATION_STRATEGY>\\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。\n- <CHART type="echarts">...</CHART> - 图表'
+    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\n```json\n{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" }\n  ]\n}\n```\n</AUTOMATION_STRATEGY>\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。\n- <CHART type="echarts">...</CHART> - 图表'
   }
 
   const enabledTags: string[] = []
@@ -499,6 +503,11 @@ function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): strin
   if (aiFeatures.enableSpectral !== false) enabledTags.push('- <SPECTRAL></SPECTRAL> - 光谱数据')
   if (aiFeatures.enableSources !== false) enabledTags.push('- <SOURCES>...</SOURCES> - 引用来源')
   if (aiFeatures.enableWebPreview !== false) enabledTags.push('- <WEB_PREVIEW>...</WEB_PREVIEW> - 网页预览')
+  if (aiFeatures.enableKnowledgeBase !== false) enabledTags.push(
+    '- 用户可以使用 `@知识库:条目标题` 在对话中显式引用个人知识库中的条目。例如 `@知识库:草莓灰霉病防治` 会让 AI 优先基于该条目内容回答。' +
+    ' 除此之外，AI 也会自动从知识库检索相关内容并通过 `<SOURCES>` 标签展示来源。' +
+    ' 引用时应标注来源条目名称（如"根据《条目名》..."）。'
+  )
   if (aiFeatures.enableAutomationStrategy !== false) {
     const strategyJsonExample = '{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "温度超过30℃", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断温度阈值", "type": "compare" } },\n    { "id": "A1", "type": "aiNode",       "data": { "label": "AI 诊断原因", "type": "llm" } },\n    { "id": "A2", "type": "actionNode",  "data": { "label": "打开通风设备", "type": "device" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" },\n    { "id": "e3", "source": "A1", "target": "A2" }\n  ]\n}'
     const strategyTag = '- <AUTOMATION_STRATEGY description="策略简述">\n```json\n' + strategyJsonExample + '\n```\n</AUTOMATION_STRATEGY>'

@@ -52,16 +52,25 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
   const [copied, setCopied] = useState(false)
   const [iconError, setIconError] = useState(false)
   const [coverError, setCoverError] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(true)
 
   useEffect(() => {
     if (open) {
       setIconError(false)
       setCoverError(false)
       setEnvConfig({})
+      setInternalOpen(true)
     }
   }, [open, server?.id])
 
   if (!server) return null
+
+  const visible = open && internalOpen
+  const handleClose = () => {
+    if (!internalOpen) return
+    setInternalOpen(false)
+    onOpenChange(false)
+  }
 
   const handleCopyCommand = () => {
     const command = `${server.command} ${server.args.join(' ')}`
@@ -127,18 +136,29 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: visible ? 1 : 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onAnimationComplete={() => { if (!internalOpen) onOpenChange(false) }}
+          className={cn(
+            "fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4",
+            !visible && "pointer-events-none"
+          )}
+        >
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: visible ? 1 : 0 }}
             exit={{ opacity: 0 }}
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            aria-hidden
           />
 
           <motion.div
             initial={{ opacity: 0, y: 8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 8, scale: visible ? 1 : 0.98 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.18 }}
             className="relative w-full max-w-3xl h-full md:h-[80vh] bg-white flex flex-col shadow-2xl border border-gray-200/80 font-sans overflow-hidden"
@@ -146,7 +166,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
           >
             {/* 关闭按钮 */}
             <button
-              onClick={() => onOpenChange(false)}
+              onClick={handleClose}
               className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors backdrop-blur-md"
               style={{ borderRadius: 6 }}
             >
@@ -433,7 +453,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   )

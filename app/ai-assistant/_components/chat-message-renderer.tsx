@@ -34,6 +34,7 @@ import { DeviceControlCard } from "@/components/ai/device-control-card"
 import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { CapabilitiesCard } from "@/components/ai/capabilities-card"
 import { VisionInspectionCard } from "@/components/ai/vision-inspection-card"
+import { RateLimitErrorCard } from "@/components/ai/rate-limit-error-card-editorial"
 
 const { Text } = Typography
 
@@ -1194,6 +1195,21 @@ function renderTaggedContent(
 
 function ChatMessageRendererBase(props: ChatMessageRendererProps) {
   const { msg, onOpenStudio, onOpenStudioFromTask } = props
+
+  // 429 速率限制：直接渲染业务卡片（RateLimitErrorCard），不再走 markdown 流程
+  if (msg.errorType === "rate_limit") {
+    return (
+      <RateLimitErrorCard
+        rawMessage={msg.errorRaw || (typeof msg.content === "string" ? msg.content : "")}
+        statusCode={msg.errorStatus ?? 429}
+        onRetry={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("berry:retry-last-message"))
+          }
+        }}
+      />
+    )
+  }
 
   let content: Message["content"] = msg.content
 

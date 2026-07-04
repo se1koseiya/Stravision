@@ -46,6 +46,16 @@ export interface Message {
   model?: string
   isSilent?: boolean
   commandErrors?: Record<number, string>
+  /**
+   * 错误类型标签。
+   * - "rate_limit"：429/速率限制，使用 RateLimitErrorCard 渲染
+   * - "generic"：普通错误，使用默认文本渲染
+   */
+  errorType?: "rate_limit" | "generic"
+  /** 错误原始字符串（用于 RateLimitErrorCard 解析 code/message） */
+  errorRaw?: string
+  /** HTTP 状态码 */
+  errorStatus?: number
 }
 
 export interface AISettings {

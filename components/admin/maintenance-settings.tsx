@@ -1,13 +1,12 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { Button, Switch, Input, Typography, Spin } from "antd"
+import { LoadingOutlined, WarningOutlined, CheckCircleOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react"
+
+const { Text, Title } = Typography
 
 interface MaintenanceConfig {
   enabled: boolean
@@ -66,74 +65,103 @@ export function MaintenanceSettings() {
   }
 
   if (loading) {
-    return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between p-4 rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-medium">系统维护模式</h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        padding: 16, 
+        borderRadius: 12, 
+        border: '1px solid rgba(0,0,0,0.05)',
+        background: 'rgba(255,255,255,0.5)'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Title level={5} style={{ margin: 0 }}>系统维护模式</Title>
             {config.enabled ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+              <span style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                padding: '2px 8px', 
+                borderRadius: 4, 
+                fontSize: 12, 
+                fontWeight: 500, 
+                background: '#fff7e6', 
+                color: '#fa8c16',
+                border: '1px solid #ffd591'
+              }}>
                 开启中
               </span>
             ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              <span style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                padding: '2px 8px', 
+                borderRadius: 4, 
+                fontSize: 12, 
+                fontWeight: 500, 
+                background: '#f6ffed', 
+                color: '#52c41a',
+                border: '1px solid #b7eb8f'
+              }}>
                 运行中
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
+          <Text type="secondary" style={{ fontSize: 14 }}>
             开启后，除管理员外的所有用户访问系统将被重定向到维护页面。
-          </p>
+          </Text>
         </div>
         <Switch
           checked={config.enabled}
-          onCheckedChange={(checked) => setConfig({ ...config, enabled: checked })}
+          onChange={(checked) => setConfig({ ...config, enabled: checked })}
         />
       </div>
 
-      <div className={`space-y-4 transition-all duration-300 ${config.enabled ? 'opacity-100' : 'opacity-60'}`}>
-        <div className="grid gap-2">
-          <Label htmlFor="title">维护标题</Label>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 16, 
+        transition: 'all 0.3s',
+        opacity: config.enabled ? 1 : 0.6,
+        pointerEvents: config.enabled ? 'auto' : 'none'
+      }}>
+        <div>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>维护标题</Text>
           <Input
-            id="title"
             value={config.title}
             onChange={(e) => setConfig({ ...config, title: e.target.value })}
             placeholder="例如：系统升级维护中"
           />
         </div>
         
-        <div className="grid gap-2">
-          <Label htmlFor="message">维护说明</Label>
-          <Textarea
-            id="message"
+        <div>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>维护说明</Text>
+          <Input.TextArea
             value={config.message}
             onChange={(e) => setConfig({ ...config, message: e.target.value })}
             placeholder="请填写维护原因和预计恢复时间..."
-            className="min-h-[100px]"
+            rows={4}
           />
         </div>
 
-        <div className="pt-2">
+        <div>
           <Button 
+            type="primary"
             onClick={handleSave} 
-            disabled={saving}
-            className={config.enabled ? "bg-amber-500 hover:bg-amber-600" : ""}
+            loading={saving}
+            style={config.enabled ? { background: '#faad14', borderColor: '#faad14' } : {}}
+            icon={config.enabled ? <WarningOutlined /> : <CheckCircleOutlined />}
           >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                保存中...
-              </>
-            ) : (
-              <>
-                {config.enabled ? <AlertTriangle className="mr-2 h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                {config.enabled ? "保存并开启维护" : "保存设置"}
-              </>
-            )}
+            {config.enabled ? "保存并开启维护" : "保存设置"}
           </Button>
         </div>
       </div>

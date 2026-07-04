@@ -1,34 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { Button, Input, Switch, Card, Select, Modal, Typography, Spin, Form } from "antd"
+import { PlusOutlined, DeleteOutlined, EditOutlined, ReloadOutlined, SaveOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
-import { Loader2, Plus, Trash2, GripVertical, Save, RotateCcw } from "lucide-react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+
+const { Text } = Typography
 
 interface AIModel {
   id: string
@@ -150,7 +127,6 @@ export function AIModelsManager() {
     const existingIndex = config.models.findIndex(m => m.id === editingModel.id)
     
     if (existingIndex >= 0) {
-      // 更新现有模型
       setConfig({
         ...config,
         models: config.models.map((m, i) =>
@@ -159,7 +135,6 @@ export function AIModelsManager() {
       })
       toast.success('模型已更新')
     } else {
-      // 添加新模型
       setConfig({
         ...config,
         models: [...config.models, editingModel]
@@ -185,7 +160,6 @@ export function AIModelsManager() {
     newModels[index] = newModels[newIndex]
     newModels[newIndex] = temp
     
-    // 更新 order
     newModels.forEach((m, i) => {
       m.order = i
     })
@@ -193,259 +167,242 @@ export function AIModelsManager() {
     setConfig({ ...config, models: newModels })
   }
 
+  const handleModalOk = () => {
+    handleSaveModel()
+  }
+
+  const handleModalCancel = () => {
+    setDialogOpen(false)
+    setEditingModel(null)
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 48 }}>
+        <Spin size="large" />
       </div>
     )
   }
 
   if (!config) {
     return (
-      <div className="p-12 text-center text-zinc-500">
+      <div style={{ padding: 48, textAlign: 'center', color: '#8c8c8c' }}>
         加载配置失败
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+          <h3 style={{ fontSize: 16, fontWeight: 'bold', color: '#262626', margin: 0 }}>
             AI 模型管理
           </h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <p style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
             管理 AI 助手页面的模型列表
           </p>
         </div>
-        <div className="flex gap-2">
+        <div style={{ display: 'flex', gap: 8 }}>
           <Button
-            variant="outline"
-            size="sm"
+            icon={<ReloadOutlined />}
             onClick={fetchConfig}
-            className="gap-2"
           >
-            <RotateCcw className="h-4 w-4" />
             重新加载
           </Button>
           <Button
-            variant="outline"
-            size="sm"
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={handleAddModel}
-            className="gap-2"
           >
-            <Plus className="h-4 w-4" />
             添加模型
           </Button>
           <Button
-            size="sm"
+            type="primary"
+            icon={saving ? <Spin size="small" /> : <SaveOutlined />}
             onClick={handleSave}
             disabled={saving}
-            className="gap-2"
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
             保存配置
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {config.categories.map(category => {
           const categoryModels = config.models.filter(m => m.category === category.id)
           
           if (categoryModels.length === 0) return null
           
           return (
-            <Card key={category.id}>
-              <CardHeader>
-                <CardTitle className="text-base">{category.name}</CardTitle>
-                <CardDescription>
-                  {categoryModels.length} 个模型
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <Card
+              key={category.id}
+              title={<Text strong style={{ fontSize: 14 }}>{category.name}</Text>}
+              extra={<Text type="secondary" style={{ fontSize: 12 }}>{categoryModels.length} 个模型</Text>}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {categoryModels.map((model, index) => (
                   <div
                     key={model.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: 12,
+                      borderRadius: 6,
+                      border: '1px solid #f0f0f0',
+                      backgroundColor: '#fafafa'
+                    }}
                   >
-                    <div className="flex flex-col gap-1">
-                      <button
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Button
+                        type="text"
+                        size="small"
                         onClick={() => handleMoveModel(model.id, 'up')}
                         disabled={index === 0}
-                        className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        style={{ padding: '2px 4px', height: 'auto', opacity: index === 0 ? 0.3 : 1 }}
                       >
-                        <GripVertical className="h-3 w-3 text-zinc-400" />
-                      </button>
-                      <button
+                        ▲
+                      </Button>
+                      <Button
+                        type="text"
+                        size="small"
                         onClick={() => handleMoveModel(model.id, 'down')}
                         disabled={index === categoryModels.length - 1}
-                        className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        style={{ padding: '2px 4px', height: 'auto', opacity: index === categoryModels.length - 1 ? 0.3 : 1 }}
                       >
-                        <GripVertical className="h-3 w-3 text-zinc-400" />
-                      </button>
+                        ▼
+                      </Button>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text strong style={{ fontSize: 13, color: '#262626' }}>
                           {model.name}
-                        </span>
-                        <code className="text-xs text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                        </Text>
+                        <code style={{
+                          fontSize: 11,
+                          color: '#8c8c8c',
+                          backgroundColor: '#f5f5f5',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          fontFamily: 'monospace'
+                        }}>
                           {model.id}
                         </code>
                       </div>
                       {model.description && (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                        <p style={{ fontSize: 12, color: '#8c8c8c', marginTop: 2, marginBottom: 0 }}>
                           {model.description}
                         </p>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Switch
                         checked={model.enabled}
-                        onCheckedChange={() => handleToggleModel(model.id)}
+                        onChange={() => handleToggleModel(model.id)}
                       />
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        type="text"
+                        size="small"
                         onClick={() => handleEditModel(model)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <span className="sr-only">编辑</span>
-                        ✏️
-                      </Button>
+                        icon={<EditOutlined />}
+                      />
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        type="text"
+                        size="small"
+                        danger
                         onClick={() => handleDeleteModel(model.id)}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        icon={<DeleteOutlined />}
+                      />
                     </div>
                   </div>
                 ))}
-              </CardContent>
+              </div>
             </Card>
           )
         })}
       </div>
 
-      {/* 编辑/添加模型对话框 */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingModel?.id && config.models.find(m => m.id === editingModel.id)
-                ? '编辑模型'
-                : '添加模型'}
-            </DialogTitle>
-            <DialogDescription>
-              配置模型的基本信息
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingModel && (
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="model-id">模型 ID *</Label>
-                <Input
-                  id="model-id"
-                  value={editingModel.id}
-                  onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}
-                  placeholder="例如: qwen-max"
-                  disabled={!!config.models.find(m => m.id === editingModel.id)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="model-name">显示名称 *</Label>
-                <Input
-                  id="model-name"
-                  value={editingModel.name}
-                  onChange={(e) => setEditingModel({ ...editingModel, name: e.target.value })}
-                  placeholder="例如: Qwen Max"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="model-description">描述</Label>
-                <Input
-                  id="model-description"
-                  value={editingModel.description}
-                  onChange={(e) => setEditingModel({ ...editingModel, description: e.target.value })}
-                  placeholder="例如: 通义千问最强生产力工具"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="model-category">分类</Label>
-                <Select
-                  value={editingModel.category}
-                  onValueChange={(value) => setEditingModel({ ...editingModel, category: value })}
-                >
-                  <SelectTrigger id="model-category">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config.categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="model-icon">图标</Label>
-                <Select
-                  value={editingModel.icon}
-                  onValueChange={(value) => setEditingModel({ ...editingModel, icon: value })}
-                >
-                  <SelectTrigger id="model-icon">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="qwen">Qwen</SelectItem>
-                    <SelectItem value="deepseek">DeepSeek</SelectItem>
-                    <SelectItem value="moonshot">Moonshot (Kimi)</SelectItem>
-                    <SelectItem value="zhipu">Zhipu (GLM)</SelectItem>
-                    <SelectItem value="minimax">Minimax</SelectItem>
-                    <SelectItem value="sparkles">Sparkles (自动)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="model-enabled"
-                  checked={editingModel.enabled}
-                  onCheckedChange={(checked) => setEditingModel({ ...editingModel, enabled: checked })}
-                />
-                <Label htmlFor="model-enabled">启用此模型</Label>
-              </div>
+      <Modal
+        open={dialogOpen}
+        title={editingModel?.id && config.models.find(m => m.id === editingModel.id) ? '编辑模型' : '添加模型'}
+        onOk={handleModalOk}
+        onCancel={handleModalCancel}
+        footer={[
+          <Button key="cancel" onClick={handleModalCancel}>
+            取消
+          </Button>,
+          <Button key="save" type="primary" onClick={handleModalOk}>
+            保存
+          </Button>
+        ]}
+      >
+        {editingModel && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
+            <Form.Item label="模型 ID *" style={{ marginBottom: 8 }}>
+              <Input
+                value={editingModel.id}
+                onChange={(e) => setEditingModel({ ...editingModel, id: e.target.value })}
+                placeholder="例如: qwen-max"
+                disabled={!!config.models.find(m => m.id === editingModel.id)}
+              />
+            </Form.Item>
+            
+            <Form.Item label="显示名称 *" style={{ marginBottom: 8 }}>
+              <Input
+                value={editingModel.name}
+                onChange={(e) => setEditingModel({ ...editingModel, name: e.target.value })}
+                placeholder="例如: Qwen Max"
+              />
+            </Form.Item>
+            
+            <Form.Item label="描述" style={{ marginBottom: 8 }}>
+              <Input
+                value={editingModel.description}
+                onChange={(e) => setEditingModel({ ...editingModel, description: e.target.value })}
+                placeholder="例如: 通义千问最强生产力工具"
+              />
+            </Form.Item>
+            
+            <Form.Item label="分类" style={{ marginBottom: 8 }}>
+              <Select
+                value={editingModel.category}
+                onChange={(value) => setEditingModel({ ...editingModel, category: value })}
+              >
+                {config.categories.map(cat => (
+                  <Select.Option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+            
+            <Form.Item label="图标" style={{ marginBottom: 8 }}>
+              <Select
+                value={editingModel.icon}
+                onChange={(value) => setEditingModel({ ...editingModel, icon: value })}
+              >
+                <Select.Option value="qwen">Qwen</Select.Option>
+                <Select.Option value="deepseek">DeepSeek</Select.Option>
+                <Select.Option value="moonshot">Moonshot (Kimi)</Select.Option>
+                <Select.Option value="zhipu">Zhipu (GLM)</Select.Option>
+                <Select.Option value="minimax">Minimax</Select.Option>
+                <Select.Option value="sparkles">Sparkles (自动)</Select.Option>
+              </Select>
+            </Form.Item>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Switch
+                checked={editingModel.enabled}
+                onChange={(checked) => setEditingModel({ ...editingModel, enabled: checked })}
+              />
+              <Text>启用此模型</Text>
             </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleSaveModel}>
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

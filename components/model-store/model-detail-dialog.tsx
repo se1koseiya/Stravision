@@ -29,9 +29,21 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
   const [apiUrl, setApiUrl] = useState("")
   const [modelName, setModelName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
-  
+  const [internalOpen, setInternalOpen] = useState(true)
+
   // For matching the current system api type
   const [currentSettings, setCurrentSettings] = useState<any>({})
+
+  useEffect(() => {
+    if (open) setInternalOpen(true)
+  }, [open])
+
+  const visible = open && internalOpen
+  const handleClose = () => {
+    if (!internalOpen) return
+    setInternalOpen(false)
+    onOpenChange(false)
+  }
 
   useEffect(() => {
     if (open && provider) {
@@ -136,25 +148,36 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 sm:p-0">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: visible ? 1 : 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onAnimationComplete={() => { if (!internalOpen) onOpenChange(false) }}
+          className={cn(
+            "fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 sm:p-0",
+            !visible && "pointer-events-none"
+          )}
+        >
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: visible ? 1 : 0 }}
             exit={{ opacity: 0 }}
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            aria-hidden
           />
-          
+
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.95, y: visible ? 0 : 20 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative w-full max-w-5xl h-full md:h-[90vh] bg-zinc-50 dark:bg-zinc-950 overflow-hidden shadow-2xl flex flex-col border border-white/5 font-sans"
             style={{ borderRadius: BERRY_THEME.radius.xl }}
           >
             {/* Close Button */}
             <button
-              onClick={() => onOpenChange(false)}
+              onClick={handleClose}
               className="absolute top-6 right-6 z-50 size-10 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
             >
               <X size={20} />
@@ -355,7 +378,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
               </div>
             </ScrollArea>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   )

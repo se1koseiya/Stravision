@@ -1,12 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button, Input, Card, Typography } from "antd"
 import { toast } from "sonner"
-import { Camera, Save } from "lucide-react"
+import { CameraOutlined, SaveOutlined } from "@ant-design/icons"
 
 interface CameraUrls {
   cameraAUrl: string
@@ -72,64 +69,76 @@ export function CameraSettings() {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
-        <CardContent className="p-8 text-center text-zinc-500">
+      <Card title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CameraOutlined />
+          监控摄像头配置
+        </div>
+      }>
+        <div style={{ textAlign: 'center', padding: '32px', color: '#8c8c8c' }}>
           加载摄像头配置中...
-        </CardContent>
+        </div>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg shadow-none">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Camera className="h-5 w-5 text-primary" />
-          <CardTitle className="text-base font-medium">监控摄像头配置</CardTitle>
+    <Card
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CameraOutlined style={{ color: '#1890ff' }} />
+          监控摄像头配置
         </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSave} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cameraAUrl">温室摄像头 A 流媒体地址</Label>
-              <Input
-                id="cameraAUrl"
-                type="url"
-                placeholder="https://player.xstrive.com/video/live?videoUrl=..."
-                value={urls.cameraAUrl}
-                onChange={(e) => handleChange("cameraAUrl", e.target.value)}
-                className="font-mono text-sm bg-zinc-50 dark:bg-zinc-800"
-              />
-              <p className="text-xs text-muted-foreground">
-                主摄像头的 HLS 或直播源地址，配置后将在监控页和 AI 视觉巡检中生效。
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cameraBUrl">温室摄像头 B 流媒体地址</Label>
-              <Input
-                id="cameraBUrl"
-                type="url"
-                placeholder="https://player.xstrive.com/video/live?videoUrl=..."
-                value={urls.cameraBUrl}
-                onChange={(e) => handleChange("cameraBUrl", e.target.value)}
-                className="font-mono text-sm bg-zinc-50 dark:bg-zinc-800"
-              />
-              <p className="text-xs text-muted-foreground">
-                备用摄像头的 HLS 或直播源地址，留空则代表该摄像头未接入。
-              </p>
-            </div>
+      }
+    >
+      <form onSubmit={handleSave}>
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <Typography.Text strong style={{ display: 'block', marginBottom: '8px' }}>
+              温室摄像头 A 流媒体地址
+            </Typography.Text>
+            <Input
+              id="cameraAUrl"
+              type="url"
+              placeholder="https://player.xstrive.com/video/live?videoUrl=..."
+              value={urls.cameraAUrl}
+              onChange={(e) => handleChange("cameraAUrl", e.target.value)}
+              style={{ fontFamily: 'monospace', fontSize: '14px' }}
+            />
+            <Typography.Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+              主摄像头的 HLS 或直播源地址，配置后将在监控页和 AI 视觉巡检中生效。
+            </Typography.Text>
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={saving} className="bg-primary hover:bg-emerald-700 text-white">
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "保存中..." : "保存摄像头配置"}
-            </Button>
+          <div style={{ marginBottom: '16px' }}>
+            <Typography.Text strong style={{ display: 'block', marginBottom: '8px' }}>
+              温室摄像头 B 流媒体地址
+            </Typography.Text>
+            <Input
+              id="cameraBUrl"
+              type="url"
+              placeholder="https://player.xstrive.com/video/live?videoUrl=..."
+              value={urls.cameraBUrl}
+              onChange={(e) => handleChange("cameraBUrl", e.target.value)}
+              style={{ fontFamily: 'monospace', fontSize: '14px' }}
+            />
+            <Typography.Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+              备用摄像头的 HLS 或直播源地址，留空则代表该摄像头未接入。
+            </Typography.Text>
           </div>
-        </form>
-      </CardContent>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' }}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={saving}
+            icon={<SaveOutlined />}
+          >
+            {saving ? "保存中..." : "保存摄像头配置"}
+          </Button>
+        </div>
+      </form>
     </Card>
   )
 }

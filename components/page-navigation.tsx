@@ -90,7 +90,7 @@ export function PageNavigation({
               {isActive && (
                 <motion.div
                   layoutId={`activeTab-${namespace}`}
-                  className="absolute inset-0 rounded-full bg-primary dark:bg-blue-600 shadow-[0_2px_12px_rgba(16,185,129,0.25)] dark:shadow-[0_2px_12px_rgba(37,99,235,0.25)]"
+                  className="absolute inset-0 rounded-full bg-primary dark:bg-blue-600 shadow-[0_2px_12px_rgba(16,185,129,0.25)] dark:shadow-[0_2px_12px_rgba(37,99,235,0.25)] pointer-events-none"
                   transition={{
                     type: "spring",
                     stiffness: 300,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { X, Share2, MoreHorizontal, Search, Filter, Play, FileText, FileType, Music, Image as ImageIcon, Download, Trash2, Eye, Star, StarOff, FolderOpen, Clock, Sparkles, PanelLeftOpen, Plus } from "lucide-react"
 import { Dropdown, Tooltip, message } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
@@ -337,19 +337,42 @@ export function MySpaceSidebarPanel({
     URL.revokeObjectURL(url)
   }
 
+  // 关闭中状态：点击 X 立刻给 wrapper 加 pointer-events-none
+  // 父组件传 open=true 时重置，避免下次打开时残留
+  const [closing, setClosing] = useState(false)
+  useEffect(() => {
+    if (open) setClosing(false)
+  }, [open])
+  const handleClose = () => {
+    if (closing) return
+    setClosing(true)
+    onClose()
+  }
+  // Esc 键关闭
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !closing) handleClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, closing])
+
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
+          animate={{ opacity: closing ? 0 : 1, scale: closing ? 0.98 : 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className={cn(
             "fixed z-[150] flex flex-col font-sans overflow-hidden",
             "top-3 right-3 bottom-3",
             sidebarOpen ? "left-[272px]" : "left-3",
-            isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900"
+            isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
+            closing && "pointer-events-none"
           )}
           style={{ borderRadius: 12 }}
         >
@@ -417,7 +440,7 @@ export function MySpaceSidebarPanel({
               <div className="flex items-center gap-2">
                 <Tooltip title="关闭">
                   <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     className={cn(
                       "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                       isDark
@@ -488,15 +511,15 @@ export function MySpaceSidebarPanel({
                       )}
                     >
                       {tab.label}
-                      {active && (
-                        <motion.div
-                          layoutId="myspace-tab-underline"
-                          className={cn(
-                            "absolute -bottom-[13px] left-0 right-0 h-[2px] rounded-full",
-                            isDark ? "bg-zinc-100" : "bg-gray-900"
-                          )}
-                        />
-                      )}
+                      <span
+                        className={cn(
+                          "absolute -bottom-[13px] left-0 right-0 h-[2px] rounded-full transition-all duration-200",
+                          active
+                            ? (isDark ? "bg-zinc-100 opacity-100 scale-x-100" : "bg-gray-900 opacity-100 scale-x-100")
+                            : "bg-transparent opacity-0 scale-x-0"
+                        )}
+                        style={{ pointerEvents: "none", transformOrigin: "center" }}
+                      />
                     </button>
                   )
                 })}

@@ -2,13 +2,12 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Card, Input, Button, Typography } from "antd"
+import { UploadOutlined, RocketOutlined, PlusOutlined, DeleteOutlined, LoadingOutlined, EditOutlined, SaveOutlined, ReloadOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
-import { Send, Rocket, Plus, Trash2, Sparkles, Bug, Loader2, Image as ImageIcon, X } from "lucide-react"
 import Image from "next/image"
+
+const { Text } = Typography
 
 export function ChangelogSender() {
   const [version, setVersion] = useState("v2.5.0")
@@ -134,7 +133,6 @@ export function ChangelogSender() {
 
       if (res.ok) {
         toast.success("更新日志推送成功")
-        // Reset form
         setVersion("")
         setImageUrl("")
         setFeatures([])
@@ -154,95 +152,116 @@ export function ChangelogSender() {
   }
 
   const renderList = (
-    title: string, 
+    listTitle: string, 
     icon: React.ReactNode, 
     list: string[], 
     setter: React.Dispatch<React.SetStateAction<string[]>>,
     placeholder: string
   ) => (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="flex items-center gap-2 text-sm font-semibold">
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <Text strong style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {icon}
-          {title}
-        </Label>
-        <Button variant="ghost" size="sm" onClick={() => addItem(setter, list)} className="h-6 w-6 p-0 rounded-full">
-          <Plus className="h-4 w-4" />
-        </Button>
+          {listTitle}
+        </Text>
+        <Button 
+          type="text" 
+          size="small" 
+          icon={<PlusOutlined />} 
+          onClick={() => addItem(setter, list)}
+          style={{ width: 24, height: 24 }}
+        />
       </div>
-      <div className="space-y-2">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {list.map((item, index) => (
-          <div key={index} className="flex gap-2">
+          <div key={index} style={{ display: 'flex', gap: 8 }}>
             <Input 
               value={item} 
               onChange={(e) => updateItem(setter, list, index, e.target.value)}
               placeholder={placeholder}
-              className="h-8 text-sm"
+              size="small"
             />
-            <Button variant="ghost" size="icon" onClick={() => removeItem(setter, list, index)} className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <Button 
+              type="text" 
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => removeItem(setter, list, index)}
+              danger
+            />
           </div>
         ))}
         {list.length === 0 && (
-            <div className="text-xs text-muted-foreground italic px-2">暂无条目，点击 + 添加</div>
+            <Text type="secondary" style={{ fontSize: 12, fontStyle: 'italic', paddingLeft: 8 }}>
+              暂无条目，点击 + 添加
+            </Text>
         )}
       </div>
     </div>
   )
 
   return (
-    <Card className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border-white/40 dark:border-white/10">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Rocket className="h-5 w-5 text-blue-500" />
+    <Card 
+      title={
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <RocketOutlined style={{ color: '#1890ff' }} />
           发布更新日志
-        </CardTitle>
-        <CardDescription>
-          以精美的卡片形式向用户推送版本更新、功能改进与修复日志。
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label>版本号 (Version)</Label>
+        </span>
+      }
+      style={{ background: 'rgba(255,255,255,0.7)' }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>版本号 (Version)</Text>
                 <Input placeholder="v1.0.0" value={version} onChange={(e) => setVersion(e.target.value)} />
             </div>
-            <div className="space-y-2">
-                <Label>发布日期 (Date)</Label>
+            <div>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>发布日期 (Date)</Text>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
         </div>
         
-        <div className="space-y-2">
-            <Label>标题 (Title)</Label>
+        <div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>标题 (Title)</Text>
             <Input placeholder="系统更新公告" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
-        <div className="space-y-2">
-            <Label>封面图片 (Cover Image)</Label>
-            <div className="flex gap-4 items-start">
+        <div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>封面图片 (Cover Image)</Text>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
               {imageUrl ? (
-                <div className="relative w-full h-40 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
-                  <Image src={imageUrl} alt="Cover" fill className="object-cover" />
-                  <button 
+                <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 8, overflow: 'hidden', border: '1px solid #d9d9d9' }}>
+                  <Image src={imageUrl} alt="Cover" fill style={{ objectFit: 'cover' }} />
+                  <Button 
+                    type="text"
+                    size="small"
                     onClick={() => setImageUrl("")}
-                    className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                    style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: 'white' }}
                   >
-                    <X className="h-4 w-4" />
-                  </button>
+                    ×
+                  </Button>
                 </div>
               ) : (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-24 border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+                  style={{ 
+                    width: '100%', 
+                    height: 96, 
+                    border: '2px dashed #d9d9d9', 
+                    borderRadius: 8, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
                 >
                   {uploading ? (
-                    <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+                    <LoadingOutlined style={{ fontSize: 24, color: '#999' }} />
                   ) : (
                     <>
-                      <ImageIcon className="h-6 w-6 text-zinc-400 mb-2" />
-                      <span className="text-xs text-zinc-500">点击上传封面图片 (Max 5MB)</span>
+                      <UploadOutlined style={{ fontSize: 24, color: '#999', marginBottom: 8 }} />
+                      <span style={{ fontSize: 12, color: '#999' }}>点击上传封面图片 (Max 5MB)</span>
                     </>
                   )}
                 </div>
@@ -250,53 +269,44 @@ export function ChangelogSender() {
               <input 
                 type="file" 
                 ref={fileInputRef} 
-                className="hidden" 
+                style={{ display: 'none' }} 
                 accept="image/*" 
                 onChange={handleImageUpload} 
               />
             </div>
         </div>
 
-        <div className="space-y-6 pt-2">
-            {renderList("新功能 (Features)", <Rocket className="h-4 w-4 text-blue-500"/>, features, setFeatures, "新增了...")}
-            {renderList("优化改进 (Improvements)", <Sparkles className="h-4 w-4 text-amber-500"/>, improvements, setImprovements, "优化了...")}
-            {renderList("问题修复 (Fixes)", <Bug className="h-4 w-4 text-red-500"/>, fixes, setFixes, "修复了...")}
+        <div style={{ paddingTop: 8 }}>
+            {renderList("新功能 (Features)", <RocketOutlined style={{ color: '#1890ff' }} />, features, setFeatures, "新增了...")}
+            {renderList("优化改进 (Improvements)", <EditOutlined style={{ color: '#faad14' }} />, improvements, setImprovements, "优化了...")}
+            {renderList("问题修复 (Fixes)", <ReloadOutlined style={{ color: '#ff4d4f' }} />, fixes, setFixes, "修复了...")}
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-dashed">
-            <Label className="text-sm font-semibold">行动按钮 (Call to Action)</Label>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">按钮文字</Label>
+        <div style={{ paddingTop: 16, borderTop: '1px dashed #d9d9d9' }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>行动按钮 (Call to Action)</Text>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>按钮文字</Text>
                     <Input placeholder="前往体验" value={actionLabel} onChange={(e) => setActionLabel(e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">跳转链接</Label>
+                <div>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>跳转链接</Text>
                     <Input placeholder="/monitor" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} />
                 </div>
             </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 16 }}>
           <Button 
+            type="primary"
             onClick={handleSend} 
-            disabled={loading}
-            className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+            loading={loading}
+            style={{ background: '#1890ff' }}
           >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                发送中...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                推送更新
-              </>
-            )}
+            {loading ? '发送中...' : '推送更新'}
           </Button>
         </div>
-      </CardContent>
+      </div>
     </Card>
   )
 }

@@ -30,7 +30,7 @@ export function CapsuleNavigation() {
             {isActive && (
               <motion.div
                 layoutId="capsule-nav-bg"
-                className="absolute inset-0 bg-zinc-700 rounded-full shadow-sm"
+                className="absolute inset-0 bg-zinc-700 rounded-full shadow-sm pointer-events-none"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 style={{ zIndex: -1 }}
               />

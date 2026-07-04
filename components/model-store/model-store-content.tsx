@@ -251,14 +251,32 @@ const ModelDetailView = ({
   onClose: () => void
   onConfig: () => void
 }) => {
+  const [open, setOpen] = useState(true)
+  const handleClose = () => {
+    if (!open) return
+    setOpen(false)
+    onClose()
+  }
+
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onAnimationComplete={() => { if (!open) onClose() }}
+      className={cn(
+        "fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-6",
+        !open && "pointer-events-none"
+      )}
+    >
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        aria-hidden
       />
 
       <motion.div
@@ -270,7 +288,7 @@ const ModelDetailView = ({
         style={{ borderRadius: 12 }}
       >
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           style={{ borderRadius: 8 }}
           title="关闭"
@@ -384,7 +402,7 @@ const ModelDetailView = ({
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -661,7 +679,7 @@ export function ModelStoreContent({ searchQuery = "" }: { searchQuery?: string }
             {subTab === t.key && (
               <motion.span
                 layoutId="model-subtab-underline"
-                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600 pointer-events-none"
                 transition={{ duration: 0.2 }}
               />
             )}

@@ -8,7 +8,7 @@ import type { ConversationsProps } from "@ant-design/x"
 import { Conversations } from "@ant-design/x"
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2 } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -58,6 +58,7 @@ import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
 // Toaster 已在全局 layout.tsx 的 ToasterWrapper 中提供，此处不再重复创建
 import { motion, AnimatePresence } from "framer-motion"
+import { useUserReports, type LocalSpaceReport } from "@/hooks/use-user-reports"
 
 import {
   DropdownMenu,
@@ -118,6 +119,7 @@ import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
 import { parseScheduleTask, removeScheduleTaskTag } from '@/lib/ai/schedule-task-parser'
 import { SchedulerSidebarPanel } from "@/components/ai/scheduler-sidebar-panel"
 import { MySpaceSidebarPanel } from "@/components/ai/my-space-sidebar-panel"
+import { KnowledgeSidebarPanel } from "@/components/ai/knowledge-sidebar-panel"
 import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 
 // BrowserActivity, WebPreview — 已改为 dynamic import
@@ -376,10 +378,27 @@ function AIAssistantContent() {
   const [newGroupName, setNewGroupName] = useState("")
   const [showNewGroupInput, setShowNewGroupInput] = useState(false)
   
-  // ===== 我的空间 - 报告列表 =====
-  type SpaceReport = { id: string; title: string; type: string; timestamp: number; html?: string }
-  const [spaceReports, setSpaceReports] = useState<SpaceReport[]>(() => {
-    try { return JSON.parse(localStorage.getItem("my-space-reports") || "[]") } catch { return [] }
+  // ===== 我的空间 - 报告列表（后端化：跨设备同步 + 实时通知） =====
+  const [mySpaceNewBadge, setMySpaceNewBadge] = useState(0)
+  const {
+    reports: spaceReports,
+    loading: spaceReportsLoading,
+    connected: spaceEventsConnected,
+    refresh: refreshSpaceReports,
+    saveReport: saveSpaceReport,
+    deleteReport: deleteSpaceReportRemote,
+    toggleFavorite: toggleSpaceReportFavorite
+  } = useUserReports({
+    onNewReport: (r) => {
+      // 新报告到达时若我的空间面板未打开，把 sidebar 角标 + 状态标记
+      try {
+        setMySpaceNewBadge((prev) => prev + 1)
+        const badgeKey = "my-space-new-badge"
+        const prev2 = Number(sessionStorage.getItem(badgeKey) || 0)
+        sessionStorage.setItem(badgeKey, String(prev2 + 1))
+        window.dispatchEvent(new CustomEvent("user-report:new", { detail: r }))
+      } catch {}
+    }
   })
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -451,14 +470,13 @@ function AIAssistantContent() {
       cancelText: "取消",
       okButtonProps: { danger: true },
       onOk() {
-        setSpaceReports(prev => {
-          const updated = prev.filter(r => r.id !== id)
-          localStorage.setItem("my-space-reports", JSON.stringify(updated))
-          return updated
-        })
+        deleteSpaceReportRemote(id)
       }
     })
   }
+
+  // 注：打开我的空间面板时清零未读角标、跨 tab 同步 mySpaceNewBadge 的 effect
+  // 已在 mySpaceOpen useState 声明之后挂载（见下方），避免 "used before declaration" 错误。
 
   const addGroup = (name: string) => {
     if (!name.trim()) return
@@ -733,11 +751,43 @@ function AIAssistantContent() {
   
   // Explore State
   const [exploreOpen, setExploreOpen] = useState(false)
+  // 每次重开 explore 时递增 key，强制 AnimatePresence 创建全新实例，
+  // 避免复用上次关闭中残留 closing=true 的旧实例
+  const [exploreKey, setExploreKey] = useState(0)
+  const exploreWasOpen = useRef(false)
+  useEffect(() => {
+    if (exploreOpen && !exploreWasOpen.current) {
+      setExploreKey(k => k + 1)
+    }
+    exploreWasOpen.current = exploreOpen
+  }, [exploreOpen])
 
   // Scheduler Sidebar Panel State
   const [schedulerPanelOpen, setSchedulerPanelOpen] = useState(false)
   const [mySpaceOpen, setMySpaceOpen] = useState(false)
-  
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
+
+  // 打开我的空间面板时清零未读角标
+  useEffect(() => {
+    if (mySpaceOpen) {
+      setMySpaceNewBadge(0)
+      try { sessionStorage.setItem("my-space-new-badge", "0") } catch {}
+    }
+  }, [mySpaceOpen])
+
+  // 跨 tab 同步：其他 tab 收到新报告时同步更新本 tab 角标
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "my-space-new-badge" && e.newValue) {
+        const n = Number(e.newValue)
+        if (Number.isFinite(n)) setMySpaceNewBadge(n)
+      }
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
+
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false)
   
@@ -805,25 +855,16 @@ function AIAssistantContent() {
     })
   }
 
-  // 生成报告时调用：打开 + 自动保存到我的空间（去重）
+  // 生成报告时调用：打开 + 自动保存到我的空间（服务端去重）
   const generateAndSaveReport = (reportTitle: string, reportHtml: string) => {
     onOpenStudio(reportTitle, reportHtml)
 
-    // 去重检查：相同标题不重复添加
-    setSpaceReports(prev => {
-      const exists = prev.some(r => r.title === reportTitle)
-      if (exists) return prev
-
-      const newReport: SpaceReport = {
-        id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        title: reportTitle,
-        type: "报告",
-        timestamp: Date.now(),
-        html: reportHtml
-      }
-      const updated = [newReport, ...prev].slice(0, 50)
-      localStorage.setItem("my-space-reports", JSON.stringify(updated))
-      return updated
+    // 异步保存到后端（user-reports-service 已做 5s 内同 user+source+title 去重）
+    void saveSpaceReport({
+      title: reportTitle,
+      html: reportHtml,
+      source: "chat",
+      type: "report"
     })
   }
 
@@ -2892,20 +2933,35 @@ ${taskContext}
 
       if (!res.ok) {
         const errorText = await res.text()
+        // 1) 配额耗尽/会员限制：弹升级提示
         try {
           const errorData = JSON.parse(errorText)
-          // 配额耗尽/会员限制时弹出升级提示
           if (res.status === 403 && errorData.error && (errorData.error.includes("额度") || errorData.error.includes("余额") || errorData.error.includes("升级"))) {
-            // 如果返回了最新配额信息，同步更新本地状态
             if (errorData.quota) setQuotaInfo(errorData.quota)
             setShowPlanDialog(true)
             setIsLoading(false)
             return
           }
-        } catch (e) {
-          // Ignore JSON parse error
+          // 2) 其它非 2xx：直接展示后端 `error` 字段（格式与项目里其它 API 一致：
+          //    `AI API Error: <code> - <details>` 或简短中文描述）。
+          //    抛出后由外层 catch 渲染到对话气泡。
+          //    429 速率限制：附 status，方便 catch 块识别并渲染 RateLimitErrorCard
+          const apiError = new Error(errorData.error || `Request failed: ${res.status}`)
+          if (res.status === 429) {
+            ;(apiError as any).status = 429
+            ;(apiError as any).isRateLimit = true
+          }
+          throw apiError
+        } catch (parseErr) {
+          // 解析失败时回退到状态码
+          if (parseErr instanceof Error && parseErr.message.startsWith("Request failed")) throw parseErr
+          const fallbackErr = new Error(`Request failed: ${res.status} - ${errorText}`)
+          if (res.status === 429) {
+            ;(fallbackErr as any).status = 429
+            ;(fallbackErr as any).isRateLimit = true
+          }
+          throw fallbackErr
         }
-        throw new Error(`Failed to send message: ${res.status} - ${errorText}`)
       }
 
       const reader = res.body?.getReader()
@@ -2992,8 +3048,11 @@ ${taskContext}
               
               // Handle explicit error from backend
               if (data.error) {
+                 // 与项目里其它 API 路由（automation/generate、ai/*、monitor/snapshot 等）一致：
+                 // 后端返回 `AI API Error: <code> - <details>` 或简短中文描述，直接展示原始内容即可。
+                 // 旧实现会拼一个 `⚠️ Error:` 前缀反而成为多余装饰。
                  const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error)
-                 assistantMsg.content = `⚠️ Error: ${errorMsg}`
+                 assistantMsg.content = errorMsg
                  setMessages(prev => {
                     const newMsgs = [...prev]
                     newMsgs[newMsgs.length - 1] = { ...assistantMsg }
@@ -4045,9 +4104,28 @@ ${taskContext}
         console.log("[Chat] Task terminated by user (expected)")
         return
       }
-      
+
       console.error("Chat error:", e)
-      setMessages(prev => [...prev, { role: "assistant", content: "抱歉，发生了一些错误，请稍后再试。" }])
+      // 与项目里其它 API 错误风格一致：后端 `error` 字段是友好描述（中文/AI API Error: code - details），
+      // 直接显示，不要再额外包一个静态的"抱歉"占位文案。
+      const rawMsg: string = e?.message || ""
+      const isGeneric = !rawMsg || rawMsg === "No response body"
+      const errMsg = isGeneric ? "抱歉，发生了一些错误，请稍后再试。" : rawMsg
+
+      // 429 速率限制：渲染为业务卡片（RateLimitErrorCard），而不是裸文本
+      const isRateLimit = e?.isRateLimit === true || e?.status === 429
+        || /HTTP 429|status["']?\s*:\s*"?429|速率限制|访问量过大|rate.?limit/i.test(rawMsg)
+      if (isRateLimit) {
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: errMsg,
+          errorType: "rate_limit",
+          errorRaw: rawMsg,
+          errorStatus: 429,
+        }])
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", content: errMsg }])
+      }
     } finally {
       // 只有在非静默/非反馈模式下，或者没有正在进行的后续任务时才清除状态
       // 避免内部触发的消息（如巡检反馈）在回复还没开始时就被父级的 finally 清除了状态，导致界面“抽搐”
@@ -4075,6 +4153,42 @@ ${taskContext}
   useEffect(() => {
     handleSendRef.current = handleSend
   }, [])
+
+  // ===== 速率限制错误卡片的"重试"事件 =====
+  // 找到最后一条用户消息并重新发送，并移除"速率限制"错误卡片
+  useEffect(() => {
+    const handler = () => {
+      // 从末尾往前找最后一条 user 消息
+      let lastUserText = ""
+      let lastUserIndex = -1
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i]?.role === "user") {
+          const c: any = messages[i].content
+          lastUserText = typeof c === "string" ? c : (Array.isArray(c) ? (c.find((p: any) => p.type === "text")?.text || "") : "")
+          lastUserIndex = i
+          break
+        }
+      }
+      if (!lastUserText) return
+
+      // 移除最后那条"速率限制"错误卡片
+      setMessages(prev => {
+        if (prev.length === 0) return prev
+        const last = prev[prev.length - 1]
+        if (last?.errorType === "rate_limit") return prev.slice(0, -1)
+        return prev
+      })
+
+      // 重新发送（短暂延迟以让 messages 更新生效）
+      setTimeout(() => {
+        handleSend(lastUserText, undefined, false, false)
+      }, 50)
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("berry:retry-last-message", handler)
+      return () => window.removeEventListener("berry:retry-last-message", handler)
+    }
+  }, [messages])
 
   const createNewSession = async () => {
     try {
@@ -4427,6 +4541,18 @@ ${taskContext}
     }
   }, [searchParams, aiSettings]) // Dependency on aiSettings ensures it fires after settings are loaded
 
+  // 探索覆盖层深链：?explore=kb&id=<id> → 自动打开 UnifiedExplore 并由其内部
+  // 渲染 KB 详情覆盖层。KB 详情关闭后清掉 URL 上的 explore/id 参数。
+  useEffect(() => {
+    const exploreTab = searchParams.get("explore")
+    const exploreId = searchParams.get("id")
+    if (exploreTab === "kb" && exploreId) {
+      setExploreOpen(true)
+      // URL 由 UnifiedExplore 内部消费（kbDetailId 初始化时已读取），
+      // 关闭时无需主动清，保持可深链分享能力
+    }
+  }, [searchParams])
+
   // 语音对话消息处理
   const handleVoiceChatMessage = async (text: string): Promise<string> => {
     if (!aiSettings?.apiKey) {
@@ -4734,6 +4860,17 @@ ${taskContext}
                       height: 16,
                     }}>{spaceReports.length}</span>
                   )}
+                  {/* 新报告小红点：SSE 收到 new_report 时点亮，面板打开后清零 */}
+                  {mySpaceNewBadge > 0 && (
+                    <span
+                      title={`${mySpaceNewBadge} 份新简报`}
+                      style={{
+                        width: 7, height: 7, borderRadius: 999, background: "#1677ff",
+                        boxShadow: "0 0 0 2px " + (darkMode ? "#0a0a0c" : "#f7f8fa"),
+                        marginLeft: 2
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -4752,6 +4889,24 @@ ${taskContext}
                 >
                   <CalendarClock size={15} strokeWidth={1.5} />
                   <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>定时任务</span>
+                </div>
+              </div>
+
+              {/* 知识库入口 */}
+              <div>
+                <div
+                  onClick={() => setKnowledgeOpen(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7,
+                    padding: "8px 4px 6px", cursor: "pointer", userSelect: "none",
+                    color: darkMode ? "#a1a1aa" : "#4b5563",
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
+                >
+                  <BookOpen size={15} strokeWidth={1.5} />
+                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>知识库</span>
                 </div>
               </div>
 
@@ -5157,6 +5312,7 @@ ${taskContext}
         <AnimatePresence>
           {exploreOpen && (
             <UnifiedExplore
+              key={exploreKey}
               onClose={() => setExploreOpen(false)}
               darkMode={darkMode}
               sidebarOpen={sidebarOpen}
@@ -5188,11 +5344,29 @@ ${taskContext}
           sidebarOpen={sidebarOpen}
           onExpandSidebar={() => setSidebarOpen(true)}
           onNewChat={createNewSession}
-          items={spaceReports.map(r => ({ ...r, category: r.type === "报告" ? "creation" : "file" }))}
+          items={spaceReports.map(r => ({ ...r, category: r.type === "report" ? "creation" : "file" }))}
           onDelete={(id) => deleteSpaceReport(id)}
+          onToggleFavorite={(id) => toggleSpaceReportFavorite(id)}
           onItemsChange={() => {
-            // 触发 storage 重新读取（如需）
-            try { setSpaceReports(JSON.parse(localStorage.getItem("my-space-reports") || "[]")) } catch {}
+            // 触发后端重新拉取（如有）
+            void refreshSpaceReports()
+          }}
+        />
+
+        {/* 知识库侧边面板 */}
+        <KnowledgeSidebarPanel
+          open={knowledgeOpen}
+          onClose={() => setKnowledgeOpen(false)}
+          darkMode={darkMode}
+          sidebarOpen={sidebarOpen}
+          onExpandSidebar={() => setSidebarOpen(true)}
+          onNewChat={createNewSession}
+          onInsertToChat={(item) => {
+            // 将知识条目作为上下文插入到当前输入框
+            const mention = `@知识库:${item.title}`
+            setInput((prev) => (prev ? `${prev}\n${mention} ` : `${mention} `))
+            setKnowledgeOpen(false)
+            toast.success(`已引用《${item.title}》，AI 将基于此内容回答`)
           }}
         />
 
@@ -5323,24 +5497,19 @@ ${taskContext}
                   type="primary"
                   size="small"
                   icon={<FolderInput size={13} strokeWidth={1.75} />}
-                  onClick={() => {
-                    setSpaceReports(prev => {
-                      const exists = prev.some(r => r.title === reportData.title)
-                      if (exists) {
-                        toast.info("该报告已在我的空间中")
-                        return prev
-                      }
-                      const newReport: SpaceReport = {
-                        id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                        title: reportData.title,
-                        type: "报告",
-                        timestamp: Date.now(),
-                        html: reportData.html,
-                      }
-                      const updated = [newReport, ...prev]
-                      try { localStorage.setItem("my-space-reports", JSON.stringify(updated)) } catch {}
-                      toast.success("已保存到我的空间")
-                      return updated
+                  onClick={async () => {
+                    const exists = spaceReports.some(
+                      (r) => r.title === reportData.title && r.html === reportData.html
+                    )
+                    if (exists) {
+                      toast.info("该报告已在我的空间中")
+                      return
+                    }
+                    await saveSpaceReport({
+                      title: reportData.title,
+                      html: reportData.html,
+                      source: "chat",
+                      type: "report"
                     })
                   }}
                 >

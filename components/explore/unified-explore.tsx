@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react"
-import { motion } from "framer-motion"
-import { X, ChevronRight, PanelLeftOpen, Plus, Settings, MoreHorizontal, LayoutGrid, Box, ChevronDown, Search } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { X, ChevronRight, PanelLeftOpen, Plus, Settings, MoreHorizontal, LayoutGrid, Box, ChevronDown, Search, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { SkillStore } from "@/components/ai/skill-store"
 import { MCPStoreContent } from "@/components/mcp/mcp-store-content"
+import { KBStoreContent, CollectionDetailModal } from "@/components/kb/kb-store-content"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
@@ -19,6 +20,7 @@ import {
 import type { MCPServer } from "@/lib/data/mcp-servers"
 import { MCP_SERVERS as MCP_SERVERS_STATIC } from "@/lib/data/mcp-servers"
 import type { StoreSkill } from "@/lib/db/skill-store-service"
+import type { MarketCollection } from "@/components/kb/kb-store-content"
 
 interface UnifiedExploreProps {
   onClose: () => void
@@ -66,11 +68,32 @@ function ManageItemIcon({ icon, name, darkMode }: { icon: string; name: string; 
 }
 
 export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, onExpandSidebar, onNewChat }: UnifiedExploreProps) {
-  const [activeTab, setActiveTab] = useState<"plugins" | "skills">("plugins")
+  const [activeTab, setActiveTab] = useState<"plugins" | "skills" | "knowledge">("plugins")
   const [viewMode, setViewMode] = useState<ViewMode>("browse")
   const [manageTab, setManageTab] = useState<ManageTab>("plugins")
   const [searchQuery, setSearchQuery] = useState("")
+  // 关闭中状态：点击 X 时立刻给 wrapper 加 pointer-events-none，
+  // 避免内部 tab 内容切来切去后 AnimatePresence 卸载外层 wrapper 不及时导致整屏被挡
+  const [closing, setClosing] = useState(false)
+  const handleClose = () => {
+    if (closing) return
+    setClosing(true)
+    onClose()
+  }
   const [manageSearchQuery, setManageSearchQuery] = useState("")
+  // KB 详情以覆盖层形式展示在对话区域，与插件/技能详情一致——不再跳到独立页面
+  // 初始值兼容 `?explore=kb&id=...` 直接深链打开
+  const [kbDetailId, setKbDetailId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null
+    const sp = new URLSearchParams(window.location.search)
+    const tab = sp.get("explore")
+    const id = sp.get("id")
+    if (tab === "kb" && id) {
+      const n = Number(id)
+      return Number.isFinite(n) && n > 0 ? n : null
+    }
+    return null
+  })
 
   // 真实数据源（先用静态数据兜底，避免 manage 视图空白）
   const [mcpServers, setMcpServers] = useState<MCPServer[]>(MCP_SERVERS_STATIC as MCPServer[])
@@ -78,6 +101,12 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
   const [installedServerIds, setInstalledServerIds] = useState<Set<string>>(new Set())
   const [installedSkillIds, setInstalledSkillIds] = useState<string[]>([])
   const [loadingManage, setLoadingManage] = useState(false)
+
+  // KB 详情覆盖层所需的 collection + subscribedIds + 同类推荐
+  const [kbModalCollection, setKbModalCollection] = useState<MarketCollection | null>(null)
+  const [kbModalAllCollections, setKbModalAllCollections] = useState<MarketCollection[]>([])
+  const [kbModalSubscribedIds, setKbModalSubscribedIds] = useState<Set<number>>(new Set())
+  const [kbModalLoading, setKbModalLoading] = useState(false)
 
   // 加载真实数据（带静态兜底）
   useEffect(() => {
@@ -135,6 +164,52 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
 
     loadAll()
   }, [viewMode])
+
+  // Esc 键关闭 explore
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !closing) handleClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closing])
+
+  // ===== KB 详情覆盖层：按 ID 拉取 collection 详情 + 全量列表用于相关推荐 =====
+  useEffect(() => {
+    if (kbDetailId === null) {
+      setKbModalCollection(null)
+      return
+    }
+    let cancelled = false
+    setKbModalLoading(true)
+    Promise.all([
+      fetch(`/api/knowledge/market/${kbDetailId}`).then(r => r.json()).catch(() => null),
+      fetch(`/api/knowledge/market?limit=200`).then(r => r.json()).catch(() => null)
+    ]).then(([detail, list]) => {
+      if (cancelled) return
+      if (detail && !detail.error) setKbModalCollection(detail)
+      const all = Array.isArray(list?.list) ? list.list : []
+      setKbModalAllCollections(all.filter((c: MarketCollection) => c.id !== kbDetailId))
+      setKbModalSubscribedIds(new Set(all.filter((c: MarketCollection) => c.is_subscribed === 1).map((c: MarketCollection) => c.id)))
+    }).finally(() => {
+      if (!cancelled) setKbModalLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [kbDetailId])
+
+  // 清理 URL 上的 deep-link 参数（保留 ?explore=kb 但移除 id，避免刷新再次弹窗）
+  useEffect(() => {
+    if (kbDetailId === null) return
+    if (typeof window === "undefined") return
+    const sp = new URLSearchParams(window.location.search)
+    if (sp.get("explore") === "kb" && sp.get("id")) {
+      sp.delete("id")
+      const qs = sp.toString()
+      const url = window.location.pathname + (qs ? `?${qs}` : "")
+      window.history.replaceState({}, "", url)
+    }
+  }, [kbDetailId])
 
   // ===== 从真实数据构建管理列表 =====
   const manageItems = useMemo<ManageItem[]>(() => {
@@ -245,14 +320,15 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ opacity: closing ? 0 : 1, scale: closing ? 0.98 : 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
         "fixed z-[150] flex flex-col font-sans overflow-hidden",
         "top-3 right-3 bottom-3",
         sidebarOpen ? "left-[272px]" : "left-3",
-        isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900"
+        isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
+        closing && "pointer-events-none"
       )}
       style={{ borderRadius: 12 }}
     >
@@ -330,6 +406,17 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             >
               技能
             </button>
+            <button
+              onClick={() => { setActiveTab("knowledge"); setSearchQuery("") }}
+              className={cn(
+                "px-5 py-1.5 rounded-lg text-xs font-bold transition-all",
+                activeTab === "knowledge"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              知识库
+            </button>
           </div>
         )}
 
@@ -395,7 +482,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
           </button>
           <div className={cn("w-px h-5", isDark ? "bg-zinc-800" : "bg-gray-200")} />
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className={cn(
               "size-9 rounded-xl flex items-center justify-center transition-colors",
               isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200" : "hover:bg-gray-100 text-gray-400 hover:text-gray-900"
@@ -557,6 +644,17 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 {activeTab === "skills" ? (
                   /* 技能 tab：SkillStore 自带标题/插图/标签/搜索/子标签/卡片网格 */
                   <SkillStore />
+                ) : activeTab === "knowledge" ? (
+                  /* 知识库 tab：KBStoreContent 自带完整页面结构（标题/插图/标签/搜索/子标签/卡片网格/详情） */
+                  <KBStoreContent
+                    searchQuery={searchQuery}
+                    darkMode={isDark}
+                    onOpenCollection={(id) => {
+                      // 覆盖层展示，与探索/插件详情一致——不再跳转到独立页面
+                      setActiveTab("knowledge")
+                      setKbDetailId(id)
+                    }}
+                  />
                 ) : (
                   /* 插件 tab：与技能 tab 一致，MCPStoreContent 自带完整页面结构（标题/插图/标签/搜索/子标签/卡片网格/详情） */
                   <MCPStoreContent
@@ -573,6 +671,70 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
           </div>
         )}
       </div>
+
+      {/* KB 详情覆盖层——以 Modal 形式居中浮在探索区域上，与新设计一致 */}
+      <AnimatePresence>
+        {kbDetailId !== null && kbModalCollection && (
+          <CollectionDetailModal
+            key={`kb-modal-${kbModalCollection.id}`}
+            collection={kbModalCollection}
+            subscribedIds={kbModalSubscribedIds}
+            allCollections={kbModalAllCollections}
+            onClose={() => setKbDetailId(null)}
+            onSubscribe={async (c) => {
+              try {
+                const res = await fetch(`/api/knowledge/market/${c.id}/subscribe`, { method: "POST" })
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}))
+                  throw new Error(err.error || "订阅失败")
+                }
+                const next = new Set(kbModalSubscribedIds)
+                next.add(c.id)
+                setKbModalSubscribedIds(next)
+                setKbModalCollection({ ...kbModalCollection, is_subscribed: 1 })
+                toast.success(`已订阅「${c.name}」`)
+              } catch (e: any) {
+                toast.error(e.message || "订阅失败")
+              }
+            }}
+            onUnsubscribe={async (c) => {
+              try {
+                const res = await fetch(`/api/knowledge/market/${c.id}/subscribe`, { method: "DELETE" })
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}))
+                  throw new Error(err.error || "取消失败")
+                }
+                const next = new Set(kbModalSubscribedIds)
+                next.delete(c.id)
+                setKbModalSubscribedIds(next)
+                setKbModalCollection({ ...kbModalCollection, is_subscribed: 0 })
+                toast.success(`已取消订阅「${c.name}」`)
+              } catch (e: any) {
+                toast.error(e.message || "取消失败")
+              }
+            }}
+            onOpen={(c) => {
+              // 关闭探索覆盖层，并通过自定义事件通知 AI 助手载入该知识库进行对话
+              setKbDetailId(null)
+              onClose()
+              window.dispatchEvent(new CustomEvent('berry:open-kb-chat', { detail: { collectionId: c.id, name: c.name } }))
+            }}
+            onSelect={(c) => {
+              // 切换到另一个 KB 的详情（推荐区点击）
+              setKbDetailId(c.id)
+            }}
+          />
+        )}
+        {kbDetailId !== null && kbModalLoading && !kbModalCollection && (
+          <div
+            key="kb-modal-loading"
+            className="absolute inset-0 z-30 flex items-center justify-center"
+            style={{ background: isDark ? "rgba(9,9,11,0.6)" : "rgba(255,255,255,0.6)", backdropFilter: "blur(3px)" }}
+          >
+            <div className="size-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin" />
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
