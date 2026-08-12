@@ -177,9 +177,19 @@ export class SkillLoader {
     const skillArrays = await Promise.all(skillPromises);
     const allSkills = skillArrays.flat();
 
+    // 过滤无关技能：排除没有 keywords 的 disk skills
+    // TRAE IDE 平台会注入 60+ 个 UI 设计风格 skills（vintage/neon/material...），
+    // 它们没有 keywords 字段，与农业平台完全无关，参与匹配只会浪费性能并引入噪音
+    const filtered = allSkills.filter(skill => {
+      if (skill.source === 'disk' && (!skill.keywords || skill.keywords.length === 0)) {
+        return false
+      }
+      return true
+    })
+
     // 去重（优先级：builtin > disk > database）
     const uniqueSkills = new Map<string, Skill>();
-    for (const skill of allSkills) {
+    for (const skill of filtered) {
       const existing = uniqueSkills.get(skill.id);
       if (!existing || this.getSourcePriority(skill.source) > this.getSourcePriority(existing.source)) {
         uniqueSkills.set(skill.id, skill);

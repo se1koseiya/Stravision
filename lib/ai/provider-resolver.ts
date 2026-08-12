@@ -307,14 +307,26 @@ export interface ProvidersConfig {
   knowledgeConfig?: KnowledgeConfig
 }
 
+/**
+ * 进程内缓存：基于文件 mtime 失效，避免每次 AI 调用都读磁盘。
+ * readProvidersConfig 被 embedding-service / knowledge-search / chat route 高频调用。
+ */
+let providersConfigCache: { data: ProvidersConfig; mtime: number } | null = null
+
 export async function readProvidersConfig(): Promise<ProvidersConfig> {
   try {
+    const stat = await fs.stat(CONFIG_PATH)
+    const mtime = stat.mtimeMs
+    if (providersConfigCache && providersConfigCache.mtime === mtime) {
+      return providersConfigCache.data
+    }
     const data = await fs.readFile(CONFIG_PATH, 'utf-8')
     const parsed = JSON.parse(data) as ProvidersConfig
-    // 兼容老配置：未设置 defaultModelId 时不抛错
+    providersConfigCache = { data: parsed, mtime }
     return parsed
   } catch {
-    // 返回空配置
+    // 文件不存在或解析失败：清空缓存，返回空配置
+    providersConfigCache = null
     return { providers: [] }
   }
 }

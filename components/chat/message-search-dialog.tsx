@@ -1,25 +1,23 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useMemo, useState } from "react"
+import { Modal, Input, Button, Empty } from "antd"
 import { Search, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-
-interface Message {
-  id: number
-  sender_id: number
-  content: string
-  created_at: number
-  type?: string
-}
+import type { ChatMessage } from "@/lib/chat/chat-types"
+import { formatChatTime } from "@/lib/chat/chat-types"
 
 interface MessageSearchDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  messages: Message[]
+  messages: ChatMessage[]
   onSelectMessage: (messageId: number) => void
+}
+
+const ICON_STROKE = 1.75
+
+/** 转义正则特殊字符，避免用户输入导致 RegExp 构造抛错白屏 */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 export function MessageSearchDialog({
@@ -30,94 +28,102 @@ export function MessageSearchDialog({
 }: MessageSearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredMessages = messages.filter(msg =>
-    msg.content.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    msg.type !== 'image' && msg.type !== 'audio'
-  )
+  // 仅搜索文本消息，排除图片/语音/视频/文件等 placeholder 内容
+  const filteredMessages = useMemo(() => {
+    if (!searchQuery.trim()) return []
+    const q = searchQuery.toLowerCase()
+    return messages.filter(msg =>
+      (msg.type === "text" || !msg.type) &&
+      msg.content.toLowerCase().includes(q)
+    )
+  }, [messages, searchQuery])
 
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return date.toLocaleString('zh-CN', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  // 安全构造高亮正则（已转义）
+  const highlightRegex = useMemo(() => {
+    if (!searchQuery.trim()) return null
+    try {
+      return new RegExp(`(${escapeRegExp(searchQuery)})`, "gi")
+    } catch (e) {
+      console.error("[MessageSearchDialog highlightRegex]", e)
+      return null
+    }
+  }, [searchQuery])
+
+  const renderContent = (content: string) => {
+    if (!highlightRegex) return content
+    return content.split(highlightRegex).map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200 dark:bg-yellow-900">
+          {part}
+        </mark>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    )
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>搜索消息</DialogTitle>
-        </DialogHeader>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="搜索消息内容..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-            autoFocus
-          />
-          {searchQuery && (
+    <Modal
+      open={open}
+      onCancel={() => onOpenChange(false)}
+      title="搜索消息"
+      footer={null}
+      width={720}
+    >
+      <div className="relative mt-2">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
+          strokeWidth={ICON_STROKE}
+        />
+        <Input
+          placeholder="搜索消息内容..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+          autoFocus
+          suffix={searchQuery ? (
             <Button
-              size="icon"
-              variant="ghost"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              type="text"
+              size="small"
+              shape="circle"
+              icon={<X className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />}
               onClick={() => setSearchQuery("")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+            />
+          ) : null}
+        />
+      </div>
 
-        <ScrollArea className="h-[400px] mt-4">
-          {searchQuery && (
-            <div className="space-y-2">
-              {filteredMessages.length > 0 ? (
-                filteredMessages.map(msg => (
-                  <button
-                    key={msg.id}
-                    onClick={() => {
-                      onSelectMessage(msg.id)
-                      onOpenChange(false)
-                    }}
-                    className="w-full text-left p-3 rounded-lg hover:bg-accent transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(msg.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm line-clamp-2">
-                      {msg.content.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, i) =>
-                        part.toLowerCase() === searchQuery.toLowerCase() ? (
-                          <mark key={i} className="bg-yellow-200 dark:bg-yellow-900">
-                            {part}
-                          </mark>
-                        ) : (
-                          part
-                        )
-                      )}
-                    </p>
-                  </button>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  未找到匹配的消息
-                </div>
-              )}
-            </div>
-          )}
-          {!searchQuery && (
-            <div className="text-center text-muted-foreground py-8">
-              输入关键词搜索消息
-            </div>
-          )}
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+      <div className="h-[400px] mt-4 overflow-y-auto" data-lenis-prevent>
+        {searchQuery ? (
+          <div className="space-y-2">
+            {filteredMessages.length > 0 ? (
+              filteredMessages.map(msg => (
+                <button
+                  key={msg.id}
+                  onClick={() => {
+                    onSelectMessage(msg.id)
+                    onOpenChange(false)
+                  }}
+                  className="w-full text-left p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatChatTime(msg.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-sm line-clamp-2">
+                    {renderContent(msg.content)}
+                  </p>
+                </button>
+              ))
+            ) : (
+              <Empty description="未找到匹配的消息" className="py-8" />
+            )}
+          </div>
+        ) : (
+          <Empty description="输入关键词搜索消息" className="py-8" />
+        )}
+      </div>
+    </Modal>
   )
 }

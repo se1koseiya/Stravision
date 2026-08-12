@@ -1,9 +1,18 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { initAutomationTable, getRules, createRule } from "@/lib/db/automation-service";
+import { getCurrentUser } from "@/lib/auth";
+
+async function requireUser() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return user;
+}
 
 export async function GET() {
   try {
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 });
     await initAutomationTable();
     const rules = await getRules();
     return NextResponse.json({ success: true, data: rules });
@@ -15,6 +24,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 });
     await initAutomationTable();
     const body = await req.json();
     

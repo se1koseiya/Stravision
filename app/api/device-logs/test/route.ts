@@ -8,8 +8,15 @@ import { getCurrentUser } from "@/lib/auth"
  */
 export async function POST() {
   try {
+    // 生产环境禁用测试数据注入，避免污染生产数据
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { success: false, error: "Test endpoint disabled in production" },
+        { status: 404 }
+      )
+    }
     const currentUser = await getCurrentUser()
-    
+
     // 仅管理员可以添加测试日志
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
       return NextResponse.json(
@@ -17,7 +24,7 @@ export async function POST() {
         { status: 401 }
       )
     }
-    
+
     await initDB()
     
     const now = Date.now()

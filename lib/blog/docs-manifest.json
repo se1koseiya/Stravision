@@ -1,0 +1,35 @@
+{
+  "docs": [
+    {
+      "slug": "stravision-用户层操作手册",
+      "title": "Stravision 用户层操作手册",
+      "description": "",
+      "category": "user",
+      "tags": [],
+      "icon": "book",
+      "fileType": "zip",
+      "filePath": "public/uploads/docs/stravision-用户层操作手册/stravision-用户层操作手册.md",
+      "originalFileName": "Stravision 用户层操作手册.zip",
+      "createdAt": "2026-07-07",
+      "updatedAt": "2026-07-23",
+      "author": "小朱",
+      "authorAvatar": "/uploads/avatars/avatar-25-1781428961947.jpg"
+    },
+    {
+      "slug": "智能体提示词",
+      "title": "智能体提示词",
+      "description": "",
+      "category": "developer",
+      "tags": [
+        "代码"
+      ],
+      "icon": "code",
+      "fileType": "md",
+      "filePath": "docs/智能体提示词.md",
+      "originalFileName": "AGENT_PROMPT_EXPORT.md",
+      "author": "小朱",
+      "createdAt": "2026-07-23",
+      "updatedAt": "2026-07-23"
+    }
+  ]
+}

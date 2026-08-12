@@ -27,11 +27,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getCurrentUser()
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 })
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
+      return NextResponse.json({ success: false, error: "无权限" }, { status: 403 })
+    }
     await initDB()
-    
+
     const body = await req.json()
     const { device_name, action, operator, details } = body
-    
+
     if (!device_name || !action || !operator) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },

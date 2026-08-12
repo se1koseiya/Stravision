@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { NextRequest } from "next/server"
 import { checkSuspiciousLogin, fetchIpLocation, recordLoginLog } from "@/lib/db/security-service"
 import { verifyEmailCode } from "@/lib/email-verification-service"
+import { verifyCapToken } from "@/lib/cap"
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,14 +16,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    
+
     // Use Zod to validate input
     const result = loginSchema.safeParse(body)
     if (!result.success) {
       return Response.json({ error: "缺少邮箱或密码" }, { status: 400 })
     }
 
-    const { email, password, verificationCode } = result.data as any // verificationCode is optional in schema but passed in body
+    const { email, password, verificationCode, capToken } = result.data as any // verificationCode / capToken are optional in schema but passed in body
+
+    // 服务端校验 Cap 人机验证令牌
+    const capResult = await verifyCapToken(capToken)
+    if (!capResult.success) {
+      return Response.json({ error: capResult.error || "人机验证失败，请重试" }, { status: 400 })
+    }
 
     // 使用 user-service 的 verifyCredentials() 验证用户
     const user = await verifyCredentials(email, password)

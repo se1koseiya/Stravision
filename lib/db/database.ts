@@ -19,7 +19,19 @@ function getDatabaseUrl(): string {
 
 function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({ connectionString: getDatabaseUrl() })
+    pool = new Pool({
+      connectionString: getDatabaseUrl(),
+      // 连接池调优：默认 max=10 在 IoT 高并发（SSE 长连接 + 每条 MQTT 消息写库 + 聊天多次查询）下易耗尽
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+      // 单个连接最大使用次数，避免长连接导致的内存泄漏/状态积累
+      maxUses: 1000,
+    })
+    // 兜底：连接池级错误（如 idle 连接被服务端断开）不应使进程崩溃
+    pool.on("error", (err) => {
+      console.error("[PG Pool] unexpected idle client error:", err)
+    })
   }
   return pool
 }
@@ -428,6 +440,85 @@ export async function initDB(): Promise<void> {
           reason_type TEXT DEFAULT 'history',
           expires_at BIGINT,
           created_at BIGINT NOT NULL
+        )`,
+        // ========== 文档协同模块扩展 ==========
+        // 知识库 - 协作者（collection 与 user 多对多，附带角色）
+        `CREATE TABLE IF NOT EXISTS kb_collaborators (
+          id BIGSERIAL PRIMARY KEY,
+          collection_id BIGINT NOT NULL,
+          user_id INTEGER NOT NULL,
+          role TEXT NOT NULL DEFAULT 'viewer',
+          invited_by INTEGER,
+          joined_at BIGINT NOT NULL,
+          created_at BIGINT NOT NULL,
+          UNIQUE(collection_id, user_id)
+        )`,
+        // 知识库 - 协作邀请
+        `CREATE TABLE IF NOT EXISTS kb_invitations (
+          id BIGSERIAL PRIMARY KEY,
+          collection_id BIGINT NOT NULL,
+          inviter_id INTEGER NOT NULL,
+          invitee_id INTEGER NOT NULL,
+          role TEXT NOT NULL DEFAULT 'editor',
+          status TEXT NOT NULL DEFAULT 'pending',
+          message TEXT,
+          expires_at BIGINT,
+          created_at BIGINT NOT NULL,
+          responded_at BIGINT,
+          UNIQUE(collection_id, invitee_id, status) WHERE status = 'pending'
+        )`,
+        // 知识库 - 操作日志/活动流
+        `CREATE TABLE IF NOT EXISTS kb_operation_logs (
+          id BIGSERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          collection_id BIGINT,
+          item_id BIGINT,
+          action TEXT NOT NULL,
+          target_type TEXT,
+          target_id BIGINT,
+          metadata TEXT,
+          ip TEXT,
+          user_agent TEXT,
+          visibility TEXT DEFAULT 'collection',
+          created_at BIGINT NOT NULL
+        )`,
+        // 知识库 - Yjs 文档状态（按 item 持久化二进制 update）
+        `CREATE TABLE IF NOT EXISTS kb_yjs_documents (
+          id BIGSERIAL PRIMARY KEY,
+          item_id BIGINT NOT NULL UNIQUE,
+          doc_state BYTEA,
+          snapshot TEXT,
+          last_editor_id INTEGER,
+          last_edit_at BIGINT,
+          version INTEGER DEFAULT 1,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        // ========== 设备注册表 ==========
+        // 统一管理所有 IoT 设备（继电器/传感器/摄像头/步进电机），替代 constants.ts 硬编码
+        `CREATE TABLE IF NOT EXISTS devices (
+          id BIGSERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL CHECK (type IN ('relay', 'sensor', 'camera', 'stepper')),
+          category TEXT DEFAULT 'general',
+          subscribe_topic TEXT,
+          publish_topic TEXT,
+          node_id TEXT,
+          icon TEXT DEFAULT 'Cpu',
+          color TEXT DEFAULT '#1677ff',
+          config JSONB DEFAULT '{}',
+          is_critical BOOLEAN DEFAULT FALSE,
+          is_enabled BOOLEAN DEFAULT TRUE,
+          sort_order INTEGER DEFAULT 0,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        // 自定义传感器的灵活数据存储（device_id 关联 devices 表）
+        `CREATE TABLE IF NOT EXISTS device_sensor_data (
+          id BIGSERIAL PRIMARY KEY,
+          device_id BIGINT NOT NULL,
+          metrics JSONB NOT NULL,
+          created_at BIGINT NOT NULL
         )`
       ]
 
@@ -474,6 +565,10 @@ export async function initDB(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_device_patterns_user_device ON device_patterns(user_id, device_id)",
         "CREATE INDEX IF NOT EXISTS idx_successful_strategies_user_id ON successful_strategies(user_id)",
+        // 🔥 记忆系统 upsert 依赖的唯一索引：相同 (用户, 设备, 模式类型) 只保留一行
+        // 避免重复保存导致数据膨胀 + 让 ON CONFLICT upsert 生效
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_device_patterns_user_device_type ON device_patterns(user_id, device_id, pattern_type)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_successful_strategies_user_goal ON successful_strategies(user_id, goal)",
         "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_user_session ON agent_execution_logs(user_id, session_id)",
         "CREATE INDEX IF NOT EXISTS idx_agent_execution_logs_created_at ON agent_execution_logs(created_at)",
         "CREATE INDEX IF NOT EXISTS idx_user_reports_user_created ON user_reports(user_id, created_at DESC)",
@@ -502,7 +597,20 @@ export async function initDB(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS idx_kb_market_subs_user ON knowledge_market_subscriptions(user_id, collection_id)",
         "CREATE INDEX IF NOT EXISTS idx_kb_market_subs_collection ON knowledge_market_subscriptions(collection_id)",
         // 知识库全文搜索索引（PostgreSQL tsvector）
-        "CREATE INDEX IF NOT EXISTS idx_kb_items_fts ON knowledge_items USING gin(to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(content, '')))"
+        "CREATE INDEX IF NOT EXISTS idx_kb_items_fts ON knowledge_items USING gin(to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(content, '')))",
+        // ========== 文档协同模块索引 ==========
+        "CREATE INDEX IF NOT EXISTS idx_kb_collaborators_collection ON kb_collaborators(collection_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_collaborators_user ON kb_collaborators(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_invitations_invitee_status ON kb_invitations(invitee_id, status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_invitations_collection ON kb_invitations(collection_id)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_user_time ON kb_operation_logs(user_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_collection_time ON kb_operation_logs(collection_id, created_at DESC) WHERE collection_id IS NOT NULL",
+        "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_time ON kb_operation_logs(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_action ON kb_operation_logs(action, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kb_yjs_doc_item ON kb_yjs_documents(item_id)",
+        // ========== 设备注册表索引 ==========
+        "CREATE INDEX IF NOT EXISTS idx_devices_type_enabled ON devices(type, is_enabled, sort_order)",
+        "CREATE INDEX IF NOT EXISTS idx_device_sensor_data_device_time ON device_sensor_data(device_id, created_at DESC)"
       ]
 
       for (const statement of indexStatements) {
@@ -578,6 +686,23 @@ export async function initDB(): Promise<void> {
         if (error.code !== '42701') console.error('Error adding public_key:', error.message)
       }
 
+      // scheduled_tasks: 失败任务保留记录（不删除），新增失败状态与最后执行时间字段
+      try {
+        await p.query("ALTER TABLE scheduled_tasks ADD COLUMN IF NOT EXISTS last_error TEXT")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding scheduled_tasks.last_error:', error.message)
+      }
+      try {
+        await p.query("ALTER TABLE scheduled_tasks ADD COLUMN IF NOT EXISTS last_run_at BIGINT")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding scheduled_tasks.last_run_at:', error.message)
+      }
+      try {
+        await p.query("ALTER TABLE scheduled_tasks ADD COLUMN IF NOT EXISTS run_status TEXT")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding scheduled_tasks.run_status:', error.message)
+      }
+
       const missingUids = await p.query<{ id: number }>("SELECT id FROM users WHERE uid IS NULL")
       if (missingUids.rows.length > 0) {
         for (const user of missingUids.rows) {
@@ -604,7 +729,179 @@ export async function initDB(): Promise<void> {
       await migrateFromJSON()
     })()
   }
-  return initPromise
+  await initPromise
+  // 增量 migration：确保协作/邀请/操作日志/Yjs 文档表存在
+  // 自带缓存，但 hot-reload 后模块重新加载会重置，能修复"表不存在"问题
+  await ensureKbCollaborationTables()
+  // 增量 migration：确保组织架构相关表存在
+  await ensureOrganizationTables()
+  return
+}
+
+// 是否已确保协作相关 4 张表存在（进程内缓存，hot-reload 后会重置）
+let kbCollabTablesEnsured = false
+
+async function ensureKbCollaborationTables(): Promise<void> {
+  if (kbCollabTablesEnsured) return
+  const p = getPool()
+
+  const tables = [
+    `CREATE TABLE IF NOT EXISTS kb_collaborators (
+      id BIGSERIAL PRIMARY KEY,
+      collection_id BIGINT NOT NULL,
+      user_id INTEGER NOT NULL,
+      role TEXT NOT NULL DEFAULT 'viewer',
+      invited_by INTEGER,
+      joined_at BIGINT,
+      created_at BIGINT NOT NULL,
+      UNIQUE(collection_id, user_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS kb_invitations (
+      id BIGSERIAL PRIMARY KEY,
+      collection_id BIGINT NOT NULL,
+      inviter_id INTEGER NOT NULL,
+      invitee_id INTEGER NOT NULL,
+      role TEXT NOT NULL DEFAULT 'editor',
+      status TEXT NOT NULL DEFAULT 'pending',
+      message TEXT,
+      expires_at BIGINT,
+      created_at BIGINT NOT NULL,
+      responded_at BIGINT
+    )`,
+    `CREATE TABLE IF NOT EXISTS kb_operation_logs (
+      id BIGSERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      collection_id BIGINT,
+      item_id BIGINT,
+      action TEXT NOT NULL,
+      target_type TEXT,
+      target_id BIGINT,
+      metadata TEXT,
+      ip TEXT,
+      user_agent TEXT,
+      visibility TEXT DEFAULT 'collection',
+      created_at BIGINT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS kb_yjs_documents (
+      id BIGSERIAL PRIMARY KEY,
+      item_id BIGINT NOT NULL UNIQUE,
+      doc_state BYTEA,
+      snapshot TEXT,
+      last_editor_id INTEGER,
+      last_edit_at BIGINT,
+      version INTEGER DEFAULT 1,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    )`
+  ]
+
+  for (const sql of tables) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      // 42P07 = duplicate_object（表已存在），忽略
+      if (error.code !== '42P07') {
+        console.error('[ensureKbCollaborationTables] error:', error.message)
+      }
+    }
+  }
+
+  // 索引（全部 IF NOT EXISTS，幂等）
+  const indexes = [
+    "CREATE INDEX IF NOT EXISTS idx_kb_collaborators_collection ON kb_collaborators(collection_id)",
+    "CREATE INDEX IF NOT EXISTS idx_kb_collaborators_user ON kb_collaborators(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_kb_invitations_invitee_status ON kb_invitations(invitee_id, status, created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_kb_invitations_collection ON kb_invitations(collection_id)",
+    "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_user_time ON kb_operation_logs(user_id, created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_collection_time ON kb_operation_logs(collection_id, created_at DESC) WHERE collection_id IS NOT NULL",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_invitations_unique_pending ON kb_invitations(collection_id, invitee_id) WHERE status = 'pending'",
+    "CREATE INDEX IF NOT EXISTS idx_kb_op_logs_visibility_time ON kb_operation_logs(visibility, created_at DESC) WHERE visibility = 'public'",
+    "CREATE INDEX IF NOT EXISTS idx_kb_yjs_documents_item ON kb_yjs_documents(item_id)"
+  ]
+  for (const sql of indexes) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      if (error.code !== '42P07') {
+        console.error('[ensureKbCollaborationTables] index error:', error.message)
+      }
+    }
+  }
+
+  // 给 kb_invitations 加 UNIQUE 约束（如果旧表没有）
+  try {
+    await p.query(
+      `ALTER TABLE kb_invitations DROP CONSTRAINT IF EXISTS kb_invitations_collection_invitee_unique_pending`
+    )
+    await p.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_invitations_unique_pending
+       ON kb_invitations(collection_id, invitee_id)
+       WHERE status = 'pending'`
+    )
+  } catch (error: any) {
+    console.error('[ensureKbCollaborationTables] unique index error:', error.message)
+  }
+
+  kbCollabTablesEnsured = true
+}
+
+// 是否已确保组织架构相关 2 张表存在（进程内缓存，hot-reload 后会重置）
+let organizationTablesEnsured = false
+
+async function ensureOrganizationTables(): Promise<void> {
+  if (organizationTablesEnsured) return
+  const p = getPool()
+
+  const tables = [
+    // 组织架构节点（支持层级关系）
+    `CREATE TABLE IF NOT EXISTS organizations (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      parent_id BIGINT,
+      owner_id INTEGER NOT NULL,
+      description TEXT,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    )`,
+    // 组织架构成员
+    `CREATE TABLE IF NOT EXISTS organization_members (
+      id BIGSERIAL PRIMARY KEY,
+      org_id BIGINT NOT NULL,
+      user_id INTEGER NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      invited_by INTEGER,
+      joined_at BIGINT NOT NULL,
+      UNIQUE(org_id, user_id)
+    )`
+  ]
+
+  for (const sql of tables) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      if (error.code !== '42P07') {
+        console.error('[ensureOrganizationTables] error:', error.message)
+      }
+    }
+  }
+
+  const indexes = [
+    "CREATE INDEX IF NOT EXISTS idx_organizations_parent ON organizations(parent_id)",
+    "CREATE INDEX IF NOT EXISTS idx_organizations_owner ON organizations(owner_id)",
+    "CREATE INDEX IF NOT EXISTS idx_organization_members_org ON organization_members(org_id)",
+    "CREATE INDEX IF NOT EXISTS idx_organization_members_user ON organization_members(user_id)"
+  ]
+  for (const sql of indexes) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      if (error.code !== '42P07') {
+        console.error('[ensureOrganizationTables] index error:', error.message)
+      }
+    }
+  }
+
+  organizationTablesEnsured = true
 }
 
 export async function query<T>(sql: string, params: any[] = []): Promise<T[]> {

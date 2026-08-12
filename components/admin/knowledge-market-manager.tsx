@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import {
   Button,
+  Card,
   Input,
   Table,
   Modal,
@@ -527,7 +528,7 @@ export function KnowledgeMarketManager() {
       render: (_, record) => {
         if (record.cover_image) {
           return (
-            <div style={{ width: 48, height: 36, borderRadius: 6, overflow: "hidden", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+            <div style={{ width: 48, height: 36, borderRadius: 6, overflow: "hidden", border: "1px solid #EDEEEF", background: "#F7F8FA" }}>
               <img src={record.cover_image} alt={record.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
             </div>
@@ -631,8 +632,8 @@ export function KnowledgeMarketManager() {
         <Space direction="vertical" size={2} style={{ maxWidth: 320 }}>
           <Space size={4}>
             {record.content_type === "link" ? <LinkOutlined style={{ color: "#1677ff" }} /> :
-             record.content_type === "image" || record.content_type?.startsWith("image") ? <PictureOutlined style={{ color: "#722ed1" }} /> :
-             <FileTextOutlined style={{ color: "#52c41a" }} />}
+             record.content_type === "image" || record.content_type?.startsWith("image") ? <PictureOutlined style={{ color: "#1677ff" }} /> :
+             <FileTextOutlined style={{ color: "#1677ff" }} />}
             <Text strong style={{ fontSize: 13 }}>{title}</Text>
           </Space>
           {record.source_url && (
@@ -701,6 +702,7 @@ export function KnowledgeMarketManager() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <Card style={{ border: "1px solid #EDEEEF" }}>
       {/* 顶部操作栏 */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <Space>
@@ -724,25 +726,27 @@ export function KnowledgeMarketManager() {
       </div>
 
       {/* 统计卡片 */}
-      <Space size={12} wrap>
+      <Space size={12} wrap style={{ marginTop: 12 }}>
         <div style={statBoxStyle}>
-          <Text type="secondary" style={{ fontSize: 12 }}>市场知识库总数</Text>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "#1677ff" }}>{collections.length}</div>
+          <Text style={{ fontSize: 12, color: "#8F959E" }}>市场知识库总数</Text>
+          <div style={{ fontSize: 24, fontWeight: 600, color: "#1F2329" }}>{collections.length}</div>
         </div>
         <div style={statBoxStyle}>
-          <Text type="secondary" style={{ fontSize: 12 }}>官方发布</Text>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "#52c41a" }}>
+          <Text style={{ fontSize: 12, color: "#8F959E" }}>官方发布</Text>
+          <div style={{ fontSize: 24, fontWeight: 600, color: "#1F2329" }}>
             {collections.filter(c => c.official === 1).length}
           </div>
         </div>
         <div style={statBoxStyle}>
-          <Text type="secondary" style={{ fontSize: 12 }}>累计订阅</Text>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "#fa8c16" }}>
+          <Text style={{ fontSize: 12, color: "#8F959E" }}>累计订阅</Text>
+          <div style={{ fontSize: 24, fontWeight: 600, color: "#1F2329" }}>
             {collections.reduce((sum, c) => sum + (c.subscriber_count || 0), 0)}
           </div>
         </div>
       </Space>
+      </Card>
 
+      <Card style={{ border: "1px solid #EDEEEF" }} styles={{ body: { padding: 0 } }}>
       <Table
         columns={columns}
         dataSource={filtered}
@@ -753,6 +757,7 @@ export function KnowledgeMarketManager() {
         size="middle"
         locale={{ emptyText: loading ? "加载中..." : "暂无市场知识库" }}
       />
+      </Card>
 
       {/* 新建/编辑 弹窗 - Tabs 结构 */}
       <Modal
@@ -840,7 +845,7 @@ export function KnowledgeMarketManager() {
                               onClick={() => setForm({ ...form, color: c })}
                               style={{
                                 width: 20, height: 20, borderRadius: 4, background: c, cursor: "pointer",
-                                border: form.color === c ? "2px solid #1677ff" : "1px solid #e5e7eb"
+                                border: form.color === c ? "2px solid #1677ff" : "1px solid #EDEEEF"
                               }}
                             />
                           ))}
@@ -865,7 +870,7 @@ export function KnowledgeMarketManager() {
                       onChange={(e) => setForm({ ...form, cover_image: e.target.value })}
                     />
                     {form.cover_image && (
-                      <div style={{ marginTop: 8, width: "100%", height: 120, borderRadius: 8, border: "1px solid #f0f0f0", background: "#fafafa", overflow: "hidden" }}>
+                      <div style={{ marginTop: 8, width: "100%", height: 120, borderRadius: 6, border: "1px solid #EDEEEF", background: "#F7F8FA", overflow: "hidden" }}>
                         <img src={form.cover_image} alt="cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
                       </div>
@@ -906,7 +911,7 @@ export function KnowledgeMarketManager() {
               children: (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "8px 0" }}>
                   {/* 1. 文件上传 */}
-                  <div style={{ padding: 16, border: "1px dashed #d9d9d9", borderRadius: 8, background: "#fafbfc" }}>
+                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
                       <CloudUploadOutlined style={{ color: "#1677ff", marginRight: 6 }} />
                       上传文件（自动 embedding）
@@ -928,7 +933,7 @@ export function KnowledgeMarketManager() {
                   </div>
 
                   {/* 2. 添加链接 */}
-                  <div style={{ padding: 16, border: "1px dashed #d9d9d9", borderRadius: 8, background: "#fafbfc" }}>
+                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
                       <LinkOutlined style={{ color: "#1677ff", marginRight: 6 }} />
                       添加链接（content_type=link）
@@ -957,9 +962,9 @@ export function KnowledgeMarketManager() {
                   </div>
 
                   {/* 3. 添加纯文本 */}
-                  <div style={{ padding: 16, border: "1px dashed #d9d9d9", borderRadius: 8, background: "#fafbfc" }}>
+                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <FileTextOutlined style={{ color: "#52c41a", marginRight: 6 }} />
+                      <FileTextOutlined style={{ color: "#1677ff", marginRight: 6 }} />
                       添加纯文本条目
                     </Text>
                     <Input
@@ -1023,7 +1028,7 @@ export function KnowledgeMarketManager() {
         {detailCollection && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 0" }}>
             {detailCollection.cover_image && (
-              <div style={{ width: "100%", height: 180, borderRadius: 8, overflow: "hidden", background: "#fafafa", border: "1px solid #f0f0f0" }}>
+              <div style={{ width: "100%", height: 180, borderRadius: 6, overflow: "hidden", background: "#F7F8FA", border: "1px solid #EDEEEF" }}>
                 <img src={detailCollection.cover_image} alt={detailCollection.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             )}
@@ -1049,8 +1054,8 @@ export function KnowledgeMarketManager() {
 
 const statBoxStyle: React.CSSProperties = {
   background: "#fff",
-  border: "1px solid #f0f0f0",
-  borderRadius: 8,
+  border: "1px solid #EDEEEF",
+  borderRadius: 6,
   padding: "12px 16px",
   minWidth: 140
 }

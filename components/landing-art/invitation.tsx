@@ -27,8 +27,8 @@ export function Invitation() {
           />
         </Link>
 
-        <Link 
-          href="/demo"
+        <Link
+          href="/device-control"
           onMouseEnter={() => setState("thinking")}
           onMouseLeave={() => setState("idle")}
           className="group relative"

@@ -33,12 +33,6 @@ function getModelIcon(icon?: string) {
   return MODEL_ICON_MAP[icon || ""] || <CheckCircleOutlined />
 }
 
-const PROVIDER_COLORS: Record<string, { border: string; bg: string }> = {
-  openai: { border: "#3b82f6", bg: "rgba(59, 130, 246, 0.05)" },
-  dashscope: { border: "#10b981", bg: "rgba(16, 185, 129, 0.05)" },
-  custom: { border: "#8b5cf6", bg: "rgba(139, 92, 246, 0.05)" },
-}
-
 // ====== 模型卡片 ======
 
 function ModelCard({
@@ -54,16 +48,18 @@ function ModelCard({
   providerEnabled: boolean
   isDefaultProvider: boolean
 }) {
+  const [hovered, setHovered] = useState(false)
   return (
     <Card
-      hoverable
       style={{
-        background: PROVIDER_COLORS[providerType]?.bg || PROVIDER_COLORS.custom.bg,
-        borderColor: PROVIDER_COLORS[providerType]?.border || PROVIDER_COLORS.custom.border,
+        border: `1px solid ${hovered ? '#1677ff' : '#EDEEEF'}`,
         opacity: !providerEnabled || !model.enabled ? 0.5 : 1,
         cursor: !providerEnabled ? "not-allowed" : "pointer",
         overflow: "hidden",
+        transition: 'border-color 0.2s',
       }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* 顶部：图标 + 名称 + 状态 */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
@@ -71,37 +67,35 @@ function ModelCard({
           <div style={{
             width: 36,
             height: 36,
-            borderRadius: 8,
+            borderRadius: 6,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: model.enabled ? "white" : "#f4f4f5",
-            boxShadow: model.enabled ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+            backgroundColor: "#F2F3F5",
+            color: model.enabled ? "#1677ff" : "#8F959E",
           }}>
-            {model.enabled ? getModelIcon(model.icon) : (
-              <span style={{ color: "#d4d4d4" }}>{getModelIcon(model.icon)}</span>
-            )}
+            {getModelIcon(model.icon)}
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Text strong style={{
                 fontSize: 14,
-                color: model.enabled ? "#18181b" : "#a1a1aa",
+                color: model.enabled ? "#1F2329" : "#8F959E",
               }}>
                 {model.name}
               </Text>
               {model.enabled ? (
-                <CheckCircleOutlined style={{ color: "#10b981", fontSize: 14 }} />
+                <CheckCircleOutlined style={{ color: "#52C41A", fontSize: 14 }} />
               ) : (
                 <div style={{
                   width: 14,
                   height: 14,
                   borderRadius: "50%",
-                  border: "1px solid #d4d4d4",
+                  border: "1px solid #EDEEEF",
                 }} />
               )}
             </div>
-            <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#71717a", marginTop: 2 }}>{model.id}</Text>
+            <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#8F959E", marginTop: 2 }}>{model.id}</Text>
           </div>
         </div>
 
@@ -114,7 +108,7 @@ function ModelCard({
 
       {/* 描述 */}
       {model.description && (
-        <Text style={{ fontSize: 12, color: "#71717a", display: "block", marginBottom: 12, lineHeight: 1.6 }} ellipsis={{ rows: 2 }}>
+        <Text style={{ fontSize: 12, color: "#8F959E", display: "block", marginBottom: 12, lineHeight: 1.6 }} ellipsis={{ rows: 2 }}>
           {model.description}
         </Text>
       )}
@@ -242,8 +236,8 @@ export function ModelMarketplace() {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* 头部统计 */}
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.025em", margin: 0 }}>AI 模型市场</h2>
-        <p style={{ fontSize: 14, color: "#71717a", marginTop: 4 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1F2329", letterSpacing: "-0.025em", margin: 0 }}>AI 模型市场</h2>
+        <p style={{ fontSize: 14, color: "#8F959E", marginTop: 4 }}>
           浏览所有已配置提供商的可用模型，共 {stats.total} 个模型（{stats.enabled} 个启用中）
         </p>
       </div>
@@ -251,18 +245,18 @@ export function ModelMarketplace() {
       {/* 统计卡片 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         {[
-          { label: "总模型", value: stats.total, icon: <RobotOutlined />, color: "#52525b" },
-          { label: "已启用", value: stats.enabled, icon: <CheckCircleOutlined />, color: "#059669" },
-          { label: "视觉模型", value: stats.vision, icon: <EyeOutlined />, color: "#2563eb" },
-          { label: "推理模型", value: stats.reasoning, icon: <RobotOutlined />, color: "#9333ea" },
-          { label: "提供商", value: stats.providers, icon: <GlobalOutlined />, color: "#ea580c" },
+          { label: "总模型", value: stats.total, icon: <RobotOutlined />, color: "#8F959E" },
+          { label: "已启用", value: stats.enabled, icon: <CheckCircleOutlined />, color: "#8F959E" },
+          { label: "视觉模型", value: stats.vision, icon: <EyeOutlined />, color: "#8F959E" },
+          { label: "推理模型", value: stats.reasoning, icon: <RobotOutlined />, color: "#8F959E" },
+          { label: "提供商", value: stats.providers, icon: <GlobalOutlined />, color: "#8F959E" },
         ].map(s => (
-          <Card key={s.label} style={{ padding: "12px 16px" }}>
+          <Card key={s.label} style={{ padding: "12px 16px", border: "1px solid #EDEEEF" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ color: s.color }}>{s.icon}</div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 700 }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: "#71717a" }}>{s.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#1F2329" }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: "#8F959E" }}>{s.label}</div>
               </div>
             </div>
           </Card>
@@ -274,7 +268,7 @@ export function ModelMarketplace() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Input
             placeholder="搜索模型名称、ID、描述..."
-            prefix={<SearchOutlined style={{ color: "#71717a" }} />}
+            prefix={<SearchOutlined style={{ color: "#8F959E" }} />}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ flex: 1, minWidth: 200 }}
@@ -325,7 +319,7 @@ export function ModelMarketplace() {
       </div>
 
       {/* 结果计数 */}
-      <div style={{ fontSize: 12, color: "#71717a", fontWeight: 500 }}>
+      <div style={{ fontSize: 12, color: "#8F959E", fontWeight: 500 }}>
         显示 {flatModels.length} / {stats.total} 个模型
       </div>
 
@@ -339,8 +333,8 @@ export function ModelMarketplace() {
           padding: 64,
           textAlign: "center",
         }}>
-          <FilterOutlined style={{ fontSize: 40, color: "#d4d4d4", marginBottom: 16 }} />
-          <p style={{ fontSize: 14, color: "#71717a" }}>没有匹配的模型</p>
+          <FilterOutlined style={{ fontSize: 40, color: "#EDEEEF", marginBottom: 16 }} />
+          <p style={{ fontSize: 14, color: "#8F959E" }}>没有匹配的模型</p>
           <Button
             type="text"
             size="small"
@@ -371,31 +365,28 @@ export function ModelMarketplace() {
 
       {/* 按提供商分组视图提示 */}
       {flatModels.length > 0 && (
-        <div style={{ paddingTop: 24, borderTop: "1px solid #e4e4e7" }}>
-          <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#a1a1aa", marginBottom: 12 }}>
+        <div style={{ paddingTop: 24, borderTop: "1px solid #EDEEEF" }}>
+          <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#8F959E", marginBottom: 12 }}>
             按提供商分布
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {providers.map(p => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
-                <span style={{ fontWeight: 500, color: "#3f3f46", minWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ fontWeight: 500, color: "#646A73", minWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.name}
                 </span>
-                <div style={{ flex: 1, height: 8, backgroundColor: "#f4f4f5", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ flex: 1, height: 8, backgroundColor: "#F2F3F5", borderRadius: 4, overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%",
                       borderRadius: 4,
                       transition: "all 0.5s",
-                      backgroundColor:
-                        p.type === "dashscope" ? "#34d399" :
-                        p.type === "openai" ? "#60a5fa" :
-                        "#a78bfa",
+                      backgroundColor: "#1677ff",
                       width: `${(p.models.length / Math.max(1, stats.total)) * 100}%`,
                     }}
                   />
                 </div>
-                <span style={{ color: "#71717a", tabularNums: true, width: 48, textAlign: "right" }}>
+                <span style={{ color: "#8F959E", tabularNums: true, width: 48, textAlign: "right" }}>
                   {p.models.length}/{p.models.filter(m => m.enabled).length}
                 </span>
               </div>

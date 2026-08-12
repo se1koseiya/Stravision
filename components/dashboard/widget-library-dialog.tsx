@@ -11,6 +11,7 @@ import {
   CO2Widget,
   SoilWidget,
   WeatherWidget,
+  WeatherForecastWidget,
   AIInsightWidget,
   NutrientWidget,
 } from "@/components/dashboard/ios-style"
@@ -63,8 +64,16 @@ const AVAILABLE_WIDGETS: WidgetInfo[] = [
     name: '天气',
     description: '当前天气状况',
     category: '环境',
-    supportedSizes: ['medium', 'large'],
+    supportedSizes: ['small', 'medium', 'large'],
     component: WeatherWidget
+  },
+  {
+    id: 'weather-forecast',
+    name: '天气预报',
+    description: '未来多日天气趋势',
+    category: '环境',
+    supportedSizes: ['medium', 'large'],
+    component: WeatherForecastWidget
   },
   {
     id: 'soil',
@@ -193,6 +202,7 @@ export function WidgetLibraryDialog({
       case 'co2': return { ...baseProps, value: 420 }
       case 'soil': return { ...baseProps, moisture: 55, fertility: 78 }
       case 'weather': return { ...baseProps, temperature: 22, condition: '晴朗', humidity: 65, windSpeed: 2.5 }
+      case 'weather-forecast': return { ...baseProps, temperature: 22, condition: '多云', windSpeed: 2.5 }
       case 'nitrogen': return { ...baseProps, type: 'N', value: 120 }
       case 'phosphorus': return { ...baseProps, type: 'P', value: 85 }
       case 'potassium': return { ...baseProps, type: 'K', value: 200 }

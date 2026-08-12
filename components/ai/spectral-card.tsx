@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import ReactECharts from "echarts-for-react"
 import { Card, Flex, Space, Tag, Typography, theme } from "antd"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
@@ -26,41 +25,48 @@ const channels = [
   { id: "channel11", name: "Fli", label: "Flicker", color: "#808080" },
 ]
 
+/** Lightweight SVG spectral chart — no chart library needed */
+function SpectralChart({ values, colors, maxValue }: { values: number[]; colors: string[]; maxValue: number }) {
+  const W = 100, H = 80, pad = 2
+  const barW = (W - pad * (values.length + 1)) / values.length
+  const safeMax = maxValue || 1
+  const pts = values.map((v, i) => ({
+    x: pad + i * (barW + pad) + barW / 2,
+    y: H - (v / safeMax) * (H - 8) - 4,
+  }))
+  // Smooth bezier path through points
+  const linePath = pts.reduce((acc, p, i) => {
+    if (i === 0) return `M ${p.x},${p.y}`
+    const prev = pts[i - 1]
+    const cx1 = prev.x + (p.x - prev.x) / 2
+    const cx2 = prev.x + (p.x - prev.x) / 2
+    return `${acc} C ${cx1},${prev.y} ${cx2},${p.y} ${p.x},${p.y}`
+  }, "")
+  const areaPath = `${linePath} L ${pts[pts.length - 1].x},${H} L ${pts[0].x},${H} Z`
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+      <defs>
+        <linearGradient id="spec-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(232,121,249,0.2)" />
+          <stop offset="100%" stopColor="rgba(232,121,249,0.02)" />
+        </linearGradient>
+      </defs>
+      {pts.map((p, i) => (
+        <rect key={i} x={pad + i * (barW + pad)} y={p.y} width={barW} height={H - p.y} rx={1.5} fill={colors[i]} opacity={0.85} />
+      ))}
+      <path d={areaPath} fill="url(#spec-area)" />
+      <path d={linePath} fill="none" stroke="#e879f9" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function SpectralCard({ data }: SpectralCardProps) {
   const { token } = theme.useToken()
 
-  const maxChannel = channels.reduce((prev, curr) =>
-    ((data?.[curr.id as keyof DeviceData] as number) || 0) > ((data?.[prev.id as keyof DeviceData] as number) || 0) ? curr : prev
-  )
-  const maxValue = (data?.[maxChannel.id as keyof DeviceData] as number) || 0
-
-  const getOption = () => {
-    const seriesData = channels.map((c) => ({
-      value: (data?.[c.id as keyof DeviceData] as number) || 0,
-      itemStyle: {
-        color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c.color }, { offset: 1, color: `${c.color}40` }] },
-        borderRadius: [4, 4, 0, 0],
-      },
-    }))
-
-    return {
-      animation: false,
-      grid: { top: 5, right: 0, bottom: 0, left: 0, containLabel: false },
-      tooltip: { trigger: "axis", axisPointer: { type: "none" } },
-      xAxis: { type: "category", data: channels.map((c) => c.name), show: false },
-      yAxis: { type: "value", show: false },
-      series: [
-        { type: "bar", barWidth: "60%", data: seriesData, showBackground: true, backgroundStyle: { color: "rgba(240,240,240,0.2)", borderRadius: [4, 4, 0, 0] } },
-        {
-          type: "line", data: seriesData.map((d) => d.value), smooth: true, symbol: "none",
-          lineStyle: { width: 2, color: "#e879f9" },
-          areaStyle: {
-            color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(232,121,249,0.2)" }, { offset: 1, color: "rgba(232,121,249,0.05)" }] },
-          },
-        },
-      ],
-    }
-  }
+  const values = channels.map((c) => (data?.[c.id as keyof DeviceData] as number) || 0)
+  const colors = channels.map((c) => c.color)
+  const maxValue = Math.max(...values, 0)
 
   return (
     <Card
@@ -92,7 +98,7 @@ export function SpectralCard({ data }: SpectralCardProps) {
           </Flex>
         </Flex>
         <div style={{ height: 80, width: "100%" }}>
-          <ReactECharts option={getOption()} style={{ height: "100%", width: "100%" }} opts={{ renderer: "svg" }} notMerge lazyUpdate={false} />
+          <SpectralChart values={values} colors={colors} maxValue={maxValue} />
         </div>
       </Flex>
     </Card>

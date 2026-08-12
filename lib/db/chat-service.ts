@@ -1,5 +1,6 @@
 import { initDB, query, queryOne, execute, withTransaction } from "./database"
 import { UserPublic, toPublicUser, User } from "./user-service"
+import { publishUserEvent, publishUserEventsTo } from "@/lib/server/user-event-bus"
 
 let dbInitPromise: Promise<void> | null = null
 
@@ -16,6 +17,7 @@ export interface FriendRequest {
   addressee_id: number
   status: 'pending' | 'accepted' | 'rejected'
   created_at: number
+  updated_at?: number
   requester?: UserPublic
   addressee?: UserPublic
 }
@@ -71,6 +73,13 @@ export class ChatService {
         userId,
         friendId
       ])
+      // 通知被影响一方：自己被对方拉黑/取消拉黑
+      publishUserEvent({
+        type: "chat_block_changed",
+        userId: friendId,
+        peerId: userId,
+        blocked: block
+      })
       return { success: true, message: block ? 'User blocked' : 'User unblocked' }
     } catch (error) {
       console.error("Failed to toggle block:", error)
@@ -98,6 +107,7 @@ export class ChatService {
     try {
       const now = Date.now()
       let groupId: number | null = null
+      const memberIds: number[] = [ownerId]
 
       await withTransaction(async (client) => {
         const result = await client.query(
@@ -117,9 +127,22 @@ export class ChatService {
               "INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES ($1, $2, 'member', $3) ON CONFLICT (group_id, user_id) DO NOTHING",
               [groupId, memberId, now]
             )
+            memberIds.push(memberId)
           }
         }
       })
+
+      // 通知被加入的成员：他们已加入此群
+      publishUserEventsTo(
+        memberIds.filter(id => id !== ownerId),
+        (uid) => ({
+          type: "chat_group_member_changed",
+          userId: uid,
+          groupId: groupId as number,
+          change: "joined",
+          targetUserId: uid
+        })
+      )
 
       return { success: true, groupId, message: 'Group created' }
     } catch (error) {
@@ -168,7 +191,7 @@ export class ChatService {
    */
   static async deleteGroup(groupId: number, userId: number): Promise<{ success: boolean; message: string }> {
     await ensureDB()
-    const group = await queryOne<{ owner_id: number }>("SELECT owner_id FROM groups WHERE id = $1", [groupId])
+    const group = await queryOne<{ owner_id: number; name: string }>("SELECT owner_id, name FROM groups WHERE id = $1", [groupId])
     if (!group) return { success: false, message: 'Group not found' }
 
     if (group.owner_id !== userId) {
@@ -179,12 +202,32 @@ export class ChatService {
       }
     }
 
+    // 先收集成员列表，删除后通知他们
+    const members = await query<{ user_id: number }>(
+      "SELECT user_id FROM group_members WHERE group_id = $1",
+      [groupId]
+    )
+    const memberIds = members.map(m => m.user_id).filter(id => id !== userId)
+    const groupName = group.name
+
     try {
         await withTransaction(async (client) => {
           await client.query("DELETE FROM messages WHERE group_id = $1", [groupId])
           await client.query("DELETE FROM group_members WHERE group_id = $1", [groupId])
           await client.query("DELETE FROM groups WHERE id = $1", [groupId])
         })
+
+        // 通知其他成员群已解散
+        publishUserEventsTo(
+          memberIds,
+          (uid) => ({
+            type: "chat_group_disbanded",
+            userId: uid,
+            groupId,
+            groupName
+          })
+        )
+
         return { success: true, message: 'Group deleted' }
     } catch (e) {
         console.error("Failed to delete group:", e)
@@ -203,7 +246,7 @@ export class ChatService {
         "SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2",
         [groupId, adminId]
       )
-      
+
       // Check if user is super_admin globally
       const adminUser = await queryOne<{ role: string }>("SELECT role FROM users WHERE id = $1", [adminId])
       const isSystemAdmin = adminUser && (adminUser.role === 'admin' || adminUser.role === 'super_admin')
@@ -234,9 +277,19 @@ export class ChatService {
       if (isGroupAdmin && targetMember.role === 'admin') {
           return { success: false, message: 'Admins cannot kick other admins' }
       }
-      
+
       try {
           await execute("DELETE FROM group_members WHERE group_id = $1 AND user_id = $2", [groupId, targetUserId])
+
+          // 通知被踢的成员
+          publishUserEvent({
+            type: "chat_group_member_changed",
+            userId: targetUserId,
+            groupId,
+            change: "kicked",
+            targetUserId
+          })
+
           return { success: true, message: 'Member removed' }
       } catch (e) {
           console.error("Failed to remove member:", e)
@@ -249,7 +302,7 @@ export class ChatService {
    */
   static async getGroupMembers(groupId: number): Promise<GroupMember[]> {
     await ensureDB()
-    
+
     const members = await query<any>(`
       SELECT gm.*, u.id as u_id, u.uid as u_uid, u.email as u_email, u.username as u_username, u.avatar_url as u_avatar_url, u.role as u_role
       FROM group_members gm
@@ -275,6 +328,20 @@ export class ChatService {
         created_at: 0
       }
     }))
+  }
+
+  /**
+   * Get group member user ids only (for SSE fanout)
+   */
+  static async getGroupMemberIds(groupId: number, excludeUserId?: number): Promise<number[]> {
+    await ensureDB()
+    const rows = await query<{ user_id: number }>(
+      "SELECT user_id FROM group_members WHERE group_id = $1",
+      [groupId]
+    )
+    return rows
+      .map(r => r.user_id)
+      .filter(id => id !== excludeUserId)
   }
 
   /**
@@ -313,19 +380,54 @@ export class ChatService {
         RETURNING id
       `, [senderId, actualReceiverId, groupId || null, content, type, fileUrl, now])
 
-      return {
-        success: true,
-        message: {
-          id: result?.id as number,
-          sender_id: senderId,
-          receiver_id: actualReceiverId,
-          group_id: groupId || null,
-          content,
-          type,
-          file_url: fileUrl,
-          created_at: now
-        }
+      const message: Message = {
+        id: result?.id as number,
+        sender_id: senderId,
+        receiver_id: actualReceiverId,
+        group_id: groupId || null,
+        content,
+        type,
+        file_url: fileUrl,
+        created_at: now
       }
+
+      // 推送 SSE 事件
+      const sender = await queryOne<{ username: string; avatar_url: string | null }>(
+        "SELECT username, avatar_url FROM users WHERE id = $1",
+        [senderId]
+      )
+
+      if (groupId) {
+        // 群消息：广播给除发送者外所有成员
+        const memberIds = await this.getGroupMemberIds(groupId, senderId)
+        const group = await queryOne<{ name: string }>("SELECT name FROM groups WHERE id = $1", [groupId])
+        publishUserEventsTo(
+          memberIds,
+          (uid) => ({
+            type: "chat_message",
+            userId: uid,
+            message,
+            chatKind: "group",
+            peerId: groupId,
+            senderName: sender?.username,
+            senderAvatar: sender?.avatar_url ?? null,
+            groupName: group?.name
+          })
+        )
+      } else if (receiverId) {
+        // 私聊：推给接收者
+        publishUserEvent({
+          type: "chat_message",
+          userId: receiverId,
+          message,
+          chatKind: "direct",
+          peerId: senderId,
+          senderName: sender?.username,
+          senderAvatar: sender?.avatar_url ?? null
+        })
+      }
+
+      return { success: true, message }
     } catch (e) {
       console.error("SendMessage Error:", e);
       return { success: false, error: 'Failed to send' }
@@ -346,7 +448,7 @@ export class ChatService {
         ORDER BY created_at DESC
         LIMIT $2 OFFSET $3
       `, [targetId, limit, offset])
-      
+
       // Mark group as read
       try {
         await execute("UPDATE group_members SET last_read_at = $1 WHERE group_id = $2 AND user_id = $3", [
@@ -363,7 +465,7 @@ export class ChatService {
         ORDER BY created_at DESC
         LIMIT $5 OFFSET $6
       `, [userId, targetId, targetId, userId, limit, offset])
-      
+
       // Mark direct messages as read
       try {
         await execute("UPDATE messages SET read_at = $1 WHERE sender_id = $2 AND receiver_id = $3 AND read_at IS NULL", [
@@ -411,6 +513,16 @@ export class ChatService {
       groupId,
       targetUserId
     ])
+
+    // 通知被操作的成员
+    publishUserEvent({
+      type: "chat_group_member_changed",
+      userId: targetUserId,
+      groupId,
+      change: mute ? "muted" : "unmuted",
+      targetUserId
+    })
+
     return { success: true, message: mute ? 'User muted' : 'User unmuted' }
   }
 
@@ -432,6 +544,16 @@ export class ChatService {
             "INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES ($1, $2, 'member', $3) ON CONFLICT (group_id, user_id) DO NOTHING",
             [groupId, targetUserId, Date.now()]
           )
+
+          // 通知新成员
+          publishUserEvent({
+            type: "chat_group_member_changed",
+            userId: targetUserId,
+            groupId,
+            change: "joined",
+            targetUserId
+          })
+
           return { success: true, message: 'Member added' }
       } catch (e) {
           return { success: false, message: 'Failed to add member' }
@@ -469,11 +591,11 @@ export class ChatService {
       "SELECT * FROM friend_requests WHERE requester_id = $1 AND addressee_id = $2 AND status = $3",
       [requesterId, addressee.id, 'pending']
     )
-    
+
     if (existingRequest) {
       return { success: false, message: 'Friend request already sent' }
     }
-    
+
     // Check if they sent one to us
     const reverseRequest = await queryOne<FriendRequest>(
       "SELECT * FROM friend_requests WHERE requester_id = $1 AND addressee_id = $2 AND status = $3",
@@ -486,10 +608,26 @@ export class ChatService {
     }
 
     try {
-      await execute(`
+      const now = Date.now()
+      const insertResult = await queryOne<{ id: number }>(`
         INSERT INTO friend_requests (requester_id, addressee_id, status, created_at, updated_at)
         VALUES ($1, $2, 'pending', $3, $4)
-      `, [requesterId, addressee.id, Date.now(), Date.now()])
+        RETURNING id
+      `, [requesterId, addressee.id, now, now])
+
+      // 通知接收方有新好友请求
+      if (insertResult?.id) {
+        publishUserEvent({
+          type: "chat_friend_request",
+          userId: addressee.id,
+          requestId: insertResult.id,
+          requester: {
+            id: requesterId,
+            username: addressee.username, // placeholder, route will fetch fresh
+            avatar_url: addressee.avatar_url
+          }
+        })
+      }
       return { success: true, message: 'Friend request sent' }
     } catch (error) {
       console.error('Failed to send friend request:', error)
@@ -502,7 +640,7 @@ export class ChatService {
    */
   static async getFriendRequests(userId: number): Promise<FriendRequest[]> {
     await ensureDB()
-    
+
     const requests = await query<any>(`
       SELECT fr.*, 
              u.id as u_id, u.email as u_email, u.username as u_username, u.avatar_url as u_avatar_url, u.uid as u_uid
@@ -568,6 +706,20 @@ export class ChatService {
           [request.addressee_id, request.requester_id, now]
         )
       })
+
+      // 通知请求方：你发出的请求被接受了
+      const responder = await queryOne<{ username: string }>("SELECT username FROM users WHERE id = $1", [userId])
+      publishUserEvent({
+        type: "chat_friend_request_responded",
+        userId: request.requester_id,
+        requestId,
+        action: "accept",
+        responder: {
+          id: userId,
+          username: responder?.username || ""
+        }
+      })
+
       return { success: true, message: 'Friend request accepted' }
     } catch (error) {
       console.error('Failed to accept friend request:', error)
@@ -580,7 +732,7 @@ export class ChatService {
    */
   static async rejectFriendRequest(requestId: number, userId: number): Promise<{ success: boolean; message: string }> {
     await ensureDB()
-    
+
     const request = await queryOne<FriendRequest>('SELECT * FROM friend_requests WHERE id = $1', [requestId])
     if (!request) {
         return { success: false, message: 'Request not found' }
@@ -595,6 +747,20 @@ export class ChatService {
           Date.now(),
           requestId
         ])
+
+        // 通知请求方：你发出的请求被拒绝了
+        const responder = await queryOne<{ username: string }>("SELECT username FROM users WHERE id = $1", [userId])
+        publishUserEvent({
+          type: "chat_friend_request_responded",
+          userId: request.requester_id,
+          requestId,
+          action: "reject",
+          responder: {
+            id: userId,
+            username: responder?.username || ""
+          }
+        })
+
         return { success: true, message: 'Friend request rejected' }
     } catch (error) {
         return { success: false, message: 'Internal error' }
@@ -649,7 +815,7 @@ export class ChatService {
    */
   static async getNewMessagesForUser(userId: number, since: number): Promise<(Message & { sender_name: string; group_name?: string; sender_avatar?: string })[]> {
     await ensureDB()
-    
+
     // Get direct messages
     const directMessages = await query<(Message & { sender_name: string; sender_avatar?: string })>(`
       SELECT m.*, u.username as sender_name, u.avatar_url as sender_avatar
@@ -692,5 +858,73 @@ export class ChatService {
       console.error("Failed to clear messages:", error)
       return { success: false, message: 'Internal error' }
     }
+  }
+
+  /**
+   * Recall a message (within 2 minutes, sender only).
+   * 通知所有相关方：私聊推给接收者，群聊推给所有其他成员。
+   */
+  static async recallMessage(messageId: number, senderId: number): Promise<{ success: boolean; message: string; error?: string }> {
+    await ensureDB()
+
+    const msg = await queryOne<Message>("SELECT * FROM messages WHERE id = $1", [messageId])
+    if (!msg) return { success: false, message: 'Message not found', error: 'not_found' }
+    if (msg.sender_id !== senderId) return { success: false, message: 'Not authorized', error: 'forbidden' }
+
+    const now = Date.now()
+    const twoMinutes = 2 * 60 * 1000
+    if (now - msg.created_at > twoMinutes) {
+      return { success: false, message: 'Message can only be recalled within 2 minutes', error: 'timeout' }
+    }
+
+    try {
+      await execute(
+        "UPDATE messages SET content = $1, type = $2 WHERE id = $3",
+        ['[消息已撤回]', 'recalled', messageId]
+      )
+
+      // 推送撤回事件
+      if (msg.group_id) {
+        const memberIds = await this.getGroupMemberIds(msg.group_id, senderId)
+        publishUserEventsTo(
+          memberIds,
+          (uid) => ({
+            type: "chat_message_recalled",
+            userId: uid,
+            messageId,
+            chatKind: "group",
+            peerId: msg.group_id as number
+          })
+        )
+      } else if (msg.receiver_id && msg.receiver_id !== senderId) {
+        publishUserEvent({
+          type: "chat_message_recalled",
+          userId: msg.receiver_id,
+          messageId,
+          chatKind: "direct",
+          peerId: senderId
+        })
+      }
+
+      return { success: true, message: 'Message recalled successfully' }
+    } catch (e) {
+      console.error("RecallMessage Error:", e)
+      return { success: false, message: 'Failed to recall', error: 'internal' }
+    }
+  }
+
+  /**
+   * Typing status upsert（仅写库，不发布 SSE，因为 typing API 走短轮询足够且不会爆数据库。
+   * 但为了让 typing 状态能通过 SSE 流转，POST typing 时也会调用 publishTyping。）
+   */
+  static async upsertTypingStatus(userId: number, targetId: number | null, groupId: number | null): Promise<void> {
+    await ensureDB()
+    await execute(
+      `INSERT INTO typing_status (user_id, target_id, group_id, updated_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, target_id, group_id)
+       DO UPDATE SET updated_at = EXCLUDED.updated_at`,
+      [userId, targetId || 0, groupId || 0, Date.now()]
+    )
   }
 }

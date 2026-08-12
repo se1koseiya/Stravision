@@ -91,6 +91,10 @@ ENV WS_SERVER_PORT 3002
 ENV HOSTNAME "0.0.0.0"
 ENV TZ Asia/Shanghai
 
+# 健康检查：每 30s 探活 /api/health，连续 3 次失败标记不健康
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))" || exit 1
+
 # Use a standalone shell script to fix permissions and start both services
 # Avoids fragile shell quoting issues from inline `echo` in RUN
 COPY docker-entrypoint.sh /app/entrypoint.sh

@@ -1,11 +1,8 @@
 "use client"
 
 import React, { useState } from 'react'
-import dynamic from 'next/dynamic'
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false })
 
 interface SpectralPopupProps {
   data: {
@@ -23,135 +20,61 @@ interface SpectralPopupProps {
   } | null
 }
 
+const channels = [
+  { id: 'channel1', name: '415', label: 'Violet', color: '#8B00FF' },
+  { id: 'channel2', name: '445', label: 'Blue', color: '#0000FF' },
+  { id: 'channel3', name: '480', label: 'Cyan', color: '#00FFFF' },
+  { id: 'channel4', name: '515', label: 'Green', color: '#00FF00' },
+  { id: 'channel5', name: '555', label: 'Y-G', color: '#ADFF2F' },
+  { id: 'channel6', name: '590', label: 'Yellow', color: '#FFFF00' },
+  { id: 'channel7', name: '630', label: 'Orange', color: '#FFA500' },
+  { id: 'channel8', name: '680', label: 'Red', color: '#FF0000' },
+  { id: 'channel9', name: 'NIR', label: 'NIR', color: '#8B0000' },
+  { id: 'channel10', name: 'Clr', label: 'Clear', color: '#E0E0E0' },
+  { id: 'channel11', name: 'Fli', label: 'Flicker', color: '#808080' },
+]
+
+/** Lightweight SVG spectral chart — no chart library needed */
+function SpectralChart({ values, colors, maxValue, height = 200 }: { values: number[]; colors: string[]; maxValue: number; height?: number }) {
+  const W = 100, H = height, pad = 2
+  const barW = (W - pad * (values.length + 1)) / values.length
+  const safeMax = maxValue || 1
+  const pts = values.map((v, i) => ({
+    x: pad + i * (barW + pad) + barW / 2,
+    y: H - (v / safeMax) * (H - 8) - 4,
+  }))
+  const linePath = pts.reduce((acc, p, i) => {
+    if (i === 0) return `M ${p.x},${p.y}`
+    const prev = pts[i - 1]
+    const cx = prev.x + (p.x - prev.x) / 2
+    return `${acc} C ${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`
+  }, "")
+  const areaPath = `${linePath} L ${pts[pts.length - 1].x},${H} L ${pts[0].x},${H} Z`
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+      <defs>
+        <linearGradient id="spec-area-popup" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(232,121,249,0.2)" />
+          <stop offset="100%" stopColor="rgba(232,121,249,0.02)" />
+        </linearGradient>
+      </defs>
+      {pts.map((p, i) => (
+        <rect key={i} x={pad + i * (barW + pad)} y={p.y} width={barW} height={H - p.y} rx={2} fill={colors[i]} opacity={0.85} />
+      ))}
+      <path d={areaPath} fill="url(#spec-area-popup)" />
+      <path d={linePath} fill="none" stroke="#e879f9" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function SpectralPopup({ data }: SpectralPopupProps) {
   const [timeRange, setTimeRange] = useState("1h")
 
-  // Define spectral channels configuration
-  const channels = [
-    { id: 'channel1', name: '415', label: 'Violet', color: '#8B00FF' },
-    { id: 'channel2', name: '445', label: 'Blue', color: '#0000FF' },
-    { id: 'channel3', name: '480', label: 'Cyan', color: '#00FFFF' },
-    { id: 'channel4', name: '515', label: 'Green', color: '#00FF00' },
-    { id: 'channel5', name: '555', label: 'Y-G', color: '#ADFF2F' },
-    { id: 'channel6', name: '590', label: 'Yellow', color: '#FFFF00' },
-    { id: 'channel7', name: '630', label: 'Orange', color: '#FFA500' },
-    { id: 'channel8', name: '680', label: 'Red', color: '#FF0000' },
-    { id: 'channel9', name: 'NIR', label: 'NIR', color: '#8B0000' },
-    { id: 'channel10', name: 'Clr', label: 'Clear', color: '#E0E0E0' },
-    { id: 'channel11', name: 'Fli', label: 'Flicker', color: '#808080' },
-  ]
-
-  // Find the channel with max value to display prominently
-  const maxChannel = channels.reduce((prev, current) => {
-    const prevVal = data ? (data[prev.id as keyof typeof data] as number) || 0 : 0
-    const currVal = data ? (data[current.id as keyof typeof data] as number) || 0 : 0
-    return currVal > prevVal ? current : prev
-  })
-
-  const maxValue = data ? (data[maxChannel.id as keyof typeof data] as number) || 0 : 0
-
-  // Check if we have any actual spectral data
-  const hasData = channels.some(channel => {
-    const value = data ? (data[channel.id as keyof typeof data] as number) : undefined
-    return value !== undefined && value > 0
-  })
-
-  // Prepare chart option
-  const getOption = () => {
-    const xAxisData = channels.map(c => c.name)
-    const seriesData = channels.map(c => {
-      const value = data ? (data[c.id as keyof typeof data] as number) || 0 : 0
-      return {
-        value,
-        itemStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: c.color },
-              { offset: 1, color: `${c.color}40` } // Fade to transparency
-            ]
-          },
-          borderRadius: [4, 4, 0, 0]
-        }
-      }
-    })
-
-    return {
-      animation: false,
-      grid: {
-        top: 5,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        containLabel: false
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-            type: 'none' // Hide axis pointer line for cleaner look
-        },
-        formatter: (params: any) => {
-          const param = params[0]
-          const channel = channels[param.dataIndex]
-          return `
-            <div class="font-bold">${channel.label} (${channel.name}nm)</div>
-            <div>数值: ${param.value}</div>
-          `
-        }
-      },
-      xAxis: {
-        type: 'category',
-        data: xAxisData,
-        show: false, // Hide x axis
-        axisLine: { show: false },
-        axisTick: { show: false },
-      },
-      yAxis: {
-        type: 'value',
-        show: false, // Hide y axis
-        splitLine: { show: false }
-      },
-      series: [
-        {
-          type: 'bar',
-          barWidth: '60%',
-          data: seriesData,
-          showBackground: true,
-          backgroundStyle: {
-            color: 'rgba(240, 240, 240, 0.2)',
-            borderRadius: [4, 4, 0, 0]
-          },
-        },
-        {
-            type: 'line',
-            data: seriesData.map(d => d.value),
-            smooth: true,
-            symbol: 'none',
-            lineStyle: {
-                width: 2,
-                color: '#e879f9' // Pinkish purple line
-            },
-            areaStyle: {
-                color: {
-                    type: 'linear',
-                    x: 0,
-                    y: 0,
-                    x2: 0,
-                    y2: 1,
-                    colorStops: [
-                        { offset: 0, color: 'rgba(232, 121, 249, 0.2)' },
-                        { offset: 1, color: 'rgba(232, 121, 249, 0.05)' }
-                    ]
-                }
-            }
-        }
-      ]
-    }
-  }
+  const values = channels.map(c => data ? (data[c.id as keyof typeof data] as number) || 0 : 0)
+  const colors = channels.map(c => c.color)
+  const maxValue = Math.max(...values, 0)
+  const hasData = values.some(v => v > 0)
 
   return (
     <div className="w-full h-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-white/20 dark:border-slate-700 p-6 backdrop-blur-xl">
@@ -188,13 +111,7 @@ export function SpectralPopup({ data }: SpectralPopupProps) {
         {/* Chart or No Data Message */}
         <div className="flex-1 w-full relative">
           {hasData ? (
-            <ReactECharts 
-              option={getOption()} 
-              style={{ height: '100%', width: '100%' }} 
-              opts={{ renderer: 'svg' }}
-              notMerge={true}
-              lazyUpdate={false}
-            />
+            <SpectralChart values={values} colors={colors} maxValue={maxValue} height={200} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center text-slate-500 dark:text-slate-400">
@@ -212,8 +129,8 @@ export function SpectralPopup({ data }: SpectralPopupProps) {
             const value = data ? (data[channel.id as keyof typeof data] as number) || 0 : 0
             return (
               <div key={channel.id} className="text-center">
-                <div 
-                  className="w-3 h-3 rounded-full mx-auto mb-1" 
+                <div
+                  className="w-3 h-3 rounded-full mx-auto mb-1"
                   style={{ backgroundColor: channel.color }}
                 />
                 <div className="text-slate-600 dark:text-slate-400">{channel.name}nm</div>
@@ -229,8 +146,8 @@ export function SpectralPopup({ data }: SpectralPopupProps) {
             const value = data ? (data[channel.id as keyof typeof data] as number) || 0 : 0
             return (
               <div key={channel.id} className="text-center">
-                <div 
-                  className="w-3 h-3 rounded-full mx-auto mb-1" 
+                <div
+                  className="w-3 h-3 rounded-full mx-auto mb-1"
                   style={{ backgroundColor: channel.color }}
                 />
                 <div className="text-slate-600 dark:text-slate-400">{channel.name}</div>

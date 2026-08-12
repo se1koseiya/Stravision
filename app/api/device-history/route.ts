@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSensorHistory } from '@/lib/db/device-service'
+import { getCurrentUser } from '@/lib/auth'
 
 // 允许的传感器类型白名单（与 device-service.ts 的 colMap 保持一致）
 const ALLOWED_TYPES = new Set([
@@ -12,6 +13,8 @@ const ALLOWED_TYPES = new Set([
 const ALLOWED_RANGES = new Set(['10m', '1h', '7h', '1d', '7d'])
 
 export async function GET(req: NextRequest) {
+    const user = await getCurrentUser()
+    if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 })
     const searchParams = req.nextUrl.searchParams
     const types = searchParams.get('types') // Check for comma-separated types
     const type = searchParams.get('type') // Fallback for single type

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, Suspense, useRef, useMemo } from "react"
 import Image from "next/image"
@@ -122,7 +122,7 @@ function WeatherCard() {
 
              {/* Main Temp */}
              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter" style={{ fontFamily: 'DingTalkJinBuTi' }}>
+                <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter" style={{ fontFamily: 'var(--font-jinbuti)' }}>
                    {Math.round(weatherData.current.temp_c)}
                 </span>
                 <span className="text-xl font-medium text-slate-500 dark:text-slate-400">°C</span>
@@ -286,7 +286,7 @@ function LShapedStats({
                   <p className="text-[11px] mt-1.5 text-slate-500 dark:text-slate-400 font-medium tracking-wide">需多关注</p>
                   
                   <div className="relative mt-2 flex items-baseline gap-0.5 text-slate-700 dark:text-slate-300 font-bold">
-                     <span className="text-5xl font-['DingTalkJinBuTi'] tracking-tighter drop-shadow-sm bg-gradient-to-br from-slate-800 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">{score}</span>
+                     <span className="text-5xl font-jinbuti tracking-tighter drop-shadow-sm bg-gradient-to-br from-slate-800 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">{score}</span>
                      <span className="text-sm font-medium text-slate-400 mb-1.5">分</span>
                      <ChevronRight className="size-4 text-slate-400 ml-0.5 mb-2" />
                   </div>
@@ -303,7 +303,7 @@ function LShapedStats({
                </div>
                <div className="text-[11px] text-slate-400 font-medium">空气温度</div>
                <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
-                  <span className="text-2xl font-bold text-slate-700 dark:text-slate-100 font-['DingTalkJinBuTi']">{temp}</span>
+                  <span className="text-2xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{temp}</span>
                   <span className="text-[11px] text-slate-400">°C</span>
                </div>
             </div>
@@ -318,7 +318,7 @@ function LShapedStats({
                </div>
                <div className="text-[10px] text-slate-400 font-medium scale-90">相对湿度</div>
                <div className="flex items-baseline justify-center gap-0.5">
-                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-['DingTalkJinBuTi']">{humidity}</span>
+                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{humidity}</span>
                   <span className="text-[10px] text-slate-400">%</span>
                </div>
             </div>
@@ -330,7 +330,7 @@ function LShapedStats({
                </div>
                <div className="text-[10px] text-slate-400 font-medium scale-90">土壤水分</div>
                <div className="flex items-baseline justify-center gap-0.5">
-                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-['DingTalkJinBuTi']">{soil}</span>
+                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{soil}</span>
                   <span className="text-[10px] text-slate-400">%</span>
                </div>
             </div>
@@ -342,7 +342,7 @@ function LShapedStats({
                </div>
                <div className="text-[10px] text-slate-400 font-medium scale-90">CO₂浓度</div>
                <div className="flex items-baseline justify-center gap-0.5">
-                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-['DingTalkJinBuTi']">{co2}</span>
+                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{co2}</span>
                   {/* <span className="text-[10px] text-slate-400">ppm</span> */}
                </div>
             </div>
@@ -431,7 +431,7 @@ function MiniStatus({
       <div>
         <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">{label}</div>
         <div className="flex items-baseline gap-1 mt-0.5">
-          <span className="text-xl font-bold text-slate-900 dark:text-slate-100 font-['DingTalkJinBuTi'] tracking-tight">{value}</span>
+          <span className="text-xl font-bold text-slate-900 dark:text-slate-100 font-jinbuti tracking-tight">{value}</span>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{unit}</span>
         </div>
       </div>
@@ -960,7 +960,7 @@ export default function HomePage() {
                             exit={{ y: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
                             className="text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tight absolute inset-0" 
-                            style={{ fontFamily: 'DingTalkJinBuTi, system-ui' }}
+                            style={{ fontFamily: 'var(--font-jinbuti)' }}
                           >
                             {currentAI.subtitle}
                           </motion.h3>

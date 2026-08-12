@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { X, Share2, MoreHorizontal, Search, Filter, Play, FileText, FileType, Music, Image as ImageIcon, Download, Trash2, Eye, Star, StarOff, FolderOpen, Clock, Sparkles, PanelLeftOpen, Plus } from "lucide-react"
+import { X, Share2, MoreHorizontal, Search, Filter, Play, FileText, FileType, Music, Image as ImageIcon, Download, Trash2, Eye, Star, StarOff, FolderOpen, Clock, Sparkles, PanelLeftOpen, Plus, BrainCircuit } from "lucide-react"
 import { Dropdown, Tooltip, message } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -284,6 +284,30 @@ export function MySpaceSidebarPanel({
   const isDark = darkMode
   const [activeTab, setActiveTab] = useState<string>("recent")
   const [keyword, setKeyword] = useState("")
+  const [generatingMemory, setGeneratingMemory] = useState(false)
+
+  // 生成记忆档案并保存到"我的空间"
+  const handleGenerateMemoryReport = async () => {
+    if (generatingMemory) return
+    setGeneratingMemory(true)
+    try {
+      const res = await fetch("/api/ai/memory-report", {
+        method: "POST",
+        credentials: "include"
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        message.error(data?.error || "生成记忆档案失败")
+      } else {
+        message.success("记忆档案已生成并保存到我的空间")
+        onItemsChange?.()
+      }
+    } catch {
+      message.error("网络错误，请稍后重试")
+    } finally {
+      setGeneratingMemory(false)
+    }
+  }
 
   // 按时间倒序
   const sortedItems = useMemo(() => {
@@ -525,6 +549,20 @@ export function MySpaceSidebarPanel({
                 })}
               </div>
               <div className="flex items-center gap-1">
+                <Tooltip title="导出记忆档案">
+                  <button
+                    onClick={handleGenerateMemoryReport}
+                    disabled={generatingMemory}
+                    className={cn(
+                      "w-8 h-8 flex items-center justify-center rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                      isDark
+                        ? "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
+                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    )}
+                  >
+                    <BrainCircuit size={15} className={generatingMemory ? "animate-pulse" : ""} />
+                  </button>
+                </Tooltip>
                 <Tooltip title="筛选">
                   <button
                     className={cn(

@@ -14,13 +14,9 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       'lucide-react',
       '@heroicons/react',
-      '@tabler/icons-react',
       'framer-motion',
-      '@radix-ui/react-icons',
       '@lobehub/icons',
-      '@lobehub/ui',
-      'recharts',
-      'echarts',
+      '@ant-design/plots',
       'antd',
       '@ant-design/x',
       '@ant-design/icons',
@@ -80,29 +76,59 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // 本地开发代理 OnlyOffice Document Server
+  // Docker 容器暴露在宿主机的 8080 端口，前端通过 /onlyoffice/* 访问
+  // 生产环境由 nginx 反代，不需要这条
+  async rewrites() {
+    const isDev = process.env.NODE_ENV !== "production";
+    if (!isDev) return [];
+
+    const onlyofficeHost = process.env.ONLYOFFICE_URL || "http://localhost:8080";
+
+    return [
+      {
+        source: "/onlyoffice/:path*",
+        destination: `${onlyofficeHost}/:path*`,
+      },
+    ];
+  },
   async headers() {
+    const isDev = process.env.NODE_ENV !== "production";
+    // 开发环境放宽 CSP 允许 OnlyOffice iframe 与跨域连接
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com https://o.alicdn.com;
-      script-src-elem 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com https://o.alicdn.com;
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com https://o.alicdn.com ${isDev ? "http://localhost:8080 'unsafe-eval' 'unsafe-inline'" : ""};
+      script-src-elem 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://*.alipay.com https://*.alipayobjects.com https://*.qq.com https://*.weixin.qq.com https://static.cloudflareinsights.com https://o.alicdn.com ${isDev ? "http://localhost:8080" : ""};
       worker-src 'self' blob:;
-      style-src 'self' 'unsafe-inline' https://o.alicdn.com;
-      style-src-elem 'self' 'unsafe-inline' https://o.alicdn.com;
-      img-src 'self' blob: data: https: https://images.unsplash.com https://plus.unsplash.com https://o.alicdn.com;
-      media-src 'self' blob: data:;
-      font-src 'self' data:;
-      connect-src 'self' blob: data: https://*.alipay.com https://*.qq.com https://*.weixin.qq.com https://api.ipify.org ws: wss: https://o.alicdn.com https://*.stravision.site wss://*.stravision.site;
-      object-src 'none';
+      style-src 'self' 'unsafe-inline' https://o.alicdn.com ${isDev ? "http://localhost:8080 'unsafe-inline'" : ""};
+      style-src-elem 'self' 'unsafe-inline' https://o.alicdn.com ${isDev ? "http://localhost:8080 'unsafe-inline'" : ""};
+      img-src 'self' blob: data: https: https://images.unsplash.com https://plus.unsplash.com https://o.alicdn.com ${isDev ? "http://localhost:8080 data:" : ""};
+      media-src 'self' blob: data: ${isDev ? "http://localhost:8080" : ""};
+      font-src 'self' data: ${isDev ? "http://localhost:8080 data:" : ""};
+      connect-src 'self' blob: data: https://*.alipay.com https://*.qq.com https://*.weixin.qq.com https://api.ipify.org ws: wss: https://o.alicdn.com https://*.stravision.site wss://*.stravision.site ${isDev ? "http://localhost:8080 ws://localhost:8080" : ""};
+      object-src 'self';
       base-uri 'self';
       form-action 'self';
-      frame-ancestors 'none';
-      frame-src 'self' https: https://challenges.cloudflare.com https://*.alipay.com https://*.qq.com https://o.alicdn.com;
+      ${isDev ? "" : "frame-ancestors 'none';"}
+      frame-src 'self' https: https://challenges.cloudflare.com https://*.alipay.com https://*.qq.com https://o.alicdn.com ${isDev ? "http://localhost:8080" : ""};
     `.replace(/\s{2,}/g, ' ').trim()
 
     return [
       {
         source: '/:path*',
         headers: [
+          // 跨源隔离（COOP + COEP credentialless）：开启 SharedArrayBuffer，
+          // 使 onnxruntime-web 的 Silero VAD 推理真正生效（否则 simd-threaded.wasm
+          // 在无 SAB 时静默失败）。credentialless 不会像 require-corp 那样阻断
+          // 第三方资源，跨域请求仅去除凭证，兼容现有 alipay/qq/wechat/unsplash 等。
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin'
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'credentialless'
+          },
           {
             key: 'Content-Security-Policy',
             value: cspHeader

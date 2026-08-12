@@ -1,16 +1,15 @@
 "use client"
 
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import { Copy, Trash2, Reply, Forward } from "lucide-react"
+import { Dropdown } from "antd"
+import type { MenuProps } from "antd"
+import { Copy, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { useMemo, type ReactNode } from "react"
+
+const ICON_STROKE = 1.75
 
 interface MessageContextMenuProps {
-  children: React.ReactNode
+  children: ReactNode
   message: {
     id: number
     content: string
@@ -29,8 +28,6 @@ export function MessageContextMenu({
   onRecall,
   onCopy
 }: MessageContextMenuProps) {
-  const canRecall = isMe && (Date.now() - message.created_at < 120000) // 2分钟内
-
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content)
     toast.success("已复制到剪贴板")
@@ -38,28 +35,43 @@ export function MessageContextMenu({
   }
 
   const handleRecall = () => {
-    if (canRecall && onRecall) {
-      onRecall(message.id)
+    // 2 分钟内可撤回；时间窗在点击时检查，避免渲染期调用 impure 的 Date.now
+    if (!onRecall) return
+    if (Date.now() - message.created_at > 120000) {
+      toast.error("消息已超过 2 分钟，无法撤回")
+      return
     }
+    onRecall(message.id)
   }
 
+  const items = useMemo<MenuProps["items"]>(() => {
+    const list: MenuProps["items"] = [
+      {
+        key: "copy",
+        label: "复制",
+        icon: <Copy className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+        onClick: handleCopy
+      }
+    ]
+    if (isMe && onRecall) {
+      list.push({
+        key: "recall",
+        label: "撤回消息",
+        danger: true,
+        icon: <Trash2 className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+        onClick: handleRecall
+      })
+    }
+    return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMe, onRecall, message])
+
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={handleCopy}>
-          <Copy className="mr-2 h-4 w-4" />
-          复制
-        </ContextMenuItem>
-        {canRecall && (
-          <ContextMenuItem onClick={handleRecall} className="text-red-600">
-            <Trash2 className="mr-2 h-4 w-4" />
-            撤回消息
-          </ContextMenuItem>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+    <Dropdown
+      menu={{ items }}
+      trigger={["contextMenu"]}
+    >
+      <div className="cursor-default">{children}</div>
+    </Dropdown>
   )
 }

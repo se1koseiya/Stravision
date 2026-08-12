@@ -160,6 +160,8 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
         <DialogPrimitive.Content
           className="fixed inset-x-0 bottom-0 z-50 w-full max-w-none rounded-t-[2rem] bg-white dark:bg-zinc-900 shadow-2xl border-t border-black/5 dark:border-white/10 overflow-hidden h-[85vh] sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:h-auto sm:max-w-md sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border animate-in slide-in-from-bottom-full sm:zoom-in-95 sm:slide-in-from-bottom-0 duration-300"
         >
+          {/* 屏幕阅读器可访问的对话框标题（视觉隐藏，不影响现有 Header） */}
+          <DialogTitle className="sr-only">模型配置</DialogTitle>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
             <div className="flex items-center gap-2.5">

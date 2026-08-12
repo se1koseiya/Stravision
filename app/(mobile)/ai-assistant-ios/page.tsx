@@ -10,18 +10,13 @@ import type { PromptsProps } from "@ant-design/x"
 import { BulbOutlined, InfoCircleOutlined, RocketOutlined, SmileOutlined, PlusOutlined, SettingOutlined, MenuOutlined, UserOutlined, HistoryOutlined, DeleteOutlined, EditOutlined, ShareAltOutlined, CheckOutlined, OpenAIOutlined, SyncOutlined, WarningOutlined, FileTextOutlined, ThunderboltOutlined, CrownOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons'
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, Send, Settings, Plus, ArrowRight, ArrowUp, TrendingUp, BarChart3, Sparkles, Smile, ExternalLink, Crown } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, Send, Settings, Plus, ArrowRight, ArrowUp, TrendingUp, BarChart3, Sparkles, Smile, ExternalLink, Crown, ArrowDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import dynamic from "next/dynamic"
-const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
-  ssr: false,
-  loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
-})
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import ChartRenderer from "@/components/chart-renderer"
 import { Input as ShadcnInput } from "@/components/ui/input"
 import { Button as ShadcnButton } from "@/components/ui/button"
 import {
@@ -177,10 +172,34 @@ interface AISettings {
 
 interface SessionMeta { id: string; title: string; createdAt: number; updatedAt: number }
 
+// ---------------------------------------------------------------------------
+// 新消息分隔线 — 与 PC 端一致，区分历史消息和本次会话新增的消息
+// 样式：Ant Design 主色 #1677ff，lucide-react ArrowDown 图标 strokeWidth 1.75
+// ---------------------------------------------------------------------------
+function NewMessageDivider() {
+  return (
+    <div
+      className="flex items-center gap-2 my-4 px-1"
+      role="separator"
+      aria-label="新消息"
+    >
+      <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
+      <div
+        className="flex items-center gap-1 text-[11px] select-none"
+        style={{ color: "#1677ff", fontWeight: 400 }}
+      >
+        <ArrowDown size={12} strokeWidth={1.75} />
+        <span>新消息</span>
+      </div>
+      <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
+    </div>
+  )
+}
+
 // ChatBubbleList组件 - 使用antdesignx的Bubble组件（深度优化版）
 // ---------------------------------------------------------------------------
-// MobileDeepThinking — 移动端推理过程展示（对齐 PC 端 DeepThinking 行为）
-// 流式中自动展开 + 光标动画；完成后自动折叠 + 显示耗时
+// MobileDeepThinking — 移动端推理过程展示（对齐 PC 端 DeepThinking 极简风格）
+// 流式中自动展开；完成后自动折叠
 // ---------------------------------------------------------------------------
 function MobileDeepThinking({
   reasoning,
@@ -191,7 +210,6 @@ function MobileDeepThinking({
 }) {
   const [expanded, setExpanded] = useState(true)
 
-  // 流式输出中 → 展开；完成 → 折叠
   useEffect(() => {
     if (isStreaming) setExpanded(true)
     else if (reasoning?.text) setExpanded(false)
@@ -200,30 +218,36 @@ function MobileDeepThinking({
   if (!reasoning?.text) return null
 
   const isDone = !isStreaming && reasoning.text.length > 0
-  const title = isDone ? '深度思考完成' : '深度思考中...'
   const duration = reasoning.durationMs ? `${(reasoning.durationMs / 1000).toFixed(1)}s` : null
 
   return (
-    <Think
-      title={title}
-      loading={!isDone}
-      expanded={expanded}
-      onClick={() => setExpanded(!expanded)}
-      icon={<OpenAIOutlined />}
-      style={{ marginBottom: 8 }}
-    >
-      <div className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-words">
-        {reasoning.text}
-        {isStreaming && (
-          <span className="inline-block w-1.5 h-4 bg-emerald-500/70 animate-pulse rounded-sm ml-0.5 align-middle" />
+    <div className="mb-2">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className={cn(
+          "inline-flex items-center gap-1 text-[12px] px-0.5 rounded transition-colors",
+          isStreaming ? "text-[#1677ff]" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
         )}
-      </div>
-      {duration && isDone && (
-        <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1">
-          思考耗时 <span className="font-mono font-medium">{duration}</span>
+        style={{ fontWeight: 400 }}
+      >
+        <ChevronRight
+          size={12}
+          className={cn("transition-transform", expanded && "rotate-90")}
+        />
+        <span>深度思考</span>
+        {duration && isDone && <span className="text-zinc-400">· {duration}</span>}
+        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
+      </button>
+      {expanded && (
+        <div className="mt-1.5 pl-0.5 text-[12.5px] leading-[1.6] text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-words">
+          {reasoning.text}
+          {isStreaming && (
+            <span className="inline-block w-1.5 h-4 bg-[#1677ff]/70 animate-pulse rounded-sm ml-0.5 align-middle" />
+          )}
         </div>
       )}
-    </Think>
+    </div>
   )
 }
 
@@ -240,6 +264,7 @@ function ChatBubbleList({
   onSendMessage,
   onSetInput,
   onOpenStudio,
+  newMessageBoundary = 0,
 }: {
   messages: Message[]
   isLoading: boolean
@@ -253,6 +278,8 @@ function ChatBubbleList({
   onSendMessage?: (text: string) => void
   onSetInput?: (text: string) => void
   onOpenStudio?: (title: string, html: string) => void
+  /** 🔥 本次会话新消息分隔线索引（messages 数组中的原始 index） */
+  newMessageBoundary?: number
 }) {
   // 状态管理
   const [expandedCitations, setExpandedCitations] = useState<Record<number, boolean>>({})
@@ -400,12 +427,23 @@ function ChatBubbleList({
     } as any)
   }
 
+  // 🔥 新消息分隔线：移动端不过滤 silent 消息，boundary 直接对应 items 索引
+  const hasBoundary = newMessageBoundary > 0
+  const splitIdx = hasBoundary ? newMessageBoundary : -1
+  // 仅当分割点 > 0（存在历史消息）且 < 总数（存在新消息）时显示分隔线
+  const showNewMessageDivider = splitIdx > 0 && splitIdx < items.length
+
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Bubble.List 
-        items={items} 
-        roles={roles}
-      />
+      {showNewMessageDivider ? (
+        <>
+          <Bubble.List items={items.slice(0, splitIdx)} roles={roles} />
+          <NewMessageDivider />
+          <Bubble.List items={items.slice(splitIdx)} roles={roles} />
+        </>
+      ) : (
+        <Bubble.List items={items} roles={roles} />
+      )}
     </div>
   )
 }
@@ -699,6 +737,8 @@ function AIAssistantIOSContent() {
   // Chat State
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
+  // 🔥 本次会话新消息分隔线：与 PC 端一致，区分历史消息和本次新增消息
+  const [newMessageBoundary, setNewMessageBoundary] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
   const [sessions, setSessions] = useState<SessionMeta[]>([])
@@ -914,6 +954,8 @@ function AIAssistantIOSContent() {
           const data = await res.json()
           const msgs = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
           setMessages(msgs.length > 0 ? msgs : [])
+          // 🔥 历史消息加载完成：以当前数量为边界，之后新增的消息视为"新消息"
+          setNewMessageBoundary(msgs.length)
           try {
             const draft = localStorage.getItem(`ai-input-draft-${sessionId}`)
             if (typeof draft === "string") setInput(draft)
@@ -1015,6 +1057,8 @@ function AIAssistantIOSContent() {
         setSessionId(data.id)
         setSessions(prev => [data, ...prev])
         setMessages([])
+        // 🔥 新建会话：无历史消息，边界为 0
+        setNewMessageBoundary(0)
       }
     } catch {}
   }
@@ -1520,6 +1564,7 @@ function AIAssistantIOSContent() {
                 messages={messages}
                 isLoading={isLoading}
                 darkMode={darkMode}
+                newMessageBoundary={newMessageBoundary}
                 deviceData={deviceData}
                 onExecuteCommand={async (cmd) => { await executeCommands([cmd]) }}
                 onSendMessage={(msg) => handleSend(msg)}

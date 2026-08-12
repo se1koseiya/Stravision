@@ -17,6 +17,7 @@ import {
   updateCollection,
   deleteCollection
 } from "@/lib/db/knowledge-service"
+import { listCollaboratedCollections } from "@/lib/db/kb-collaboration-service"
 import { getKnowledgeConfig } from "@/lib/ai/provider-resolver"
 
 function jsonError(message: string, status = 400) {
@@ -33,7 +34,9 @@ export async function GET(req: NextRequest) {
   const parentId = parentIdParam === "null" ? null : parentIdParam ? Number(parentIdParam) : undefined
 
   const items = await listCollections(user.id, { includeArchived, parentId })
-  return Response.json({ items })
+  // 同时返回当前用户协作参与的集合（不含自己 owner 的）
+  const collaborations = await listCollaboratedCollections(user.id)
+  return Response.json({ items, collaborations })
 }
 
 export async function POST(req: NextRequest) {

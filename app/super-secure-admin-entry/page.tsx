@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import RecaptzWidget from "@/components/ui/recaptz-widget";
+import CapWidget from "@/components/ui/cap-widget";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,29 +17,33 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaCompleted, setCaptchaCompleted] = useState(false);
+  const [capToken, setCapToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [systemId, setSystemId] = useState<string>("------");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!captchaCompleted) {
+    if (!captchaCompleted || !capToken) {
       toast.error("Security Verification Required");
       return;
     }
 
     setLoading(true);
-    
+
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, capToken }),
       });
       
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data?.error || "Access Denied");
+        // 人机验证令牌一次性使用，失败后需重新验证
+        setCaptchaCompleted(false);
+        setCapToken("");
         setLoading(false);
         return;
       }
@@ -118,9 +122,18 @@ export default function AdminLoginPage() {
               />
             </div>
             
-            {/* Recaptz Widget */}
+            {/* Cap Widget */}
             <div className="py-2">
-              <RecaptzWidget onSuccess={() => setCaptchaCompleted(true)} />
+              <CapWidget
+                onSuccess={(token) => {
+                  setCaptchaCompleted(true);
+                  setCapToken(token);
+                }}
+                onError={() => {
+                  setCaptchaCompleted(false);
+                  setCapToken("");
+                }}
+              />
             </div>
 
             <Button 

@@ -1,10 +1,23 @@
 "use client"
 
-import { Thermometer, TrendingUp, TrendingDown, MoreHorizontal } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { IOSWidgetCard } from "./ios-widget-card"
-import { WidgetTrendChart } from "./widget-trend-chart"
+import { Thermometer, TrendingUp, TrendingDown } from "lucide-react"
+import { Flex } from "antd"
+import {
+  IOSWidgetCard,
+  WidgetHeader,
+  WidgetStatusPill,
+  WidgetHeroNumber,
+  WidgetMiniStats,
+  WidgetCompactFooter,
+  WidgetTrendChip,
+} from "./ios-widget-card"
+import { WidgetRingProgress, WidgetLineChart, WidgetBars } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+
+const A = BERRY_THEME.apple
+const WC = A.widgetColors.temperature
+const ICON_STROKE = 1.75
 
 interface TemperatureWidgetProps {
   value: number
@@ -18,10 +31,32 @@ interface TemperatureWidgetProps {
   onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
 }
 
-export function TemperatureWidget({ 
-  value, 
-  trend = 'stable', 
-  size = 'medium', 
+function getStatus(temp: number) {
+  if (temp >= 30) return { label: "高温", color: A.accents.orange }
+  if (temp >= 25) return { label: "偏热", color: A.accents.red }
+  if (temp >= 18) return { label: "适宜", color: A.accents.green }
+  return { label: "偏冷", color: A.accents.blue }
+}
+
+function tempToRing(temp: number) {
+  return Math.max(0, Math.min(100, (temp / 40) * 100))
+}
+
+function useSparkline(current: number) {
+  return [
+    current - 1.2, current - 0.8, current - 1.5, current - 0.5,
+    current - 0.3, current + 0.2, current + 0.5, current,
+    current + 0.3, current - 0.2, current + 0.1, current,
+  ]
+}
+
+const high = (v: number) => v + 5
+const low = (v: number) => v - 3
+const feelsLike = (v: number) => v + 2
+
+export function TemperatureWidget({
+  value,
+  size = 'medium',
   className,
   isEditing,
   widgetId,
@@ -30,176 +65,153 @@ export function TemperatureWidget({
   onLongPress
 }: TemperatureWidgetProps) {
   const { isElderFriendlyMode } = useElderFriendly()
-  
-  const getTemperatureConfig = (temp: number) => {
-    if (temp >= 30) return {
-      status: "高温",
-      label: "高温警报",
-      colorClass: "text-red-500",
-      bgClass: "bg-red-50 dark:bg-red-900/30",
-      hexColor: "#ef4444"
-    }
-    if (temp >= 25) return {
-      status: "偏热",
-      label: "温暖舒适",
-      colorClass: "text-orange-500",
-      bgClass: "bg-orange-50 dark:bg-orange-900/30",
-      hexColor: "#f97316"
-    }
-    if (temp >= 18) return {
-      status: "适宜",
-      label: "适宜温度",
-      colorClass: "text-primary",
-      bgClass: "bg-emerald-50 dark:bg-emerald-900/30",
-      hexColor: "#10b981"
-    }
-    return {
-      status: "偏冷",
-      label: "凉爽低温",
-      colorClass: "text-blue-500",
-      bgClass: "bg-blue-50 dark:bg-blue-900/30",
-      hexColor: "#3b82f6"
-    }
+  const status = getStatus(value)
+  const isSmall = size === 'small'
+  const isLarge = size === 'large'
+  const sparkData = useSparkline(value)
+  const barsData = sparkData.slice(-8)
+
+  const heroSize = isElderFriendlyMode
+    ? (isSmall ? 30 : isLarge ? 48 : 40)
+    : (isSmall ? 28 : isLarge ? 44 : 38)
+
+  const ringSize = isSmall ? 52 : isLarge ? 110 : 76
+
+  // ── Small: header + hero + bars + mini stats ──
+  if (isSmall) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Thermometer size={12} strokeWidth={ICON_STROKE} />}
+            label="温度"
+            color={status.color}
+            right={
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />
+            }
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical justify="space-between" style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" style={{ flex: 1, minHeight: 0 }}>
+            <WidgetHeroNumber value={value.toFixed(1)} unit="°" fontSize={heroSize} />
+            <WidgetBars data={barsData} color={status.color} height={32} barWidth={3} gap={2} />
+          </Flex>
+          <WidgetMiniStats
+            stats={[
+              { label: '高', value: `${high(value).toFixed(0)}°`, color: A.accents.red },
+              { label: '低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue },
+              { label: '体感', value: `${feelsLike(value).toFixed(0)}°`, color: A.labelSecondary },
+            ]}
+          />
+        </Flex>
+      </IOSWidgetCard>
+    )
   }
 
-  const config = getTemperatureConfig(value)
-  const isSmall = size === 'small'
-  
-  // Header component
-  const Header = (
-    <div className="flex items-center gap-2">
-      <div className={cn("p-2 rounded-full", config.bgClass)}>
-        <Thermometer className={cn("w-4 h-4", config.colorClass)} />
-      </div>
-      {!isSmall && (
-        <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">环境温度</span>
-      )}
-    </div>
-  )
+  // ── Large: header + hero+ring + chart + stat row ──
+  if (isLarge) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Thermometer size={14} strokeWidth={ICON_STROKE} />}
+            label="温度"
+            color={status.color}
+            right={<WidgetStatusPill label={status.label} color={status.color} />}
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical gap={12} style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" style={{ flex: 1, minHeight: 0 }}>
+            <Flex vertical gap={4}>
+              <WidgetHeroNumber value={value.toFixed(1)} unit="°C" fontSize={heroSize} />
+              <span style={{ fontSize: 12, color: A.labelTertiary, fontWeight: 500 }}>环境温度</span>
+            </Flex>
+            <WidgetRingProgress
+              value={tempToRing(value)}
+              size={ringSize}
+              strokeWidth={7}
+              color={status.color}
+              label={value.toFixed(0)}
+              sublabel="°"
+            />
+          </Flex>
 
+          <div style={{ height: 60, minHeight: 60 }}>
+            <WidgetLineChart data={sparkData} color={status.color} showGrid />
+          </div>
+
+          <WidgetMiniStats
+            stats={[
+              { label: '体感', value: `${feelsLike(value).toFixed(0)}°`, color: A.label },
+              { label: '最高', value: `${high(value).toFixed(0)}°`, color: A.accents.red, icon: <TrendingUp size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '最低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue, icon: <TrendingDown size={10} strokeWidth={ICON_STROKE} /> },
+            ]}
+            style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
+          />
+        </Flex>
+      </IOSWidgetCard>
+    )
+  }
+
+  // ── Medium: header + hero+chart + compact footer ──
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
-      header={size !== 'small' ? Header : null}
+      className={className}
+      header={
+        <WidgetHeader
+          icon={<Thermometer size={14} strokeWidth={ICON_STROKE} />}
+          label="温度"
+          color={status.color}
+          right={<WidgetStatusPill label={status.label} color={status.color} />}
+        />
+      }
       isEditing={isEditing}
       widgetId={widgetId}
       onRemove={onRemove}
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
+      tint={WC.accent}
     >
-      <div className="flex flex-col h-full justify-between">
-        {/* Small Size Layout - Minimalist */}
-        {size === 'small' && (
-          <>
-            <div className="flex justify-between items-start">
-              <div className={cn("p-2 rounded-full", config.bgClass)}>
-                <Thermometer className={cn("w-5 h-5", config.colorClass)} />
-              </div>
-              {trend !== 'stable' && (
-                <div className={cn("flex items-center p-1 rounded-full bg-slate-50 dark:bg-slate-800",
-                  trend === 'up' ? "text-primary" : "text-red-500")}>
-                   {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-auto">
-              <div className="flex items-start">
-                <span className={cn(
-                  "font-bold tracking-tighter text-slate-900 dark:text-white",
-                  isElderFriendlyMode ? "text-5xl" : "text-4xl"
-                )}>{value.toFixed(0)}</span>
-                <span className={cn(
-                  "font-medium mt-1 text-slate-400",
-                  isElderFriendlyMode ? "text-2xl" : "text-xl"
-                )}>°</span>
-              </div>
-              <div className={cn(
-                "font-medium text-slate-500 mt-1 truncate",
-                isElderFriendlyMode ? "text-base" : "text-xs"
-              )}>
-                {config.status}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Medium Size Layout - Trend Chart */}
-        {size === 'medium' && (
-          <div className="flex flex-col h-full w-full">
-            <div className="flex items-end gap-2 mb-2">
-                <div className="flex items-start">
-                    <span className={cn(
-                      "font-bold tracking-tighter text-slate-900 dark:text-white",
-                      isElderFriendlyMode ? "text-6xl" : "text-5xl"
-                    )}>{value.toFixed(1)}</span>
-                    <span className={cn(
-                      "font-medium mt-1 text-slate-400",
-                      isElderFriendlyMode ? "text-3xl" : "text-2xl"
-                    )}>°C</span>
-                </div>
-                <div className="mb-2">
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full font-medium", 
-                      config.bgClass, 
-                      config.colorClass,
-                      isElderFriendlyMode ? "text-sm" : "text-xs"
-                    )}>
-                    {config.label}
-                    </span>
-                </div>
-            </div>
-            
-            <div className="flex-1 w-full relative min-h-0">
-               <WidgetTrendChart type="temperature" color={config.hexColor} unit="°C" />
-            </div>
+      <Flex vertical justify="space-between" style={{ height: '100%' }}>
+        <Flex align="center" style={{ flex: 1, minHeight: 0 }} gap={12}>
+          <Flex vertical gap={3} style={{ minWidth: 0, flexShrink: 0 }}>
+            <WidgetHeroNumber value={value.toFixed(1)} unit="°C" fontSize={heroSize} />
+            <Flex align="center" gap={6}>
+              <WidgetTrendChip direction="up" value="+1.2°" />
+              <span style={{ fontSize: 10, color: A.labelTertiary, fontWeight: 500 }}>vs 昨日</span>
+            </Flex>
+          </Flex>
+          <div style={{ flex: 1, height: '100%', minWidth: 0 }}>
+            <WidgetLineChart data={sparkData} color={status.color} showGrid={false} />
           </div>
-        )}
-
-        {/* Large Size Layout - Trend Chart + Details */}
-        {size === 'large' && (
-          <div className="flex flex-col h-full w-full">
-             <div className="flex items-end justify-between mb-4">
-                <div className="flex flex-col">
-                    <div className="flex items-start">
-                        <span className={cn(
-                          "font-bold tracking-tighter text-slate-900 dark:text-white",
-                          isElderFriendlyMode ? "text-7xl" : "text-6xl"
-                        )}>{value.toFixed(1)}</span>
-                        <span className={cn(
-                          "font-medium mt-1 text-slate-400",
-                          isElderFriendlyMode ? "text-4xl" : "text-3xl"
-                        )}>°C</span>
-                    </div>
-                    <span className={cn(
-                      "mt-1 font-medium", 
-                      config.colorClass,
-                      isElderFriendlyMode ? "text-base" : "text-sm"
-                    )}>{config.status} • {config.label}</span>
-                </div>
-                <div className={cn(
-                  "flex flex-col items-end gap-1 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl",
-                  isElderFriendlyMode ? "text-base" : "text-sm"
-                )}>
-                    <span className="flex items-center gap-1 font-medium">体感 <span className="text-slate-900 dark:text-white">{(value + 2).toFixed(1)}°</span></span>
-                    <span className={cn(
-                      "flex items-center gap-1",
-                      isElderFriendlyMode ? "text-sm" : "text-xs"
-                    )}><TrendingUp className="w-3 h-3 text-red-400"/> 最高 {(value + 5).toFixed(0)}°</span>
-                    <span className={cn(
-                      "flex items-center gap-1",
-                      isElderFriendlyMode ? "text-sm" : "text-xs"
-                    )}><TrendingDown className="w-3 h-3 text-blue-400"/> 最低 {(value - 3).toFixed(0)}°</span>
-                </div>
-             </div>
-            
-            <div className="flex-1 w-full relative min-h-0">
-               <WidgetTrendChart type="temperature" color={config.hexColor} unit="°C" />
-            </div>
-          </div>
-        )}
-      </div>
+        </Flex>
+        <WidgetCompactFooter
+          stats={[
+            { label: '体感', value: `${feelsLike(value).toFixed(0)}°`, color: A.label },
+            { label: '最高', value: `${high(value).toFixed(0)}°`, color: A.accents.red, icon: <TrendingUp size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '最低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue, icon: <TrendingDown size={10} strokeWidth={ICON_STROKE} /> },
+          ]}
+        />
+      </Flex>
     </IOSWidgetCard>
   )
 }

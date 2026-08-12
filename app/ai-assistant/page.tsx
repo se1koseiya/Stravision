@@ -15,15 +15,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
 const MessageWithReport = dynamic(() => import("@/components/ai/message-with-report").then(mod => ({ default: mod.MessageWithReport })), { ssr: false })
-const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
-  ssr: false,
-  loading: () => <div className="p-4 text-xs text-zinc-400">Loading diagram...</div>
-})
-
-const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
-  ssr: false,
-  loading: () => <div className="p-4 text-xs text-zinc-400">Loading chart...</div>
-})
 
 // 额外的重型组件 — 延迟加载
 const SkillStore = dynamic(() => import("@/components/ai/skill-store").then(m => ({ default: m.SkillStore })), { ssr: false })
@@ -113,7 +104,8 @@ import { MCPToolDisplay } from "@/components/ai/mcp-tool-display"
 import { useAIFeatures } from "@/lib/hooks/use-ai-features"
 import { DeviceControlDisplay } from "@/components/studio/device-control-display"
 import { AutomationStrategyCard } from "@/components/automation-strategy-card"
-import { AgentThoughtChain, type AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain"
+import { type AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain"
+import { tryParseJsonWithRepair } from "@/components/ai/checkpoint-confirm"
 import QwenVoiceInput from "@/components/ui/qwen-voice-input"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons';
 import { parseScheduleTask, removeScheduleTaskTag } from '@/lib/ai/schedule-task-parser'
@@ -127,6 +119,8 @@ import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 // DeviceControlCard, HTMLPreviewCard — 已改为 dynamic import
 import { AIControlBorderEffect } from "@/components/ai/ai-control-border-effect"
 import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
+import { PredictiveInsightCard } from "@/components/ai/predictive-insight-card"
+import { GuardianAlertBell } from "@/components/ai/guardian-alert-bell"
 import { useAIModels } from "@/lib/hooks/use-ai-models"
 
 // LiveStreamPlayer — 已改为 dynamic import
@@ -142,6 +136,7 @@ import { ChatBubbleList } from "@/app/ai-assistant/_components/chat-bubble-list"
 import { ChatSenderInput } from "@/app/ai-assistant/_components/chat-sender-input"
 import { useTTSEngine } from "@/app/ai-assistant/_hooks/use-tts-engine"
 import { handleDownloadPDF, createSelectFilesHandler, createPasteHandler, handleSettingsSave as saveSettings, copyMessageText } from "@/app/ai-assistant/_utils/message-actions"
+import { type AIActionSummary } from "@/app/ai-assistant/_components/ai-action-summary"
 
 /** 从消息列表中提取最后一条用户/助手消息，包装 SmartPrompts 避免每次重渲染重新计算。 */
 function SmartPromptsWrapper({
@@ -188,6 +183,28 @@ function SmartPromptsWrapper({
   )
 }
 
+/**
+ * 检测内容中 CLARIFY/DECISION/PLAN 标签的 JSON 是否解析失败
+ * 返回失败的标签名（如 "CLARIFY"），未失败返回 null
+ * 用于流式结束后自动打回给 AI 重新生成
+ */
+function detectFailedTag(content: string): string | null {
+  const tags = ["CLARIFY", "DECISION", "PLAN"] as const
+  for (const tag of tags) {
+    const openTag = `<${tag}>`
+    if (!content.includes(openTag)) continue
+    // 提取标签内 JSON 文本（兼容流式未闭合）
+    const regex = new RegExp(`<\\s*${tag}\\s*>([\\s\\S]*?)(?:<\\/\\s*${tag}\\s*>|$)`, "i")
+    const match = content.match(regex)
+    if (!match) continue
+    const jsonText = match[1].replace(new RegExp(`<\\/\\s*${tag}\\s*>`, "i"), "").trim()
+    if (!jsonText) return tag
+    const parsed = tryParseJsonWithRepair(jsonText)
+    if (!parsed) return tag
+  }
+  return null
+}
+
 export default function AIAssistantPage() {
   return (
     <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-[#1677ff]">Loading AI Assistant...</div>}>
@@ -210,6 +227,10 @@ function AIAssistantContent() {
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
+  // 🔥 本次会话新消息分隔线：记录从服务端加载的历史消息数量，
+  // 之后新增的消息（用户提问 + AI 回答）会在该索引处显示"新消息"分隔线。
+  // 切换会话 / 新建会话 / 退出登录时重置。
+  const [newMessageBoundary, setNewMessageBoundary] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
   const [sessions, setSessions] = useState<SessionMeta[]>([])
@@ -238,6 +259,21 @@ function AIAssistantContent() {
   })
   const [agentStatus, setAgentStatus] = useState("")
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([])
+  // 🔥 页面级 TASK_LIST 追踪：跨多轮反馈消息保持任务规划器状态同步
+  const [latestTaskListContent, setLatestTaskListContent] = useState<string>("")
+  // 🔥 防止流式输出中的 <TASK_LIST> 覆盖 update_task 工具的更新结果
+  // 当 update_task 已设置最新任务列表后，同一轮流式输出内的原始 TASK_LIST 不再覆盖
+  const taskUpdatedByToolRef = useRef(false)
+
+  // 🔥 AI 动作总结（TRAE 风格）：任务耗时 + 工具调用次数 + 任务完成状态
+  const [aiActionSummary, setAiActionSummary] = useState<AIActionSummary | null>(null)
+  const aiActionStatsRef = useRef({
+    startTs: 0,
+    toolCallCount: 0,
+    fileChanges: { added: 0, removed: 0, count: 0 },
+    lastTaskPlanProgress: undefined as string | undefined,
+    lastTaskPlanCompleted: false,
+  })
   const [enableMcp, setEnableMcp] = useState(true) // MCP Toggle
 
   // ===== 智能提示集自动隐藏逻辑 =====
@@ -251,22 +287,13 @@ function AIAssistantContent() {
     }
   }
 
-  // ===== 思考链自动隐藏逻辑 =====
+  // ===== 思考链可见性（完成后保留，不自动消失） =====
   const [showThoughtChain, setShowThoughtChain] = useState(false)
-  const hideThoughtChainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const THOUGHT_CHAIN_HIDE_DELAY_MS = 6000
-  const clearHideThoughtChainTimer = () => {
-    if (hideThoughtChainTimerRef.current) {
-      clearTimeout(hideThoughtChainTimerRef.current)
-      hideThoughtChainTimerRef.current = null
-    }
-  }
 
   // 卸载时清理所有计时器
   useEffect(() => {
     return () => {
       if (hidePromptsTimerRef.current) clearTimeout(hidePromptsTimerRef.current)
-      if (hideThoughtChainTimerRef.current) clearTimeout(hideThoughtChainTimerRef.current)
     }
   }, [])
 
@@ -312,48 +339,12 @@ function AIAssistantContent() {
     }, SMART_PROMPTS_HIDE_DELAY_MS)
   }
 
-  // 思考链：AI 正在处理或存在步骤时显示；AI 完成后 N 秒自动隐藏
+  // 思考链：AI 正在处理或存在步骤时显示；完成后保留，不自动消失
   useEffect(() => {
-    if (isLoading || agentStatus) {
-      clearHideThoughtChainTimer()
-      setShowThoughtChain(true)
-      return
-    }
-    if (agentSteps.length === 0) {
-      clearHideThoughtChainTimer()
-      setShowThoughtChain(false)
-      return
-    }
-    setShowThoughtChain(true)
-    clearHideThoughtChainTimer()
-    hideThoughtChainTimerRef.current = setTimeout(() => {
-      setShowThoughtChain(false)
-      hideThoughtChainTimerRef.current = null
-    }, THOUGHT_CHAIN_HIDE_DELAY_MS)
-    return clearHideThoughtChainTimer
+    setShowThoughtChain(agentSteps.length > 0 || isLoading || !!agentStatus)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, agentStatus, agentSteps.length])
 
-  // 用户在输入框打字时立刻隐藏思考链
-  useEffect(() => {
-    if (input.trim().length > 0) {
-      clearHideThoughtChainTimer()
-      setShowThoughtChain(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input])
-
-  // 思考链悬停暂停倒计时
-  const onThoughtChainHoverStart = () => clearHideThoughtChainTimer()
-  const onThoughtChainHoverEnd = () => {
-    if (!showThoughtChain) return
-    if (isLoading || agentStatus || agentSteps.length === 0) return
-    clearHideThoughtChainTimer()
-    hideThoughtChainTimerRef.current = setTimeout(() => {
-      setShowThoughtChain(false)
-      hideThoughtChainTimerRef.current = null
-    }, THOUGHT_CHAIN_HIDE_DELAY_MS)
-  }
   const [useModernView, setUseModernView] = useState(true) // 使用现代化首页视图
 
   // 对话菜单功能状态
@@ -632,6 +623,13 @@ function AIAssistantContent() {
   const [devicePillExpanded, setDevicePillExpanded] = useState(false) // 控制胶囊展开动画
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("")
+  const [selectedPersona, setSelectedPersona] = useState<string>(() => {
+    // 从 localStorage 读取上次选择的 persona
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ai-persona') || 'expert'
+    }
+    return 'expert'
+  })
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
@@ -1071,6 +1069,69 @@ function AIAssistantContent() {
   const commandHistoryRef = useRef<{ signature: string, timestamp: number }[]>([])
   const executionLoopCountRef = useRef(0)
   const rootIntentRef = useRef<string>("")
+  // CLARIFY/DECISION 标签解析失败时的自动重试计数（防止无限循环）
+  const tagRetryCountRef = useRef(0)
+  // 🔥 等待用户输入状态：后端 Agent Loop 挂起时，前端表单提交走 /api/chat/respond
+  // 而非触发新对话。SSE 流结束时清空，超时也会清空。
+  const waitingForUserInputRef = useRef<{
+    checkpointId: string
+    type: 'checkpoint' | 'clarify'
+    title: string
+    timeoutMs: number
+    startedAt: number
+  } | null>(null)
+
+  /**
+   * 响应 CHECKPOINT / CLARIFY 表单提交
+   *
+   * - 若 SSE 流处于挂起等待状态（waitingForUserInputRef 有值）：
+   *   POST /api/chat/respond → 后端 resolve promise → Agent Loop 继续
+   * - 否则（兜底，比如 SSE 已结束）：走 onSendMessage 触发新对话
+   */
+  const respondToCheckpoint = useCallback(async (replyText: string, fallbackToSendMessage: (text: string) => void) => {
+    const waiting = waitingForUserInputRef.current
+    if (!waiting) {
+      // 没有挂起的 Agent Loop，走旧逻辑兜底
+      console.log('[Chat] No pending checkpoint, falling back to new conversation')
+      // 🔥 即使是兜底也显示 loading 通知，给用户即时反馈
+      showNotice('已提交，AI 正在继续处理', replyText?.slice(0, 60) || undefined, 'loading')
+      fallbackToSendMessage(replyText)
+      return
+    }
+
+    console.log(`[Chat] Responding to checkpoint ${waiting.checkpointId}, type=${waiting.type}`)
+    // 🔥 立即给用户提交反馈：loading 通知，等待 user_input_received 事件到达后由该事件处理逻辑清除
+    showNotice('已提交，AI 正在继续处理', replyText?.slice(0, 60) || undefined, 'loading')
+
+    try {
+      const res = await fetch('/api/chat/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          checkpoint_id: waiting.checkpointId,
+          reply: replyText,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.warn('[Chat] Respond failed:', data?.error)
+        // 失败兜底：清除所有 loading 通知，显示错误，触发新对话
+        setNotices(prev => prev.filter(n => n.variant !== 'loading'))
+        showNotice('回复送达失败', data?.error || '将作为新消息发送', 'error')
+        fallbackToSendMessage(replyText)
+      } else {
+        // 成功：Agent Loop 将自行恢复，前端不需要触发新对话
+        // 注意：不要清空 waitingForUserInputRef，要等 user_input_received 事件到达时再清
+        // loading 通知保留，由 user_input_received 事件处理时清除
+        console.log('[Chat] Respond succeeded, Agent Loop will resume')
+      }
+    } catch (e: any) {
+      console.error('[Chat] Respond error:', e)
+      setNotices(prev => prev.filter(n => n.variant !== 'loading'))
+      showNotice('回复送达失败', e?.message || '网络错误，将作为新消息发送', 'error')
+      fallbackToSendMessage(replyText)
+    }
+  }, [])
 
   const [notices, setNotices] = useState<{ id: number; title: string; description?: string; variant?: 'loading' | 'success' | 'error'; expanded: boolean }[]>([])
   const noticeIdCounter = useRef(0)
@@ -1104,13 +1165,20 @@ function AIAssistantContent() {
     
     // 清空当前消息，避免闪烁
     setMessages([])
-    
+    setLatestTaskListContent("")
+    // 🔥 重置新消息分隔线边界（加载完成后重新设置）
+    setNewMessageBoundary(0)
+    // 🔥 重置工具更新标记，新会话允许流式 TASK_LIST 写入
+    taskUpdatedByToolRef.current = false
+
     try {
       const res = await fetch(`/api/chat/sessions/${sessionId}/messages`)
       if (res.ok) {
         const data = await res.json()
         if (data.messages && Array.isArray(data.messages)) {
           setMessages(data.messages)
+          // 🔥 历史消息加载完成：以当前数量为边界，之后新增的消息视为"新消息"
+          setNewMessageBoundary(data.messages.length)
         }
       } else {
         console.error('Failed to load session messages:', res.status)
@@ -1244,8 +1312,11 @@ function AIAssistantContent() {
     if (providerConfigLoaded) return
     const map: Record<string, boolean> = {}
     const providers = aiConfig?.providers || []
+    // 注意：aiConfig.providers 来自 /api/ai/providers（getPublicProviders），
+    // 该接口已经预先过滤掉未启用的 provider，返回的对象不含 enabled 字段。
+    // 因此此处不能再判断 p.enabled，否则所有 provider 都会被跳过，导致
+    // modelSupportsReasoning 永远为空 map，用户端会误判所有非启发式命名的模型不支持深度思考。
     for (const p of providers) {
-      if (!p.enabled) continue
       for (const m of (p.models || [])) {
         if (m && m.id) {
           map[m.id] = !!m.supportsReasoning
@@ -1356,6 +1427,8 @@ function AIAssistantContent() {
             const data = await res.json()
             const msgs = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
             setMessages(msgs.length > 0 ? msgs : [])
+            // 🔥 历史消息加载完成：以当前数量为边界，之后新增的消息视为"新消息"
+            setNewMessageBoundary(msgs.length)
             try {
               const draft = localStorage.getItem(`ai-input-draft-${sessionId}`)
               if (typeof draft === "string") setInput(draft)
@@ -1391,17 +1464,27 @@ function AIAssistantContent() {
 
     // 2. 标记停止，阻止后续执行
     isStoppedRef.current = true
-    
+
     // 清除所有未执行的反馈回调
     feedbackTimeoutIdsRef.current.forEach(id => clearTimeout(id))
     feedbackTimeoutIdsRef.current = []
-    
+
+    // 🔥 清理挂起的等待用户输入状态
+    // 后端 Agent Loop 因 SSE 断开也会 reject promise（req.signal abort）
+    if (waitingForUserInputRef.current) {
+      console.log('[Chat] Stop: clearing waiting state')
+      waitingForUserInputRef.current = null
+    }
+
     // 3. 清除所有状态
     setIsLoading(false)
     setAgentStatus("")
     setIsExecutingControl(false)
     setDevicePillExpanded(false)
     setExecutingDeviceName("")
+
+    // 🔥 用户停止：把 AI 动作总结标记为 stopped
+    setAiActionSummary((prev) => prev ? { ...prev, status: "stopped" } : null)
     
     // 4. 添加一条系统消息提示
     setMessages(prev => [...prev, { role: "assistant", content: "🛑 已响应您的请求，立即停止所有操作 (Generation & Execution Terminated)。" }])
@@ -1411,7 +1494,12 @@ function AIAssistantContent() {
   }
 
   const executeCommands = async (commands: any[], originalContent?: string) => {
-    if (!commands || commands.length === 0) return
+    if (!commands || commands.length === 0) {
+      // 兜底：若上层 finally 因 hasFollowupCommands 未清理 isLoading，此处补清理
+      setIsLoading(false)
+      setAgentStatus("")
+      return
+    }
     if (isStoppedRef.current) return // 如果已停止，直接不执行
     
     // 重置停止标志
@@ -1487,7 +1575,6 @@ function AIAssistantContent() {
     
     setIsExecutingControl(true) // 开启发光动效
     showNotice("正在执行指令...", `共发现 ${commands.length} 个操作`, "loading")
-    let hasSentCustomFeedback = false
 
     for (const cmd of commands) {
       // 检查是否已停止
@@ -1502,7 +1589,8 @@ function AIAssistantContent() {
           if (aiFeatures.enableDeviceControl === false) {
             console.log('[Device Control] Feature disabled by admin')
             showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
-            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+
             continue // 跳过此命令
           }
           
@@ -1564,7 +1652,8 @@ function AIAssistantContent() {
           if (aiFeatures.enableDeviceControl === false) {
             console.log('[Device Control] Feature disabled by admin')
             showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
-            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+
             continue // 跳过此命令
           }
           
@@ -1631,7 +1720,8 @@ function AIAssistantContent() {
           if (aiFeatures.enableDeviceControl === false) {
             console.log('[Device Control] Feature disabled by admin')
             showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
-            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+
             continue // 跳过此命令
           }
           
@@ -1649,18 +1739,12 @@ function AIAssistantContent() {
           // 检查左边界
           if (direction === 1 && currentPos <= 10) {
             showNotice("云台控制失败", `已经在最左侧（${currentPos.toFixed(1)}mm），无法继续左移`, "error")
-            const feedbackMsg = `【系统反馈】云台已经在最左侧（${currentPos.toFixed(1)}mm / 700mm），无法继续左移。请选择右移（direction: 2）或停止（direction: 0）。`
-            handleSend(feedbackMsg, [], true, true)
-            hasSentCustomFeedback = true
             continue // 跳过这个命令
           }
-          
+
           // 检查右边界
           if (direction === 2 && currentPos >= 690) {
             showNotice("云台控制失败", `已经在最右侧（${currentPos.toFixed(1)}mm），无法继续右移`, "error")
-            const feedbackMsg = `【系统反馈】云台已经在最右侧（${currentPos.toFixed(1)}mm / 700mm），无法继续右移。请选择左移（direction: 1）或停止（direction: 0）。`
-            handleSend(feedbackMsg, [], true, true)
-            hasSentCustomFeedback = true
             continue // 跳过这个命令
           }
 
@@ -1713,14 +1797,7 @@ function AIAssistantContent() {
           } else {
             let err = ''
             try { const j = await res.json(); err = j?.error || '' } catch { }
-            
-            // 检查是否是边界错误，如果是则发送反馈给AI
-            if (err.includes('边界') || err.includes('limit') || err.includes('已经到达') || err.includes('原点')) {
-              const feedbackMsg = `【系统反馈】云台移动失败：${err}。当前位置：${currentPos.toFixed(1)}mm / 700mm。请重新分析位置并选择正确的移动方向，或停止移动。`
-              handleSend(feedbackMsg, [], true, true)
-              hasSentCustomFeedback = true
-            }
-            
+
             setStudioData(prev => {
               const newData = [...prev]
               const lastIdx = newData.findLastIndex(d => d.name === 'control_camera')
@@ -1738,7 +1815,8 @@ function AIAssistantContent() {
           if (aiFeatures.enableVisionInspection === false) {
             console.log('[Vision Inspection] Feature disabled by admin')
             showNotice("❌ 功能已禁用", "管理员已禁用视觉巡检功能", "error")
-            handleSend('【系统反馈】视觉巡检功能已被管理员禁用，无法执行此操作。', [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+
             continue // 跳过此命令
           }
           
@@ -1815,9 +1893,7 @@ function AIAssistantContent() {
                     }
                     return newMsgs
                   })
-                  
-                  const feedbackMsg = `【系统反馈】云台移动失败：${errorMsg}。请重新分析当前位置和目标位置，选择正确的移动方向。`
-                  handleSend(feedbackMsg, [], true, true)
+
                   break // 停止当前执行流程
                 }
               } else {
@@ -1865,8 +1941,7 @@ function AIAssistantContent() {
             setVisionCapturedImage(null)
             setIsInspecting(false)
             showNotice("❌ 视觉巡检失败", "摄像头未配置或不可用", "error")
-            // 告知 AI 摄像头不可用
-            handleSend(`【系统反馈】视觉巡检失败：摄像头${cameraId === 'b' ? 'B' : 'A'}未配置或不可用。管理员尚未在后台设置摄像头地址。请告知用户无法进行视觉巡检，并使用传感器数据替代。`, [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
             break
           }
 
@@ -1994,9 +2069,7 @@ function AIAssistantContent() {
             setVisionCapturedImage(null)
             setIsInspecting(false)
             showNotice("❌ 截图失败", err?.message || '未知错误', "error")
-            // 告知 AI 截图失败
-            handleSend(`【系统反馈】视觉巡检截图失败：${err?.message || '未知错误'}。摄像头画面可能尚未加载完成或网络问题。请告知用户截图失败，并建议稍后重试或使用传感器数据。严禁编造画面内容。`, [], true, true)
-            hasSentCustomFeedback = true
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
             break
           } finally {
             setInspectionCameraUrl(null)
@@ -2007,41 +2080,24 @@ function AIAssistantContent() {
             setVisionCapturedImage(null)
             setVisionInspectionStatus('')
             showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
-            handleSend('【系统反馈】视觉巡检截图为空，摄像头可能未正常工作。严禁编造画面内容。', [], true, true)
-            hasSentCustomFeedback = true
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
             break
           }
 
           // Step 4: 发送截图给 AI (VLM 多模态消息)
           showNotice("🧠 视觉巡检", "正在让 AI 分析画面...", "loading")
-          
-          let taskContext = "";
-          if (originalContent && autoExecuteCommands) {
-               const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
-               if (match) {
-                   taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。这是任务驱动式巡检的一部分，请继续生成下一步的指令。`;
-               }
-          }
 
-          const visionMessage = [
-            { type: "image_url", image_url: { url: capturedImageBase64 } },
-            { type: "text", text: `【系统反馈】这是从摄像头 ${cameraId === 'b' ? 'B' : 'A'} 捕获的实时画面。\n请基于该图片回答问题：${query}${taskContext}\n\n**重要指令**：\n1. 请分析上述画面，并向用户提供最终的总结报告。\n2. **验证与推进**：请评估当前任务是否达成，若达成请将其设为 completed。如果还有下一个任务，请继续思考并输出下一个操作的 JSON 指令；如果所有任务已完成，请停止操作，严禁再次输出任何 JSON 控制指令。` }
-          ]
-
-          // 如果当前批次中包含视觉巡检，将其标记为 hasSentCustomFeedback = true
-          // 这将阻止 executeCommands 末尾再次发送“指令已执行完毕”的闭环反馈
-          hasSentCustomFeedback = true
-          
-          // 展示已捕获的画面，并切换到 AI 分析阶段
+          // 🔥 架构变更（重要）：原逻辑通过 silent handleSend 把截图作为多模态消息
+          // 偷偷塞给 AI 让其分析画面，这是"静默消息回流"反模式的典型代表。
+          // 新架构下，AI 通过 move_camera_and_look / take_camera_snapshot 原生 MCP 工具
+          // 在 Agent Loop 内直接调用，后端用 ffmpeg 抓帧并把 image_url 回灌给 AI，
+          // AI 在同一轮请求内即可看到图片并继续推理。
+          // 此处仅保留 UI 端的截图展示（用户可见），不再向 AI 发送任何静默消息。
           setVisionCapturedImage(capturedImageBase64)
-          setVisionInspectionStatus("画面已发送给 AI 进行视觉分析...")
-          setInspectionStatus("完成巡检分析。");
-          showNotice("✅ 视觉巡检", "画面已发送给 AI 分析", "success")
-
-          // 直接调用 handleSend 发送多模态消息 (bypass loading guard via isSilent=true)
-          // isFeedback=true 确保允许穿透 loading 锁
-          // isSilent=true 确保这条包含截图的丑陋 Prompt 消息不会显示在用户的聊天气泡中，仅作为 AI 视角的内部输入
-          handleSend(visionMessage as any, [], true, true)
+          setVisionInspectionStatus("画面已捕获（如需 AI 分析，请在对话中询问）")
+          setInspectionStatus("完成巡检截图。");
+          showNotice("✅ 视觉巡检", "画面已捕获（如需 AI 分析请直接在对话中询问）", "success")
+          // hasSentCustomFeedback 已废弃（不再有 silent feedback 机制需要去重）
           
           // 延迟清理视觉巡检状态，让用户看到分析阶段和已捕获的画面
           setTimeout(() => {
@@ -2058,7 +2114,8 @@ function AIAssistantContent() {
           if (aiFeatures.enableVisionInspection === false) {
             console.log('[Camera Snapshot] Feature disabled by admin')
             showNotice("❌ 功能已禁用", "管理员已禁用摄像头截图功能", "error")
-            handleSend('【系统反馈】摄像头截图功能已被管理员禁用，无法执行此操作。', [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+
             continue // 跳过此命令
           }
           
@@ -2098,7 +2155,7 @@ function AIAssistantContent() {
           if (!cameraUrl) {
             setIsInspecting(false);
             showNotice("❌ 获取截图失败", "摄像头未配置或不可用", "error")
-            handleSend(`【系统反馈】截图失败：摄像头${cameraId === 'b' ? 'B' : 'A'}未配置或不可用。`, [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
             break
           }
 
@@ -2203,8 +2260,7 @@ function AIAssistantContent() {
             setVisionInspectionUrl(null)
             setVisionInspectionStatus('')
             showNotice("❌ 截图失败", err?.message || '未知错误', "error")
-            handleSend(`【系统反馈】截图失败：${err?.message || '未知错误'}。`, [], true, true)
-            hasSentCustomFeedback = true
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
             break
           } finally {
             // 延迟一点关闭，避免 UI 突然消失造成闪烁
@@ -2217,8 +2273,7 @@ function AIAssistantContent() {
 
           if (!capturedImageBase64) {
             showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
-            handleSend('【系统反馈】截图为空，摄像头可能未正常工作。', [], true, true)
-            hasSentCustomFeedback = true
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
             break
           }
 
@@ -2246,40 +2301,22 @@ function AIAssistantContent() {
              return newMsgs
           })
 
-          // 对于 take_camera_snapshot，原本只是把图片塞给用户看，现在我们也触发一次 AI 内部的思考和总结
-          // 这样用户问“长得咋样”时，AI 除了展示截图，还能紧接着输出分析文本。
-          
-          let taskContext = "";
-          if (originalContent && autoExecuteCommands) {
-               const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
-               if (match) {
-                   taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。`;
-               }
-          }
+          // 🔥 架构变更（重要）：原逻辑通过 silent handleSend 把截图作为多模态消息
+          // 偷偷塞给 AI 让其分析画面，这是"静默消息回流"反模式的典型代表。
+          // 新架构下，AI 通过 take_camera_snapshot / move_camera_and_look 原生 MCP 工具
+          // 在 Agent Loop 内直接调用，后端用 ffmpeg 抓帧并把 image_url 回灌给 AI，
+          // AI 在同一轮请求内即可看到图片并继续推理。
+          // 此处仅保留 UI 端的截图展示（用户可见），不再向 AI 发送任何静默消息。
+          // hasSentCustomFeedback 已废弃（不再有 silent feedback 机制需要去重）
 
-          // 将系统反馈伪装成一条 user 消息发给 AI，这样 AI 就能通过视觉模型看到图片
-          // 因为只有 user 角色的消息才允许包含多模态图片
-          const snapshotMessage = [
-            { type: "image_url", image_url: { url: capturedImageBase64 } },
-            { type: "text", text: `【系统反馈】这是你刚刚请求获取的摄像头 ${cameraId === 'b' ? 'B' : 'A'} 实时截图。\n刚才图片已经展示给用户看了。现在，请你**仔细观察这张真实的画面，分析其中的作物生长情况、设备状态或任何异常**，并给出专业的分析描述。${taskContext}\n\n**重要指令**：\n1. 你必须真实地描述这张图片里的内容，不要编造！如果画面是黑的或者空的，请如实回答。\n2. **验证与推进**：请评估当前任务是否达成，若达成请将其设为 completed。如果还有下一个任务，请继续思考并输出下一个操作的 JSON 指令；如果所有任务已完成，请停止操作。` }
-          ]
-
-          // 标记已发送闭环反馈，阻止执行队列底部的默认反馈
-          hasSentCustomFeedback = true
-
-          // 静默发送给大模型，让大模型自己输出分析文本
-          // handleSend(overrideText, overrideAttachments, isFeedback, isSilent)
-          setTimeout(() => {
-            handleSend(snapshotMessage as any, [], true, true)
-          }, 100)
-          
           break;
         } else if (cmd.action === "reset_camera") {
           // 🔥 检查设备控制功能是否被禁用
           if (aiFeatures.enableDeviceControl === false) {
             console.log('[Device Control] Feature disabled by admin')
             showNotice("❌ 功能已禁用", "管理员已禁用设备控制功能", "error")
-            handleSend('【系统反馈】设备控制功能已被管理员禁用，无法执行此操作。', [], true, true)
+            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+
             continue // 跳过此命令
           }
           
@@ -2376,139 +2413,92 @@ function AIAssistantContent() {
     // 增加延迟到 5秒，等待设备响应和数据刷新
     if (isStoppedRef.current) return;
     
-    // 如果该批次指令已经由特定操作（如视觉巡检截图）触发了它自己的 AI 闭环反馈，
-    // 则跳过底部的全局状态反馈，避免产生两个并发对话流从而导致死循环。
-    if (hasSentCustomFeedback) {
-        setAgentStatus("")
-        setIsLoading(false)
-        return;
+    // 🔥 架构变更（重要）：原 feedbackLoop 静默消息回流机制已移除。
+    // 旧机制：executeCommands 末尾会等待设备响应 → 更新 TASK_LIST → 通过 isSilent=true
+    //   调用 handleSend 把"指令已执行完毕"塞回 AI，让 AI 决定下一步 → 形成 agent 闭环。
+    // 新机制：AI 在 Agent Loop 内直接调用 toggle_relay/control_camera 等原生 MCP 工具，
+    //   工具内部阻塞等待物理动作完成并返回真实结果，AI 在同一轮请求内继续推理。
+    //   因此前端不再需要发送任何静默消息来"告知 AI 设备已执行"。
+    //
+    // executeCommands 现仅用于：DeviceControlCard 上用户手动点击按钮时执行设备控制。
+    // 此路径与 AI 无关，用户点击按钮 → 调 /api/ai/device-control → 更新 UI 状态 → 结束。
+    //
+    // 短暂等待设备响应（让 UI 显示设备状态变化），然后清理 loading 状态。
+    setAgentStatus("等待下位机响应: ESP32-S3...")
+    await new Promise(r => setTimeout(r, 1500))
+    if (isStoppedRef.current) {
+      setAgentStatus("")
+      setIsLoading(false)
+      return
     }
-    
-    setAgentStatus("等待下位机响应: ESP32-S3 (超时 5000ms)...")
-    
-    // 异步执行反馈循环，以便可以被暂停
-    const feedbackLoop = async () => {
-        // Step 1: 等待设备响应
-        const step1Start = Date.now()
-        while (Date.now() - step1Start < 1500) {
-            if (isStoppedRef.current) return
-            while (isTaskPausedRef.current) {
-                if (isStoppedRef.current) return
-                await new Promise(r => setTimeout(r, 500))
-                setAgentStatus("任务已暂停: 等待恢复...")
-            }
-            await new Promise(r => setTimeout(r, 100))
-        }
-        if (isStoppedRef.current) return
-        
-        setAgentStatus("重新采样: DHT11, BH1750, MH-Z19...")
 
-        // Step 2: 等待重新采样
-        const step2Start = Date.now()
-        while (Date.now() - step2Start < 3500) {
-            if (isStoppedRef.current) return
-            while (isTaskPausedRef.current) {
-                if (isStoppedRef.current) return
-                await new Promise(r => setTimeout(r, 500))
-                setAgentStatus("任务已暂停: 等待恢复...")
-            }
-            await new Promise(r => setTimeout(r, 100))
-        }
-        if (isStoppedRef.current) return
+    // 等待传感器重新采样（与原 feedbackLoop 的等待时长一致，保持 UI 行为兼容）
+    setAgentStatus("重新采样: DHT11, BH1750, MH-Z19...")
+    await new Promise(r => setTimeout(r, 1500))
+    if (isStoppedRef.current) {
+      setAgentStatus("")
+      setIsLoading(false)
+      return
+    }
 
-        // 自动更新客户端的 Task List 状态为 completed
-        let hasPendingTasks = false;
-        let nextContent = originalContent;
-        if (originalContent) {
-          const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
-          if (match) {
-            try {
-              const parsed = JSON.parse(match[1]);
-              const tasks = parsed?.tasks || [];
-              let updated = false;
-              tasks.forEach((t: any) => {
-                if (t.status === "in_progress") {
-                  t.status = "completed";
-                  updated = true;
-                } else if (t.status === "pending") {
-                  hasPendingTasks = true;
-                }
-              });
-              if (updated) {
-                const newTaskListStr = `<TASK_LIST>${JSON.stringify(parsed)}</TASK_LIST>`;
-                nextContent = originalContent.replace(/<TASK_LIST>[\s\S]*?<\/TASK_LIST>/, newTaskListStr);
-                
-                setMessages(prev => {
-                  const next = [...prev];
-                  const idx = next.findLastIndex(m => m.role === 'assistant');
-                  if (idx !== -1) {
-                    next[idx] = { ...next[idx], content: nextContent };
-                  }
-                  // 保存到本地数据库
-                  if (sessionId) {
-                    fetch(`/api/sessions/${sessionId}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ messages: next })
-                    }).catch(console.error);
-                  }
-                  return next;
-                });
+    // 客户端 TASK_LIST 状态更新：手动点击执行后，若消息中包含 TASK_LIST，
+    // 将当前 in_progress 任务标记为 completed 并提升下一个 pending 任务。
+    // 这部分逻辑保留，因为它只是 UI 端的状态同步，不涉及向 AI 发送静默消息。
+    if (originalContent) {
+      const match = originalContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          const tasks = parsed?.tasks || [];
+          let updated = false;
+          tasks.forEach((t: any) => {
+            if (t.status === "in_progress") {
+              t.status = "completed";
+              updated = true;
+            }
+          });
+          if (updated) {
+            // 将下一个 pending 任务提升为 in_progress
+            for (const t of tasks) {
+              if (t.status === "pending") {
+                t.status = "in_progress";
+                break;
               }
-            } catch (e) {
-              console.error('[executeCommands] Client-side task status update failed:', e);
             }
+            const newTaskListStr = `<TASK_LIST>${JSON.stringify(parsed)}</TASK_LIST>`;
+            setLatestTaskListContent(newTaskListStr);
+
+            setMessages(prev => {
+              const next = [...prev];
+              const idx = next.findLastIndex(m => m.role === 'assistant');
+              if (idx !== -1) {
+                const nextContent = (next[idx].content as string).replace(
+                  /<TASK_LIST>[\s\S]*?<\/TASK_LIST>/,
+                  newTaskListStr
+                );
+                next[idx] = { ...next[idx], content: nextContent };
+              }
+              // 保存到本地数据库
+              if (sessionId) {
+                fetch(`/api/sessions/${sessionId}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ messages: next })
+                }).catch(console.error);
+              }
+              return next;
+            });
           }
+        } catch (e) {
+          console.error('[executeCommands] Client-side task status update failed:', e);
         }
-
-        setAgentStatus("正在分析闭环控制反馈...")
-        
-        // 如果是自动执行模式，并且计划任务列表中仍有未完成的待执行任务（pending 状态），则继续发送反馈给 AI 进行下一步推进
-        // 如果没有后续 pending 任务或没有任务列表，说明这是一键单次操作，执行完毕后直接结束，无需再循环请求 AI 浪费 token
-        if (autoExecuteCommands && hasPendingTasks) {
-            let taskContext = "";
-            if (nextContent) {
-                 const match = nextContent.match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/);
-                 if (match) {
-                     taskContext = `\n\n【当前任务进度快照】\n${match[0]}\n\n请基于上述进度更新任务状态（例如将当前 in_progress 的任务改为 completed，并将下一个任务设为 in_progress）。`;
-                 }
-            }
-
-            // 将反馈过程记录到 Agent 执行链中，而不是显示在聊天气泡里
-            const feedbackStepId = `feedback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-            setAgentSteps(prev => [...prev, {
-                id: feedbackStepId,
-                type: "observation",
-                status: "active",
-                title: "任务推进中",
-                detail: "正在推进到下一个任务步骤...",
-                startedAt: Date.now()
-            }])
-
-            const rootIntent = rootIntentRef.current || "刚才的指令";
-            
-            // 恢复使用静默模式 (isSilent: true)，保持聊天记录整洁
-            await handleSend(`指令已执行完毕。
-
-请根据系统提供的【当前最新数据】判断执行效果，并决定下一步操作。
-${taskContext}
-**核心原则与原始意图回顾：**
-1. 我已开启【自动托管模式】，请直接继续。
-2. **遵守原始指令（最高优先级）**：用户的初始意图是：“${rootIntent}”。必须严格回顾此意图，严禁违背！
-3. **状态验证**：分析当前设备状态是否已符合预期。
-4. **决策下发**：请将刚才完成的任务标记为 completed。发现列表中仍有 pending 的任务步骤，请继续执行下一个任务步骤，输出相应的 JSON 指令。`, [], true, true)
-
-            // 更新步骤为已完成
-            setAgentSteps(prev => prev.map(s => s.id === feedbackStepId ? { ...s, status: "completed", durationMs: Date.now() - s.startedAt } : s))
-        } else {
-            // 没有后续待执行任务步骤，直接结束流式控制并解锁状态
-            setAgentStatus("") 
-            setIsLoading(false)
-            console.log('[Agent Flow] No pending tasks or single command. Finished executing commands directly to save tokens and avoid loops.')
-        }
+      }
     }
-    
-    await feedbackLoop()
+
+    // 清理状态，结束本次手动执行（不再发送任何静默消息给 AI）
+    setAgentStatus("")
+    setIsLoading(false)
+    console.log('[executeCommands] Manual device execution finished (no silent feedback to AI).')
   }
 
   const handleSend = async (
@@ -2537,6 +2527,17 @@ ${taskContext}
     // 记录原始意图：如果不是反馈或静默消息，我们就将其定为本次会话链条的“根意图”
     if (!isFeedback && !isSilent && typeof text === 'string' && text.trim()) {
       rootIntentRef.current = text;
+      // 用户主动发送新消息时重置标签解析重试计数
+      tagRetryCountRef.current = 0;
+    }
+
+    // 🔥 计划模式自动收尾：检测到计划批准/拒绝消息时，自动关闭 enablePlanning
+    // PlanApprovalCard 的 onApprove/onReject 会发送带前缀的消息，此处统一收尾
+    if (typeof text === 'string' && (text.startsWith('【计划批准】') || text.startsWith('【计划拒绝】'))) {
+      if (enablePlanning) {
+        setEnablePlanning(false)
+        console.log(`[Plan Mode] Auto-disabled enablePlanning after ${text.startsWith('【计划批准】') ? 'approval' : 'rejection'}`)
+      }
     }
     
     const currentAttachments = overrideAttachments || attachments
@@ -2609,24 +2610,23 @@ ${taskContext}
     })()
 
     if (userMsg === "是" || userMsg === "执行") {
-      const lastAssistantMsg = messages[messages.length - 1]
-      if (lastAssistantMsg && lastAssistantMsg.role === "assistant") {
-        const jsonMatches = [...(lastAssistantMsg.content as string).matchAll(/```json\s*([\s\S]*?)```/g)]
-        if (jsonMatches.length > 0) {
-          const commands = []
-          for (const match of jsonMatches) {
-            try { commands.push(JSON.parse(match[1])) } catch { }
-          }
-          // 过滤掉 schedule_task — 由 ScheduleCard 自动处理
-          const executableCommands = commands.filter(cmd => cmd && cmd.action !== "schedule_task")
-          if (executableCommands.length > 0) await executeCommands(executableCommands)
-        }
-      }
+      // 🔥 架构变更：设备控制已迁移为原生 MCP 工具调用（toggle_relay / control_camera 等），
+      // AI 不再输出 JSON 代码块形式的控制指令，因此不再需要"用户确认执行"的特殊路径。
+      // 用户如需控制设备，可直接在对话中描述需求，AI 会自动调用对应工具。
+      // 此分支保留为兜底但不再解析 JSON（避免误执行残留的旧格式输出）。
+      console.log('[handleSend] "是/执行" 确认路径已废弃（设备控制改为工具调用）')
       return
     }
 
     const userMessage: Message = { role: "user", content: userMessageContent, isSilent }
-    
+
+    // 🔥 用户主动发新消息时重置页面级 TASK_LIST（反馈消息不重置，保持任务规划连续性）
+    if (!isFeedback && !isSilent) {
+      setLatestTaskListContent("")
+      // 🔥 重置工具更新标记，新一轮对话允许流式 TASK_LIST 写入
+      taskUpdatedByToolRef.current = false
+    }
+
     // 使用 Ref 获取并立即更新最新的消息列表，彻底解决闭包导致的异步状态回滚问题
     const currentMessagesForApi = [...messagesRef.current, userMessage]
     setMessages(currentMessagesForApi)
@@ -2651,9 +2651,11 @@ ${taskContext}
           setSessions((prev) => prev.map((s) => (s.id === ensuredSessionId ? { ...s, title: cand } : s)))
         }
 
-        // 保存消息到会话时，确保正确序列化消息内容
-        // 这里使用 currentMessagesForApi 确保包含了刚刚插入的那条消息
-        const messagesToSave = currentMessagesForApi.map(m => {
+        // 保存消息到会话时，过滤掉 isSilent 内部反馈消息（避免重新加载时污染对话历史）
+        // 同时确保正确序列化消息内容
+        const messagesToSave = currentMessagesForApi
+          .filter(m => !(m as Message & { isSilent?: boolean }).isSilent)
+          .map(m => {
           let safeContent = m.content;
           if (Array.isArray(safeContent)) {
             // 如果是数组格式的多模态消息，我们需要深拷贝并清理它
@@ -2691,28 +2693,15 @@ ${taskContext}
 
       // 注入自动模式状态到 System Prompt
       let effectiveSystemPrompt = aiSettings?.systemPrompt || "";
-      
-      // 注入技能 (Skills) 数据
-      if (mandatorySkillsEnabled && builtinSkills.length > 0) {
-        const builtinPrompt = builtinSkills
-          .map(s => `[${s.name} 模块]\n${s.content}`)
-          .join('\n\n');
-        effectiveSystemPrompt += `\n\n### 核心系统知识与行为规范 ###\n${builtinPrompt}`;
-      }
 
-      const activeStoreSkills = installedStoreSkills.filter(s => selectedStoreSkillIds.includes(s.skill_id));
-      if (activeStoreSkills.length > 0) {
-        const storePrompt = activeStoreSkills
-          .map(s => `[${s.name} 增强模块]\n${s.content}`)
-          .join('\n\n');
-        effectiveSystemPrompt += `\n\n### 用户扩展功能模块 ###\n${storePrompt}`;
-      }
+      // ⚠️ Skills 注入已由后端 chat/route.ts 的 getRelevantSkillsContentCached 统一处理
+      // （基于智能路由 + 缓存），前端不再重复注入以避免 token 浪费和潜在冲突
 
       // ⚠️ 定时任务功能说明已由 generateCompactSystemPrompt 中的 SCHEDULE_TASK_INSTRUCTION_COMPACT 统一提供
       // 不再追加旧的 getScheduleTaskSystemPrompt()，避免新旧格式指令冲突导致 AI 输出错误
 
       if (autoExecuteCommands) {
-        effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动执行模式。\n严禁提问！严禁等待用户确认！\n必须直接输出 IoT 设备控制指令 JSON (如 toggle_relay)。\n注意：对于 MCP 工具 (如天气、搜索)，仍必须使用 Native Tool Calling！\n如果遇到问题，请自行尝试解决或跳过。";
+        effectiveSystemPrompt += "\n\n【系统状态注入】当前处于：自动执行模式。\n严禁提问！严禁等待用户确认！\n必须直接调用设备控制工具（toggle_relay / set_led / control_camera / reset_camera / take_camera_snapshot / move_camera_and_look）执行物理动作。\n所有工具（含设备控制、天气、搜索等）统一通过 Native Function Calling 调用，严禁输出 JSON 代码块形式的设备控制指令。\n如果遇到问题，请自行尝试解决或跳过。";
       }
       
       // 根据权限模式调整系统提示词 - 让每个模式有明显区别
@@ -2720,12 +2709,12 @@ ${taskContext}
         effectiveSystemPrompt += `\n\n【替我审批模式 - 智能执行】
 - 目标：平衡自动化和安全性
 - 行为准则：
-  1. 低风险操作（如查询、读取传感器、开关单个设备）直接执行
+  1. 低风险操作（如查询、读取传感器、开关单个设备）直接调用工具执行
   2. 高风险操作（如批量控制、系统配置、数据删除）需主动征求用户确认
-  3. 输出 JSON 控制指令前简要说明操作内容
+  3. 调用设备控制工具前简要说明操作内容
   4. 如果参数不明确，使用合理的默认值
   5. 执行完成后简短汇报结果
-- 示例：用户说"开灯" → 说明"即将开启照明灯" → 输出 JSON 开灯指令（自动执行）
+- 示例：用户说"开灯" → 说明"即将开启照明灯" → 调用 toggle_relay 工具开灯（自动执行）
 - 高风险示例：用户说"关闭所有设备" → 说明"这将关闭所有设备，确认吗？" → 等待用户确认`;
       } else if (approvalMode === 'full') {
         effectiveSystemPrompt += `\n\n【完全访问权限模式 - 深度分析】
@@ -2747,107 +2736,17 @@ ${taskContext}
 - 行为准则：
   1. 用自然语言回答问题和提供建议
   2. 如果用户需要控制设备，先解释操作的作用和影响
-  3. 然后输出 JSON 控制指令（系统会等待用户手动点击"执行"按钮确认）
+  3. 然后调用设备控制工具（系统会等待用户手动点击"执行"按钮确认）
   4. 提供建议但让用户做最终决定
   5. 如果不确定用户意图，主动询问
   6. 所有设备操作都需要用户手动确认
-- 重要：你可以输出 JSON 控制指令，但系统会等待用户手动确认后才执行
-- 示例：用户说"温度有点高" → 解释"当前32°C偏高，建议开启风扇降温" → 输出JSON风扇控制指令 → 用户点击"执行"按钮后才会真正执行`;
+- 重要：你可以调用设备控制工具，但系统会等待用户手动确认后才执行
+- 示例：用户说"温度有点高" → 解释"当前32°C偏高，建议开启风扇降温" → 调用 toggle_relay 工具 → 用户点击"执行"按钮后才会真正执行`;
       }
 
-      // 计划模式：生成详细的任务规划
-      if (enablePlanning) {
-        effectiveSystemPrompt += `\n\n【计划模式已启用】
-- 对于复杂任务，必须先生成详细的执行计划
-- 使用 <TASK_LIST> 标签输出任务规划，格式示例：
-
-<TASK_LIST>
-{
-  "status": "in_progress",
-  "tasks": [
-    {
-      "title": "分析环境数据",
-      "items": [
-        { "type": "text", "text": "读取温湿度传感器数据" },
-        { "type": "text", "text": "读取光照传感器数据" }
-      ],
-      "status": "in_progress"
-    },
-    {
-      "title": "制定调节方案",
-      "items": [
-        { "type": "text", "text": "根据数据分析最优参数" },
-        { "type": "text", "text": "生成设备控制策略" }
-      ],
-      "status": "pending"
-    },
-    {
-      "title": "执行环境调节",
-      "items": [
-        { "type": "text", "text": "调节灯光亮度" },
-        { "type": "text", "text": "调节风扇转速" }
-      ],
-      "status": "pending"
-    }
-  ]
-}
-</TASK_LIST>
-
-- 任务列表应该清晰展示执行步骤
-- 第一个任务的 status 应设为 "in_progress"，其余为 "pending"
-- 每个任务完成后，在下一次响应中更新状态
-- 示例：用户说"优化草莓生长环境" → 先输出完整的 TASK_LIST 规划 → 然后逐步执行`;
-      }
-
-      // 🔥 智能拆解：自动检测复杂任务并要求 AI 进行任务规划
-      // 当用户未显式启用 enablePlanning 但请求明显是复杂任务时，自动注入规划指令
-      const lastUserText = (() => {
-        for (let i = currentMessagesForApi.length - 1; i >= 0; i--) {
-          const m = currentMessagesForApi[i]
-          if (m && m.role === 'user') {
-            const c = m.content
-            if (typeof c === 'string') return c
-            if (Array.isArray(c)) {
-              const t = c.find((p: any) => p?.type === 'text')
-              return t?.text || ''
-            }
-          }
-        }
-        return ''
-      })()
-      if (!enablePlanning && lastUserText) {
-        const complexKeywords = [
-          '优化', '调节', '制定', '规划', '分析', '诊断', '处理', '解决',
-          '管理', '评估', '监控', '巡检', '部署', '安装', '升级', '改造',
-          '完整', '整套', '从...到', '依次', '按顺序', '流程', '全流程',
-          '多', '所有', '全面', '完整方案', '策略', '方案', '计划',
-          '生长', '种植', '灌溉', '施肥', '通风', '控温', '调光',
-        ]
-        // 长度阈值 + 关键词命中，至少满足其一才算复杂
-        const isLong = lastUserText.length > 40
-        const keywordHits = complexKeywords.filter(k => lastUserText.includes(k)).length
-        if (isLong && keywordHits >= 1) {
-          effectiveSystemPrompt += `\n\n【自动任务规划 - 系统检测到这是一个复杂任务】
-你必须先使用 <TASK_LIST> 标签输出结构化的任务执行计划，**然后**再开始执行第一个任务。
-
-<TASK_LIST>
-{
-  "status": "in_progress",
-  "tasks": [
-    { "title": "步骤 1（信息收集/分析）", "items": [{"type":"text","text":"..."}], "status": "in_progress" },
-    { "title": "步骤 2（方案制定）", "items": [{"type":"text","text":"..."}], "status": "pending" },
-    { "title": "步骤 3（执行操作）", "items": [{"type":"text","text":"..."}], "status": "pending" },
-    { "title": "步骤 4（验证反馈）", "items": [{"type":"text","text":"..."}], "status": "pending" }
-  ]
-}
-</TASK_LIST>
-
-规则：
-- 任务数 3-6 个，每任务 items 数 2-4 个
-- 第一个任务 status="in_progress"，其余 "pending"
-- 简短概述每步骤的子动作，让用户清楚看到执行路径`
-        }
-      }
+      // 计划模式：用户手动启用时，通过请求体 enablePlanning 传给后端
+      // 后端会初始化 planMode=true 并在 system prompt 附加引导（无需前端注入 <TASK_LIST> 指令）
+      // 旧版 <TASK_LIST> 注入逻辑已废弃，统一由 enter_plan_mode/exit_plan_mode 工具机制接管
 
       // 获取 MCP 配置
       let mcpConfigs = []
@@ -2893,7 +2792,7 @@ ${taskContext}
           .map(m => m.role + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
           .join('\n').length
 
-      if (overflowStringified.length > 25000 && nonMemoryMsgs.length > 5 && historyToSummarizeLength > 1000) {
+      if (overflowStringified.length > 50000 && nonMemoryMsgs.length > 5 && historyToSummarizeLength > 1000) {
         setAgentStatus("对话记录过长，莓小智正在提炼并压缩记忆...")
         await new Promise(r => setTimeout(r, 800)) // 给用户一点看到提示的时间
       }
@@ -2918,7 +2817,9 @@ ${taskContext}
           weatherData: weatherDataRef.current,
           mcpConfigs, // 添加 MCP 配置
           mandatorySkillsEnabled, // 传递核心技能开启状态
-          enableMcp
+          enableMcp,
+          persona: selectedPersona, // 传递当前选中的 AI 角色
+          enablePlanning // 传递计划模式开关，后端据此初始化 planMode
         })
       })
       
@@ -2973,18 +2874,92 @@ ${taskContext}
       const startTs = Date.now()
       setMessages(prev => [...prev, assistantMsg])
 
+      // 🔥 初始化 AI 动作统计：开始计时
+      aiActionStatsRef.current = {
+        startTs,
+        toolCallCount: 0,
+        fileChanges: { added: 0, removed: 0, count: 0 },
+        lastTaskPlanProgress: undefined,
+        lastTaskPlanCompleted: false,
+      }
+      setAiActionSummary({
+        status: "running",
+        totalDurationMs: 0,
+        toolCallCount: 0,
+        fileChanges: { added: 0, removed: 0, count: 0 },
+      })
+
       // Agent execution chain steps - 初始化"深度思考"步骤
       // 唯一 ID 计数器，避免 flushSync 快速渲染时 Date.now() 撞车
       let _stepIdCounter = 0
       const nextStepId = (prefix: string) => `${prefix}-${Date.now()}-${_stepIdCounter++}`
 
+      // 根据工具名与结果生成"真实"摘要，避免千篇一律的"数据已注入上下文"
+      const summarizeToolResult = (toolName: string, result: any): string => {
+        if (!result) return '无返回内容'
+        const t = toolName.toLowerCase()
+        // 搜索类
+        if (t.includes('search') || t.includes('exa') || t.includes('brave')) {
+          const arr = Array.isArray(result?.results) ? result.results
+            : Array.isArray(result?.data) ? result.data : null
+          if (arr) return `找到 ${arr.length} 条结果`
+          return '搜索完成'
+        }
+        // 抓取类
+        if (t.includes('scrape') || t.includes('crawl') || t.includes('fetch') || t.includes('firecrawl')) {
+          const text = result?.markdown || result?.content || result?.text || ''
+          if (typeof text === 'string' && text.length) return `抓取到 ${text.length} 字符内容`
+          return '网页内容已获取'
+        }
+        // 天气类
+        if (t.includes('weather')) {
+          const w = result?.current || result?.weather || result
+          const parts: string[] = []
+          if (w?.temperature != null) parts.push(`温度 ${w.temperature}°C`)
+          if (w?.humidity != null) parts.push(`湿度 ${w.humidity}%`)
+          if (w?.description) parts.push(w.description)
+          return parts.length ? parts.join('，') : '天气数据已获取'
+        }
+        // 光谱类
+        if (t.includes('spectrum')) {
+          const bands = result?.bands || result?.data || result?.wavelengths
+          const len = Array.isArray(bands) ? bands.length : (result?.count ?? null)
+          if (len != null) return `采集到 ${len} 个波段光谱数据`
+          return '光谱数据已采集'
+        }
+        // 设备/控制类
+        if (t.includes('device') || t.includes('relay') || t.includes('control')) {
+          if (result?.state != null) return `设备状态: ${result.state}`
+          if (result?.success) return '指令已下发'
+          return '设备控制完成'
+        }
+        // 路线类
+        if (t.includes('route') || t.includes('amap') || t.includes('map')) {
+          if (result?.distance != null && result?.duration != null)
+            return `距离 ${(result.distance/1000).toFixed(1)}km，约 ${Math.round(result.duration/60)} 分钟`
+          return '路线规划完成'
+        }
+        // 兜底：提取有意义的字符串字段，而非裸 JSON
+        if (typeof result === 'string') return result.slice(0, 120)
+        const candidates = ['summary', 'message', 'content', 'text', 'data', 'result']
+        for (const k of candidates) {
+          const v = result?.[k]
+          if (typeof v === 'string' && v.trim()) return v.slice(0, 120)
+          if (Array.isArray(v)) return `${k}: ${v.length} 项`
+        }
+        // 最后兜底：用键名构造简短描述
+        try {
+          const keys = Object.keys(result).slice(0, 4)
+          return keys.length ? `返回字段: ${keys.join(', ')}` : '结果已注入上下文'
+        } catch { return '结果已注入上下文' }
+      }
+
       const currentAgentSteps: AgentStep[] = [
         {
-          id: nextStepId("initial-thinking"),
-          type: "thinking",
+          id: nextStepId("initial-narrative"),
+          kind: "narrative",
           status: "active",
-          title: "💭 等待 AI 响应",
-          detail: "正在等待模型返回首个 token…",
+          text: "我先理解一下你的问题，准备调用最合适的工具。",
           startedAt: Date.now()
         }
       ]
@@ -3039,6 +3014,8 @@ ${taskContext}
             setBrowsingUrl(null)
             // 🔥 修复：立即清理 isLoading 状态，避免显示"思考中"
             setIsLoading(false)
+            // 🔥 清除残留的"已提交"loading 通知（流已结束，不再需要）
+            setNotices(prev => prev.filter(n => n.variant !== 'loading'))
             continue
           }
           
@@ -3050,19 +3027,26 @@ ${taskContext}
               if (data.error) {
                  // 与项目里其它 API 路由（automation/generate、ai/*、monitor/snapshot 等）一致：
                  // 后端返回 `AI API Error: <code> - <details>` 或简短中文描述，直接展示原始内容即可。
-                 // 旧实现会拼一个 `⚠️ Error:` 前缀反而成为多余装饰。
                  const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error)
                  assistantMsg.content = errorMsg
-                 setMessages(prev => {
-                    const newMsgs = [...prev]
-                    newMsgs[newMsgs.length - 1] = { ...assistantMsg }
-                    return newMsgs
-                 })
-                 continue
+                 // 会话切换保护：避免把旧会话的错误写入新会话
+                 if (streamSessionId === sessionId) {
+                   setMessages(prev => {
+                      const newMsgs = [...prev]
+                      newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+                      return newMsgs
+                   })
+                 }
+                 // 错误后必须清理加载状态并退出循环（后端可能不再发 [DONE]）
+                 setIsLoading(false)
+                 setAgentStatus("")
+                 break
               }
 
               // 处理上下文更新事件 (持久化记忆压缩结果)
               if (data.type === 'context_update' && Array.isArray(data.messages)) {
+                 // 会话切换保护
+                 if (streamSessionId !== sessionId) break
                  // 强制同步主消息列表，让历史消息被压缩后的摘要替代
                  latestHistoryFromBackend = data.messages
                  setMessages(data.messages)
@@ -3074,56 +3058,162 @@ ${taskContext}
               // Handle tool results
               if (data.tool_result) {
                  setStudioData(prev => [...prev, data.tool_result])
-                 
+
+                 // 🔥 update_task 工具结果：用返回的 task_list_tag 更新 latestTaskListContent
+                 // 这样 DynamicTaskPlanner 卡片会立即刷新，无需 AI 重新输出 <TASK_LIST> 标签
+                 if (data.tool_result.name === 'update_task') {
+                   const result = data.tool_result.result
+                   if (result?.success !== false && result?.task_list_tag) {
+                     console.log('[Chat] update_task result received, refreshing task planner card')
+                     setLatestTaskListContent(result.task_list_tag)
+                     // 🔥 标记此轮已通过工具更新任务列表，防止后续流式输出的原始 TASK_LIST 覆盖
+                     taskUpdatedByToolRef.current = true
+                   }
+                 }
+
+                 // 🔥 AI 通过 cron_create / cron_delete 创建或删除定时任务后，
+                 // 通知侧边栏 ScheduledTasksList 立即刷新（不必等 30s 轮询）
+                 if (typeof window !== 'undefined') {
+                   const fn = data.tool_result.name
+                   if (fn === 'cron_create' || fn === 'cron_delete' || fn === 'task_create' || fn === 'task_update') {
+                     const result = data.tool_result.result
+                     // 仅在操作成功时派发（失败时无任务变化）
+                     if (!result?.error && (result?.success !== false)) {
+                       window.dispatchEvent(new CustomEvent('scheduler:tasks-changed', {
+                         detail: { source: `ai-tool-${fn}`, task_id: result?.task_id }
+                       }))
+                     }
+                   }
+                 }
+
                  if (data.tool_result.name === 'mcp_firecrawl_scrape' && data.tool_result.result?.url) {
                      const targetUrl = data.tool_result.result.url
                      setBrowserScreenshot(`https://image.thum.io/get/width/800/crop/600/noanimate/${targetUrl}`)
                  }
 
                  // Update execution chain: mark corresponding action as completed, add observation
-                 const actionIdx = currentAgentSteps.findIndex(s => s.type === 'action' && s.status === 'active' && s.toolName === data.tool_result.name)
+                 const actionIdx = currentAgentSteps.findIndex(s => s.kind === 'task' && s.status === 'active' && s.toolName === data.tool_result.name)
+
+                 const hasError = data.tool_result.result?.error
+                 const resultSummary = hasError
+                   ? String(data.tool_result.result.error).slice(0, 120)
+                   : summarizeToolResult(data.tool_result.name, data.tool_result.result)
+
                  if (actionIdx !== -1) {
                    const step = currentAgentSteps[actionIdx]
                    step.status = 'completed'
                    step.duration = Date.now() - (step.startedAt || startTs)
+
+                   // ✅ TRAE 风格：把工具结果作为带色条的子卡片附加到对应 task step 下
+                   // 🔥 简化：只显示工具名 + 耗时，不重复 result summary
+                   // （result summary 会被 AI 整理到 markdown 正文中，避免重复展示）
+                   const fnName = data.tool_result.name
+                   let childType: "search" | "scrape" | "command" | "read" | "tool" = "tool"
+                   if (fnName.includes('search')) childType = "search"
+                   else if (fnName.includes('scrape') || fnName.includes('firecrawl') || fnName.includes('crawl')) childType = "scrape"
+                   else if (fnName.includes('spectrum') || fnName.includes('sensor_history') || fnName.includes('history')) childType = "read"
+
+                   if (!step.children) step.children = []
+                   step.children.push({
+                     id: nextStepId("result"),
+                     type: childType,
+                     title: fnName,
+                     meta: step.duration ? `${(step.duration / 1000).toFixed(1)}s` : undefined,
+                     status: hasError ? "error" : "completed",
+                     tone: hasError ? "error" : "success",
+                   })
+                 } else {
+                   // 找不到对应 task 时，单独 push 一个独立 step（向后兼容）
+                   currentAgentSteps.push({
+                     id: nextStepId("obs"),
+                     kind: "microStep",
+                     status: hasError ? "error" : "completed",
+                     text: hasError ? resultSummary : `${data.tool_result.name} 完成 · ${resultSummary}`,
+                     duration: 0
+                   })
                  }
-
-                 const hasError = data.tool_result.result?.error
-                 const resultSummary = hasError
-                   ? String(data.tool_result.result.error).slice(0, 100)
-                   : typeof data.tool_result.result === 'object'
-                     ? JSON.stringify(data.tool_result.result).slice(0, 80)
-                     : '数据已注入上下文'
-
-                 currentAgentSteps.push({
-                   id: nextStepId("obs"),
-                   type: "observation",
-                   status: hasError ? "error" : "completed",
-                   title: hasError ? `${data.tool_result.name} 调用失败` : `${data.tool_result.name} 完成`,
-                   detail: resultSummary,
-                   duration: 0
-                 })
                  setAgentSteps([...currentAgentSteps])
-                 
+
                  continue
               }
 
               // Handle tool progress (parallel execution feedback)
               if (data.tool_progress) {
                 const { completed, total, current } = data.tool_progress
+                // 🔥 Bug 修复：去重 id 必须和 push 时用的 id 一致，否则去重失效
+                const progressId = `progress-${current || completed}`
                 const existingIdx = currentAgentSteps.findIndex(
-                  s => s.type === "thinking" && s.status === "active" && s.id === `progress-${current}`
+                  s => s.id === progressId
                 )
                 if (existingIdx === -1) {
                   currentAgentSteps.push({
-                    id: nextStepId("progress"),
-                    type: "thinking",
+                    id: progressId,
+                    kind: "narrative",
                     status: "active",
-                    title: `并行调用 ${completed + 1}/${total}`,
-                    detail: current ? `正在执行: ${current}` : `工具调用进度 ${completed + 1}/${total}`,
+                    // 🔥 Bug 修复：后端发的 completed 已经是递增后的值（1-based），
+                    // 不需要再 +1，否则 4 个工具会显示成 2/4, 3/4, 4/4, 5/4
+                    text: `并行调用 ${completed}/${total}：${current ? `正在执行 ${current}` : '执行中...'}`,
                   })
                   setAgentSteps([...currentAgentSteps])
                 }
+                continue
+              }
+
+              // 🔥 处理「等待用户输入」事件（CHECKPOINT / CLARIFY 挂起）
+              // 后端 Agent Loop 检测到 <CHECKPOINT> / <CLARIFY> 后不 break，而是挂起等待。
+              // 这里标记 SSE 流处于「等待用户输入」状态，前端表单提交时走 /api/chat/respond
+              // 而非触发新对话。
+              if (data.user_input_required) {
+                const { type, checkpoint_id, title, timeout_ms } = data.user_input_required
+                console.log(`[Chat] User input required: type=${type}, id=${checkpoint_id}, title=${title}`)
+                waitingForUserInputRef.current = {
+                  checkpointId: checkpoint_id,
+                  type,
+                  title,
+                  timeoutMs: timeout_ms || 5 * 60 * 1000,
+                  startedAt: Date.now(),
+                }
+                setAgentStatus(`等待用户输入：${title}`)
+                continue
+              }
+
+              // 🔥 处理「用户输入已收到」事件（Agent Loop 从挂起中恢复）
+              if (data.user_input_received) {
+                console.log(`[Chat] User input received, resuming Agent Loop: ${data.user_input_received.reply_preview}`)
+                waitingForUserInputRef.current = null
+                setAgentStatus("AI 思考中...")
+                // 🔥 清除"已提交"loading 通知，AI 已开始继续处理
+                setNotices(prev => prev.filter(n => n.variant !== 'loading'))
+                continue
+              }
+
+              // 🔥 处理「用户输入超时」事件（5 分钟未回复，Agent Loop 已退出）
+              if (data.user_input_timeout) {
+                console.warn(`[Chat] User input timeout: ${data.user_input_timeout.reason}`)
+                waitingForUserInputRef.current = null
+                // 🔥 清除残留的"已提交"loading 通知
+                setNotices(prev => prev.filter(n => n.variant !== 'loading'))
+                showNotice(
+                  "⏰ 等待超时",
+                  "你 5 分钟内未回复，AI 已结束本次对话。请重新提问以继续。",
+                  "warning"
+                )
+                continue
+              }
+
+              // 🔥 Bug 修复：处理 LLM 调用失败事件（超时/网络错误/非2xx状态）
+              // 后端发送 llm_error 后会尝试强制总结，这里只显示状态提示，不污染消息内容
+              if (data.llm_error) {
+                const reason = data.llm_error.reason || 'LLM 调用失败'
+                setAgentStatus(`⚠️ ${reason}，正在尝试生成总结...`)
+                currentAgentSteps.push({
+                  id: nextStepId("llm-error"),
+                  kind: "narrative",
+                  status: "completed",
+                  text: `⚠️ ${reason}`,
+                  duration: 0
+                })
+                setAgentSteps([...currentAgentSteps])
                 continue
               }
 
@@ -3132,26 +3222,21 @@ ${taskContext}
               if (data.skill_selection) {
                 const skillNames = data.skill_selection.map((s: any) => s.name).join(", ")
                 setAgentStatus(`智能识别意图，由 [${skillNames}] 模块提供支持...`)
-                
-                // Update the initial thinking step
-                const thinkingIdx = currentAgentSteps.findIndex(s => s.type === 'thinking' && s.status === 'active')
-                if (thinkingIdx !== -1) {
-                   currentAgentSteps[thinkingIdx].status = 'completed'
-                   currentAgentSteps[thinkingIdx].title = `🎯 路由到 ${skillNames}`
-                   currentAgentSteps[thinkingIdx].detail = `匹配到 ${data.skill_selection.length} 个知识模块`
-                   currentAgentSteps[thinkingIdx].duration = Date.now() - (currentAgentSteps[thinkingIdx].startedAt || startTs)
-                   
-                   // Start a NEW active step for subsequent reasoning
-                   currentAgentSteps.push({
-                      id: nextStepId("reasoning"),
-                      type: "thinking",
-                      status: "active",
-                      title: "🤔 规划执行策略",
-                      detail: "分析最佳行动路径与工具选择",
-                      startedAt: Date.now()
-                   })
+
+                // ✅ TRAE 风格：把路由结果转为 narrative 段
+                const initialIdx = currentAgentSteps.findIndex(s => s.status === 'active' && s.kind === 'narrative')
+                if (initialIdx !== -1) {
+                  currentAgentSteps[initialIdx].status = 'completed'
+                  currentAgentSteps[initialIdx].duration = Date.now() - (currentAgentSteps[initialIdx].startedAt || startTs)
                 }
-                
+                // 添加路由结果陈述
+                currentAgentSteps.push({
+                  id: nextStepId("route"),
+                  kind: "narrative",
+                  status: "completed",
+                  text: `已路由到 ${skillNames}，匹配到 ${data.skill_selection.length} 个知识模块。`,
+                  duration: 0
+                })
                 setAgentSteps([...currentAgentSteps])
                 continue
               }
@@ -3159,17 +3244,22 @@ ${taskContext}
               if (data.tool_calls) {
                 const toolNames = data.tool_calls.map((t: any) => t.function.name).join(", ")
                 const round = data.agent_iteration || 1
+
+                // 🔥 累计工具调用次数到 AI 动作总结
+                aiActionStatsRef.current.toolCallCount += data.tool_calls.length
+                setAiActionSummary((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        toolCallCount: aiActionStatsRef.current.toolCallCount,
+                        totalDurationMs: Date.now() - aiActionStatsRef.current.startTs,
+                      }
+                    : prev
+                )
                 setAgentStatus(`第 ${round} 轮工具调用: ${toolNames}...`)
                 setStudioOpen(true) // 主动展开工作室侧边栏
-                
-                // 确保之前的 Thinking Step 或上一个 Action 已结束
-                const prevActive = currentAgentSteps.find(s => s.status === 'active')
-                if (prevActive) {
-                   prevActive.status = 'completed'
-                   prevActive.duration = Date.now() - (prevActive.startedAt || startTs)
-                }
 
-                // Add action steps to the execution chain (with round label)
+                // ✅ TRAE 风格：把每个 tool_call 转为粗体 task 段（带绿色对勾 / 旋转）
                 for (const tc of data.tool_calls) {
                   const fnName = tc.function.name
                   let actionTitle = `调用 ${fnName}`
@@ -3177,7 +3267,10 @@ ${taskContext}
                   else if (fnName.includes('scrape') || fnName.includes('firecrawl')) actionTitle = '抓取网页内容'
                   else if (fnName.includes('weather')) actionTitle = '查询天气数据'
                   else if (fnName.includes('spectrum')) actionTitle = '读取光谱传感器'
+                  else if (fnName.includes('sensor_history') || fnName.includes('history')) actionTitle = '查询历史传感器数据'
                   else if (fnName.includes('route') || fnName.includes('amap')) actionTitle = '路线规划'
+                  else if (fnName.includes('soil')) actionTitle = '查询土壤数据'
+                  else if (fnName.includes('irrigation')) actionTitle = '查询灌溉数据'
 
                   // 多轮时加上轮次标签
                   if (round > 1) actionTitle = `[第${round}轮] ${actionTitle}`
@@ -3188,14 +3281,15 @@ ${taskContext}
                     if (args.query) argsSummary = `查询: "${args.query}"`
                     else if (args.url) argsSummary = `URL: ${args.url}`
                     else if (args.location) argsSummary = `位置: ${args.location}`
+                    else if (args.metrics) argsSummary = `指标: ${Array.isArray(args.metrics) ? args.metrics.join(', ') : args.metrics}${args.range ? ` · 时间范围: ${args.range}` : ''}`
                   } catch {}
 
                   currentAgentSteps.push({
                     id: nextStepId("action"),
-                    type: "action",
+                    kind: "task",
                     status: "active",
-                    title: actionTitle,
-                    detail: argsSummary || `工具: ${fnName}`,
+                    text: actionTitle,
+                    subnote: argsSummary || `工具: ${fnName}`,
                     toolName: fnName,
                     startedAt: Date.now()
                   })
@@ -3259,14 +3353,18 @@ ${taskContext}
                       s.duration = Date.now() - (s.startedAt || startTs)
                     }
                   }
-                  // ✅ Fix #1: 添加 Final Answer 步骤到执行链
-                  if (currentAgentSteps.length > 0 && !currentAgentSteps.some(s => s.type === 'answer')) {
+                  // ✅ TRAE 风格：Final Answer 转为 narrative 段（"现在我整理结果..."）
+                  if (currentAgentSteps.length > 0 && !currentAgentSteps.some(s => s.kind === 'narrative' && s.id.startsWith('answer-'))) {
+                    const obsCount = currentAgentSteps.filter(s => s.kind === 'microStep').length
+                    const actionCount = currentAgentSteps.filter(s => s.kind === 'task').length
+                    const answerText = actionCount > 0
+                      ? `现在我整理 ${actionCount} 个工具的 ${obsCount} 条结果，准备生成回复。`
+                      : '结合知识库与上下文，准备生成回复。'
                     currentAgentSteps.push({
                       id: nextStepId("answer"),
-                      type: "answer",
+                      kind: "narrative",
                       status: "active",
-                      title: "📝 生成回复中",
-                      detail: "基于分析结果组织语言输出",
+                      text: answerText,
                       startedAt: Date.now()
                     })
                     setAgentSteps([...currentAgentSteps])
@@ -3721,6 +3819,14 @@ ${taskContext}
                     }
                     return newMsgs
                   })
+
+                  // 🔥 页面级 TASK_LIST 追踪：流式输出中检测到完整 TASK_LIST 时更新
+                  // 这样即使后续反馈消息不含 TASK_LIST，任务规划器也能保持最新状态
+                  // ⚠️ 但若 update_task 工具已更新过任务列表，则跳过覆盖（避免回退到 0 进度）
+                  const tlMatchLive = (typeof display === "string" ? display : "").match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
+                  if (tlMatchLive && !taskUpdatedByToolRef.current) {
+                    setLatestTaskListContent(tlMatchLive[0])
+                  }
                 }
               }
             } catch (e) { 
@@ -3770,7 +3876,7 @@ ${taskContext}
          }
       }
 
-      // Mark answer as completed (the ThoughtChain auto-collapses 2.5s later)
+      // Mark answer as completed (the ThoughtChain stays visible; collapsing is handled internally)
       const answerIdx = currentAgentSteps.findIndex(s => s.type === 'answer')
       if (answerIdx !== -1) {
         currentAgentSteps[answerIdx].status = 'completed'
@@ -3782,7 +3888,62 @@ ${taskContext}
       console.log('[Stream End] Cleaning up loading state')
       setIsLoading(false)
       setAgentStatus("")
-      
+
+      // 🔥 SSE 流结束时清理挂起等待状态
+      // 正常情况下 user_input_received 或 user_input_timeout 事件会清空，
+      // 但如果流意外中断（如网络断开、服务器错误），这里作为兜底清理
+      if (waitingForUserInputRef.current) {
+        console.warn('[Stream End] SSE closed while waiting for user input, clearing state')
+        waitingForUserInputRef.current = null
+      }
+
+      // 🔥 标签解析失败自动打回：检测 CLARIFY/DECISION 标签 JSON 是否解析失败
+      // 失败时自动发送 isSilent 系统纠正消息让 AI 重新生成（最多重试 2 次，防循环）
+      const tagRetryCheckContent = typeof assistantMsg.content === "string" ? assistantMsg.content : ""
+      if (tagRetryCheckContent && tagRetryCountRef.current < 2) {
+        const failedTag = detectFailedTag(tagRetryCheckContent)
+        if (failedTag) {
+          tagRetryCountRef.current += 1
+          console.log(`[Tag Retry] ${failedTag} 解析失败，自动打回重试 (${tagRetryCountRef.current}/2)`)
+          const correctionMsg = `【系统纠正】你上一次输出的 <${failedTag}> 标签内 JSON 格式错误，解析失败。请重新输出格式正确的 <${failedTag}> 标签。要求：1) JSON 必须使用双引号；2) 所有对象和数组括号必须闭合；3) 字符串值内的双引号必须用 \\" 转义；4) 只输出标签和必要的简短文字，不要重复之前的回答。`
+          // 异步触发，避免在 cleanup 阶段阻塞
+          setTimeout(() => {
+            handleSend(correctionMsg, undefined, false, true)
+          }, 100)
+        }
+      }
+
+      // 🔥 reasoning（深度思考）不再推入 agentSteps
+      // 思考过程是独立概念，由 ChatMessageRenderer 中的 DeepThinking 组件渲染
+      // agentSteps 只包含任务执行步骤（工具调用、任务状态等）
+
+      // 🔥 完成 AI 动作总结：计算任务耗时、提取任务规划进度
+      const finalDurationMs = Date.now() - aiActionStatsRef.current.startTs
+      // 提取任务规划进度
+      let taskPlanProgress: string | undefined
+      let taskPlanCompleted = false
+      const tlMatch = (typeof assistantMsg.content === "string" ? assistantMsg.content : "").match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
+      if (tlMatch) {
+        try {
+          const parsed = JSON.parse(tlMatch[1])
+          const tasks = Array.isArray(parsed?.tasks) ? parsed.tasks : []
+          if (tasks.length > 0) {
+            const done = tasks.filter((t: any) => t.status === "completed").length
+            taskPlanProgress = `${done}/${tasks.length}`
+            taskPlanCompleted = done === tasks.length
+          }
+        } catch {}
+      }
+      setAiActionSummary({
+        status: taskPlanCompleted ? "completed" : "completed",
+        totalDurationMs: finalDurationMs,
+        toolCallCount: aiActionStatsRef.current.toolCallCount,
+        fileChanges: aiActionStatsRef.current.fileChanges,
+        taskPlanCompleted,
+        taskPlanProgress,
+        onOpenStudio: () => setStudioOpen(true),
+      })
+
       // 确保流结束时关闭浏览器
       setBrowsingUrl(null)
       
@@ -4066,35 +4227,16 @@ ${taskContext}
 
       // 如果开启了AI自动执行，检测并执行命令
       console.log('[Auto Execute Check]', { autoExecuteCommands, hasContent: typeof assistantMsg.content === 'string' })
+      // 🔥 架构变更：设备控制已迁移为原生 MCP 工具调用（toggle_relay / control_camera 等），
+      // AI 在 Agent Loop 内直接调用工具，工具内部阻塞等待物理动作完成并返回结果给 AI。
+      // 因此不再需要前端解析 JSON 代码块 + 调 /api/ai/device-control + 静默消息反馈的旧链路。
+      // 旧的 auto-execute JSON parsing 已移除。如发现 AI 仍输出 JSON 控制指令，应通过
+      // prompt-templates.ts 的 DEVICE_CONTROL_INSTRUCTION_COMPACT 纠正，而不是在这里兜底。
       if (autoExecuteCommands && typeof assistantMsg.content === 'string') {
-        const jsonMatches = [...assistantMsg.content.matchAll(/```json\s*([\s\S]*?)```/g)]
-        console.log('[Auto Execute] Found JSON blocks:', jsonMatches.length)
-        if (jsonMatches.length > 0) {
-          const commands = []
-          for (const match of jsonMatches) {
-            try {
-              const parsed = JSON.parse(match[1])
-              if (Array.isArray(parsed)) {
-                // 处理数组形式的命令
-                parsed.forEach(cmd => {
-                  if (cmd.action) commands.push(cmd)
-                })
-              } else if (parsed.action) {
-                // 处理单个对象形式的命令
-                commands.push(parsed)
-              }
-            } catch { }
-          }
-          // 过滤掉 schedule_task 命令 — 这些由 ScheduleCard 组件自动处理，不应进入 executeCommands
-          const executableCommands = commands.filter(cmd => cmd.action !== "schedule_task")
-          if (executableCommands.length > 0) {
-            console.log('[Auto Execute] Executing commands automatically:', executableCommands)
-            // 再次检查是否已停止
-            if (isStoppedRef.current) return;
-            // 重要：如果在这次调用中已经触发了设备执行，标记本次会话不再需要通用反馈
-            // 通过将 hasSentCustomFeedback 置为 true 避免循环嵌套
-            await executeCommands(executableCommands, assistantMsg.content as string)
-          }
+        // 仅做日志检测：发现 toggle_relay/control_camera 等 JSON 输出时记录 warning（不执行）
+        const legacyJsonMatch = assistantMsg.content.match(/```json\s*\{\s*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera|reset_camera)"[\s\S]*?\}\s*```/)
+        if (legacyJsonMatch) {
+          console.warn('[Auto Execute] ⚠️ 检测到 AI 输出了旧格式 JSON 设备控制指令（已废弃），请检查 prompt-templates.ts 配置。内容片段:', legacyJsonMatch[0].slice(0, 120))
         }
       }
 
@@ -4127,21 +4269,22 @@ ${taskContext}
         setMessages(prev => [...prev, { role: "assistant", content: errMsg }])
       }
     } finally {
-      // 只有在非静默/非反馈模式下，或者没有正在进行的后续任务时才清除状态
-      // 避免内部触发的消息（如巡检反馈）在回复还没开始时就被父级的 finally 清除了状态，导致界面“抽搐”
-      // 无论是否是静默模式，如果这是流的最后一点（最后没有触发 executeCommands）或者发生了错误，都应该尝试清理状态
-      // 这里增加一层判断：如果 assistantMsg.content 里没找到 JSON 块，说明没有后续的 executeCommands，则必须清除状态
+      // 🔥 架构变更后：AI 通过 Agent Loop 内的工具调用完成设备控制，前端不再有
+      // "解析 JSON + 触发 executeCommands + 静默消息反馈" 的后续任务链。
+      // 直接清理 loading 状态即可（除非处于 isFeedback/isSilent 内部触发的子调用）。
       const content = typeof assistantMsg.content === 'string' ? assistantMsg.content : '';
-      const hasFollowupCommands = autoExecuteCommands && (content.includes('```json') || content.includes('"action":'));
+      // 仍保留对 schedule_task JSON 的检测：定时任务由 ScheduleCard 组件单独处理，
+      // 不影响 isLoading 生命周期，但避免在 ScheduleCard 渲染期间过早清理状态
+      const hasScheduleTask = autoExecuteCommands && content.includes('"action": "schedule_task"');
 
-      // 🔥 修复：立即清理状态，无论是否有后续命令
-      // 后续命令的执行会在executeCommands中单独管理状态
       setAgentStatus("")
-      setIsLoading(false)
-      
+      if (!hasScheduleTask) {
+        setIsLoading(false)
+      }
+
       // 额外延迟清理一次，确保彻底结束（防止竞态条件）
       setTimeout(() => {
-        if (!isStoppedRef.current && !hasFollowupCommands) {
+        if (!isStoppedRef.current && !hasScheduleTask) {
           setAgentStatus("")
           setIsLoading(false)
         }
@@ -4203,6 +4346,8 @@ ${taskContext}
         setSessions(prev => [s, ...prev])
         setMessages([])
         setInput("")
+        // 🔥 新建会话：无历史消息，边界为 0（所有消息都是"新消息"，无需分隔线）
+        setNewMessageBoundary(0)
       }
     } catch { }
   }
@@ -5162,10 +5307,13 @@ ${taskContext}
                   </Button>
                 </div>
               )}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center gap-2">
                 <DynamicModelSelector value={selectedModel || aiSettings?.model || ""} onValueChange={setSelectedModel} />
+                <PredictiveInsightCard onTrigger={(prompt) => handleSend(prompt)} />
               </div>
               <div className="flex-1" />
+              {/* 🔔 AI 主动守护通知铃铛 */}
+              <GuardianAlertBell />
             </div>
 
             {/* Chat area */}
@@ -5206,9 +5354,10 @@ ${taskContext}
                 agentSteps={agentSteps}
                 agentStatus={agentStatus}
                 showThoughtChain={showThoughtChain}
-                onThoughtChainHoverStart={onThoughtChainHoverStart}
-                onThoughtChainHoverEnd={onThoughtChainHoverEnd}
                 darkMode={darkMode}
+                aiActionSummary={aiActionSummary}
+                latestTaskListContent={latestTaskListContent}
+                newMessageBoundary={newMessageBoundary}
                 visionInspection={{
                   isActive: isInspecting,
                   status: visionInspectionStatus,
@@ -5230,6 +5379,7 @@ ${taskContext}
                     handleSend(retryPrompt, [], false, false)
                   },
                   onSendMessage: (text) => handleSend(text),
+                  onRespondToCheckpoint: respondToCheckpoint,
                   onSetInput: (text) => setInput(text),
                 }}
                 onTtsSpeak={enqueueTts}
@@ -5255,6 +5405,31 @@ ${taskContext}
                 }
               />
              )}
+            {/* 🔥 计划模式状态指示条：用户启用计划模式时显示，提示当前仅调研不执行 */}
+            {enablePlanning && (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "6px 12px", marginBottom: 6,
+                background: darkMode ? "rgba(22,119,255,0.12)" : "rgba(22,119,255,0.08)",
+                border: `1px solid ${darkMode ? "rgba(22,119,255,0.25)" : "rgba(22,119,255,0.20)"}`,
+                borderRadius: 8,
+                fontSize: 12, color: darkMode ? "#b3d9ff" : "#1677ff",
+              }}>
+                <span style={{ fontWeight: 500 }}>
+                  计划模式中 · AI 将先调研并提交计划，你审批后才会执行
+                </span>
+                <button
+                  onClick={() => setEnablePlanning(false)}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: darkMode ? "#b3d9ff" : "#1677ff", fontSize: 12,
+                    padding: "2px 8px", borderRadius: 6,
+                  }}
+                >
+                  退出
+                </button>
+              </div>
+            )}
             <ChatSenderInput
                 darkMode={darkMode}
                 input={input}
@@ -5450,28 +5625,49 @@ ${taskContext}
                       size="small"
                       icon={<FileText size={14} strokeWidth={1.5} />}
                       onClick={async () => {
+                        const toastId = toast.loading("正在生成 PDF...")
                         try {
-                          const res = await fetch('/api/reports/generate-pdf', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              htmlContent: reportData.html,
-                              reportTitle: reportData.title,
-                              reportId: `report-${reportData.timestamp}`,
-                            }),
-                          })
-                          if (!res.ok) throw new Error('PDF生成失败')
-                          const blob = await res.blob()
-                          const url = URL.createObjectURL(blob)
-                          const a = document.createElement('a')
-                          a.href = url
-                          a.download = `${reportData.title}_${reportData.timestamp}.pdf`
-                          document.body.appendChild(a)
-                          a.click()
-                          document.body.removeChild(a)
-                          URL.revokeObjectURL(url)
-                        } catch {
-                          toast.error("PDF 下载失败")
+                          const htmlToImage = await import('html-to-image')
+                          const { default: jsPDF } = await import('jspdf')
+
+                          // 创建临时容器渲染报告 HTML，避免受 Drawer 内样式干扰
+                          const container = document.createElement('div')
+                          container.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;'
+                          container.innerHTML = reportData.html
+                          document.body.appendChild(container)
+
+                          try {
+                            const dataUrl = await htmlToImage.toPng(container, { backgroundColor: '#ffffff' })
+
+                            const img = new window.Image()
+                            img.src = dataUrl
+                            await new Promise((resolve) => { img.onload = resolve })
+
+                            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+                            const imgWidth = 210 // A4 width in mm
+                            const pageHeight = 297 // A4 height in mm
+                            const imgHeight = (img.height * imgWidth) / img.width
+                            let heightLeft = imgHeight
+                            let position = 0
+
+                            pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight)
+                            heightLeft -= pageHeight
+
+                            while (heightLeft >= 0) {
+                              position = heightLeft - imgHeight
+                              pdf.addPage()
+                              pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight)
+                              heightLeft -= pageHeight
+                            }
+
+                            pdf.save(`${reportData.title}_${reportData.timestamp}.pdf`)
+                            toast.success("PDF 已下载", { id: toastId })
+                          } finally {
+                            document.body.removeChild(container)
+                          }
+                        } catch (error) {
+                          console.error('PDF生成错误:', error)
+                          toast.error("PDF 下载失败", { id: toastId })
                         }
                       }}
                     />
@@ -5708,6 +5904,13 @@ ${taskContext}
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         user={user}
+        persona={selectedPersona}
+        onPersonaChange={(id: string) => {
+          setSelectedPersona(id)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ai-persona', id)
+          }
+        }}
         onSave={(settings) => {
           setAiSettings(settings)
         }}

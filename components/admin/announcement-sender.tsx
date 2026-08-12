@@ -46,13 +46,14 @@ export function AnnouncementSender() {
     <Card
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CustomerServiceOutlined style={{ color: '#1890ff' }} />
+          <CustomerServiceOutlined style={{ color: '#1677ff' }} />
           发布系统公告
         </div>
       }
+      style={{ border: "1px solid #EDEEEF" }}
     >
       <div style={{ marginBottom: '16px' }}>
-        <p style={{ margin: 0, fontSize: '14px', color: '#8c8c8c' }}>
+        <p style={{ margin: 0, fontSize: '14px', color: '#8F959E' }}>
           以"莓小智"的身份向所有用户发送更新总结或通知。消息将直接出现在用户的聊天列表中。
         </p>
       </div>

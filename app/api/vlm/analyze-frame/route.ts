@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDefaultVLMModel, PLANT_DIAGNOSIS_PROMPT_COMPACT } from '@/lib/vlm-prompts'
 import type { PlantAnalysisResult } from '@/lib/types/plant-growth-types'
 import { getHealthStatus } from '@/lib/types/plant-growth-types'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
     try {
+        const user = await getCurrentUser()
+        if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 })
         const body = await req.json()
         const { imageData, model } = body
         let { apiKey, apiUrl } = body

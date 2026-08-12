@@ -2,8 +2,8 @@
  * 匹配器测试
  */
 
-import { describe, it, expect } from '@jest/globals';
-import { KeywordMatcher, IntentMatcher, SkillMatcher } from '../matchers';
+import { describe, it, expect } from 'vitest';
+import { KeywordMatcher, SkillMatcher } from '../matchers';
 import { Skill } from '../types';
 
 describe('KeywordMatcher', () => {
@@ -44,8 +44,14 @@ describe('KeywordMatcher', () => {
   });
 
   it('应该匹配技能描述', () => {
-    const result = matcher.match(mockSkill, {
-      userMessage: '用于测试'
+    // 使用 keywords 不覆盖但 description 包含的 query
+    const skillWithDesc: Skill = {
+      ...mockSkill,
+      keywords: ['不相关的词'],
+      description: '这是一个专门的农业诊断模块'
+    };
+    const result = matcher.match(skillWithDesc, {
+      userMessage: '这是一个专门的农业诊断模块'
     });
 
     expect(result).not.toBeNull();
@@ -62,63 +68,6 @@ describe('KeywordMatcher', () => {
   });
 });
 
-describe('IntentMatcher', () => {
-  const matcher = new IntentMatcher();
-
-  it('应该匹配控制意图', () => {
-    const mockSkill: Skill = {
-      id: 'iot-control',
-      name: 'IoT 控制',
-      description: '设备控制',
-      keywords: ['控制'],
-      content: '内容',
-      source: 'disk'
-    };
-
-    const result = matcher.match(mockSkill, {
-      userMessage: '帮我控制设备'
-    });
-
-    expect(result).not.toBeNull();
-    expect(result?.matchScore).toBe(85);
-  });
-
-  it('应该匹配规划意图', () => {
-    const mockSkill: Skill = {
-      id: 'implementation-workflow',
-      name: '执行工作流',
-      description: '任务规划',
-      keywords: ['计划'],
-      content: '内容',
-      source: 'disk'
-    };
-
-    const result = matcher.match(mockSkill, {
-      userMessage: '帮我制定一个计划'
-    });
-
-    expect(result).not.toBeNull();
-    expect(result?.matchScore).toBe(80);
-  });
-
-  it('不应该匹配不相关的技能', () => {
-    const mockSkill: Skill = {
-      id: 'other-skill',
-      name: '其他技能',
-      description: '其他',
-      keywords: ['其他'],
-      content: '内容',
-      source: 'disk'
-    };
-
-    const result = matcher.match(mockSkill, {
-      userMessage: '帮我控制设备'
-    });
-
-    expect(result).toBeNull();
-  });
-});
-
 describe('SkillMatcher', () => {
   const matcher = new SkillMatcher();
 
@@ -131,6 +80,17 @@ describe('SkillMatcher', () => {
       autoLoad: true,
       priority: 100,
       content: '我是莓小智',
+      source: 'builtin'
+    },
+    {
+      id: 'ui-tags',
+      name: 'UI 标签',
+      description: 'UI 标签指南',
+      keywords: ['标签'],
+      autoLoad: true,
+      priority: 99,
+      dependencies: ['core-identity'],
+      content: 'UI 标签内容',
       source: 'builtin'
     },
     {
@@ -154,7 +114,7 @@ describe('SkillMatcher', () => {
     }
   ];
 
-  it('应该自动加载核心技能', () => {
+  it('应该自动加载 autoLoad 技能', () => {
     const results = matcher.matchSkills(mockSkills, {
       userMessage: '你好'
     });
@@ -164,26 +124,40 @@ describe('SkillMatcher', () => {
     expect(coreSkill?.matchScore).toBe(100);
   });
 
-  it('应该匹配相关技能', () => {
+  it('新架构下不再通过关键词/意图匹配非 autoLoad 技能（由 AI 自路由）', () => {
+    // "帮我控制设备" 以前会命中 iot-control，现在不再走规则匹配
     const results = matcher.matchSkills(mockSkills, {
       userMessage: '帮我控制设备'
     });
 
     const iotSkill = results.find(r => r.skill.id === 'iot-control');
-    expect(iotSkill).toBeDefined();
+    expect(iotSkill).toBeUndefined();
   });
 
-  it('应该自动加载依赖技能', () => {
+  it('应该自动加载 autoLoad 技能的依赖', () => {
+    // ui-tags 是 autoLoad 且依赖 core-identity → core-identity 也应被加载
+    // （core-identity 自身也是 autoLoad，所以必然存在）
+    const results = matcher.matchSkills(mockSkills, {
+      userMessage: '你好'
+    });
+
+    const uiTags = results.find(r => r.skill.id === 'ui-tags');
+    const coreSkill = results.find(r => r.skill.id === 'core-identity');
+    expect(uiTags).toBeDefined();
+    expect(coreSkill).toBeDefined();
+  });
+
+  it('非 autoLoad 技能的依赖不会被加载（依赖信息已在清单中，由 AI 调用 load_skill 时处理）', () => {
+    // implementation-workflow 依赖 iot-control，但两者都非 autoLoad
+    // 新架构下两者都不会被 matchSkills 加载，AI 会通过 load_skill 工具按需加载
     const results = matcher.matchSkills(mockSkills, {
       userMessage: '帮我制定计划'
     });
 
     const workflowSkill = results.find(r => r.skill.id === 'implementation-workflow');
     const iotSkill = results.find(r => r.skill.id === 'iot-control');
-
-    expect(workflowSkill).toBeDefined();
-    expect(iotSkill).toBeDefined();
-    expect(iotSkill?.matchReason).toContain('依赖');
+    expect(workflowSkill).toBeUndefined();
+    expect(iotSkill).toBeUndefined();
   });
 
   it('应该按优先级排序', () => {

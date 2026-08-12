@@ -5,12 +5,13 @@
  */
 
 import { MemoryManager } from './agent-orchestrator/memory-manager';
-import { 
-  getUserPreference, 
+import {
+  getUserPreference,
   getAllUserPreferences,
   getDevicePatterns as getDevicePatternsFromDB,
   getSuccessfulStrategies as getSuccessfulStrategiesFromDB
 } from '@/lib/db/agent-memory-service';
+import { DEVICE_IDS, DEVICE_NAMES } from '@/lib/constants';
 
 export interface MemoryEnhancedPromptOptions {
   userId: number;
@@ -71,16 +72,17 @@ export async function generateMemoryEnhancedPrompt(
     if (patterns.length > 0) {
       sections.push('\n## 🔧 设备使用模式');
       sections.push('识别到的设备使用模式：\n');
-      
+
       patterns.forEach(pattern => {
         const confidence = (pattern.confidence * 100).toFixed(0);
-        const successRate = pattern.total_count > 0 
+        const successRate = pattern.total_count > 0
           ? ((pattern.success_count / pattern.total_count) * 100).toFixed(0)
           : '0';
-        
-        sections.push(`- 设备 ${pattern.device_id}: ${pattern.pattern_type} (成功率: ${successRate}%, 置信度: ${confidence}%)`);
+        const deviceName = DEVICE_NAMES[pattern.device_id] || `设备${pattern.device_id}`;
+
+        sections.push(`- ${deviceName}: ${pattern.pattern_type} (成功率: ${successRate}%, 置信度: ${confidence}%)`);
       });
-      
+
       sections.push('\n💡 在控制设备时，可以参考这些成功的使用模式。');
     }
   }
@@ -197,68 +199,87 @@ async function getSuccessfulStrategiesInternal(
 }
 
 /**
- * 从用户消息中提取可能的偏好
+ * 从用户消息中提取真实偏好（多维度）
+ * 基于"显式声明 > 行为推断"原则，置信度区分强弱信号
  */
 export function extractPreferencesFromMessage(
   userMessage: string,
   aiResponse: string
 ): Array<{ key: string; value: string; confidence: number }> {
   const preferences: Array<{ key: string; value: string; confidence: number }> = [];
+  const msg = userMessage.toLowerCase();
 
-  // 检测温度偏好
-  const tempMatch = userMessage.match(/喜欢|偏好|习惯.*?(\d+).*?度/);
-  if (tempMatch) {
-    preferences.push({
-      key: 'preferred_temperature',
-      value: tempMatch[1],
-      confidence: 0.8
-    });
+  // ─── 1. 显式偏好声明（高置信度）───
+  // "我喜欢/偏好/习惯/一般都..." 后接具体内容
+  const explicitPrefPatterns: Array<{ regex: RegExp; key: string; conf: number }> = [
+    { regex: /(?:喜欢|偏好|习惯|一般都|通常|总是).{0,6}?温度.{0,4}?(\d{1,3})\s*(?:度|℃|°)/i, key: 'preferred_temperature', conf: 0.85 },
+    { regex: /(?:喜欢|偏好|习惯).{0,6}?湿度.{0,4}?(\d{1,3})\s*%?/i, key: 'preferred_humidity', conf: 0.8 },
+    { regex: /(?:喜欢|偏好|习惯).{0,10}?光照.{0,4}?(\d{1,6})\s*(?:lux|勒克斯)?/i, key: 'preferred_light', conf: 0.75 },
+    { regex: /(?:每天|通常|一般|习惯).{0,4}?(\d{1,2})\s*(?:点|:)\s*(?:浇水|灌溉|浇水)/i, key: 'preferred_watering_time', conf: 0.8 },
+    { regex: /(?:每次|一般).{0,4}?浇水.{0,4}?(\d{1,3})\s*(?:分钟|min)/i, key: 'preferred_watering_duration', conf: 0.8 },
+    { regex: /(?:种的是|种的|品种).{0,4}?(.{2,20}?)(?:草莓|品种)/i, key: 'preferred_strawberry_variety', conf: 0.9 },
+  ];
+  for (const { regex, key, conf } of explicitPrefPatterns) {
+    const m = userMessage.match(regex);
+    if (m && m[1]) {
+      preferences.push({ key, value: m[1].trim(), confidence: conf });
+    }
   }
 
-  // 检测通知偏好
-  if (userMessage.includes('不要通知') || userMessage.includes('别提醒')) {
-    preferences.push({
-      key: 'notification_preference',
-      value: 'minimal',
-      confidence: 0.9
-    });
-  } else if (userMessage.includes('多通知') || userMessage.includes('及时提醒')) {
-    preferences.push({
-      key: 'notification_preference',
-      value: 'frequent',
-      confidence: 0.9
-    });
+  // ─── 2. 通知偏好（显式声明）───
+  if (/不要(?:通知|提醒|打扰)|别提醒|少打扰|安静/i.test(userMessage)) {
+    preferences.push({ key: 'notification_preference', value: 'minimal', confidence: 0.9 });
+  } else if (/(?:多|及时|随时|立刻)(?:通知|提醒|告诉我)/i.test(userMessage)) {
+    preferences.push({ key: 'notification_preference', value: 'frequent', confidence: 0.9 });
   }
 
-  // 检测详细程度偏好
-  if (userMessage.includes('简单说') || userMessage.includes('简短')) {
-    preferences.push({
-      key: 'response_detail_level',
-      value: 'brief',
-      confidence: 0.8
-    });
-  } else if (userMessage.includes('详细') || userMessage.includes('具体')) {
-    preferences.push({
-      key: 'response_detail_level',
-      value: 'detailed',
-      confidence: 0.8
-    });
+  // ─── 3. 回复详细程度偏好（显式 + 行为推断）───
+  if (/(?:简单说|简短|精简|别太长|少说)/i.test(userMessage)) {
+    preferences.push({ key: 'response_detail_level', value: 'brief', confidence: 0.85 });
+  } else if (/(?:详细|具体|深入|展开|多说)/i.test(userMessage)) {
+    preferences.push({ key: 'response_detail_level', value: 'detailed', confidence: 0.85 });
+  } else if (userMessage.length < 8) {
+    // 行为推断：用户消息极短（如"温度多少"），倾向于简短回复
+    preferences.push({ key: 'response_detail_level', value: 'brief', confidence: 0.5 });
+  } else if (userMessage.length > 50) {
+    // 行为推断：用户消息长且详细，倾向于详细回复
+    preferences.push({ key: 'response_detail_level', value: 'detailed', confidence: 0.5 });
   }
 
-  // 检测自动化偏好
-  if (userMessage.includes('自动') && (userMessage.includes('帮我') || userMessage.includes('直接'))) {
-    preferences.push({
-      key: 'automation_preference',
-      value: 'high',
-      confidence: 0.7
-    });
+  // ─── 4. 自动化偏好（显式 + 行为推断）───
+  if (/(?:自动|直接|帮我|不用问|别问).{0,6}(?:执行|操作|调控|浇水|开关)/i.test(userMessage)) {
+    preferences.push({ key: 'automation_preference', value: 'high', confidence: 0.8 });
+  } else if (/(?:我先看看|让我确认|问问我就|等我说)/i.test(userMessage)) {
+    preferences.push({ key: 'automation_preference', value: 'low', confidence: 0.8 });
+  }
+
+  // ─── 5. 语言风格偏好 ───
+  if (/(?:说人话|别用术语|通俗|大白话)/i.test(userMessage)) {
+    preferences.push({ key: 'language_style', value: 'casual', confidence: 0.85 });
+  } else if (/(?:专业|术语|技术|学术)/i.test(userMessage)) {
+    preferences.push({ key: 'language_style', value: 'professional', confidence: 0.8 });
+  }
+
+  // ─── 6. 关注重点偏好（从反复提及推断）───
+  const focusKeywords: Array<{ words: string[]; key: string; value: string }> = [
+    { words: ['产量', '结果', '开花', '坐果', '果实'], key: 'focus_area', value: 'yield' },
+    { words: ['病害', '虫害', '白粉', '灰霉', '烂'], key: 'focus_area', value: 'pest_control' },
+    { words: ['成本', '利润', '赚钱', '收益', '卖'], key: 'focus_area', value: 'economics' },
+    { words: ['长势', '生长', '叶子', '根系', '植株'], key: 'focus_area', value: 'growth' },
+  ];
+  for (const { words, key, value } of focusKeywords) {
+    const matchCount = words.filter(w => msg.includes(w.toLowerCase())).length;
+    if (matchCount >= 2) {
+      preferences.push({ key, value, confidence: 0.6 + matchCount * 0.1 });
+    }
   }
 
   return preferences;
 }
 
 /**
- * 从设备控制结果中识别使用模式
+ * 从设备控制结果中识别真实使用模式
+ * 基于设备类型 + 动作值 + 环境条件组合判断，而非硬编码时段
  */
 export function identifyDevicePattern(
   deviceId: number,
@@ -270,54 +291,84 @@ export function identifyDevicePattern(
     success: boolean;
   }
 ): { patternType: string; patternData: any } | null {
-  // 识别时间模式
-  if (context.timeOfDay !== undefined) {
-    const hour = context.timeOfDay;
-    
-    if (hour >= 6 && hour < 12) {
-      return {
-        patternType: 'morning_routine',
-        patternData: { action, hour, success: context.success }
-      };
-    } else if (hour >= 12 && hour < 18) {
-      return {
-        patternType: 'afternoon_routine',
-        patternData: { action, hour, success: context.success }
-      };
-    } else if (hour >= 18 && hour < 24) {
-      return {
-        patternType: 'evening_routine',
-        patternData: { action, hour, success: context.success }
-      };
+  const deviceName = DEVICE_NAMES[deviceId] || `设备${deviceId}`;
+  // 解析 action：可能是 JSON 字符串（如 '{"value":1}'）或纯文本
+  let actionValue: number | null = null;
+  try {
+    const parsed = JSON.parse(action);
+    if (typeof parsed === 'object' && parsed !== null) {
+      actionValue = parsed.value ?? parsed.state ?? null;
     }
+  } catch {
+    // 非 JSON，尝试提取数字
+    const numMatch = action.match(/(\d+)/);
+    if (numMatch) actionValue = parseInt(numMatch[1]);
   }
+  const isTurnOn = actionValue === 1;
+  const isTurnOff = actionValue === 0;
 
-  // 识别温度响应模式
+  // ─── 环境响应模式（环境条件 + 设备动作组合）───
+  // 只有环境数据异常 + 对应设备动作才识别为"响应模式"
   if (context.temperature !== undefined) {
-    if (context.temperature > 30 && action.includes('风扇')) {
+    if (context.temperature > 30 && deviceId === DEVICE_IDS.FAN && isTurnOn) {
       return {
         patternType: 'high_temp_cooling',
-        patternData: { action, temperature: context.temperature, success: context.success }
+        patternData: { device: deviceName, action: '开启', temperature: context.temperature, success: context.success }
       };
-    } else if (context.temperature < 15 && action.includes('加热')) {
+    }
+    if (context.temperature < 10 && deviceId === DEVICE_IDS.RGB_LIGHT && isTurnOn) {
+      // 低温补光（促进光合作用升温）
       return {
-        patternType: 'low_temp_heating',
-        patternData: { action, temperature: context.temperature, success: context.success }
+        patternType: 'low_temp_lighting',
+        patternData: { device: deviceName, action: '开启', temperature: context.temperature, success: context.success }
       };
     }
   }
 
-  // 识别湿度响应模式
   if (context.humidity !== undefined) {
-    if (context.humidity > 80 && action.includes('除湿')) {
+    if (context.humidity > 85 && deviceId === DEVICE_IDS.FAN && isTurnOn) {
       return {
-        patternType: 'high_humidity_dehumidify',
-        patternData: { action, humidity: context.humidity, success: context.success }
+        patternType: 'high_humidity_ventilation',
+        patternData: { device: deviceName, action: '开启通风', humidity: context.humidity, success: context.success }
       };
-    } else if (context.humidity < 40 && action.includes('加湿')) {
+    }
+    if (context.humidity < 40 && deviceId === DEVICE_IDS.PUMP && isTurnOn) {
       return {
-        patternType: 'low_humidity_humidify',
-        patternData: { action, humidity: context.humidity, success: context.success }
+        patternType: 'low_humidity_irrigation',
+        patternData: { device: deviceName, action: '开启灌溉', humidity: context.humidity, success: context.success }
+      };
+    }
+  }
+
+  // ─── 时段灌溉模式（仅水泵，区分晨浇/午浇/晚浇）───
+  if (context.timeOfDay !== undefined && deviceId === DEVICE_IDS.PUMP && isTurnOn) {
+    const hour = context.timeOfDay;
+    if (hour >= 5 && hour < 10) {
+      return {
+        patternType: 'morning_irrigation',
+        patternData: { device: deviceName, action: '晨浇', hour, success: context.success }
+      };
+    } else if (hour >= 10 && hour < 16) {
+      return {
+        patternType: 'midday_irrigation',
+        patternData: { device: deviceName, action: '午浇', hour, success: context.success }
+      };
+    } else if (hour >= 16 && hour < 20) {
+      return {
+        patternType: 'evening_irrigation',
+        patternData: { device: deviceName, action: '晚浇', hour, success: context.success }
+      };
+    }
+  }
+
+  // ─── 补光模式（仅灯光设备，区分时段）───
+  if (context.timeOfDay !== undefined &&
+      (deviceId === DEVICE_IDS.RGB_LIGHT || deviceId === DEVICE_IDS.WHITE_LIGHT) && isTurnOn) {
+    const hour = context.timeOfDay;
+    if (hour < 8 || hour >= 18) {
+      return {
+        patternType: 'low_light_supplement',
+        patternData: { device: deviceName, action: '补光', hour, success: context.success }
       };
     }
   }

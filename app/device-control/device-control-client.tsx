@@ -361,11 +361,19 @@ export default function DeviceControlClient() {
   ])
   const [selectedCameraId, setSelectedCameraId] = useState<number>(1)
 
-  // 连接实时数据
-  const { deviceData, connectionStatus } = useDeviceData()
+  // 连接实时数据 + 设备注册表
+  const { deviceData, connectionStatus, devices } = useDeviceData()
 
   // 设备控制 hook
-  const { status: controlStatus, toggleRelay, setLEDs, controlStepper, resetStepperPosition, sendStepperPreset } = useDeviceControl()
+  const { status: controlStatus, toggleRelay, toggleRelayByDeviceId, setLEDs, controlStepper, resetStepperPosition, sendStepperPreset } = useDeviceControl()
+
+  // 从设备注册表动态获取继电器设备（type=relay）
+  const relayDevices = useMemo(() => devices.filter(d => d.type === 'relay'), [devices])
+
+  // 设备图标映射（lucide-react 名称 → 组件）
+  const DEVICE_ICON_CMP_MAP = useMemo<Record<string, typeof Droplets>>(() => ({
+    Droplets, Droplet, Fan, Lightbulb, Sun, Thermometer, Video, Compass, Activity, Cpu, Wind, CloudSun, Signal,
+  }), [])
 
   const selectedCamera = useMemo(() => {
     return cameras.find(c => c.id === selectedCameraId) || cameras[0]
@@ -610,6 +618,68 @@ export default function DeviceControlClient() {
     }
   }
 
+  // 通过设备注册表 ID 控制继电器（动态设备）
+  const handleRelayToggleByDevice = async (deviceId: number) => {
+    if (!deviceData) {
+      message.warning('等待设备数据连接...')
+      return
+    }
+    if (!connectionStatus.connected) {
+      message.error('设备未连接，无法执行操作')
+      return
+    }
+
+    const dev = relayDevices.find(d => d.id === deviceId)
+    if (!dev) return
+
+    // 优先用 config.relay_num 关联旧版 relayN 状态字段；没有则按 device_id 维度记录
+    const relayNum = dev.config?.relay_num
+    const currentState = relayNum
+      ? ((deviceData[`relay${relayNum}` as keyof typeof deviceData] as number) || 0)
+      : 0
+    const newState = currentState === 1 ? 0 : 1
+    const deviceName = dev.name
+
+    const executeToggle = async () => {
+      try {
+        const success = await toggleRelayByDeviceId(deviceId, currentState)
+        if (success) {
+          createLog(deviceName, newState === 1 ? "开启" : "关闭")
+          message.success(`${deviceName} 已${newState === 1 ? '开启' : '关闭'}`)
+        } else {
+          message.error(`${deviceName} 操作失败，请重试`)
+        }
+      } catch (error) {
+        console.error('继电器操作失败:', error)
+        message.error(`${deviceName} 操作异常: ${error instanceof Error ? error.message : '未知错误'}`)
+      }
+    }
+
+    if (dev.is_critical) {
+      Modal.confirm({
+        title: newState === 1 ? `安全提示：确认开启 ${deviceName}？` : `安全提示：确认关闭 ${deviceName}？`,
+        content: (
+          <div className="space-y-2 mt-2">
+            <p className="text-sm">您确定要操作关键设备 <strong>{deviceName}</strong> 吗？</p>
+            <Alert
+              type={newState === 1 ? "success" : "warning"}
+              showIcon
+              message={newState === 1 ? `${deviceName} 即将启动，请确认现场安全。` : `${deviceName} 即将停止运行。`}
+              className="text-xs"
+            />
+          </div>
+        ),
+        okText: newState === 1 ? '确认启动' : '确认停机',
+        okType: newState === 1 ? 'primary' : 'danger',
+        cancelText: '取消',
+        centered: true,
+        onOk: executeToggle,
+      })
+    } else {
+      await executeToggle()
+    }
+  }
+
   const handleStepperControl = async (orientation: number) => {
     // 检查连接状态
     if (!connectionStatus.connected) {
@@ -776,9 +846,15 @@ export default function DeviceControlClient() {
   // ==================== 数据绑定与计算 ====================
 
   const systemStats = useMemo(() => {
-    const activeList = DEVICES_CONFIG_LOCAL.filter(d =>
-      (deviceData?.[`relay${d.key}` as keyof typeof deviceData] as number || 0) === 1
-    )
+    // 优先用设备注册表统计活动继电器数量；注册表为空时回退到旧版
+    const activeList = relayDevices.length > 0
+      ? relayDevices.filter(d => {
+          const rn = d.config?.relay_num
+          return rn ? ((deviceData?.[`relay${rn}` as keyof typeof deviceData] as number) || 0) === 1 : false
+        })
+      : DEVICES_CONFIG_LOCAL.filter(d =>
+          (deviceData?.[`relay${d.key}` as keyof typeof deviceData] as number || 0) === 1
+        )
     return {
       activeDevices: activeList.length,
       stepperPosition: ((deviceData?.stepper_position || 0) / 160).toFixed(1),
@@ -786,7 +862,7 @@ export default function DeviceControlClient() {
       stepperStatus: deviceData?.stepper_direction === 1 ? '向左平移' :
                       deviceData?.stepper_direction === 2 ? '向右平移' : '滑台停驻',
     }
-  }, [deviceData, w])
+  }, [deviceData, w, relayDevices])
 
   // 大棚环境实时数据绑定
   const greenhouseMetrics = useMemo(() => {
@@ -923,18 +999,31 @@ export default function DeviceControlClient() {
                           className="overflow-hidden"
                         >
                           <div className="mt-2 ml-2 p-3 bg-slate-50 dark:bg-zinc-900/50 rounded-lg space-y-2">
-                            {DEVICES_CONFIG_LOCAL.map((device) => (
-                              <div
-                                key={device.key}
-                                className="flex items-center justify-between p-2 bg-white dark:bg-zinc-950 rounded border border-slate-100 dark:border-zinc-800"
-                              >
-                                <span className="text-[9px] font-bold text-foreground">{device.title}</span>
-                                <Badge
-                                  status={(deviceData?.[`relay${device.key}` as keyof typeof deviceData] as number || 0) === 1 ? 'success' : 'default'}
-                                  text={<span className="text-[8px]">{(deviceData?.[`relay${device.key}` as keyof typeof deviceData] as number || 0) === 1 ? '运行' : '停止'}</span>}
-                                />
-                              </div>
-                            ))}
+                            {(relayDevices.length > 0 ? relayDevices.map(d => ({
+                              key: `dev-${d.id}`,
+                              title: d.name,
+                              relayNum: d.config?.relay_num as number | undefined,
+                            })) : DEVICES_CONFIG_LOCAL.map(d => ({
+                              key: `legacy-${d.key}`,
+                              title: d.title,
+                              relayNum: d.key as number | undefined,
+                            }))).map((device) => {
+                              const isOn = device.relayNum
+                                ? ((deviceData?.[`relay${device.relayNum}` as keyof typeof deviceData] as number) || 0) === 1
+                                : false
+                              return (
+                                <div
+                                  key={device.key}
+                                  className="flex items-center justify-between p-2 bg-white dark:bg-zinc-950 rounded border border-slate-100 dark:border-zinc-800"
+                                >
+                                  <span className="text-[9px] font-bold text-foreground truncate flex-1 mr-1">{device.title}</span>
+                                  <Badge
+                                    status={isOn ? 'success' : 'default'}
+                                    text={<span className="text-[8px]">{isOn ? '运行' : '停止'}</span>}
+                                  />
+                                </div>
+                              )
+                            })}
                           </div>
                         </motion.div>
                       )}
@@ -1246,30 +1335,70 @@ export default function DeviceControlClient() {
                         </div>
                       </div>
 
-                      {/* 4个继电器开关卡片 */}
+                      {/* 继电器开关卡片（动态来自设备注册表，回退到旧版硬编码） */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[
-                          { key: 5, title: "水泵 (Relay 5)", icon: Droplets, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/20" },
-                          { key: 6, title: "风扇 (Relay 6)", icon: Fan, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-                          { key: 7, title: "植物全光谱补光灯 (Relay 7)", icon: Lightbulb, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
-                          { key: 8, title: "光照植物补光灯 (Relay 8)", icon: Sun, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/20" },
-                        ].map((dev) => {
-                          const isActive = (deviceData?.[`relay${dev.key}` as keyof typeof deviceData] as number || 0) === 1
-                          const DevIcon = dev.icon
-
+                        {(relayDevices.length > 0
+                          ? relayDevices.map(d => {
+                              const IconCmp = DEVICE_ICON_CMP_MAP[d.icon] || Cpu
+                              const relayNum = d.config?.relay_num as number | undefined
+                              const isActive = relayNum
+                                ? ((deviceData?.[`relay${relayNum}` as keyof typeof deviceData] as number) || 0) === 1
+                                : false
+                              const hex = d.color || '#1677ff'
+                              return {
+                                key: `dev-${d.id}`,
+                                title: d.name,
+                                IconCmp,
+                                hex,
+                                isActive,
+                                onToggle: () => handleRelayToggleByDevice(d.id),
+                              }
+                            })
+                          : [
+                              { key: 5, title: "水泵 (Relay 5)", icon: Droplets, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/20" },
+                              { key: 6, title: "风扇 (Relay 6)", icon: Fan, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+                              { key: 7, title: "植物全光谱补光灯 (Relay 7)", icon: Lightbulb, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
+                              { key: 8, title: "光照植物补光灯 (Relay 8)", icon: Sun, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/20" },
+                            ].map((dev) => {
+                              const isActive = (deviceData?.[`relay${dev.key}` as keyof typeof deviceData] as number || 0) === 1
+                              return {
+                                key: `legacy-${dev.key}`,
+                                title: dev.title,
+                                IconCmp: dev.icon,
+                                hex: null as string | null,
+                                legacyColor: dev.color,
+                                legacyBg: dev.bg,
+                                isActive,
+                                onToggle: () => handleRelayToggle(dev.key as number),
+                              }
+                            })
+                        ).map((dev) => {
+                          const DevIcon = dev.IconCmp
+                          const isLegacy = !('hex' in dev && dev.hex !== null) && 'legacyColor' in dev
                           return (
                             <div
                               key={dev.key}
                               className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col justify-between min-h-[160px]"
                             >
                               <div className="flex justify-between items-start">
-                                <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0", dev.bg, dev.color)}>
-                                  <DevIcon className="size-5" />
-                                </div>
+                                {'hex' in dev && dev.hex
+                                  ? (
+                                    <div
+                                      className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                                      style={{ backgroundColor: `${dev.hex}1a`, color: dev.hex }}
+                                    >
+                                      <DevIcon className="size-5" strokeWidth={1.75} />
+                                    </div>
+                                  )
+                                  : (
+                                    <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0", (dev as any).legacyBg, (dev as any).legacyColor)}>
+                                      <DevIcon className="size-5" />
+                                    </div>
+                                  )}
                                 <span className={cn(
                                   "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                                  connectionStatus.connected 
-                                    ? "text-emerald-500 bg-[#e6f7ef] dark:bg-[#112d1f]" 
+                                  connectionStatus.connected
+                                    ? "text-emerald-500 bg-[#e6f7ef] dark:bg-[#112d1f]"
                                     : "text-red-500 bg-red-50 dark:bg-red-950/30"
                                 )}>· {connectionStatus.connected ? '在线' : '离线'}</span>
                               </div>
@@ -1280,10 +1409,13 @@ export default function DeviceControlClient() {
                               </div>
 
                               <div className="flex justify-between items-center pt-3 border-t border-slate-50 dark:border-zinc-800/40 mt-3">
-                                <DevIcon className={cn("size-6 opacity-45", isActive && dev.color)} />
+                                {'hex' in dev && dev.hex
+                                  ? <DevIcon className="size-6 opacity-45" style={dev.isActive ? { color: dev.hex } : undefined} strokeWidth={1.75} />
+                                  : <DevIcon className={cn("size-6 opacity-45", dev.isActive && (dev as any).legacyColor)} />
+                                }
                                 <Switch
-                                  checked={isActive}
-                                  onChange={() => handleRelayToggle(dev.key)}
+                                  checked={dev.isActive}
+                                  onChange={dev.onToggle}
                                   disabled={!connectionStatus.connected || controlStatus.loading}
                                   loading={controlStatus.loading}
                                 />

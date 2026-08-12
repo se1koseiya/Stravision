@@ -5,6 +5,7 @@
  */
 
 import {
+  getUserPreference,
   setUserPreference,
   saveDevicePattern,
   updateDevicePatternStats,
@@ -74,7 +75,18 @@ export async function learnFromConversation(context: LearningContext): Promise<v
         );
 
         if (pattern) {
-          // 尝试更新现有模式的统计
+          // 🔥 先保存 pattern_data（upsert，保留已有计数）
+          // 旧实现只调用 updateDevicePatternStats，pattern_data 永远为空 '{}'
+          await saveDevicePattern({
+            user_id: context.userId,
+            device_id: deviceAction.deviceId,
+            pattern_type: pattern.patternType,
+            pattern_data: JSON.stringify(pattern.patternData),
+            confidence: 0.5,
+            success_count: 0,
+            total_count: 0
+          });
+          // 再原子自增统计计数（upsert，首次会 INSERT）
           await updateDevicePatternStats(
             context.userId,
             deviceAction.deviceId,
@@ -82,14 +94,24 @@ export async function learnFromConversation(context: LearningContext): Promise<v
             deviceAction.success
           );
 
-          console.log(`[AutoLearning] Updated device pattern: ${pattern.patternType} for device ${deviceAction.deviceId}`);
+          console.log(`[AutoLearning] Saved device pattern: ${pattern.patternType} for device ${deviceAction.deviceId}`);
         }
       }
     }
 
     // 3. 保存成功的任务策略
     if (context.taskGoal && context.taskSteps && context.taskSuccess) {
-      // 尝试更新现有策略
+      // 🔥 先保存策略步骤（upsert，保留已有计数）
+      await saveSuccessfulStrategy({
+        user_id: context.userId,
+        goal: context.taskGoal,
+        steps: JSON.stringify(context.taskSteps),
+        success_rate: context.taskSuccess ? 1.0 : 0.0,
+        avg_execution_time: context.taskExecutionTime || 0,
+        conditions: undefined,
+        use_count: 0
+      });
+      // 再原子自增统计（upsert，首次会 INSERT）
       await updateStrategyStats(
         context.userId,
         context.taskGoal,
@@ -97,7 +119,7 @@ export async function learnFromConversation(context: LearningContext): Promise<v
         context.taskSuccess
       );
 
-      console.log(`[AutoLearning] Updated strategy for goal: ${context.taskGoal}`);
+      console.log(`[AutoLearning] Saved strategy for goal: ${context.taskGoal}`);
     }
 
   } catch (error) {
@@ -126,13 +148,17 @@ export async function learnFromDeviceControl(
     });
 
     if (pattern) {
-      // 检查是否已存在该模式
-      await updateDevicePatternStats(
-        userId,
-        deviceId,
-        pattern.patternType,
-        success
-      );
+      // 🔥 先保存 pattern_data，再原子自增统计（与 learnFromConversation 一致）
+      await saveDevicePattern({
+        user_id: userId,
+        device_id: deviceId,
+        pattern_type: pattern.patternType,
+        pattern_data: JSON.stringify(pattern.patternData),
+        confidence: 0.5,
+        success_count: 0,
+        total_count: 0
+      });
+      await updateDevicePatternStats(userId, deviceId, pattern.patternType, success);
 
       console.log(`[AutoLearning] Learned from device control: ${pattern.patternType}`);
     }
@@ -153,7 +179,16 @@ export async function learnFromTaskExecution(
   conditions?: Record<string, any>
 ): Promise<void> {
   try {
-    // 更新策略统计
+    // 🔥 先保存策略步骤（upsert，保留已有计数），再原子自增统计
+    await saveSuccessfulStrategy({
+      user_id: userId,
+      goal,
+      steps: JSON.stringify(steps),
+      success_rate: success ? 1.0 : 0.0,
+      avg_execution_time: executionTime,
+      conditions: conditions ? JSON.stringify(conditions) : undefined,
+      use_count: 0
+    });
     await updateStrategyStats(userId, goal, executionTime, success);
 
     console.log(`[AutoLearning] Learned from task execution: ${goal} (success: ${success})`);
@@ -173,6 +208,9 @@ export async function batchLearn(contexts: LearningContext[]): Promise<void> {
 
 /**
  * 分析用户反馈并调整置信度
+ *
+ * 🔥 旧实现是空壳（只 console.log），从未真正读写 DB
+ * 现在：读取当前置信度 → 按反馈调整 → 限制在 [0,1] → 写回 DB
  */
 export async function adjustConfidenceFromFeedback(
   userId: number,
@@ -180,14 +218,25 @@ export async function adjustConfidenceFromFeedback(
   feedback: 'positive' | 'negative'
 ): Promise<void> {
   try {
-    // 根据反馈调整置信度
-    // 正面反馈：增加 0.1
-    // 负面反馈：减少 0.2
-    const adjustment = feedback === 'positive' ? 0.1 : -0.2;
+    const current = await getUserPreference(userId, preferenceKey);
+    if (!current) {
+      console.warn(`[AutoLearning] Cannot adjust confidence: preference "${preferenceKey}" not found`);
+      return;
+    }
 
-    // 这里需要先获取当前偏好，然后更新
-    // 简化实现：直接设置新的置信度
-    console.log(`[AutoLearning] Adjusted confidence for ${preferenceKey} by ${adjustment}`);
+    // 正面反馈：+0.1（上限 1.0）
+    // 负面反馈：-0.2（下限 0.0；低于 0.15 视为已被否定，不再使用）
+    const adjustment = feedback === 'positive' ? 0.1 : -0.2;
+    const newConfidence = Math.max(0, Math.min(1, current.confidence + adjustment));
+
+    await setUserPreference({
+      user_id: userId,
+      preference_key: preferenceKey,
+      preference_value: current.preference_value,
+      confidence: newConfidence
+    });
+
+    console.log(`[AutoLearning] Adjusted confidence for ${preferenceKey}: ${current.confidence.toFixed(2)} → ${newConfidence.toFixed(2)} (${feedback})`);
   } catch (error) {
     console.error('[AutoLearning] Failed to adjust confidence:', error);
   }

@@ -5,23 +5,28 @@ import { Duplex } from 'stream';
 import { verifyToken } from '@/lib/token';
 import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service';
 import { initDB } from '@/lib/db/database';
+import { getVoiceServerConfig, resolveVoiceApiKey } from '@/lib/db/settings-service';
 
 // Extend the NextApiRequest type to include the socket
 interface ExtendedRequest extends NextApiRequest {
   socket: any;
 }
 
-const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY || process.env.SYSTEM_OPENAI_API_KEY;
+// Omni 架构的 API Key 不再从环境变量硬编码读取，改为按需从 voice_config 解析（支持独立加密 Key + 共享 Key 回退）
 
 export default async function handler(req: ExtendedRequest, res: NextApiResponse) {
-  if (!DASHSCOPE_API_KEY) {
-    console.error('Missing DASHSCOPE_API_KEY');
-    res.status(500).json({ error: 'Server configuration error' });
+  if (req.method !== 'GET') {
+    res.status(405).end();
     return;
   }
 
-  if (req.method !== 'GET') {
-    res.status(405).end();
+  // 从 voice_config 读取 Omni 配置（endpoint/model）并解析 API Key
+  const voiceConfig = await getVoiceServerConfig();
+  const { apiKey: omniApiKey, providerName } = await resolveVoiceApiKey(voiceConfig.providerId, "omni");
+
+  if (!omniApiKey) {
+    console.error('Missing Omni API Key (neither dedicated omniApiKey nor shared provider key nor env DASHSCOPE_API_KEY)');
+    res.status(500).json({ error: 'Server configuration error: Omni API Key not configured' });
     return;
   }
 
@@ -41,15 +46,16 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
             authStatus = 'Invalid Token';
         }
       }
-      
-      res.status(200).json({ 
-        status: 'OK', 
+
+      res.status(200).json({
+        status: 'OK',
         message: 'Realtime API is ready. Please use WebSocket to connect.',
         diagnostics: {
             auth: authStatus,
             userId: user?.id,
-            hasApiKey: !!DASHSCOPE_API_KEY,
-            model: req.query.model || 'default'
+            hasApiKey: !!omniApiKey,
+            keySource: providerName,
+            model: voiceConfig.omni.model,
         }
       });
     } catch (e: any) {
@@ -125,15 +131,19 @@ export default async function handler(req: ExtendedRequest, res: NextApiResponse
         })();
       }, 60 * 1000);
 
+      // 优先使用查询参数中的 model（客户端覆盖），否则用 voice_config.omni.model
       const rawModel = Array.isArray(req.query.model) ? req.query.model[0] : req.query.model;
-      const model = rawModel && rawModel !== 'default' ? rawModel : 'qwen3-omni-flash';
-      const dashScopeUrl = `wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=${encodeURIComponent(model)}`;
+      const model = rawModel && rawModel !== 'default' ? rawModel : voiceConfig.omni.model;
+      // 端点优先用 voice_config.omni.endpoint，拼接 model 查询参数
+      const baseUrl = voiceConfig.omni.endpoint;
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      const dashScopeUrl = `${baseUrl}${separator}model=${encodeURIComponent(model)}`;
 
-      console.log(`Connecting to DashScope: ${dashScopeUrl}`);
+      console.log(`Connecting to Omni realtime: ${dashScopeUrl} (key source: ${providerName})`);
 
       const targetWs = new WebSocket(dashScopeUrl, {
         headers: {
-          Authorization: `Bearer ${DASHSCOPE_API_KEY}`,
+          Authorization: `Bearer ${omniApiKey}`,
           'X-DashScope-DataInspection': 'enable',
         },
       });

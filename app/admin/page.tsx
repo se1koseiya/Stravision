@@ -46,7 +46,10 @@ import {
   NotificationOutlined,
   CheckCircleFilled,
   ExclamationCircleFilled,
-  BookOutlined
+  BookOutlined,
+  DatabaseOutlined,
+  SoundOutlined,
+  ExperimentOutlined
 } from "@ant-design/icons"
 import type { TableColumnsType, MenuProps } from "antd"
 import Image from "next/image"
@@ -64,10 +67,14 @@ import { KnowledgeMarketManager } from "@/components/admin/knowledge-market-mana
 import { FeatureAnnouncementAdmin } from "@/components/dashboard/feature-announcement-admin"
 import { CameraSettings } from "@/components/admin/camera-settings"
 import { SkillManager } from "@/components/admin/skill-manager"
+import { DocsManager } from "@/components/admin/docs-manager"
 import { AIFeaturesSettings } from "@/components/admin/ai-features-settings"
 import { AIModelsManager } from "@/components/admin/ai-models-manager"
 import { AIProvidersManager } from "@/components/admin/ai-providers-manager"
 import { ModelMarketplace } from "@/components/admin/model-marketplace"
+import DeviceManager from "@/components/admin/device-manager"
+import { VoiceSettings } from "@/components/admin/voice-settings"
+import { VoiceTestPage } from "@/components/admin/voice-test-page"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 
 const { Header, Sider, Content } = Layout
@@ -82,8 +89,12 @@ type AdminSection =
   | "security"
   | "announcement"
   | "settings"
+  | "voice-test"
   | "mcp-market"
+  | "kb-market"
   | "skills"
+  | "docs"
+  | "devices"
 
 interface SidebarItem {
   key: AdminSection
@@ -91,32 +102,66 @@ interface SidebarItem {
   icon: React.ReactNode
 }
 
-const sidebarItems: SidebarItem[] = [
-  { key: "dashboard", label: "概览", icon: <DashboardOutlined /> },
-  { key: "users", label: "用户管理", icon: <UserOutlined /> },
-  { key: "ai-models", label: "AI 模型", icon: <RobotOutlined /> },
-  { key: "ai-providers", label: "AI 提供商", icon: <CloudServerOutlined /> },
-  { key: "model-marketplace", label: "模型市场", icon: <ShopOutlined /> },
-  { key: "security", label: "安全设置", icon: <LockOutlined /> },
-  { key: "announcement", label: "公告管理", icon: <NotificationOutlined /> },
-  { key: "settings", label: "系统设置", icon: <SettingOutlined /> },
-  { key: "mcp-market", label: "MCP 市场", icon: <ApiOutlined /> },
-  { key: "kb-market", label: "知识库市场", icon: <BookOutlined /> },
-  { key: "skills", label: "Agent 技能", icon: <ToolOutlined /> }
+interface SidebarGroup {
+  key: string
+  label: string
+  items: SidebarItem[]
+}
+
+const sidebarGroups: SidebarGroup[] = [
+  {
+    key: "overview",
+    label: "",
+    items: [{ key: "dashboard", label: "概览", icon: <DashboardOutlined /> }]
+  },
+  {
+    key: "system",
+    label: "系统管理",
+    items: [
+      { key: "users", label: "用户管理", icon: <UserOutlined /> },
+      { key: "security", label: "安全设置", icon: <LockOutlined /> },
+      { key: "announcement", label: "公告管理", icon: <NotificationOutlined /> },
+      { key: "settings", label: "系统设置", icon: <SettingOutlined /> },
+      { key: "devices", label: "设备管理", icon: <DatabaseOutlined /> }
+    ]
+  },
+  {
+    key: "ai",
+    label: "AI 配置",
+    items: [
+      { key: "ai-providers", label: "AI 提供商", icon: <CloudServerOutlined /> },
+      { key: "ai-models", label: "AI 模型", icon: <RobotOutlined /> },
+      { key: "model-marketplace", label: "模型市场", icon: <ShopOutlined /> },
+      { key: "voice-test", label: "语音测试", icon: <ExperimentOutlined /> }
+    ]
+  },
+  {
+    key: "extension",
+    label: "扩展",
+    items: [
+      { key: "mcp-market", label: "MCP 市场", icon: <ApiOutlined /> },
+      { key: "kb-market", label: "知识库市场", icon: <BookOutlined /> },
+      { key: "skills", label: "Agent 技能", icon: <ToolOutlined /> },
+      { key: "docs", label: "文档管理", icon: <FileTextOutlined /> }
+    ]
+  }
 ]
 
 const sectionMeta: Record<AdminSection, { label: string; breadcrumb: string[] }> = {
   dashboard: { label: "概览", breadcrumb: ["首页"] },
-  users: { label: "用户管理", breadcrumb: ["系统设置", "用户管理"] },
+  users: { label: "用户管理", breadcrumb: ["系统管理", "用户管理"] },
   "ai-models": { label: "AI 模型", breadcrumb: ["AI 配置", "模型管理"] },
   "ai-providers": { label: "AI 提供商", breadcrumb: ["AI 配置", "提供商管理"] },
   "model-marketplace": { label: "模型市场", breadcrumb: ["AI 配置", "模型市场"] },
-  security: { label: "安全设置", breadcrumb: ["系统设置", "安全"] },
-  announcement: { label: "公告管理", breadcrumb: ["系统设置", "公告"] },
-  settings: { label: "系统设置", breadcrumb: ["系统设置"] },
+  security: { label: "安全设置", breadcrumb: ["系统管理", "安全"] },
+  announcement: { label: "公告管理", breadcrumb: ["系统管理", "公告"] },
+  settings: { label: "系统设置", breadcrumb: ["系统管理"] },
+  "voice-test": { label: "语音测试", breadcrumb: ["AI 配置", "语音测试"] },
   "mcp-market": { label: "MCP 市场", breadcrumb: ["扩展", "MCP 市场"] },
+  devices: { label: "设备管理", breadcrumb: ["系统管理", "设备管理"] },
   "kb-market": { label: "知识库市场", breadcrumb: ["扩展", "知识库市场"] },
-  skills: { label: "Agent 技能", breadcrumb: ["扩展", "技能管理"] }
+  skills: { label: "Agent 技能", breadcrumb: ["扩展", "技能管理"] },
+  docs: { label: "文档管理", breadcrumb: ["扩展", "文档管理"] }
 }
 
 export default function AdminPage() {
@@ -241,47 +286,60 @@ export default function AdminPage() {
 
   const meta = sectionMeta[activeSection]
 
+  const renderPageHeader = (extra?: React.ReactNode) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: "#1F2329", lineHeight: 1.4 }}>{meta.label}</div>
+        <div style={{ fontSize: 12, color: "#8F959E", marginTop: 2 }}>共 {users.length} 个用户</div>
+      </div>
+      {extra}
+    </div>
+  )
+
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
         return (
           <div>
-            <Title level={4} style={{ margin: "0 0 16px 0" }}>系统概览</Title>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-              <Card size="small" loading={loading}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, color: "#1F2329", lineHeight: 1.4 }}>系统概览</div>
+              <div style={{ fontSize: 12, color: "#8F959E", marginTop: 2 }}>实时查看系统运行状态</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+              <Card size="small" loading={loading} style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="总用户"
                   value={users.length}
-                  prefix={<UserOutlined style={{ color: "var(--stat-blue)" }} />}
-                  styles={{ content: { color: isDark ? "#69b1ff" : "#1677ff" } }}
+                  prefix={<UserOutlined style={{ color: "#1677ff" }} />}
+                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
-              <Card size="small">
+              <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="管理员"
                   value={users.filter((u) => u.role === "admin" || u.role === "super_admin").length}
-                  prefix={<SafetyCertificateOutlined style={{ color: "var(--stat-orange)" }} />}
-                  styles={{ content: { color: isDark ? "#ff9c6e" : "#fa8c16" } }}
+                  prefix={<SafetyCertificateOutlined style={{ color: "#1677ff" }} />}
+                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
-              <Card size="small">
+              <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="会员"
                   value={users.filter((u) => u.role === "member").length}
-                  prefix={<ThunderboltOutlined style={{ color: "var(--stat-green)" }} />}
-                  styles={{ content: { color: isDark ? "#73d13d" : "#52c41a" } }}
+                  prefix={<ThunderboltOutlined style={{ color: "#1677ff" }} />}
+                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
-              <Card size="small">
+              <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="系统状态"
                   value="正常"
-                  prefix={<CheckCircleFilled style={{ color: "var(--stat-green)" }} />}
-                  styles={{ content: { color: isDark ? "#73d13d" : "#52c41a", fontSize: 18 } }}
+                  prefix={<CheckCircleFilled style={{ color: "#1677ff" }} />}
+                  styles={{ content: { color: "#1F2329", fontSize: 18 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
             </div>
-            <Card title="最近用户" size="small" styles={{ body: { padding: 0 } }}>
+            <Card title="最近用户" size="small" styles={{ body: { padding: 0 } }} style={{ border: "1px solid #EDEEEF" }}>
               <Table
                 rowKey="id"
                 columns={userColumns}
@@ -295,30 +353,22 @@ export default function AdminPage() {
 
       case "users":
         return (
-          <Card
-            title={
-              <Space>
-                <UserOutlined style={{ color: "#1677ff" }} />
-                <span>用户管理</span>
-              </Space>
-            }
-            extra={
-              <Button type="primary" icon={<UserAddOutlined />} onClick={handleCreate}>
-                新建用户
-              </Button>
-            }
-            styles={{ body: { padding: 0 } }}
-          >
-            <Table
-              rowKey="id"
-              columns={userColumns}
-              dataSource={users}
-              loading={loading}
-              pagination={{ pageSize: 20, showSizeChanger: false }}
-              locale={{ emptyText: "暂无用户数据" }}
-              size="middle"
-            />
-          </Card>
+          <div>
+            {renderPageHeader(
+              <Button type="primary" icon={<UserAddOutlined />} onClick={handleCreate}>新建用户</Button>
+            )}
+            <Card styles={{ body: { padding: 0 } }} style={{ border: "1px solid #EDEEEF" }}>
+              <Table
+                rowKey="id"
+                columns={userColumns}
+                dataSource={users}
+                loading={loading}
+                pagination={{ pageSize: 20, showSizeChanger: false }}
+                locale={{ emptyText: "暂无用户数据" }}
+                size="middle"
+              />
+            </Card>
+          </div>
         )
 
       case "ai-models":
@@ -330,55 +380,49 @@ export default function AdminPage() {
 
       case "security":
         return (
-          <Space direction="vertical" style={{ width: "100%" }} size={16}>
-            <Card title={<Space><LockOutlined style={{ color: "#1677ff" }} />安全设置</Space>}>
-              <Space direction="vertical" style={{ width: "100%" }} size={16}>
-                <BannedIPsManager />
-                <AccessLogsViewer />
-              </Space>
-            </Card>
+          <Space direction="vertical" style={{ width: "100%" }} size={12}>
+            <BannedIPsManager />
+            <AccessLogsViewer />
           </Space>
         )
 
       case "announcement":
         return (
-          <Space direction="vertical" style={{ width: "100%" }} size={16}>
+          <Space direction="vertical" style={{ width: "100%" }} size={12}>
             <AnnouncementSender />
             <ChangelogSender />
-            <Card title={<Space><FileTextOutlined style={{ color: "#1677ff" }} />功能公告</Space>}>
-              <FeatureAnnouncementAdmin />
-            </Card>
+            <FeatureAnnouncementAdmin />
           </Space>
         )
 
       case "settings":
         return (
-          <Space direction="vertical" style={{ width: "100%" }} size={16}>
-            <Card title={<Space><ThunderboltOutlined style={{ color: "#1677ff" }} />AI 功能开关</Space>}>
-              <AIFeaturesSettings />
-            </Card>
-            <Card title={<Space><WarningOutlined style={{ color: "#1677ff" }} />基础设置</Space>}>
-              <Space direction="vertical" style={{ width: "100%" }} size={16}>
-                <RateLimitSettings />
-                <MaintenanceSettings />
-                <CameraSettings />
-              </Space>
-            </Card>
+          <Space direction="vertical" style={{ width: "100%" }} size={12}>
+            <AIFeaturesSettings />
+            <VoiceSettings />
+            <RateLimitSettings />
+            <MaintenanceSettings />
+            <CameraSettings />
           </Space>
         )
 
       case "mcp-market":
         return <MCPMarketManager />
 
+      case "voice-test":
+        return <VoiceTestPage />
+
+      case "devices":
+        return <DeviceManager />
+
       case "kb-market":
         return <KnowledgeMarketManager />
 
       case "skills":
-        return (
-          <Card title={<Space><RobotOutlined style={{ color: "#1677ff" }} />Agent 技能管理</Space>}>
-            <SkillManager />
-          </Card>
-        )
+        return <SkillManager />
+
+      case "docs":
+        return <DocsManager />
 
       default:
         return null
@@ -388,7 +432,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
-        <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F5F6F7" }}>
           <Spin size="large" />
         </div>
       </ConfigProvider>
@@ -401,8 +445,58 @@ export default function AdminPage() {
         algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
           colorPrimary: "#1677ff",
-          borderRadius: 8,
-          fontFamily: "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)"
+          borderRadius: 6,
+          fontFamily: "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)",
+          colorBorder: "#EDEEEF",
+          colorBorderSecondary: "#F2F3F5",
+          colorBgLayout: "#F5F6F7",
+          controlHeight: 32,
+          controlItemBgHover: "#F2F3F5",
+          controlItemBgActive: "#E8F0FF",
+          colorText: "#1F2329",
+          colorTextSecondary: "#646A73",
+          colorTextTertiary: "#8F959E",
+          fontSize: 13
+        },
+        components: {
+          Layout: {
+            headerBg: "#ffffff",
+            siderBg: "#F7F8FA",
+            bodyBg: "#F5F6F7",
+            headerHeight: 56,
+            headerPadding: "0 20px"
+          },
+          Menu: {
+            itemBg: "transparent",
+            itemSelectedBg: "#E8F0FF",
+            itemSelectedColor: "#1677ff",
+            itemHoverBg: "#F2F3F5",
+            itemColor: "#1F2329",
+            itemBorderRadius: 6,
+            itemMarginInline: 8,
+            itemHeight: 36,
+            iconSize: 15,
+            activeBarBorderWidth: 0
+          },
+          Card: {
+            borderRadiusLG: 6,
+            headerBg: "transparent",
+            headerFontSize: 14,
+            paddingLG: 16,
+            boxShadowTertiary: "none"
+          },
+          Table: {
+            headerBg: "#FAFBFC",
+            headerColor: "#646A73",
+            rowHoverBg: "#F7F8FA",
+            borderColor: "#EFF0F1",
+            cellPaddingBlock: 10
+          },
+          Button: {
+            borderRadius: 6,
+            controlHeight: 32,
+            paddingInline: 14
+          }
         }
       }}
     >
@@ -417,8 +511,8 @@ export default function AdminPage() {
           collapsible
           collapsed={collapsed}
           theme="light"
-          width={240}
-          collapsedWidth={64}
+          width={220}
+          collapsedWidth={56}
           style={{
             position: "fixed",
             left: 0,
@@ -426,25 +520,24 @@ export default function AdminPage() {
             bottom: 0,
             zIndex: 100,
             overflow: "auto",
-            background: "#ffffff",
-            borderRight: "1px solid #f0f0f0"
+            background: "#F7F8FA",
+            borderRight: "1px solid #EDEEEF"
           }}
         >
           {/* Logo area */}
           <div
             style={{
-              height: 64,
+              height: 56,
               display: "flex",
               alignItems: "center",
               justifyContent: collapsed ? "center" : "flex-start",
               padding: collapsed ? "0" : "0 16px",
-              gap: 10,
-              borderBottom: "1px solid var(--ant-color-border)"
+              gap: 8
             }}
           >
-            <Image src="/logo.png" alt="Logo" width={28} height={28} style={{ objectFit: "contain", flexShrink: 0 }} />
+            <Image src="/logo.png" alt="Logo" width={24} height={24} style={{ objectFit: "contain", flexShrink: 0 }} />
             {!collapsed && (
-              <Title level={5} style={{ margin: 0, fontWeight: 700, whiteSpace: "nowrap" }}>
+              <Title level={5} style={{ margin: 0, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", color: "#1F2329" }}>
                 BerryRealm
               </Title>
             )}
@@ -456,22 +549,42 @@ export default function AdminPage() {
             theme="light"
             selectedKeys={[activeSection]}
             onClick={({ key }) => setActiveSection(key as AdminSection)}
-            style={{ border: "none", marginTop: 8, background: "transparent" }}
+            style={{ border: "none", marginTop: 4, background: "transparent", paddingInline: 0 }}
             inlineCollapsed={collapsed}
-            items={sidebarItems.map((item) => ({
-              key: item.key,
-              icon: item.icon,
-              label: item.label
-            }))}
+            items={sidebarGroups.flatMap((group) => {
+              if (!group.label) {
+                return group.items.map((item) => ({
+                  key: item.key,
+                  icon: item.icon,
+                  label: item.label
+                }))
+              }
+              return [
+                {
+                  type: "group" as const,
+                  label: collapsed ? null : (
+                    <span style={{ fontSize: 11, color: "#8F959E", fontWeight: 500, letterSpacing: "0.02em" }}>
+                      {group.label}
+                    </span>
+                  ),
+                  key: group.key,
+                  children: group.items.map((item) => ({
+                    key: item.key,
+                    icon: item.icon,
+                    label: item.label
+                  }))
+                }
+              ]
+            })}
           />
         </Sider>
 
         {/* Main */}
         <Layout
           style={{
-            marginLeft: collapsed ? 64 : 240,
+            marginLeft: collapsed ? 56 : 220,
             transition: "margin-left 0.2s",
-            background: "var(--ant-layout-body-bg)"
+            background: "#F5F6F7"
           }}
         >
           {/* Header */}
@@ -483,36 +596,36 @@ export default function AdminPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0 24px",
+              padding: "0 20px",
               background: "#ffffff",
-              borderBottom: "1px solid #f0f0f0",
-              height: 64
+              borderBottom: "1px solid #EDEEEF",
+              height: 56
             }}
           >
             {/* Left: Collapse + Breadcrumb */}
-            <Space size={16}>
+            <Space size={12}>
               <Button
                 type="text"
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={() => setCollapsed(!collapsed)}
-                style={{ fontSize: 16 }}
+                style={{ fontSize: 15, color: "#646A73" }}
               />
               <Breadcrumb
                 items={meta.breadcrumb.map((b, i) => ({
                   title: i === meta.breadcrumb.length - 1 ? (
-                    <span style={{ fontWeight: 600 }}>{b}</span>
+                    <span style={{ color: "#1F2329", fontSize: 13 }}>{b}</span>
                   ) : (
-                    b
+                    <span style={{ color: "#8F959E", fontSize: 13 }}>{b}</span>
                   )
                 }))}
               />
             </Space>
 
             {/* Right: Actions */}
-            <Space size={16}>
+            <Space size={12}>
               <Tooltip title="暂无新通知">
                 <Badge count={0} size="small">
-                  <BellOutlined style={{ fontSize: 16, color: "var(--ant-color-text-secondary)", cursor: "pointer" }} />
+                  <BellOutlined style={{ fontSize: 16, color: "#646A73", cursor: "pointer" }} />
                 </Badge>
               </Tooltip>
               {currentUser ? (
@@ -525,11 +638,11 @@ export default function AdminPage() {
                   }}
                   placement="bottomRight"
                 >
-                  <Space style={{ cursor: "pointer" }}>
-                    <Avatar size={32} src={currentUser.avatar_url} style={{ background: "#1677ff" }}>
+                  <Space size={8} style={{ cursor: "pointer" }}>
+                    <Avatar size={28} src={currentUser.avatar_url} style={{ background: "#1677ff", fontSize: 12 }}>
                       {currentUser.username?.[0]?.toUpperCase()}
                     </Avatar>
-                    <Text style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <Text style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>
                       {currentUser.username}
                     </Text>
                   </Space>
@@ -541,7 +654,7 @@ export default function AdminPage() {
           </Header>
 
           {/* Content */}
-          <Content style={{ padding: 24, background: "var(--ant-layout-body-bg)", minHeight: "calc(100vh - 64px)" }}>
+          <Content style={{ padding: 20, background: "#F5F6F7", minHeight: "calc(100vh - 56px)" }}>
             {renderContent()}
           </Content>
         </Layout>

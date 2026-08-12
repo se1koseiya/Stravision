@@ -74,9 +74,10 @@ export function RateLimitSettings() {
 
   return (
     <Card
+      style={{ border: "1px solid #EDEEEF" }}
       title={
         <Space>
-          <SafetyCertificateOutlined style={{ color: "#8b5cf6" }} />
+          <SafetyCertificateOutlined style={{ color: "#1677ff" }} />
           <span>Auto-Ban Thresholds</span>
         </Space>
       }
@@ -90,7 +91,7 @@ export function RateLimitSettings() {
     >
       <form onSubmit={handleSave}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Text>Max Requests (per window)</Text>
               <Input
@@ -146,7 +147,7 @@ export function RateLimitSettings() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 12 }}>
             <Button
               type="primary"
               htmlType="submit"

@@ -1,28 +1,40 @@
 "use client"
 
-import { Hero } from "@/components/landing-art/hero"
 import dynamic from "next/dynamic"
+import { Hero } from "@/components/landing-art/hero"
+import { Manifesto } from "@/components/landing-art/manifesto"
+import { AIChapters } from "@/components/landing-art/ai-story"
+import { Personas } from "@/components/landing-art/personas"
+import { Capabilities } from "@/components/landing-art/capabilities"
+import { Metrics } from "@/components/landing-art/metrics"
 
-// 首屏以下的 section 使用 dynamic import，滚动到时才加载 JS
-const Monitor = dynamic(() => import("@/components/landing-art/monitor").then(m => ({ default: m.Monitor })), { ssr: false })
-const Warning = dynamic(() => import("@/components/landing-art/warning").then(m => ({ default: m.Warning })), { ssr: false })
-const Logic = dynamic(() => import("@/components/landing-art/logic").then(m => ({ default: m.Logic })), { ssr: false })
-const Topology = dynamic(() => import("@/components/landing-art/topology").then(m => ({ default: m.Topology })), { ssr: false })
-const Footer = dynamic(() => import("@/components/landing-art/footer").then(m => ({ default: m.Footer })), { ssr: false })
+// 落地页专用轻量光标 —— 仅在桌面端加载，不干扰默认交互
+const LandingCursor = dynamic(
+  () => import("@/components/landing-art/landing-cursor").then((m) => m.LandingCursor),
+  { ssr: false }
+)
+
+// Footer 滚动到时才加载 JS
+const Footer = dynamic(
+  () => import("@/components/landing-art/footer").then((m) => ({ default: m.Footer })),
+  { ssr: false }
+)
 
 export default function ArtPage() {
   return (
-    <main className="relative bg-white text-[#0a0a0a] selection:bg-blue-500/30 font-sans overflow-x-clip min-h-screen">
-      {/* Content Layer */}
-      <div className="relative z-20 flex flex-col">
+    <main className="relative bg-[#08080A] text-white selection:bg-[#1677ff] selection:text-white font-sans overflow-x-clip">
+      <LandingCursor />
+      {/* 电影级编辑叙事流：
+          序章 → 信仰 → 推理 → 三重人格 → 系统 → 数据 → 邀请 */}
+      <div className="relative z-10 flex flex-col">
         <Hero />
-        <Monitor />
-        <Warning />
-        <Logic />
-        <Topology />
+        <Manifesto />
+        <AIChapters />
+        <Personas />
+        <Capabilities />
+        <Metrics />
         <Footer />
       </div>
     </main>
   )
 }
-

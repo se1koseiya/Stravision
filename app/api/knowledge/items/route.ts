@@ -11,9 +11,10 @@ export const runtime = "nodejs"
 
 import { NextRequest } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { createItem, listItems, type ContentType } from "@/lib/db/knowledge-service"
+import { createItem, listItems, listVisibleItems, type ContentType } from "@/lib/db/knowledge-service"
 import { getKnowledgeConfig } from "@/lib/ai/provider-resolver"
 import { queryOne } from "@/lib/db/database"
+import { hasPermission } from "@/lib/db/kb-collaboration-service"
 
 const VALID_CONTENT_TYPES: ContentType[] = [
   "note", "text", "image", "document", "pdf", "audio", "video", "web_clip", "link"
@@ -24,6 +25,7 @@ function jsonError(message: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
+  try {
   const user = await getCurrentUser()
   if (!user) return jsonError("未登录", 401)
   const kc = await getKnowledgeConfig()
@@ -40,7 +42,9 @@ export async function GET(req: NextRequest) {
   // 上限 = max(default, maxCandidate × requestOvershootMultiplier)
   const defaultLimit = kc.ui.listPageSize
   const maxLimit = Math.max(defaultLimit, kc.search.maxCandidate * kc.search.requestOvershootMultiplier)
-  const result = await listItems(user.id, {
+  // 使用 listVisibleItems：包括自己 owner 的 + 协作集合内的所有条目
+  // 不指定 collectionId 时，listVisibleItems 会返回 user 可见的全部条目
+  const result = await listVisibleItems(user.id, {
     collection_id: collectionId,
     content_type: (searchParams.get("type") as ContentType) || undefined,
     is_favorite: searchParams.get("favorite") === "1" ? true : searchParams.get("favorite") === "0" ? false : undefined,
@@ -53,6 +57,10 @@ export async function GET(req: NextRequest) {
     orderDir: (searchParams.get("orderDir") as any) || "DESC"
   })
   return Response.json({ items: result.items, total: result.total })
+  } catch (e: any) {
+    console.error("[knowledge/items GET] error:", e)
+    return jsonError(`内部错误: ${e?.message || String(e)}`, 500)
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -83,21 +91,36 @@ export async function POST(req: NextRequest) {
 
   // 如果 collection_id 指向市场 KB，使用 publisher_id 作为条目 owner
   // 这样订阅用户拉取 market items 时不会被 user_id 过滤掉
+  // 协作集合：使用 owner 作为条目 user_id（参考 market 模式），
+  // 当前用户作为实际协作者写权限由 kb_collaborators 表保证
   let ownerUserId = user.id
   if (body?.collection_id) {
     const col = await queryOne<{ user_id: number; is_marketplace: number; publisher_id: number | null }>(
       `SELECT user_id, is_marketplace, publisher_id FROM knowledge_collections WHERE id = $1 AND is_archived = 0`,
       [body.collection_id]
     )
-    if (col?.is_marketplace === 1) {
+    if (!col) return jsonError("目标知识库不存在", 404)
+    if (col.is_marketplace === 1) {
       const role = (user as any).role
       const isAdmin = role === "admin" || role === "super_admin"
-      // admin / publisher 都允许写入，条目 owner 始终用 publisher
       if (isAdmin || col.user_id === user.id || col.publisher_id === user.id) {
         ownerUserId = col.user_id
       } else {
         return jsonError("无权限向该市场知识库添加条目", 403)
       }
+    } else {
+      // 非市场 KB：检查协作写权限
+      const role = (user as any).role
+      const isAdmin = role === "admin" || role === "super_admin"
+      const isOwner = col.user_id === user.id
+      if (!isAdmin && !isOwner) {
+        const canWrite = await hasPermission(body.collection_id, user.id, "write")
+        if (!canWrite) {
+          return jsonError("无权限向该知识库添加条目（需要编辑者/管理员角色）", 403)
+        }
+      }
+      // 用集合 owner 作为条目 owner（市场 KB 的同样模式）
+      ownerUserId = col.user_id
     }
   }
 

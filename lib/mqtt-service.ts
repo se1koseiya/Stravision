@@ -14,6 +14,13 @@ import { getActiveRules, recordRuleExecution } from '@/lib/db/automation-service
 import { ChatService } from '@/lib/db/chat-service'
 import { queryOne } from '@/lib/db/database'
 import { getStepperPosition, updateStepperPosition } from './db/settings-service'
+import { checkAndNotify } from '@/lib/ai/guardian-service'
+import {
+  getSubscribeTopics,
+  listDevicesByType,
+  saveSensorData,
+  Device as RegistryDevice,
+} from '@/lib/db/device-registry-service'
 
 /**
  * Device Data Interface
@@ -68,8 +75,9 @@ export interface DeviceData {
  */
 export interface ControlCommand {
   type: 'relay' | 'led' | 'stepper' | 'stepper_reset' | 'stepper_preset'
-  relayNum?: number       // Relay number (5-8)
+  relayNum?: number       // Relay number (5-8, 向后兼容)
   newState?: number       // New relay state (0/1)
+  node_id?: string        // 设备注册表中的 MQTT node ID（自定义设备用）
   led1?: number           // LED 1 brightness (0-255)
   led2?: number           // LED 2 brightness (0-255)
   led3?: number           // LED 3 brightness (0-255)
@@ -100,6 +108,9 @@ export class MQTTService {
   private client: mqtt.MqttClient | null = null
   private config: MQTTConfig
   private latestData: DeviceData | null = null
+  // 最近一次收到设备数据的时间戳（ms）。用于守护服务快速判断设备是否在线。
+  // 注意：仅在内存中，进程重启后会丢失，持久化真相源见 sensor_readings.created_at。
+  private lastDataReceivedAt: number | null = null
   private dataListeners: Set<DataListener> = new Set()
   private lastNotificationTime: Map<string, number> = new Map()
   private readonly NOTIFICATION_COOLDOWN = 30 * 60 * 1000 // 30 minutes
@@ -116,6 +127,16 @@ export class MQTTService {
   private readonly STEPPER_AUTO_RESET_DELAY_MS = 5 * 60 * 1000 // 5分钟无操作自动复位到左侧起点
   private channelUpdateTimes: Map<string, number> = new Map()
   private lastNotificationTimeVal: number = 0
+
+  // ─── 自定义设备动态订阅支持 ───
+  // topic → device_id 映射（用于消息路由）
+  private topicToDeviceMap: Map<string, number> = new Map()
+  // device_id → 最新数据
+  private customDeviceData: Map<number, Record<string, any>> = new Map()
+  // device_id → 监听器集合
+  private customDeviceListeners: Map<number, Set<(data: any) => void>> = new Map()
+  // 已订阅的自定义 topic（避免重复订阅）
+  private subscribedCustomTopics: Set<string> = new Set()
 
   /**
    * Private constructor to enforce singleton pattern
@@ -222,7 +243,12 @@ export class MQTTService {
               this.log('INFO', `Subscribed to topics: ${topics.join(', ')}`)
             }
           })
-          
+
+          // 动态订阅设备注册表中的自定义 topic
+          this.subscribeToDynamicDeviceTopics().catch(e => {
+            this.log('WARN', `Failed to subscribe to dynamic device topics: ${e}`)
+          })
+
           resolve()
         })
 
@@ -285,11 +311,31 @@ export class MQTTService {
 
   /**
    * Get latest cached device data
-   * 
+   *
    * @returns {DeviceData | null} Latest device data or null if no data received yet
    */
   public getLatestData(): DeviceData | null {
     return this.latestData
+  }
+
+  /**
+   * Get cached stepper position (in pulses)
+   *
+   * 这是发送 stepper 指令时本地乐观更新的位置真值源（与 UI 同步）。
+   * 供 MCP 设备控制工具在发送命令前做边界校验、在等待稳定时做目标比对。
+   *
+   * @returns {number} 当前丝杆滑台位置（脉冲数，0-112000）
+   */
+  public getCachedStepperPosition(): number {
+    return this.cachedStepperPosition
+  }
+
+  /**
+   * 最近一次收到设备数据的时间戳（ms），从未收到过则返回 null。
+   * 用于守护服务快速判断设备是否在线（无需查 DB）。
+   */
+  public getLastDataReceivedAt(): number | null {
+    return this.lastDataReceivedAt
   }
 
   /**
@@ -303,14 +349,143 @@ export class MQTTService {
    */
   public subscribeToData(callback: DataListener): () => void {
     this.dataListeners.add(callback)
-    
+
     this.log('INFO', `Data listener added. Total listeners: ${this.dataListeners.size}`)
-    
+
     // Return unsubscribe function
     return () => {
       this.dataListeners.delete(callback)
       this.log('INFO', `Data listener removed. Total listeners: ${this.dataListeners.size}`)
     }
+  }
+
+  // ─── 自定义设备动态订阅方法 ───
+
+  /**
+   * 从设备注册表加载 topic 并动态订阅
+   *
+   * 在 MQTT 连接成功后调用，订阅所有 sensor 类型设备的 subscribe_topic。
+   * 同时构建 topic → device_id 映射，用于消息路由。
+   */
+  private async subscribeToDynamicDeviceTopics(): Promise<void> {
+    try {
+      const sensors = await listDevicesByType('sensor')
+      const newTopics: string[] = []
+
+      for (const sensor of sensors) {
+        if (!sensor.subscribe_topic) continue
+        // 跳过已订阅的硬编码 topic（meimefarm/*）
+        if (sensor.subscribe_topic.startsWith('meimefarm/')) continue
+        // 跳过已订阅的
+        if (this.subscribedCustomTopics.has(sensor.subscribe_topic)) continue
+
+        this.topicToDeviceMap.set(sensor.subscribe_topic, sensor.id)
+        newTopics.push(sensor.subscribe_topic)
+        this.subscribedCustomTopics.add(sensor.subscribe_topic)
+      }
+
+      if (newTopics.length > 0 && this.client?.connected) {
+        this.client.subscribe(newTopics, { qos: 1 }, (err) => {
+          if (err) {
+            this.log('ERROR', `Failed to subscribe to dynamic topics: ${newTopics.join(', ')}`, err)
+          } else {
+            this.log('INFO', `[DeviceRegistry] Subscribed to ${newTopics.length} dynamic topics: ${newTopics.join(', ')}`)
+          }
+        })
+      }
+    } catch (e) {
+      this.log('ERROR', `[DeviceRegistry] Failed to load dynamic topics: ${e}`)
+    }
+  }
+
+  /**
+   * 刷新动态订阅（admin 添加新设备后可调用）
+   */
+  public async refreshDynamicSubscriptions(): Promise<void> {
+    if (this.client?.connected) {
+      await this.subscribeToDynamicDeviceTopics()
+    }
+  }
+
+  /**
+   * 获取自定义设备的最新数据
+   */
+  public getCustomDeviceData(deviceId: number): Record<string, any> | null {
+    return this.customDeviceData.get(deviceId) || null
+  }
+
+  /**
+   * 获取所有自定义设备的最新数据快照（device_id → data）
+   */
+  public getAllCustomDeviceData(): Record<number, Record<string, any>> {
+    const result: Record<number, Record<string, any>> = {}
+    this.customDeviceData.forEach((data, deviceId) => {
+      result[deviceId] = data
+    })
+    return result
+  }
+
+  /**
+   * 订阅特定设备的数据更新
+   */
+  public subscribeToDeviceData(deviceId: number, callback: (data: any) => void): () => void {
+    if (!this.customDeviceListeners.has(deviceId)) {
+      this.customDeviceListeners.set(deviceId, new Set())
+    }
+    this.customDeviceListeners.get(deviceId)!.add(callback)
+    return () => {
+      this.customDeviceListeners.get(deviceId)?.delete(callback)
+    }
+  }
+
+  // 全局自定义设备数据监听器（SSE 用，收到任意设备数据更新时触发）
+  private globalCustomDeviceListeners: Set<(deviceId: number, data: Record<string, any>) => void> = new Set()
+
+  /**
+   * 订阅所有自定义设备的数据更新（SSE 流用）
+   * 回调参数为 (deviceId, data)
+   */
+  public subscribeToAllCustomDevices(callback: (deviceId: number, data: Record<string, any>) => void): () => void {
+    this.globalCustomDeviceListeners.add(callback)
+    return () => {
+      this.globalCustomDeviceListeners.delete(callback)
+    }
+  }
+
+  /**
+   * 处理自定义设备消息（由 handleMessage 调用）
+   *
+   * 根据 topic 找到对应的 device_id，解析消息并存储，
+   * 然后通知该设备的所有监听器。
+   */
+  private async handleCustomDeviceMessage(topic: string, rawData: any): Promise<boolean> {
+    const deviceId = this.topicToDeviceMap.get(topic)
+    if (!deviceId) return false
+
+    // 存储原始数据
+    const existing = this.customDeviceData.get(deviceId) || {}
+    const updated = { ...existing, ...rawData, timestamp: Date.now() }
+    this.customDeviceData.set(deviceId, updated)
+
+    // 通知监听器
+    const listeners = this.customDeviceListeners.get(deviceId)
+    if (listeners) {
+      listeners.forEach(cb => {
+        try { cb(updated) } catch (e) { this.log('ERROR', `Custom device listener error: ${e}`) }
+      })
+    }
+
+    // 通知全局监听器（SSE 流用）
+    this.globalCustomDeviceListeners.forEach(cb => {
+      try { cb(deviceId, updated) } catch (e) { this.log('ERROR', `Global custom device listener error: ${e}`) }
+    })
+
+    // 保存到数据库（异步，不阻塞）
+    saveSensorData(deviceId, rawData).catch(e => {
+      this.log('ERROR', `[DeviceRegistry] Failed to save sensor data for device ${deviceId}: ${e}`)
+    })
+
+    return true
   }
 
   /**
@@ -589,19 +764,28 @@ export class MQTTService {
     
     if (command.type === 'relay') {
       // Validate relay command
-      if (command.relayNum === undefined || command.newState === undefined) {
-        throw new Error('Relay command requires relayNum and newState')
-      }
-      if (command.relayNum < 5 || command.relayNum > 8) {
-        throw new Error('Relay number must be between 5 and 8')
+      if (command.newState === undefined) {
+        throw new Error('Relay command requires newState')
       }
       if (command.newState !== 0 && command.newState !== 1) {
         throw new Error('Relay state must be 0 or 1')
       }
 
-      // Map relay numbers to node IDs (relay5->node0601, relay6->node0602, etc.)
-      const nodeNum = command.relayNum - 4 // relay5->1, relay6->2, relay7->3, relay8->4
-      const nodeName = `node060${nodeNum}`
+      // 确定 nodeName：优先使用设备注册表中的 node_id，否则用 relayNum 计算（向后兼容）
+      let nodeName: string
+      if (command.node_id) {
+        nodeName = command.node_id
+      } else {
+        if (command.relayNum === undefined) {
+          throw new Error('Relay command requires relayNum or node_id')
+        }
+        if (command.relayNum < 5 || command.relayNum > 8) {
+          throw new Error('Relay number must be between 5 and 8')
+        }
+        // Map relay numbers to node IDs (relay5->node0601, relay6->node0602, etc.)
+        const nodeNum = command.relayNum - 4
+        nodeName = `node060${nodeNum}`
+      }
 
       return {
         rw_prot: {
@@ -680,10 +864,17 @@ export class MQTTService {
    */
   private async handleMessage(topic: string, payload: Buffer): Promise<void> {
     try {
+      // 任何来自订阅 topic 的消息都说明设备可达，刷新在线时间戳
+      this.lastDataReceivedAt = Date.now()
+
       const message = payload.toString()
-      
+
       // Parse JSON data
       const rawData = JSON.parse(message)
+
+      // 优先检查是否为自定义设备 topic（设备注册表中的动态订阅）
+      const isCustomDevice = await this.handleCustomDeviceMessage(topic, rawData)
+      if (isCustomDevice) return
       
       // Initialize latestData if null
       if (!this.latestData) {
@@ -814,6 +1005,11 @@ export class MQTTService {
         }).catch(err => {
           this.log('ERROR', `Failed to save sensor reading to DB: ${err}`)
         })
+
+        // 🔔 AI 主动守护：传感器数据上报后触发异常检测 + AI 分析 + 通知推送
+        // 限流：60s 内最多触发一次（避免高频上报时频繁调用 AI）
+        // 去重：1 小时内相同 title 不重复创建（guardian-service 内部已实现）
+        this.triggerGuardianCheck()
       }
 
       // Execute Automation Rules
@@ -883,8 +1079,47 @@ export class MQTTService {
   }
 
   /**
+   * AI 主动守护检查（限流 60s）
+   *
+   * 流程：取当前传感器数据 → 查 owner 用户 → checkAndNotify
+   * 触发条件：detectAnomalies 检测到异常时才会调用 AI（guardian-service 内部判断）
+   * 失败静默，不影响 MQTT 主流程
+   */
+  private lastGuardianCheckAt = 0
+  private async triggerGuardianCheck(): Promise<void> {
+    const now = Date.now()
+    if (now - this.lastGuardianCheckAt < 60_000) return // 限流 60s
+    this.lastGuardianCheckAt = now
+
+    try {
+      if (!this.latestData) return
+      // 查询 owner 用户（super_admin 优先）
+      const owner = await queryOne<{ id: number }>(
+        "SELECT id FROM users WHERE role = 'super_admin' LIMIT 1"
+      )
+      if (!owner) return
+
+      // 构造 sensorData（同时包含 snake_case 和 camelCase，detectAnomalies 内部会归一化）
+      const sensorData: Record<string, number> = {
+        temperature: this.latestData.temperature / 10,
+        humidity: this.latestData.humidity / 10,
+        light: this.latestData.light,
+        co2: this.latestData.co2,
+        soil_moisture: this.latestData.earth_water / 10,
+      }
+
+      // fire-and-forget，避免阻塞 MQTT 流程
+      checkAndNotify(owner.id, sensorData).catch(err => {
+        this.log('WARN', `Guardian check failed: ${err}`)
+      })
+    } catch (err) {
+      this.log('WARN', `triggerGuardianCheck setup failed: ${err}`)
+    }
+  }
+
+  /**
    * Check data against critical thresholds and send notifications
-   * 
+   *
    * @param {DeviceData} data - The device data to check
    */
   private async checkThresholds(data: DeviceData): Promise<void> {

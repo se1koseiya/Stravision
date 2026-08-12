@@ -186,7 +186,7 @@
   --sidebar-accent: oklch(0.95 0.03 240);
   --sidebar-accent-foreground: oklch(0.3 0.05 240);
   --sidebar-border: oklch(0.9 0.02 240);
-  --sidebar-ring: oklch(0.59 0.16 163);
+  --sidebar-ring: oklch(0.58 0.20 264);
 
   /* Glass Card Variables - Light */
   --glass-start: rgba(255, 255, 255, 0.95);
@@ -230,7 +230,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.65 0.15 163);
+  --ring: oklch(0.70 0.18 264);
 
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -254,7 +254,10 @@
   }
 
   html, body {
-    @apply w-full overflow-x-hidden;
+    @apply w-full;
+    /* 用 clip 代替 hidden：clip 同样裁剪横向溢出，但不会让 body 成为滚动容器，
+       从而不会破坏 position: sticky（hidden 会让 overflow-y 计算为 auto，导致 sticky 失效） */
+    overflow-x: clip;
   }
 
   body {
@@ -367,6 +370,20 @@ h6 {
   .mask-gradient-right {
     mask-image: linear-gradient(to right, black 85%, transparent);
     -webkit-mask-image: linear-gradient(to right, black 85%, transparent);
+  }
+
+  /* 覆盖浏览器自动填充时的蓝色背景，与输入框底色 #e8e7e3 保持一致 */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  input:-internal-autofill-selected {
+    -webkit-box-shadow: 0 0 0 1000px #e8e7e3 inset !important;
+    box-shadow: 0 0 0 1000px #e8e7e3 inset !important;
+    -webkit-text-fill-color: #111 !important;
+    background-color: #e8e7e3 !important;
+    caret-color: #111;
+    transition: background-color 5000s ease-in-out 0s, box-shadow 5000s ease-in-out 0s;
   }
 
   /* ================================
@@ -902,4 +919,73 @@ h6 {
 @keyframes thought-pulse {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
+}
+
+/* 流式渲染尾部光标闪烁 */
+@keyframes blink {
+  to { visibility: hidden; }
+}
+
+/* ═══════ Weather effect animations ═══════ */
+
+/* Rain drop fall */
+@keyframes weather-rain-fall {
+  0% { transform: translateY(-20px) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh) translateX(-20px); opacity: 0; }
+}
+
+/* Snowflake fall with sway */
+@keyframes weather-snow-fall {
+  0% { transform: translateY(-10px) translateX(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(100vh) translateX(30px) rotate(360deg); opacity: 0; }
+}
+
+/* Cloud drift */
+@keyframes weather-cloud-drift {
+  0% { transform: translateX(-10%); }
+  100% { transform: translateX(110%); }
+}
+
+@keyframes weather-cloud-drift-slow {
+  0% { transform: translateX(110%); }
+  100% { transform: translateX(-10%); }
+}
+
+/* Sun ray pulse */
+@keyframes weather-sun-ray {
+  0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.6; transform: scale(1.1) rotate(180deg); }
+}
+
+/* Sun glow breathe */
+@keyframes weather-sun-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+/* Lightning flash */
+@keyframes weather-lightning {
+  0%, 92%, 100% { opacity: 0; }
+  93% { opacity: 0.9; }
+  94% { opacity: 0.2; }
+  95% { opacity: 0.8; }
+  96% { opacity: 0; }
+}
+
+/* Fog drift */
+@keyframes weather-fog-drift {
+  0% { transform: translateX(-20%); opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { transform: translateX(120%); opacity: 0.3; }
+}
+
+/* Drizzle slow fall */
+@keyframes weather-drizzle {
+  0% { transform: translateY(-10px); opacity: 0; }
+  20% { opacity: 0.7; }
+  100% { transform: translateY(100vh); opacity: 0; }
 }

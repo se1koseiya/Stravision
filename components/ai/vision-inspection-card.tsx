@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { App, Button, Card, Segmented, Space, Tag, Tooltip, Typography } from 'antd'
 import {
   CameraOutlined,
@@ -61,6 +61,10 @@ export function VisionInspectionCard({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [movingDirection, setMovingDirection] = useState<'left' | 'right' | null>(null)
 
+  // PTZ 长按最大持续时间限制：防止鼠标松开事件丢失导致滑台持续移动撞击机械限位
+  const PTZ_MAX_HOLD_MS = 10000 // 单次长按最多 10 秒
+  const ptzAutoStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const videoId = 'vision-inspect-camera'
 
   // 加载摄像头信息
@@ -114,16 +118,33 @@ export function VisionInspectionCard({
   const handleMove = useCallback(
     async (direction: 'left' | 'right') => {
       setMovingDirection(direction)
+      // 清除上一次残留的自动停止定时器
+      if (ptzAutoStopTimer.current) {
+        clearTimeout(ptzAutoStopTimer.current)
+        ptzAutoStopTimer.current = null
+      }
+      // 设定最大持续时长，超时自动停止，防止撞击机械限位
+      ptzAutoStopTimer.current = setTimeout(() => {
+        console.warn('[VisionInspection] PTZ hold exceeded max duration, auto-stopping')
+        setMovingDirection(null)
+        onCameraControl?.(0).catch(e => console.error('[VisionInspection] Auto-stop failed:', e))
+        ptzAutoStopTimer.current = null
+      }, PTZ_MAX_HOLD_MS)
       try {
         await onCameraControl?.(direction === 'left' ? 1 : 2)
       } catch (e) {
         console.error('[VisionInspection] Move failed:', e)
       }
     },
-    [onCameraControl]
+    [onCameraControl, PTZ_MAX_HOLD_MS]
   )
 
   const handleStopMove = useCallback(async () => {
+    // 用户主动松开 → 清除自动停止定时器
+    if (ptzAutoStopTimer.current) {
+      clearTimeout(ptzAutoStopTimer.current)
+      ptzAutoStopTimer.current = null
+    }
     setMovingDirection(null)
     try {
       await onCameraControl?.(0)
@@ -183,6 +204,16 @@ export function VisionInspectionCard({
   const handleClearCapture = useCallback(() => {
     setCapturedImage(null)
     setStatusText('')
+  }, [])
+
+  // 组件卸载时清理 PTZ 自动停止定时器，避免泄漏
+  useEffect(() => {
+    return () => {
+      if (ptzAutoStopTimer.current) {
+        clearTimeout(ptzAutoStopTimer.current)
+        ptzAutoStopTimer.current = null
+      }
+    }
   }, [])
 
   // 摄像头选择选项

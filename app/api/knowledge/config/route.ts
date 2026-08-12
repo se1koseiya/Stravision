@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(CONFIG_PATH, JSON.stringify(providersConfig, null, 2), "utf-8")
     return NextResponse.json({ success: true, config: await getKnowledgeConfig() })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 500 })
+    console.error("[knowledge-config update]", e)
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }

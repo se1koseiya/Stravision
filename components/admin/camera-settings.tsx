@@ -69,13 +69,13 @@ export function CameraSettings() {
 
   if (loading) {
     return (
-      <Card title={
+      <Card style={{ border: "1px solid #EDEEEF" }} title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <CameraOutlined />
           监控摄像头配置
         </div>
       }>
-        <div style={{ textAlign: 'center', padding: '32px', color: '#8c8c8c' }}>
+        <div style={{ textAlign: 'center', padding: '32px', color: '#8F959E' }}>
           加载摄像头配置中...
         </div>
       </Card>
@@ -84,15 +84,16 @@ export function CameraSettings() {
 
   return (
     <Card
+      style={{ border: "1px solid #EDEEEF" }}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CameraOutlined style={{ color: '#1890ff' }} />
+          <CameraOutlined style={{ color: '#1677ff' }} />
           监控摄像头配置
         </div>
       }
     >
       <form onSubmit={handleSave}>
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <div style={{ marginBottom: '16px' }}>
             <Typography.Text strong style={{ display: 'block', marginBottom: '8px' }}>
               温室摄像头 A 流媒体地址

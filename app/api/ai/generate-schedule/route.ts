@@ -1,9 +1,9 @@
 
 import { NextResponse } from 'next/server'
-import { getEnhancedSystemPrompt } from '@/lib/ai-system-prompt'
 import { initDB } from '@/lib/db/database'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service'
+import { DEVICE_NAMES } from '@/lib/constants'
 
 export const runtime = 'nodejs'
 
@@ -82,10 +82,7 @@ export async function POST(req: Request) {
 ]
 
 设备ID参考：
-- 5: 灌溉水泵
-- 6: 通风风扇
-- 7: 补光灯
-- 8: 白光灯
+${Object.entries(DEVICE_NAMES).map(([id, name]) => `- ${id}: ${name}`).join('\n')}
 
 决策依据：
 1. 如果温度过高(>30°C)，建议开启风扇。

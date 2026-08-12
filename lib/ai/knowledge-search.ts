@@ -28,6 +28,30 @@ import {
 } from "../db/knowledge-service"
 import { getKnowledgeConfig } from "./provider-resolver"
 
+/**
+ * 查询向量缓存：相同 query 文本在 TTL 内复用 embedding，避免每次语义搜索都调用远端 embedding API。
+ * admin 配置变更不影响已缓存向量（向量仅依赖文本与模型），故 mtime 失效不必要。
+ */
+const queryEmbeddingCache = new Map<string, { vector: number[]; ts: number }>()
+const QUERY_EMBEDDING_CACHE_TTL = 30 * 60 * 1000 // 30 分钟
+const QUERY_EMBEDDING_CACHE_MAX = 200
+
+async function getCachedQueryEmbedding(text: string): Promise<number[]> {
+  // 截断作为缓存键，避免超长 query 占用过多内存
+  const key = text.length > 500 ? text.slice(0, 500) : text
+  const hit = queryEmbeddingCache.get(key)
+  if (hit && Date.now() - hit.ts < QUERY_EMBEDDING_CACHE_TTL) {
+    return hit.vector
+  }
+  const emb = await generateEmbedding(text)
+  if (queryEmbeddingCache.size >= QUERY_EMBEDDING_CACHE_MAX) {
+    const firstKey = queryEmbeddingCache.keys().next().value
+    if (firstKey) queryEmbeddingCache.delete(firstKey)
+  }
+  queryEmbeddingCache.set(key, { vector: emb.vector, ts: Date.now() })
+  return emb.vector
+}
+
 // ============== 类型定义 ==============
 
 export type SearchMode = "keyword" | "semantic" | "hybrid"
@@ -168,9 +192,8 @@ export async function semanticSearch(
   const ownClause = "i.user_id = $1 AND NOT EXISTS (SELECT 1 FROM knowledge_collections c WHERE c.id = i.collection_id AND c.is_marketplace = 1)"
   const marketClause = "(i.user_id = $1 OR EXISTS (SELECT 1 FROM knowledge_market_subscriptions s WHERE s.user_id = $1 AND s.collection_id = i.collection_id))"
 
-  // 1) 生成查询 embedding
-  const queryEmb = await generateEmbedding(queryText)
-  const queryVec = queryEmb.vector
+  // 1) 生成查询 embedding（命中缓存可避免远端 HTTP 调用）
+  const queryVec = await getCachedQueryEmbedding(queryText)
 
   // 2) 加载该用户所有 chunks（带 item 元数据过滤）
   const where: string[] = [includeMarket ? marketClause : ownClause, "i.is_archived = 0", "c.embedding IS NOT NULL"]
@@ -482,11 +505,17 @@ export async function recommendFromHistory(userId: number, limit?: number): Prom
   const kc = await getKnowledgeConfig()
   const maxResults = limit ?? kc.search.recommendMaxResults
   // 1) 拉最近点击过的 items
+  // 注意：原 SQL 用 SELECT DISTINCT ... ORDER BY created_at DESC 会报错
+  // （DISTINCT 要求 ORDER BY 字段出现在 SELECT 列表中）。
+  // 改用 GROUP BY clicked_item_id + ORDER BY MAX(created_at) DESC，
+  // 既去重又按"最近一次点击时间"倒序取 top N。
   const recentClicked = await query<{ item_id: number }>(
-    `SELECT DISTINCT clicked_item_id AS item_id
+    `SELECT clicked_item_id AS item_id
      FROM knowledge_query_log
      WHERE user_id = $1 AND clicked_item_id IS NOT NULL
-     ORDER BY created_at DESC LIMIT $2`,
+     GROUP BY clicked_item_id
+     ORDER BY MAX(created_at) DESC
+     LIMIT $2`,
     [userId, kc.search.recommendHistoryLimit]
   )
   if (recentClicked.length === 0) {

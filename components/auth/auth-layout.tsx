@@ -1,10 +1,17 @@
 "use client"
 
-import { ReactNode } from "react"
+import { ReactNode, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, Leaf, Zap, Droplets, Eye, BarChart3, Thermometer, Network, Compass, Cpu } from "lucide-react"
+import { ArrowRight, Zap } from "lucide-react"
+
+const FALLBACK_VIDEOS = [
+  "/login-video/14361873_2880_2160_30fps.mp4",
+  "/login-video/15481545_2880_2160_30fps.mp4",
+] as const
+
+const STORAGE_KEY = "auth-layout:last-video"
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -13,6 +20,63 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+  const [videoSrc, setVideoSrc] = useState<string>(FALLBACK_VIDEOS[0])
+  const [videos, setVideos] = useState<string[]>([...FALLBACK_VIDEOS])
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/login-video/manifest.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((list: string[] | null) => {
+        if (cancelled || !Array.isArray(list) || list.length === 0) return
+        setVideos(list)
+        const lastSrc = sessionStorage.getItem(STORAGE_KEY)
+        const candidates = list.filter((v) => v !== lastSrc)
+        const pool = candidates.length > 0 ? candidates : list
+        const picked = pool[Math.floor(Math.random() * pool.length)]
+        sessionStorage.setItem(STORAGE_KEY, picked)
+        setVideoSrc(picked)
+      })
+      .catch(() => {
+        // manifest 读不到时,落到 FALLBACK_VIDEOS,仍然保证随机
+        if (cancelled) return
+        const lastSrc = sessionStorage.getItem(STORAGE_KEY)
+        const candidates = FALLBACK_VIDEOS.filter((v) => v !== lastSrc)
+        const pool = candidates.length > 0 ? [...candidates] : [...FALLBACK_VIDEOS]
+        const picked = pool[Math.floor(Math.random() * pool.length)]
+        sessionStorage.setItem(STORAGE_KEY, picked)
+        setVideoSrc(picked)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // 兜底:某些浏览器/扩展会拦截 autoPlay 属性,这里手动调用一次 play()
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+    el.muted = true
+    const tryPlay = () => {
+      el.play().catch(() => {
+        // 静默失败,等用户交互后再尝试
+      })
+    }
+    if (el.readyState >= 2) tryPlay()
+    else el.addEventListener("canplay", tryPlay, { once: true })
+    return () => el.removeEventListener("canplay", tryPlay)
+  }, [videoSrc])
+
+  // 视频加载失败时,切到 videos 里的下一个
+  const handleVideoError = () => {
+    const idx = videos.indexOf(videoSrc)
+    const next = videos[(idx + 1) % videos.length]
+    if (next && next !== videoSrc) {
+      sessionStorage.setItem(STORAGE_KEY, next)
+      setVideoSrc(next)
+    }
+  }
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#e4e2dd] relative p-4 lg:p-6 font-sans overflow-x-hidden">
 
@@ -113,7 +177,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             flex-direction: row !important;
           }
           .exact-left-panel {
-            width: 55% !important;
+            width: 38% !important;
             padding: 3rem 4rem !important;
             height: calc(100vh - 48px - 2px) !important;
             max-height: calc(100vh - 48px - 2px) !important;
@@ -121,7 +185,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           }
           .exact-right-panel {
             display: block !important;
-            width: 45% !important;
+            width: 62% !important;
             flex-shrink: 0;
             height: 100%;
             padding: 1rem 1rem 1rem 0 !important;
@@ -172,42 +236,47 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           <div className="h-16 lg:h-20 w-full flex-shrink-0" />
 
           {/* Heading */}
-          <div className="mt-4 lg:mt-6 mb-2">
+          <div className="mt-2 lg:mt-3 mb-3">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-[2.8rem] lg:text-[3.2rem] xl:text-[3.8rem] font-bold leading-[1.15] tracking-tight text-[#111] font-alimama"
+              className="text-[2.2rem] lg:text-[2.6rem] xl:text-[3rem] font-bold leading-[1.18] tracking-tight text-[#111] font-alimama"
               style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}
             >
-              <span className="block mb-2">用 AI 重塑</span>
-              <span className="flex items-center gap-2 xl:gap-3 mb-2 flex-wrap">
-                未来的
+              <span className="block">用 AI 重塑</span>
+              <span className="block mt-0.5">未来的</span>
+              <span className="flex items-center gap-2.5 xl:gap-3 mt-2 flex-wrap">
                 <span
-                  className="relative flex items-center h-[1.2em] rounded-full pl-6 pr-2 bg-cover bg-center shadow-inner overflow-hidden"
+                  className="relative inline-flex items-center h-[1.15em] rounded-full pl-5 pr-1.5 bg-cover bg-center shadow-inner overflow-hidden align-middle"
                   style={{ backgroundImage: 'url(/images/exact/bg.jpg)' }}
                 >
                   {/* Dark overlay to ensure text readability */}
-                  <div className="absolute inset-0 bg-black/15" />
-                  <span className="relative z-10 text-white font-bold text-[0.85em] font-alimama" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>智慧</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/10 to-transparent" />
+                  <span
+                    className="relative z-10 text-white font-bold text-[0.95em] font-alimama tracking-wide px-1 drop-shadow-md"
+                    style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}
+                  >
+                    智慧
+                  </span>
 
                   {/* AI Powered Pill */}
-                  <span className="relative z-10 ml-3 flex items-center gap-1.5 bg-black rounded-full px-3 py-1.5 border border-white/20 shadow-md">
-                    <span className="w-4 h-4 rounded-full border border-[#a3e635] flex items-center justify-center text-[#a3e635]">
-                      <Zap className="w-2.5 h-2.5" />
+                  <span className="relative z-10 ml-2 flex items-center gap-1.5 bg-black/90 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/25 shadow-lg">
+                    <span className="w-3.5 h-3.5 rounded-full border border-[#a3e635] flex items-center justify-center text-[#a3e635]">
+                      <Zap className="w-2 h-2" />
                     </span>
-                    <span className="text-white text-[10px] font-medium whitespace-nowrap">AI 驱动</span>
+                    <span className="text-white text-[10px] font-medium whitespace-nowrap tracking-wider">AI 驱动</span>
                   </span>
                 </span>
+                <span>农业系统</span>
               </span>
-              <span className="block">农业系统</span>
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-[#666] text-xs max-w-[420px] mt-2.5 leading-relaxed font-medium"
+              className="text-[#666] text-[12px] max-w-[420px] mt-3 leading-relaxed font-medium"
             >
               AI 驱动的物联网草莓种植 management platform，优化种植成本，最大化产量与品质。
             </motion.p>
@@ -217,11 +286,11 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="w-full max-w-[380px] mt-1 mb-4"
+            className="w-full max-w-[380px] mt-3 mb-3"
           >
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-[#111]">{title}</h2>
-              <p className="text-xs text-[#888]">{subtitle}</p>
+            <div className="mb-3 pb-3 border-b border-[#e4e2dd]">
+              <h2 className="text-[15px] font-bold text-[#111]">{title}</h2>
+              <p className="text-[11px] text-[#888] mt-1">{subtitle}</p>
             </div>
             {children}
           </motion.div>
@@ -231,7 +300,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="mt-8 lg:mt-10 pt-4 pb-2"
+            className="mt-4 lg:mt-6 pt-2 pb-2"
           >
             <div className="inline-flex p-1.5 rounded-full bg-gradient-to-r from-[#4a8c3f] to-[#7bb96e] shadow-lg">
               <Link href="/" className="flex items-center gap-3 bg-black text-white rounded-full px-5 py-2.5 hover:bg-black/80 transition-colors">
@@ -271,98 +340,57 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, duration: 0.7 }}
-            className="w-full h-full rounded-[20px] overflow-hidden relative shadow-lg"
+            className="w-full h-full rounded-[24px] overflow-hidden relative shadow-lg bg-black"
           >
-            <img src="/images/exact/bg.jpg" alt="Hero" className="w-full h-full object-cover" />
+            <video
+              key={videoSrc}
+              ref={videoRef}
+              src={videoSrc}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              onError={handleVideoError}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
 
-            {/* Badges layer */}
-            <div className="absolute inset-0 pointer-events-none">
-
-              {/* Line 1 - Smart Grid Ready */}
+            {/* Platform Introduction Overlay */}
+            <div className="absolute inset-0 z-10 flex flex-col justify-between p-5 lg:p-7 pb-14 lg:pb-16 pointer-events-none">
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
-                className="absolute top-[28%] left-[22%] flex items-center gap-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="self-start max-w-[80%]"
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,1)]" />
-                <div className="h-[1px] w-8 bg-white/40" />
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-white/50">
-                    <Network className="w-3 h-3" />
-                  </div>
-                  <span className="text-xs text-white/60 font-light">Smart Grid Ready</span>
-                </div>
-              </motion.div>
-
-              {/* Line 2 - Energy Optimization */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7 }}
-                className="absolute top-[38%] left-[26%] flex items-center gap-2"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,1)]" />
-                <div className="h-[1px] w-6 bg-white/40" />
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/30 backdrop-blur-md border border-white/20">
-                  <div className="w-5 h-5 rounded-full bg-[#5b6a55]/30 flex items-center justify-center text-[#c2f352]">
-                    <Zap className="w-3 h-3" />
-                  </div>
-                  <span className="text-xs text-[#1c2e17] font-medium">Energy Optimization</span>
-                </div>
-              </motion.div>
-
-              {/* Line 3 - Sustainable Systems (Solid White) */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.8 }}
-                className="absolute top-[48%] left-[16%] flex items-center gap-2"
-              >
-                <div className="w-2 h-2 rounded-full bg-black shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
-                <div className="h-[1.5px] w-10 bg-white/80" />
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-xl">
-                  <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center text-[#c2f352]">
-                    <Compass className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs text-black font-bold tracking-wide">Sustainable Systems</span>
-                </div>
-              </motion.div>
-
-              {/* Line 4 - Autonomous Control */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.9 }}
-                className="absolute top-[60%] left-[24%] flex items-center gap-2"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,1)]" />
-                <div className="h-[1px] w-6 bg-white/40" />
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#7c8f74]/30 backdrop-blur-md border border-white/10">
-                  <div className="w-5 h-5 rounded-full bg-[#1c2e17] flex items-center justify-center text-[#9fe635]">
-                    <Cpu className="w-3 h-3" />
-                  </div>
-                  <span className="text-xs text-[#1c2e17] font-semibold">Autonomous Control</span>
-                </div>
-              </motion.div>
-
-              {/* Line 5 - Carbon Aware */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.0 }}
-                className="absolute top-[72%] left-[18%] flex items-center gap-2 opacity-60"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,1)]" />
-                <div className="h-[1px] w-8 bg-white/40" />
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/5">
-                  <div className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-white/50">
-                    <Leaf className="w-3 h-3" />
-                  </div>
-                  <span className="text-xs text-[#2b3a26] font-medium">Carbon Aware</span>
-                </div>
+                <h2 className="text-white font-alimama text-[22px] lg:text-[28px] font-bold leading-[1.15] tracking-tight drop-shadow-lg" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
+                  AI × IoT
+                  <br />
+                  重塑草莓种植
+                </h2>
+                <p className="mt-2.5 text-white/80 text-[11px] lg:text-xs leading-relaxed max-w-[420px] font-medium">
+                  基于多模态感知与边缘智能,实时调控温室光温水气肥,
+                  让每一颗草莓都可追溯、可复现、可持续。
+                </p>
               </motion.div>
             </div>
+
+            {/* Video Author Attribution */}
+            <a
+              href="https://www.pexels.com/@jonathan-ellis-2155635081/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-3 right-3 z-10 flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 transition-colors group"
+            >
+              <img
+                src="https://images.pexels.com/users/avatars/2155635081/jonathan-ellis-665.jpeg?auto=compress&fit=crop&h=50&w=50&dpr=2"
+                alt="Jonathan Ellis"
+                className="w-6 h-6 rounded-full object-cover border border-white/30"
+              />
+              <span className="text-[10px] text-white/90 font-medium tracking-wide group-hover:text-white">
+                Video by Jonathan Ellis
+              </span>
+            </a>
           </motion.div>
         </div>
       </div>

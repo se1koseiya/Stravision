@@ -164,7 +164,7 @@ async function executeDeviceControlTask(job: AICronJob, payload: any): Promise<a
   const { action, deviceId, params } = payload
   
   // 执行设备控制
-  const controlResult = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/device-control`, {
+  const controlResult = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/ai/device-control`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

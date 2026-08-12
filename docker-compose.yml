@@ -59,6 +59,10 @@ services:
       - ALIYUN_ACCESS_KEY_ID=${ALIYUN_ACCESS_KEY_ID}
       - ALIYUN_ACCESS_KEY_SECRET=${ALIYUN_ACCESS_KEY_SECRET}
       - ALIYUN_CAPTCHA_ENDPOINT=${ALIYUN_CAPTCHA_ENDPOINT}
+      # Cap 人机行为验证（自托管）
+      - NEXT_PUBLIC_CAP_API_ENDPOINT=${NEXT_PUBLIC_CAP_API_ENDPOINT}
+      - CAP_VERIFY_URL=${CAP_VERIFY_URL}
+      - CAP_SECRET_KEY=${CAP_SECRET_KEY}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
       - APP_URL=${APP_URL}
       - SYSTEM_OPENAI_API_KEY=${SYSTEM_OPENAI_API_KEY}
@@ -75,11 +79,75 @@ services:
       # Resend Email Service
       - RESEND_API_KEY=${RESEND_API_KEY}
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
+      # Yjs 协作 WebSocket 服务
+      - YJS_WS_PORT=${YJS_WS_PORT:-1234}
+      - NEXT_PUBLIC_YJS_WS_URL=${NEXT_PUBLIC_YJS_WS_URL:-ws://localhost:1234}
+      - YJS_AUTH_TOKEN=${YJS_AUTH_TOKEN:-}
+      - ONLYOFFICE_JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-onlyoffice_secret_change_me}
+      - ONLYOFFICE_URL=${ONLYOFFICE_URL:-http://onlyoffice}
+      - NEXT_PUBLIC_ONLYOFFICE_API_URL=${NEXT_PUBLIC_ONLYOFFICE_API_URL:-/onlyoffice/}
     expose:
       - "3000"
       - "3002"
     depends_on:
       - db
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  # Yjs 协作 WebSocket 服务（独立进程，用于文档实时协同编辑）
+  yjs-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "ws-server/yjs-server.js"]
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - YJS_WS_PORT=1234
+      - YJS_WS_HOST=0.0.0.0
+      - YJS_AUTH_TOKEN=${YJS_AUTH_TOKEN:-}
+      - TZ=Asia/Shanghai
+    expose:
+      - "1234"
+    depends_on:
+      - db
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  # OnlyOffice Document Server（用于 Office 文档在线编辑）
+  onlyoffice:
+    image: onlyoffice/documentserver:8.2
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-onlyoffice_secret_change_me}
+      - WOPI_ENABLED=true
+      - USE_UNAUTHORIZED_STORAGE=true
+      - TZ=Asia/Shanghai
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_logs:/var/log/onlyoffice
+      - ./public/uploads/docs:/srv/public/uploads/docs:ro
+    # 暴露 8080 给宿主机（本地开发浏览器通过 localhost:8080 访问）
+    # 生产环境若不需要直连可改为 expose
+    ports:
+      - "8080:80"
+    # 让容器能通过 host.docker.internal 访问宿主机上的 Next.js
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     logging:
       driver: "json-file"
@@ -117,3 +185,6 @@ networks:
 
 volumes:
   pgdata:
+  onlyoffice_data:
+  onlyoffice_logs:
+  cap-valkey-data:

@@ -3,13 +3,26 @@ import { createTask, getAllTasks, deleteTask, updateTask, updateTaskStatus, Crea
 import { SchedulerRunner } from "@/lib/scheduler/runner"
 import { CronExpressionParser } from "cron-parser"
 import { initDB } from "@/lib/db/database"
+import { getCurrentUser } from "@/lib/auth"
 
 
 // Force dynamic to ensure we don't cache the list
 export const dynamic = 'force-dynamic'
 
+// 鉴权守卫：仅管理员可操作定时任务（任务表无 user_id 隔离，必须限制访问权限）
+async function requireAdmin() {
+  const user = await getCurrentUser()
+  if (!user) return null
+  if (user.role !== 'admin' && user.role !== 'super_admin') return null
+  return user
+}
+
 export async function GET() {
   try {
+    const user = await requireAdmin()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     await initDB()
     const tasks = await getAllTasks()
     
@@ -38,6 +51,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await requireAdmin()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     await initDB()
     const body = await req.json()
     console.log("[API] Creating task with body:", JSON.stringify(body, null, 2))
@@ -57,6 +74,10 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const user = await requireAdmin()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     await initDB()
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
@@ -78,6 +99,10 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const user = await requireAdmin()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     await initDB()
     const body = await req.json()
     const id = Number(body?.id)
@@ -102,6 +127,10 @@ export async function PATCH(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const user = await requireAdmin()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
     await initDB()
     const body = await req.json()
     const id = Number(body?.id)

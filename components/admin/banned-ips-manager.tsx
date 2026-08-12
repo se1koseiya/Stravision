@@ -80,7 +80,7 @@ export function BannedIPsManager() {
       dataIndex: "ip",
       key: "ip",
       render: (val: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#cf1322' }}>{val}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#F5222D' }}>{val}</span>
       ),
     },
     {
@@ -96,7 +96,7 @@ export function BannedIPsManager() {
       dataIndex: "banned_by",
       key: "banned_by",
       render: (val: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8c8c8c' }}>{val}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8F959E' }}>{val}</span>
       ),
     },
     {
@@ -104,7 +104,7 @@ export function BannedIPsManager() {
       dataIndex: "created_at",
       key: "created_at",
       render: (val: number) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8c8c8c' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8F959E' }}>
           {format(new Date(Number(val)), "yyyy-MM-dd HH:mm")}
         </span>
       ),
@@ -147,6 +147,7 @@ export function BannedIPsManager() {
           Ban IP
         </Button>
       }
+      style={{ border: "1px solid #EDEEEF" }}
       styles={{ body: { padding: 0 } }}
     >
       <Table

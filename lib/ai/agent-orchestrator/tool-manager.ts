@@ -10,7 +10,7 @@
  */
 
 import { ToolCall, ToolResult, Action } from './types';
-import { executeMCPToolCall } from '@/lib/mcp/mcp-tool-executor';
+import { executeMCPToolCall, type AgentToolContext } from '@/lib/mcp/mcp-tool-executor';
 
 export interface ToolExecutionConfig {
   maxRetries: number;
@@ -25,6 +25,46 @@ export const DEFAULT_TOOL_CONFIG: ToolExecutionConfig = {
   timeout: 60000,
   enableLogging: true
 };
+
+/**
+ * 按工具名覆盖超时配置
+ *
+ * 设备控制类工具涉及物理动作（电机移动/摄像头抓帧），需要更长超时：
+ * - 电机满程 700mm 约 30-40s，加上轮询稳定时间需 90s+
+ * - ffmpeg 抓帧最长 15s，但加上移动+组合操作需 120s
+ * - 继电器/LED 近乎瞬时，给 10s 足够
+ */
+const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {
+  // 设备控制（builtin-device-control）
+  toggle_relay: 10000,          // 继电器动作 + 状态确认
+  set_led: 8000,                // LED 设置 + 短暂等待
+  control_camera: 90000,        // 电机移动 + 位置稳定轮询
+  reset_camera: 90000,          // 电机复位 + 位置稳定轮询
+  take_camera_snapshot: 20000,  // ffmpeg 抓帧
+  move_camera_and_look: 120000, // 移动 + 截图组合
+  // 任务管理（builtin-agent-tasks）
+  update_task: 5000,            // 内存操作，应快速响应
+};
+
+/**
+ * 设备控制类工具集合
+ *
+ * 这些工具禁止自动重试 —— MQTT 命令可能已经发出并执行，
+ * 重试会导致重复发送指令（如重复开关继电器、重复移动电机）。
+ */
+const NO_RETRY_TOOLS = new Set([
+  'toggle_relay', 'set_led', 'control_camera', 'reset_camera',
+  'take_camera_snapshot', 'move_camera_and_look',
+  // update_task 也禁止重试：状态变更已生效，重试会重复触发自动推进逻辑
+  'update_task',
+]);
+
+/**
+ * 获取工具的超时时间（优先使用 override，否则用传入 config，最后用默认值）
+ */
+function getToolTimeout(toolName: string, configTimeout: number): number {
+  return TOOL_TIMEOUT_OVERRIDES[toolName] ?? configTimeout;
+}
 
 interface ExecutionLog {
   toolCall: ToolCall;
@@ -47,7 +87,8 @@ export class ToolManager {
     toolCall: ToolCall,
     mcpConfigs: any[],
     appUrl: string,
-    config: Partial<ToolExecutionConfig> = {}
+    config: Partial<ToolExecutionConfig> = {},
+    agentContext?: AgentToolContext
   ): Promise<ToolResult> {
     const finalConfig = { ...DEFAULT_TOOL_CONFIG, ...config };
     const startTime = Date.now();
@@ -57,12 +98,13 @@ export class ToolManager {
       try {
         console.log(`[ToolManager] Executing ${toolCall.name}, attempt ${attempt + 1}/${finalConfig.maxRetries + 1}`);
 
-        // 执行工具（带超时控制）
+        // 执行工具（带超时控制，设备控制类工具有自定义超时覆盖）
         const result = await this.executeWithTimeout(
           toolCall,
           mcpConfigs,
           appUrl,
-          finalConfig.timeout
+          getToolTimeout(toolCall.name, finalConfig.timeout),
+          agentContext
         );
 
         // 记录成功
@@ -85,7 +127,7 @@ export class ToolManager {
         console.warn(`[ToolManager] Tool ${toolCall.name} failed on attempt ${attempt + 1}:`, error);
 
         // 判断是否应该重试
-        if (!this.shouldRetry(error as Error, attempt, finalConfig.maxRetries)) {
+        if (!this.shouldRetry(error as Error, attempt, finalConfig.maxRetries, toolCall.name)) {
           console.log(`[ToolManager] Not retrying ${toolCall.name}`);
           break;
         }
@@ -125,10 +167,11 @@ export class ToolManager {
     toolCall: ToolCall,
     mcpConfigs: any[],
     appUrl: string,
-    timeout: number
+    timeout: number,
+    agentContext?: AgentToolContext
   ): Promise<ToolResult> {
     return Promise.race([
-      this.executeToolInternal(toolCall, mcpConfigs, appUrl),
+      this.executeToolInternal(toolCall, mcpConfigs, appUrl, agentContext),
       this.createTimeoutPromise(timeout, toolCall.name)
     ]);
   }
@@ -139,7 +182,8 @@ export class ToolManager {
   private async executeToolInternal(
     toolCall: ToolCall,
     mcpConfigs: any[],
-    appUrl: string
+    appUrl: string,
+    agentContext?: AgentToolContext
   ): Promise<ToolResult> {
     const startTime = Date.now();
 
@@ -148,7 +192,8 @@ export class ToolManager {
         toolCall.name,
         toolCall.arguments,
         mcpConfigs,
-        appUrl
+        appUrl,
+        agentContext
       );
 
       return {
@@ -182,9 +227,14 @@ export class ToolManager {
   /**
    * 判断是否应该重试
    */
-  private shouldRetry(error: Error, attempt: number, maxRetries: number): boolean {
+  private shouldRetry(error: Error, attempt: number, maxRetries: number, toolName?: string): boolean {
     // 已达到最大重试次数
     if (attempt >= maxRetries) {
+      return false;
+    }
+
+    // 设备控制类工具禁止重试（避免重复发送 MQTT 指令）
+    if (toolName && NO_RETRY_TOOLS.has(toolName)) {
       return false;
     }
 

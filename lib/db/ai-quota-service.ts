@@ -12,6 +12,73 @@ export interface UserAiQuota {
 }
 
 /**
+ * 预扣减配额（原子操作）
+ * 在请求开始前调用，确保检查与扣减原子化，避免并发请求绕过配额
+ * @returns boolean 是否扣费成功（失败表示配额不足）
+ */
+export async function reserveAiUsage(userId: number): Promise<boolean> {
+  await initDB()
+  const today = new Date().toISOString().split('T')[0]
+
+  // 尝试 1：扣除每日免费额度（原子 CAS）
+  // 仅当 last_ai_usage_date = today 且 daily_ai_usage < limit 时成功
+  // 或当 last_ai_usage_date != today 时重置并扣除
+  const freeResult = await execute(
+    `UPDATE users
+     SET daily_ai_usage = CASE
+           WHEN last_ai_usage_date = $2 THEN daily_ai_usage + 1
+           ELSE 1
+         END,
+         last_ai_usage_date = $2
+     WHERE id = $1
+       AND membership IN ('pro', 'plus')
+       AND (
+         (last_ai_usage_date = $2 AND daily_ai_usage < daily_ai_limit)
+         OR (last_ai_usage_date != $2 AND daily_ai_limit > 0)
+         OR membership = 'plus'
+       )`,
+    [userId, today]
+  )
+  if (freeResult.rowCount > 0) return true
+
+  // 尝试 2：扣除余额（原子 CAS）
+  const balanceResult = await execute(
+    `UPDATE users
+     SET ai_balance = ai_balance - 1,
+         daily_ai_usage = CASE WHEN last_ai_usage_date != $2 THEN 0 ELSE daily_ai_usage END,
+         last_ai_usage_date = $2
+     WHERE id = $1 AND ai_balance > 0`,
+    [userId, today]
+  )
+  return balanceResult.rowCount > 0
+}
+
+/**
+ * 退还预扣减的配额（请求失败时调用）
+ */
+export async function refundAiUsage(userId: number): Promise<void> {
+  await initDB()
+  const today = new Date().toISOString().split('T')[0]
+  // 优先退还每日额度，若今日已扣则减 1（不低于 0）
+  const result = await execute(
+    `UPDATE users
+     SET daily_ai_usage = CASE
+           WHEN last_ai_usage_date = $2 AND daily_ai_usage > 0 THEN daily_ai_usage - 1
+           ELSE daily_ai_usage
+         END
+     WHERE id = $1 AND last_ai_usage_date = $2`,
+    [userId, today]
+  )
+  // 如果今日额度退还失败（可能扣的是余额），退还余额
+  if (result.rowCount === 0) {
+    await execute(
+      `UPDATE users SET ai_balance = ai_balance + 1 WHERE id = $1`,
+      [userId]
+    )
+  }
+}
+
+/**
  * 获取用户当前的 AI 配额状态
  * 会自动处理日限额重置逻辑
  */

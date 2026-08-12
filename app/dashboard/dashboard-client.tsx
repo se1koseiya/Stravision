@@ -4,8 +4,10 @@ import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import { Edit, Save, Droplets, Sun, Wind, Leaf, LayoutGrid, Monitor, BarChart3, Grid } from "lucide-react"
+import { Edit, Save, Droplets, Sun, Wind, Leaf, LayoutGrid, Monitor, BarChart3, Grid, Thermometer, Fan, Lightbulb, Video, Cpu, Activity, Gauge, Signal } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ConfigProvider, theme as antdTheme, Typography, Tag, Flex } from "antd"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +22,7 @@ import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { UserPublic, MembershipTier } from "@/lib/db/user-service"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import dynamic from "next/dynamic"
 
 // react-grid-layout 是重型库，延迟加载
@@ -38,9 +40,13 @@ import {
   CO2Widget,
   SoilWidget,
   WeatherWidget,
+  WeatherForecastWidget,
   AIInsightWidget,
   NutrientWidget,
   IOSWidgetCard,
+  WidgetLabel,
+  WidgetStatusPill,
+  WidgetHeroNumber,
   TopBanner
 } from "@/components/dashboard/ios-style"
 import { LAYOUT_PRESETS, getWidgetSize } from "@/lib/dashboard-layouts"
@@ -54,6 +60,122 @@ import { PageHeaderRight } from "@/components/page-header-right"
 import { WidgetLibraryDialog } from "@/components/dashboard/widget-library-dialog"
 import { DailyBriefingIsland } from "@/components/daily-briefing-island"
 
+// ─── 设备状态条带组件（动态展示设备注册表中的所有设备） ───
+
+const DASH_DEVICE_ICON_MAP: Record<string, typeof Cpu> = {
+  Thermometer, Droplets, Fan, Lightbulb, Sun, Wind, Video, Cpu, Activity, Gauge, Signal, Monitor,
+  default: Cpu,
+}
+
+function getDashDeviceIcon(iconName: string): typeof Cpu {
+  return DASH_DEVICE_ICON_MAP[iconName] || DASH_DEVICE_ICON_MAP.default
+}
+
+interface DeviceStatusStripProps {
+  devices: Array<{
+    id: number
+    name: string
+    type: string
+    icon: string
+    color: string
+    is_enabled: boolean
+    config: any
+  }>
+  deviceData: any
+  customDeviceData: Record<number, Record<string, any>>
+}
+
+function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStatusStripProps) {
+  const enabledDevices = useMemo(() => devices.filter(d => d.is_enabled), [devices])
+
+  if (enabledDevices.length === 0) return null
+
+  return (
+    <div className="w-full max-w-[1600px] mx-auto mb-6">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <LayoutGrid className="h-4 w-4 text-[#1677ff]" strokeWidth={1.75} />
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">设备状态</h3>
+        <span className="text-xs text-slate-400">{enabledDevices.length}</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        {enabledDevices.map((d) => {
+          const IconCmp = getDashDeviceIcon(d.icon)
+          const hex = d.color || '#1677ff'
+          let statusText = '离线'
+          let statusColor = '#8c8c8c'
+          let primaryValue = ''
+
+          if (d.type === 'relay') {
+            const relayNum = d.config?.relay_num as number | undefined
+            const on = relayNum
+              ? deviceData?.[`relay${relayNum}`] === 1
+              : false
+            statusText = on ? '开启' : '关闭'
+            statusColor = on ? '#52c41a' : '#8c8c8c'
+            primaryValue = on ? 'ON' : 'OFF'
+          } else if (d.type === 'sensor') {
+            const data = customDeviceData[d.id] || {}
+            const hasData = Object.keys(data).length > 0
+            const firstMetric = d.config?.metrics?.[0]
+            if (hasData && firstMetric) {
+              const raw = data[firstMetric.mqtt_field]
+              if (raw !== undefined && raw !== null) {
+                const val = firstMetric.scale ? Number(raw) * firstMetric.scale : Number(raw)
+                primaryValue = `${isNaN(val) ? '--' : val.toFixed(firstMetric.scale && firstMetric.scale < 1 ? 1 : 0)}${firstMetric.unit}`
+              }
+            }
+            statusText = hasData ? '实时' : '等待'
+            statusColor = hasData ? '#52c41a' : '#faad14'
+          } else if (d.type === 'camera') {
+            statusText = '在线'
+            statusColor = '#52c41a'
+            primaryValue = d.config?.camera_id || 'CAM'
+          } else if (d.type === 'stepper') {
+            const pos = deviceData?.stepper_position
+            statusText = '就绪'
+            statusColor = '#1677ff'
+            primaryValue = pos !== undefined ? `${pos}p` : ''
+          }
+
+          return (
+            <div
+              key={d.id}
+              className="relative p-3 transition-all"
+              style={{
+                borderRadius: BERRY_THEME.apple.radius.inner,
+                background: '#FFFFFF',
+                boxShadow: BERRY_THEME.apple.shadow.card,
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div
+                  className="h-8 w-8 flex items-center justify-center"
+                  style={{
+                    backgroundColor: `${hex}1a`,
+                    color: hex,
+                    borderRadius: BERRY_THEME.apple.radius.small,
+                    boxShadow: BERRY_THEME.apple.shadow.inner,
+                  }}
+                >
+                  <IconCmp className="h-4 w-4" strokeWidth={1.75} />
+                </div>
+                <div className="flex items-center gap-1">
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: statusColor }} />
+                  <span className="text-[10px] font-medium" style={{ color: statusColor }}>{statusText}</span>
+                </div>
+              </div>
+              <div className="text-xs font-bold truncate mb-0.5" style={{ color: BERRY_THEME.apple.label }}>{d.name}</div>
+              {primaryValue && (
+                <div className="text-[11px] font-mono" style={{ color: BERRY_THEME.apple.labelTertiary }}>{primaryValue}</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardClient({ version = 'full' }: { version?: 'full' | 'simplified' }) {
   const router = useRouter()
   const { isElderFriendlyMode, toggleElderFriendlyMode } = useElderFriendly()
@@ -63,7 +185,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
   const [isLoadingUser, setIsLoadingUser] = useState(true)
 
   // Connect to SSE for real-time device data
-  const { deviceData, connectionStatus } = useDeviceData()
+  const { deviceData, connectionStatus, devices, customDeviceData } = useDeviceData()
 
   // Device control functions
   const { toggleRelay, setLEDs } = useDeviceControl()
@@ -341,6 +463,15 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
   }
 
   return (
+    <ConfigProvider
+      theme={{
+        algorithm: antdTheme.defaultAlgorithm,
+        token: {
+          colorPrimary: BERRY_THEME.primary,
+          borderRadius: BERRY_THEME.radius.lg,
+        },
+      }}
+    >
     <>
       <style jsx global>{`
         @keyframes rain-dashboard {
@@ -362,9 +493,8 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
         .animate-grow-bar { animation: grow-bar 0.8s ease-out; }
       `}</style>
       <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
-        <div className="absolute inset-0 bg-[#F5F7FA] dark:bg-[#0B1220]" />
-        <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.8),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(240,253,244,0.6),transparent_55%)] dark:hidden" />
-        <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
+        <div className="absolute inset-0" style={{ background: BERRY_THEME.apple.canvasGradient }} />
+        <div className="absolute inset-0 hidden dark:block dark:bg-[#0B1220]" />
 
         {/* Daily Briefing Dynamic Island */}
         <DailyBriefingIsland
@@ -624,68 +754,77 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                   </div>
                 )}
 
-                {/* 土壤肥力 - 使用 IOSWidgetCard 模拟统一风格 */}
+                {/* 土壤肥力 */}
                 {layout.find(l => l.i === 'fertility') && (
                   <div key="fertility">
-                    <IOSWidgetCard
-                      size={getCurrentWidgetSize('fertility')}
-                      className="h-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0"
-                      isEditing={isEditMode}
-                      widgetId="fertility"
-                      onRemove={handleRemoveWidget}
-                      onContextMenu={handleWidgetContextMenu}
-                      onLongPress={handleWidgetLongPress}
-                      header={
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-900/30">
-                            <Leaf className="w-4 h-4 text-primary" />
-                          </div>
-                          {getCurrentWidgetSize('fertility') !== 'small' && <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">土壤肥力</span>}
-                        </div>
-                      }
-                    >
-                      <div className="flex flex-col h-full justify-between">
-                        {getCurrentWidgetSize('fertility') === 'small' ? (
-                          <>
-                            <div className="mt-auto">
-                              <div className="flex items-start">
-                                <span className="text-3xl font-bold tracking-tighter text-slate-900 dark:text-white">
-                                  {(() => {
-                                    if (!deviceData) return '--'
-                                    const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
-                                    const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
-                                    const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
-                                    const fertility = (nScore + pScore + kScore) / 3
-                                    return fertility.toFixed(0)
-                                  })()}
-                                </span>
-                                <span className="text-xs font-medium mt-1 text-slate-400 ml-1">%</span>
-                              </div>
-                              <div className="text-xs font-medium text-slate-500 mt-1 truncate">
-                                肥力指数
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">
-                                {(() => {
-                                  if (!deviceData) return '--'
-                                  const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
-                                  const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
-                                  const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
-                                  const fertility = (nScore + pScore + kScore) / 3
-                                  return fertility.toFixed(1)
-                                })()}
-                              </span>
-                              <span className="text-xl text-slate-400 ml-1">%</span>
-                              <div className="text-sm text-slate-500 mt-1">综合健康度</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </IOSWidgetCard>
+                    {(() => {
+                      const fertSize = getCurrentWidgetSize('fertility')
+                      const fertilityValue = (() => {
+                        if (!deviceData) return 0
+                        const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
+                        const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
+                        const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
+                        return (nScore + pScore + kScore) / 3
+                      })()
+                      const fertColor = fertilityValue >= 60 ? BERRY_THEME.status.success : fertilityValue >= 30 ? BERRY_THEME.status.warning : '#78716c'
+                      const fertLabel = fertilityValue >= 60 ? '健康' : fertilityValue >= 30 ? '一般' : '贫瘠'
+                      const Ad = BERRY_THEME.apple
+                      const isSmallFert = fertSize === 'small'
+                      const isLargeFert = fertSize === 'large'
+                      const heroSizeFert = isSmallFert ? 32 : isLargeFert ? 52 : 40
+
+                      return (
+                        <IOSWidgetCard
+                          size={fertSize}
+                          className="h-full"
+                          tint={Ad.widgetColors.fertility.accent}
+                          isEditing={isEditMode}
+                          widgetId="fertility"
+                          onRemove={handleRemoveWidget}
+                          onContextMenu={handleWidgetContextMenu}
+                          onLongPress={handleWidgetLongPress}
+                          header={!isSmallFert ? (
+                            <>
+                              <WidgetLabel>肥力</WidgetLabel>
+                              <WidgetStatusPill label={fertLabel} color={fertColor} />
+                            </>
+                          ) : null}
+                        >
+                          {isSmallFert ? (
+                            <Flex vertical gap={6} justify="center" style={{ height: '100%' }}>
+                              <WidgetHeroNumber value={deviceData ? fertilityValue.toFixed(0) : '--'} unit="%" fontSize={heroSizeFert} />
+                              <WidgetStatusPill label={fertLabel} color={fertColor} />
+                            </Flex>
+                          ) : isLargeFert ? (
+                            <Flex vertical gap={16} style={{ height: '100%' }}>
+                              <Flex vertical gap={6}>
+                                <WidgetHeroNumber value={deviceData ? fertilityValue.toFixed(1) : '--'} unit="%" fontSize={heroSizeFert} />
+                                <WidgetStatusPill label={fertLabel} color={fertColor} />
+                              </Flex>
+                              <Flex gap={28} style={{ borderTop: `1px solid ${Ad.separator}`, paddingTop: 14 }}>
+                                <Flex vertical gap={3}>
+                                  <WidgetLabel style={{ fontSize: 10 }}>氮 N</WidgetLabel>
+                                  <span style={{ fontSize: 20, fontWeight: 600, color: Ad.label, lineHeight: 1 }}>{deviceData ? deviceData.earth_n : '--'}</span>
+                                </Flex>
+                                <Flex vertical gap={3}>
+                                  <WidgetLabel style={{ fontSize: 10 }}>磷 P</WidgetLabel>
+                                  <span style={{ fontSize: 20, fontWeight: 600, color: Ad.label, lineHeight: 1 }}>{deviceData ? deviceData.earth_p : '--'}</span>
+                                </Flex>
+                                <Flex vertical gap={3}>
+                                  <WidgetLabel style={{ fontSize: 10 }}>钾 K</WidgetLabel>
+                                  <span style={{ fontSize: 20, fontWeight: 600, color: Ad.label, lineHeight: 1 }}>{deviceData ? deviceData.earth_k : '--'}</span>
+                                </Flex>
+                              </Flex>
+                            </Flex>
+                          ) : (
+                            <Flex vertical gap={4}>
+                              <WidgetHeroNumber value={deviceData ? fertilityValue.toFixed(1) : '--'} unit="%" fontSize={heroSizeFert} />
+                              <WidgetLabel style={{ textTransform: 'none', letterSpacing: 0 }}>综合健康度</WidgetLabel>
+                            </Flex>
+                          )}
+                        </IOSWidgetCard>
+                      )
+                    })()}
                   </div>
                 )}
 
@@ -762,10 +901,34 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                       condition={weatherData?.current?.condition?.text || '晴朗'}
                       humidity={deviceData?.humidity || weatherData?.current?.humidity || 0}
                       windSpeed={Number((weatherData?.current?.wind_kph ? weatherData.current.wind_kph / 3.6 : 0).toFixed(1))}
+                      windDirection={weatherData?.current?.wind_dir || 0}
+                      pressure={weatherData?.current?.pressure_mb || 1013}
+                      visibility={weatherData?.current?.vis_km || 10}
+                      location={weatherData?.location?.name}
                       size={getCurrentWidgetSize('weather')}
                       className="h-full"
                       isEditing={isEditMode}
                       widgetId="weather"
+                      onRemove={handleRemoveWidget}
+                      onContextMenu={handleWidgetContextMenu}
+                      onLongPress={handleWidgetLongPress}
+                    />
+                  </div>
+                )}
+
+                {/* 天气预报 */}
+                {layout.find(l => l.i === 'weather-forecast') && (
+                  <div key="weather-forecast">
+                    <WeatherForecastWidget
+                      temperature={deviceData?.temperature || weatherData?.current?.temp_c || 0}
+                      condition={weatherData?.current?.condition?.text || '晴朗'}
+                      windSpeed={Number((weatherData?.current?.wind_kph ? weatherData.current.wind_kph / 3.6 : 0).toFixed(1))}
+                      windDirection={weatherData?.current?.wind_dir || 0}
+                      dailyForecast={weatherData?.forecast?.forecastday}
+                      size={getCurrentWidgetSize('weather-forecast')}
+                      className="h-full"
+                      isEditing={isEditMode}
+                      widgetId="weather-forecast"
                       onRemove={handleRemoveWidget}
                       onContextMenu={handleWidgetContextMenu}
                       onLongPress={handleWidgetLongPress}
@@ -785,50 +948,115 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                     transform: 'translate(0, 10px)'
                   }}
                 >
-                  <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-3xl rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-white/60 dark:border-white/10 p-2 min-w-[220px] flex flex-col">
+                  <div style={{
+                    background: '#fff',
+                    borderRadius: BERRY_THEME.radius.md,
+                    boxShadow: BERRY_THEME.shadow.lg,
+                    border: '1px solid #f0f0f0',
+                    padding: 8,
+                    minWidth: 220,
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}>
                     {/* Size Selector */}
-                    <div className="flex items-center justify-between p-2 bg-slate-100/40 dark:bg-slate-800/40 rounded-2xl mb-2 backdrop-blur-md">
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 8,
+                      background: '#fafafa',
+                      borderRadius: BERRY_THEME.radius.sm,
+                      marginBottom: 8,
+                    }}>
                       <button
-                        className={`p-3 rounded-xl flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? 'bg-white dark:bg-slate-700 shadow-sm scale-105' : 'hover:bg-white/50 dark:hover:bg-slate-700/50'}`}
+                        className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
+                        style={{
+                          padding: 12,
+                          borderRadius: BERRY_THEME.radius.sm,
+                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? '#fff' : 'transparent',
+                          boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? BERRY_THEME.shadow.sm : 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => handleResizeWidget(contextMenuState.widgetId, 'small')}
                       >
-                        <div className="w-5 h-5 border-[1.5px] border-slate-400 dark:border-slate-500 rounded-[8px]" />
+                        <div style={{ width: 20, height: 20, border: '1.5px solid #8c8c8c', borderRadius: 6 }} />
                       </button>
                       <button
-                        className={`p-3 rounded-xl flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'bg-white dark:bg-slate-700 shadow-sm scale-105' : 'hover:bg-white/50 dark:hover:bg-slate-700/50'}`}
+                        className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
+                        style={{
+                          padding: 12,
+                          borderRadius: BERRY_THEME.radius.sm,
+                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? '#fff' : 'transparent',
+                          boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? BERRY_THEME.shadow.sm : 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => handleResizeWidget(contextMenuState.widgetId, 'medium')}
                       >
-                        <div className="w-8 h-5 border-[1.5px] border-slate-400 dark:border-slate-500 rounded-[8px]" />
+                        <div style={{ width: 32, height: 20, border: '1.5px solid #8c8c8c', borderRadius: 6 }} />
                       </button>
                       <button
-                        className={`p-3 rounded-xl flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'bg-white dark:bg-slate-700 shadow-sm scale-105' : 'hover:bg-white/50 dark:hover:bg-slate-700/50'}`}
+                        className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
+                        style={{
+                          padding: 12,
+                          borderRadius: BERRY_THEME.radius.sm,
+                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? '#fff' : 'transparent',
+                          boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? BERRY_THEME.shadow.sm : 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => handleResizeWidget(contextMenuState.widgetId, 'large')}
                       >
-                        <div className="w-8 h-8 border-[1.5px] border-slate-400 dark:border-slate-500 rounded-[12px]" />
+                        <div style={{ width: 32, height: 32, border: '1.5px solid #8c8c8c', borderRadius: 8 }} />
                       </button>
                     </div>
 
                     <button
-                      className="flex items-center gap-3 p-3 px-4 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-2xl transition-colors text-left w-full text-slate-700 dark:text-slate-200 font-medium text-sm"
+                      className="flex items-center gap-3 transition-colors text-left w-full"
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: BERRY_THEME.radius.sm,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: '#595959',
+                        fontWeight: 500,
+                        fontSize: 13,
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       onClick={() => {
                         setIsEditMode(true)
                         setContextMenuState(null)
                       }}
                     >
-                      <AppWindow className="w-4 h-4 text-slate-500" />
+                      <AppWindow size={14} strokeWidth={1.75} color="#8c8c8c" />
                       编辑主屏幕
                     </button>
 
-                    <div className="h-px w-[calc(100%-2rem)] mx-auto bg-slate-200/60 dark:bg-slate-700/50 my-1" />
+                    <div style={{ height: 1, background: '#f0f0f0', margin: '4px 0' }} />
 
                     <button
-                      className="flex items-center gap-3 p-3 px-4 hover:bg-red-50/50 dark:hover:bg-red-950/30 rounded-2xl transition-colors text-left w-full text-red-500 font-medium text-sm"
+                      className="flex items-center gap-3 transition-colors text-left w-full"
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: BERRY_THEME.radius.sm,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: BERRY_THEME.status.error,
+                        fontWeight: 500,
+                        fontSize: 13,
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = `${BERRY_THEME.status.error}08`}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       onClick={() => {
                         handleRemoveWidget(contextMenuState.widgetId)
                         setContextMenuState(null)
                       }}
                     >
-                      <Minus className="w-4 h-4" />
+                      <Minus size={14} strokeWidth={1.75} />
                       移除小组件
                     </button>
                   </div>
@@ -848,5 +1076,6 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
       />
 
     </>
+    </ConfigProvider>
   )
 }

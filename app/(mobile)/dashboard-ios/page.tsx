@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import Image from "next/image"
@@ -90,7 +90,7 @@ function StatCard({ icon: Icon, label, value, unit, color, bg }: { icon: React.C
       </div>
       
       <div className="flex items-end justify-between relative z-10">
-        <div className="text-2xl font-bold text-slate-900 dark:text-white font-['DingTalkJinBuTi']">
+        <div className="text-2xl font-bold text-slate-900 dark:text-white font-jinbuti">
           {value}{unit ? <span className="text-xs font-bold text-slate-400 ml-1 font-sans">{unit}</span> : null}
         </div>
       </div>
@@ -402,7 +402,7 @@ export default function DashboardIOSPage() {
           <div className="flex justify-between items-center mb-8">
             <div className="bg-white/55 dark:bg-white/5 backdrop-blur-2xl px-5 py-3 rounded-[2rem] border border-white/60 dark:border-white/10 shadow-[0_12px_36px_rgba(15,23,42,0.10)] flex items-center gap-3">
                <div className="flex flex-col">
-                  <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight" style={{ fontFamily: 'DingTalkJinBuTi, system-ui, -apple-system, sans-serif' }}>
+                  <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight" style={{ fontFamily: 'var(--font-jinbuti)' }}>
                     {user?.username ? `${user.username}的大棚` : '我的大棚'}
                   </h1>
                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -434,7 +434,7 @@ export default function DashboardIOSPage() {
                   <div className="p-2 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-500">
                      <FireIcon className="size-5" />
                   </div>
-                  <span className="text-2xl font-bold font-['DingTalkJinBuTi']">{weatherData?.current?.temp_c ? Math.round(weatherData.current.temp_c) : 24}°</span>
+                  <span className="text-2xl font-bold font-jinbuti">{weatherData?.current?.temp_c ? Math.round(weatherData.current.temp_c) : 24}°</span>
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">{weatherData?.location?.name || '上城区'}</span>
               </div>
@@ -444,7 +444,7 @@ export default function DashboardIOSPage() {
                    <div className="p-2 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-500">
                       <BeakerIcon className="size-5" />
                    </div>
-                  <span className="text-2xl font-bold font-['DingTalkJinBuTi']">{weatherData?.current?.humidity || 67}%</span>
+                  <span className="text-2xl font-bold font-jinbuti">{weatherData?.current?.humidity || 67}%</span>
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">湿度</span>
               </div>
@@ -509,7 +509,7 @@ export default function DashboardIOSPage() {
               <span className={cn("size-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]", !selectedCamera?.url && "bg-gray-400 animate-none")} />
               <span className="text-white text-[10px] font-bold tracking-wide uppercase">{selectedCamera?.url ? "Live" : "Offline"}</span>
               {zoomLevel > 1 && (
-                <span className="text-white/80 text-[10px] font-['DingTalkJinBuTi'] border-l border-white/20 pl-2 ml-1">
+                <span className="text-white/80 text-[10px] font-jinbuti border-l border-white/20 pl-2 ml-1">
                   {zoomLevel.toFixed(1)}x
                 </span>
               )}
@@ -573,7 +573,7 @@ export default function DashboardIOSPage() {
           
           <div className="flex items-center justify-between px-2 mt-3">
              <h3 className="text-sm font-bold text-slate-900 dark:text-white ml-1">{selectedCamera?.name || "监控设备"}</h3>
-             <div className="text-xs text-slate-400 font-['DingTalkJinBuTi']">{selectedCamera?.time}</div>
+             <div className="text-xs text-slate-400 font-jinbuti">{selectedCamera?.time}</div>
           </div>
         </div>
 
@@ -681,7 +681,7 @@ export default function DashboardIOSPage() {
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <DialogContent className="sm:max-w-md w-[90%] rounded-[2rem] bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-6">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-center text-xl font-bold text-slate-900 dark:text-white" style={{ fontFamily: 'DingTalkJinBuTi, system-ui, sans-serif' }}>
+            <DialogTitle className="text-center text-xl font-bold text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-jinbuti)' }}>
               配置监控地址
             </DialogTitle>
           </DialogHeader>

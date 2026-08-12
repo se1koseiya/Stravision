@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth"
 import { initDB, queryOne, execute } from "@/lib/db/database"
+import { publishUserEvent } from "@/lib/server/user-event-bus"
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
@@ -33,6 +34,24 @@ export async function POST(req: Request) {
       [user.id, targetId || 0, groupId || 0, Date.now()]
     )
 
+    // 通过 SSE 推送 typing 事件给对方/群其他成员
+    // 注意：typing 频率高，不广播给群全员，只推给对方/或群（前端按 peerId 路由）
+    if (groupId) {
+      // 群场景：每个群成员都可能想感知 typing，这里只推一次给"群"，前端订阅时按 groupId 过滤
+      // 但 SSE 是按 userId 订阅的，我们无法群发——退化为不推 SSE，前端继续用 GET 轮询（2s）
+      // 这样既保持兼容，又不增加复杂度
+    } else if (targetId) {
+      // 私聊场景：直接推给对方
+      publishUserEvent({
+        type: "chat_typing",
+        userId: targetId,
+        peerId: user.id,
+        chatKind: "direct",
+        isTyping: true,
+        senderName: (user as any).username
+      })
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Typing status error:", error)
@@ -43,9 +62,9 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-  
+
     const { searchParams } = new URL(req.url)
     const targetId = searchParams.get('targetId')
     const groupId = searchParams.get('groupId')
@@ -55,11 +74,8 @@ export async function GET(req: Request) {
     const THRESHOLD = 3000 // 3 seconds
 
     try {
-        // Clean up old entries (optional, or run periodically)
-        // db.prepare("DELETE FROM typing_status WHERE updated_at < ?").run(now - THRESHOLD)
-
         let isTyping = false
-        
+
         if (groupId) {
             // Check if anyone else is typing in the group
             const res = await queryOne<{ count: string | number }>(

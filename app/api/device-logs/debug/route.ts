@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server"
 import { initDB, query } from "@/lib/db/database"
+import { getCurrentUser } from "@/lib/auth"
 
 /**
- * 调试端点 - 显示日志的详细信息
+ * 调试端点 - 显示日志的详细信息（仅管理员，生产环境禁用）
  */
 export async function GET() {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ success: false, error: "Not available in production" }, { status: 404 })
+    }
+    const user = await getCurrentUser()
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 })
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
+      return NextResponse.json({ success: false, error: "无权限" }, { status: 403 })
+    }
     await initDB()
     
     const logs = await query(
@@ -61,7 +70,7 @@ export async function GET() {
   } catch (error) {
     console.error("Debug endpoint error:", error)
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { success: false, error: "Internal Server Error" },
       { status: 500 }
     )
   }

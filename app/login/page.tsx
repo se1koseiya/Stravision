@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { AuthLayout } from "@/components/auth/auth-layout"
-import RecaptzWidget from "@/components/ui/recaptz-widget"
+import CapWidget from "@/components/ui/cap-widget"
+import { isCapRequiredClient } from "@/lib/cap-client"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import {
   Dialog,
@@ -35,6 +36,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [captchaCompleted, setCaptchaCompleted] = useState(false)
+  const [capToken, setCapToken] = useState("")
   const [warning, setWarning] = useState<{ type: string; message: string; lastRegion: string | null } | null>(null)
   const [showWarningDialog, setShowWarningDialog] = useState(false)
 
@@ -45,11 +47,14 @@ export default function LoginPage() {
   const [codeSent, setCodeSent] = useState(false)
   const [countdown, setCountdown] = useState(0)
 
-  const shouldShowCaptcha = email.length > 0 && password.length > 0
+  // 测试环境（NODE_ENV≠production）跳过人机验证：不渲染 widget、不强制校验
+  const capRequired = isCapRequiredClient()
+  const shouldShowCaptcha = capRequired && email.length > 0 && password.length > 0
 
   useEffect(() => {
     if (!shouldShowCaptcha) {
       setCaptchaCompleted(false)
+      setCapToken("")
     }
   }, [shouldShowCaptcha])
 
@@ -132,8 +137,9 @@ export default function LoginPage() {
   }
 
   const onSubmit = async () => {
-    if (!captchaCompleted) {
-      setError("请完成验证码验证")
+    // 仅生产环境强制人机验证；测试环境跳过
+    if (capRequired && (!captchaCompleted || !capToken)) {
+      setError("请完成人机验证")
       return
     }
 
@@ -141,6 +147,7 @@ export default function LoginPage() {
     setError("")
     try {
       const body: any = { email, password }
+      if (capRequired) body.capToken = capToken
       if (requireVerification && verificationCode) {
         body.verificationCode = verificationCode
       }
@@ -153,6 +160,9 @@ export default function LoginPage() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         setError(data?.error || "登录失败")
+        // 人机验证令牌通常一次性使用，登录失败后需要重新验证
+        setCaptchaCompleted(false)
+        setCapToken("")
         setLoading(false)
         return
       }
@@ -217,7 +227,7 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* Recaptz Widget */}
+        {/* Cap Widget */}
         <AnimatePresence>
           {shouldShowCaptcha && (
             <motion.div
@@ -228,7 +238,16 @@ export default function LoginPage() {
               className="overflow-hidden"
             >
               <div className="py-1">
-                <RecaptzWidget onSuccess={() => setCaptchaCompleted(true)} />
+                <CapWidget
+                  onSuccess={(token) => {
+                    setCaptchaCompleted(true)
+                    setCapToken(token)
+                  }}
+                  onError={() => {
+                    setCaptchaCompleted(false)
+                    setCapToken("")
+                  }}
+                />
               </div>
             </motion.div>
           )}

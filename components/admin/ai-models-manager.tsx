@@ -186,7 +186,7 @@ export function AIModelsManager() {
 
   if (!config) {
     return (
-      <div style={{ padding: 48, textAlign: 'center', color: '#8c8c8c' }}>
+      <div style={{ padding: 48, textAlign: 'center', color: '#8F959E' }}>
         加载配置失败
       </div>
     )
@@ -196,10 +196,10 @@ export function AIModelsManager() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 'bold', color: '#262626', margin: 0 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 'bold', color: '#1F2329', margin: 0 }}>
             AI 模型管理
           </h3>
-          <p style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+          <p style={{ fontSize: 12, color: '#8F959E', marginTop: 4 }}>
             管理 AI 助手页面的模型列表
           </p>
         </div>
@@ -237,6 +237,7 @@ export function AIModelsManager() {
           return (
             <Card
               key={category.id}
+              style={{ border: '1px solid #EDEEEF' }}
               title={<Text strong style={{ fontSize: 14 }}>{category.name}</Text>}
               extra={<Text type="secondary" style={{ fontSize: 12 }}>{categoryModels.length} 个模型</Text>}
             >
@@ -250,8 +251,8 @@ export function AIModelsManager() {
                       gap: 12,
                       padding: 12,
                       borderRadius: 6,
-                      border: '1px solid #f0f0f0',
-                      backgroundColor: '#fafafa'
+                      border: '1px solid #EDEEEF',
+                      backgroundColor: '#FFFFFF'
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -277,13 +278,13 @@ export function AIModelsManager() {
                     
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                        <Text strong style={{ fontSize: 13, color: '#1F2329' }}>
                           {model.name}
                         </Text>
                         <code style={{
                           fontSize: 11,
-                          color: '#8c8c8c',
-                          backgroundColor: '#f5f5f5',
+                          color: '#646A73',
+                          backgroundColor: '#F2F3F5',
                           padding: '2px 6px',
                           borderRadius: 4,
                           fontFamily: 'monospace'
@@ -292,7 +293,7 @@ export function AIModelsManager() {
                         </code>
                       </div>
                       {model.description && (
-                        <p style={{ fontSize: 12, color: '#8c8c8c', marginTop: 2, marginBottom: 0 }}>
+                        <p style={{ fontSize: 12, color: '#8F959E', marginTop: 2, marginBottom: 0 }}>
                           {model.description}
                         </p>
                       )}

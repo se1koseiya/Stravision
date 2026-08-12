@@ -9,8 +9,10 @@ import { MQTTService } from '@/lib/mqtt-service'
 import { getCurrentUser } from '@/lib/auth'
 import { checkSecurity, logRequest } from '@/lib/security'
 import { initDB, execute } from '@/lib/db/database'
+import { getStepperPosition } from '@/lib/db/settings-service'
+import { DEVICE_NAMES, STEPPER, RELAY_DEVICE_RANGE } from '@/lib/constants'
 
-// Helper to log device action
+// Helper to log device action — 审计日志失败需显式告警，不可静默吞掉
 async function logDeviceAction(deviceName: string, action: string, operator: string, details: string) {
   try {
     await initDB()
@@ -20,7 +22,10 @@ async function logDeviceAction(deviceName: string, action: string, operator: str
       [deviceName, action, operator, details, Date.now()]
     )
   } catch (error) {
-    console.error('Failed to log device action:', error)
+    // 审计日志失败不可静默：MQTT 命令已发出但无审计记录，存在合规风险
+    console.error('[AUDIT FAILURE] Device action not logged (MQTT command already sent):', {
+      deviceName, action, operator, details, error: error instanceof Error ? error.message : String(error)
+    })
   }
 }
 
@@ -195,9 +200,9 @@ export async function POST(request: NextRequest) {
       // 摄像头云台控制（步进电机）
       let { direction, pulses, distance_mm } = body
       
-      // 如果 AI 提供了距离（毫米），则根据 160 脉冲/mm 比例转换
+      // 如果 AI 提供了距离（毫米），则根据脉冲/mm 比例转换
       if (distance_mm !== undefined && typeof distance_mm === 'number' && direction !== 0) {
-        pulses = Math.round(distance_mm * 160)
+        pulses = Math.round(distance_mm * STEPPER.PULSES_PER_MM)
       }
       
       if (direction === undefined || direction === null) {
@@ -235,8 +240,26 @@ export async function POST(request: NextRequest) {
         type: 'stepper',
         stepper_direction: direction
       }
-      
+
       if (pulses !== undefined && typeof pulses === 'number') {
+        // 服务端边界校验：预测移动后的位置，拒绝越界请求
+        if (direction !== 0) {
+          const currentPosition = await getStepperPosition()
+          const delta = direction === 1 ? -pulses : pulses // direction 1=左移(减少), 2=右移(增加)
+          const newPosition = currentPosition + delta
+          if (newPosition < STEPPER.MIN_PULSES || newPosition > STEPPER.MAX_PULSES) {
+            const currentMm = (currentPosition / STEPPER.PULSES_PER_MM).toFixed(1)
+            const newMm = (newPosition / STEPPER.PULSES_PER_MM).toFixed(1)
+            const limitMm = (STEPPER.MAX_PULSES / STEPPER.PULSES_PER_MM).toFixed(0)
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Stepper boundary violation: current ${currentMm}mm → target ${newMm}mm, valid range 0-${limitMm}mm`
+              },
+              { status: 400 }
+            )
+          }
+        }
         mqttPayload.stepper_pulses = pulses;
       }
       console.log('[AI Device Control] Calling MQTT Service with:', mqttPayload)

@@ -203,11 +203,11 @@ export function ChangelogSender() {
     <Card 
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <RocketOutlined style={{ color: '#1890ff' }} />
+          <RocketOutlined style={{ color: '#1677ff' }} />
           发布更新日志
         </span>
       }
-      style={{ background: 'rgba(255,255,255,0.7)' }}
+      style={{ border: "1px solid #EDEEEF" }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -230,7 +230,7 @@ export function ChangelogSender() {
             <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>封面图片 (Cover Image)</Text>
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
               {imageUrl ? (
-                <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 8, overflow: 'hidden', border: '1px solid #d9d9d9' }}>
+                <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 8, overflow: 'hidden', border: '1px solid #EDEEEF' }}>
                   <Image src={imageUrl} alt="Cover" fill style={{ objectFit: 'cover' }} />
                   <Button 
                     type="text"
@@ -247,7 +247,7 @@ export function ChangelogSender() {
                   style={{ 
                     width: '100%', 
                     height: 96, 
-                    border: '2px dashed #d9d9d9', 
+                    border: '2px dashed #EDEEEF',
                     borderRadius: 8, 
                     display: 'flex', 
                     flexDirection: 'column', 
@@ -257,11 +257,11 @@ export function ChangelogSender() {
                   }}
                 >
                   {uploading ? (
-                    <LoadingOutlined style={{ fontSize: 24, color: '#999' }} />
+                    <LoadingOutlined style={{ fontSize: 24, color: '#8F959E' }} />
                   ) : (
                     <>
-                      <UploadOutlined style={{ fontSize: 24, color: '#999', marginBottom: 8 }} />
-                      <span style={{ fontSize: 12, color: '#999' }}>点击上传封面图片 (Max 5MB)</span>
+                      <UploadOutlined style={{ fontSize: 24, color: '#8F959E', marginBottom: 8 }} />
+                      <span style={{ fontSize: 12, color: '#8F959E' }}>点击上传封面图片 (Max 5MB)</span>
                     </>
                   )}
                 </div>
@@ -277,12 +277,12 @@ export function ChangelogSender() {
         </div>
 
         <div style={{ paddingTop: 8 }}>
-            {renderList("新功能 (Features)", <RocketOutlined style={{ color: '#1890ff' }} />, features, setFeatures, "新增了...")}
-            {renderList("优化改进 (Improvements)", <EditOutlined style={{ color: '#faad14' }} />, improvements, setImprovements, "优化了...")}
-            {renderList("问题修复 (Fixes)", <ReloadOutlined style={{ color: '#ff4d4f' }} />, fixes, setFixes, "修复了...")}
+            {renderList("新功能 (Features)", <RocketOutlined style={{ color: '#1677ff' }} />, features, setFeatures, "新增了...")}
+            {renderList("优化改进 (Improvements)", <EditOutlined style={{ color: '#FA8C16' }} />, improvements, setImprovements, "优化了...")}
+            {renderList("问题修复 (Fixes)", <ReloadOutlined style={{ color: '#F5222D' }} />, fixes, setFixes, "修复了...")}
         </div>
 
-        <div style={{ paddingTop: 16, borderTop: '1px dashed #d9d9d9' }}>
+        <div style={{ paddingTop: 16, borderTop: '1px dashed #EDEEEF' }}>
             <Text strong style={{ display: 'block', marginBottom: 8 }}>行动按钮 (Call to Action)</Text>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
@@ -301,7 +301,6 @@ export function ChangelogSender() {
             type="primary"
             onClick={handleSend} 
             loading={loading}
-            style={{ background: '#1890ff' }}
           >
             {loading ? '发送中...' : '推送更新'}
           </Button>

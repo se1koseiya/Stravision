@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { execute } from '@/lib/db/database'
+import { ChatService } from '@/lib/db/chat-service'
 
+/**
+ * 撤回消息 DELETE /api/messages/:id
+ * 调用 ChatService.recallMessage，由后者统一处理：
+ * - 仅发送者本人可撤回
+ * - 2 分钟内可撤回
+ * - 更新 messages 表 content/type
+ * - 通过 SSE 推送 chat_message_recalled 事件
+ *
+ * 旧实现错误地引用了 direct_messages/group_messages 不存在的表，已废弃。
+ */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser()
@@ -12,55 +22,25 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const messageId = parseInt(params.id)
+    const { id } = await params
+    const messageId = parseInt(id)
     if (isNaN(messageId)) {
       return NextResponse.json({ error: 'Invalid message ID' }, { status: 400 })
     }
 
-    // Get message details
-    const messageResult = await execute(
-      'SELECT * FROM direct_messages WHERE id = $1 UNION ALL SELECT * FROM group_messages WHERE id = $1',
-      [messageId]
-    )
+    const result = await ChatService.recallMessage(messageId, user.id)
 
-    if (messageResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Message not found' }, { status: 404 })
-    }
-
-    const message = messageResult.rows[0]
-
-    // Check if user is the sender
-    if (message.sender_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to delete this message' }, { status: 403 })
-    }
-
-    // Check if message is within 2 minutes
-    const messageTime = new Date(message.created_at).getTime()
-    const now = Date.now()
-    const twoMinutes = 2 * 60 * 1000
-
-    if (now - messageTime > twoMinutes) {
-      return NextResponse.json({ error: 'Message can only be recalled within 2 minutes' }, { status: 400 })
-    }
-
-    // Update message content to indicate it was recalled
-    if (message.receiver_id) {
-      // Direct message
-      await execute(
-        'UPDATE direct_messages SET content = $1, type = $2 WHERE id = $3',
-        ['[消息已撤回]', 'recalled', messageId]
-      )
-    } else {
-      // Group message
-      await execute(
-        'UPDATE group_messages SET content = $1, type = $2 WHERE id = $3',
-        ['[消息已撤回]', 'recalled', messageId]
-      )
+    if (!result.success) {
+      const status = result.error === 'forbidden' ? 403
+        : result.error === 'not_found' ? 404
+        : result.error === 'timeout' ? 400
+        : 500
+      return NextResponse.json({ error: result.message }, { status })
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Message recalled successfully'
+      message: result.message
     })
   } catch (error) {
     console.error('Error recalling message:', error)

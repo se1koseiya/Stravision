@@ -43,30 +43,31 @@ export interface AIProvider {
 // ====== 图标映射 ======
 
 const PROVIDER_TYPE_ICONS: Record<string, React.ReactNode> = {
-  openai: <Bot className="w-4 h-4" />,
-  dashscope: <Sparkles className="w-4 h-4" />,
-  custom: <Globe className="w-4 h-4" />,
-  glm: <Brain className="w-4 h-4" />,
+  openai: <Bot size={16} />,
+  dashscope: <Sparkles size={16} />,
+  custom: <Globe size={16} />,
+  glm: <Brain size={16} />,
 }
 
 const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
-  qwen: <Sparkles className="w-3.5 h-3.5" />,
-  deepseek: <Brain className="w-3.5 h-3.5" />,
-  openai: <Cpu className="w-3.5 h-3.5" />,
-  xiaomi: <Zap className="w-3.5 h-3.5" />,
-  zhipu: <Brain className="w-3.5 h-3.5" />,
-  sparkles: <Sparkles className="w-3.5 h-3.5" />,
+  qwen: <Sparkles size={14} />,
+  deepseek: <Brain size={14} />,
+  openai: <Cpu size={14} />,
+  xiaomi: <Zap size={14} />,
+  zhipu: <Brain size={14} />,
+  sparkles: <Sparkles size={14} />,
 }
 
 function getModelIcon(icon?: string) {
-  return MODEL_ICON_MAP[icon || ''] || <CircleDot className="w-3.5 h-3.5" />
+  return MODEL_ICON_MAP[icon || ''] || <CircleDot size={14} />
 }
 
+// 飞书极简：统一蓝色系，不再按 provider 类型分色
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  openai: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  dashscope: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  custom: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
-  glm: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+  openai: { bg: '#E8F0FF', text: '#1677ff', border: '#D6E4FF' },
+  dashscope: { bg: '#E8F0FF', text: '#1677ff', border: '#D6E4FF' },
+  custom: { bg: '#E8F0FF', text: '#1677ff', border: '#D6E4FF' },
+  glm: { bg: '#E8F0FF', text: '#1677ff', border: '#D6E4FF' },
 }
 
 // ====== 预设模板 ======
@@ -140,32 +141,32 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <div style={{
         width: '64px',
         height: '64px',
-        borderRadius: '16px',
-        backgroundColor: 'rgb(244 244 245)',
+        borderRadius: '12px',
+        backgroundColor: '#F2F3F5',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: '24px',
       }}>
-        <Server className="w-7 h-7 text-zinc-400" />
+        <Server size={28} style={{ color: '#8F959E' }} />
       </div>
       <h3 style={{
         fontSize: '18px',
         fontWeight: 600,
-        color: 'rgb(24 24 27)',
+        color: '#1F2329',
         marginBottom: '8px',
       }}>
         尚未配置 AI 提供商
       </h3>
       <p style={{
         fontSize: '14px',
-        color: 'rgb(113 113 122)',
+        color: '#8F959E',
         marginBottom: '24px',
         maxWidth: '400px',
       }}>
         添加 OpenAI、DashScope、小米 MIMO 等 AI 服务商，为模型池提供多样化的 API 接入能力。
       </p>
-      <Button type="primary" icon={<Plus className="w-4 h-4" />} onClick={onAdd}>
+      <Button type="primary" icon={<Plus size={16} />} onClick={onAdd}>
         添加提供商
       </Button>
     </div>
@@ -194,20 +195,21 @@ function ProviderCard({
       style={{
         opacity: provider.enabled ? 1 : 0.6,
         transition: 'all 0.2s',
+        border: '1px solid #EDEEEF',
       }}
       styles={{ body: { padding: '16px' } }}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: colors.bg,
-            color: colors.text,
-            border: `1px solid ${colors.border}`,
+            backgroundColor: '#E8F0FF',
+            color: '#1677ff',
+            border: '1px solid #D6E4FF',
           }}>
             {PROVIDER_TYPE_ICONS[provider.type]}
           </div>
@@ -215,15 +217,15 @@ function ProviderCard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <Typography.Text strong style={{ fontSize: '16px' }}>{provider.name}</Typography.Text>
               {provider.isDefault && (
-                <Tag color="gold" icon={<Star className="w-3 h-3" />} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Tag color="gold" icon={<Star size={12} />} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   默认
                 </Tag>
               )}
-              <Tag style={{ 
+              <Tag style={{
                 fontSize: '12px',
-                backgroundColor: colors.bg,
-                color: colors.text,
-                border: `1px solid ${colors.border}`,
+                backgroundColor: '#E8F0FF',
+                color: '#1677ff',
+                border: '1px solid #D6E4FF',
               }}>
                 {provider.type}
               </Tag>
@@ -236,8 +238,8 @@ function ProviderCard({
       }
       extra={
         <Space size={4}>
-          <Button type="text" size="small" icon={<Pencil className="w-3.5 h-3.5" />} onClick={onEdit} />
-          <Button type="text" size="small" danger icon={<Trash2 className="w-3.5 h-3.5" />} onClick={onDelete} />
+          <Button type="text" size="small" icon={<Pencil size={14} />} onClick={onEdit} />
+          <Button type="text" size="small" danger icon={<Trash2 size={14} />} onClick={onDelete} />
         </Space>
       }
     >
@@ -248,13 +250,13 @@ function ProviderCard({
         gap: '8px',
         fontSize: '12px',
         fontFamily: 'monospace',
-        backgroundColor: 'rgb(250 250 250)',
+        backgroundColor: '#F7F8FA',
         padding: '8px 12px',
-        borderRadius: '8px',
+        borderRadius: '6px',
         marginBottom: '16px',
       }}>
-        <Key className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-        <span style={{ color: 'rgb(113 113 122)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Key size={14} style={{ color: '#8F959E', flexShrink: 0 }} />
+        <span style={{ color: '#646A73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {provider.apiKey || '(未设置)'}
         </span>
       </div>
@@ -265,12 +267,12 @@ function ProviderCard({
           <Tag key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
             {getModelIcon(m.icon)}
             {m.name}
-            {m.supportsVision && <Camera className="w-3 h-3 text-blue-500" />}
-            {m.supportsReasoning && <Brain className="w-3 h-3 text-purple-500" />}
-            {m.supportsEmbedding && <BookOpen className="w-3 h-3 text-amber-500" />}
+            {m.supportsVision && <Camera size={12} style={{ color: '#646A73' }} />}
+            {m.supportsReasoning && <Brain size={12} style={{ color: '#646A73' }} />}
+            {m.supportsEmbedding && <BookOpen size={12} style={{ color: '#646A73' }} />}
           </Tag>
         ))}
-        <Tag style={{ fontSize: '12px', color: 'rgb(113 113 122)' }}>
+        <Tag style={{ fontSize: '12px', color: '#8F959E' }}>
           {provider.models.length} 个模型
         </Tag>
       </div>
@@ -281,7 +283,7 @@ function ProviderCard({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingTop: '8px',
-        borderTop: '1px solid rgb(244 244 245)',
+        borderTop: '1px solid #EDEEEF',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -290,17 +292,17 @@ function ProviderCard({
               onChange={onToggleEnabled}
               size="small"
             />
-            <span style={{ fontSize: '12px', color: 'rgb(113 113 122)' }}>
+            <span style={{ fontSize: '12px', color: '#8F959E' }}>
               {provider.enabled ? '已启用' : '已禁用'}
             </span>
           </div>
         </div>
         {!provider.isDefault ? (
-          <Button type="text" size="small" icon={<Star className="w-3 h-3" />} onClick={onToggleDefault} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Button type="text" size="small" icon={<Star size={12} />} onClick={onToggleDefault} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             设为默认
           </Button>
         ) : (
-          <span style={{ fontSize: '12px', color: 'rgb(217 119 6)', fontWeight: 500 }}>当前默认</span>
+          <span style={{ fontSize: '12px', color: '#FA8C16', fontWeight: 500 }}>当前默认</span>
         )}
       </div>
     </Card>
@@ -427,7 +429,7 @@ function ProviderDialog({
   const modalFooter = (
     <Space>
       <Button onClick={onClose}>取消</Button>
-      <Button type="primary" onClick={handleSave} loading={saving} icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}>
+      <Button type="primary" onClick={handleSave} loading={saving} icon={saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}>
         {isEdit ? '保存修改' : '添加提供商'}
       </Button>
     </Space>
@@ -523,7 +525,7 @@ function ProviderDialog({
               <Input.Password
                 placeholder="sk-..."
                 style={{ fontFamily: 'monospace', fontSize: '14px' }}
-                iconRender={(visible) => visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                iconRender={(visible) => visible ? <EyeOff size={16} /> : <Eye size={16} />}
               />
             </Form.Item>
           </div>
@@ -547,10 +549,10 @@ function ProviderDialog({
           </div>
 
           {/* 模型列表 */}
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgb(244 244 245)' }}>
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #EDEEEF' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <Typography.Text strong>模型列表 ({formState.models.length})</Typography.Text>
-              <Button variant="outlined" size="small" icon={<Plus className="w-3 h-3" />} onClick={addModel} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Button variant="outlined" size="small" icon={<Plus size={12} />} onClick={addModel} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 添加模型
               </Button>
             </div>
@@ -563,8 +565,8 @@ function ProviderDialog({
                   gridTemplateColumns: '1fr 1fr 1fr auto',
                   gap: '8px',
                   padding: '12px',
-                  backgroundColor: 'rgb(250 250 250)',
-                  borderRadius: '8px',
+                  backgroundColor: '#F7F8FA',
+                  borderRadius: '6px',
                   marginBottom: '8px',
                 }}
               >
@@ -610,13 +612,13 @@ function ProviderDialog({
                       onChange={e => updateModel(idx, 'supportsEmbedding', e.target.checked)}
                       style={{ marginRight: '4px' }}
                     />
-                    <span style={{ fontSize: '11px', color: 'rgb(217 119 6)' }}>Embed</span>
+                    <span style={{ fontSize: '11px', color: '#FA8C16' }}>Embed</span>
                   </label>
                   <Button
                     type="text"
                     size="small"
                     danger
-                    icon={<X className="w-3 h-3" />}
+                    icon={<X size={12} />}
                     onClick={() => removeModel(idx)}
                     style={{ display: 'flex', alignItems: 'center' }}
                   />
@@ -852,7 +854,7 @@ export function AIProvidersManager() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#8F959E' }} />
       </div>
     )
   }
@@ -864,49 +866,48 @@ export function AIProvidersManager() {
       {/* 头部 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.025em', marginBottom: '4px' }}>AI 提供商管理</h2>
-          <p style={{ fontSize: '14px', color: 'rgb(113 113 122)', marginTop: '4px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2329', letterSpacing: '-0.025em', marginBottom: '4px' }}>AI 提供商管理</h2>
+          <p style={{ fontSize: '14px', color: '#8F959E', marginTop: '4px' }}>
             管理 AI 服务商接入，共 {providers.length} 个提供商 · {totalModels} 个可用模型
           </p>
         </div>
-        <Button type="primary" icon={<Plus className="w-4 h-4" />} onClick={() => { setEditing(null); setDialogOpen(true) }}>
+        <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); setDialogOpen(true) }}>
           添加提供商
         </Button>
       </div>
 
       {/* 默认/自动选择模型 */}
       <Card
-        style={{ border: '1px solid rgb(244 244 245)' }}
+        style={{ border: '1px solid #EDEEEF' }}
         styles={{ body: { paddingTop: '24px' } }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'rgb(239 246 255)',
-            color: 'rgb(37 99 235)',
-            border: '1px solid rgb(191 219 254)',
+            backgroundColor: '#F2F3F5',
+            color: '#1677ff',
             flexShrink: 0,
           }}>
-            <Sparkles className="w-4 h-4" />
+            <Sparkles size={16} />
           </div>
           <div style={{ flex: 1, minWidth: '0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
               <Typography.Text strong>自动选择模型</Typography.Text>
               <Tag style={{
                 fontSize: '10px',
-                color: 'rgb(37 99 235)',
-                border: '1px solid rgb(191 219 254)',
-                backgroundColor: 'rgb(239 246 255)',
+                color: '#1677ff',
+                border: '1px solid #D6E4FF',
+                backgroundColor: '#E8F0FF',
               }}>
                 刷新后生效
               </Tag>
             </div>
-            <p style={{ fontSize: '12px', color: 'rgb(113 113 122)', marginTop: '4px', marginBottom: '12px' }}>
+            <p style={{ fontSize: '12px', color: '#8F959E', marginTop: '4px', marginBottom: '12px' }}>
               每次刷新 AI 助手页面时，未手动选择模型的用户将自动使用该模型。
               {effectiveDefaultLabel
                 ? `当前生效：${effectiveDefaultLabel.p.name} · ${effectiveDefaultLabel.m.name}`
@@ -925,7 +926,7 @@ export function AIProvidersManager() {
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {getModelIcon(m.icon)}
                       <span style={{ fontWeight: 500 }}>{m.name}</span>
-                      <span style={{ color: 'rgb(113 113 122)', fontSize: '12px' }}>· {p.name}</span>
+                      <span style={{ color: '#8F959E', fontSize: '12px' }}>· {p.name}</span>
                     </span>
                   ),
                 }))}
@@ -935,12 +936,12 @@ export function AIProvidersManager() {
                 type="primary"
                 onClick={handleSaveDefaultModel}
                 disabled={savingDefault || defaultModelDraft === (defaultModelId ?? '') || availableDefaultModels.length === 0}
-                icon={savingDefault ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                icon={savingDefault ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
               >
                 保存
               </Button>
               {defaultModelId && defaultModelId !== effectiveDefaultId && (
-                <span style={{ fontSize: '12px', color: 'rgb(217 119 6)' }}>
+                <span style={{ fontSize: '12px', color: '#FA8C16' }}>
                   配置的默认模型已失效，将自动回退到当前生效项
                 </span>
               )}
@@ -950,31 +951,25 @@ export function AIProvidersManager() {
       </Card>
 
       {/* 知识库 Embedding 配置 */}
-      <Card style={{ marginBottom: '20px' }}>
+      <Card style={{ marginBottom: '20px', border: '1px solid #EDEEEF' }}>
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{
-            width: '36px', height: '36px', borderRadius: '8px',
+            width: '36px', height: '36px', borderRadius: '6px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: 'rgb(245 158 11 / 0.1)',
-            color: 'rgb(217 119 6)',
-            border: '1px solid rgb(252 211 77)',
+            backgroundColor: '#F2F3F5',
+            color: '#1677ff',
             flexShrink: 0,
           }}>
-            <BookOpen className="w-4 h-4" />
+            <BookOpen size={16} />
           </div>
           <div style={{ flex: 1, minWidth: '0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
               <Typography.Text strong>知识库 Embedding 模型</Typography.Text>
-              <Tag style={{
-                fontSize: '10px',
-                color: 'rgb(217 119 6)',
-                border: '1px solid rgb(252 211 77)',
-                backgroundColor: 'rgb(254 252 232)',
-              }}>
+              <Tag color="gold" style={{ fontSize: '10px' }}>
                 影响 @知识库:xxx 检索
               </Tag>
             </div>
-            <p style={{ fontSize: '12px', color: 'rgb(113 113 122)', marginTop: '4px', marginBottom: '12px' }}>
+            <p style={{ fontSize: '12px', color: '#8F959E', marginTop: '4px', marginBottom: '12px' }}>
               知识库对上传文档进行语义检索时，依赖 embedding 模型生成向量。下方选择任一提供商的 embedding 模型（需勾选"作为 Embedding"），保存后下次上传的文档将使用该模型。
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1005,7 +1000,7 @@ export function AIProvidersManager() {
                                 {getModelIcon(m.icon)}
                                 <span style={{ fontWeight: 500 }}>{m.name}</span>
                                 {m.contextWindow && (
-                                  <span style={{ color: 'rgb(113 113 122)', fontSize: '11px' }}>
+                                  <span style={{ color: '#8F959E', fontSize: '11px' }}>
                                     · {m.contextWindow >= 1024 ? `${Math.round(m.contextWindow / 1024)}K` : m.contextWindow} ctx
                                   </span>
                                 )}
@@ -1036,7 +1031,7 @@ export function AIProvidersManager() {
                 type="primary"
                 onClick={handleSaveEmbedding}
                 disabled={savingEmbedding || !embProviderDraft || !embModelDraft}
-                icon={savingEmbedding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                icon={savingEmbedding ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
               >
                 保存
               </Button>
@@ -1044,7 +1039,7 @@ export function AIProvidersManager() {
                 size="small"
                 onClick={handleTestEmbedding}
                 loading={testingEmbedding}
-                icon={<Sparkles className="w-3.5 h-3.5" />}
+                icon={<Sparkles size={14} />}
               >
                 测试 Embedding
               </Button>
@@ -1055,9 +1050,9 @@ export function AIProvidersManager() {
                 padding: '10px 12px',
                 borderRadius: '6px',
                 fontSize: '12px',
-                backgroundColor: embedTestResult.ok ? 'rgb(240 253 244)' : 'rgb(254 242 242)',
-                border: embedTestResult.ok ? '1px solid rgb(187 247 208)' : '1px solid rgb(254 202 202)',
-                color: embedTestResult.ok ? 'rgb(22 101 52)' : 'rgb(153 27 27)',
+                backgroundColor: embedTestResult.ok ? '#F6FFED' : '#FFF2F0',
+                border: embedTestResult.ok ? '1px solid #B7EB8F' : '1px solid #FFCCC7',
+                color: embedTestResult.ok ? '#389E0D' : '#CF1322',
               }}>
                 {embedTestResult.ok ? (
                   <div>
@@ -1075,7 +1070,7 @@ export function AIProvidersManager() {
               </div>
             )}
             {embeddingConfig && !embedTestResult && (
-              <div style={{ marginTop: '10px', fontSize: '12px', color: 'rgb(113 113 122)' }}>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#8F959E' }}>
                 当前：provider <code>{embeddingConfig.providerId}</code> · model <code>{embeddingConfig.model}</code>
                 {embeddingConfig.dimension && <> · {embeddingConfig.dimension} 维</>}
                 {embeddingConfig.enabled ? ' · 已启用' : ' · 已关闭'}
@@ -1347,29 +1342,28 @@ function KnowledgeConfigCard() {
 
   if (!draft) {
     return (
-      <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 12, color: "rgb(113 113 122)" }}>加载知识库配置中…</div>
+      <Card style={{ marginBottom: 20, border: '1px solid #EDEEEF' }}>
+        <div style={{ fontSize: 12, color: "#8F959E" }}>加载知识库配置中…</div>
       </Card>
     )
   }
 
   return (
-    <Card style={{ marginBottom: 20 }}>
+    <Card style={{ marginBottom: 20, border: '1px solid #EDEEEF' }}>
       <div style={{ display: "flex", gap: 12 }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 8,
+          width: 36, height: 36, borderRadius: 6,
           display: "flex", alignItems: "center", justifyContent: "center",
-          backgroundColor: "rgb(22 119 255 / 0.1)",
-          color: "rgb(22 119 255)",
-          border: "1px solid rgb(145 202 255)",
+          backgroundColor: "#F2F3F5",
+          color: "#1677ff",
           flexShrink: 0,
         }}>
-          <BookOpen className="w-4 h-4" />
+          <BookOpen size={16} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
             <Typography.Text strong>知识库全局配置</Typography.Text>
-            <Tag style={{ fontSize: 10, color: "rgb(22 119 255)", border: "1px solid rgb(145 202 255)", backgroundColor: "rgb(232 244 255)" }}>
+            <Tag color="blue" style={{ fontSize: 10 }}>
               所有魔数都可调
             </Tag>
             <div style={{ flex: 1 }} />
@@ -1379,11 +1373,11 @@ function KnowledgeConfigCard() {
             <Button size="small" onClick={handleReset} disabled={saving || !defaults}>
               恢复默认
             </Button>
-            <Button size="small" type="primary" onClick={handleSave} loading={saving} icon={!saving ? <Check className="w-3.5 h-3.5" /> : null}>
+            <Button size="small" type="primary" onClick={handleSave} loading={saving} icon={!saving ? <Check size={14} /> : null}>
               保存
             </Button>
           </div>
-          <p style={{ fontSize: 12, color: "rgb(113 113 122)", marginTop: 4, marginBottom: 12 }}>
+          <p style={{ fontSize: 12, color: "#8F959E", marginTop: 4, marginBottom: 12 }}>
             上传/分块/GLM-OCR/Rerank/检索/UI 行为全部可在此调整。改动立即对所有用户生效。
           </p>
 
@@ -1533,12 +1527,12 @@ function KnowledgeConfigCard() {
 function ConfigGroup({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
   return (
     <div style={{
-      border: "1px solid rgb(228 228 231)",
-      borderRadius: 8,
+      border: "1px solid #EDEEEF",
+      borderRadius: 6,
       padding: 12,
-      backgroundColor: "rgb(250 250 250)"
+      backgroundColor: "#F7F8FA"
     }}>
-      <div style={{ fontSize: 12, fontWeight: 500, color: "rgb(63 63 70)", marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "#646A73", marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
         {icon && <span>{icon}</span>}<span>{title}</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>{children}</div>
@@ -1551,7 +1545,7 @@ function FieldNumber({ label, value, onChange, min, max, step, suffix }: {
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ fontSize: 11, color: "rgb(113 113 122)" }}>{label}{suffix ? `(${suffix})` : ""}</span>
+      <span style={{ fontSize: 11, color: "#8F959E" }}>{label}{suffix ? `(${suffix})` : ""}</span>
       <InputNumber
         size="small"
         value={value}
@@ -1570,7 +1564,7 @@ function FieldNumberFloat({ label, value, onChange, min, max, step }: {
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ fontSize: 11, color: "rgb(113 113 122)" }}>{label}</span>
+      <span style={{ fontSize: 11, color: "#8F959E" }}>{label}</span>
       <InputNumber
         size="small"
         value={value}
@@ -1591,8 +1585,8 @@ function FieldSwitch({ label, hint, checked, onChange }: {
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <Switch size="small" checked={checked} onChange={onChange} />
       <div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "rgb(63 63 70)" }}>{label}</div>
-        {hint && <div style={{ fontSize: 10, color: "rgb(113 113 122)" }}>{hint}</div>}
+        <div style={{ fontSize: 12, fontWeight: 500, color: "#646A73" }}>{label}</div>
+        {hint && <div style={{ fontSize: 10, color: "#8F959E" }}>{hint}</div>}
       </div>
     </div>
   )
@@ -1608,7 +1602,7 @@ function FieldIntervals({ label, value, onChange }: {
   const text = (Array.isArray(value) ? value : []).join(", ")
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2, gridColumn: "1 / -1" }}>
-      <span style={{ fontSize: 11, color: "rgb(113 113 122)" }}>{label}</span>
+      <span style={{ fontSize: 11, color: "#8F959E" }}>{label}</span>
       <Input
         size="small"
         value={text}

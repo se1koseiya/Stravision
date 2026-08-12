@@ -1,13 +1,14 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import Image from "next/image"
-import { ArrowUpRight, Activity, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
+import { ArrowUpRight, Activity, ChevronDown, ChevronUp, ChevronRight, Loader2, AlertTriangle } from "lucide-react"
 import { FileTextOutlined, ArrowRightOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
-import { Bubble, Think, Sources } from "@ant-design/x"
+import { Bubble, Think, Sources, CodeHighlighter, Mermaid } from "@ant-design/x"
 import XMarkdown, { type ComponentProps } from "@ant-design/x-markdown"
-import { Card, Flex, Typography, Button } from "antd"
+import { Card, Flex, Typography, Button, Input } from "antd"
+import { cn } from "@/lib/utils"
 import { BerryXCard } from "@/components/ui/berry-xcard"
 import { buildCommands } from "@/lib/a2ui/berry-protocol"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
@@ -34,7 +35,11 @@ import { DeviceControlCard } from "@/components/ai/device-control-card"
 import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { CapabilitiesCard } from "@/components/ai/capabilities-card"
 import { VisionInspectionCard } from "@/components/ai/vision-inspection-card"
+import { DecisionCard, type DecisionData } from "@/components/ai/decision-card"
+import { ClarifyCard, type ClarifyData } from "@/components/ai/clarify-card"
+import { PlanApprovalCard, type PlanData } from "@/components/ai/plan-approval-card"
 import { RateLimitErrorCard } from "@/components/ai/rate-limit-error-card-editorial"
+import { CheckpointConfirm, parseCheckpointContent, stripCheckpointTags, tryParseJsonWithRepair, type CheckpointData } from "@/components/ai/checkpoint-confirm"
 
 const { Text } = Typography
 
@@ -139,7 +144,24 @@ export interface ChatMessageRendererProps {
   onExecuteCommand: (command: any) => Promise<void>
   onRetryCommand: (errorMsg: string) => void
   onSendMessage: (text: string) => void
+  /**
+   * 🔥 CHECKPOINT / CLARIFY 表单提交回调
+   * 走 /api/chat/respond 而非触发新对话（同一 SSE 连接内挂起 → 恢复）
+   * @param replyText 用户填表后的回复文本
+   * @param fallback 当后端没有挂起的 Agent Loop 时调用的兜底函数（通常是 onSendMessage）
+   */
+  onRespondToCheckpoint?: (replyText: string, fallback: (text: string) => void) => void
   onSetInput: (text: string) => void
+  /**
+   * 🔥 思考链（AgentThoughtChain）中已经包含"思考"块时，跳过独立的 DeepThinking
+   * 避免 reasoning 内容在两处重复展示
+   */
+  hasThinkingInChain?: boolean
+  /**
+   * 🔥 页面级任务规划器接管时，跳过消息内嵌的 DynamicTaskPlanner
+   * 避免同一 TASK_LIST 在消息气泡内和气泡外重复渲染
+   */
+  suppressTaskPlanner?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +190,7 @@ const ThinkComponent = React.memo((props: ComponentProps) => {
 ThinkComponent.displayName = "ThinkComponent"
 
 // ---------------------------------------------------------------------------
-// CollapsibleCodeBlock — 长代码块自动折叠（流式结束后折叠，点击展开/收起）
+// EnhancedCodeBlock — 代码块增强：CodeHighlighter 语法高亮 + Mermaid 图表 + 折叠
 // ---------------------------------------------------------------------------
 
 const CODE_COLLAPSE_LINES = 15
@@ -187,33 +209,55 @@ function getNodeText(node: React.ReactNode): string {
   return ""
 }
 
-const CollapsibleCodeBlock = React.memo((props: ComponentProps) => {
-  const { children, streamStatus, className, style, domNode, ...rest } = props
+const EnhancedCodeBlock = React.memo((props: ComponentProps) => {
+  const { children, streamStatus, lang } = props
   const [expanded, setExpanded] = React.useState(false)
 
-  const text = React.useMemo(() => getNodeText(children), [children])
+  const codeText = React.useMemo(() => getNodeText(children), [children])
   const lineCount = React.useMemo(
-    () => text.split("\n").filter((l) => l.trim()).length,
-    [text]
+    () => codeText.split("\n").filter((l) => l.trim()).length,
+    [codeText]
   )
-  const isLong = lineCount > CODE_COLLAPSE_LINES || text.length > CODE_COLLAPSE_CHARS
+  const isLong = lineCount > CODE_COLLAPSE_LINES || codeText.length > CODE_COLLAPSE_CHARS
+  const isStreaming = streamStatus === "loading"
   // 流式输出时保持展开；输出完成且内容较长时折叠
-  const collapsed = !expanded && streamStatus === "done" && isLong
+  const collapsed = !expanded && !isStreaming && isLong
+  const isMermaid = lang === "mermaid"
 
+  // Mermaid 图表：流式完成后渲染图表，流式中显示原始代码
+  if (isMermaid && !isStreaming && codeText.trim()) {
+    return (
+      <div className="my-3">
+        <Mermaid
+          actions={{ enableZoom: true, enableDownload: true, enableCopy: true }}
+        >
+          {codeText}
+        </Mermaid>
+      </div>
+    )
+  }
+
+  // 普通代码块：使用 CodeHighlighter 语法高亮
   return (
     <div className="relative my-3">
-      <pre
-        className={className}
+      <div
         style={{
-          ...(style as React.CSSProperties),
           maxHeight: collapsed ? CODE_COLLAPSED_MAX_HEIGHT : undefined,
           overflow: collapsed ? "hidden" : undefined,
           transition: "max-height .3s ease",
+          borderRadius: 8,
         }}
-        {...rest}
       >
-        {children}
-      </pre>
+        <CodeHighlighter
+          lang={lang || "plaintext"}
+          prismLightMode
+          styles={{
+            root: { borderRadius: 8, fontSize: 13 },
+          }}
+        >
+          {codeText}
+        </CodeHighlighter>
+      </div>
       {collapsed && (
         <>
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 rounded-b-lg bg-gradient-to-t from-white via-white/85 to-transparent dark:from-zinc-900 dark:via-zinc-900/85" />
@@ -221,27 +265,30 @@ const CollapsibleCodeBlock = React.memo((props: ComponentProps) => {
             type="button"
             onClick={() => setExpanded(true)}
             className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md hover:scale-105 transition-transform"
+            style={{ fontWeight: 400 }}
           >
-            <ChevronDown size={12} /> 展开代码 · {lineCount} 行
+            <ChevronDown size={12} strokeWidth={1.75} /> 展开代码 · {lineCount} 行
           </button>
         </>
       )}
-      {expanded && isLong && (
+      {expanded && isLong && !isStreaming && (
         <button
           type="button"
           onClick={() => setExpanded(false)}
           className="mt-2 flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+          style={{ fontWeight: 400 }}
         >
-          <ChevronUp size={12} /> 收起
+          <ChevronUp size={12} strokeWidth={1.75} /> 收起
         </button>
       )}
     </div>
   )
 })
-CollapsibleCodeBlock.displayName = "CollapsibleCodeBlock"
+EnhancedCodeBlock.displayName = "EnhancedCodeBlock"
 
 // ---------------------------------------------------------------------------
 // DeepThinking — 渲染 msg.reasoning 字段（DeepSeek-R1 等思考模型的推理过程）
+// 极简：单行折叠条 + 纯文本，与 AgentThoughtChain 风格一致
 // ---------------------------------------------------------------------------
 
 function DeepThinking({
@@ -259,38 +306,56 @@ function DeepThinking({
     else setExpanded(false)
   }, [isStreaming])
 
+  // 稳定 streaming 对象引用，避免 XMarkdown 因 prop 引用变化触发无限渲染
+  // 保留动画 + 节流（同 MarkdownPart 策略），避免 useStreaming/AnimationText 死循环
+  const streaming = React.useMemo(
+    () => ({
+      hasNextChunk: isStreaming ?? false,
+      enableAnimation: true,
+      animationConfig: { fadeDuration: 200, easing: "ease-in-out" },
+      tail: isStreaming ? { component: StreamingTail } : false,
+    }),
+    [isStreaming]
+  )
+
+  // 流式节流：同 MarkdownPart，防止高频 chunk 触发 Maximum update depth
+  const throttledText = useThrottledContent(reasoning?.text ?? "", isStreaming ?? false)
+
   if (!reasoning?.text) return null
 
   const isDone = !isStreaming && reasoning.text.length > 0
-  const title = isDone ? '深度思考完成' : '深度思考中...'
   const duration = reasoning.durationMs ? `${(reasoning.durationMs / 1000).toFixed(1)}s` : null
 
   return (
-    <div className="mb-3">
-      <Think
-        title={title}
-        loading={!isDone}
-        expanded={expanded}
+    <div className="mb-2">
+      <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-      >
-        {/* 推理内容用 XMarkdown 渲染，支持流式动画 */}
-        <XMarkdown
-          paragraphTag="div"
-          streaming={{
-            hasNextChunk: isStreaming ?? false,
-            enableAnimation: true,
-            tail: { content: '▋' },
-          }}
-          styles={{ body: { fontSize: 13, lineHeight: 1.7, color: 'var(--ant-color-text-secondary)' } }}
-        >
-          {reasoning.text}
-        </XMarkdown>
-        {duration && isDone && (
-          <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1">
-            思考耗时 <span className="font-mono font-medium">{duration}</span>
-          </div>
+        className={cn(
+          "inline-flex items-center gap-1 text-[12px] px-0.5 rounded transition-colors",
+          isStreaming ? "text-[#1677ff]" : "text-zinc-500 hover:text-zinc-700"
         )}
-      </Think>
+        style={{ fontWeight: 400 }}
+      >
+        <ChevronRight
+          size={12}
+          className={cn("transition-transform", expanded && "rotate-90")}
+        />
+        <span>深度思考</span>
+        {duration && isDone && <span className="text-zinc-400">· {duration}</span>}
+        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
+      </button>
+      {expanded && (
+        <div className="mt-1.5 pl-0.5">
+          <XMarkdown
+            paragraphTag="div"
+            streaming={streaming}
+            styles={{ body: { fontSize: 12.5, lineHeight: 1.6, color: '#8c8c8c' } }}
+          >
+            {throttledText}
+          </XMarkdown>
+        </div>
+      )}
     </div>
   )
 }
@@ -477,10 +542,134 @@ function extractBalanced(
 }
 
 // ---------------------------------------------------------------------------
-// MarkdownPart — 稳定包装 XMarkdown，避免 components / streaming prop 引用变化触发无限渲染
+// 流式渲染骨架组件 — 不完整 Markdown 语法的占位（link / image / table / inline-code）
 // ---------------------------------------------------------------------------
 
-const MarkdownComponents = { think: ThinkComponent, pre: CollapsibleCodeBlock }
+const SkeletonBase: React.FC<{ width?: string; height?: number }> = ({ width = "100%", height = 14 }) => (
+  <span
+    className="inline-block rounded animate-pulse bg-zinc-200 dark:bg-zinc-700"
+    style={{ width, height, verticalAlign: "middle" }}
+  />
+)
+
+const IncompleteLink: React.FC = () => (
+  <span className="inline-flex items-center gap-1 text-[#1677ff] opacity-50">
+    <SkeletonBase width="80px" height={12} />
+  </span>
+)
+
+const IncompleteImage: React.FC = () => (
+  <span className="inline-flex items-center justify-center rounded border border-dashed border-zinc-300 dark:border-zinc-600 px-3 py-2 text-[11px] text-zinc-400">
+    <SkeletonBase width="120px" height={40} />
+  </span>
+)
+
+const IncompleteTable: React.FC = () => (
+  <span className="inline-block rounded border border-zinc-200 dark:border-zinc-700 px-2 py-1">
+    <SkeletonBase width="160px" height={12} />
+  </span>
+)
+
+const IncompleteInlineCode: React.FC = () => (
+  <span className="inline-block rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5">
+    <SkeletonBase width="60px" height={12} />
+  </span>
+)
+
+// ---------------------------------------------------------------------------
+// 流式尾部指示器 — 延迟显示的闪烁光标
+// ---------------------------------------------------------------------------
+
+const StreamingTail: React.FC<{ content?: string }> = ({ content = "▋" }) => {
+  const [visible, setVisible] = React.useState(false)
+  React.useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 500)
+    return () => clearTimeout(timer)
+  }, [])
+  if (!visible) return null
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        animation: "blink 1s steps(2, start) infinite",
+        color: "#1677ff",
+        fontWeight: 400,
+      }}
+    >
+      {content}
+    </span>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// MarkdownPart — 稳定包装 XMarkdown，避免 components / streaming prop 引用变化触发无限渲染
+// 流式渲染：开启动画 + 骨架占位 + 尾部光标
+// ---------------------------------------------------------------------------
+
+const MarkdownComponents: Record<string, React.ComponentType<ComponentProps>> = {
+  think: ThinkComponent,
+  pre: EnhancedCodeBlock,
+  // 骨架占位组件
+  "incomplete-link": IncompleteLink as React.ComponentType<ComponentProps>,
+  "incomplete-image": IncompleteImage as React.ComponentType<ComponentProps>,
+  "incomplete-table": IncompleteTable as React.ComponentType<ComponentProps>,
+  "incomplete-inline-code": IncompleteInlineCode as React.ComponentType<ComponentProps>,
+}
+
+// 流式节流间隔（ms）：SSE chunk 高频到达时，限制传给 XMarkdown 的更新频率，
+// 避免 useStreaming 的 setStreamingOutput 与 AnimationText 的 setChunks 在同一 tick 内相互级联，
+// 触发 Maximum update depth exceeded。80ms ≈ 12.5fps，肉眼流畅且不堆积渲染。
+const STREAM_THROTTLE_MS = 80
+
+// 节流 hook：流式时按时间窗口节流 content；非流式时立即同步。
+// 关键：最后一个 chunk 总会被 flush（setTimeout 兜底），不会丢内容。
+function useThrottledContent(content: string, isStreaming: boolean) {
+  const [throttled, setThrottled] = React.useState(content)
+  const lastFlushRef = React.useRef(0)
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestContentRef = React.useRef(content)
+
+  React.useEffect(() => {
+    latestContentRef.current = content
+
+    // 非流式：立即同步，保证最终内容完整
+    if (!isStreaming) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+      setThrottled(content)
+      return
+    }
+
+    // 流式：节流
+    const now = Date.now()
+    const elapsed = now - lastFlushRef.current
+
+    if (elapsed >= STREAM_THROTTLE_MS) {
+      lastFlushRef.current = now
+      setThrottled(content)
+    } else if (!timerRef.current) {
+      const remaining = STREAM_THROTTLE_MS - elapsed
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        lastFlushRef.current = Date.now()
+        setThrottled(latestContentRef.current)
+      }, remaining)
+    }
+  }, [content, isStreaming])
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [])
+
+  return throttled
+}
 
 const MarkdownPart = React.memo(function MarkdownPart({
   content,
@@ -489,21 +678,35 @@ const MarkdownPart = React.memo(function MarkdownPart({
   content: string
   isStreaming: boolean
 }) {
+  // 流式节流：高频 chunk 到达时，限制 XMarkdown 重渲染频率，
+  // 避免 useStreaming.setStreamingOutput 与 AnimationText.setChunks 级联触发 Maximum update depth。
+  const throttledContent = useThrottledContent(content, isStreaming)
+
   // 用 useMemo 稳定 streaming 对象引用，避免 XMarkdown 因 prop 引用变化触发无限渲染
   const streaming = React.useMemo(
     () => ({
       hasNextChunk: isStreaming,
-      enableAnimation: false, // 🔥 关闭动画，避免 XMarkdown 内部循环触发 setState 导致 Maximum update depth
-      tail: { content: '▋' as const },
+      // 保留块级元素淡入动画（文字逐块浮现效果）
+      // 节流保证了 chunk 不会高频到达，因此 AnimationText 的 setChunks 不会级联超限
+      enableAnimation: true,
+      animationConfig: {
+        fadeDuration: 200,
+        easing: "ease-in-out",
+      },
+      // 尾部光标：流式输出时显示蓝色闪烁光标
+      tail: isStreaming
+        ? { component: StreamingTail }
+        : false,
+      // 不完整语法占位映射
+      incompleteMarkdownComponentMap: {
+        link: "incomplete-link",
+        image: "incomplete-image",
+        table: "incomplete-table",
+        "inline-code": "incomplete-inline-code",
+      },
     }),
     [isStreaming]
   )
-
-  // 🔥 关键修复：流式过程中如果内容以未闭合的 fence 结尾（```json 但没看到 ```），
-  // 暂时不要传 content 给 XMarkdown，否则 markdown 解析器会因不闭合而内部重试
-  const safeContent = isStreaming && /```(?:json|html)?\s*[\s\S]*$/.test(content) && !/```\s*$/.test(content)
-    ? content + "\n```"
-    : content
 
   return (
     <XMarkdown
@@ -511,14 +714,14 @@ const MarkdownPart = React.memo(function MarkdownPart({
       paragraphTag="div"
       streaming={streaming}
     >
-      {safeContent}
+      {throttledContent}
     </XMarkdown>
   )
 })
 MarkdownPart.displayName = "MarkdownPart"
 
 const TAG_REGEX =
-  /(<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*$|<\s*CHART\s+type="echarts"[^>]*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"[^>]*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g
+  /(<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*$|<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|<\s*CLARIFY\s*>[\s\S]*?(?:<\/\s*CLARIFY\s*>|$)|<\s*DECISION\s*>[\s\S]*?(?:<\/\s*DECISION\s*>|$)|<\s*PLAN\s*>[\s\S]*?(?:<\/\s*PLAN\s*>|$)|<\s*VISION_INSPECTION\s*\/?>|<\s*VISION_INSPECTION\s*>[\s\S]*?(?:<\/\s*VISION_INSPECTION\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g
 
 // ---------------------------------------------------------------------------
 // renderTaggedContent — handles special XML tags, delegates markdown to XMarkdown
@@ -799,8 +1002,20 @@ function renderTaggedContent(
     onExecuteCommand,
     onRetryCommand,
     onSendMessage,
+    onRespondToCheckpoint,
     onSetInput,
   } = props
+
+  // 🔥 CHECKPOINT/CLARIFY 表单提交的统一入口
+  // 优先走 onRespondToCheckpoint（同一 SSE 连接挂起→恢复），
+  // 若未提供则降级为 onSendMessage（触发新对话）
+  const handleCheckpointRespond = (replyText: string) => {
+    if (onRespondToCheckpoint) {
+      onRespondToCheckpoint(replyText, onSendMessage)
+    } else {
+      onSendMessage(replyText)
+    }
+  }
 
   const parts = content.split(TAG_REGEX)
 
@@ -811,6 +1026,7 @@ function renderTaggedContent(
   return (
     <>
       {parts.map((part, index) => {
+        if (!part) return null
         // JSON code blocks (IoT commands & schedule_task & automation strategy)
         if (part.startsWith("```json")) {
           try {
@@ -944,6 +1160,124 @@ function renderTaggedContent(
             </div>
           )
 
+        // CLARIFY — 主动澄清卡片
+        if (part.match(/^<\s*CLARIFY/)) {
+          const jsonText = part
+            .replace(/^<\s*CLARIFY\s*>/, "")
+            .replace(/<\/\s*CLARIFY\s*>/, "")
+            .trim()
+          const clarifyData = tryParseJsonWithRepair<ClarifyData>(jsonText)
+          if (clarifyData) {
+            return (
+              <div key={index} className="my-3">
+                <ClarifyCard
+                  data={clarifyData}
+                  onReply={(reply) => {
+                    const replyText = `【澄清回复】${reply}`
+                    handleCheckpointRespond(replyText)
+                  }}
+                />
+              </div>
+            )
+          }
+          // 流式中 JSON 不完整：显示稳定的占位符，避免卡片闪烁
+          if (props.isStreaming) {
+            return (
+              <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <span className="text-[13px] text-gray-500">正在生成澄清表单…</span>
+                </div>
+              </div>
+            )
+          }
+          // 流式结束仍解析失败：page.tsx 会自动打回给 AI 重新生成（最多 2 次）
+          // 此处仅作为重试耗尽后的兜底提示
+          return (
+            <div key={index} className="my-4 rounded-lg border border-[#fa8c1630] bg-[#fffbe6] p-3 text-[12px] text-[#8c8c8c]">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={13} className="text-[#fa8c16] shrink-0" />
+                <span>澄清表单解析失败，请重新提问以生成表单。</span>
+              </div>
+            </div>
+          )
+        }
+
+        // DECISION — 可解释 AI 决策卡片
+        if (part.match(/^<\s*DECISION/)) {
+          const jsonText = part
+            .replace(/^<\s*DECISION\s*>/, "")
+            .replace(/<\/\s*DECISION\s*>/, "")
+            .trim()
+          const decisionData = tryParseJsonWithRepair<DecisionData>(jsonText)
+          if (decisionData) {
+            return (
+              <div key={index} className="my-3">
+                <DecisionCard data={decisionData} />
+              </div>
+            )
+          }
+          if (props.isStreaming) {
+            return (
+              <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <span className="text-[13px] text-gray-500">正在生成决策卡片…</span>
+                </div>
+              </div>
+            )
+          }
+          return null
+        }
+
+        // PLAN — 计划审批卡片
+        if (part.match(/^<\s*PLAN/)) {
+          const jsonText = part
+            .replace(/^<\s*PLAN\s*>/, "")
+            .replace(/<\/\s*PLAN\s*>/, "")
+            .trim()
+          const planData = tryParseJsonWithRepair<PlanData>(jsonText)
+          if (planData) {
+            return (
+              <div key={index} className="my-3">
+                <PlanApprovalCard
+                  data={planData}
+                  onApprove={(modifiedPlan) => {
+                    // 若用户编辑过计划，把修改后的步骤明细传给 AI，确保 AI 按修改后的计划执行
+                    const stepsText = (modifiedPlan.steps || [])
+                      .map((s, i) => `${i + 1}. ${s.content}${s.tool ? `（工具：${s.tool}）` : ""}`)
+                      .join("\n")
+                    onSendMessage(`【计划批准】${modifiedPlan.title || "执行计划"}\n\n计划摘要：${modifiedPlan.summary || "（无）"}\n\n执行步骤：\n${stepsText}\n\n请按以上步骤逐步执行。${modifiedPlan.title !== planData.title || modifiedPlan.summary !== planData.summary || JSON.stringify(modifiedPlan.steps) !== JSON.stringify(planData.steps) ? "\n\n注意：用户已对计划进行修改，请严格按照修改后的步骤执行。" : ""}`)
+                  }}
+                  onReject={() => {
+                    onSendMessage(`【计划拒绝】${planData.title || "执行计划"}\n请停止当前任务，不要执行。`)
+                  }}
+                />
+              </div>
+            )
+          }
+          // 流式中 JSON 不完整：显示稳定的占位符，避免卡片闪烁
+          if (props.isStreaming) {
+            return (
+              <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <span className="text-[13px] text-gray-500">正在生成执行计划…</span>
+                </div>
+              </div>
+            )
+          }
+          // 流式结束仍解析失败：降级提示
+          return (
+            <div key={index} className="my-4 rounded-lg border border-[#fa8c1630] bg-[#fffbe6] p-3 text-[12px] text-[#8c8c8c]">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={13} className="text-[#fa8c16] shrink-0" />
+                <span>执行计划解析失败，请重新提问以生成计划。</span>
+              </div>
+            </div>
+          )
+        }
+
         // VISION_INSPECTION
         if (part.match(/^<\s*VISION_INSPECTION/))
           return (
@@ -1009,6 +1343,89 @@ function renderTaggedContent(
         // SCHEDULED_TASKS
         if (part.match(/^<\s*SCHEDULED_TASKS/))
           return <div key={index} className="my-4"><ScheduledTasksList /></div>
+
+        // CHECKPOINT - 检查点确认组件
+        if (part.match(/^<\s*CHECKPOINT/)) {
+          const cpData = parseCheckpointContent(part)
+          if (!cpData) {
+            // 流式中 JSON 不完整：显示稳定的占位符，避免每个 chunk 解析时成时败导致卡片闪烁
+            if (props.isStreaming) {
+              return (
+                <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                    <span className="text-[13px] text-gray-500">正在生成确认表单…</span>
+                  </div>
+                </div>
+              )
+            }
+            // 流式结束仍解析失败：降级为可读提示，避免卡片彻底消失
+            return (
+              <div key={index} className="my-4 rounded-lg border border-[#fa8c1630] bg-[#fffbe6] p-3 text-[12px] text-[#8c8c8c]">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={13} className="text-[#fa8c16] shrink-0" />
+                  <span>确认表单解析失败，请重新提问以生成表单。</span>
+                </div>
+              </div>
+            )
+          }
+          // 决策记录：用户选择后，把选项作为新消息发给 AI 继续执行
+          return (
+            <div key={index} className="my-4">
+              <CheckpointConfirm
+                data={cpData}
+                onChoose={(optionId, optionLabel, data, formData) => {
+                  // 记录用户决策（审计日志）到 localStorage
+                  try {
+                    const logEntry = {
+                      checkpoint_id: data.id,
+                      type: data.type,
+                      title: data.title,
+                      chosen_option_id: optionId,
+                      chosen_option_label: optionLabel,
+                      timestamp: new Date().toISOString(),
+                      task_list_ref: data.task_list_ref,
+                      form_data: formData,
+                    }
+                    const existing = JSON.parse(localStorage.getItem('checkpoint_decisions_log') || '[]')
+                    existing.push(logEntry)
+                    localStorage.setItem('checkpoint_decisions_log', JSON.stringify(existing.slice(-100))) // 保留最近 100 条
+                  } catch {}
+
+                  // 根据用户选择构造回复消息
+                  let replyText = ""
+                  if (optionId === "CANCEL") {
+                    replyText = `【检查点确认】我选择取消操作：${data.title}\n请停止当前任务，不要执行。`
+                  } else if (formData && Object.keys(formData).length > 0) {
+                    // 有表单数据，构造结构化参数回复（避免用户打字）
+                    const paramLines = Object.entries(formData)
+                      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+                      .map(([k, v]) => {
+                        const field = data.param_fields?.find((f) => f.key === k)
+                        const label = field?.label || k
+                        const unit = field?.unit || ""
+                        let valStr = String(v)
+                        if (field?.type === "switch") valStr = v ? "是" : "否"
+                        return `- ${label}: ${valStr}${unit ? " " + unit : ""}`
+                      })
+                    if (paramLines.length > 0) {
+                      replyText = `【检查点确认】已填写参数：${data.title}\n${paramLines.join("\n")}\n请按这些参数继续执行。`
+                    } else {
+                      replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
+                    }
+                  } else if (optionId === "PROVIDE_INFO") {
+                    replyText = `【检查点确认】我选择提供信息后执行：${data.title}\n请告诉我需要提供哪些具体参数。`
+                  } else if (optionId === "USE_DEFAULT") {
+                    replyText = `【检查点确认】我选择使用默认值继续：${data.title}\n请根据当前环境数据推断合理参数并继续执行。`
+                  } else {
+                    replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
+                  }
+                  handleCheckpointRespond(replyText)
+                }}
+              />
+            </div>
+          )
+        }
 
         // CONTROL_BENTO
         if (part.match(/^<\s*CONTROL_BENTO/))
@@ -1160,12 +1577,10 @@ function renderTaggedContent(
         // CHART
         if (part.match(/^<\s*CHART/)) {
           try {
-            const isVega = part.includes('type="vega-lite"')
-            const tagRx = isVega ? /<\s*CHART\s+type="vega-lite"\s*>/ : /<\s*CHART\s+type="echarts"\s*>/
-            const jsonStr = part.replace(tagRx, "").replace(/<\/\s*CHART\s*>/, "").trim()
+            const jsonStr = part.replace(/<\s*CHART(\s+type="[^"]*")?\s*>/, "").replace(/<\/\s*CHART\s*>/, "").trim()
             return (
               <div key={index} className="my-3 w-full min-w-[300px] md:min-w-[600px] h-[320px] rounded-lg overflow-hidden bg-white border border-gray-100">
-                <ChartRenderer options={JSON.parse(jsonStr)} type={isVega ? "vega-lite" : "echarts"} style={{ height: "100%", width: "100%" }} />
+                <ChartRenderer options={JSON.parse(jsonStr)} style={{ height: "100%", width: "100%" }} />
               </div>
             )
           } catch (e) {
@@ -1194,7 +1609,7 @@ function renderTaggedContent(
 // ---------------------------------------------------------------------------
 
 function ChatMessageRendererBase(props: ChatMessageRendererProps) {
-  const { msg, onOpenStudio, onOpenStudioFromTask } = props
+  const { msg, onOpenStudio, onOpenStudioFromTask, suppressTaskPlanner } = props
 
   // 429 速率限制：直接渲染业务卡片（RateLimitErrorCard），不再走 markdown 流程
   if (msg.errorType === "rate_limit") {
@@ -1300,8 +1715,8 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
   if (Array.isArray(content)) {
     return (
       <div className="space-y-2">
-        {/* 深度思考内容（DeepSeek-R1 等推理模型） */}
-        {props.enableReasoning !== false && (
+        {/* 深度思考内容（DeepSeek-R1 等推理模型）— 当思考链已包含时跳过，避免重复 */}
+        {props.enableReasoning !== false && !props.hasThinkingInChain && (
           <DeepThinking reasoning={msg.reasoning} isStreaming={props.isStreaming} />
         )}
         {content.map((part, i) => (
@@ -1314,7 +1729,7 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
             {part.type === "text" && part.text && renderTaggedContent(part.text, msg, props)}
           </div>
         ))}
-        {taskContent && (
+        {taskContent && !suppressTaskPlanner && (
           <DynamicTaskPlanner content={taskContent} onOpenStudio={onOpenStudioFromTask} />
         )}
         <SourcesFooter citations={mergedCitations} />
@@ -1324,23 +1739,170 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
 
   const fullText = typeof content === "string" ? content : ""
 
+  // 🔥 兜底 #1 前置：把 fullText 中可能存在的"裸 checkpoint JSON"剔除，
+  // 避免和下面渲染的 CheckpointConfirm 组件重复展示。
+  // 裸 checkpoint JSON 剥离：流式和非流式均尝试
+  // - 非流式：完整 JSON 可平衡匹配时剥离，由下方 BareCheckpointEmbed 渲染卡片
+  // - 流式：完整 JSON 可平衡匹配时剥离，避免 JSON 裸露；不完整时不剥离（等待后续 chunk）
+  let textForMarkdown = fullText
+  if (
+    typeof fullText === "string" &&
+    !fullText.includes("<CHECKPOINT>") &&
+    /"\s*id"\s*:\s*"(cp[_\-.]|checkpoint[_\-.])/.test(fullText)
+  ) {
+    const startIdx = fullText.search(/\{\s*"\s*id"\s*:\s*"(cp[_\-.]|checkpoint[_\-.])/)
+    if (startIdx >= 0) {
+      let depth = 0
+      let endIdx = -1
+      let inString = false
+      let escape = false
+      for (let i = startIdx; i < fullText.length; i++) {
+        const ch = fullText[i]
+        if (escape) { escape = false; continue }
+        if (ch === "\\") { escape = true; continue }
+        if (ch === '"') { inString = !inString; continue }
+        if (inString) continue
+        if (ch === "{") depth++
+        else if (ch === "}") {
+          depth--
+          if (depth === 0) { endIdx = i + 1; break }
+        }
+      }
+      // 仅在 JSON 完整闭合时剥离（流式中未闭合则保留原文本，等下个 chunk）
+      if (endIdx > 0) {
+        textForMarkdown =
+          fullText.slice(0, startIdx).trimEnd() +
+          "\n\n" +
+          fullText.slice(endIdx).trimStart()
+      }
+    }
+  }
+
   return (
     <>
-      {/* 深度思考内容（DeepSeek-R1 等推理模型） */}
-      {props.enableReasoning !== false && (
+      {/* 深度思考内容（DeepSeek-R1 等推理模型）— 当思考链已包含时跳过，避免重复 */}
+      {props.enableReasoning !== false && !props.hasThinkingInChain && (
         <DeepThinking reasoning={msg.reasoning} isStreaming={props.isStreaming} />
       )}
       {/* 流式输出等待首chunk时：显示打字光标动画，避免白屏 */}
       {(typeof fullText === "string" && !fullText.trim() && props.isStreaming) ? (
         <span className="inline-block w-1.5 h-4 bg-emerald-500/70 animate-pulse rounded-sm ml-0.5" />
       ) : (
-        renderTaggedContent(fullText, msg, props)
+        // 🔥 优先使用 textForMarkdown（裸 checkpoint JSON 已被剔除）
+        renderTaggedContent(textForMarkdown, msg, props)
       )}
-      {taskContent && (
+      {/* 🔥 兜底 #1：从 fullText 中提取 checkpoint JSON（裸 JSON 形式）
+          流式和非流式均尝试：JSON 完整可解析时渲染 CheckpointConfirm 卡片
+          （textForMarkdown 已剥离该 JSON，避免重复展示） */}
+      {typeof fullText === "string"
+        && !fullText.includes("<CHECKPOINT>")
+        && msg.role === "assistant"
+        && (() => {
+          const cpData = parseCheckpointContent(fullText)
+          if (!cpData || !cpData.id || !cpData.type) return null
+          return (
+            <BareCheckpointEmbed
+              data={cpData}
+              onChoose={(optionId, optionLabel, d, formData) => {
+                let replyText = ""
+                if (optionId === "CANCEL") {
+                  replyText = `【检查点确认】我选择取消操作：${d.title}\n请停止当前任务，不要执行。`
+                } else if (formData && Object.keys(formData).length > 0) {
+                  const paramLines = Object.entries(formData)
+                    .filter(([, v]) => v !== undefined && v !== null && v !== "")
+                    .map(([k, v]) => {
+                      const field = d.param_fields?.find((f) => f.key === k)
+                      const label = field?.label || k
+                      const unit = field?.unit || ""
+                      let valStr = String(v)
+                      if (field?.type === "switch") valStr = v ? "是" : "否"
+                      return `- ${label}: ${valStr}${unit ? " " + unit : ""}`
+                    })
+                  if (paramLines.length > 0) {
+                    replyText = `【检查点确认】已填写参数：${d.title}\n${paramLines.join("\n")}\n请按这些参数继续执行。`
+                  } else {
+                    replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
+                  }
+                } else {
+                  replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
+                }
+                handleCheckpointRespond(replyText)
+              }}
+            />
+          )
+        })()
+      }
+      {/* 🔥 兜底 #2：纯文字询问（非 checkpoint JSON）— 自动追加补充信息表单 */}
+      {!props.isStreaming
+        && typeof fullText === "string"
+        && /我需要您协助|我需要更多信息|请您(?:尽可能详细地)?描述|请告诉我|请告诉我大棚|请提供以下信息|需要您协助提供/.test(fullText)
+        && !fullText.includes("<CHECKPOINT>")
+        && !fullText.includes('"id":"cp_')
+        && msg.role === "assistant"
+        && (
+          <FallbackInfoCheckpoint
+            onProvide={(text) => onSendMessage(text)}
+            onSkip={() => onSendMessage("【跳过】我没有额外信息，请基于现有数据继续。")}
+          />
+        )
+      }
+      {taskContent && !suppressTaskPlanner && (
         <DynamicTaskPlanner content={taskContent} onOpenStudio={onOpenStudioFromTask} />
       )}
       <SourcesFooter citations={mergedCitations} />
     </>
+  )
+}
+
+// 🔥 兜底组件：嵌入裸 checkpoint JSON 的 CheckpointConfirm
+function BareCheckpointEmbed({
+  data,
+  onChoose,
+}: {
+  data: CheckpointData
+  onChoose: (optionId: string, optionLabel: string, data: CheckpointData, formData?: Record<string, string | number | boolean>) => void
+}) {
+  return <CheckpointConfirm data={data} onChoose={onChoose} />
+}
+
+// 🔥 兜底 checkpoint 组件：AI 没用 <CHECKPOINT> 标签但语义上在询问时使用
+function FallbackInfoCheckpoint({
+  onProvide,
+  onSkip,
+}: {
+  onProvide: (text: string) => void
+  onSkip: () => void
+}) {
+  const [text, setText] = useState("")
+  return (
+    <div className="my-3 rounded-lg border border-[#d9d9d9] bg-white px-3.5 py-3 space-y-2.5">
+      <div className="flex items-center gap-1.5 text-[12.5px] text-[#262626]" style={{ fontWeight: 500 }}>
+        <AlertTriangle size={13} className="text-[#fa8c16]" />
+        <span>信息采集 · 文本补充</span>
+      </div>
+      <div className="text-[12px] text-[#8c8c8c]" style={{ fontWeight: 400 }}>
+        AI 没有输出标准表单（CHECKPOINT 标签）。你可以直接补充信息，或跳过让 AI 继续：
+      </div>
+      <Input.TextArea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="例如：叶面有白粉，受害比例约 30%，近期使用过多菌灵"
+        autoSize={{ minRows: 2, maxRows: 5 }}
+        maxLength={500}
+        showCount
+      />
+      <div className="flex items-center gap-2 justify-end">
+        <Button size="small" onClick={onSkip}>跳过</Button>
+        <Button
+          size="small"
+          type="primary"
+          disabled={!text.trim()}
+          onClick={() => onProvide(`【补充信息】${text.trim()}`)}
+        >
+          提交
+        </Button>
+      </div>
+    </div>
   )
 }
 

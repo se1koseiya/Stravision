@@ -390,7 +390,7 @@ export default function MonitorIOSPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'DingTalkJinBuTi, system-ui, -apple-system, sans-serif' }}>{user?.username ? `${user.username}的大棚` : '我的大棚'}</h1>
+                <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'var(--font-jinbuti)' }}>{user?.username ? `${user.username}的大棚` : '我的大棚'}</h1>
                 <div className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                   <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
                   <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">

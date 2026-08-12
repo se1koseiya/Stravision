@@ -67,7 +67,7 @@ export function TopBanner({
 
          {/* Tasks Button */}
          <Button className={cn(
-           "rounded-full bg-orange-500 hover:bg-orange-600 text-white border-0 px-6 font-medium shadow-md shadow-orange-500/20 group hidden md:flex",
+           "rounded-full bg-[#1677ff] hover:bg-[#4096ff] text-white border-0 px-6 font-normal shadow-md shadow-[#1677ff]/20 group hidden md:flex",
            isElderFriendlyMode ? "h-14 text-lg" : "h-12"
          )}>
             查看任务
@@ -86,7 +86,7 @@ export function TopBanner({
               "text-slate-600 dark:text-slate-300",
               isElderFriendlyMode ? "w-6 h-6" : "w-5 h-5"
             )} />
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white dark:border-slate-900" />
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#1677ff] rounded-full border-2 border-white dark:border-slate-900" />
          </div>
       </div>
 

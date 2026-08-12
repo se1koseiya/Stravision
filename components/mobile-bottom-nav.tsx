@@ -64,7 +64,7 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
                       {isActive && (
                         <motion.div
                           layoutId="activeTabBackground"
-                          className="absolute inset-0 bg-slate-900 dark:bg-white pointer-events-none"
+                          className="absolute inset-0 bg-[#1677ff] pointer-events-none"
                           initial={false}
                           transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         />
@@ -75,12 +75,12 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
                           layout
                           className={cn(
                              "flex items-center justify-center",
-                             isActive ? "text-white dark:text-slate-900" : "text-slate-500 dark:text-slate-400"
+                             isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
                           )}
                         >
-                          <Icon className={cn("size-6 transition-transform duration-300", isActive && "scale-105")} />
+                          <Icon className={cn("size-5 transition-transform duration-300", isActive && "scale-105")} />
                         </motion.div>
-                        
+
                         <AnimatePresence mode="popLayout">
                           {isActive && (
                             <motion.span
@@ -88,7 +88,7 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
                               animate={{ opacity: 1, width: "auto", x: 0 }}
                               exit={{ opacity: 0, width: 0, x: -10 }}
                               transition={{ duration: 0.2, delay: 0.1 }}
-                              className="text-sm font-bold text-white dark:text-slate-900 whitespace-nowrap overflow-hidden"
+                              className="text-sm font-bold text-white whitespace-nowrap overflow-hidden"
                             >
                               {item.label}
                             </motion.span>

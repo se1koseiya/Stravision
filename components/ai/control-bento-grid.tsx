@@ -10,6 +10,7 @@ import { Loader2, Droplets, Fan, Zap, Lightbulb } from "lucide-react"
 import { BerryXCard } from "@/components/ui/berry-xcard"
 import { buildCommands } from "@/lib/a2ui/berry-protocol"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { DEVICE_IDS } from "@/lib/constants"
 import type { A2UICommand_v0_9, ActionPayload } from "@ant-design/x-card"
 
 const { Text, Title } = Typography
@@ -25,7 +26,7 @@ interface DeviceMeta {
 
 const DEVICES: DeviceMeta[] = [
   {
-    id: 5,
+    id: DEVICE_IDS.PUMP,
     name: "灌溉水泵",
     icon: Droplets,
     color: "#3b82f6",
@@ -33,7 +34,7 @@ const DEVICES: DeviceMeta[] = [
     action: "toggle-device-pump",
   },
   {
-    id: 6,
+    id: DEVICE_IDS.FAN,
     name: "通风风扇",
     icon: Fan,
     color: "#06b6d4",
@@ -41,7 +42,7 @@ const DEVICES: DeviceMeta[] = [
     action: "toggle-device-fan",
   },
   {
-    id: 7,
+    id: DEVICE_IDS.RGB_LIGHT,
     name: "补光灯",
     icon: Zap,
     color: "#a855f7",
@@ -49,7 +50,7 @@ const DEVICES: DeviceMeta[] = [
     action: "toggle-device-grow-light",
   },
   {
-    id: 8,
+    id: DEVICE_IDS.WHITE_LIGHT,
     name: "白光照明",
     icon: Lightbulb,
     color: "#f59e0b",
@@ -108,7 +109,7 @@ export function ControlBentoGrid() {
     const isOn = state === 1
     const isLoading = loading === device.id
     const Icon = device.icon
-    const isFanActive = device.id === 6 && isOn
+    const isFanActive = device.id === DEVICE_IDS.FAN && isOn
 
     // 状态语义化色板
     const iconBg = isOn ? `${device.color}15` : token.colorFillTertiary

@@ -34,13 +34,14 @@ const ALLOWED_TEXT = new Set([
   "text/plain",
   "text/markdown",
   "text/csv",
-  "text/html",
   "application/json",
   "application/xml",
   "text/xml"
+  // 注意：已移除 text/html —— 静态资源目录直接对外暴露 HTML 会造成存储型 XSS 风险
 ])
 const ALLOWED_IMAGE = new Set([
-  "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml"
+  "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
+  // 注意：已移除 image/svg+xml —— SVG 可内嵌 <script>/onload，与 admin/upload 白名单保持一致
 ])
 const ALLOWED_DOC = new Set([
   "application/pdf",

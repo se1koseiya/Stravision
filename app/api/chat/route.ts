@@ -6,20 +6,25 @@ export async function GET() {
   })
 }
 
-import { getEnhancedSystemPrompt } from '@/lib/ai-system-prompt'
 import { generateMemoryEnhancedPrompt } from '@/lib/ai/memory-prompt-enhancer'
-import { resolveProvider, normalizeOpenAIChatCompletionsUrl, readProvidersConfig } from '@/lib/ai/provider-resolver'
+import { getPersonaPrompt } from '@/lib/ai/persona-system'
+import { resolveProvider, normalizeOpenAIChatCompletionsUrl, readProvidersConfig, resolveDefaultModelId } from '@/lib/ai/provider-resolver'
 import { learnFromConversation } from '@/lib/ai/auto-learning-service'
 import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
+import { getSummarizationConfig, STEPPER } from '@/lib/constants'
 import { getCurrentUser } from '@/lib/auth'
-import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service'
+import { getUserAiQuota, reserveAiUsage, refundAiUsage } from '@/lib/db/ai-quota-service'
 import { getMCPToolDefinitions } from '@/lib/mcp/mcp-tool-definitions'
 import { executeMCPToolCall } from '@/lib/mcp/mcp-tool-executor'
+import { isMultimodal } from '@/lib/mcp/builtin-device-control'
+import { initSessionTaskList, clearSessionTaskList, getSessionTaskList } from '@/lib/mcp/builtin-agent-tasks'
 import { createOrchestrator, globalOrchestratorManager } from '@/lib/ai/agent-orchestrator'
 import type { AgentContext } from '@/lib/ai/agent-orchestrator/types'
 import { getRelevantSkillsContentCached } from '@/lib/ai/skill-router-cached'
 import { executeToolCallsSmart } from '@/lib/ai/parallel-tool-executor'
+import { waitForUserInput, cancelPendingUserInput } from '@/lib/ai/pending-user-input'
+import { getCachedResponse, cacheResponse } from '@/lib/ai/response-cache'
 import { generateCompactSystemPrompt, filterDisabledFeatures, type AIFeatureConfig } from '@/lib/ai/prompt-templates'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -139,12 +144,54 @@ function filterBareTaskListJson(chunkContent: string, accumulatedContent: string
   })
 }
 
+/**
+ * 🔥 从 AI 回复文本中解析设备控制动作
+ *
+ * AI 输出设备控制为 JSON 动作（如 {"action":"toggle_relay","device":5,"value":1}），
+ * 前端解析后调用 /api/ai/device-control 执行。服务端无法获知执行结果，
+ * 但可从"AI 生成了控制指令"这一事实学习用户的使用意图/模式。
+ *
+ * 仅提取 toggle_relay（设备 5-8）这类有明确 device+value 的动作；
+ * set_led / control_camera 等不映射到清晰的开关量，跳过。
+ */
+function extractDeviceActionsFromResponse(aiResponse: string): Array<{
+  deviceId: number;
+  action: string;
+  success: boolean;
+  executionTime: number;
+}> {
+  const actions: Array<{ deviceId: number; action: string; success: boolean; executionTime: number }> = [];
+
+  // 匹配 ```json ... ``` 代码块内的 toggle_relay JSON，以及裸露的 toggle_relay JSON
+  const toggleRelayPattern = /\{\s*"action"\s*:\s*"toggle_relay"\s*,\s*"device"\s*:\s*(\d+)\s*,\s*"value"\s*:\s*(\d+)\s*\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = toggleRelayPattern.exec(aiResponse)) !== null) {
+    const deviceId = parseInt(match[1]);
+    const value = parseInt(match[2]);
+    // 仅保留继电器设备 ID 范围内的动作（5-8）
+    if (deviceId >= 5 && deviceId <= 8) {
+      actions.push({
+        deviceId,
+        action: JSON.stringify({ value }),
+        success: true, // 乐观标记：指令已生成，执行结果未知，按"意图达成"学习
+        executionTime: 0
+      });
+    }
+  }
+
+  return actions;
+}
+
 export async function POST(req: Request) {
+  // 这两个变量在 try 外声明，以便外层 catch 能访问并退还配额
+  let quotaReserved = false
+  let userId: number | null = null
   try {
     const user = await getCurrentUser()
     if (!user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
+    userId = user.id as number
 
     await initDB()
     
@@ -152,8 +199,13 @@ export async function POST(req: Request) {
     const aiFeatures = await getAIFeaturesConfig()
     console.log('[Chat API] AI Features Config:', aiFeatures ? 'Loaded' : 'Using defaults')
     
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt: rawSystemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId, persona, enablePlanning, voiceMode } =
       await req.json()
+
+    // 语音助手模式：限制回复长度，避免 TTS 合成时间过长（不影响文字对话）
+    const VOICE_MAX_TOKENS = 300
+    const VOICE_BREVITY_SUFFIX = '\n\n【语音模式】请保持回复简洁，控制在2-3句话以内（约80字），直接回答核心问题，不要展开长篇解释。'
+    const systemPrompt = voiceMode ? (rawSystemPrompt || '') + VOICE_BREVITY_SUFFIX : rawSystemPrompt
 
     // 兼容前端传来的 deviceData 字段
     const deviceStatus = deviceData;
@@ -171,7 +223,14 @@ export async function POST(req: Request) {
     const userApiUrl = rawApiUrl ? normalizeOpenAIChatCompletionsUrl(rawApiUrl) : undefined
     let effectiveModel = model || 'auto'
 
-    const resolved = await resolveProvider(effectiveModel === 'auto' ? 'qwen3.6-plus' : effectiveModel, userApiKey, userApiUrl)
+    // 当未指定模型时，从 providers 配置中解析实际默认模型（而非硬编码）
+    if (effectiveModel === 'auto') {
+      const providersConfig = await readProvidersConfig()
+      const defaultModelId = resolveDefaultModelId(providersConfig)
+      effectiveModel = defaultModelId || 'auto'
+    }
+
+    const resolved = await resolveProvider(effectiveModel, userApiKey, userApiUrl)
 
     // 如果有用户自定义的 apiKey（未在提供商中匹配到），使用原有逻辑
     let apiKey: string
@@ -201,10 +260,13 @@ export async function POST(req: Request) {
     // 是否使用系统托管 Key（用于配额扣减判断）
     const useSystemKey = !userApiKey || !!resolved
 
-    // 请求前校验配额：使用系统托管 Key 时必须检查配额，防止超额使用
+    // 请求前预扣减配额（原子操作）：使用系统托管 Key 时必须预扣，避免并发请求绕过配额
+    // 原子化：检查与扣减在同一 SQL 中完成，杜绝 check-then-increment 的并发窗口
     if (useSystemKey) {
-      const quota = await getUserAiQuota(user.id as number)
-      if (!quota.can_use) {
+      quotaReserved = await reserveAiUsage(user.id as number)
+      if (!quotaReserved) {
+        // 预扣失败 → 配额不足，读取详情用于构造友好提示
+        const quota = await getUserAiQuota(user.id as number)
         let reason: string
         if (quota.reason === 'membership_required') {
           reason = 'AI 功能仅限 Pro/Plus 会员使用，请升级会员后继续使用'
@@ -225,7 +287,28 @@ export async function POST(req: Request) {
     // === MCP Function Calling 集成 ===
     // 根据用户启用的 MCP 服务，生成 AI 可调用的工具定义
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const mcpToolDefs = getMCPToolDefinitions(mcpConfigs || [])
+    let mcpToolDefs = getMCPToolDefinitions(mcpConfigs || [])
+
+    // 🔥 根据 AIFeatureConfig 过滤 agent 工具包中被禁用的工具
+    if (aiFeatures) {
+      // 设备控制工具分类：
+      //   基础控制 (toggle_relay/set_led/control_camera/reset_camera) 受 enableDeviceControl 控制
+      //   视觉巡检 (take_camera_snapshot/move_camera_and_look) 受 enableVisionInspection 控制
+      //     —— enableVisionInspection===false 时禁用视觉类，enableDeviceControl===false 时一并禁用全部
+      const basicDeviceTools = new Set(['toggle_relay', 'set_led', 'control_camera', 'reset_camera'])
+      const visionDeviceTools = new Set(['take_camera_snapshot', 'move_camera_and_look'])
+      const deviceControlDisabled = aiFeatures.enableDeviceControl === false
+      const visionDisabled = aiFeatures.enableVisionInspection === false || deviceControlDisabled
+
+      mcpToolDefs = mcpToolDefs.filter(tool => {
+        const name = tool.function.name
+        if (name === 'ask_user_question' && aiFeatures.enableClarify === false) return false
+        if ((name === 'cron_create' || name === 'cron_list' || name === 'cron_delete') && aiFeatures.enableScheduleTask === false) return false
+        if (basicDeviceTools.has(name) && deviceControlDisabled) return false
+        if (visionDeviceTools.has(name) && visionDisabled) return false
+        return true
+      })
+    }
     
     const lastUserMessageObj = messages.slice().reverse().find((m: any) => m.role === 'user')
     const lastUserContent = lastUserMessageObj?.content
@@ -250,6 +333,14 @@ export async function POST(req: Request) {
     );
     
     let enhancedSystemPrompt = systemPrompt + '\n\n' + skillContent;
+
+    // 注入 Persona 专属 prompt（种植专家/新手向导/系统工程师）
+    // 🔥 注入位置在 system prompt 开头，提高 AI 对角色身份的执行优先级
+    if (persona) {
+      const personaPrompt = getPersonaPrompt(persona)
+      enhancedSystemPrompt = personaPrompt + '\n\n' + enhancedSystemPrompt
+      console.log(`[Chat API] Persona activated (prepended): ${persona}`)
+    }
     
     if (fromCache) {
       console.log('[Chat API] ✅ Skill routing cache hit - saved 300-500ms');
@@ -336,7 +427,7 @@ export async function POST(req: Request) {
           const lockedHint = effectiveCollectionId != null
             ? `\n**重要**：以上内容来自用户锁定的特定知识库，请仅基于该知识库的内容回答用户问题，不要混入其他来源。\n`
             : ''
-          enhancedSystemPrompt += `\n\n## 知识库检索结果${effectiveCollectionId != null ? '（已锁定到用户指定的知识库）' : '（来自用户个人知识库与已订阅的市场知识库）'}\n\n${ctxText}\n\n${lockedHint}**使用说明**：以上是从用户知识库中检索到的相关内容，请优先基于这些信息回答用户问题，并在引用时标注来源条目名称。如果知识库内容与问题不相关，请明确告知用户。`
+          enhancedSystemPrompt += `\n\n## 知识库检索结果${effectiveCollectionId != null ? '（已锁定到用户指定的知识库）' : '（来自用户个人知识库与已订阅的市场知识库）'}\n\n${ctxText}\n${lockedHint}`
           console.log(`[Chat API] Injected ${contexts.length} knowledge contexts${effectiveCollectionId != null ? ` (locked to collection ${effectiveCollectionId})` : ''}`)
         }
         // 显式 /<title> 或 @知识库:<title> 引用：把整个条目内容也拉取作为强上下文。
@@ -387,7 +478,7 @@ export async function POST(req: Request) {
 
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
-    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页"]
+    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "湿度", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页", "历史", "趋势", "变化", "过去", "昨天", "最近", "一周", "几天", "几个小时", "土壤", "氮磷钾", "肥力", "检索", "查询", "查查", "说说", "告诉我", "学习", "研究", "诊断", "判断", "规范", "指南", "管理标准", "最新", "近期", "现在", "当前", "今天", "网上", "互联网", "资料", "信息", "调控", "参数", "巡检"]
     const hasToolKeyword = toolKeywords.some(k => lastUserText.toLowerCase().includes(k))
     const hasToolMention = /@[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(lastUserText)
     const hasToolImage = Array.isArray(lastUserContent) && lastUserContent.some((c:any) => c.type === 'image_url')
@@ -433,7 +524,9 @@ export async function POST(req: Request) {
                      '搜索', '查一下', '找一下', '抓取', '帮我查', '帮我搜', '我想知道', 
                      '查找', '搜一下', '找找', '获取', '查询', '寻找', 'bilibili', 
                      '视频', '链接', '网站', '网页', '资料', '信息', '内容',
-                     '调控', '分析', '种植', '专家', '建议', '标准', '参数', '巡检'
+                     '调控', '分析', '种植', '专家', '建议', '标准', '参数', '巡检',
+                     '检索', '查查', '说说', '告诉我', '学习一下', '研究', '诊断',
+                     '最新指南', '管理标准', '规范', '指南', '最新', '近期', '今天'
                  ]
                  
                  const hasSearchIntent = searchTriggers.some(trigger => lowerMsg.includes(trigger))
@@ -476,7 +569,7 @@ export async function POST(req: Request) {
     let mcpInstallationHint = ""
     
     // 1. 检测搜索需求
-    const searchKeywords = ["搜索", "查找", "找一下", "帮我查", "搜一下", "search", "find", "lookup", "最新", "现在", "当前", "今天", "最近", "网上", "互联网"]
+    const searchKeywords = ["搜索", "查找", "找一下", "帮我查", "搜一下", "search", "find", "lookup", "最新", "现在", "当前", "今天", "最近", "网上", "互联网", "检索", "查询", "查查", "说说", "告诉我", "学习", "研究", "管理标准", "最新指南", "规范", "指南"]
     const needsSearch = searchKeywords.some(k => lastUserText.toLowerCase().includes(k))
     
     // 2. 检测天气查询需求
@@ -528,13 +621,30 @@ export async function POST(req: Request) {
     // 只将光谱数据获取推给 MCP，恢复基础设备状态的直接注入
     contextInfo += `\n\n## 光谱数据获取\n使用 \`get_all_spectrum\`（18通道全量）或 \`get_channel\`（特定波长）MCP 工具获取。获取后必须转为 Markdown 表格输出，禁止输出原始 JSON。\n`
 
+    // 历史传感器数据查询提示
+    contextInfo += `\n\n## 历史传感器数据查询\n当用户询问历史数据、趋势变化、过去某段时间的环境状况时（如"过去几小时温度变化""昨天的湿度""最近一周CO2趋势"），调用 \`get_sensor_history\` 工具查询本地传感器历史记录（保留最近 7 天）。\n- 参数 metrics：指标列表（temperature/humidity/light/co2/soilMoisture/nitrogen/phosphorus/potassium/fertility）\n- 参数 range：时间范围（10m/1h/7h/1d/7d）\n- 返回含统计摘要（min/max/avg/latest）+ 降采样数据点，需基于结果生成文字分析，禁止只返回原始数据\n- 当前实时数据已在上方"当前环境和设备状态"中提供，无需调用工具获取\n`
+
     contextInfo += `\n\n## 任务规划器与 MCP 工具调用
-**任务规划器**：复杂多步骤任务时用 <TASK_LIST> 标签输出计划。SOP：1.按当前【${currentMonth}月/${currentSeason}】搜索农业标准 → 2.对比传感器数据分析差距 → 3.生成调控指令。
+**任务规划器（必须严格执行）**：复杂多步骤任务时用 <TASK_LIST> 标签输出计划，**输出后必须严格按计划逐步执行，禁止跑偏**。SOP：1.按当前【${currentMonth}月/${currentSeason}】搜索农业标准 → 2.对比传感器数据分析差距 → 3.生成调控指令。
+**执行约束**：
+- 每次回复只推进当前 in_progress 任务，完成后再进入下一个
+- 禁止跳过任务、禁止新增计划外任务、禁止改变任务顺序
+- 若执行中发现计划有误，必须先更新 <TASK_LIST> 再继续
+- **输出 <TASK_LIST> 后必须立即开始执行 task 1，不要只规划不行动**
+**🛑 Checkpoint 检查点（强制）**：
+- 关键决策点/不可逆操作/信息不足/复杂度超阈值时，**必须输出 <CHECKPOINT> 标签暂停并等待用户确认**
+- ⚠️ **输出 <TASK_LIST> 本身不触发 checkpoint！规划阶段必须继续执行，只有执行到不可逆操作步骤时才触发**
+- 不可逆操作示例：连续灌溉>5分钟、补光灯长时间开启、丝杆滑台移动>100mm、创建每天/每周循环任务、移动摄像头到边界位置
+- 信息不足示例：用户说"浇水"但未指定时长、"调温度"但未指定目标值、"设置定时任务"但未指定时间/频率
+- 复杂度超阈值示例：跨系统操作（设备控制+定时任务+视觉巡检）、多设备联动（≥2个设备同时操作）、长时间跨度（>1小时自动调控）
+- **输出 <CHECKPOINT> 后必须立即停止，等待用户回复，严禁继续执行**
+- 简单查询/单步可逆操作（如查看数据、单次开关设备）无需 checkpoint，避免过度打扰
 **MCP 工具规则**：
 1. 禁止搜索设备操作指令（开关灯/水泵/摄像头等是自带能力，直接输出 JSON 控制）
 2. 搜索农业知识（生长标准、温湿度范围、病害防治）
 3. 搜索关键词须含【月份/季节】，如 \`${currentMonth}月 草莓大棚 通风策略\`
-4. 基于搜索结果对比当前数据生成调控建议`
+4. 基于搜索结果对比当前数据生成调控建议
+5. **工具调用后必须输出最终回答**：获取到工具结果后，必须基于结果生成完整的文字回复给用户，禁止只调用工具不回答`
 
 
     // 直接注入基础设备状态和环境数据
@@ -544,9 +654,9 @@ export async function POST(req: Request) {
     } else if (deviceStatus && mandatorySkillsEnabled !== false) {
       // 计算丝杆滑台位置信息
       const stepperPos = deviceStatus.stepper_position || 0
-      const stepperPosMM = (stepperPos / 160).toFixed(1)
-      const canMoveLeftMM = ((112000 - stepperPos) / 160).toFixed(1)
-      const canMoveRightMM = (stepperPos / 160).toFixed(1)
+      const stepperPosMM = (stepperPos / STEPPER.PULSES_PER_MM).toFixed(1)
+      const canMoveLeftMM = ((STEPPER.MAX_PULSES - stepperPos) / STEPPER.PULSES_PER_MM).toFixed(1)
+      const canMoveRightMM = (stepperPos / STEPPER.PULSES_PER_MM).toFixed(1)
       const stepperDir = deviceStatus.stepper_direction === 1 ? '正在左移' : deviceStatus.stepper_direction === 2 ? '正在右移' : '已停止'
 
       contextInfo += `\n\n## 当前环境和设备状态 (直接数据，无需调用工具)\n\`\`\`json\n${JSON.stringify({
@@ -647,6 +757,9 @@ export async function POST(req: Request) {
     // 🔥 Token 优化：按需注入定时任务详细指令
     const scheduleKeywords = ['定时', '定时任务', '提醒', '分钟后', '小时后', '秒后', '每天', '每周', 'cron', 'schedule', '复查', '复查任务', '自动执行']
     const needsScheduleTaskDetail = scheduleKeywords.some(k => lastUserText.toLowerCase().includes(k))
+    // 复杂场景才需要完整指令（含自动复查闭环/cron说明/多场景示例）；简单提醒用 SHORT 版
+    const complexScheduleKeywords = ['自动执行', '复查', '复查任务', 'cron', '每天', '每周', '定时任务', '方案', '调控']
+    const needsFullScheduleDetail = needsScheduleTaskDetail && complexScheduleKeywords.some(k => lastUserText.toLowerCase().includes(k))
 
     const reportInstructionFull = `
 
@@ -760,140 +873,15 @@ export async function POST(req: Request) {
 当用户询问你的能力、功能、可以做什么等问题时，插入 <CAPABILITIES/> 标签展示功能卡片，可简短补充说明，无需详细列举功能。
 `
 
-    const finalSystemPrompt = enhancedSystemPrompt + contextInfo + (needsReportInstruction ? reportInstructionFull : reportInstructionShort) + capabilitiesInstructionText + forcedToolPrompt
-
-    const deviceControlInstruction =
-      "## IoT 设备控制规范与硬件 ID 映射 (必读)\n" +
-      "你是一个能够感知环境并控制设备的智能体 (Agent)。请严格遵循以下规则：\n\n" +
-      "### 🚨 核心硬件 ID 对照表 (必须严格遵守)\n" +
-      "在执行 `toggle_relay` 指令时，你必须且只能使用这几个 `device` 序号：\n" +
-      "- **Device 5**: 水泵 (Water Pump)\n" +
-      "- **Device 6**: 风扇 (Fan)\n" +
-      "- **Device 7**: RGB 补光灯 (Grow Light)\n" +
-      "- **Device 8**: 光照植物补光灯 (White Light / 辅助照明)\n" +
-      "**【极其重要】严禁使用 1, 2, 3, 4 或任何其他序号！**\n\n" +
-      "### ⚠️ 用户意图保持原则 (最高优先级)\n" +
-      "**【绝对禁止】改变用户的原始意图！**\n" +
-      "- 如果用户说\"关闭风扇\"，你必须执行 value: 0（关闭），绝对不能改成 value: 1（开启）\n" +
-      "- 如果用户说\"打开水泵\"，你必须执行 value: 1（开启），绝对不能改成 value: 0（关闭）\n" +
-      "- 在整个对话和分析过程中，始终牢记用户的原始指令\n" +
-      "- 即使你认为当前环境数据显示应该采取相反操作，也必须严格执行用户的明确指令\n" +
-      "- 只有在用户明确要求你\"根据环境自动决策\"时，才可以基于传感器数据做判断\n" +
-      "- **在生成命令前，必须再次确认：用户要求的是开启(1)还是关闭(0)**\n\n" +
-      "### 执行工作流\n" +
-      "1. **理解意图**：首先明确用户要求的是\"开启\"还是\"关闭\"，并在整个流程中保持这个意图。\n" +
-      "2. **任务规划**：生成 <TASK_LIST>，在任务描述中明确标注\"开启\"或\"关闭\"。\n" +
-      "3. **分步执行**：生成 JSON 命令时，再次核对用户原始意图，确保 value 值正确。\n" +
-      "4. **闭环验证**：执行后验证状态是否符合用户原始要求。\n\n" +
-      "### 命令 JSON 格式\n" +
-      "```json\n" +
-      "{\n" +
-      '  "action": "toggle_relay",\n' +
-      '  "device": 5,\n' +
-      '  "value": 1\n' +
-      "}\n" +
-      "```\n" +
-      "（value: 1 为开启，0 为关闭）\n\n" +
-      "### 丝杆滑台 (Stepper Slider) 移动控制\n" +
-      "- **Action**: `control_camera` (控制摄像头左右水平移动)\n" +
-      "- **重要提示**：\n" +
-      "  - 滑台量程：0mm（最左侧原点）到 700mm（最右侧终点）\n" +
-      "  - 当前位置：通过 deviceData.stepper_position 获取（单位：脉冲，160脉冲=1mm）\n" +
-      "  - **移动前必须检查当前位置，避免超出边界！**\n" +
-      "  - 如果已经在边界（<10mm 或 >690mm），严禁继续向该方向移动\n" +
-      "  - 如果收到边界错误反馈，必须停止或反向移动\n" +
-      "- **Parameters**:\n" +
-      "  - `direction`: 1 (左移), 2 (右移), 0 (停止)\n" +
-      "  - `distance_mm`: 移动距离（毫米），建议10-100mm，避免一次移动过远\n" +
-      "- **边界检查逻辑**（必须遵守）:\n" +
-      "```javascript\n" +
-      "// 1. 获取当前位置（毫米）\n" +
-      "const currentPos = deviceData.stepper_position / 160;\n" +
-      "// 2. 左移前检查\n" +
-      "if (direction === 1 && currentPos <= 10) {\n" +
-      "  // 已接近左边界，严禁左移！告知用户或选择右移\n" +
-      "}\n" +
-      "// 3. 右移前检查\n" +
-      "if (direction === 2 && currentPos >= 690) {\n" +
-      "  // 已接近右边界，严禁右移！告知用户或选择左移\n" +
-      "}\n" +
-      "```\n" +
-      "- **Action**: `reset_camera` (将滑台复位到最左侧原点 0mm 处)\n" +
-      "- **示例**:\n" +
-      "```json\n" +
-      '{\n  "action": "control_camera",\n  "direction": 1,\n  "distance_mm": 50\n}\n' +
-      "```\n\n" +
-      "注意：每次回复最多包含一个步骤的命令。如果需要操作多个设备，可在同一个回复中输出多个 JSON 块。不要在一个回复中完成跨时间段的任务。\n"
-
-    const citationInstruction =
-      "关于引用来源的重要规则：\n" +
-      "1. 只有在你确实知道真实存在的来源时，才使用 <SOURCES> 标签提供引用\n" +
-      "2. 所有 url 必须是真实可访问的完整链接（含 http/https），绝对不能编造虚假网址\n" +
-      "3. 如果你不确定具体来源或无法提供真实链接，请不要使用 <SOURCES> 标签\n" +
-      "4. 宁可不提供来源，也不要编造虚假信息\n" +
-      "5. 如果使用引用，在回复正文中使用 [n] 进行内联引用标注，并在回复末尾使用 <SOURCES> 与 </SOURCES> 包裹一个 JSON 数组\n" +
-      "6. **重要：绝对不要在 Markdown 表格内使用 [n] 引用标记，这会破坏表格渲染。表格中的数据不需要引用标记。**\n" +
-      "7. JSON 数组项必须包含：number、title、url、description、quote 字段\n" +
-      "8. 不要在正文中直接展开 JSON\n" +
-      "9. **🚨 严禁编造任何链接、网址或引用信息！所有链接必须来自真实的工具调用结果！**"
-    const reasoningInstruction =
-      "**重要：正确使用 REASONING 标签！**\n" +
-      "1. <REASONING> 标签**仅用于展示思考过程**，不是用来放最终答案的！\n" +
-      "2. 使用 <REASONING> 与 </REASONING> 标签包裹**思考过程**\n" +
-      "3. 思考内容应该包括：问题分析、解决思路、关键步骤等\n" +
-      "4. **最终答案必须放在 </REASONING> 标签之后**\n" +
-      "5. 格式示例：\n" +
-      "<REASONING>\n" +
-      "1. 分析用户问题：用户想要...\n" +
-      "2. 确定解决方案：我需要先...再...\n" +
-      "3. 执行步骤：第一步...第二步...\n" +
-      "</REASONING>\n\n" +
-      "基于以上分析，我的建议是...（这里是最终答案，必须放在标签外面）\n\n" +
-      "**严禁行为：**\n" +
-      "- ❌ 把所有内容都放在 <REASONING> 里\n" +
-      "- ❌ 把最终结论放在 <REASONING> 里\n" +
-      "- ❌ 不输出标签外的内容\n\n" +
-      "**记住：**\n" +
-      "- <REASONING> 里面 = 思考过程（用户可以折叠隐藏）\n" +
-      "- <REASONING> 外面 = 最终答案（用户必须看到的）"
-    const chartInstruction =
-      "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
-    const monitorInstruction =
-      "当用户询问监控、摄像头、直播流或想要查看实时画面时，请直接在回复中插入 <MONITOR></MONITOR> 标签（标签内不需要任何内容）。"
-    const capabilitiesInstruction =
-      "当用户询问你的能力、功能、可以做什么、有哪些功能等问题时，请直接在回复中插入 <CAPABILITIES/> 标签（自闭合标签）。这将展示一个美观的交互式功能卡片，用户可以点击查看详情和示例。输出标签后，你可以简短地补充说明，但不需要详细列举所有功能（卡片会展示）。"
-    const controlBentoInstruction =
-      "当用户要求查看设备控制、调节设备状态或你建议进行设备调控时，请在回复中包含 <CONTROL_BENTO></CONTROL_BENTO> 标签（标签内不需要任何内容）。然后，必须在标签之后简要说明你的调控建议或理由。如果用户明确表达了“是”、“确认”、“执行”等意图，或者你非常有把握需要执行某些操作，请务必同时输出 JSON 格式的控制命令（仅限 IoT 设备控制，如开关灯、继电器等），以便系统自动执行。"
-    const taskListInstruction =
-      "当用户要求查看、管理或删除定时任务列表时，请在回复中包含 <SCHEDULED_TASKS></SCHEDULED_TASKS> 标签（标签内不需要任何内容）。这将在前端渲染一个交互式的真实任务列表组件。重要：因为你已经输出了 <SCHEDULED_TASKS> 标签，请不要再用文本重复列出任务内容，也不要描述“列表为空”或“包含X个任务”（除非你是在分析任务的合理性），因为你的文本描述可能与组件实时渲染的真实状态不一致。只需输出标签即可，让组件负责展示。"
-    const bentoInstruction =
-      "当用户询问设备状态、环境数据、传感器读数或想要查看当前概况时，请直接在回复中插入 <DEVICE_BENTO></DEVICE_BENTO> 标签（标签内不需要任何内容）。然后，基于这些数据对当前环境状况进行简要的分析（例如：温湿度是否适宜，是否需要开启设备等）。请务必在 <DEVICE_BENTO> 标签之后输出分析内容，不要只输出标签。"
-    const axisInstruction =
-      "当需要返回可视化图表时，生成 Vega-Lite 规范的 JSON，并使用 <CHART type=\"vega-lite\"> 与 </CHART> 包裹；或返回 ECharts option 的 JSON，并使用 <CHART type=\"echarts\"> 与 </CHART> 包裹。只输出合法的 JSON，不要附加说明或代码块。"
-
-    // 工具使用说明 - 明确禁止手动输出工具标签
-    const toolUsageInstruction =
-      "## 工具使用规范\n" +
-      "**🚨 重要：工具调用必须通过系统接口**\n" +
-      "- 你必须使用系统提供的 Function Calling (tool_calls) 接口来调用工具\n" +
-      "- **严禁**在回复文本中手动输出任何工具相关的标签或 JSON\n" +
-      "- **严禁**假装调用工具或编造工具调用结果\n" +
-      "- 只有通过 tool_calls 接口真正调用的工具才会被执行\n" +
-      "- 工具调用状态和结果会由系统自动处理和显示，你不需要也不应该手动输出\n\n" +
-      "**正确做法：**\n" +
-      "1. 当需要使用工具时，直接通过 tool_calls 接口调用\n" +
-      "2. 等待系统返回工具执行结果\n" +
-      "3. 基于真实的工具返回结果来回答用户\n\n" +
-      "**错误做法（严禁）：**\n" +
-      "1. ❌ 在回复中输出 <TOOL_USED> 或类似标签\n" +
-      "2. ❌ 在回复中输出 JSON 格式的工具调用\n" +
-      "3. ❌ 假装调用了工具但实际没有调用\n" +
-      "4. ❌ 编造工具返回的数据"
-
-    // MCP 工具说明 — 引导 AI 主动使用 Function Calling
-    const mcpToolsInstruction = mcpToolDefs.length > 0
-      ? `\n\n## 可用的 MCP 工具 (Function Calling)\n你已被授予以下工具的调用能力。请注意：对于这些工具，**必须使用原生 Function Calling (tool_calls)**，严禁使用 JSON 文本格式输出！\n\n可用工具列表：\n${mcpToolDefs.map(t => `- **${t.function.name}**: ${t.function.description}`).join('\n')}\n\n**🚨 严格执行规则：**\n1. **严禁**在回复中直接输出类似 \`{"action": "xxx"}\` 或 \`{"name": "get_all_spectrum", "arguments": {}}\` 的 JSON 来调用这些工具。必须使用系统提供的 tool_calls 接口。\n   - ❌ 错误示例：直接输出 \`{"name": "get_all_spectrum", "arguments": {}}\`\n   - ✅ 正确做法：使用 Native Tool Calling（系统会自动处理）\n   - ✅ 正确做法：工具调用完成后，用自然语言解释结果\n2. **严禁编造、虚构或猜测任何信息**！当用户询问需要搜索的内容时，你**必须**主动调用搜索工具获取真实数据。\n3. **搜索类请求强制调用**：当用户说"帮我查"、"帮我搜"、"我想知道"、"找一下"、"搜索"等时，你**必须立即**调用相应的搜索工具，**绝对不能**凭记忆或编造答案。\n4. **禁止编造链接**：严禁编造任何网址、链接或引用。所有链接必须来自真实的工具调用结果。\n5. 当用户询问光谱数据、植物健康状况、NDVI 指数等问题时，你**必须**主动调用 \`get_all_spectrum\` 或 \`get_channel\` 工具获取实时数据。\n6. 当用户询问天气、路线规划等问题时，你**必须**主动调用对应的工具获取实时数据。\n7. 当用户的问题涉及作物病害、土壤管理、灌溉等农业话题时，如果有相关工具可用，应主动调用。\n8. 工具返回的数据是实时的、真实的，请优先使用工具数据而非猜测。\n9. 不需要询问用户是否调用工具，直接调用即可。\n\n**⚠️ 特别警告：**\n- 如果你没有调用工具就回答了需要搜索的问题，这是严重错误！\n- 如果你编造了任何链接或信息，这是严重违规！\n- 必须先调用工具获取真实数据，再基于结果回答用户。\n- **严禁在回复中输出 <TOOL_USED> 标签！** 这个标签只能由系统自动生成，你不能手动输出。\n- **如果你想使用工具，必须通过 tool_calls 接口调用，而不是输出任何文本标签。**\n- **只有真正通过 tool_calls 调用的工具才会被系统识别和执行。**\n- **严禁在回复中直接输出工具调用的JSON！用户看到的应该是自然语言，不是JSON代码！**\n\n**光谱数据分析指南：**\n- 410-485nm (蓝紫光)：类胡萝卜素含量\n- 510-560nm (绿光)：叶绿素含量和氮素营养状态\n- 680nm (红光)：叶绿素吸收峰，反映光合作用强度\n- 730nm (红边)：植物胁迫响应指标\n- 760nm (近红外)：植物组织反射峰，反映生物量\n- NDVI 计算：(760 - 680) / (760 + 680)\n- 正常 NDVI 范围：0.6-0.8（健康植物）`
-      : ""
+    // 静态/动态分层（仿 Claude Code SystemPromptBuilder 设计）：
+    // - 静态段（可被 Prompt Cache 命中）：身份+技能+记忆+知识库+报告指令+能力说明
+    // - 动态段（每次请求变化，放末尾利用 Recency 效应增强 AI 注意力）：环境上下文+强制工具提示
+    const staticBasePrompt = enhancedSystemPrompt + (needsReportInstruction ? reportInstructionFull : reportInstructionShort) + capabilitiesInstructionText
+    // 🔥 用户手动启用计划模式时，附加引导：直接调研后 exit_plan_mode，无需先 enter_plan_mode
+    const planModeHint = enablePlanning
+      ? `\n\n【用户已手动启用计划模式】\n你已处于计划模式中（系统已自动屏蔽有副作用的工具）。请直接进行调研和信息收集，完成后调用 exit_plan_mode 工具提交计划，无需先调用 enter_plan_mode。`
+      : ''
+    const dynamicSuffix = contextInfo + forcedToolPrompt + planModeHint
 
     // 检测是否使用DashScope API
     // 优先使用已解析的提供商类型，其次回退到 URL/模型名启发式判断
@@ -947,8 +935,9 @@ export async function POST(req: Request) {
        const recentMessages = nonMemoryMessages.slice(nonMemoryMessages.length - MIN_KEEP_RECENT)
        
        try {
-           const summarizeTargetUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-           const summarizeKey = process.env.SYSTEM_OPENAI_API_KEY || apiKey
+           const summarizeConfig = getSummarizationConfig()
+           const summarizeTargetUrl = summarizeConfig.url
+           const summarizeKey = summarizeConfig.apiKey || process.env.SYSTEM_OPENAI_API_KEY || apiKey
            
            // 多级总结逻辑：基于滑动窗口 + 增量更新 + 结构化 JSON 输出
            let summaryPrompt = ""
@@ -994,7 +983,7 @@ export async function POST(req: Request) {
                   "Authorization": `Bearer ${summarizeKey}`
                },
                body: JSON.stringify({
-                  model: "qwen-plus",
+                  model: summarizeConfig.model,
                   messages: [
                       { role: "system", content: summaryPrompt },
                       { role: "user", content: summaryInput }
@@ -1067,7 +1056,7 @@ export async function POST(req: Request) {
     }
 
     // 智能模式 (Auto) 模型选择逻辑
-    effectiveModel = model || ''
+    effectiveModel = model || 'auto'
 
     if (effectiveModel === 'auto') {
       if (enableReasoning) {
@@ -1090,10 +1079,25 @@ export async function POST(req: Request) {
           effectiveModel = 'deepseek-v3.2' // 配置读取失败时的最后兜底
         }
       } else if (hasImageContent) {
-        // 优先使用视觉模型
-        effectiveModel = 'qwen3.6-plus'
+        // 优先使用视觉模型：从配置中找 supportsVision 的模型，找不到才回退硬编码
+        try {
+          const cfg = await readProvidersConfig()
+          const visionModel = cfg.providers
+            .filter(p => p.enabled)
+            ?.flatMap(p => p.models.filter(m => m.enabled && m.supportsVision).map(m => ({ ...m, _providerPriority: p.priority ?? 999 })))
+            ?.sort((a, b) => a._providerPriority - b._providerPriority)?.[0]
+          effectiveModel = visionModel?.id || resolveDefaultModelId(cfg) || 'qwen3.6-plus'
+        } catch {
+          effectiveModel = 'qwen3.6-plus'
+        }
       } else {
-        effectiveModel = 'qwen3.6-plus' // 默认使用通用增强模型
+        // 默认：使用 admin 配置的默认模型，而非硬编码
+        try {
+          const cfg = await readProvidersConfig()
+          effectiveModel = resolveDefaultModelId(cfg) || 'qwen3.6-plus'
+        } catch {
+          effectiveModel = 'qwen3.6-plus'
+        }
       }
     }
 
@@ -1193,19 +1197,19 @@ export async function POST(req: Request) {
 
       // 使用精简的系统提示词以减少Token消耗
       const compactSystemPrompt = generateCompactSystemPrompt({
-        basePrompt: finalSystemPrompt,
+        basePrompt: staticBasePrompt,
         enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
         enableReasoning: shouldEnableReasoning,
         mcpToolNames: mcpToolDefs.map(t => t.function.name),
         contextCompressed: contextCompressed,
         aiFeatures: aiFeatures,
-        includeScheduleTaskDetail: needsScheduleTaskDetail
+        includeScheduleTaskDetail: needsFullScheduleDetail
       });
 
       fullMessages = [
         {
           role: "system",
-          content: compactSystemPrompt + mcpInstallationHint,
+          content: compactSystemPrompt + '\n\n' + dynamicSuffix + mcpInstallationHint,
         },
         ...finalMessages,
       ]
@@ -1229,14 +1233,14 @@ export async function POST(req: Request) {
       
       // 使用精简的系统提示词
       const systemMessage = generateCompactSystemPrompt({
-        basePrompt: finalSystemPrompt,
+        basePrompt: staticBasePrompt,
         enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
         enableReasoning: shouldEnableReasoning,
         mcpToolNames: mcpToolDefs.map(t => t.function.name),
         contextCompressed: contextCompressed,
         aiFeatures: aiFeatures,
-        includeScheduleTaskDetail: needsScheduleTaskDetail
-      }) + mcpInstallationHint;
+        includeScheduleTaskDetail: needsFullScheduleDetail
+      }) + '\n\n' + dynamicSuffix + mcpInstallationHint;
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
@@ -1280,19 +1284,19 @@ export async function POST(req: Request) {
       
       // 使用精简的系统提示词
       const compactSystemPrompt = generateCompactSystemPrompt({
-        basePrompt: finalSystemPrompt,
+        basePrompt: staticBasePrompt,
         enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
         enableReasoning: shouldEnableReasoning,
         mcpToolNames: mcpToolDefs.map(t => t.function.name),
         contextCompressed: contextCompressed,
         aiFeatures: aiFeatures,
-        includeScheduleTaskDetail: needsScheduleTaskDetail
+        includeScheduleTaskDetail: needsFullScheduleDetail
       });
-      
+
       fullMessages = [
         {
           role: "system",
-          content: compactSystemPrompt + mcpInstallationHint,
+          content: compactSystemPrompt + '\n\n' + dynamicSuffix + mcpInstallationHint,
         },
         ...userMessages,
       ]
@@ -1303,6 +1307,45 @@ export async function POST(req: Request) {
         stream: true,
         temperature: 0.7,
       }
+    }
+
+    // 语音助手模式：限制 max_tokens，避免回复过长导致 TTS 等待
+    if (voiceMode) {
+      if (requestBody.parameters) {
+        // DashScope 原生 API
+        requestBody.parameters.max_tokens = VOICE_MAX_TOKENS
+      } else {
+        // OpenAI 兼容格式
+        requestBody.max_tokens = VOICE_MAX_TOKENS
+      }
+    }
+
+    // === 响应缓存：对可缓存的只读/知识类查询直接返回缓存，跳过 AI 调用 ===
+    // 仅缓存纯文本查询（排除控制指令、实时数据等），命中后以合成 SSE 流返回
+    const cached = getCachedResponse(lastUserText, effectiveModel || 'auto', deviceStatus)
+    if (cached) {
+      console.log('[ResponseCache] ✅ Cache HIT, returning cached response as synthetic stream')
+      const encoder = new TextEncoder()
+      const stream = new ReadableStream({
+        start(controller) {
+          try {
+            // 以 OpenAI 兼容的 chunk 格式下发缓存的完整内容
+            const chunk = {
+              id: `cache-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: Math.floor(Date.now() / 1000),
+              model: cached.model || effectiveModel || 'auto',
+              choices: [{ index: 0, delta: { content: cached.content }, finish_reason: null }],
+            }
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+            controller.close()
+          } catch (e) { controller.error(e instanceof Error ? e : new Error(String(e))) }
+        }
+      })
+      return new Response(stream, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" }
+      })
     }
 
     // 调用AI API
@@ -1377,7 +1420,22 @@ export async function POST(req: Request) {
 
             // === AGENT LOOP ===
             let iteration = 0
-            
+            // 跟踪最后一轮是否有 tool_calls，用于判断是否需要强制生成最终回答
+            let lastRoundHadToolCalls = false
+            // 🔥 Bug 修复：记录循环是否因 LLM 调用异常而提前退出（非正常达到 max iterations）
+            // 异常退出时若上一轮有 tool_calls，仍需走强制总结兜底，避免对话戛然而止
+            let loopExitedAbnormally = false
+            let abnormalExitReason = ''
+            // 🔥 计划模式状态：
+            // - 用户手动启用 enablePlanning → 初始即为 true（跳过 enter_plan_mode，直接调研后 exit_plan_mode）
+            // - AI 自主调用 enter_plan_mode → 置为 true
+            // - AI 调用 exit_plan_mode 提交计划 → 置为 false 并 break loop 等用户审批
+            // 计划模式下屏蔽有副作用的工具（设备控制、cron_create、task_create 等）
+            let planMode = !!enablePlanning
+            if (planMode) {
+              console.log(`[Agent Loop] Plan mode manually enabled by user (enablePlanning=true)`)
+            }
+
             while (iteration < MAX_AGENT_ITERATIONS) {
               iteration++
               console.log(`[Agent Loop] Iteration ${iteration}/${MAX_AGENT_ITERATIONS}`)
@@ -1391,37 +1449,102 @@ export async function POST(req: Request) {
                 return clean
               })
 
+              // 🔥 计划模式下屏蔽有副作用的工具（只保留调研类工具）
+              const PLAN_MODE_BLOCKED_TOOLS = new Set([
+                'toggle_relay', 'set_led', 'control_camera', 'reset_camera',
+                'cron_create', 'task_create', 'task_update',
+              ])
+              const effectiveTools = planMode
+                ? mcpToolDefs.filter(t => !PLAN_MODE_BLOCKED_TOOLS.has(t.function.name))
+                : mcpToolDefs
+
               const loopBody = {
                 ...requestBody,
                 messages: cleanMessages,
                 stream: true, // 开启流式以支持打字机效果
-                tools: mcpToolDefs,
+                tools: effectiveTools,
               }
 
               console.log(`[Agent Loop] Calling LLM (streaming) with ${cleanMessages.length} messages...`)
-              const loopRes = await fetch(targetUrl, {
-                method: "POST",
-                headers, // 使用原始 headers (含 SSE 指令)
-                body: JSON.stringify(loopBody),
-              })
+              // LLM 调用超时保护：90s 无响应则中止（流式场景需较长阈值）
+              const llmTimeoutController = new AbortController()
+              const llmTimeoutId = setTimeout(() => llmTimeoutController.abort(), 90000)
+
+              let loopRes: Response
+              try {
+                loopRes = await fetch(targetUrl, {
+                  method: "POST",
+                  headers, // 使用原始 headers (含 SSE 指令)
+                  body: JSON.stringify(loopBody),
+                  signal: llmTimeoutController.signal,
+                })
+              } catch (fetchErr: any) {
+                clearTimeout(llmTimeoutId)
+                if (fetchErr?.name === 'AbortError') {
+                  console.warn('[Agent Loop] LLM call timed out after 90s')
+                  loopExitedAbnormally = true
+                  abnormalExitReason = `LLM 推理超时（第 ${iteration} 轮，90s 无响应）`
+                } else {
+                  console.warn(`[Agent Loop] LLM call network error:`, fetchErr?.message)
+                  loopExitedAbnormally = true
+                  abnormalExitReason = `LLM 网络错误（第 ${iteration} 轮）：${fetchErr?.message || '未知'}`
+                }
+                // 🔥 Bug 修复：通知前端本轮失败，避免用户干等空白
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `llm-error-${Date.now()}`,
+                  object: "chat.completion.chunk",
+                  created: Date.now(),
+                  model: effectiveModel,
+                  llm_error: { reason: abnormalExitReason, iteration }
+                })}\n\n`))
+                break
+              }
+              clearTimeout(llmTimeoutId)
 
               if (!loopRes.ok) {
                 console.warn(`[Agent Loop] LLM call failed (status ${loopRes.status}), breaking loop`)
+                loopExitedAbnormally = true
+                abnormalExitReason = `LLM 返回错误状态 ${loopRes.status}（第 ${iteration} 轮）`
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `llm-error-${Date.now()}`,
+                  object: "chat.completion.chunk",
+                  created: Date.now(),
+                  model: effectiveModel,
+                  llm_error: { reason: abnormalExitReason, iteration }
+                })}\n\n`))
                 break
               }
 
               const reader = loopRes.body?.getReader()
-              if (!reader) break
+              if (!reader) {
+                loopExitedAbnormally = true
+                abnormalExitReason = `LLM 响应无 body 流（第 ${iteration} 轮）`
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `llm-error-${Date.now()}`,
+                  object: "chat.completion.chunk",
+                  created: Date.now(),
+                  model: effectiveModel,
+                  llm_error: { reason: abnormalExitReason, iteration }
+                })}\n\n`))
+                break
+              }
 
               const decoder = new TextDecoder()
               let buffer = ""
               let hasToolCalls = false
               let currentToolCalls: any[] = []
               let accumulatedContent = ""
-              let iterationFinished = false
 
               while (true) {
-                const { done, value } = await reader.read()
+                // 超时保护：防止 LLM 返回 200 但 body 流卡住导致 Agent Loop 无限阻塞
+                // 90s 无数据则中止读取（与 fetch 超时一致）
+                const readResult = await Promise.race([
+                  reader.read(),
+                  new Promise<{ done: true; value: undefined }>((resolve) =>
+                    setTimeout(() => resolve({ done: true, value: undefined }), 90000)
+                  ),
+                ])
+                const { done, value } = readResult
                 if (done) break
                 
                 buffer += decoder.decode(value, { stream: true })
@@ -1442,9 +1565,13 @@ export async function POST(req: Request) {
                         for (const tc of delta.tool_calls) {
                           if (tc.index === undefined) continue
                           if (!currentToolCalls[tc.index]) {
-                            currentToolCalls[tc.index] = { id: tc.id, function: { name: "", arguments: "" } }
+                            // 🔥 Bug 修复：必须初始化 type: "function"
+                            // DashScope 兼容模式要求 assistant 消息的 tool_calls 每项含 type 字段，
+                            // 缺失会导致下一轮 LLM 调用返回 400 MissingParameter: messages.tool_calls.type
+                            currentToolCalls[tc.index] = { id: tc.id, type: tc.type || "function", function: { name: "", arguments: "" } }
                           }
                           if (tc.id) currentToolCalls[tc.index].id = tc.id
+                          if (tc.type) currentToolCalls[tc.index].type = tc.type
                           if (tc.function?.name) currentToolCalls[tc.index].function.name += tc.function.name
                           if (tc.function?.arguments) currentToolCalls[tc.index].function.arguments += tc.function.arguments
                         }
@@ -1473,9 +1600,196 @@ export async function POST(req: Request) {
                           controller.enqueue(encoder.encode(`data: ${JSON.stringify(cleanJson)}\n\n`))
                         }
                       }
-                    } catch (e) { }
+                    } catch (e) { console.warn('[Agent Loop] tool result SSE parse failed:', e) }
                   }
                 }
+              }
+
+              // 📋 TASK_LIST 初始化：AI 首次输出 <TASK_LIST> 标签时，把任务列表存入 session 注册表
+              // 后续 AI 调用 update_task 工具时会从注册表读取并增量更新，不再需要重复输出标签
+              if (accumulatedContent.includes('<TASK_LIST>') && accumulatedContent.includes('</TASK_LIST>')) {
+                try {
+                  const tlMatch = accumulatedContent.match(/<TASK_LIST>\s*([\s\S]*?)\s*<\/TASK_LIST>/)
+                  if (tlMatch) {
+                    const tlJson = JSON.parse(tlMatch[1])
+                    if (tlJson && Array.isArray(tlJson.tasks) && tlJson.tasks.length > 0) {
+                      // 仅当 session 尚无 task list 时初始化（防止覆盖已增量更新的状态）
+                      if (!getSessionTaskList(sessionId)) {
+                        initSessionTaskList(sessionId, tlJson)
+                        console.log(`[Agent Loop] Round ${iteration} - TASK_LIST initialized with ${tlJson.tasks.length} tasks`)
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.warn(`[Agent Loop] TASK_LIST parse failed:`, e)
+                }
+              }
+
+              // 🛑 CHECKPOINT 检测：AI 输出 <CHECKPOINT> 标签时挂起 Agent Loop 等待用户确认
+              // 架构变更（重要）：原逻辑是 break 退出循环 + 前端发新对话触发下一轮，
+              //   这会导致对话上下文被切断，AI 失去同一轮内的连续性。
+              // 新逻辑：在同一个 SSE 连接内 await 挂起，前端渲染表单 → 用户填表 →
+              //   POST /api/chat/respond 把回复发回后端 → resolve promise → Agent Loop 继续。
+              // 用户体感：一次请求内完成「AI 问 → 用户答 → AI 继续执行」。
+              if (accumulatedContent.includes('<CHECKPOINT>')) {
+                // 提取 checkpoint id（如果 JSON 解析失败则用时间戳兜底）
+                let checkpointId = `cp-${Date.now()}`
+                let checkpointTitle = '用户确认检查点'
+                try {
+                  const cpMatch = accumulatedContent.match(/<CHECKPOINT>\s*([\s\S]*?)\s*<\/CHECKPOINT>/)
+                  if (cpMatch) {
+                    const cpJson = JSON.parse(cpMatch[1])
+                    if (cpJson.id) checkpointId = cpJson.id
+                    if (cpJson.title) checkpointTitle = cpJson.title
+                  }
+                } catch {}
+
+                console.log(`[Agent Loop] Round ${iteration} - CHECKPOINT detected, suspending loop (id=${checkpointId})`)
+
+                // 推送 user_input_required 事件：前端据此渲染表单 + 标记 SSE 流处于「等待用户输入」状态
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `user-input-required-${Date.now()}`,
+                  object: "chat.completion.chunk",
+                  created: Date.now(),
+                  model: effectiveModel,
+                  user_input_required: {
+                    type: 'checkpoint',
+                    checkpoint_id: checkpointId,
+                    title: checkpointTitle,
+                    content: accumulatedContent,
+                    timeout_ms: 5 * 60 * 1000,
+                  },
+                })}\n\n`))
+
+                // 挂起等待用户回复（5 分钟超时）
+                try {
+                  const userReply = await waitForUserInput(
+                    sessionId,
+                    checkpointId,
+                    'checkpoint',
+                    checkpointTitle,
+                    5 * 60 * 1000,
+                  )
+                  console.log(`[Agent Loop] CHECKPOINT resolved, continuing with user reply`)
+
+                  // 把 AI 的 checkpoint 消息存入上下文（保留语义连贯性）
+                  fullMessages.push({
+                    role: "assistant",
+                    content: accumulatedContent,
+                  })
+                  // 把用户回复作为 user 消息推入上下文，AI 下一轮迭代就能看到
+                  fullMessages.push({
+                    role: "user",
+                    content: userReply,
+                  })
+
+                  // 推送 user_input_received 事件：前端据此切换 UI 到「AI 思考中」状态
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `user-input-received-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    user_input_received: {
+                      checkpoint_id: checkpointId,
+                      reply_preview: userReply.slice(0, 100),
+                    },
+                  })}\n\n`))
+
+                  // 继续 Agent Loop 下一轮迭代（不要 break）
+                } catch (err: any) {
+                  // 超时或被新 checkpoint 取代
+                  console.warn(`[Agent Loop] CHECKPOINT wait failed: ${err.message}`)
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `user-input-timeout-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    user_input_timeout: {
+                      checkpoint_id: checkpointId,
+                      reason: err.message || 'timeout',
+                    },
+                  })}\n\n`))
+                  break
+                }
+
+                // 继续 Agent Loop（不 break，让下一轮迭代处理用户回复）
+                continue
+              }
+
+              // 🔍 CLARIFY 检测：AI 输出 <CLARIFY> 标签时挂起 Agent Loop 等待用户澄清
+              // 同 CHECKPOINT 机制：同一 SSE 连接内挂起，前端渲染表单 → 用户提交 → 回复到达 → 继续
+              if (accumulatedContent.includes('<CLARIFY>')) {
+                const clarifyId = `clarify-${Date.now()}`
+                let clarifyTitle = '需要用户澄清'
+                try {
+                  const clMatch = accumulatedContent.match(/<CLARIFY>\s*([\s\S]*?)\s*<\/CLARIFY>/)
+                  if (clMatch) {
+                    const clJson = JSON.parse(clMatch[1])
+                    if (clJson.title) clarifyTitle = clJson.title
+                  }
+                } catch {}
+
+                console.log(`[Agent Loop] Round ${iteration} - CLARIFY detected, suspending loop (id=${clarifyId})`)
+
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `user-input-required-${Date.now()}`,
+                  object: "chat.completion.chunk",
+                  created: Date.now(),
+                  model: effectiveModel,
+                  user_input_required: {
+                    type: 'clarify',
+                    checkpoint_id: clarifyId,
+                    title: clarifyTitle,
+                    content: accumulatedContent,
+                    timeout_ms: 5 * 60 * 1000,
+                  },
+                })}\n\n`))
+
+                try {
+                  const userReply = await waitForUserInput(
+                    sessionId,
+                    clarifyId,
+                    'clarify',
+                    clarifyTitle,
+                    5 * 60 * 1000,
+                  )
+                  console.log(`[Agent Loop] CLARIFY resolved, continuing with user reply`)
+
+                  fullMessages.push({
+                    role: "assistant",
+                    content: accumulatedContent,
+                  })
+                  fullMessages.push({
+                    role: "user",
+                    content: userReply,
+                  })
+
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `user-input-received-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    user_input_received: {
+                      checkpoint_id: clarifyId,
+                      reply_preview: userReply.slice(0, 100),
+                    },
+                  })}\n\n`))
+                } catch (err: any) {
+                  console.warn(`[Agent Loop] CLARIFY wait failed: ${err.message}`)
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `user-input-timeout-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    user_input_timeout: {
+                      checkpoint_id: clarifyId,
+                      reason: err.message || 'timeout',
+                    },
+                  })}\n\n`))
+                  break
+                }
+
+                continue
               }
 
               if (hasToolCalls) {
@@ -1483,10 +1797,13 @@ export async function POST(req: Request) {
                 console.log(`[Agent Loop] Round ${iteration} - Tool calls:`, toolCalls.map((t: any) => t.function.name))
                 
                 // 将 AI 回复（含可能的 content 和 tool_calls）存入上下文
-                fullMessages.push({ 
-                  role: "assistant", 
-                  content: accumulatedContent || null, 
-                  tool_calls: toolCalls 
+                // 🔥 Bug 修复：content 必须是字符串，不能用 null。
+                // DashScope 兼容模式要求 assistant 消息带 tool_calls 时 content 为字符串，
+                // null 会导致第 2 轮 LLM 调用返回 400
+                fullMessages.push({
+                  role: "assistant",
+                  content: accumulatedContent || "",
+                  tool_calls: toolCalls
                 })
 
                 // 通知前端
@@ -1556,11 +1873,73 @@ export async function POST(req: Request) {
                 );
 
                 // 处理结果并添加到消息历史
+                let hasClarifyAction = false
+                let hasPlanSubmitAction = false
                 for (const [toolCallId, result] of toolResults.entries()) {
                   const toolCall = toolCalls.find(tc => tc.id === toolCallId);
                   if (!toolCall) continue;
 
+                  // 🔥 检测 ask_user_question 工具返回的 clarify 动作
+                  // 转换为 <CLARIFY> 标签注入 content，触发前端渲染表单 + break loop
+                  if (result.success && result.data?._agent_action === 'clarify') {
+                    hasClarifyAction = true
+                    const clarifyJson = JSON.stringify(result.data.clarify_data)
+                    accumulatedContent += `\n<CLARIFY>${clarifyJson}</CLARIFY>`
+                    console.log(`[Agent Loop] ask_user_question → CLARIFY tag injected`)
+                    // tool 结果改为简短说明，避免 JSON 裸露
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: JSON.stringify({ success: true, message: '已向用户展示澄清表单，等待用户回复。请基于用户回复继续处理。' })
+                    });
+                    continue
+                  }
+
+                  // 🔥 检测 enter_plan_mode：设置 planMode = true，不 break，继续调研
+                  if (result.success && result.data?._agent_action === 'enter_plan_mode') {
+                    planMode = true
+                    console.log(`[Agent Loop] enter_plan_mode → planMode = true`)
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: JSON.stringify({ success: true, message: result.data.message })
+                    });
+                    continue
+                  }
+
+                  // 🔥 检测 exit_plan_mode：转换为 <PLAN> 标签 + break loop，等用户审批
+                  if (result.success && result.data?._agent_action === 'exit_plan_mode') {
+                    hasPlanSubmitAction = true
+                    planMode = false
+                    const planJson = JSON.stringify(result.data.plan_data)
+                    accumulatedContent += `\n<PLAN>${planJson}</PLAN>`
+                    console.log(`[Agent Loop] exit_plan_mode → PLAN tag injected`)
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: JSON.stringify({ success: true, message: result.data.message })
+                    });
+                    continue
+                  }
+
+                  // 🔥 多模态工具结果处理：摄像头截图等工具返回 _multimodal.images
+                  // 将 tool 消息内容转为 OpenAI Vision 格式（content 数组含 text + image_url），
+                  // 让模型在下一轮 Agent Loop 迭代中能"看到"图片并基于其内容推理。
+                  const toolData = result.success ? result.data : { error: result.error }
+                  const multimodal = result.success && isMultimodal(result.data)
+                  const mmImages = multimodal ? result.data._multimodal.images : []
+                  const mmSummary = multimodal ? result.data._multimodal.summary : ''
+
                   // 发送工具结果到前端
+                  // 多模态结果时附带 images 数组（base64 data url），前端可内联展示给用户
+                  const frontendResult: any = { ...toolData }
+                  if (multimodal) {
+                    delete frontendResult._multimodal
+                    frontendResult.images = mmImages.map(img => ({
+                      url: `data:${img.mime_type};base64,${img.base64}`,
+                      summary: mmSummary
+                    }))
+                  }
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                     id: `tool-result-${Date.now()}`,
                     object: "chat.completion.chunk",
@@ -1569,25 +1948,213 @@ export async function POST(req: Request) {
                     tool_result: {
                       name: toolCall.function.name,
                       args: JSON.parse(toolCall.function.arguments || '{}'),
-                      result: result.success ? result.data : { error: result.error }
+                      result: frontendResult
                     }
                   })}\n\n`));
 
-                  // 添加到消息历史
-                  fullMessages.push({
-                    role: 'tool',
-                    tool_call_id: toolCallId,
-                    content: JSON.stringify(result.success ? result.data : { error: result.error })
-                  });
+                  // 添加到消息历史（供下一轮 LLM 推理）
+                  // 多模态消息仅当当前模型支持视觉时才发送 image_url，否则降级为纯文本
+                  // 避免非 VLM 模型（如 deepseek-v3）因不支持 image_url 报错中断 Agent Loop
+                  if (multimodal && mmImages.length > 0 && isVLMModel) {
+                    // OpenAI Vision 多模态 tool 消息格式：content 为数组，含 text + image_url
+                    // 把元数据 JSON 作为 text 部分，便于模型检索结构化字段
+                    const metaWithoutMm = { ...toolData }
+                    delete metaWithoutMm._multimodal
+                    const textPart = `${mmSummary}\n\n[metadata]\n${JSON.stringify(metaWithoutMm)}`
+                    const contentParts: any[] = [
+                      { type: 'text', text: textPart }
+                    ]
+                    for (const img of mmImages) {
+                      contentParts.push({
+                        type: 'image_url',
+                        image_url: { url: `data:${img.mime_type};base64,${img.base64}` }
+                      })
+                    }
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: contentParts
+                    });
+                  } else if (multimodal && mmImages.length > 0 && !isVLMModel) {
+                    // 非 VLM 模型降级：只发文本摘要 + 提示模型无法看图
+                    const metaWithoutMm = { ...toolData }
+                    delete metaWithoutMm._multimodal
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: JSON.stringify({
+                        ...metaWithoutMm,
+                        _note: `当前模型不支持视觉输入，已抓取 ${mmImages.length} 张图片但无法让模型查看。图片已转发给用户。请基于摘要 "${mmSummary}" 回答用户。`
+                      })
+                    });
+                  } else {
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: JSON.stringify(toolData)
+                    });
+                  }
                 }
-                
+
+                // 🔥 ask_user_question 触发的 clarify：挂起 Agent Loop 等待用户回复
+                // 架构变更：原逻辑是 break 退出 + 前端发新对话，现改为同一 SSE 连接内挂起
+                if (hasClarifyAction) {
+                  console.log(`[Agent Loop] CLARIFY via tool_call, suspending loop`)
+                  // 分块流式推送 <CLARIFY> 标签内容，避免一次性推送导致长时间无反馈
+                  if (accumulatedContent.trim()) {
+                    const clarifyChunkSize = 40
+                    for (let i = 0; i < accumulatedContent.length; i += clarifyChunkSize) {
+                      const chunk = accumulatedContent.slice(i, i + clarifyChunkSize)
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        id: `clarify-tag-${Date.now()}-${i}`, object: "chat.completion.chunk",
+                        created: Date.now(), model: effectiveModel,
+                        choices: [{ delta: { content: chunk }, index: 0, finish_reason: null }],
+                      })}\n\n`))
+                      await new Promise(r => setTimeout(r, 8))
+                    }
+                  }
+
+                  // 挂起等待用户回复（5 分钟超时）
+                  const clarifyToolId = `clarify-tool-${Date.now()}`
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    id: `user-input-required-${Date.now()}`,
+                    object: "chat.completion.chunk",
+                    created: Date.now(),
+                    model: effectiveModel,
+                    user_input_required: {
+                      type: 'clarify',
+                      checkpoint_id: clarifyToolId,
+                      title: '需要用户澄清',
+                      content: accumulatedContent,
+                      timeout_ms: 5 * 60 * 1000,
+                    },
+                  })}\n\n`))
+
+                  try {
+                    const userReply = await waitForUserInput(
+                      sessionId,
+                      clarifyToolId,
+                      'clarify',
+                      'ask_user_question 工具触发',
+                      5 * 60 * 1000,
+                    )
+                    console.log(`[Agent Loop] CLARIFY (via tool_call) resolved, continuing`)
+
+                    fullMessages.push({
+                      role: "assistant",
+                      content: accumulatedContent || "",
+                    })
+                    fullMessages.push({
+                      role: "user",
+                      content: userReply,
+                    })
+
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `user-input-received-${Date.now()}`,
+                      object: "chat.completion.chunk",
+                      created: Date.now(),
+                      model: effectiveModel,
+                      user_input_received: {
+                        checkpoint_id: clarifyToolId,
+                        reply_preview: userReply.slice(0, 100),
+                      },
+                    })}\n\n`))
+                  } catch (err: any) {
+                    console.warn(`[Agent Loop] CLARIFY (via tool_call) wait failed: ${err.message}`)
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `user-input-timeout-${Date.now()}`,
+                      object: "chat.completion.chunk",
+                      created: Date.now(),
+                      model: effectiveModel,
+                      user_input_timeout: {
+                        checkpoint_id: clarifyToolId,
+                        reason: err.message || 'timeout',
+                      },
+                    })}\n\n`))
+                    break
+                  }
+                  continue
+                }
+
+                // 🔥 exit_plan_mode 触发的计划提交：break loop，等用户审批
+                if (hasPlanSubmitAction) {
+                  console.log(`[Agent Loop] PLAN submitted via tool_call, halting loop for user approval`)
+                  // 🔥 将注入的 <PLAN> 标签内容分块流式推送给前端
+                  // 之前一次性 enqueue 整个 accumulatedContent，导致用户等待很久才看到计划
+                  // 现在按 ~40 字符分块推送，前端可渐进式渲染打字机效果
+                  if (accumulatedContent.trim()) {
+                    const planChunkSize = 40
+                    for (let i = 0; i < accumulatedContent.length; i += planChunkSize) {
+                      const chunk = accumulatedContent.slice(i, i + planChunkSize)
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        id: `plan-tag-${Date.now()}-${i}`, object: "chat.completion.chunk",
+                        created: Date.now(), model: effectiveModel,
+                        choices: [{ delta: { content: chunk }, index: 0, finish_reason: null }],
+                      })}\n\n`))
+                      // 微小延迟让前端有时间渲染（不阻塞事件循环）
+                      await new Promise(r => setTimeout(r, 8))
+                    }
+                  }
+                  break
+                }
+
                 requestBody = { ...requestBody, messages: fullMessages }
+                lastRoundHadToolCalls = true
                 continue
               } else {
-                // 无工具，说明最后一部分内容已经通过之前的 SSE 流推送出去了，对话已完整
+                // 无工具调用，但需要判断这是"已完成最终回答"还是"工具后只输出了过渡文本"
+                // 🔥 关键修复：累积内容过短（如"我来帮您查询..."）且历史中有 tool 结果时，
+                // 说明 LLM 还没真正基于工具结果回答 → 标记继续下一轮（让 LLM 真正输出最终答案）
+                const hasToolResultsInHistory = fullMessages.some(m => m.role === 'tool')
+                const trimmedContent = accumulatedContent.trim()
+                const isShortTransition = trimmedContent.length < 50
+                // 🔥 Bug 修复：识别"前导语"——以冒号结尾或含"先拉取/让我调用/准备调用"等
+                // 明显未展开的引导句，即使 ≥50 字也应视为未完成（原逻辑只看字数会漏判）
+                const endsWithColon = /[:：]\s*$/.test(trimmedContent)
+                const hasLeadInPhrase = /(先拉取|先获取|让我调用|让我先|我现在来|我现在|准备调用|接下来|我来帮|帮您查询|帮您拉取|帮您获取|正在拉取|正在获取|正在查询)/.test(trimmedContent)
+                const isLikelyIncomplete = hasToolResultsInHistory && (isShortTransition || endsWithColon || hasLeadInPhrase)
+
+                if (isLikelyIncomplete) {
+                  console.warn(`[Agent Loop] Round ${iteration} - Incomplete text after tool call (${trimmedContent.length} chars, short=${isShortTransition}, colon=${endsWithColon}, leadIn=${hasLeadInPhrase}), treating as transition.`)
+                  // 🔥 Bug 修复：注入 system nudge 强制模型基于工具结果生成完整回答，
+                  // 而不是再次输出"我来查询/先拉取"之类的引导语
+                  fullMessages.push({ role: "assistant", content: accumulatedContent || "" })
+                  fullMessages.push({
+                    role: 'system',
+                    content: '你刚才说了引导性话语但没有给出实质回答。请立即基于已获取的工具结果，为用户生成完整、具体的最终回答，不要再输出"我来查询/先拉取"之类的引导语，也不要再次调用工具。'
+                  })
+                  lastRoundHadToolCalls = true
+                  if (iteration < MAX_AGENT_ITERATIONS) {
+                    requestBody = { ...requestBody, messages: fullMessages }
+                    continue
+                  }
+                  // 已达最大迭代：fall through 到循环外的强制最终回答
+                }
+
+                // 正常情况：无工具调用 + 累积内容是真正的最终回答
                 fullMessages.push({ role: "assistant", content: accumulatedContent })
+                lastRoundHadToolCalls = false
+
+                // 边缘情况：AI 调用完工具后返回空内容（既无 tool_calls 也无文本）
+                if (!accumulatedContent.trim() && hasToolResultsInHistory) {
+                  console.warn(`[Agent Loop] Round ${iteration} - Empty final answer after tool calls, will force summary`)
+                  lastRoundHadToolCalls = true
+                  if (iteration < MAX_AGENT_ITERATIONS) {
+                    requestBody = { ...requestBody, messages: fullMessages }
+                    continue
+                  }
+                }
                 console.log(`[Agent Loop] Round ${iteration} - Final answer finished streaming`)
-                
+
+                // 缓存可缓存的最终回答（仅知识/查询类，控制指令与实时数据已被 shouldCacheQuery 排除）
+                if (accumulatedContent) {
+                  try {
+                    cacheResponse(lastUserText, effectiveModel || 'auto', { content: accumulatedContent, model: effectiveModel }, deviceStatus)
+                  } catch (e) {
+                    console.error('[ResponseCache] Failed to cache response:', e)
+                  }
+                }
+
                 // 🔍 验证定时任务格式（如果启用了定时任务功能）
                 if (aiFeatures?.enableScheduleTask !== false && accumulatedContent) {
                   // 检查是否包含 schedule_task JSON
@@ -1647,6 +2214,115 @@ export async function POST(req: Request) {
               }
             }
 
+            // === 强制最终回答：循环因达到最大迭代次数 或 LLM 异常提前退出，
+            // 且最后一轮有 tool_calls（或被判为未完成的前导语），AI 没有机会生成最终总结
+            // → 强制做一次不带 tools 的 LLM 调用，让 AI 基于工具结果输出最终回答
+            // 🔥 Bug 修复：原来只在 iteration >= MAX_AGENT_ITERATIONS 时兜底，
+            // 导致 LLM 中途失败 break 时对话戛然而止；现在异常退出也走兜底
+            const needForceFinal = lastRoundHadToolCalls && (iteration >= MAX_AGENT_ITERATIONS || loopExitedAbnormally)
+            if (needForceFinal) {
+              const triggerReason = loopExitedAbnormally
+                ? `abnormal exit (${abnormalExitReason})`
+                : `max iterations (${MAX_AGENT_ITERATIONS})`
+              console.log(`[Agent Loop] ⚠️ Forcing final summary due to ${triggerReason}, lastRoundHadToolCalls=${lastRoundHadToolCalls}`)
+
+              // 构造最终回答请求：不带 tools，强制 AI 生成文本总结
+              const finalMessages = (fullMessages as any[]).map((m: any) => {
+                const { role, content, name, tool_calls, tool_call_id } = m
+                const clean: any = { role, content }
+                if (name) clean.name = name
+                if (tool_calls) clean.tool_calls = tool_calls
+                if (tool_call_id) clean.tool_call_id = tool_call_id
+                return clean
+              })
+
+              // 在消息末尾添加系统提示，要求 AI 基于已有工具结果生成最终回答
+              finalMessages.push({
+                role: 'system',
+                content: '你已经完成了所有工具调用。请基于已获取的工具结果，为用户生成完整、友好的最终回答。不要再次调用工具，直接给出总结性回复。'
+              })
+
+              const finalBody = {
+                ...requestBody,
+                messages: finalMessages,
+                stream: true,
+                // 不传 tools，强制 AI 只输出文本
+              }
+              delete (finalBody as any).tools
+
+              try {
+                const finalTimeoutController = new AbortController()
+                const finalTimeoutId = setTimeout(() => finalTimeoutController.abort(), 60000)
+                const finalRes = await fetch(targetUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                  body: JSON.stringify(finalBody),
+                  signal: finalTimeoutController.signal
+                })
+                clearTimeout(finalTimeoutId)
+
+                if (finalRes.ok && finalRes.body) {
+                  const finalReader = finalRes.body.getReader()
+                  const finalDecoder = new TextDecoder()
+                  let finalBuffer = ""
+                  let finalAccumulated = ""
+
+                  while (true) {
+                    const { done, value } = await finalReader.read()
+                    if (done) break
+
+                    finalBuffer += finalDecoder.decode(value, { stream: true })
+                    const lines = finalBuffer.split("\n")
+                    finalBuffer = lines.pop() || ""
+
+                    for (const line of lines) {
+                      const trimmed = line.trim()
+                      if (!trimmed || trimmed === "data: [DONE]") continue
+                      if (trimmed.startsWith("data: ")) {
+                        try {
+                          const json = JSON.parse(trimmed.slice(6))
+                          const delta = json.choices?.[0]?.delta
+                          if (delta?.content) {
+                            finalAccumulated += delta.content
+                            // 推送给前端
+                            const filteredContent = filterBareTaskListJson(delta.content, finalAccumulated)
+                            const filteredFinal = filterDisabledFeatures(filteredContent, aiFeatures)
+                            if (filteredFinal) {
+                              const cleanJson = JSON.parse(JSON.stringify(json))
+                              if (cleanJson.choices?.[0]?.delta) {
+                                cleanJson.choices[0].delta.content = filteredFinal
+                              }
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify(cleanJson)}\n\n`))
+                            }
+                          }
+                        } catch (e) { console.warn('[Agent Loop] final summary filter parse failed:', e) }
+                      }
+                    }
+                  }
+
+                  fullMessages.push({ role: "assistant", content: finalAccumulated })
+                  console.log(`[Agent Loop] ✅ Forced final summary generated (${finalAccumulated.length} chars)`)
+                } else {
+                  console.warn(`[Agent Loop] Forced final summary failed (status ${finalRes.status})`)
+                }
+              } catch (finalErr: any) {
+                console.warn(`[Agent Loop] Forced final summary error:`, finalErr?.message || finalErr)
+              }
+            }
+
+            // 🔥 Bug 修复：第一轮就异常退出且无 tool 结果可总结时，给用户明确错误提示
+            // （此时 needForceFinal=false 因为 lastRoundHadToolCalls=false，强制总结不会触发）
+            if (loopExitedAbnormally && !lastRoundHadToolCalls) {
+              console.warn(`[Agent Loop] Fatal exit without any tool results: ${abnormalExitReason}`)
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                id: `agent-fatal-${Date.now()}`,
+                object: "chat.completion.chunk",
+                created: Date.now(),
+                model: effectiveModel,
+                choices: [{ index: 0, delta: { content: `\n\n⚠️ Agent 推理失败：${abnormalExitReason}。请检查网络或 AI 服务状态后重试。` }, finish_reason: null }]
+              })}\n\n`))
+            }
+
             clearInterval(keepAlive)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
@@ -1660,12 +2336,37 @@ export async function POST(req: Request) {
 
             // === 自动学习：从对话中学习用户偏好和模式 ===
             try {
+              const aiResponseText = fullMessages.filter(m => m.role === 'assistant').map(m => m.content).join('\n');
+              // 🔥 从 AI 回复中解析设备控制动作，让设备模式学习真正触发
+              const deviceActions = extractDeviceActionsFromResponse(aiResponseText);
+              // 🔥 从当前设备状态提取环境数据，让"环境响应模式"识别有真实依据
+              const environmentData: {
+                temperature?: number;
+                humidity?: number;
+                timeOfDay?: number;
+              } = {};
+              if (deviceStatus && typeof deviceStatus === 'object') {
+                if (typeof deviceStatus.temperature === 'number') {
+                  environmentData.temperature = deviceStatus.temperature;
+                }
+                if (typeof deviceStatus.humidity === 'number') {
+                  environmentData.humidity = deviceStatus.humidity;
+                }
+              }
+              environmentData.timeOfDay = new Date().getHours();
+
               await learnFromConversation({
                 userId: user.id as number,
                 userMessage: lastUserText,
-                aiResponse: fullMessages.filter(m => m.role === 'assistant').map(m => m.content).join('\n')
+                aiResponse: aiResponseText,
+                deviceActions: deviceActions.length > 0 ? deviceActions : undefined,
+                environmentData
               });
-              console.log('[AutoLearning] Learned from conversation');
+              if (deviceActions.length > 0) {
+                console.log(`[AutoLearning] Learned from conversation (${deviceActions.length} device actions)`);
+              } else {
+                console.log('[AutoLearning] Learned from conversation (preferences only)');
+              }
             } catch (e) {
               console.error('[AutoLearning] Failed to learn from conversation:', e);
             }
@@ -1674,10 +2375,14 @@ export async function POST(req: Request) {
             globalOrchestratorManager.unregister(sessionId);
             orchestrator.cleanup();
 
-            // 扣除配额
-            if (useSystemKey) {
-              try { await incrementAiUsage(user.id as number) } catch (e) { }
-            }
+            // 🔥 清理挂起的用户输入（若用户在 CHECKPOINT/CLARIFY 挂起期间停止了对话）
+            // 防止悬挂的 promise 阻塞下一次对话
+            cancelPendingUserInput(sessionId, 'stream_closed')
+
+            // 🔥 清理 session 的 task list（防止下一次对话复用旧任务列表）
+            clearSessionTaskList(sessionId)
+
+            // 配额已在请求开始时通过 reserveAiUsage 原子预扣，成功路径无需再次扣减
 
             controller.close()
           } catch (err: any) {
@@ -1687,6 +2392,17 @@ export async function POST(req: Request) {
             // 清理编排器
             globalOrchestratorManager.unregister(sessionId);
             orchestrator.cleanup();
+
+            // 🔥 异常路径也要清理挂起的用户输入
+            cancelPendingUserInput(sessionId, 'stream_error')
+
+            // 🔥 异常路径也要清理 task list
+            clearSessionTaskList(sessionId)
+
+            // 请求失败 → 退还预扣配额
+            if (quotaReserved) {
+              refundAiUsage(user.id as number).catch(e => console.error('[Quota] refund failed:', e))
+            }
 
             // 与 chat API 非流式错误的格式保持一致：`AI API Error: <code> - <details>`，
             // 避免在 SSE 里塞一个仅前端可见的 "Agent loop error: ..." 私有字段名。
@@ -1698,7 +2414,7 @@ export async function POST(req: Request) {
       })
 
       return new Response(stream, {
-        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" }
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" }
       })
     }
     // === Multi-Round Agent Loop 结束 ===
@@ -1806,7 +2522,7 @@ export async function POST(req: Request) {
                           }
                         }
                       }
-                    } catch { }
+                    } catch (e) { console.warn('[Chat Stream] DashScope App SSE inner parse failed:', e) }
                   }
                 }
               }
@@ -1971,7 +2687,7 @@ export async function POST(req: Request) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiFormat)}\n\n`))
                       }
                     }
-                  } catch (e) { }
+                  } catch (e) { console.warn('[Chat Stream] dashscope chunk parse failed:', e) }
                 }
               }
             }
@@ -1988,29 +2704,75 @@ export async function POST(req: Request) {
       // OpenAI格式直通转发
       const encoder = new TextEncoder()
       const directStream = response.body
-      if (!directStream) return new Response('No response body', { status: 500 })
+      if (!directStream) {
+        if (quotaReserved) {
+          refundAiUsage(user.id as number).catch(e => console.error('[Quota] refund failed:', e))
+        }
+        return new Response('No response body', { status: 500 })
+      }
 
       const stream = new ReadableStream({
         async start(controller) {
           try {
             const reader = directStream.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ""
+            let accumulatedContent = ""
             while (true) {
               const { done, value } = await reader.read()
               if (done) break
-              controller.enqueue(value)
+              buffer += decoder.decode(value, { stream: true })
+              // 按行分割，保留最后未完整的行到 buffer
+              const lines = buffer.split("\n")
+              buffer = lines.pop() || ""
+              const filteredLines: string[] = []
+              for (const line of lines) {
+                const trimmed = line.trim()
+                if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
+                  try {
+                    const json = JSON.parse(trimmed.slice(6))
+                    const delta = json.choices?.[0]?.delta
+                    if (delta?.content) {
+                      accumulatedContent += delta.content
+                      let filtered = filterBareTaskListJson(delta.content, accumulatedContent)
+                      filtered = filterDisabledFeatures(filtered, aiFeatures)
+                      if (filtered) {
+                        json.choices[0].delta.content = filtered
+                        filteredLines.push(`data: ${JSON.stringify(json)}`)
+                      }
+                      continue
+                    }
+                  } catch {
+                    // 非 JSON 行原样保留
+                  }
+                }
+                filteredLines.push(line)
+              }
+              if (filteredLines.length > 0) {
+                controller.enqueue(encoder.encode(filteredLines.join("\n") + "\n"))
+              }
+            }
+            // flush 残留 buffer
+            if (buffer.trim()) {
+              controller.enqueue(encoder.encode(buffer + "\n"))
             }
             controller.close()
-          } catch (e) { controller.error(e) }
+          } catch (e) {
+            // 流传输失败 → 退还预扣配额
+            if (quotaReserved) {
+              refundAiUsage(user.id as number).catch(err => console.error('[Quota] refund failed:', err))
+            }
+            controller.error(e)
+          }
         }
       })
-      if (useSystemKey && user) {
-        incrementAiUsage(user.id as number).catch(e => console.error("Quota error:", e))
-      }
+      // 配额已在请求开始时通过 reserveAiUsage 原子预扣，成功路径无需再次扣减
       return new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           "Connection": "keep-alive",
+          "X-Accel-Buffering": "no",
           ...(response.headers.get("Transfer-Encoding") ? { "Transfer-Encoding": response.headers.get("Transfer-Encoding")! } : {})
         },
         status: response.status
@@ -2019,8 +2781,12 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error("Chat API Error:", error)
+    // 请求异常 → 退还预扣配额
+    if (quotaReserved && userId !== null) {
+      await refundAiUsage(userId).catch(e => console.error('[Quota] refund failed:', e))
+    }
     return Response.json(
-      { error: msg || "Internal server error" },
+      { error: `AI API Error: 500 - ${msg || "Internal server error"}` },
       { status: 500 }
     )
   }

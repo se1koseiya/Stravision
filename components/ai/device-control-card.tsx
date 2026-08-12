@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from '@/lib/utils';
+import { DEVICE_IDS, STEPPER } from '@/lib/constants';
 import { 
   CheckCircle2, 
   Droplets, 
@@ -30,10 +31,10 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
     let name = command.deviceName || "智能指令";
     
     // 强制映射
-    if (deviceId === 5) name = "灌溉水泵";
-    if (deviceId === 6) name = "环境风扇";
-    if (deviceId === 7) name = "植物全光谱补光灯";
-    if (deviceId === 8) name = "光照植物补光灯";
+    if (deviceId === DEVICE_IDS.PUMP) name = "灌溉水泵";
+    if (deviceId === DEVICE_IDS.FAN) name = "环境风扇";
+    if (deviceId === DEVICE_IDS.RGB_LIGHT) name = "植物全光谱补光灯";
+    if (deviceId === DEVICE_IDS.WHITE_LIGHT) name = "光照植物补光灯";
 
     if (command.action === 'set_led') {
       return {
@@ -91,7 +92,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
 
     if (name.includes('云台') || name.includes('摄像头') || command.action === 'control_camera' || command.action === 'move_camera_and_look') {
       const direction = command.direction === 1 ? '左移' : command.direction === 2 ? '右移' : '控制';
-      const distance = command.distance_mm || (command.pulses ? (command.pulses / 160).toFixed(1) : '未知');
+      const distance = command.distance_mm || (command.pulses ? (command.pulses / STEPPER.PULSES_PER_MM).toFixed(1) : '未知');
       
       // 如果是 move_camera_and_look，显示为视觉巡检
       if (command.action === 'move_camera_and_look') {

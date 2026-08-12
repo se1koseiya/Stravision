@@ -1,9 +1,8 @@
 "use client"
 
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { X, Download, ZoomIn, ZoomOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { Modal, Button, Tooltip } from "antd"
+import { X, Download, ZoomIn, ZoomOut } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface ImagePreviewDialogProps {
@@ -11,6 +10,8 @@ interface ImagePreviewDialogProps {
   onOpenChange: (open: boolean) => void
   imageUrl: string
 }
+
+const ICON_STROKE = 1.75
 
 export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePreviewDialogProps) {
   const [scale, setScale] = useState(1)
@@ -26,56 +27,79 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.5))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-black/95 border-none">
-        <div className="relative w-full h-full flex items-center justify-center p-4">
-          {/* Controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
+    <Modal
+      open={open}
+      onCancel={() => onOpenChange(false)}
+      footer={null}
+      closable={false}
+      width="90vw"
+      styles={{
+        body: {
+          background: "rgba(0,0,0,0.95)",
+          padding: 0,
+          height: "90vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          borderRadius: 12,
+          overflow: "hidden"
+        },
+        content: { padding: 0, background: "transparent" }
+      }}
+      style={{ top: "5vh" }}
+    >
+      <div className="relative w-full h-full flex items-center justify-center p-4">
+        {/* Controls */}
+        <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <Tooltip title="缩小">
             <Button
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              type="text"
+              shape="circle"
+              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              icon={<ZoomOut className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleZoomOut}
-            >
-              <ZoomOut className="h-5 w-5" />
-            </Button>
+            />
+          </Tooltip>
+          <Tooltip title="放大">
             <Button
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              type="text"
+              shape="circle"
+              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              icon={<ZoomIn className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleZoomIn}
-            >
-              <ZoomIn className="h-5 w-5" />
-            </Button>
+            />
+          </Tooltip>
+          <Tooltip title="下载">
             <Button
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              type="text"
+              shape="circle"
+              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              icon={<Download className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleDownload}
-            >
-              <Download className="h-5 w-5" />
-            </Button>
+            />
+          </Tooltip>
+          <Tooltip title="关闭">
             <Button
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              type="text"
+              shape="circle"
+              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              icon={<X className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={() => onOpenChange(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Image */}
-          <motion.img
-            src={imageUrl}
-            alt="Preview"
-            className="max-w-full max-h-full object-contain"
-            style={{ scale }}
-            animate={{ scale }}
-            transition={{ duration: 0.2 }}
-          />
+            />
+          </Tooltip>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {/* Image */}
+        <motion.img
+          src={imageUrl}
+          alt="Preview"
+          className="max-w-full max-h-full object-contain"
+          style={{ scale }}
+          animate={{ scale }}
+          transition={{ duration: 0.2 }}
+        />
+      </div>
+    </Modal>
   )
 }

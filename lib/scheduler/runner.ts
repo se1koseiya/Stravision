@@ -1,6 +1,6 @@
 import cron from "node-cron"
 import type { ScheduledTask as CronScheduledTask } from "node-cron"
-import { getActiveTasks, deleteTask, ScheduledTask } from "@/lib/db/scheduler-service"
+import { getActiveTasks, deleteTask, markTaskResult, ScheduledTask } from "@/lib/db/scheduler-service"
 import { MQTTService } from "@/lib/mqtt-service"
 
 // In-memory storage for running jobs
@@ -108,10 +108,15 @@ export class SchedulerRunner {
         console.log(`[Scheduler] Task ${task.id} is in the past, executing immediately if within reasonable window (e.g. 1 min)`)
         if (delay > -60000) {
           // 在 1 分钟内的过期任务，立即执行
-          this.executeTask(task).finally(() => {
-            // 执行完成后清理
+          this.executeTask(task).then((ok) => {
             jobs.delete(task.id)
-            deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete expired task ${task.id}:`, e))
+            // 成功 → 删除一次性任务；失败 → 保留记录以便排查
+            if (ok) {
+              deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete expired task ${task.id}:`, e))
+            }
+          }).catch(() => {
+            jobs.delete(task.id)
+            // executeTask 内部已记录失败状态，此处仅清理内存
           })
         } else {
           // 已过期太久的任务，直接删除
@@ -124,9 +129,14 @@ export class SchedulerRunner {
       if (delay <= MAX_SETTIMEOUT_DELAY) {
         // 安全范围内：直接使用 setTimeout
         const timeout = setTimeout(() => {
-          this.executeTask(task).finally(() => {
+          this.executeTask(task).then((ok) => {
             jobs.delete(task.id)
-            deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete completed task ${task.id}:`, e))
+            // 成功 → 删除一次性任务；失败 → 保留记录以便排查
+            if (ok) {
+              deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete completed task ${task.id}:`, e))
+            }
+          }).catch(() => {
+            jobs.delete(task.id)
           })
         }, delay)
         jobs.set(task.id, timeout)
@@ -147,9 +157,13 @@ export class SchedulerRunner {
     if (remainingDelay <= MAX_SETTIMEOUT_DELAY) {
       // 剩余延迟已在安全范围
       const timeout = setTimeout(() => {
-        this.executeTask(task).finally(() => {
+        this.executeTask(task).then((ok) => {
           jobs.delete(task.id)
-          deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete completed long-delay task ${task.id}:`, e))
+          if (ok) {
+            deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete completed long-delay task ${task.id}:`, e))
+          }
+        }).catch(() => {
+          jobs.delete(task.id)
         })
       }, remainingDelay)
       jobs.set(task.id, timeout)
@@ -161,9 +175,13 @@ export class SchedulerRunner {
       const newRemaining = task.execute_at! - Date.now()
       if (newRemaining <= 0) {
         // 已到执行时间
-        this.executeTask(task).finally(() => {
+        this.executeTask(task).then((ok) => {
           jobs.delete(task.id)
-          deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete completed long-delay task ${task.id}:`, e))
+          if (ok) {
+            deleteTask(task.id).catch(e => console.error(`[Scheduler] Failed to delete completed long-delay task ${task.id}:`, e))
+          }
+        }).catch(() => {
+          jobs.delete(task.id)
         })
       } else {
         this.scheduleLongDelayTask(task, newRemaining)
@@ -172,7 +190,11 @@ export class SchedulerRunner {
     jobs.set(task.id, timeout)
   }
 
-  private async executeTask(task: ScheduledTask): Promise<void> {
+  /**
+   * 执行任务，返回是否成功
+   * @returns true=成功，false=失败（失败记录已写入 DB，调用方不应再删除任务）
+   */
+  private async executeTask(task: ScheduledTask): Promise<boolean> {
     console.log(`[Scheduler] Executing task ${task.id}: ${task.title}`)
     const mqtt = MQTTService.getInstance()
 
@@ -187,8 +209,10 @@ export class SchedulerRunner {
       try {
         params = typeof task.params === 'string' ? JSON.parse(task.params) : task.params
       } catch (e) {
-        console.error(`[Scheduler] Failed to parse params for task ${task.id}:`, task.params)
-        return
+        const msg = `Failed to parse params: ${task.params}`
+        console.error(`[Scheduler] Task ${task.id} ${msg}`)
+        await markTaskResult(task.id, false, msg).catch(() => {})
+        return false
       }
 
       console.log(`[Scheduler] Task params:`, params)
@@ -227,16 +251,25 @@ export class SchedulerRunner {
         // Agent and reminder tasks are primarily handled by the frontend picking up the "due" status.
         // We log it here so we know the backend did its part (for one-time tasks).
         console.log(`[Scheduler] Agent/Reminder task triggered: ${task.title}. Frontend should handle the visual execution.`)
-        return
+        await markTaskResult(task.id, true).catch(() => {})
+        return true
       }
 
       if (!command) throw new Error(`Unsupported action_type: ${task.action_type}`)
       console.log(`[Scheduler] Sending command:`, command)
       await mqtt.sendControlCommand(command)
       console.log(`[Scheduler] Task ${task.id} executed successfully`)
+      await markTaskResult(task.id, true).catch(() => {})
+      return true
 
     } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e)
       console.error(`[Scheduler] Failed to execute task ${task.id}:`, e)
+      // 记录失败状态，保留任务记录以便排查（不删除）
+      await markTaskResult(task.id, false, errMsg).catch(err => {
+        console.error(`[Scheduler] Failed to mark task ${task.id} as failed:`, err)
+      })
+      return false
     }
   }
 

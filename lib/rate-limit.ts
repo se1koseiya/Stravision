@@ -9,7 +9,7 @@ interface RateLimitConfig {
 const trackers = new Map<string, { count: number; expiresAt: number; violationCount: number }>();
 const bannedIPs = new Map<string, number>(); // IP -> ban expires at
 
-// Simple in-memory banned cache to avoid hitting DB on every request in middleware
+// Simple in-memory banned cache to avoid hitting DB on every request in proxy
 // In a real production app, this should be synced with Redis/DB
 const BAN_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes

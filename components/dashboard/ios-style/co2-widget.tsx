@@ -1,10 +1,23 @@
 "use client"
 
-import { Wind, AlertTriangle, CheckCircle, Activity } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { IOSWidgetCard } from "./ios-widget-card"
-import { WidgetTrendChart } from "./widget-trend-chart"
+import { Wind, AlertTriangle, CheckCircle2, Trees, Fan } from "lucide-react"
+import { Flex } from "antd"
+import {
+  IOSWidgetCard,
+  WidgetHeader,
+  WidgetStatusPill,
+  WidgetHeroNumber,
+  WidgetMiniStats,
+  WidgetCompactFooter,
+  WidgetTrendChip,
+} from "./ios-widget-card"
+import { WidgetRingProgress, WidgetLevelBar, WidgetLineChart, WidgetBars, WidgetGaugeStrip } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+
+const A = BERRY_THEME.apple
+const WC = A.widgetColors.co2
+const ICON_STROKE = 1.75
 
 interface CO2WidgetProps {
   value: number
@@ -17,9 +30,30 @@ interface CO2WidgetProps {
   onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
 }
 
-export function CO2Widget({ 
-  value, 
-  size = 'medium', 
+function getStatus(ppm: number) {
+  if (ppm >= 1500) return { label: "较差", color: A.accents.red }
+  if (ppm >= 1000) return { label: "警告", color: A.accents.orange }
+  if (ppm >= 800) return { label: "一般", color: A.accents.yellow }
+  return { label: "优良", color: A.accents.green }
+}
+
+function ppmToRing(ppm: number) {
+  return Math.max(0, Math.min(100, (ppm / 2000) * 100))
+}
+
+function useSparkline(current: number) {
+  return [
+    current - 80, current - 50, current - 30, current + 20,
+    current, current + 40, current + 60, current + 30,
+    current - 20, current, current + 10, current,
+  ]
+}
+
+const OUTDOOR = 420
+
+export function CO2Widget({
+  value,
+  size = 'medium',
   className,
   isEditing,
   widgetId,
@@ -28,151 +62,171 @@ export function CO2Widget({
   onLongPress
 }: CO2WidgetProps) {
   const { isElderFriendlyMode } = useElderFriendly()
-  
-  const getCO2Config = (ppm: number) => {
-    if (ppm >= 1500) return {
-      status: "较差",
-      label: "空气差",
-      icon: AlertTriangle,
-      colorClass: "text-red-500",
-      bgClass: "bg-red-50 dark:bg-red-900/30",
-      hexColor: "#ef4444"
-    }
-    if (ppm >= 1000) return {
-      status: "警告",
-      label: "需通风",
-      icon: AlertTriangle,
-      colorClass: "text-orange-500",
-      bgClass: "bg-orange-50 dark:bg-orange-900/30",
-      hexColor: "#f97316"
-    }
-    if (ppm >= 800) return {
-      status: "一般",
-      label: "一般",
-      icon: Wind,
-      colorClass: "text-yellow-500",
-      bgClass: "bg-yellow-50 dark:bg-yellow-900/30",
-      hexColor: "#eab308"
-    }
-    return {
-      status: "优良",
-      label: "优良",
-      icon: CheckCircle,
-      colorClass: "text-primary",
-      bgClass: "bg-emerald-50 dark:bg-emerald-900/30",
-      hexColor: "#10b981"
-    }
+  const status = getStatus(value)
+  const isSmall = size === 'small'
+  const isLarge = size === 'large'
+  const sparkData = useSparkline(value)
+  const barsData = sparkData.slice(-8)
+  const diff = value - OUTDOOR
+
+  const heroSize = isElderFriendlyMode
+    ? (isSmall ? 28 : isLarge ? 44 : 36)
+    : (isSmall ? 26 : isLarge ? 40 : 34)
+
+  const ringSize = isSmall ? 52 : isLarge ? 110 : 76
+
+  if (isSmall) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Wind size={12} strokeWidth={ICON_STROKE} />}
+            label="CO₂"
+            color={status.color}
+            right={<div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />}
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical justify="space-between" style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" style={{ flex: 1, minHeight: 0 }}>
+            <WidgetHeroNumber value={value} fontSize={heroSize} />
+            <WidgetBars data={barsData} color={status.color} height={32} barWidth={3} gap={2} />
+          </Flex>
+          <WidgetGaugeStrip value={value} min={400} max={2000} color={status.color} segments={10} height={5} />
+          <WidgetMiniStats
+            stats={[
+              { label: '室外', value: '420', color: A.accents.green, icon: <Trees size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '阈值', value: '1k', color: A.accents.orange, icon: <AlertTriangle size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '差值', value: `+${diff}`, color: status.color },
+            ]}
+          />
+        </Flex>
+      </IOSWidgetCard>
+    )
   }
 
-  const config = getCO2Config(value)
-  const isSmall = size === 'small'
-  const Icon = config.icon
+  if (isLarge) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Wind size={14} strokeWidth={ICON_STROKE} />}
+            label="CO₂ 浓度"
+            color={status.color}
+            right={<WidgetStatusPill label={status.label} color={status.color} />}
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical gap={12} style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" style={{ flex: 1, minHeight: 0 }}>
+            <Flex vertical gap={4}>
+              <WidgetHeroNumber value={value} unit="ppm" fontSize={heroSize} />
+              <span style={{ fontSize: 12, color: A.labelTertiary, fontWeight: 500 }}>二氧化碳浓度</span>
+            </Flex>
+            <WidgetRingProgress
+              value={ppmToRing(value)}
+              size={ringSize}
+              strokeWidth={7}
+              color={status.color}
+              label={value.toFixed(0)}
+              sublabel="ppm"
+            />
+          </Flex>
 
-  const Header = (
-    <div className="flex items-center gap-2">
-      <div className={cn("p-2 rounded-full", config.bgClass)}>
-        <Wind className={cn("w-4 h-4", config.colorClass)} />
-      </div>
-      {!isSmall && (
-        <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">二氧化碳浓度</span>
-      )}
-    </div>
-  )
+          <WidgetLevelBar
+            value={value}
+            min={400}
+            max={2000}
+            color={status.color}
+            markers={[
+              { value: 800, label: '800', color: A.accents.green },
+              { value: 1000, label: '1k', color: A.accents.orange },
+              { value: 1500, label: '1.5k', color: A.accents.red },
+            ]}
+          />
+
+          <div style={{ height: 50, minHeight: 50 }}>
+            <WidgetLineChart data={sparkData} color={status.color} showGrid />
+          </div>
+
+          <WidgetMiniStats
+            stats={[
+              { label: '室外', value: '420', color: A.accents.green, icon: <CheckCircle2 size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '阈值', value: '1000', color: A.accents.orange, icon: <AlertTriangle size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '建议', value: '<800', color: status.color, icon: <Fan size={10} strokeWidth={ICON_STROKE} /> },
+            ]}
+            style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
+          />
+        </Flex>
+      </IOSWidgetCard>
+    )
+  }
 
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
-      header={size !== 'small' ? Header : null}
+      className={className}
+      header={
+        <WidgetHeader
+          icon={<Wind size={14} strokeWidth={ICON_STROKE} />}
+          label="CO₂"
+          color={status.color}
+          right={<WidgetStatusPill label={status.label} color={status.color} />}
+        />
+      }
       isEditing={isEditing}
       widgetId={widgetId}
       onRemove={onRemove}
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
+      tint={WC.accent}
     >
-      <div className="flex flex-col h-full justify-between">
-        {/* Small Size */}
-        {size === 'small' && (
-          <>
-            <div className="flex justify-between items-start">
-              <div className={cn("p-2 rounded-full", config.bgClass)}>
-                <Icon className={cn("w-5 h-5", config.colorClass)} />
-              </div>
-            </div>
-            
-            <div className="mt-auto">
-              <div className="flex items-start">
-                <span className={cn(
-                  "font-bold tracking-tighter text-slate-900 dark:text-white",
-                  isElderFriendlyMode ? "text-4xl" : "text-3xl"
-                )}>{value}</span>
-                <span className={cn(
-                  "font-medium mt-1 text-slate-400 ml-1",
-                  isElderFriendlyMode ? "text-sm" : "text-xs"
-                )}>ppm</span>
-              </div>
-              <div className={cn(
-                "font-medium text-slate-500 mt-1 truncate",
-                isElderFriendlyMode ? "text-base" : "text-xs"
-              )}>
-                {config.status}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Medium Size - Trend Chart */}
-        {size === 'medium' && (
-          <div className="flex flex-col h-full w-full">
-             <div className="flex items-end gap-2 mb-2">
-              <div className="flex items-start">
-                <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">{value}</span>
-                <span className="text-xl font-medium mt-1 text-slate-400 ml-2">ppm</span>
-              </div>
-              <div className="mb-2">
-                <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", config.bgClass, config.colorClass)}>
-                  {config.label}
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex-1 w-full relative min-h-0">
-               <WidgetTrendChart type="co2" color={config.hexColor} unit="ppm" />
-            </div>
+      <Flex vertical justify="space-between" style={{ height: '100%' }}>
+        <Flex align="center" style={{ flex: 1, minHeight: 0 }} gap={12}>
+          <Flex vertical gap={3} style={{ minWidth: 0, flexShrink: 0 }}>
+            <WidgetHeroNumber value={value} unit="ppm" fontSize={heroSize} />
+            <Flex align="center" gap={6}>
+              <WidgetTrendChip direction="up" value={`+${diff}`} color={status.color} />
+              <span style={{ fontSize: 10, color: A.labelTertiary, fontWeight: 500 }}>vs 室外</span>
+            </Flex>
+          </Flex>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+            <WidgetLevelBar
+              value={value}
+              min={400}
+              max={2000}
+              color={status.color}
+              markers={[
+                { value: 800, color: A.accents.green },
+                { value: 1000, color: A.accents.orange },
+              ]}
+            />
           </div>
-        )}
-
-        {/* Large Size - Trend Chart + Details */}
-        {size === 'large' && (
-          <div className="flex flex-col h-full w-full">
-             <div className="flex items-end justify-between mb-4">
-                <div className="flex flex-col">
-                    <div className="flex items-start">
-                        <span className="text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">{value}</span>
-                        <span className="text-3xl font-medium mt-1 text-slate-400 ml-2">ppm</span>
-                    </div>
-                    <span className={cn("mt-1 text-sm font-medium", config.colorClass)}>{config.status} • {config.label}</span>
-                </div>
-                
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 w-40">
-                   <div className="flex justify-between items-center mb-2">
-                     <span className="text-xs text-slate-500 dark:text-slate-400">空气质量</span>
-                     <span className="text-xs font-bold text-slate-700 dark:text-slate-200">优良</span>
-                   </div>
-                   <div className="w-full h-1.5 bg-gradient-to-r from-emerald-400 via-yellow-400 to-red-500 rounded-full opacity-80" />
-                   <div
-                      className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-slate-600 dark:border-b-slate-300 mt-1 transition-all duration-500"
-                      style={{ marginLeft: `${Math.min(100, (value / 2000) * 100)}%` }}
-                   />
-                </div>
-             </div>
-             
-             <div className="flex-1 w-full relative min-h-0">
-                <WidgetTrendChart type="co2" color={config.hexColor} unit="ppm" />
-             </div>
-          </div>
-        )}
-      </div>
+        </Flex>
+        <WidgetCompactFooter
+          stats={[
+            { label: '室外', value: '420', color: A.accents.green, icon: <Trees size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '阈值', value: '1000', color: A.accents.orange, icon: <AlertTriangle size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '理想', value: '<800', color: status.color, icon: <Fan size={10} strokeWidth={ICON_STROKE} /> },
+          ]}
+        />
+      </Flex>
     </IOSWidgetCard>
   )
 }

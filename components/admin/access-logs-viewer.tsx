@@ -36,7 +36,7 @@ export function AccessLogsViewer() {
       key: "created_at",
       width: 120,
       render: (val: number) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8c8c8c' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8F959E' }}>
           {format(new Date(Number(val)), "MM-dd HH:mm:ss")}
         </span>
       ),
@@ -56,7 +56,7 @@ export function AccessLogsViewer() {
       key: "method",
       width: 80,
       render: (val: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600 }}>{val}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#1F2329' }}>{val}</span>
       ),
     },
     {
@@ -66,7 +66,7 @@ export function AccessLogsViewer() {
       ellipsis: true,
       render: (val: string) => (
         <span
-          style={{ fontFamily: 'monospace', fontSize: '12px', color: '#595959', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          style={{ fontFamily: 'monospace', fontSize: '12px', color: '#646A73', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           title={val}
         >
           {val}
@@ -83,12 +83,12 @@ export function AccessLogsViewer() {
         return (
           <span style={{
             padding: '2px 8px',
-            borderRadius: '0',
+            borderRadius: '2px',
             fontSize: '10px',
             fontWeight: 500,
-            border: `1px solid ${isError ? '#ffccc7' : '#b7eb8f'}`,
-            backgroundColor: isError ? '#fff2f0' : '#f6ffed',
-            color: isError ? '#f5222d' : '#52c41a',
+            border: `1px solid ${isError ? '#FFCCC7' : '#B7EB8F'}`,
+            backgroundColor: isError ? '#FFF2F0' : '#F6FFED',
+            color: isError ? '#F5222D' : '#52C41A',
           }}>
             {val}
           </span>
@@ -109,6 +109,7 @@ export function AccessLogsViewer() {
           Refresh
         </Button>
       }
+      style={{ border: "1px solid #EDEEEF" }}
       styles={{ body: { padding: 0 } }}
     >
       <Table

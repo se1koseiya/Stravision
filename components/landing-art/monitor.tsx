@@ -77,10 +77,10 @@ export function Monitor() {
     offset: ["start end", "center center"]
   })
 
-  // Add physical damping for premium feel
+  // 物理阻尼 —— 适度收紧，避免拖沓感（太软会显得滑动卡顿）
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 40,
-    damping: 20,
+    stiffness: 90,
+    damping: 28,
     restDelta: 0.001
   })
 
@@ -112,11 +112,11 @@ export function Monitor() {
   // Glowing orb scale
   const orbScale = useTransform(smoothProgress, [0.3, 0.9], [1, 2.5])
 
-  // Background color transition
+  // 背景色过渡 —— 从首屏纸色 #F2F2F0 平滑过渡到白/浅灰，衔接 Hero
   const bgColor = useTransform(
     smoothProgress,
-    [0, 0.8, 1],
-    ["rgb(255, 255, 255)", "rgb(255, 255, 255)", "rgb(248, 250, 252)"]
+    [0, 0.5, 1],
+    ["rgb(242, 242, 240)", "rgb(255, 255, 255)", "rgb(248, 250, 252)"]
   )
 
   // Mock data for ExactDesignHome
@@ -129,7 +129,7 @@ export function Monitor() {
   const handleSendMessage = (msg: string) => console.log("Sending command:", msg)
 
   return (
-    <section ref={containerRef} className="relative h-[150vh] bg-gradient-to-b from-white via-white to-slate-50">
+    <section ref={containerRef} className="relative h-[150vh] bg-gradient-to-b from-[#F2F2F0] via-white to-slate-50">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
 
         {/* ================= LAYER 1: THE WHITE WORLD ================= */}

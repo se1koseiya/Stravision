@@ -11,8 +11,9 @@ import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-se
 import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
-  title: "STRAVISION 莓界 · 智慧农业平台",
-  description: "AI驱动的物联网草莓种植管理平台",
+  title: "莓界 Berry Realm · 让每一寸土地都孕育生机",
+  description:
+    "莓界是一个由 AI 驱动的智慧农业平台——用自然语言对话，即可感知、决策与守护你的草莓园，让每一次生长都被精准照料。",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",
@@ -96,7 +97,7 @@ export default async function RootLayout({
   }).catch(console.error);
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`antialiased font-jinbuti`}>
         <NextTopLoader color="var(--primary)" showSpinner={false} />
         <ThemeProvider

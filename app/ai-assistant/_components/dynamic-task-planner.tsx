@@ -493,6 +493,7 @@ export function DynamicTaskPlanner({
   onTogglePause?: (paused: boolean) => void
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  // 🔥 优先走 XCard + A2UI 协议，500ms 超时未挂载才降级到 DirectRenderFallback
   const [useDirectMode, setUseDirectMode] = useState(false)
   const boxMountedRef = useRef(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -505,6 +506,13 @@ export function DynamicTaskPlanner({
   const allCompleted = tasks.length > 0 && completedCount === tasks.length
   const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
 
+  // 🔥 关键：所有任务完成后自动折叠为紧凑头部（TRAE 风格）
+  useEffect(() => {
+    if (allCompleted) {
+      setIsCollapsed(true)
+    }
+  }, [allCompleted])
+
   // 计时器
   useEffect(() => {
     if (isPaused || allCompleted || tasks.length === 0) return
@@ -512,9 +520,17 @@ export function DynamicTaskPlanner({
     return () => clearInterval(timer)
   }, [isPaused, allCompleted, tasks.length])
 
-  // x-card 挂载超时检测
+  // 🔥 关键修复：taskData 签名变化时重置挂载状态 + 重启超时检测
+  // 这样 XCard.Box 会被 key 强制重新挂载，重新处理 commands
+  const taskSignature = useMemo(
+    () => tasks.map((t) => `${t.id || t.title}:${t.status}`).join("|"),
+    [tasks]
+  )
+
   useEffect(() => {
     if (!taskData || tasks.length === 0) return
+    // 🔥 任务数据变化时重置挂载标志，让超时检测重新生效
+    boxMountedRef.current = false
     timeoutRef.current = setTimeout(() => {
       if (!boxMountedRef.current) {
         setUseDirectMode(true)
@@ -523,7 +539,7 @@ export function DynamicTaskPlanner({
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [taskData, tasks.length])
+  }, [taskData, tasks.length, taskSignature])
 
   const handleAction = useCallback((_payload: ActionPayload) => {
     boxMountedRef.current = true
@@ -566,7 +582,10 @@ export function DynamicTaskPlanner({
   if (!useDirectMode) {
     return (
       <div className="my-4 w-full">
+        {/* 🔥 key 绑定 taskSignature：任务状态变化时强制重新挂载 XCard.Box
+            解决 XCard.Box 不响应 commands prop 变化的 bug */}
         <XCard.Box
+          key={taskSignature}
           commands={commands}
           onAction={handleAction}
           components={{

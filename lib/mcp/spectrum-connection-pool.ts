@@ -1,9 +1,11 @@
 /**
  * 光谱工具连接池
- * 
+ *
  * 通过复用SSE连接和MCP会话，大幅减少光谱工具的调用延迟
  * 预期性能提升：从8-12秒降低到1-2秒
  */
+
+import { getSpectrumServiceUrl } from '@/lib/constants'
 
 interface SpectrumConnection {
   endpoint: string;
@@ -14,7 +16,8 @@ interface SpectrumConnection {
 
 class SpectrumConnectionPool {
   private connections: Map<string, SpectrumConnection> = new Map();
-  private readonly SSE_URL = 'http://8.153.175.190:8000/spectrum-stravision';
+  // 光谱服务端点改为从环境变量读取（避免公网 IP 硬编码）
+  private readonly SSE_URL = getSpectrumServiceUrl();
   private readonly MAX_IDLE_TIME = 60000; // 60秒空闲后关闭连接
   private readonly INIT_TIMEOUT = 2000; // 初始化超时2秒
   private readonly TOOL_TIMEOUT = 3000; // 工具调用超时3秒
@@ -117,7 +120,9 @@ class SpectrumConnectionPool {
       const eventMatch = buffer.match(/event:\s*endpoint[\s\S]*?data:\s*([^\n\r]+)/);
       if (eventMatch && eventMatch[1]) {
         const endpointPath = eventMatch[1].trim().replace(/^["']|["']$/g, '');
-        return `http://8.153.175.190:8000${endpointPath}`;
+        // 从 SSE_URL 提取 origin（避免硬编码 IP）
+        const origin = new URL(this.SSE_URL).origin
+        return `${origin}${endpointPath}`;
       }
     }
 

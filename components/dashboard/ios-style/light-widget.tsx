@@ -1,9 +1,23 @@
 "use client"
 
-import { Sun, Moon, Sunrise, Sunset } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { IOSWidgetCard } from "./ios-widget-card"
-import { WidgetTrendChart } from "./widget-trend-chart"
+import { Sun, Sunrise, Sunset, Zap, Clock } from "lucide-react"
+import { Flex } from "antd"
+import {
+  IOSWidgetCard,
+  WidgetHeader,
+  WidgetStatusPill,
+  WidgetHeroNumber,
+  WidgetMiniStats,
+  WidgetCompactFooter,
+  WidgetTrendChip,
+} from "./ios-widget-card"
+import { WidgetRingProgress, WidgetLineChart, WidgetBars, WidgetGaugeStrip } from "./widget-visualizations"
+import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+
+const A = BERRY_THEME.apple
+const WC = A.widgetColors.light
+const ICON_STROKE = 1.75
 
 interface LightWidgetProps {
   value: number
@@ -16,9 +30,38 @@ interface LightWidgetProps {
   onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
 }
 
-export function LightWidget({ 
-  value, 
-  size = 'medium', 
+function getStatus(lux: number) {
+  if (lux >= 50000) return { label: "强光", color: A.accents.orange }
+  if (lux >= 1000) return { label: "适中", color: A.accents.yellow }
+  if (lux >= 200) return { label: "柔和", color: A.accents.orange }
+  return { label: "昏暗", color: A.accents.indigo }
+}
+
+function luxToRing(lux: number) {
+  return Math.max(0, Math.min(100, (lux / 80000) * 100))
+}
+
+function formatLux(lux: number) {
+  if (lux >= 1000) return { value: (lux / 1000).toFixed(1), unit: 'k lux' }
+  return { value: lux.toFixed(0), unit: 'lux' }
+}
+
+function useSparkline(current: number) {
+  return [
+    current * 0.3, current * 0.5, current * 0.8, current,
+    current * 1.1, current * 0.9, current * 0.7, current * 0.6,
+    current * 0.8, current, current * 1.05, current,
+  ]
+}
+
+// Daily light integral (DLI) approximation from lux
+function dli(lux: number) {
+  return (lux * 0.00012 * 12).toFixed(1)
+}
+
+export function LightWidget({
+  value,
+  size = 'medium',
   className,
   isEditing,
   widgetId,
@@ -26,147 +69,151 @@ export function LightWidget({
   onContextMenu,
   onLongPress
 }: LightWidgetProps) {
-  const getLightConfig = (lux: number) => {
-    if (lux >= 50000) return {
-      status: "明亮",
-      label: "强光",
-      colorClass: "text-amber-500",
-      bgClass: "bg-amber-50 dark:bg-amber-900/30",
-      hexColor: "#f59e0b"
-    }
-    if (lux >= 1000) return {
-      status: "适中",
-      label: "适中",
-      colorClass: "text-yellow-500",
-      bgClass: "bg-yellow-50 dark:bg-yellow-900/30",
-      hexColor: "#eab308"
-    }
-    return {
-      status: "昏暗",
-      label: "昏暗",
-      colorClass: "text-indigo-500",
-      bgClass: "bg-indigo-50 dark:bg-indigo-900/30",
-      hexColor: "#6366f1"
-    }
+  const { isElderFriendlyMode } = useElderFriendly()
+  const status = getStatus(value)
+  const isSmall = size === 'small'
+  const isLarge = size === 'large'
+  const sparkData = useSparkline(value)
+  const barsData = sparkData.slice(-8)
+  const formatted = formatLux(value)
+
+  const heroSize = isElderFriendlyMode
+    ? (isSmall ? 30 : isLarge ? 48 : 40)
+    : (isSmall ? 28 : isLarge ? 44 : 38)
+
+  const ringSize = isSmall ? 52 : isLarge ? 110 : 76
+
+  if (isSmall) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Sun size={12} strokeWidth={ICON_STROKE} />}
+            label="光照"
+            color={status.color}
+            right={<div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />}
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical justify="space-between" style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" style={{ flex: 1, minHeight: 0 }}>
+            <WidgetHeroNumber value={formatted.value} unit={formatted.unit} fontSize={heroSize} />
+            <WidgetBars data={barsData} color={status.color} height={32} barWidth={3} gap={2} />
+          </Flex>
+          <WidgetGaugeStrip value={value} min={0} max={80000} color={status.color} segments={10} height={5} />
+          <WidgetMiniStats
+            stats={[
+              { label: '峰值', value: '50k', color: A.accents.orange, icon: <Zap size={9} strokeWidth={ICON_STROKE} /> },
+              { label: 'DLI', value: `${dli(value)}`, color: A.accents.yellow, icon: <Sun size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '时长', value: '8.2h', color: A.labelSecondary, icon: <Clock size={9} strokeWidth={ICON_STROKE} /> },
+            ]}
+          />
+        </Flex>
+      </IOSWidgetCard>
+    )
   }
 
-  const config = getLightConfig(value)
-  const isSmall = size === 'small'
-  const isDark = value < 1000
+  if (isLarge) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Sun size={14} strokeWidth={ICON_STROKE} />}
+            label="光照强度"
+            color={status.color}
+            right={<WidgetStatusPill label={status.label} color={status.color} />}
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical gap={12} style={{ height: '100%' }}>
+          <Flex align="center" justify="space-between" style={{ flex: 1, minHeight: 0 }}>
+            <Flex vertical gap={4}>
+              <WidgetHeroNumber value={formatted.value} unit={formatted.unit} fontSize={heroSize} />
+              <span style={{ fontSize: 12, color: A.labelTertiary, fontWeight: 500 }}>光合有效辐射</span>
+            </Flex>
+            <WidgetRingProgress
+              value={luxToRing(value)}
+              size={ringSize}
+              strokeWidth={7}
+              color={status.color}
+              label={formatted.value}
+              sublabel={formatted.unit}
+            />
+          </Flex>
 
-  const Header = (
-    <div className="flex items-center gap-2">
-      <div className={cn("p-2 rounded-full", config.bgClass)}>
-        {isDark ? <Moon className={cn("w-4 h-4", config.colorClass)} /> : <Sun className={cn("w-4 h-4", config.colorClass)} />}
-      </div>
-      {!isSmall && (
-        <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">光照强度</span>
-      )}
-    </div>
-  )
+          <div style={{ height: 60, minHeight: 60 }}>
+            <WidgetLineChart data={sparkData} color={status.color} showGrid />
+          </div>
+
+          <WidgetMiniStats
+            stats={[
+              { label: '日出', value: '06:12', color: A.accents.orange, icon: <Sunrise size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '日落', value: '19:45', color: A.accents.indigo, icon: <Sunset size={10} strokeWidth={ICON_STROKE} /> },
+              { label: 'DLI', value: `${dli(value)} mol/m²`, color: status.color, icon: <Zap size={10} strokeWidth={ICON_STROKE} /> },
+            ]}
+            style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
+          />
+        </Flex>
+      </IOSWidgetCard>
+    )
+  }
 
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
-      header={size !== 'small' ? Header : null}
+      className={className}
+      header={
+        <WidgetHeader
+          icon={<Sun size={14} strokeWidth={ICON_STROKE} />}
+          label="光照"
+          color={status.color}
+          right={<WidgetStatusPill label={status.label} color={status.color} />}
+        />
+      }
       isEditing={isEditing}
       widgetId={widgetId}
       onRemove={onRemove}
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
+      tint={WC.accent}
     >
-      <div className="flex flex-col h-full justify-between">
-        {/* Small Size */}
-        {size === 'small' && (
-          <>
-            <div className="flex justify-between items-start">
-              <div className={cn("p-2 rounded-full", config.bgClass)}>
-                 {isDark ? <Moon className={cn("w-5 h-5", config.colorClass)} /> : <Sun className={cn("w-5 h-5", config.colorClass)} />}
-              </div>
-            </div>
-            
-            <div className="mt-auto">
-              <div className="flex items-start">
-                <span className="text-4xl font-bold tracking-tighter text-slate-900 dark:text-white">
-                    {value >= 1000 ? (value / 1000).toFixed(1) : value}
-                </span>
-                <span className="text-sm font-medium mt-1 text-slate-400 ml-1">
-                    {value >= 1000 ? 'k' : ''} lux
-                </span>
-              </div>
-              <div className="text-xs font-medium text-slate-500 mt-1 truncate">
-                {config.status}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Medium Size - Trend Chart */}
-        {size === 'medium' && (
-          <div className="flex flex-col h-full w-full">
-            <div className="flex items-end gap-2 mb-2">
-                <div className="flex items-start">
-                    <span className="text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">
-                         {value >= 1000 ? (value / 1000).toFixed(1) : value}
-                    </span>
-                    <span className="text-xl font-medium mt-1 text-slate-400 ml-2">
-                         {value >= 1000 ? 'k lux' : 'lux'}
-                    </span>
-                </div>
-                <div className="mb-2">
-                    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", config.bgClass, config.colorClass)}>
-                      {config.label}
-                    </span>
-                </div>
-            </div>
-            
-            <div className="flex-1 w-full relative min-h-0">
-               <WidgetTrendChart type="light" color={config.hexColor} unit="lux" />
-            </div>
+      <Flex vertical justify="space-between" style={{ height: '100%' }}>
+        <Flex align="center" style={{ flex: 1, minHeight: 0 }} gap={12}>
+          <Flex vertical gap={3} style={{ minWidth: 0, flexShrink: 0 }}>
+            <WidgetHeroNumber value={formatted.value} unit={formatted.unit} fontSize={heroSize} />
+            <Flex align="center" gap={6}>
+              <WidgetTrendChip direction="up" value="+12%" color={status.color} />
+              <span style={{ fontSize: 10, color: A.labelTertiary, fontWeight: 500 }}>vs 昨日</span>
+            </Flex>
+          </Flex>
+          <div style={{ flex: 1, height: '100%', minWidth: 0 }}>
+            <WidgetLineChart data={sparkData} color={status.color} showGrid={false} />
           </div>
-        )}
-
-        {/* Large Size - Trend Chart + Details */}
-        {size === 'large' && (
-          <div className="flex flex-col h-full w-full">
-             <div className="flex items-end justify-between mb-4">
-                <div className="flex flex-col">
-                    <div className="flex items-start">
-                        <span className="text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">
-                             {value >= 1000 ? (value / 1000).toFixed(1) : value}
-                        </span>
-                        <span className="text-2xl font-medium mt-1 text-slate-400 ml-2">
-                             {value >= 1000 ? 'k lux' : 'lux'}
-                        </span>
-                    </div>
-                    <span className={cn("mt-1 text-sm font-medium", config.colorClass)}>{config.status} • {config.label}</span>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2 px-3 flex items-center gap-3">
-                        <Sunrise className="w-4 h-4 text-amber-500" />
-                        <div className="flex flex-col">
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">日出</span>
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none">06:12 AM</span>
-                        </div>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2 px-3 flex items-center gap-3">
-                        <Sunset className="w-4 h-4 text-indigo-500" />
-                        <div className="flex flex-col">
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">日落</span>
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none">07:45 PM</span>
-                        </div>
-                    </div>
-                </div>
-             </div>
-             
-             <div className="flex-1 w-full relative min-h-0">
-                <WidgetTrendChart type="light" color={config.hexColor} unit="lux" />
-             </div>
-          </div>
-        )}
-      </div>
+        </Flex>
+        <WidgetCompactFooter
+          stats={[
+            { label: '日出', value: '06:12', color: A.accents.orange, icon: <Sunrise size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '日落', value: '19:45', color: A.accents.indigo, icon: <Sunset size={10} strokeWidth={ICON_STROKE} /> },
+            { label: 'DLI', value: `${dli(value)}`, color: status.color, icon: <Zap size={10} strokeWidth={ICON_STROKE} /> },
+          ]}
+        />
+      </Flex>
     </IOSWidgetCard>
   )
 }

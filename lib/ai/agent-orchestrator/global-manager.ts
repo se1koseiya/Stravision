@@ -26,10 +26,10 @@ class GlobalOrchestratorManager {
   unregister(sessionId: string) {
     const orchestrator = this.orchestrators.get(sessionId);
     if (orchestrator) {
-      // 在注销前保存最后的指标
-      const metrics = orchestrator.getMetrics();
+      // 在注销前保存最后的指标（使用 monitor 的扁平 AgentMetrics，而非 getDetailedStats 包装）
+      const metrics = orchestrator.getMonitor().getMetrics();
       this.saveMetricsSnapshot(metrics);
-      
+
       this.orchestrators.delete(sessionId);
       console.log(`[GlobalManager] Unregistered orchestrator: ${sessionId}, remaining: ${this.orchestrators.size}`);
     }
@@ -77,10 +77,10 @@ class GlobalOrchestratorManager {
   getAggregatedMetrics(): AgentMetrics {
     const activeOrchestrators = Array.from(this.orchestrators.values());
     
-    // 如果有活跃的编排器，聚合它们的指标
+    // 如果有活跃的编排器，聚合它们的指标（使用 monitor 的扁平 AgentMetrics）
     if (activeOrchestrators.length > 0) {
       return this.aggregateMetrics(
-        activeOrchestrators.map(o => o.getMetrics())
+        activeOrchestrators.map(o => o.getMonitor().getMetrics())
       );
     }
 

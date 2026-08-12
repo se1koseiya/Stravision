@@ -69,7 +69,7 @@ const FEATURE_DESCRIPTIONS: Record<keyof AIFeatureConfig, { label: string; descr
   },
   enableChart: {
     label: "数据图表",
-    description: "显示 ECharts/Vega-Lite 可视化图表（<CHART> 标签）",
+    description: "显示数据可视化图表（<CHART> 标签，支持折线/柱状/面积/饼图）",
     tag: "<CHART>"
   },
   enableSpectral: {
@@ -183,9 +183,9 @@ export function AIFeaturesSettings() {
 
   if (loading) {
     return (
-      <Card>
+      <Card style={{ border: "1px solid #EDEEEF" }}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px' }}>
-          <LoadingOutlined style={{ fontSize: '24px' }} />
+          <LoadingOutlined style={{ fontSize: '24px', color: '#8F959E' }} />
         </div>
       </Card>
     )
@@ -193,9 +193,10 @@ export function AIFeaturesSettings() {
 
   return (
     <Card
+      style={{ border: "1px solid #EDEEEF" }}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FireOutlined style={{ color: '#722ed1' }} />
+          <FireOutlined style={{ color: '#1677ff' }} />
           AI 功能开关
         </div>
       }
@@ -209,16 +210,16 @@ export function AIFeaturesSettings() {
       {/* UI 组件类 */}
       <div style={{ marginBottom: '24px' }}>
         <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1890ff', display: 'inline-block' }} />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1677ff', display: 'inline-block' }} />
           UI 组件类
         </Typography.Text>
-        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #EDEEEF' }}>
           {(['enableTaskList', 'enableDeviceBento', 'enableControlBento', 'enableMonitor', 'enableScheduledTasks', 'enableChart', 'enableSpectral'] as const).map((key) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
-                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#F2F3F5', fontFamily: 'monospace' }}>
                     {FEATURE_DESCRIPTIONS[key].tag}
                   </code>
                 </div>
@@ -235,16 +236,16 @@ export function AIFeaturesSettings() {
       {/* 功能增强类 */}
       <div style={{ marginBottom: '24px' }}>
         <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#722ed1', display: 'inline-block' }} />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1677ff', display: 'inline-block' }} />
           功能增强类
         </Typography.Text>
-        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #EDEEEF' }}>
           {(['enableReasoning', 'enableSources', 'enableToolUsed'] as const).map((key) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
-                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#F2F3F5', fontFamily: 'monospace' }}>
                     {FEATURE_DESCRIPTIONS[key].tag}
                   </code>
                 </div>
@@ -261,16 +262,16 @@ export function AIFeaturesSettings() {
       {/* 操作执行类 */}
       <div style={{ marginBottom: '24px' }}>
         <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fa8c16', display: 'inline-block' }} />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FA8C16', display: 'inline-block' }} />
           操作执行类
         </Typography.Text>
-        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #EDEEEF' }}>
           {(['enableScheduleTask', 'enableDeviceControl', 'enableVisionInspection'] as const).map((key) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
-                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#F2F3F5', fontFamily: 'monospace' }}>
                     {FEATURE_DESCRIPTIONS[key].tag}
                   </code>
                 </div>
@@ -287,16 +288,16 @@ export function AIFeaturesSettings() {
       {/* 预览类 */}
       <div style={{ marginBottom: '24px' }}>
         <Typography.Text strong style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#722ed1', display: 'inline-block' }} />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1677ff', display: 'inline-block' }} />
           预览类
         </Typography.Text>
-        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #f0f0f0' }}>
+        <div style={{ paddingLeft: '8px', borderLeft: '2px solid #EDEEEF' }}>
           {(['enableHTMLPreview', 'enableWebPreview'] as const).map((key) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', padding: '8px 0' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Typography.Text style={{ fontSize: '14px', fontWeight: 500 }}>{FEATURE_DESCRIPTIONS[key].label}</Typography.Text>
-                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f5f5f5', fontFamily: 'monospace' }}>
+                  <code style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#F2F3F5', fontFamily: 'monospace' }}>
                     {FEATURE_DESCRIPTIONS[key].tag}
                   </code>
                 </div>
@@ -311,7 +312,7 @@ export function AIFeaturesSettings() {
       </div>
 
       {/* 操作按钮 */}
-      <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+      <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '1px solid #EDEEEF' }}>
         <Button
           type="primary"
           onClick={handleSave}
@@ -330,7 +331,7 @@ export function AIFeaturesSettings() {
         </Button>
       </div>
 
-      <div style={{ fontSize: '12px', color: '#8c8c8c', backgroundColor: '#fafafa', padding: '12px', borderRadius: '8px', marginTop: '16px' }}>
+      <div style={{ fontSize: '12px', color: '#8F959E', backgroundColor: '#F7F8FA', padding: '12px', borderRadius: '6px', marginTop: '16px', border: '1px solid #EDEEEF' }}>
         <strong>提示：</strong>关闭某个功能后，AI 将不会输出对应的标签，前端也不会渲染相关组件。
         这可以用于调试或临时禁用某些功能。
       </div>

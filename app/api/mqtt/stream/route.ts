@@ -134,6 +134,7 @@ export async function GET(request: NextRequest) {
     })
 
     let unsubscribe: (() => void) | null = null
+    let unsubscribeCustom: (() => void) | null = null
     let heartbeatInterval: NodeJS.Timeout | null = null
 
     // Create a ReadableStream for SSE
@@ -188,6 +189,17 @@ export async function GET(request: NextRequest) {
           })
         }
 
+        // 发送自定义设备数据快照（设备注册表中的传感器设备）
+        const customSnapshot = mqttService.getAllCustomDeviceData()
+        Object.entries(customSnapshot).forEach(([deviceIdStr, data]) => {
+          sendSSE({
+            type: 'custom_device_data',
+            device_id: Number(deviceIdStr),
+            data,
+            timestamp: Date.now()
+          })
+        })
+
         // Subscribe to MQTT data updates
         unsubscribe = mqttService.subscribeToData((deviceData: DeviceData) => {
           try {
@@ -207,6 +219,26 @@ export async function GET(request: NextRequest) {
           }
         })
 
+        // 订阅自定义设备数据更新（设备注册表中的传感器）
+        unsubscribeCustom = mqttService.subscribeToAllCustomDevices((deviceId, data) => {
+          try {
+            sendSSE({
+              type: 'custom_device_data',
+              device_id: deviceId,
+              data,
+              timestamp: Date.now()
+            })
+          } catch (error) {
+            console.error(JSON.stringify({
+              timestamp: new Date().toISOString(),
+              level: 'ERROR',
+              component: 'SSE-Stream',
+              message: 'Error sending custom device data to SSE client',
+              error: error instanceof Error ? error.message : String(error)
+            }))
+          }
+        })
+
         // Clean up when request is aborted by the client
         request.signal.addEventListener('abort', () => {
           console.log(JSON.stringify({
@@ -218,6 +250,10 @@ export async function GET(request: NextRequest) {
           if (unsubscribe) {
             unsubscribe()
             unsubscribe = null
+          }
+          if (unsubscribeCustom) {
+            unsubscribeCustom()
+            unsubscribeCustom = null
           }
           if (heartbeatInterval) {
             clearInterval(heartbeatInterval)
@@ -238,6 +274,10 @@ export async function GET(request: NextRequest) {
         if (unsubscribe) {
           unsubscribe()
           unsubscribe = null
+        }
+        if (unsubscribeCustom) {
+          unsubscribeCustom()
+          unsubscribeCustom = null
         }
         if (heartbeatInterval) {
           clearInterval(heartbeatInterval)

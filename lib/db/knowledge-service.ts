@@ -447,6 +447,100 @@ export interface ListItemsOptions {
   includeMarket?: boolean
 }
 
+/**
+ * 列出"用户可见的"条目：包括自己 owner 的，以及作为协作者参与集合内的所有条目。
+ *
+ * 用于侧边栏协作集合视图——需要看到集合 owner 创建的所有条目，
+ * 而不是只看到自己创建的。
+ */
+export async function listVisibleItems(
+  userId: number,
+  options: ListItemsOptions = {}
+): Promise<{ items: KnowledgeItemWithTags[]; total: number }> {
+  await initDB()
+  // 找出当前用户作为协作者参与的所有 collection_id
+  const collabRows = await query<{ collection_id: number | string }>(
+    `SELECT collection_id FROM kb_collaborators WHERE user_id = $1`,
+    [userId]
+  )
+  // BigInt 统一转 number
+  const collabCollectionIds = collabRows
+    .map((r) => Number(r.collection_id))
+    .filter((n) => Number.isFinite(n))
+
+  // pg 驱动在传空数组给 ANY 时会失败（无类型推导）
+  // 用户没有任何协作集合时，仅按 user_id 过滤即可，无需 ANY
+  // 注意：params 也必须与占位符数量严格匹配，否则 pg 会抛
+  // "绑定消息提供了N个参数,但已准备好语句要求M个参数"
+  const hasCollab = collabCollectionIds.length > 0
+  const where: string[] = hasCollab
+    ? [
+        "(i.user_id = $1 OR (i.collection_id = ANY($2::bigint[]) AND EXISTS (SELECT 1 FROM kb_collaborators kc WHERE kc.collection_id = i.collection_id AND kc.user_id = $1)))"
+      ]
+    : ["i.user_id = $1"]
+  if (!options.includeMarket) {
+    where.push("NOT EXISTS (SELECT 1 FROM knowledge_collections c WHERE c.id = i.collection_id AND c.is_marketplace = 1)")
+  }
+  const params: any[] = hasCollab ? [userId, collabCollectionIds] : [userId]
+  if (options.collection_id !== undefined) {
+    if (options.collection_id === null) where.push("i.collection_id IS NULL")
+    else {
+      params.push(options.collection_id)
+      where.push(`i.collection_id = $${params.length}`)
+    }
+  }
+  if (options.content_type) {
+    params.push(options.content_type)
+    where.push(`i.content_type = $${params.length}`)
+  }
+  if (options.is_favorite !== undefined) {
+    where.push(`i.is_favorite = ${options.is_favorite ? 1 : 0}`)
+  }
+  if (options.is_archived !== undefined) {
+    where.push(`i.is_archived = ${options.is_archived ? 1 : 0}`)
+  } else {
+    where.push("i.is_archived = 0")
+  }
+  if (options.tag) {
+    params.push(options.tag)
+    where.push(`EXISTS (SELECT 1 FROM knowledge_item_tags it JOIN knowledge_tags t ON t.id = it.tag_id WHERE it.item_id = i.id AND t.name = $${params.length})`)
+  }
+  if (options.search) {
+    params.push(`%${options.search}%`)
+    where.push(`(i.title ILIKE $${params.length} OR i.content ILIKE $${params.length} OR i.summary ILIKE $${params.length})`)
+  }
+
+  const kc = await getKnowledgeConfig()
+  const defaultLimit = kc.list.defaultLimit
+  const maxLimit = kc.list.maxLimit
+  const limit = Math.min(Math.max(options.limit ?? defaultLimit, 1), maxLimit)
+  const offset = Math.max(options.offset ?? 0, 0)
+  const orderBy = options.orderBy ?? "updated_at"
+  const orderDir = options.orderDir ?? "DESC"
+
+  const totalRes = await queryOne<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM knowledge_items i WHERE ${where.join(" AND ")}`,
+    params
+  )
+  const total = Number(totalRes?.count ?? 0)
+
+  params.push(limit, offset)
+  const items = await query<KnowledgeItem & { collection_name: string | null }>(
+    `SELECT i.*, c.name AS collection_name
+       FROM knowledge_items i
+       LEFT JOIN knowledge_collections c ON c.id = i.collection_id
+      WHERE ${where.join(" AND ")}
+      ORDER BY i.${orderBy} ${orderDir}
+      LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  )
+
+  return {
+    items: items.map((it) => ({ ...it, tags: (it.tags_cache || "").split(",").filter(Boolean) })),
+    total
+  }
+}
+
 export async function listItems(userId: number, options: ListItemsOptions = {}): Promise<{ items: KnowledgeItemWithTags[]; total: number }> {
   await initDB()
   const where: string[] = ["i.user_id = $1"]
@@ -617,6 +711,9 @@ export async function updateItem(id: number, userId: number, patch: UpdateItemIn
     const params: any[] = []
     for (const [k, v] of Object.entries(patch)) {
       if (["tags", "change_summary", "change_type", "create_version"].includes(k)) continue
+      // 跳过 undefined 字段，避免 PG 类型推导报错
+      // （如路由层没有传 content_type，不应该覆盖数据库里的现有值）
+      if (v === undefined) continue
       if (k === "is_favorite" || k === "is_archived") {
         setParts.push(`${k} = ${v ? 1 : 0}`)
       } else {

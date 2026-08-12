@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 export interface ControlCommand {
   type: 'relay' | 'led' | 'stepper' | 'stepper_reset' | 'stepper_preset'
   relayNum?: number
+  device_id?: number           // 设备注册表 ID（自定义设备用）
   newState?: number
   led1?: number
   led2?: number
@@ -103,6 +104,16 @@ export function useDeviceControl() {
     })
   }, [sendCommand])
 
+  // 通过设备注册表 ID 控制继电器（自定义设备用）
+  const toggleRelayByDeviceId = useCallback(async (deviceId: number, currentState: number): Promise<boolean> => {
+    const newState = currentState === 1 ? 0 : 1
+    return sendCommand({
+      type: 'relay',
+      device_id: deviceId,
+      newState
+    })
+  }, [sendCommand])
+
   // setLEDs 接口参数（已调整为硬件BRG顺序）：
   // led1 = Blue (蓝色)
   // led2 = Red (红色)
@@ -151,6 +162,7 @@ export function useDeviceControl() {
     status,
     sendCommand,
     toggleRelay,
+    toggleRelayByDeviceId,
     setLEDs,
     controlStepper,
     resetStepperPosition,

@@ -1,12 +1,21 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { initAutomationTable, updateRule, deleteRule, getRule } from "@/lib/db/automation-service";
+import { getCurrentUser } from "@/lib/auth";
+
+async function requireUser() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return user;
+}
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
   ) {
   try {
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 });
     await initAutomationTable();
     const { id } = await params;
     const rule = await getRule(id);
@@ -24,6 +33,8 @@ export async function PUT(
     { params }: { params: Promise<{ id: string }> }
   ) {
   try {
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 });
     await initAutomationTable();
     const { id } = await params;
     const body = await req.json();
@@ -48,10 +59,12 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
   ) {
   try {
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ success: false, error: "未登录" }, { status: 401 });
     await initAutomationTable();
     const { id } = await params;
     const success = await deleteRule(id);
-    
+
     if (!success) {
         return NextResponse.json({ success: false, error: "Rule not found" }, { status: 404 });
     }

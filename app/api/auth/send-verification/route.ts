@@ -1,10 +1,17 @@
 import { NextRequest } from 'next/server';
 import { sendVerificationEmail } from '@/lib/email-verification-service';
 import { rateLimit } from '@/lib/rate-limit';
+import { verifyCapToken, isCapRequired } from '@/lib/cap';
 import { z } from 'zod';
+
+// 测试环境（isCapRequired()===false）不强制要求 capToken
+const capTokenSchema = isCapRequired()
+  ? z.string().min(1, '请完成人机验证')
+  : z.string().optional();
 
 const sendVerificationSchema = z.object({
   email: z.string().email('邮箱格式不正确'),
+  capToken: capTokenSchema,
 });
 
 export async function POST(req: NextRequest) {
@@ -28,7 +35,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email } = result.data;
+    const { email, capToken } = result.data;
+
+    // 服务端校验 Cap 人机验证令牌
+    const capResult = await verifyCapToken(capToken);
+    if (!capResult.success) {
+      return Response.json(
+        { error: capResult.error || '人机验证失败，请重试' },
+        { status: 400 }
+      );
+    }
 
     // 发送验证码
     const sendResult = await sendVerificationEmail(email);

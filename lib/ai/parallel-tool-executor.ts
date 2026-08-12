@@ -147,13 +147,11 @@ export async function executeToolCallsInParallel(
     const batchResults = await Promise.allSettled(
       batch.map(async (toolCall) => {
         try {
-          onProgress?.(completedCount, totalCount, toolCall.name);
-          
           const result = await orchestrator.executeToolCall(toolCall, context);
-          
+
           completedCount++;
           onProgress?.(completedCount, totalCount, toolCall.name);
-          
+
           return { toolCall, result };
         } catch (error) {
           completedCount++;

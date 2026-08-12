@@ -13,11 +13,18 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { SpectralCard } from "@/components/ai/spectral-card"
 import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { PremiumReportLoader } from "@/app/ai-assistant/_components/premium-report-loader"
+import { CheckpointConfirm, parseCheckpointContent } from "@/components/ai/checkpoint-confirm"
 
 const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
   ssr: false,
   loading: () => <div className="p-3 text-xs text-zinc-400">图表加载中...</div>,
 })
+
+// 动态加载任务规划器，与 PC 端 chat-message-renderer 保持一致
+const DynamicTaskPlanner = dynamic(
+  () => import("@/app/ai-assistant/_components/dynamic-task-planner").then((m) => m.DynamicTaskPlanner),
+  { ssr: false, loading: () => <div className="p-3 text-xs text-zinc-400">任务规划加载中...</div> }
+)
 
 // ---------------------------------------------------------------------------
 // Props
@@ -40,7 +47,7 @@ export interface MobileMessageContentProps {
 // ---------------------------------------------------------------------------
 
 const TAG_REGEX =
-  /(<\s*CHART\s+type="echarts"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*CHART\s+type="vega-lite"\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g
+  /(<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g
 
 // ---------------------------------------------------------------------------
 // 手机端能力卡片（精简版）
@@ -107,6 +114,7 @@ function renderTaggedContent(
   return (
     <>
       {parts.map((part, index) => {
+        if (!part) return null
         // JSON 代码块（IoT 指令）
         if (part.startsWith("```json")) {
           try {
@@ -276,17 +284,77 @@ function renderTaggedContent(
         // CHART — 图表（手机端自适应宽度）
         if (part.match(/^<\s*CHART/)) {
           try {
-            const isVega = part.includes('type="vega-lite"')
-            const tagRx = isVega ? /<\s*CHART\s+type="vega-lite"\s*>/ : /<\s*CHART\s+type="echarts"\s*>/
-            const jsonStr = part.replace(tagRx, "").replace(/<\/\s*CHART\s*>/, "").trim()
+            const jsonStr = part.replace(/<\s*CHART(\s+type="[^"]*")?\s*>/, "").replace(/<\/\s*CHART\s*>/, "").trim()
             return (
               <div key={index} className="my-3 w-full h-[260px] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                <ChartRenderer options={JSON.parse(jsonStr)} type={isVega ? "vega-lite" : "echarts"} style={{ height: "100%", width: "100%" }} />
+                <ChartRenderer options={JSON.parse(jsonStr)} style={{ height: "100%", width: "100%" }} />
               </div>
             )
           } catch (e) {
             return <div key={index} className="p-3 bg-red-50 text-red-500 rounded-lg text-xs">图表渲染失败: {String(e)}</div>
           }
+        }
+
+        // CHECKPOINT — 检查点确认（手机端同样需要用户参与关键决策）
+        if (part.match(/^<\s*CHECKPOINT/)) {
+          const cpData = parseCheckpointContent(part)
+          if (!cpData) return null
+          return (
+            <div key={index} className="my-3">
+              <CheckpointConfirm
+                data={cpData}
+                onChoose={(optionId, optionLabel, data, formData) => {
+                  // 记录用户决策到 localStorage 审计日志（与 PC 端一致）
+                  try {
+                    const logEntry = {
+                      checkpoint_id: data.id,
+                      type: data.type,
+                      title: data.title,
+                      chosen_option_id: optionId,
+                      chosen_option_label: optionLabel,
+                      timestamp: new Date().toISOString(),
+                      task_list_ref: data.task_list_ref,
+                      form_data: formData,
+                      source: "mobile",
+                    }
+                    const existing = JSON.parse(localStorage.getItem('checkpoint_decisions_log') || '[]')
+                    existing.push(logEntry)
+                    localStorage.setItem('checkpoint_decisions_log', JSON.stringify(existing.slice(-100)))
+                  } catch {}
+
+                  // 根据用户选择构造回复消息（与 PC 端一致）
+                  let replyText = ""
+                  if (optionId === "CANCEL") {
+                    replyText = `【检查点确认】我选择取消操作：${data.title}\n请停止当前任务，不要执行。`
+                  } else if (formData && Object.keys(formData).length > 0) {
+                    // 有表单数据，构造结构化参数回复（避免用户打字）
+                    const paramLines = Object.entries(formData)
+                      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+                      .map(([k, v]) => {
+                        const field = data.param_fields?.find((f) => f.key === k)
+                        const label = field?.label || k
+                        const unit = field?.unit || ""
+                        let valStr = String(v)
+                        if (field?.type === "switch") valStr = v ? "是" : "否"
+                        return `- ${label}: ${valStr}${unit ? " " + unit : ""}`
+                      })
+                    if (paramLines.length > 0) {
+                      replyText = `【检查点确认】已填写参数：${data.title}\n${paramLines.join("\n")}\n请按这些参数继续执行。`
+                    } else {
+                      replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
+                    }
+                  } else if (optionId === "PROVIDE_INFO") {
+                    replyText = `【检查点确认】我选择提供信息后执行：${data.title}\n请告诉我需要提供哪些具体参数。`
+                  } else if (optionId === "USE_DEFAULT") {
+                    replyText = `【检查点确认】我选择使用默认值继续：${data.title}\n请根据当前环境数据推断合理参数并继续执行。`
+                  } else {
+                    replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
+                  }
+                  onSendMessage(replyText)
+                }}
+              />
+            </div>
+          )
         }
 
         // 忽略 DEVICE_BENTO / CONTROL_BENTO / MONITOR（手机端暂不支持复杂 Bento 布局）

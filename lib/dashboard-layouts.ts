@@ -23,6 +23,7 @@ export const WIDGET_CONFIGS: WidgetConfig[] = [
   { id: 'temperature', size: 'medium', component: 'TemperatureWidget', title: '温度监测', priority: 4 },
   { id: 'humidity', size: 'medium', component: 'HumidityWidget', title: '湿度监测', priority: 4 },
   { id: 'weather', size: 'medium', component: 'WeatherWidget', title: '天气状况', priority: 3 },
+  { id: 'weather-forecast', size: 'large', component: 'WeatherForecastWidget', title: '天气预报', priority: 2 },
   { id: 'soil', size: 'medium', component: 'SoilWidget', title: '土壤监测', priority: 3 },
   { id: 'light', size: 'small', component: 'LightWidget', title: '光照强度', priority: 2 },
   { id: 'co2', size: 'small', component: 'CO2Widget', title: 'CO₂浓度', priority: 2 },
@@ -53,7 +54,8 @@ export const LAYOUT_PRESETS = {
       { i: 'phosphorus', x: 8, y: 4, w: 2, h: 2 },      // 小：磷
       { i: 'potassium', x: 10, y: 4, w: 2, h: 2 },      // 小：钾
       { i: 'spectral', x: 0, y: 6, w: 4, h: 4 },        // 大：光谱
-      { i: 'membership', x: 4, y: 6, w: 4, h: 2 }       // 中：会员
+      { i: 'membership', x: 4, y: 6, w: 4, h: 2 },       // 中：会员
+      { i: 'weather-forecast', x: 8, y: 6, w: 4, h: 4 }  // 大：天气预报
     ] as Layout[]
   },
 
@@ -74,7 +76,8 @@ export const LAYOUT_PRESETS = {
       { i: 'soil', x: 0, y: 4, w: 4, h: 2 },            // 中：土壤
       { i: 'ai-insight', x: 4, y: 4, w: 4, h: 4 },      // 大：AI洞察
       { i: 'spectral', x: 8, y: 4, w: 4, h: 4 },        // 大：光谱
-      { i: 'membership', x: 0, y: 6, w: 4, h: 2 }       // 中：会员
+      { i: 'membership', x: 0, y: 6, w: 4, h: 2 },       // 中：会员
+      { i: 'weather-forecast', x: 4, y: 8, w: 4, h: 4 }  // 大：天气预报
     ] as Layout[]
   },
 
@@ -95,7 +98,8 @@ export const LAYOUT_PRESETS = {
       { i: 'nitrogen', x: 2, y: 6, w: 2, h: 2 },        // 小：氮
       { i: 'phosphorus', x: 4, y: 6, w: 2, h: 2 },      // 小：磷
       { i: 'potassium', x: 6, y: 6, w: 2, h: 2 },       // 小：钾
-      { i: 'membership', x: 8, y: 6, w: 4, h: 2 }       // 中：会员
+      { i: 'membership', x: 8, y: 6, w: 4, h: 2 },      // 中：会员
+      { i: 'weather-forecast', x: 0, y: 8, w: 4, h: 4 }  // 大：天气预报
     ] as Layout[]
   },
 
@@ -116,7 +120,8 @@ export const LAYOUT_PRESETS = {
       { i: 'nitrogen', x: 2, y: 6, w: 2, h: 2 },        // 小：氮
       { i: 'phosphorus', x: 4, y: 6, w: 2, h: 2 },      // 小：磷
       { i: 'potassium', x: 6, y: 6, w: 2, h: 2 },       // 小：钾
-      { i: 'membership', x: 8, y: 6, w: 4, h: 2 }       // 中：会员
+      { i: 'membership', x: 8, y: 6, w: 4, h: 2 },      // 中：会员
+      { i: 'weather-forecast', x: 0, y: 8, w: 4, h: 4 }  // 大：天气预报
     ] as Layout[]
   },
 
@@ -137,7 +142,8 @@ export const LAYOUT_PRESETS = {
       { i: 'nitrogen', x: 2, y: 6, w: 2, h: 2 },        // 小：氮
       { i: 'phosphorus', x: 4, y: 6, w: 2, h: 2 },      // 小：磷
       { i: 'potassium', x: 6, y: 6, w: 2, h: 2 },       // 小：钾
-      { i: 'membership', x: 8, y: 6, w: 4, h: 2 }       // 中：会员
+      { i: 'membership', x: 8, y: 6, w: 4, h: 2 },      // 中：会员
+      { i: 'weather-forecast', x: 0, y: 8, w: 4, h: 4 }  // 大：天气预报
     ] as Layout[]
   },
 
@@ -158,7 +164,8 @@ export const LAYOUT_PRESETS = {
       { i: 'weather', x: 0, y: 6, w: 4, h: 2 },         // 中：天气
       { i: 'light', x: 4, y: 6, w: 2, h: 2 },           // 小：光照
       { i: 'co2', x: 6, y: 6, w: 2, h: 2 },             // 小：CO2
-      { i: 'membership', x: 8, y: 6, w: 4, h: 2 }       // 中：会员
+      { i: 'membership', x: 8, y: 6, w: 4, h: 2 },      // 中：会员
+      { i: 'weather-forecast', x: 0, y: 8, w: 4, h: 4 }  // 大：天气预报
     ] as Layout[]
   }
 }

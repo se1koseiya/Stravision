@@ -157,7 +157,7 @@ export default function ProfilePage() {
       <div className="px-6 pt-16 pb-8 relative overflow-visible">
         <div className="relative z-10">
           <div className="mb-6">
-             <h1 className="text-[2.5rem] font-black text-slate-900 dark:text-white leading-tight tracking-tight" style={{ fontFamily: 'DingTalkJinBuTi, system-ui, -apple-system, sans-serif' }}>
+             <h1 className="text-[2.5rem] font-black text-slate-900 dark:text-white leading-tight tracking-tight" style={{ fontFamily: 'var(--font-jinbuti)' }}>
                Hi, <br />
                <span className="text-blue-600 dark:text-blue-400">{user.username || 'Guest'}</span>
              </h1>

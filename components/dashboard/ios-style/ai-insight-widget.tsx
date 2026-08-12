@@ -1,10 +1,20 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Sparkles, Brain, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Zap, ArrowRight } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { RefreshCw, AlertTriangle, Sparkles, TrendingUp, ShieldCheck } from "lucide-react"
+import { Typography, Button, Flex } from "antd"
 import { useState, useEffect } from "react"
-import { IOSWidgetCard } from "./ios-widget-card"
+import {
+  IOSWidgetCard,
+  WidgetHeader,
+  WidgetStatusPill,
+  WidgetLabel,
+} from "./ios-widget-card"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+
+const { Paragraph } = Typography
+const A = BERRY_THEME.apple
+const WC = A.widgetColors.ai
+const ICON_STROKE = 1.75
 
 interface AIInsightWidgetProps {
   size?: 'small' | 'medium' | 'large'
@@ -23,14 +33,14 @@ interface InsightData {
   confidence: number
 }
 
-export function AIInsightWidget({ 
-  size = 'large', 
+export function AIInsightWidget({
+  size = 'large',
   className,
   isEditing,
   widgetId,
   onRemove,
   onContextMenu,
-  onLongPress 
+  onLongPress
 }: AIInsightWidgetProps) {
   const [data, setData] = useState<InsightData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,173 +68,165 @@ export function AIInsightWidget({
 
   const getRiskConfig = (level: string) => {
     switch (level) {
-      case 'high':
-        return {
-          status: '高风险',
-          icon: AlertTriangle,
-          colorClass: 'text-red-500',
-          bgClass: 'bg-red-50 dark:bg-red-900/30'
-        }
-      case 'medium':
-        return {
-          status: '警告',
-          icon: TrendingUp,
-          colorClass: 'text-orange-500',
-          bgClass: 'bg-orange-50 dark:bg-orange-900/30'
-        }
-      case 'low':
-        return {
-          status: '健康',
-          icon: CheckCircle,
-          colorClass: 'text-primary',
-          bgClass: 'bg-emerald-50 dark:bg-emerald-900/30'
-        }
-      default:
-        return {
-          status: '分析中',
-          icon: Brain,
-          colorClass: 'text-purple-500',
-          bgClass: 'bg-purple-50 dark:bg-purple-900/30'
-        }
+      case 'high': return { label: '高风险', color: A.accents.red, icon: AlertTriangle }
+      case 'medium': return { label: '关注', color: A.accents.orange, icon: TrendingUp }
+      case 'low': return { label: '健康', color: A.accents.green, icon: ShieldCheck }
+      default: return { label: '分析中', color: A.accents.blue, icon: Sparkles }
     }
   }
 
   const config = getRiskConfig(data?.riskLevel || 'low')
-  const Icon = config.icon
   const isSmall = size === 'small'
-
-  const Header = (
-    <div className="flex items-center gap-2 w-full">
-      <div className={cn("p-2 rounded-full", config.bgClass)}>
-        <Sparkles className={cn("w-4 h-4", config.colorClass)} />
-      </div>
-      {!isSmall && (
-        <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">AI 洞察</span>
-      )}
-      <div className="ml-auto">
-         <Button
-              variant="ghost"
-              size="icon"
-              className="w-8 h-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
-              onClick={fetchInsight}
-              disabled={loading}
-            >
-              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-         </Button>
-      </div>
-    </div>
-  )
+  const RiskIcon = config.icon
 
   if (error) {
-     return (
-        <IOSWidgetCard
-          size={size}
-          className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
-          header={Header}
-          isEditing={isEditing}
-          widgetId={widgetId}
-          onRemove={onRemove}
-          onContextMenu={onContextMenu}
-          onLongPress={onLongPress}
-        >
-           <div className="flex flex-col items-center justify-center h-full gap-2">
-              <AlertTriangle className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-              <span className="text-sm text-slate-500 dark:text-slate-400">服务不可用</span>
-              <Button variant="outline" size="sm" onClick={fetchInsight} className="mt-2 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-                 重试
-              </Button>
-           </div>
-        </IOSWidgetCard>
-     )
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        header={
+          <WidgetHeader
+            icon={<Sparkles size={14} strokeWidth={ICON_STROKE} />}
+            label="AI 洞察"
+            color={config.color}
+          />
+        }
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical align="center" justify="center" gap={8} style={{ height: '100%' }}>
+          <AlertTriangle size={24} strokeWidth={1.5} color={A.labelQuaternary} />
+          <span style={{ fontSize: 12, color: A.labelTertiary }}>服务不可用</span>
+          <Button size="small" onClick={fetchInsight} style={{ fontSize: 11 }}>重试</Button>
+        </Flex>
+      </IOSWidgetCard>
+    )
+  }
+
+  if (isSmall) {
+    return (
+      <IOSWidgetCard
+        size={size}
+        className={className}
+        isEditing={isEditing}
+        widgetId={widgetId}
+        onRemove={onRemove}
+        onContextMenu={onContextMenu}
+        onLongPress={onLongPress}
+        tint={WC.accent}
+      >
+        <Flex vertical align="center" justify="center" gap={6} style={{ height: '100%' }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            background: `${config.color}12`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: config.color,
+          }}>
+            <RiskIcon size={18} strokeWidth={ICON_STROKE} />
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 700, color: A.label, lineHeight: 1 }}>
+            {data?.riskLevel === 'low' ? '良好' : '关注'}
+          </span>
+          <WidgetStatusPill label={config.label} color={config.color} />
+        </Flex>
+      </IOSWidgetCard>
+    )
   }
 
   return (
     <IOSWidgetCard
       size={size}
-      className={cn("bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border-0", className)}
-      header={size !== 'small' ? Header : null}
+      className={className}
+      header={
+        <WidgetHeader
+          icon={<Sparkles size={14} strokeWidth={ICON_STROKE} />}
+          label="AI 智能洞察"
+          color={config.color}
+          right={
+            <Flex align="center" gap={6}>
+              <WidgetStatusPill label={config.label} color={config.color} />
+              <Button
+                type="text"
+                size="small"
+                icon={<RefreshCw size={12} strokeWidth={ICON_STROKE} className={loading ? 'animate-spin' : ''} />}
+                onClick={fetchInsight}
+                disabled={loading}
+                style={{ width: 24, height: 24, minWidth: 24, padding: 0 }}
+              />
+            </Flex>
+          }
+        />
+      }
       isEditing={isEditing}
       widgetId={widgetId}
       onRemove={onRemove}
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
+      tint={WC.accent}
     >
-      <div className="flex flex-col h-full justify-between">
-         {/* Small Size */}
-         {size === 'small' && (
-            <>
-               <div className="flex justify-between items-start">
-                  <div className={cn("p-2 rounded-full", config.bgClass)}>
-                     <Brain className={cn("w-5 h-5", config.colorClass)} />
-                  </div>
-               </div>
-               <div className="mt-auto">
-                  <div className="text-lg font-bold leading-tight line-clamp-2 text-slate-900 dark:text-white">
-                     {data?.riskLevel === 'low' ? '系统状态良好' : '需要处理'}
-                  </div>
-                  <div className="text-xs font-medium text-slate-500 mt-1">
-                     {config.status}
-                  </div>
-               </div>
-            </>
-         )}
+      <Flex vertical gap={10} style={{ height: '100%' }}>
+        <Flex align="flex-start" gap={10}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `${config.color}10`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: config.color,
+            flexShrink: 0,
+          }}>
+            <RiskIcon size={18} strokeWidth={ICON_STROKE} />
+          </div>
+          <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>
+            <span style={{
+              fontSize: size === 'large' ? 17 : 15,
+              fontWeight: 700,
+              color: A.label,
+              lineHeight: 1.25,
+            }}>
+              {data?.riskLevel === 'low' ? '系统运行状态良好' : data?.riskLevel === 'medium' ? '检测到潜在风险' : '需要立即处理'}
+            </span>
+            <span style={{ fontSize: 11, color: A.labelTertiary, fontWeight: 500 }}>
+              置信度 {data?.confidence || 0}%
+            </span>
+          </Flex>
+        </Flex>
 
-         {/* Medium Size */}
-         {size === 'medium' && (
-            <div className="flex flex-col h-full">
-               <div className="flex items-center gap-3 mb-2">
-                  <div className={cn("p-2 rounded-xl", config.bgClass)}>
-                     <Icon className={cn("w-6 h-6", config.colorClass)} />
-                  </div>
-                  <div>
-                     <h3 className="font-bold text-lg leading-none text-slate-900 dark:text-white">{data?.riskLevel === 'low' ? '一切正常' : '需要关注'}</h3>
-                     <span className="text-xs text-slate-500 dark:text-slate-400">{config.status} • 置信度 {data?.confidence}%</span>
-                  </div>
-               </div>
-               <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 flex-1 overflow-hidden">
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300 line-clamp-3">
-                     {data?.insight || "正在分析系统数据..."}
-                  </p>
-               </div>
-            </div>
-         )}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <Paragraph style={{
+            fontSize: size === 'large' ? 13 : 12,
+            color: A.labelSecondary,
+            marginBottom: 0,
+            lineHeight: 1.6,
+          }} ellipsis={size === 'medium' ? { rows: 3 } : false}>
+            {data?.insight || "正在分析系统数据..."}
+          </Paragraph>
+        </div>
 
-         {/* Large Size */}
-         {size === 'large' && (
-            <div className="flex flex-col h-full">
-               <div className="flex flex-col items-center justify-center py-4">
-                  <div className="relative">
-                     <div className={cn("absolute inset-0 rounded-full blur-xl animate-pulse opacity-30", config.bgClass.replace('bg-', 'bg-'))} />
-                     <Icon className={cn("w-16 h-16 relative z-10", config.colorClass)} />
-                  </div>
-                  <h3 className="text-2xl font-bold mt-4 text-slate-900 dark:text-white">{config.status}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">系统分析</p>
-               </div>
-
-               <div className="space-y-2 mt-2">
-                  <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                     <div className="flex items-center gap-2 mb-1">
-                        <Sparkles className="w-3 h-3 text-amber-500" />
-                        <span className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">分析洞察</span>
-                     </div>
-                     <p className="text-sm leading-snug text-slate-600 dark:text-slate-300">
-                        {data?.insight || "正在收集数据以进行分析..."}
-                     </p>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                     <div className="flex items-center gap-2 mb-1">
-                        <Zap className="w-3 h-3 text-blue-500" />
-                        <span className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">建议方案</span>
-                     </div>
-                     <p className="text-sm leading-snug text-slate-600 dark:text-slate-300">
-                        {data?.recommendation || "系统运行状况良好。"}
-                     </p>
-                  </div>
-               </div>
-            </div>
-         )}
-      </div>
+        {size === 'large' && data?.recommendation && (
+          <Flex gap={8} style={{
+            borderTop: `1px solid ${A.separator}`,
+            paddingTop: 10,
+          }}>
+            <WidgetLabel style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11, flexShrink: 0, color: config.color }}>
+              建议
+            </WidgetLabel>
+            <span style={{ fontSize: 12, color: A.labelSecondary, lineHeight: 1.5, flex: 1 }}>
+              {data.recommendation}
+            </span>
+          </Flex>
+        )}
+      </Flex>
     </IOSWidgetCard>
   )
 }

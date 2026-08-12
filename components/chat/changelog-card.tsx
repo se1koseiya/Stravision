@@ -1,8 +1,9 @@
 
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Rocket, Sparkles, Bug, Megaphone, ArrowRight } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -29,7 +30,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
 
   try {
     data = typeof content === 'string' ? JSON.parse(content) : content
-  } catch (e) {
+  } catch {
     return <div className="text-red-500 text-sm">无效的更新日志数据</div>
   }
 
@@ -54,9 +55,10 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
       {/* Optional Image */}
       {data.imageUrl && (
         <div className="w-full h-48 relative overflow-hidden bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-100 dark:border-zinc-800">
-          <img 
-            src={data.imageUrl} 
-            alt={data.title || "Update Image"} 
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={data.imageUrl}
+            alt={data.title || "Update Image"}
             className="w-full h-full object-cover"
           />
         </div>

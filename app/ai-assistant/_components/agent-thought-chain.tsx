@@ -1,248 +1,373 @@
 "use client"
 
-import React, { useMemo, useState, useEffect, useRef, useCallback } from "react"
-import { motion } from "framer-motion"
+import React, { useMemo } from "react"
 import { ThoughtChain } from "@ant-design/x"
+import type { ThoughtChainProps } from "@ant-design/x"
 import { Flex, Typography } from "antd"
 import {
-  Brain, Wrench, Eye, MessageSquare, Globe, Search,
-  CloudLightning, Zap, MapPin, Cpu, Database, Loader2,
-  CheckCircle2, XCircle, ArrowRight, Sparkles,
+  Search,
+  Globe,
+  CloudSun,
+  Activity,
+  History,
+  MapPin,
+  Sprout,
+  Droplets,
+  Wrench,
+  Brain,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Code,
+  Edit,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const { Text } = Typography
 
-export type AgentStepType = "thinking" | "action" | "observation" | "answer"
+// ---------------------------------------------------------------------------
+// 数据模型（向后兼容 page.tsx 中已有的 setAgentSteps 写法）
+// ---------------------------------------------------------------------------
+
+export type AgentStepKind =
+  | "narrative"   // 普通描述段
+  | "task"        // 工具调用/任务
+  | "tool_result" // 工具结果
+  | "thinking"    // 思考块
+  | "microStep"   // 向后兼容
+
 export type AgentStepStatus = "pending" | "active" | "completed" | "error"
+
+export type AgentChildTone = "success" | "error" | "info" | "neutral" | "accent"
+
+export interface AgentChildItem {
+  id: string
+  type: "edit" | "read" | "command" | "search" | "scrape" | "thinking" | "tool"
+  title: string
+  detail?: string
+  meta?: string
+  badge?: string
+  tone?: AgentChildTone
+  status: "active" | "completed" | "error"
+}
 
 export interface AgentStep {
   id: string
-  type: AgentStepType
+  kind: AgentStepKind
+  /** 兼容旧字段名 type */
+  type?: string
   status: AgentStepStatus
-  title: string
+  /** 兼容旧字段：title 优先；没有 title 时取 text */
+  title?: string
+  text?: string
   detail?: string
-  toolName?: string
+  subnote?: string
+  bullets?: string[]
+  meta?: string
+  children?: AgentChildItem[]
   duration?: number
+  durationMs?: number
   startedAt?: number
+  toolName?: string
 }
 
 // ---------------------------------------------------------------------------
-// Icon helpers
+// 工具函数
 // ---------------------------------------------------------------------------
 
-const ACTION_ICON_MAP: Record<string, any> = {
-  weather: CloudLightning, 天气: CloudLightning,
-  search: Search, 搜索: Search, brave: Search, exa: Search,
-  scrape: Globe, 抓取: Globe, firecrawl: Globe,
-  spectrum: Zap, 光谱: Zap,
-  route: MapPin, 路线: MapPin, amap: MapPin,
-  device: Cpu, 设备: Cpu,
-  data: Database, 数据: Database,
+function getStepText(s: AgentStep): string {
+  return s.text || s.title || ""
 }
 
-function getIcon(toolName?: string) {
-  if (!toolName) return Wrench
-  const t = toolName.toLowerCase()
-  for (const [key, icon] of Object.entries(ACTION_ICON_MAP)) {
-    if (t.includes(key)) return icon
+function getStepDuration(s: AgentStep): number {
+  if (typeof s.duration === "number") return s.duration
+  if (typeof s.durationMs === "number") return s.durationMs
+  return 0
+}
+
+// AgentStepStatus → ThoughtChain item status
+// ThoughtChain 仅支持 'loading' | 'success' | 'error' | 'abort'，没有 'pending'
+// pending 视为 "未开始"，不展示状态色 → 返回 undefined
+function mapStatus(
+  status: AgentStepStatus
+): ThoughtChainProps["items"][number]["status"] {
+  switch (status) {
+    case "active":
+      return "loading"
+    case "completed":
+      return "success"
+    case "error":
+      return "error"
+    default:
+      return undefined
   }
-  return Wrench
 }
 
-const TYPE_ICONS: Record<AgentStepType, any> = {
-  thinking: Brain, action: Wrench, observation: Eye, answer: MessageSquare,
+function mapChildStatus(
+  status: AgentChildItem["status"]
+): ThoughtChainProps["items"][number]["status"] {
+  switch (status) {
+    case "completed":
+      return "success"
+    case "error":
+      return "error"
+    case "active":
+      return "loading"
+    default:
+      return undefined
+  }
 }
 
-const TYPE_LABEL: Record<AgentStepType, string> = {
-  thinking: "思考", action: "工具", observation: "反馈", answer: "回复",
+// 根据工具名挑选 lucide-react 线性图标（strokeWidth 1.75，Trae Work 风格）
+function getIconForTool(toolName?: string): React.ReactNode {
+  const STROKE = 1.75
+  if (!toolName) return <Wrench size={14} strokeWidth={STROKE} />
+  const n = toolName.toLowerCase()
+  if (n.includes("search")) return <Search size={14} strokeWidth={STROKE} />
+  if (n.includes("scrape") || n.includes("firecrawl") || n.includes("crawl") || n.includes("fetch"))
+    return <Globe size={14} strokeWidth={STROKE} />
+  if (n.includes("weather")) return <CloudSun size={14} strokeWidth={STROKE} />
+  if (n.includes("spectrum")) return <Activity size={14} strokeWidth={STROKE} />
+  if (n.includes("sensor_history") || n.includes("history"))
+    return <History size={14} strokeWidth={STROKE} />
+  if (n.includes("route") || n.includes("amap")) return <MapPin size={14} strokeWidth={STROKE} />
+  if (n.includes("soil")) return <Sprout size={14} strokeWidth={STROKE} />
+  if (n.includes("irrigation")) return <Droplets size={14} strokeWidth={STROKE} />
+  return <Wrench size={14} strokeWidth={STROKE} />
+}
+
+function getIconForChildType(type: AgentChildItem["type"]): React.ReactNode {
+  const STROKE = 1.75
+  switch (type) {
+    case "edit":
+      return <Edit size={14} strokeWidth={STROKE} />
+    case "read":
+      return <FileText size={14} strokeWidth={STROKE} />
+    case "command":
+      return <Code size={14} strokeWidth={STROKE} />
+    case "search":
+      return <Search size={14} strokeWidth={STROKE} />
+    case "scrape":
+      return <Globe size={14} strokeWidth={STROKE} />
+    case "thinking":
+      return <Brain size={14} strokeWidth={STROKE} />
+    default:
+      return <Wrench size={14} strokeWidth={STROKE} />
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// 折叠内容区样式（对齐官方示例 contentStyles：浅色背景 + 圆角 + 细边框）
+// ---------------------------------------------------------------------------
+const itemContentStyles: ThoughtChainProps['styles'] = {
+  itemContent: {
+    backgroundColor: 'rgba(0,0,0,.02)',
+    borderRadius: 8,
+    padding: 10,
+    marginBlockStart: 8,
+    border: '1px solid rgba(0,0,0,.05)',
+  },
+}
+
+// ---------------------------------------------------------------------------
+// 将 AgentStep[] 转换为 ThoughtChain items
+// 分组策略：
+//   - 每个 task 步骤作为一个顶层 item（collapsible）
+//   - task 之前的 narrative/thinking 步骤作为该 task 内容里的 <Text type="secondary">
+//   - task 的 children（工具结果）作为内容里的 ThoughtChain.Item
+//   - microStep / tool_result 归入最近一个 task 的内容
+//   - 末尾若还有未归类的 narrative，单独形成一个"执行总结" item
+// ---------------------------------------------------------------------------
+
+function buildItems(
+  steps: AgentStep[],
+  isWorking: boolean
+): { items: ThoughtChainProps["items"]; activeKeys: string[] } {
+  const items: ThoughtChainProps["items"] = []
+  const activeKeys: string[] = []
+
+  let pendingTexts: string[] = []
+  let pendingMicro: AgentStep[] = []
+
+  const flushPending = (contentParts: React.ReactNode[]) => {
+    for (const t of pendingTexts) {
+      contentParts.push(
+        <Text key={`text-${contentParts.length}`} type="secondary" style={{ fontSize: 12.5 }}>
+          {t}
+        </Text>
+      )
+    }
+    pendingTexts = []
+    for (const ms of pendingMicro) {
+      const msStatus = mapStatus(ms.status)
+      const msDuration = getStepDuration(ms)
+      contentParts.push(
+        <ThoughtChain.Item
+          key={ms.id}
+          variant="solid"
+          icon={
+            ms.status === "error" ? (
+              <AlertCircle size={14} strokeWidth={1.75} />
+            ) : (
+              <CheckCircle2 size={14} strokeWidth={1.75} />
+            )
+          }
+          title={getStepText(ms) || "工具结果"}
+          description={ms.detail || (msDuration > 0 ? `${(msDuration / 1000).toFixed(1)}s` : undefined)}
+          status={msStatus}
+        />
+      )
+    }
+    pendingMicro = []
+  }
+
+  for (const step of steps) {
+    const kind = step.kind || "narrative"
+
+    if (kind === "narrative" || kind === "thinking") {
+      const text = getStepText(step)
+      if (text) pendingTexts.push(text)
+      continue
+    }
+
+    if (kind === "microStep" || kind === "tool_result") {
+      pendingMicro.push(step)
+      continue
+    }
+
+    if (kind === "task") {
+      const contentParts: React.ReactNode[] = []
+      flushPending(contentParts)
+
+      // 工具结果子项
+      if (step.children && step.children.length > 0) {
+        for (const child of step.children) {
+          contentParts.push(
+            <ThoughtChain.Item
+              key={child.id}
+              variant="solid"
+              icon={getIconForChildType(child.type)}
+              title={child.title}
+              description={
+                child.detail ||
+                child.meta ||
+                (child.badge ? `· ${child.badge}` : undefined)
+              }
+              status={mapChildStatus(child.status)}
+            />
+          )
+        }
+      }
+
+      const taskStatus = mapStatus(step.status)
+      const duration = getStepDuration(step)
+      // 描述：优先 subnote，其次 detail，最后加上耗时
+      const description =
+        step.subnote ||
+        step.detail ||
+        step.meta ||
+        (duration > 0 && step.status !== "active"
+          ? `耗时 ${(duration / 1000).toFixed(1)}s`
+          : undefined)
+
+      items.push({
+        key: step.id,
+        icon: getIconForTool(step.toolName),
+        title: getStepText(step) || step.toolName || "调用工具",
+        description,
+        collapsible: true,
+        content: (
+          <Flex gap="small" vertical>
+            {contentParts}
+          </Flex>
+        ),
+        status: taskStatus,
+      })
+
+      if (step.status === "active") {
+        activeKeys.push(step.id)
+      }
+    }
+  }
+
+  // 末尾剩余的 narrative / microStep 没有归属 task：单独形成一个总结 item
+  if (pendingTexts.length > 0 || pendingMicro.length > 0) {
+    const contentParts: React.ReactNode[] = []
+    flushPending(contentParts)
+    const summaryKey = `summary-${items.length}`
+    items.push({
+      key: summaryKey,
+      title: isWorking ? "整理结果中" : "执行总结",
+      collapsible: true,
+      content: (
+        <Flex gap="small" vertical>
+          {contentParts}
+        </Flex>
+      ),
+      status: isWorking ? "loading" : "success",
+    })
+    if (isWorking) activeKeys.push(summaryKey)
+  }
+
+  return { items, activeKeys }
+}
+
+// ---------------------------------------------------------------------------
+// 主组件（使用 @ant-design/x 官方 ThoughtChain）
 // ---------------------------------------------------------------------------
 
 export interface AgentThoughtChainProps {
   steps: AgentStep[]
   isActive?: boolean
   className?: string
+  /**
+   * 当有"任务规划"卡片同时展示时，思考链默认折叠。
+   */
+  defaultCollapsed?: boolean
 }
 
-export function AgentThoughtChain({ steps, isActive, className }: AgentThoughtChainProps) {
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
-  const completedRef = useRef(false)
-  const prevIsActiveRef = useRef(isActive)
-  // 用 ref 缓存上一次的 steps 引用对应的迭代 key，避免 steps 引用变化时 useEffect 反复触发
-  const lastStepsRef = useRef<AgentStep[]>(steps)
+export function AgentThoughtChain({
+  steps,
+  isActive,
+  className,
+  defaultCollapsed = false,
+}: AgentThoughtChainProps) {
+  const isWorking = !!isActive && steps.some((s) => s.status === "active")
 
-  const allDone = steps.length > 0 && steps.every((s) => s.status !== "active")
+  const { items, activeKeys } = useMemo(() => buildItems(steps, isWorking), [steps, isWorking])
 
-  // Group steps into iterations: thinking → action → observation is one cycle
-  // 🔥 关键修复：先比较 steps 的长度与状态，避免父组件传入新引用但内容相同时重算
-  const iterations = useMemo(() => {
-    const groups: { key: string; icon: any; label: string; steps: AgentStep[]; status: string }[] = []
-    let current: AgentStep[] = []
+  // 默认展开：工作状态下展开所有 active 任务；非工作状态下展开第一个 task（若有）
+  // 使用 uncontrolled 模式（defaultExpandedKeys），由 ThoughtChain 内部管理展开状态，
+  // 避免受控 expandedKeys + setState 在流式更新时触发 Maximum update depth 循环。
+  const defaultExpanded = useMemo(() => {
+    if (defaultCollapsed) return [] as string[]
+    if (isWorking && activeKeys.length > 0) return activeKeys
+    // 默认展开第一个 task，让用户能看到细节
+    const firstTaskKey = items.find((it) => it.collapsible)?.key
+    return firstTaskKey ? [firstTaskKey] : []
+  }, [defaultCollapsed, isWorking, activeKeys, items])
 
-    for (const step of steps) {
-      if (step.type === "thinking" && current.length > 0) {
-        groups.push(buildIteration(groups.length, current))
-        current = [step]
-      } else {
-        current.push(step)
-      }
-    }
-    if (current.length > 0) groups.push(buildIteration(groups.length, current))
-    lastStepsRef.current = steps
-    return groups
-    // 🔥 用结构指纹代替 steps 引用作为依赖
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [steps.length, steps.map(s => `${s.id}:${s.status}:${s.duration ?? 0}`).join("|")])
-
-  // Auto expand when active; auto collapse 2s after done
-  useEffect(() => {
-    if (isActive && !prevIsActiveRef.current) {
-      completedRef.current = false
-      setExpandedKeys(iterations.map((_, i) => `iter-${i}`))
-    }
-    prevIsActiveRef.current = isActive
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, iterations.length, iterations.map(i => i.status).join(",")])
-
-  useEffect(() => {
-    if (allDone && steps.length > 0 && !isActive && !completedRef.current) {
-      completedRef.current = true
-      const t = setTimeout(() => setExpandedKeys([]), 2500)
-      return () => clearTimeout(t)
-    }
-    if (isActive) completedRef.current = false
-  }, [allDone, isActive, steps.length])
-
-  // 🔥 关键修复：所有 hooks 必须在早期 return 之前调用（Rules of Hooks）
-  // items 数组稳定化
-  const thoughtChainItems = useMemo(
-    () =>
-      iterations.map((iter, i) => ({
-        key: `iter-${i}`,
-        title: iter.label,
-        collapsible: true,
-        icon: false,
-        status: iter.status as any,
-        content: (
-          <Flex gap="small" vertical style={{ margin: 0 }}>
-            {iter.steps.map((step) => {
-              const RawIcon = step.type === "action" ? getIcon(step.toolName) : TYPE_ICONS[step.type]
-              const isActive = step.status === "active"
-              return (
-                <ThoughtChain.Item
-                  key={step.id}
-                  variant="solid"
-                  status={
-                    (isActive ? "loading" :
-                    step.status === "completed" ? "success" :
-                    step.status === "error" ? "error" : undefined) as any
-                  }
-                  icon={
-                    isActive
-                      ? React.createElement(Loader2 as any, { size: 14, className: "animate-spin text-[#1677ff]" })
-                      : React.createElement(RawIcon as any, {
-                          size: 14,
-                          className: cn(
-                            step.status === "completed" && "text-[#1677ff]",
-                            step.status === "error" && "text-red-500",
-                          ),
-                        })
-                  }
-                  title={
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: isActive ? 'transparent' : 'var(--ant-color-text-quaternary, #a0a0a0)',
-                        background: isActive
-                          ? 'linear-gradient(90deg, #94a3b8 0%, #f8fafc 25%, #1677ff 50%, #f8fafc 75%, #94a3b8 100%)'
-                          : undefined,
-                        backgroundSize: isActive ? '200% auto' : undefined,
-                        WebkitBackgroundClip: isActive ? 'text' : undefined,
-                        backgroundClip: isActive ? 'text' : undefined,
-                        fontWeight: isActive ? 500 : undefined,
-                        animation: isActive ? 'thought-pulse 2.5s linear infinite' : undefined,
-                      }}
-                    >
-                      {step.title}
-                      {step.duration != null && !isActive && (
-                        <Text type="secondary" style={{ marginLeft: 8, fontSize: 11 }}>
-                          {(step.duration / 1000).toFixed(1)}s
-                        </Text>
-                      )}
-                    </span>
-                  }
-                  description={step.detail || TYPE_LABEL[step.type]}
-                  style={isActive ? { opacity: 1 } : undefined}
-                />
-              )
-            })}
-          </Flex>
-        ),
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [iterations]
-  )
-
-  // onExpand 回调稳定化
-  const handleExpand = useCallback((keys: string[]) => {
-    setExpandedKeys(keys)
-  }, [])
-
-  if (steps.length === 0) return null
+  if (items.length === 0) return null
 
   return (
-    <motion.div
-      className={cn("mx-4 my-3", className)}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-    >
+    <div className={cn("my-1.5", className)}>
+      {isWorking && (
+        <div className="flex items-center gap-1 text-[12px] text-[#1677ff] mb-1.5 px-0.5">
+          <Loader2 size={11} className="animate-spin" />
+          <span style={{ fontWeight: 400 }}>
+            任务执行中{items.length > 0 && ` · ${items.length} 步`}
+          </span>
+        </div>
+      )}
       <ThoughtChain
-        items={thoughtChainItems}
-        expandedKeys={expandedKeys}
-        onExpand={handleExpand}
-        styles={{
-          root: { fontSize: 12, color: 'var(--ant-color-text-quaternary, #b0b0b0)' },
-          item: { fontSize: 12, color: 'var(--ant-color-text-quaternary, #b0b0b0)' },
-          itemTitle: {
-            fontSize: 12,
-            color: 'var(--ant-color-text-quaternary, #a0a0a0)',
-          },
-          itemContent: {
-            backgroundColor: "rgba(0,0,0,.01)",
-            borderRadius: 8,
-            padding: 10,
-            marginBlockStart: 8,
-            border: "1px solid rgba(0,0,0,.04)",
-            color: 'var(--ant-color-text-quaternary, #b0b0b0)',
-          },
-          itemIcon: {
-            fontSize: 14,
-            color: 'var(--ant-color-text-quaternary, #999)',
-          },
-        }}
+        items={items}
+        defaultExpandedKeys={defaultExpanded}
+        collapsible
+        styles={itemContentStyles}
       />
-    </motion.div>
+    </div>
   )
-}
-
-function buildIteration(index: number, steps: AgentStep[]) {
-  const hasActive = steps.some((s) => s.status === "active")
-  const allOk = steps.every((s) => s.status === "completed")
-  const hasError = steps.some((s) => s.status === "error")
-  const firstThinking = steps.find((s) => s.type === "thinking")
-
-  return {
-    key: `iter-${index}`,
-    icon: Sparkles,
-    label: firstThinking?.title || `第 ${index + 1} 轮`,
-    steps,
-    status: hasActive ? "loading" : hasError ? "error" : allOk ? "success" : "pending",
-  }
 }
 
 export default AgentThoughtChain

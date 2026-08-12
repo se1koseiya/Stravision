@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import Image from "next/image"
-import { 
-  Fan, 
-  Droplets, 
+import {
+  Fan,
+  Droplets,
   MoreHorizontal,
   Video,
   Box,
@@ -36,8 +36,47 @@ import {
   VolumeX,
   Volume2,
   Minimize2,
-  Maximize2
+  Maximize2,
+  Thermometer,
+  Wind,
+  Activity,
+  Gauge,
+  Cpu
 } from "lucide-react"
+
+// 传感器指标图标映射（按 metric key 匹配）
+const SENSOR_METRIC_ICON_MAP: Record<string, typeof Droplets> = {
+  temperature: Thermometer,
+  humidity: Droplets,
+  light: Sun,
+  co2: Wind,
+  earth_temp: Thermometer,
+  earth_water: Droplets,
+  earth_ec: Activity,
+  earth_n: Gauge,
+  earth_p: Gauge,
+  earth_k: Gauge,
+  soil_moisture: Droplets,
+  soil_temp: Thermometer,
+  ph: Activity,
+  ec: Activity,
+  pressure: Gauge,
+  wind_speed: Wind,
+  default: Activity,
+}
+
+// 设备图标映射（设备注册表 icon 字段 → 组件）
+const DEVICE_ICON_MAP: Record<string, typeof Droplets> = {
+  Thermometer, Droplets, Fan, Lightbulb, Sun, CloudSun, Video, Camera, Activity, Cpu, Wind, Signal, Gauge, default: Cpu,
+}
+
+function getSensorMetricIcon(key: string): typeof Droplets {
+  return SENSOR_METRIC_ICON_MAP[key] || SENSOR_METRIC_ICON_MAP.default
+}
+
+function getDeviceIcon(iconName: string): typeof Droplets {
+  return DEVICE_ICON_MAP[iconName] || DEVICE_ICON_MAP.default
+}
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
@@ -104,8 +143,13 @@ import { DailyBriefingIsland } from "@/components/daily-briefing-island"
 export default function MonitorPage() {
   // Layout adjustments for monitor page
   const router = useRouter()
-  const { deviceData } = useDeviceData()
-  const { toggleRelay, setLEDs, controlStepper } = useDeviceControl()
+  const { deviceData, devices, customDeviceData } = useDeviceData()
+  const { toggleRelay, toggleRelayByDeviceId, setLEDs, controlStepper } = useDeviceControl()
+
+  // 从设备注册表动态获取传感器设备
+  const sensorDevices = useMemo(() => devices.filter(d => d.type === 'sensor' && d.is_enabled), [devices])
+  // 从设备注册表动态获取继电器设备
+  const registryRelayDevices = useMemo(() => devices.filter(d => d.type === 'relay' && d.is_enabled), [devices])
   const { setTheme, resolvedTheme } = useTheme()
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
 
@@ -704,6 +748,155 @@ export default function MonitorPage() {
             })}
           </div>
         </div>
+
+        {/* 传感器数据（动态来自设备注册表） */}
+        {sensorDevices.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                传感器 <span className="text-muted-foreground text-sm font-normal">{sensorDevices.length}</span>
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                onClick={() => router.push('/device-control')}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {sensorDevices.map((sensor) => {
+                const IconCmp = getDeviceIcon(sensor.icon)
+                const metrics = sensor.config?.metrics || []
+                const liveData = customDeviceData[sensor.id] || {}
+                const hex = sensor.color || '#1677ff'
+                const hasData = Object.keys(liveData).length > 0
+                return (
+                  <div
+                    key={sensor.id}
+                    className="rounded-[22px] bg-white/70 backdrop-blur-xl border border-white/60 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-slate-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] transition-all"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="h-10 w-10 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${hex}1a`, color: hex }}
+                      >
+                        <IconCmp className="h-5 w-5" strokeWidth={1.75} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{sensor.name}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", hasData ? "bg-emerald-400" : "bg-slate-300 dark:bg-slate-600")} />
+                          <span className="text-xs text-slate-500 dark:text-slate-400">{hasData ? "实时" : "等待数据"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {metrics.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {metrics.map((m) => {
+                          const MetricIcon = getSensorMetricIcon(m.key)
+                          const rawVal = liveData[m.mqtt_field]
+                          const val = rawVal !== undefined && rawVal !== null
+                            ? (m.scale ? Number(rawVal) * m.scale : Number(rawVal))
+                            : null
+                          return (
+                            <div key={m.key} className="rounded-xl bg-slate-50/80 dark:bg-white/5 px-3 py-2">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <MetricIcon className="h-3 w-3 text-slate-400" strokeWidth={1.75} />
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">{m.label}</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                {val !== null && !isNaN(val) ? val.toFixed(m.scale && m.scale < 1 ? 1 : 0) : "--"}
+                                <span className="text-[10px] font-normal text-slate-400 ml-0.5">{m.unit}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : hasData ? (
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(liveData)
+                          .filter(([k]) => k !== '_ts')
+                          .slice(0, 4)
+                          .map(([k, v]) => (
+                            <div key={k} className="rounded-lg bg-slate-50/80 dark:bg-white/5 px-2.5 py-1">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">{k}</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 ml-1.5">
+                                {typeof v === 'number' ? v : String(v)}
+                              </span>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 注册表继电器设备（不在旧版 environmentControls 中的自定义继电器） */}
+        {registryRelayDevices
+          .filter(d => !environmentControls.some(ec => ec.relay === d.config?.relay_num))
+          .length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                自定义设备 <span className="text-muted-foreground text-sm font-normal">
+                  {registryRelayDevices.filter(d => !environmentControls.some(ec => ec.relay === d.config?.relay_num)).length}
+                </span>
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {registryRelayDevices
+                .filter(d => !environmentControls.some(ec => ec.relay === d.config?.relay_num))
+                .map((d) => {
+                  const IconCmp = getDeviceIcon(d.icon)
+                  const relayNum = d.config?.relay_num as number | undefined
+                  const on = relayNum
+                    ? deviceData?.[`relay${relayNum}` as keyof typeof deviceData] === 1
+                    : false
+                  const hex = d.color || '#1677ff'
+                  return (
+                    <div
+                      key={d.id}
+                      className={cn(
+                        "rounded-[22px] bg-white/70 backdrop-blur-xl border border-white/60 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-slate-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] transition-all",
+                        on && "ring-2 ring-emerald-200/60"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-colors", on && "bg-emerald-400 text-white")}
+                            style={!on ? { backgroundColor: `${hex}1a`, color: hex } : undefined}
+                          >
+                            <IconCmp className="h-5 w-5" strokeWidth={1.75} />
+                          </div>
+                          <div>
+                            <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{d.name}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">{on ? "Active" : "Offline"}</div>
+                          </div>
+                        </div>
+                        <MiniToggle
+                          on={on}
+                          onClick={() => {
+                            if (relayNum) {
+                              handleToggle(relayNum as 5 | 6 | 7 | 8)
+                            } else {
+                              toggleRelayByDeviceId(d.id, on ? 1 : 0)
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Center Column: Main Visual */}
@@ -745,11 +938,27 @@ export default function MonitorPage() {
             }}
           />
 
-          <div className="absolute bottom-6 left-6 rounded-[18px] bg-white/70 backdrop-blur-xl border border-white/70 px-4 py-3 shadow-sm dark:bg-slate-900/45 dark:border-white/10">
-            <div className="flex items-center gap-3">
+          <div className="absolute bottom-6 left-6 rounded-[18px] bg-white/70 backdrop-blur-xl border border-white/70 px-4 py-3 shadow-sm dark:bg-slate-900/45 dark:border-white/10 max-w-[280px]">
+            <div className="flex items-center gap-3 flex-wrap">
               <div className="text-xs text-slate-500 dark:text-slate-400">Sensor</div>
               <div className="h-4 w-px bg-slate-200 dark:bg-white/10" />
               <div className="text-xs text-slate-700 dark:text-slate-200">{deviceData ? `${deviceData.temperature.toFixed(1)}°C · ${deviceData.humidity.toFixed(1)}%` : "--"}</div>
+              {sensorDevices.slice(0, 1).map(sensor => {
+                const data = customDeviceData[sensor.id] || {}
+                const firstMetric = sensor.config?.metrics?.[0]
+                if (!firstMetric || data[firstMetric.mqtt_field] === undefined) return null
+                const raw = data[firstMetric.mqtt_field]
+                const val = firstMetric.scale ? Number(raw) * firstMetric.scale : Number(raw)
+                return (
+                  <div key={sensor.id} className="flex items-center gap-1.5">
+                    <div className="h-4 w-px bg-slate-200 dark:bg-white/10" />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{firstMetric.label}</span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                      {isNaN(val) ? "--" : val.toFixed(firstMetric.scale && firstMetric.scale < 1 ? 1 : 0)}{firstMetric.unit}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserPublic } from "@/lib/db/user-service"
 import { UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon, QuestionMarkCircleIcon, SunIcon, MoonIcon } from "@heroicons/react/24/outline"
+import { Activity as ActivityIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -137,11 +138,11 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
         {/* 会员卡片 */}
         <div className={cn(
           "mx-1 my-1.5 rounded-xl p-3 relative overflow-hidden",
-          user.membership === 'plus' 
-            ? "bg-gradient-to-br from-violet-500/20 via-indigo-500/15 to-purple-500/20 dark:from-violet-500/30 dark:via-indigo-500/25 dark:to-purple-500/30 border border-violet-400/30 dark:border-violet-500/40"
+          user.membership === 'plus'
+            ? "bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800"
             : user.membership === 'pro'
-            ? "bg-gradient-to-br from-amber-400/20 via-orange-400/15 to-yellow-400/20 dark:from-amber-400/30 dark:via-orange-400/25 dark:to-yellow-400/30 border border-amber-400/30 dark:border-amber-500/40"
-            : "bg-gradient-to-br from-slate-100/50 to-slate-200/50 dark:from-slate-800/50 dark:to-slate-700/50 border border-slate-200/50 dark:border-slate-700/50"
+            ? "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+            : "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700"
         )}>
           {/* 背景装饰 */}
           {user.membership && user.membership !== 'free' && (
@@ -149,7 +150,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
               {user.membership === 'plus' ? (
                 <Crown className="size-full text-violet-600 dark:text-violet-400" />
               ) : (
-                <Sparkles className="size-full text-amber-600 dark:text-amber-400" />
+                <Sparkles className="size-full text-blue-600 dark:text-blue-400" />
               )}
             </div>
           )}
@@ -159,7 +160,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
               {user.membership === 'plus' ? (
                 <Crown className="size-5 text-violet-600 dark:text-violet-400" />
               ) : user.membership === 'pro' ? (
-                <Sparkles className="size-5 text-amber-600 dark:text-amber-400" />
+                <Sparkles className="size-5 text-blue-600 dark:text-blue-400" />
               ) : (
                 <UserIcon className="size-5 text-slate-500 dark:text-slate-400" />
               )}
@@ -168,7 +169,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
                 user.membership === 'plus' 
                   ? "text-violet-700 dark:text-violet-300"
                   : user.membership === 'pro'
-                  ? "text-amber-700 dark:text-amber-300"
+                  ? "text-blue-700 dark:text-blue-300"
                   : "text-slate-600 dark:text-slate-400"
               )}>
                 {user.membership === 'plus' ? 'Plus会员' : user.membership === 'pro' ? 'Pro会员' : '免费用户'}
@@ -258,6 +259,13 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
         >
           <UserIcon className="mr-2 size-4" />
           <span>个人中心</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
+          onClick={() => router.push("/activity")}
+        >
+          <ActivityIcon className="mr-2 size-4" />
+          <span>活动动态</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"

@@ -1,11 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Sparkles, Crown, Zap, Check, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Typography, Flex, Progress, Button } from "antd"
 import Link from "next/link"
 import { IOSWidgetCard } from "./ios-style/ios-widget-card"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
+
+const { Text } = Typography
+const ICON_STROKE = 1.75
+const E = BERRY_THEME.editorial
 
 interface QuotaInfo {
   daily_limit: number
@@ -24,8 +28,8 @@ interface MembershipCardProps {
   onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
 }
 
-export function MembershipCard({ 
-  className, 
+export function MembershipCard({
+  className,
   size = 'medium',
   isEditing,
   widgetId,
@@ -54,19 +58,16 @@ export function MembershipCard({
   }, [])
 
   if (loading) return (
-    <IOSWidgetCard 
-      size={size} 
-      className={cn("animate-pulse bg-slate-100", className)}
+    <IOSWidgetCard
+      size={size}
+      className={className}
       isEditing={isEditing}
       widgetId={widgetId}
       onRemove={onRemove}
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
     >
-       <div className="h-full flex flex-col justify-center items-center">
-          <div className="h-6 w-1/3 bg-slate-200 rounded mb-4"></div>
-          <div className="h-10 w-2/3 bg-slate-200 rounded"></div>
-       </div>
+      <div className="h-full w-full animate-pulse" style={{ background: E.surfaceAlt, borderRadius: 8 }} />
     </IOSWidgetCard>
   )
 
@@ -76,113 +77,108 @@ export function MembershipCard({
   const isFree = membership === 'free'
   const isSmall = size === 'small'
 
-  // Update styles to match the White/Emerald theme
-  const cardStyle = isPlus 
-      ? "bg-white border-2 border-violet-100 text-slate-900" 
-      : isPro 
-      ? "bg-white border-2 border-amber-100 text-slate-900" 
-      : "bg-white text-slate-900"
+  const config = isPlus
+    ? { icon: Crown, color: '#9333ea', title: 'PLUS 会员', label: 'PLUS' }
+    : isPro
+      ? { icon: Sparkles, color: '#d97706', title: 'PRO 会员', label: 'PRO' }
+      : { icon: Zap, color: '#8c8c8c', title: '免费计划', label: '基础' }
 
-  const iconBg = isPlus ? "bg-violet-50 text-violet-600" : isPro ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-600"
+  const Icon = config.icon
 
-  const Header = (
-    <div className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-2">
-          <div className={cn("p-2 rounded-full", iconBg)}>
-            {isPlus ? <Crown className="size-4 fill-current" /> :
-             isPro ? <Sparkles className="size-4 fill-current" /> :
-             <Zap className="size-4" />}
-          </div>
-          {!isSmall && (
-            <span className="font-bold tracking-tight text-slate-900">
-                {isPlus ? 'PLUS 会员' : isPro ? 'PRO 会员' : '免费计划'}
-            </span>
-          )}
-        </div>
-        {!isSmall && (
-            <Link href="/profile" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-0.5 transition-colors pointer-events-auto z-50 relative">
-            详情 <ChevronRight className="size-3" />
-            </Link>
-        )}
-    </div>
+  const Caption = ({ text, color }: { text: string; color?: string }) => (
+    <span style={{ ...E.type.caption, color: color || E.inkTertiary, fontSize: isSmall ? 9 : 10 }}>{text}</span>
   )
 
+  const Header = !isSmall ? (
+    <Flex align="center" justify="space-between" style={{ width: '100%' }}>
+      <Caption text="MEMBERSHIP" />
+      <Link
+        href="/profile"
+        style={{ fontSize: 10, color: E.inkTertiary, display: 'flex', alignItems: 'center', gap: 2, pointerEvents: 'auto', zIndex: 50, position: 'relative', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
+      >
+        详情 <ChevronRight size={12} strokeWidth={ICON_STROKE} color={E.inkTertiary} />
+      </Link>
+    </Flex>
+  ) : null
+
   return (
-    <IOSWidgetCard 
-        size={size} 
-        className={cn("shadow-sm border-0", cardStyle, className)}
-        header={Header}
-        isEditing={isEditing}
-        widgetId={widgetId}
-        onRemove={onRemove}
-        onContextMenu={onContextMenu}
-        onLongPress={onLongPress}
+    <IOSWidgetCard
+      size={size}
+      className={className}
+      header={Header}
+      isEditing={isEditing}
+      widgetId={widgetId}
+      onRemove={onRemove}
+      onContextMenu={onContextMenu}
+      onLongPress={onLongPress}
     >
-      <div className="flex flex-col h-full justify-between">
-         {/* Small Size */}
-         {isSmall && (
-             <>
-                <div className="mt-auto">
-                    <div className="text-2xl font-bold text-slate-900">
-                        {isPlus ? 'PLUS' : isPro ? 'PRO' : '基础'}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                        {isPlus ? '无限制' : `${quota?.daily_usage || 0}/${quota?.daily_limit || 0}`} 次AI调用
-                    </div>
-                </div>
-             </>
-         )}
+      {/* Small Size — giant label */}
+      {isSmall && (
+        <Flex vertical justify="space-between" style={{ height: '100%' }}>
+          <Icon size={20} strokeWidth={1.5} color={config.color} style={{ opacity: 0.6 }} />
+          <Flex vertical gap={2}>
+            <span style={{ fontSize: 22, fontWeight: 200, color: E.ink, lineHeight: 0.9, letterSpacing: '-0.02em' }}>{config.label}</span>
+            <span style={{ ...E.type.caption, color: E.inkTertiary, fontSize: 9 }}>
+              {isPlus ? '无限制' : `${quota?.daily_usage || 0}/${quota?.daily_limit || 0}`} AI/天
+            </span>
+          </Flex>
+        </Flex>
+      )}
 
-         {/* Medium/Large Size */}
-         {!isSmall && (
-             <div className="flex flex-col h-full">
-                <div className="flex-1 flex flex-col justify-center">
-                    <div className="flex justify-between items-end mb-2">
-                        <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">每日 AI 额度</span>
-                        <span className="font-bold text-2xl text-slate-900">
-                        {isPlus ? '∞' : `${quota?.daily_usage || 0} / ${quota?.daily_limit || 0}`}
-                        </span>
-                    </div>
-                    
-                    {!isPlus && (
-                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div 
-                            className={cn("h-full transition-all duration-500 ease-out rounded-full", isPro ? "bg-amber-500" : "bg-slate-800")}
-                            style={{ width: `${Math.min(100, quota?.daily_limit ? ((quota.daily_usage / quota.daily_limit) * 100) : 0)}%` }}
-                        />
-                        </div>
-                    )}
-                    {isPlus && (
-                        <div className="h-2 w-full rounded-full bg-violet-100 animate-pulse" />
-                    )}
-                </div>
+      {/* Medium/Large Size */}
+      {!isSmall && (
+        <Flex vertical style={{ height: '100%' }} gap={8}>
+          <Flex vertical gap={6}>
+            <Flex align="baseline" justify="space-between">
+              <Caption text="每日 AI 额度" />
+              <span style={{ fontSize: isSmall ? 24 : 28, fontWeight: 200, color: E.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {isPlus ? '∞' : `${quota?.daily_usage || 0} / ${quota?.daily_limit || 0}`}
+              </span>
+            </Flex>
+            {!isPlus ? (
+              <Progress
+                percent={Math.min(100, quota?.daily_limit ? (quota.daily_usage / quota.daily_limit) * 100 : 0)}
+                strokeColor={isPro ? '#d97706' : BERRY_THEME.primary}
+                showInfo={false}
+                size="small"
+                style={{ margin: 0 }}
+              />
+            ) : (
+              <div style={{ height: 4, width: '100%', borderRadius: 2, background: `${config.color}20` }} />
+            )}
+          </Flex>
 
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                    <div className="grid grid-cols-2 gap-2">
-                        {isFree ? (
-                            <>
-                                <div className="flex items-center gap-2 text-xs text-slate-500">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400" /> 基础监测
-                                </div>
-                                <Button size="sm" variant="secondary" className="w-full h-8 text-xs bg-slate-900 text-white hover:bg-slate-800 shadow-none col-span-2 mt-1 rounded-full">
-                                    升级 <Sparkles className="ml-1 size-3" />
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                                    <Check className={cn("size-3", isPlus ? "text-violet-500" : "text-amber-500")} /> {isPlus ? '无限制 AI' : '70次 AI/天'}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                                    <Check className={cn("size-3", isPlus ? "text-violet-500" : "text-amber-500")} /> {isPlus ? '全天候自动' : '数据分析'}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-             </div>
-         )}
-      </div>
+          <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: `1px solid ${E.line}` }}>
+            {isFree ? (
+              <Flex vertical gap={8}>
+                <Flex align="center" gap={6}>
+                  <Check size={12} strokeWidth={ICON_STROKE} color={config.color} />
+                  <span style={{ fontSize: 12, color: E.inkSecondary }}>基础监测</span>
+                </Flex>
+                <Button
+                  type="primary"
+                  size="small"
+                  block
+                  icon={<Sparkles size={12} strokeWidth={ICON_STROKE} />}
+                >
+                  升级
+                </Button>
+              </Flex>
+            ) : (
+              <Flex vertical gap={6}>
+                <Flex align="center" gap={6}>
+                  <Check size={12} strokeWidth={ICON_STROKE} color={config.color} />
+                  <span style={{ fontSize: 12, color: E.inkSecondary }}>{isPlus ? '无限制 AI' : '70次 AI/天'}</span>
+                </Flex>
+                <Flex align="center" gap={6}>
+                  <Check size={12} strokeWidth={ICON_STROKE} color={config.color} />
+                  <span style={{ fontSize: 12, color: E.inkSecondary }}>{isPlus ? '全天候自动' : '数据分析'}</span>
+                </Flex>
+              </Flex>
+            )}
+          </div>
+        </Flex>
+      )}
     </IOSWidgetCard>
   )
 }

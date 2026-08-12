@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button, Input, Table, Modal, Tag, Space, Typography } from "antd"
+import { Button, Input, Table, Modal, Tag, Space, Typography, Card } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { toast } from "sonner"
 import {
@@ -122,18 +122,16 @@ export function MCPMarketManager() {
   const AppIcon = ({ icon, name }: { icon: string; name: string }) => {
     const [error, setError] = useState(false)
     const baseStyle: React.CSSProperties = {
-      width: 40,
-      height: 40,
-      borderRadius: 8,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-      border: "1px solid #e4e4e7",
+      width: 36,
+      height: 36,
+      borderRadius: 6,
+      border: "1px solid #EDEEEF",
       overflow: "hidden",
       flexShrink: 0,
     }
     if (error || !icon) {
       const firstLetter = name.charAt(0).toUpperCase()
-      const colors = ["#3b82f6", "#f43f5e", "#8b5cf6", "#f59e0b", "#6366f1", "#4f46e5"]
-      const color = colors[name.length % colors.length]
+      const color = "#1677ff"
       return (
         <div
           style={{
@@ -165,7 +163,7 @@ export function MCPMarketManager() {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
-      render: (priority: number) => <Text strong style={{ color: "#8b5cf6" }}>#{priority}</Text>,
+      render: (priority: number) => <Text strong style={{ color: "#1677ff" }}>#{priority}</Text>,
     },
     {
       title: "Icon",
@@ -188,7 +186,7 @@ export function MCPMarketManager() {
       render: (displayName: string, record) => (
         <Space>
           <Text>{displayName}</Text>
-          {record.official && <CheckCircleOutlined style={{ color: "#3b82f6" }} />}
+          {record.official && <CheckCircleOutlined style={{ color: "#1677ff" }} />}
         </Space>
       ),
     },
@@ -236,10 +234,11 @@ export function MCPMarketManager() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <Card style={{ border: "1px solid #EDEEEF", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <Input
           placeholder="Search MCP servers..."
-          prefix={<SearchOutlined style={{ color: "#71717a" }} />}
+          prefix={<SearchOutlined style={{ color: "#8F959E" }} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ maxWidth: 320 }}
@@ -272,7 +271,9 @@ export function MCPMarketManager() {
           Add MCP Server
         </Button>
       </div>
+      </Card>
 
+      <Card style={{ border: "1px solid #EDEEEF" }} styles={{ body: { padding: 0 } }}>
       <Table
         columns={columns}
         dataSource={filteredServers}
@@ -283,6 +284,7 @@ export function MCPMarketManager() {
         }}
         pagination={{ pageSize: 10 }}
       />
+      </Card>
 
       <Modal
         open={modalOpen}
@@ -326,13 +328,13 @@ export function MCPMarketManager() {
               </Text>
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 6,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  border: "1px solid #e4e4e7",
+                  border: "1px solid #EDEEEF",
                   backgroundColor: "white",
                   overflow: "hidden",
                   flexShrink: 0,
@@ -344,7 +346,7 @@ export function MCPMarketManager() {
                       <span style={{ fontSize: 24 }}>{editingServer.icon}</span>
                     )
                   )}
-                  {!editingServer?.icon && <PlusOutlined style={{ color: "#71717a" }} />}
+                  {!editingServer?.icon && <PlusOutlined style={{ color: "#8F959E" }} />}
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   <Input
@@ -379,9 +381,9 @@ export function MCPMarketManager() {
                   <div style={{
                     flex: 1,
                     height: 32,
-                    borderRadius: 8,
-                    backgroundColor: "#f4f4f5",
-                    border: "1px solid rgba(0,0,0,0.05)",
+                    borderRadius: 6,
+                    backgroundColor: "#F2F3F5",
+                    border: "1px solid #EDEEEF",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -390,7 +392,7 @@ export function MCPMarketManager() {
                     {editingServer?.cover_image ? (
                       <img src={editingServer.cover_image} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }} />
                     ) : (
-                      <span style={{ fontSize: 10, color: "#71717a", fontWeight: 700 }}>无预览图片</span>
+                      <span style={{ fontSize: 10, color: "#8F959E", fontWeight: 700 }}>无预览图片</span>
                     )}
                   </div>
                   <Button
@@ -436,9 +438,9 @@ export function MCPMarketManager() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Text strong style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <FireOutlined style={{ color: "#3b82f6" }} />
+              <FireOutlined style={{ color: "#1677ff" }} />
               推荐 Prompt
-              <span style={{ fontSize: 10, color: "#a1a1aa", fontWeight: 400 }}>（插件详情页打开时自动加载）</span>
+              <span style={{ fontSize: 10, color: "#8F959E", fontWeight: 400 }}>（插件详情页打开时自动加载）</span>
             </Text>
             <Input.TextArea
               placeholder="为这个插件推荐一个具体的使用 Prompt，例如：读取 1 号棚的近红外光谱值并判断氮素含量。"
@@ -468,7 +470,7 @@ export function MCPMarketManager() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Text style={{ color: "#3b82f6" }}>Default Env Vars (JSON Object)</Text>
+            <Text style={{ color: "#1677ff" }}>Default Env Vars (JSON Object)</Text>
             <Input.TextArea
               placeholder='{"API_KEY": ""}'
               style={{ fontFamily: "monospace", fontSize: 12, height: 96 }}
@@ -477,7 +479,7 @@ export function MCPMarketManager() {
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "12px 16px", borderRadius: 8, border: "1px solid #e4e4e7" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "12px 16px", borderRadius: 6, border: "1px solid #EDEEEF", backgroundColor: "#F7F8FA" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="checkbox"

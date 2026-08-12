@@ -20,11 +20,13 @@ import {
   Tag, Clock, History, RotateCcw, Download, Eye, Edit3, Upload, Sparkles, BookOpen,
   Link2, FileCode, Database, RefreshCw, Settings, Share2, Lock, Filter, PanelLeftOpen,
   ArrowLeft, AlertCircle, CheckCircle2, Loader2, Hash, Copy, ExternalLink, Save,
-  ShieldCheck, HardDrive, Cloud
+  ShieldCheck, HardDrive, Cloud, Users, Activity as ActivityIcon
 } from "lucide-react"
 import { Dropdown, Tooltip, App, Modal, Input as AntInput, Select, Empty, Spin, Tabs } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+import CollaboratorsPanel from "@/components/kb/collaborators-panel"
+import ActivityFeed from "@/components/kb/activity-feed"
 
 // ============== 类型定义 ==============
 
@@ -217,6 +219,7 @@ export function KnowledgeSidebarPanel({
   const summaryMax = (kc?.limits?.summaryMax as number) ?? cfg.summaryMax
 
   const [collections, setCollections] = useState<KnowledgeCollection[]>([])
+  const [collaborations, setCollaborations] = useState<any[]>([])
   const [items, setItems] = useState<KnowledgeItem[]>([])
   const [tags, setTags] = useState<{ name: string; usage_count: number; color: string }[]>([])
   const [selectedCollection, setSelectedCollection] = useState<number | null | "all" | "favorites">("all")
@@ -231,6 +234,15 @@ export function KnowledgeSidebarPanel({
   const [showCreateCollection, setShowCreateCollection] = useState(false)
   const [showCreateItem, setShowCreateItem] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  // 协作管理：当前用户 + 选中的集合
+  const [currentUserId, setCurrentUserId] = useState<number>(0)
+  const [currentUserRole, setCurrentUserRole] = useState<"user" | "admin" | "super_admin">("user")
+  const [manageCollection, setManageCollection] = useState<KnowledgeCollection | null>(null)
+  // 当前选中集合是否为协作集合
+  const [selectedIsCollaboration, setSelectedIsCollaboration] = useState<boolean>(false)
+  const [selectedCollabRole, setSelectedCollabRole] = useState<string | null>(null)
+  // 当前选中集合上用户的角色（决定 canManage 权限）—— 必须从协作 API 计算，**不能用 currentUserRole（系统级）**
+  const [selectedCollectionRole, setSelectedCollectionRole] = useState<string | null>(null)
   const [stats, setStats] = useState<{ total_items: number; total_collections: number; storage_bytes: number } | null>(null)
   const [recommendations, setRecommendations] = useState<KnowledgeItem[]>([])
   // 用户上传时的临时覆盖（admin 开关 + 用户 toggle 决定是否走 GLM-OCR）
@@ -242,10 +254,65 @@ export function KnowledgeSidebarPanel({
   const loadCollections = useCallback(async () => {
     try {
       const res = await fetch("/api/knowledge/collections")
-      const data = await res.json()
-      if (res.ok) setCollections(data.items || [])
+      const text = await res.text().catch(() => "")
+      let data: any = { items: [], collaborations: [] }
+      try { data = text ? JSON.parse(text) : data } catch {}
+      if (res.ok) {
+        setCollections(data.items || [])
+        setCollaborations(data.collaborations || [])
+        if (typeof selectedCollection === "number") {
+          const collab = (data.collaborations || []).find((c: any) => c.id === selectedCollection)
+          if (collab) {
+            setSelectedIsCollaboration(true)
+            setSelectedCollabRole(collab.my_role)
+          } else {
+            setSelectedIsCollaboration(false)
+            setSelectedCollabRole(null)
+          }
+        }
+      } else if (text) {
+        console.warn(`[loadCollections] HTTP ${res.status}:`, text.slice(0, 200))
+      }
     } catch (e) { console.warn("loadCollections failed", e) }
-  }, [])
+  }, [selectedCollection])
+
+  // 切换选中集合（同步协作状态）
+  const selectCollection = useCallback((id: number | null | "all" | "favorites") => {
+    setSelectedCollection(id)
+    setSelectedItem(null)
+    if (typeof id === "number") {
+      const collab = collaborations.find((c) => c.id === id)
+      if (collab) {
+        setSelectedIsCollaboration(true)
+        setSelectedCollabRole(collab.my_role)
+        // 我是协作者：直接用 collab.my_role
+        setSelectedCollectionRole(collab.my_role || null)
+      } else {
+        setSelectedIsCollaboration(false)
+        setSelectedCollabRole(null)
+        // 在自己的集合列表里：判断是否 owner
+        // 用 collections 列表中该集合的 user_id 与 currentUserId 比对
+        // （如果 currentUserId 还没加载，给 null 保守拒绝所有管理操作）
+        setSelectedCollectionRole(currentUserId > 0 ? "owner" : null)
+      }
+    } else {
+      setSelectedIsCollaboration(false)
+      setSelectedCollabRole(null)
+      setSelectedCollectionRole(null)
+    }
+  }, [collaborations, currentUserId])
+
+  // 打开 manageCollection 时同步 selectedCollectionRole（用于协作者 modal 的 canManage）
+  useEffect(() => {
+    if (!manageCollection) return
+    const collab = collaborations.find((c) => c.id === manageCollection.id)
+    if (collab) {
+      setSelectedCollectionRole(collab.my_role || null)
+    } else {
+      // 自己的 KB：保守认 owner
+      setSelectedCollectionRole(currentUserId > 0 ? "owner" : null)
+    }
+  }, [manageCollection, collaborations, currentUserId])
 
   const loadItems = useCallback(async () => {
     setLoading(true)
@@ -263,8 +330,12 @@ export function KnowledgeSidebarPanel({
       if (selectedTag) params.set("tag", selectedTag)
       params.set("limit", String(listPageSize))
       const res = await fetch(`/api/knowledge/items?${params}`)
-      const data = await res.json()
+      // 防御：服务端可能返回非 JSON（5xx HTML、空 body），用 .catch 降级
+      const text = await res.text().catch(() => "")
+      let data: any = { items: [], total: 0 }
+      try { data = text ? JSON.parse(text) : data } catch {}
       if (res.ok) setItems(data.items || [])
+      else if (text) console.warn(`[loadItems] HTTP ${res.status}:`, text.slice(0, 200))
     } catch (e) { console.warn("loadItems failed", e) }
     finally { setLoading(false) }
   }, [selectedCollection, selectedTag, listPageSize])
@@ -299,6 +370,21 @@ export function KnowledgeSidebarPanel({
     void loadTags()
     void loadStats()
     void loadRecommendations()
+    // 拉取当前用户身份（用于协作者管理 Modal 的权限判断）
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.authenticated && data?.user) {
+          setCurrentUserId(data.user.id)
+          setCurrentUserRole(data.user.role)
+        }
+      })
+      .catch(() => { /* ignore */ })
+
+    // 监听协作变化事件（接受/拒绝邀请后立即刷新协作集合列表）
+    const handleCollabChanged = () => void loadCollections()
+    window.addEventListener("kb:collaboration-changed", handleCollabChanged)
+    return () => window.removeEventListener("kb:collaboration-changed", handleCollabChanged)
   }, [open, loadCollections, loadTags, loadStats, loadRecommendations])
 
   useEffect(() => {
@@ -362,7 +448,11 @@ export function KnowledgeSidebarPanel({
         const res = await fetch(`/api/knowledge/collections?id=${id}`, { method: "DELETE" })
         if (res.ok) {
           message.success("集合已删除")
-          if (selectedCollection === id) setSelectedCollection("all")
+          if (selectedCollection === id) {
+            setSelectedCollection("all")
+            setSelectedIsCollaboration(false)
+            setSelectedCollabRole(null)
+          }
           await loadCollections()
           await loadItems()
         }
@@ -567,7 +657,7 @@ export function KnowledgeSidebarPanel({
             label="全部"
             count={stats?.total_items}
             active={selectedCollection === "all"}
-            onClick={() => { setSelectedCollection("all"); setSelectedItem(null) }}
+            onClick={() => selectCollection("all")}
             darkMode={isDark}
           />
           <CollectionNavItem
@@ -575,7 +665,7 @@ export function KnowledgeSidebarPanel({
             label="收藏"
             count={stats ? undefined : undefined}
             active={selectedCollection === "favorites"}
-            onClick={() => { setSelectedCollection("favorites"); setSelectedItem(null) }}
+            onClick={() => selectCollection("favorites")}
             darkMode={isDark}
           />
           <CollectionNavItem
@@ -583,7 +673,7 @@ export function KnowledgeSidebarPanel({
             label="未分类"
             count={undefined}
             active={selectedCollection === null}
-            onClick={() => { setSelectedCollection(null); setSelectedItem(null) }}
+            onClick={() => selectCollection(null)}
             darkMode={isDark}
           />
 
@@ -620,11 +710,54 @@ export function KnowledgeSidebarPanel({
                 count={c.item_count}
                 color={c.color}
                 active={selectedCollection === c.id}
-                onClick={() => { setSelectedCollection(c.id); setSelectedItem(null) }}
+                onClick={() => selectCollection(c.id)}
                 onDelete={() => handleDeleteCollection(c.id)}
+                onManage={() => setManageCollection(c)}
                 darkMode={isDark}
               />
             ))
+          )}
+
+          {/* 协作中的知识库（被邀请加入的） */}
+          {collaborations.length > 0 && (
+            <>
+              <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-gray-100")} />
+              <div className="px-2 mb-1.5 flex items-center gap-1.5">
+                <Users size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} strokeWidth={1.5} />
+                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-gray-400")}>
+                  协作中 · {collaborations.length}
+                </span>
+              </div>
+              {collaborations.map(c => (
+                <CollectionNavItem
+                  key={`collab-${c.id}`}
+                  icon={Folder}
+                  label={c.name}
+                  count={c.item_count}
+                  color={c.color}
+                  active={selectedCollection === c.id}
+                  badge={
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 500,
+                        padding: "1px 5px",
+                        borderRadius: 3,
+                        background: "rgba(22,119,255,0.10)",
+                        color: "#1677ff",
+                        lineHeight: "14px",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      协作
+                    </span>
+                  }
+                  onClick={() => selectCollection(c.id)}
+                  onManage={() => setManageCollection(c)}
+                  darkMode={isDark}
+                />
+              ))}
+            </>
           )}
 
           {/* 标签 */}
@@ -688,143 +821,190 @@ export function KnowledgeSidebarPanel({
 
       {/* ============== 中部：列表区 ============== */}
       <div className={cn("flex-1 flex flex-col min-w-0", isDark ? "bg-zinc-900" : "bg-white")}>
-        {/* 搜索栏 + 操作 */}
-        <div className={cn("px-5 pt-4 pb-3 border-b shrink-0", isDark ? "border-zinc-800" : "border-gray-100")}>
+        {/* 搜索栏 + 操作（两行：搜索独占一行，下一行是工具栏） */}
+        <div className="px-4 pt-3 pb-2 shrink-0">
+          {/* 第一行：搜索框 + 搜索模式 */}
           <div className="flex items-center gap-2">
-            {/* 搜索框 */}
             <div
               className={cn(
-                "flex-1 flex items-center gap-2 px-3 h-9 rounded-md border",
+                "flex-1 flex items-center gap-2 px-2.5 h-8 rounded-md border",
                 isDark ? "bg-zinc-950 border-zinc-800" : "bg-gray-50 border-gray-200"
               )}
             >
-              <Search size={14} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+              <Search size={13} className={isDark ? "text-zinc-500" : "text-gray-400"} />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索知识库（关键词 / 语义）"
+                placeholder="搜索知识库"
                 className={cn(
-                  "flex-1 bg-transparent text-sm outline-none",
+                  "flex-1 bg-transparent text-[13px] outline-none min-w-0",
                   isDark ? "text-zinc-100 placeholder:text-zinc-600" : "text-gray-900 placeholder:text-gray-400"
                 )}
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")} className="p-0.5">
-                  <X size={12} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+                  <X size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
                 </button>
               )}
             </div>
-
-            {/* 搜索模式切换 */}
             <Select
               size="small"
               value={searchMode}
               onChange={(v) => setSearchMode(v as SearchMode)}
-              style={{ width: 88 }}
+              style={{ width: 76, height: 32 }}
               options={[
                 { value: "hybrid", label: "混合" },
                 { value: "keyword", label: "关键词" },
                 { value: "semantic", label: "语义" }
               ]}
             />
+          </div>
 
-            {/* 上传 */}
-            <Tooltip title="上传文件">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className={cn(
-                  "h-9 px-2.5 rounded-md border text-xs flex items-center gap-1.5 transition-colors",
-                  isDark
-                    ? "border-zinc-800 hover:bg-zinc-800 text-zinc-300"
-                    : "border-gray-200 hover:bg-gray-50 text-gray-700"
-                )}
-              >
-                {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} strokeWidth={1.5} />}
-                <span>上传</span>
-              </button>
-            </Tooltip>
+          {/* 第二行：工具栏（左：图标组 ｜ 中：数据条 ｜ 右：主操作） */}
+          <div className="flex items-center mt-2.5 gap-2">
+            {/* 左侧图标组（统一 32px 方形按钮） */}
+            <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", isDark ? "" : "")}>
+              <Tooltip title={uploading ? "上传中..." : "上传文件"}>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className={cn(
+                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors",
+                    isDark
+                      ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50"
+                      : "hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+                  )}
+                >
+                  {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} strokeWidth={1.6} />}
+                </button>
+              </Tooltip>
 
-            {/* GLM-OCR 用户覆盖（per-upload）：跟随 admin / 启用 / 禁用 */}
-            <Tooltip
-              title={
-                useGLMOCRToggle === null
-                  ? `跟随 admin：${adminGLMAutoOcr ? "已启用" : "已禁用"}`
-                  : useGLMOCRToggle
-                  ? "本地上传：已强制启用 GLM-OCR"
-                  : "本地上传：已禁用 GLM-OCR，走本地解析"
-              }
-            >
-              <button
-                onClick={() => {
-                  // null → true → false → null 循环
-                  if (useGLMOCRToggle === null) setUseGLMOCRToggle(true)
-                  else if (useGLMOCRToggle === true) setUseGLMOCRToggle(false)
-                  else setUseGLMOCRToggle(null)
-                }}
-                className={cn(
-                  "h-9 px-2 rounded-md border text-xs flex items-center gap-1 transition-colors",
+              <Tooltip
+                title={
                   useGLMOCRToggle === null
-                    ? isDark ? "border-zinc-800 text-zinc-500" : "border-gray-200 text-gray-400"
-                    : useGLMOCRToggle
-                    ? isDark ? "border-blue-700 text-blue-400 bg-blue-950/30" : "border-blue-300 text-blue-600 bg-blue-50"
-                    : isDark ? "border-zinc-700 text-zinc-500" : "border-gray-200 text-gray-400 line-through"
-                )}
-                style={useGLMOCRToggle === true ? { color: "#1677ff", borderColor: "#91caff" } : undefined}
+                    ? `OCR：跟随 admin（${adminGLMAutoOcr ? "已启用" : "已禁用"}）`
+                    : useGLMOCRToggle ? "OCR：已强制启用" : "OCR：已禁用"
+                }
               >
-                <Sparkles size={11} strokeWidth={1.5} />
-                <span>
-                  {useGLMOCRToggle === null
-                    ? "OCR·跟随"
-                    : useGLMOCRToggle ? "OCR·开" : "OCR·关"}
-                </span>
-              </button>
-            </Tooltip>
-            <input
-              ref={fileInputRef}
-              type="file"
-              hidden
-              multiple
-              accept=".txt,.md,.csv,.json,.xml,.html,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,audio/*,video/*"
-              onChange={(e) => {
-                const files = Array.from(e.target.files || [])
-                files.forEach(f => void handleFileUpload(f))
-                e.target.value = ""
-              }}
-            />
+                <button
+                  onClick={() => {
+                    if (useGLMOCRToggle === null) setUseGLMOCRToggle(true)
+                    else if (useGLMOCRToggle === true) setUseGLMOCRToggle(false)
+                    else setUseGLMOCRToggle(null)
+                  }}
+                  className={cn(
+                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors relative",
+                    useGLMOCRToggle === true
+                      ? isDark ? "bg-blue-950/40 text-blue-400" : "bg-blue-50 text-blue-600"
+                      : isDark ? "hover:bg-zinc-800 text-zinc-500" : "hover:bg-gray-100 text-gray-500"
+                  )}
+                >
+                  <Sparkles size={15} strokeWidth={1.6} />
+                  <span
+                    className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full ring-2"
+                    style={{
+                      background:
+                        useGLMOCRToggle === true ? "#1677ff" :
+                        useGLMOCRToggle === false ? "rgba(0,0,0,0.25)" :
+                        "#52c41a",
+                      boxShadow: `0 0 0 2px ${isDark ? "#18181b" : "#ffffff"}`
+                    }}
+                  />
+                </button>
+              </Tooltip>
 
-            {/* 新建条目 */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                multiple
+                accept=".txt,.md,.csv,.json,.xml,.html,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,audio/*,video/*"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || [])
+                  files.forEach(f => void handleFileUpload(f))
+                  e.target.value = ""
+                }}
+              />
+
+              <Tooltip title="刷新">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className={cn(
+                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors",
+                    isDark ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50" : "hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+                  )}
+                >
+                  <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} strokeWidth={1.6} />
+                </button>
+              </Tooltip>
+            </div>
+
+            {/* 中部：数据条 / 状态文字（不抢戏，weight 400 灰色） */}
+            <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 dark:text-zinc-500">
+              {searchResults ? (
+                <>
+                  <span style={{ color: "#1677ff", fontWeight: 500 }}>{searchResults.length}</span>
+                  <span>条搜索结果</span>
+                </>
+              ) : items.length > 0 ? (
+                <>
+                  <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)", fontWeight: 500 }}>
+                    {items.length}
+                  </span>
+                  <span>篇文档</span>
+                </>
+              ) : null}
+            </div>
+
+            {/* 右侧：主操作「新建」（32px 紧凑按钮，强调主蓝色） */}
             <Tooltip title="新建笔记">
               <button
                 onClick={() => setShowCreateItem(true)}
-                className="h-9 px-2.5 rounded-md text-xs flex items-center gap-1.5 text-white"
+                className="h-8 px-3 rounded-md text-[12.5px] font-medium flex items-center gap-1 text-white shrink-0 transition-opacity hover:opacity-90 active:opacity-80"
                 style={{ background: "#1677ff" }}
               >
-                <Plus size={13} strokeWidth={1.5} />
+                <Plus size={13} strokeWidth={2.4} />
                 <span>新建</span>
-              </button>
-            </Tooltip>
-
-            {/* 刷新 */}
-            <Tooltip title="刷新">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className={cn(
-                  "h-9 w-9 rounded-md border flex items-center justify-center transition-colors",
-                  isDark ? "border-zinc-800 hover:bg-zinc-800 text-zinc-400" : "border-gray-200 hover:bg-gray-50 text-gray-500"
-                )}
-              >
-                <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} strokeWidth={1.5} />
               </button>
             </Tooltip>
           </div>
 
-          {/* 搜索状态提示 */}
-          {searchResults && (
-            <div className={cn("mt-2 text-[11px]", isDark ? "text-zinc-500" : "text-gray-500")}>
-              找到 <span style={{ color: "#1677ff" }}>{searchResults.length}</span> 条结果 ·
-              <span className="ml-1">模式: {searchMode === "hybrid" ? "混合" : searchMode === "keyword" ? "关键词" : "语义"}</span>
+          {/* 协作 banner：单行 chip + 文字（无背景块、无分割线） */}
+          {selectedIsCollaboration && (
+            <div className="flex items-center gap-2 mt-2.5 text-[11.5px]">
+              <span
+                className="flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] font-medium text-white shrink-0"
+                style={{ background: "#1677ff" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-white/90" />
+                协作中
+              </span>
+              <span className={cn(isDark ? "text-zinc-500" : "text-gray-500")}>·</span>
+              <span
+                style={{ color: "#1677ff", fontWeight: 500 }}
+              >
+                {selectedCollabRole === "admin" ? "管理员" :
+                 selectedCollabRole === "editor" ? "编辑者" :
+                 selectedCollabRole === "viewer" ? "查看者" : "协作者"}
+              </span>
+              <span className="flex-1" />
+              {manageCollection?.id !== selectedCollection && (
+                <Tooltip title="协作者与活动">
+                  <button
+                    onClick={() => {
+                      const collab = collaborations.find((c) => c.id === selectedCollection)
+                      if (collab) setManageCollection(collab)
+                    }}
+                    className={cn(
+                      "h-6 px-2 rounded text-[11px] font-medium shrink-0 transition-colors",
+                      isDark ? "text-blue-400 hover:bg-blue-950/30" : "text-blue-600 hover:bg-blue-50"
+                    )}
+                  >
+                    管理
+                  </button>
+                </Tooltip>
+              )}
             </div>
           )}
         </div>
@@ -947,6 +1127,20 @@ export function KnowledgeSidebarPanel({
         stats={stats}
         onRefresh={() => void handleRefresh()}
       />
+
+      {/* ============== Modal：集合协作管理（协作者 + 活动） ============== */}
+      <CollectionManageModal
+        open={!!manageCollection}
+        collection={manageCollection}
+        currentUserId={currentUserId}
+        // canManage 严格基于"该集合上我的角色"，**禁止**用 currentUserRole（系统级）做判定
+        canManage={
+          (selectedCollectionRole === "owner" || selectedCollectionRole === "admin") &&
+          !!currentUserId
+        }
+        onClose={() => setManageCollection(null)}
+        darkMode={isDark}
+      />
     </motion.div>
   )
 }
@@ -954,7 +1148,7 @@ export function KnowledgeSidebarPanel({
 // ============== 子组件：集合导航项 ==============
 
 function CollectionNavItem({
-  icon: Icon, label, count, color, active, onClick, onDelete, darkMode
+  icon: Icon, label, count, color, active, onClick, onDelete, onManage, darkMode, badge
 }: {
   icon: any
   label: string
@@ -963,29 +1157,66 @@ function CollectionNavItem({
   active: boolean
   onClick: () => void
   onDelete?: () => void
+  onManage?: () => void
   darkMode?: boolean
+  badge?: React.ReactNode
 }) {
   const isDark = darkMode
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer transition-colors text-sm",
-        active
-          ? isDark ? "bg-zinc-800 text-zinc-100" : "bg-blue-50 text-gray-900"
-          : isDark ? "hover:bg-zinc-800/50 text-zinc-400" : "hover:bg-gray-50 text-gray-600"
+        "group relative flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-md cursor-pointer transition-colors text-sm",
+        // 不再用背景块做 active，靠左侧 2px 色条 + 文字色变化
+        isDark ? "hover:bg-zinc-800/40" : "hover:bg-gray-50/60"
       )}
     >
+      {/* 左侧 2px 蓝色色条：唯一 active 锚点 */}
+      {active && (
+        <span
+          className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full"
+          style={{ background: "#1677ff" }}
+        />
+      )}
       <Icon
         size={13}
         strokeWidth={1.5}
         style={{ color: active ? "#1677ff" : color || (isDark ? "#a1a1aa" : "#9ca3af") }}
       />
-      <span className="flex-1 truncate text-[13px]">{label}</span>
+      <span
+        className={cn(
+          "flex-1 truncate text-[13px]",
+          active ? (isDark ? "text-zinc-100 font-medium" : "text-gray-900 font-medium") : (isDark ? "text-zinc-400" : "text-gray-600")
+        )}
+      >
+        {label}
+      </span>
+      {badge}
       {typeof count === "number" && count > 0 && (
-        <span className={cn("text-[10px] px-1.5 py-0.5 rounded", isDark ? "bg-zinc-800 text-zinc-500" : "bg-gray-100 text-gray-400")}>
+        <span
+          className={cn(
+            "text-[10px] px-1.5 py-0.5 rounded",
+            active
+              ? isDark ? "bg-blue-950/40 text-blue-400" : "bg-blue-50 text-blue-600"
+              : isDark ? "text-zinc-500" : "text-gray-400"
+          )}
+        >
           {count}
         </span>
+      )}
+      {/* 协作管理入口：hover 时显示 */}
+      {onManage && (
+        <Tooltip title="协作者与活动">
+          <button
+            onClick={(e) => { e.stopPropagation(); onManage() }}
+            className={cn(
+              "opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all",
+              isDark ? "hover:bg-zinc-700" : "hover:bg-gray-200"
+            )}
+          >
+            <Users size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+          </button>
+        </Tooltip>
       )}
       {onDelete && (
         <button
@@ -999,6 +1230,201 @@ function CollectionNavItem({
         </button>
       )}
     </div>
+  )
+}
+
+// ============== 子组件：集合协作管理 Modal ==============
+
+function CollectionManageModal({
+  open, collection, currentUserId, canManage, onClose, darkMode
+}: {
+  open: boolean
+  collection: KnowledgeCollection | null
+  currentUserId: number
+  canManage: boolean
+  onClose: () => void
+  darkMode?: boolean
+}) {
+  const isDark = darkMode
+  const [activeKey, setActiveKey] = useState<string>("collaborators")
+  // 协作者实时统计
+  const [collabCount, setCollabCount] = useState<number>(0)
+  const [pendingCount, setPendingCount] = useState<number>(0)
+
+  // 拉取协作者 + 待处理数（仅统计用，列表由 CollaboratorsPanel 自身渲染）
+  useEffect(() => {
+    if (!open || !collection) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/knowledge/collaborators?collection_id=${collection.id}`, {
+          credentials: "include"
+        })
+        const text = await res.text().catch(() => "")
+        const data: any = text ? JSON.parse(text) : {}
+        if (cancelled) return
+        if (res.ok) setCollabCount((data.collaborators || []).length)
+      } catch {}
+      try {
+        const res = await fetch(`/api/knowledge/invitations?collection_id=${collection.id}`, {
+          credentials: "include"
+        })
+        const text = await res.text().catch(() => "")
+        const data: any = text ? JSON.parse(text) : {}
+        if (cancelled) return
+        if (res.ok) setPendingCount((data.invitations || []).filter((i: any) => i.status === "pending").length)
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [open, collection?.id])
+
+  // 监听子组件上报的列表变化，刷新统计
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail?.kind === "collaborators" && e.detail?.collectionId === collection?.id) {
+        if (typeof e.detail?.count === "number") setCollabCount(e.detail.count)
+        if (typeof e.detail?.pending === "number") setPendingCount(e.detail.pending)
+      }
+    }
+    window.addEventListener("kb:collab-stats", handler)
+    return () => window.removeEventListener("kb:collab-stats", handler)
+  }, [collection?.id])
+
+  if (!collection) return null
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={760}
+      closable={false}
+      styles={{
+        header: { padding: "16px 20px 0", borderBottom: "none" },
+        body: { padding: 0 },
+        content: {
+          padding: 0,
+          borderRadius: 12,
+          overflow: "hidden"
+        },
+        mask: { backdropFilter: "blur(2px)" }
+      }}
+      // 极简头部：单行面包屑 + 单行标题 + Tab，零装饰
+      title={
+        <div className="relative pr-8">
+          {/* 面包屑：单行小字 */}
+          <div
+            className="flex items-center gap-1 text-[11px] mb-1"
+            style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}
+          >
+            <span>知识库</span>
+            <ChevronRight style={{ width: 10, height: 10 }} strokeWidth={1.5} />
+            <span>{collection.name}</span>
+            <ChevronRight style={{ width: 10, height: 10 }} strokeWidth={1.5} />
+            <span>协作管理</span>
+          </div>
+
+          {/* 主标题 + 关闭按钮 */}
+          <div className="flex items-center justify-between">
+            <h2
+              className="text-[15px] font-semibold leading-tight m-0"
+              style={{ color: isDark ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.88)" }}
+            >
+              {collection.name} · 协作管理
+            </h2>
+            <div className="flex items-center gap-3 text-[12px]">
+              {pendingCount > 0 && (
+                <span style={{ color: "#fa8c16" }}>{pendingCount} 条待处理</span>
+              )}
+              <span style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
+                {collabCount} 位协作者
+              </span>
+            </div>
+          </div>
+
+          {/* 关闭按钮（绝对定位右上） */}
+          <button
+            onClick={onClose}
+            className="absolute right-0 top-0 w-7 h-7 rounded-md flex items-center justify-center transition-colors"
+            style={{
+              color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"
+              e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.85)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent"
+              e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)"
+            }}
+            aria-label="关闭"
+          >
+            <X size={14} strokeWidth={1.8} />
+          </button>
+        </div>
+      }
+    >
+      {/* Tab：融入内容区，无独立分割线 */}
+      <div className="px-5">
+        <Tabs
+          activeKey={activeKey}
+          onChange={setActiveKey}
+          size="small"
+          tabBarGutter={20}
+          tabBarStyle={{
+            margin: 0,
+            borderBottom: "none"
+          }}
+          items={[
+            {
+              key: "collaborators",
+              label: (
+                <span
+                  className="text-[13px] font-medium transition-colors"
+                  style={{
+                    color: activeKey === "collaborators" ? "#1677ff" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)"
+                  }}
+                >
+                  协作者
+                </span>
+              ),
+              children: (
+                <div className="pt-3 pb-1">
+                  <CollaboratorsPanel
+                    collectionId={collection.id}
+                    currentUserId={currentUserId}
+                    canManage={canManage}
+                  />
+                </div>
+              )
+            },
+            {
+              key: "activity",
+              label: (
+                <span
+                  className="text-[13px] font-medium transition-colors"
+                  style={{
+                    color: activeKey === "activity" ? "#1677ff" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)"
+                  }}
+                >
+                  活动动态
+                </span>
+              ),
+              children: (
+                <div className="pt-3 pb-1">
+                  <ActivityFeed
+                    scope="collection"
+                    collectionId={collection.id}
+                    limit={30}
+                    height={520}
+                    showHeader={false}
+                  />
+                </div>
+              )
+            }
+          ]}
+        />
+      </div>
+    </Modal>
   )
 }
 
@@ -1058,23 +1484,40 @@ function ItemListRow({
     <div
       onClick={onClick}
       className={cn(
-        "group flex items-start gap-3 p-2.5 rounded-md cursor-pointer transition-colors",
-        active
-          ? isDark ? "bg-zinc-800" : "bg-blue-50"
-          : isDark ? "hover:bg-zinc-800/50" : "hover:bg-gray-50"
+        "group relative flex items-start gap-2.5 pl-3 pr-2.5 py-2 rounded-md cursor-pointer transition-colors",
+        // 不再用背景块做 active
+        isDark ? "hover:bg-zinc-800/30" : "hover:bg-gray-50/60"
       )}
     >
-      {/* 类型图标 */}
+      {/* 左侧 2px 蓝色色条：active 唯一锚点 */}
+      {active && (
+        <span
+          className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full"
+          style={{ background: "#1677ff" }}
+        />
+      )}
+      {/* 类型图标：始终使用 meta.color 浅色背景，active 不变色（让色条做唯一锚点） */}
       <div
-        className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-        style={{ background: `${meta.color}15`, color: meta.color }}
+        className="w-7 h-7 rounded flex items-center justify-center shrink-0 transition-colors"
+        style={{
+          background: `${meta.color}15`,
+          color: meta.color
+        }}
       >
-        <Icon size={15} strokeWidth={1.5} />
+        <Icon size={13} strokeWidth={1.8} />
       </div>
       {/* 内容 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className={cn("text-[13px] font-medium truncate", isDark ? "text-zinc-100" : "text-gray-900")}>
+          <span
+            className={cn(
+              "text-[12.5px] truncate transition-colors",
+              active ? "font-semibold" : "font-medium",
+              isDark
+                ? (active ? "text-blue-400" : "text-zinc-100")
+                : (active ? "text-[#1677ff]" : "text-gray-900")
+            )}
+          >
             {item.title}
           </span>
           {item.is_favorite ? (
@@ -1082,7 +1525,7 @@ function ItemListRow({
           ) : null}
         </div>
         {item.summary ? (
-          <p className={cn("text-[11px] mt-0.5 line-clamp-2", isDark ? "text-zinc-500" : "text-gray-500")}>
+          <p className={cn("text-[11px] mt-0.5 line-clamp-1", isDark ? "text-zinc-500" : "text-gray-500")}>
             {item.summary}
           </p>
         ) : item.content ? (
@@ -1090,7 +1533,7 @@ function ItemListRow({
             {item.content.replace(/\n+/g, " ").slice(0, listPreviewChars)}
           </p>
         ) : null}
-        <div className={cn("flex items-center gap-2 mt-1 text-[10px]", isDark ? "text-zinc-600" : "text-gray-400")}>
+        <div className={cn("flex items-center gap-1.5 mt-0.5 text-[10px]", isDark ? "text-zinc-600" : "text-gray-400")}>
           <span>{formatTime(item.updated_at)}</span>
           {item.collection_name && (
             <>
@@ -1836,13 +2279,13 @@ function CreateItemModal({
           <div>
             <label className="text-xs text-gray-500 mb-1 block">分类</label>
             <Select
-              value={collectionId}
-              onChange={(v) => setCollectionId(v)}
+              value={collectionId ?? undefined}
+              onChange={(v) => setCollectionId(v ?? null)}
               className="w-full"
               allowClear
               placeholder="选择分类"
               options={[
-                { value: null, label: "未分类" },
+                { value: undefined, label: "未分类" },
                 ...collections.map(c => ({ value: c.id, label: c.name }))
               ]}
             />

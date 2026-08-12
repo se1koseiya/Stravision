@@ -1,4 +1,4 @@
-import { initDB, query, queryOne, execute, withTransaction } from "./database"
+import { initDB, query, execute } from "./database"
 
 export interface SensorData {
   temperature: number
@@ -191,80 +191,137 @@ export async function clearAllSensorData() {
   console.log(`[System] Cleared all ${result.rowCount} sensor records.`)
 }
 
+// ─── 指标元信息（单位 + 中文名 + 列名映射）───
+const METRIC_META: Record<string, { unit: string; label: string; col: string }> = {
+  temperature:  { unit: '°C',  label: '温度',   col: 'temperature' },
+  humidity:     { unit: '%',   label: '湿度',   col: 'humidity' },
+  light:        { unit: 'lux', label: '光照',   col: 'light' },
+  co2:          { unit: 'ppm', label: 'CO2',   col: 'co2' },
+  soilMoisture: { unit: '%',   label: '土壤湿度', col: 'soil_moisture' },
+  nitrogen:     { unit: 'mg/kg', label: '氮含量', col: 'earth_n' },
+  phosphorus:   { unit: 'mg/kg', label: '磷含量', col: 'earth_p' },
+  potassium:    { unit: 'mg/kg', label: '钾含量', col: 'earth_k' },
+  rainfall:     { unit: 'mm',  label: '雨量',   col: 'rainfall' },
+}
+
 /**
- * 检查并初始化模拟历史数据 (如果表为空)
+ * 查询多个传感器指标的历史数据（供 AI 工具调用）
+ *
+ * 与 getSensorHistory 的区别：
+ * - 一次查询多个指标，减少 DB 往返
+ * - 返回结构含统计摘要（min/max/avg/latest），AI 无需自己计算
+ * - 自动降采样，避免返回过多数据点
+ *
+ * @param metrics 指标列表（如 ['temperature', 'humidity']）
+ * @param range 时间范围（10m/1h/7h/1d/7d）
  */
-export async function initSensorDataIfNeeded() {
+export async function getMultiSensorHistory(
+  metrics: string[],
+  range: string = '1h'
+): Promise<{
+  range: string;
+  metrics: Array<{
+    key: string;
+    label: string;
+    unit: string;
+    points: Array<{ timestamp: number; value: number }>;
+    stats: { min: number; max: number; avg: number; latest: number; count: number };
+  }>;
+}> {
   await initDB()
-  const row = await queryOne<{ count: string | number }>("SELECT count(*) as count FROM sensor_readings")
-  const count = Number(row?.count ?? 0)
-  
-  if (count > 0) return // 已有数据
-  
-  console.log("Seeding sensor data...")
-  
-  const now = Date.now()
-  const days = 7
-  const interval = 10 * 60 * 1000 // 10分钟一个点
-  const points = (days * 24 * 60 * 60 * 1000) / interval
-  
-  // 初始值
-  let temp = 25
-  let hum = 60
-  let light = 0
-  let co2 = 400
-  let soil = 45
-  let n = 100
-  let p = 50
-  let k = 120
-  
-  await withTransaction(async (client) => {
-    for (let i = points; i >= 0; i--) {
-      const time = now - i * interval
-      const date = new Date(time)
-      const hour = date.getHours()
-      
-      const isDay = hour >= 6 && hour <= 18
-      
-      const targetTemp = isDay ? 28 : 18
-      temp += (targetTemp - temp) * 0.1 + (Math.random() - 0.5) * 1
-      
-      const targetHum = isDay ? 45 : 75
-      hum += (targetHum - hum) * 0.1 + (Math.random() - 0.5) * 2
-      
-      if (isDay) {
-        const hourOffset = hour - 6
-        const intensity = Math.sin((hourOffset / 12) * Math.PI) 
-        light = intensity * 50000 + (Math.random() * 5000)
-      } else {
-        light = 0
-      }
-      
-      const targetCo2 = isDay ? 380 : 450
-      co2 += (targetCo2 - co2) * 0.1 + (Math.random() - 0.5) * 5
-      
-      soil += (Math.random() - 0.5) * 0.5
-      n += (Math.random() - 0.5) * 0.2
-      p += (Math.random() - 0.5) * 0.1
-      k += (Math.random() - 0.5) * 0.3
-      
-      const rainfall = Math.random() > 0.98 ? Math.random() * 5 : 0
-      if (rainfall > 0) {
-        soil += 2
-      }
-      soil -= 0.05 
-      if (soil < 20) soil = 20
-      if (soil > 90) soil = 90
-      
-      await client.query(
-        `INSERT INTO sensor_readings (
-           temperature, humidity, light, co2,
-           soil_moisture, earth_n, earth_p, earth_k, rainfall,
-           created_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [temp, hum, Math.max(0, light), co2, soil, n, p, k, rainfall, time]
+
+  // 时间范围 → 起始时间 + 降采样间隔
+  let startTime = Date.now()
+  let interval = 0
+  switch (range) {
+    case '10m': startTime -= 10 * 60 * 1000; break
+    case '1h':  startTime -= 60 * 60 * 1000; break
+    case '7h':  startTime -= 7 * 60 * 60 * 1000;  interval = 5 * 60; break
+    case '1d':  startTime -= 24 * 60 * 60 * 1000; interval = 30 * 60; break
+    case '7d':  startTime -= 7 * 24 * 60 * 60 * 1000; interval = 4 * 60 * 60; break
+    default:    startTime -= 60 * 60 * 1000
+  }
+
+  const results: any[] = []
+
+  for (const metric of metrics) {
+    const meta = METRIC_META[metric]
+    if (!meta) continue // 严格白名单
+
+    // fertility 需要综合计算 NPK
+    if (metric === 'fertility') {
+      // 取 N/P/K 三个字段，计算综合肥力
+      const rows = await query(
+        `SELECT earth_n, earth_p, earth_k, created_at
+         FROM sensor_readings
+         WHERE created_at >= $1
+         ORDER BY created_at ASC`,
+        [startTime]
       )
+      const points = rows.map((r: any) => ({
+        timestamp: Number(r.created_at),
+        value: Number((Number(r.earth_n) + Number(r.earth_p) + Number(r.earth_k)).toFixed(1))
+      }))
+      const sampled = downsample(points, interval)
+      results.push({
+        key: 'fertility',
+        label: '综合肥力',
+        unit: 'mg/kg',
+        points: sampled,
+        stats: calcStats(sampled.map(p => p.value))
+      })
+      continue
     }
-  })
-  console.log("Seeding complete.")
+
+    const rows = await query(
+      `SELECT ${meta.col} as value, created_at
+       FROM sensor_readings
+       WHERE created_at >= $1 AND ${meta.col} IS NOT NULL
+       ORDER BY created_at ASC`,
+      [startTime]
+    )
+
+    let points = rows.map((r: any) => ({
+      timestamp: Number(r.created_at),
+      value: Number(Number(r.value).toFixed(1))
+    }))
+
+    // 旧数据土壤湿度缩放修复
+    if (metric === 'soilMoisture') {
+      points = points.map(p => ({
+        timestamp: p.timestamp,
+        value: p.value > 100 ? Number((p.value / 10).toFixed(1)) : p.value
+      }))
+    }
+
+    const sampled = downsample(points, interval)
+    results.push({
+      key: metric,
+      label: meta.label,
+      unit: meta.unit,
+      points: sampled,
+      stats: calcStats(sampled.map(p => p.value))
+    })
+  }
+
+  return { range, metrics: results }
+}
+
+/** 计算统计摘要 */
+function calcStats(values: number[]): { min: number; max: number; avg: number; latest: number; count: number } {
+  if (values.length === 0) {
+    return { min: 0, max: 0, avg: 0, latest: 0, count: 0 }
+  }
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const sum = values.reduce((a, b) => a + b, 0)
+  const avg = sum / values.length
+  const latest = values[values.length - 1]
+  return {
+    min: Number(min.toFixed(1)),
+    max: Number(max.toFixed(1)),
+    avg: Number(avg.toFixed(1)),
+    latest: Number(latest.toFixed(1)),
+    count: values.length
+  }
 }

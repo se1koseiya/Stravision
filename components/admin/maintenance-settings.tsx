@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button, Switch, Input, Typography, Spin } from "antd"
+import { Button, Switch, Input, Typography, Spin, Card } from "antd"
 import { LoadingOutlined, WarningOutlined, CheckCircleOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
 
@@ -73,15 +73,16 @@ export function MaintenanceSettings() {
   }
 
   return (
+    <Card style={{ border: "1px solid #EDEEEF" }}>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        padding: 16, 
-        borderRadius: 12, 
-        border: '1px solid rgba(0,0,0,0.05)',
-        background: 'rgba(255,255,255,0.5)'
+        padding: 16,
+        borderRadius: 6,
+        border: '1px solid #EDEEEF',
+        background: '#FFFFFF'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -94,9 +95,9 @@ export function MaintenanceSettings() {
                 borderRadius: 4, 
                 fontSize: 12, 
                 fontWeight: 500, 
-                background: '#fff7e6', 
-                color: '#fa8c16',
-                border: '1px solid #ffd591'
+                background: '#FFF7E6',
+                color: '#FA8C16',
+                border: '1px solid #FFD591'
               }}>
                 开启中
               </span>
@@ -108,9 +109,9 @@ export function MaintenanceSettings() {
                 borderRadius: 4, 
                 fontSize: 12, 
                 fontWeight: 500, 
-                background: '#f6ffed', 
-                color: '#52c41a',
-                border: '1px solid #b7eb8f'
+                background: '#F6FFED',
+                color: '#52C41A',
+                border: '1px solid #B7EB8F'
               }}>
                 运行中
               </span>
@@ -158,7 +159,7 @@ export function MaintenanceSettings() {
             type="primary"
             onClick={handleSave} 
             loading={saving}
-            style={config.enabled ? { background: '#faad14', borderColor: '#faad14' } : {}}
+            style={config.enabled ? { background: '#FA8C16', borderColor: '#FA8C16' } : {}}
             icon={config.enabled ? <WarningOutlined /> : <CheckCircleOutlined />}
           >
             {config.enabled ? "保存并开启维护" : "保存设置"}
@@ -166,5 +167,6 @@ export function MaintenanceSettings() {
         </div>
       </div>
     </div>
+    </Card>
   )
 }

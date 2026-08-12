@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button, Input, Table, Modal, Tag, Space, Typography } from "antd"
+import { Button, Input, Table, Modal, Tag, Space, Typography, Card } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { toast } from "sonner"
 import {
@@ -138,8 +138,8 @@ export function SkillManager() {
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
-        backgroundColor: "#f4f4f5",
-        border: "1px solid #e4e4e7",
+        backgroundColor: "#F2F3F5",
+        border: "1px solid #EDEEEF",
         ...(className?.split(" ").reduce((acc, cls) => ({ ...acc, [cls]: true }), {}) || {}),
       }}>
         <img
@@ -160,7 +160,7 @@ export function SkillManager() {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
-      render: (priority: number) => <Text strong style={{ color: "#8b5cf6" }}>#{priority}</Text>,
+      render: (priority: number) => <Text strong style={{ color: "#1677ff" }}>#{priority}</Text>,
     },
     {
       title: "Icon",
@@ -233,10 +233,11 @@ export function SkillManager() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <Card style={{ border: "1px solid #EDEEEF", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <Input
           placeholder="Search skills..."
-          prefix={<SearchOutlined style={{ color: "#71717a" }} />}
+          prefix={<SearchOutlined style={{ color: "#8F959E" }} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ maxWidth: 320 }}
@@ -267,7 +268,9 @@ export function SkillManager() {
           Add Skill
         </Button>
       </div>
+      </Card>
 
+      <Card style={{ border: "1px solid #EDEEEF" }} styles={{ body: { padding: 0 } }}>
       <Table
         columns={columns}
         dataSource={filteredSkills}
@@ -278,16 +281,17 @@ export function SkillManager() {
         }}
         pagination={{ pageSize: 10 }}
       />
+      </Card>
 
       <Modal
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         title={editingSkill?.id ? "Edit Skill" : "New Skill"}
         footer={[
-          <Button key="cancel" onClick={() => setModalOpen(false)} style={{ borderRadius: 8 }}>
+          <Button key="cancel" onClick={() => setModalOpen(false)}>
             Cancel
           </Button>,
-          <Button key="save" type="primary" onClick={handleSave} style={{ borderRadius: 8 }}>
+          <Button key="save" type="primary" onClick={handleSave}>
             Save Skill Asset
           </Button>,
         ]}
@@ -325,13 +329,13 @@ export function SkillManager() {
               </Text>
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 6,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  border: "1px solid #e4e4e7",
+                  border: "1px solid #EDEEEF",
                   backgroundColor: "white",
                   overflow: "hidden",
                   flexShrink: 0,
@@ -343,7 +347,7 @@ export function SkillManager() {
                       <span style={{ fontSize: 24 }}>{editingSkill.icon}</span>
                     )
                   )}
-                  {!editingSkill?.icon && <PlusOutlined style={{ color: "#71717a" }} />}
+                  {!editingSkill?.icon && <PlusOutlined style={{ color: "#8F959E" }} />}
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   <Input
@@ -378,9 +382,9 @@ export function SkillManager() {
                   <div style={{
                     flex: 1,
                     height: 32,
-                    borderRadius: 8,
-                    backgroundColor: "#f4f4f5",
-                    border: "1px solid rgba(0,0,0,0.05)",
+                    borderRadius: 6,
+                    backgroundColor: "#F2F3F5",
+                    border: "1px solid #EDEEEF",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -389,7 +393,7 @@ export function SkillManager() {
                     {editingSkill?.cover_image ? (
                       <img src={editingSkill.cover_image} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }} />
                     ) : (
-                      <span style={{ fontSize: 10, color: "#71717a", fontWeight: 700 }}>无预览图片</span>
+                      <span style={{ fontSize: 10, color: "#8F959E", fontWeight: 700 }}>无预览图片</span>
                     )}
                   </div>
                   <Button
@@ -445,9 +449,9 @@ export function SkillManager() {
                 alignItems: "center",
                 gap: 24,
                 padding: "12px 16px",
-                borderRadius: 12,
-                backgroundColor: "#fafafa",
-                border: "1px solid rgba(0,0,0,0.05)",
+                borderRadius: 6,
+                backgroundColor: "#F7F8FA",
+                border: "1px solid #EDEEEF",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
@@ -470,7 +474,7 @@ export function SkillManager() {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <Text strong style={{ color: "#f59e0b" }}>Interaction Examples (Comma Separated)</Text>
+              <Text strong style={{ color: "#1F2329" }}>Interaction Examples (Comma Separated)</Text>
               <Input
                 placeholder="e.g. 你是谁？,当前环境如何？"
                 value={editingSkill?.examples || ""}
@@ -481,7 +485,7 @@ export function SkillManager() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Text strong style={{ color: "#8b5cf6", display: "flex", alignItems: "center", gap: 8 }}>
+            <Text strong style={{ color: "#1F2329", display: "flex", alignItems: "center", gap: 8 }}>
               <CodeOutlined /> System Prompt (Core Instructions)
             </Text>
             <Input.TextArea
@@ -489,13 +493,13 @@ export function SkillManager() {
               value={editingSkill?.content || ""}
               onChange={(e) => setEditingSkill({ ...editingSkill, content: e.target.value })}
               style={{
-                height: 350,
+                height: 280,
                 fontFamily: "monospace",
                 fontSize: 12,
-                backgroundColor: "#fafafa",
-                padding: 24,
-                borderRadius: 24,
-                border: "1px solid rgba(0,0,0,0.05)",
+                backgroundColor: "#FFFFFF",
+                padding: 16,
+                borderRadius: 6,
+                border: "1px solid #EDEEEF",
               }}
             />
           </div>

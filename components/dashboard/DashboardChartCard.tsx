@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import dynamic from "next/dynamic"
 import { Loader2 } from "lucide-react"
 
-const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false })
+const AreaChart = dynamic(() => import("@ant-design/plots").then(m => m.Area), { ssr: false })
 
 import { getThresholdLevel } from "@/lib/thresholds"
 import { cn } from "@/lib/utils"
@@ -69,8 +69,6 @@ export function DashboardChartCard({
     }, [type, timeRange])
 
     // Update historyData if initialHistoryData changes (e.g. parent refetches)
-    // Note: We need to be careful not to overwrite user-selected range data with default range data from parent
-    // But since parent only fetches on mount, this is mostly fine.
     useEffect(() => {
         if (initialHistoryData && timeRange === '1h') {
              setHistoryData(initialHistoryData)
@@ -92,63 +90,7 @@ export function DashboardChartCard({
         }
     }
 
-    const getOption = () => {
-        return {
-            grid: {
-                top: 10,
-                right: 0,
-                bottom: 0,
-                left: 0,
-                containLabel: false
-            },
-            tooltip: {
-                trigger: 'axis',
-                formatter: (params: any) => {
-                    const date = new Date(params[0].value[0])
-                    const timeStr = timeRange === '7d'
-                        ? `${date.getMonth() + 1}-${date.getDate()}`
-                        : `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
-                    return `${timeStr}<br/>${params[0].value[1]} ${unit}`
-                }
-            },
-            xAxis: {
-                type: 'time',
-                show: false,
-                boundaryGap: false
-            },
-            yAxis: {
-                type: 'value',
-                show: false,
-                min: (value: any) => Math.floor(value.min * 0.9),
-            },
-            series: [
-                {
-                    data: historyData.map(item => [item.timestamp, item.value]),
-                    type: 'line',
-                    smooth: true,
-                    showSymbol: false,
-                    lineStyle: {
-                        color: gradientColor,
-                        width: 2
-                    },
-                    areaStyle: {
-                        color: {
-                            type: 'linear',
-                            x: 0,
-                            y: 0,
-                            x2: 0,
-                            y2: 1,
-                            colorStops: [{
-                                offset: 0, color: `${gradientColor}33` // 20% opacity
-                            }, {
-                                offset: 1, color: `${gradientColor}00` // 0% opacity
-                            }],
-                        }
-                    }
-                }
-            ]
-        }
-    }
+    const chartData = historyData.map(item => ({ time: item.timestamp, value: item.value }))
 
     return (
         <Card className={cn(
@@ -187,11 +129,22 @@ export function DashboardChartCard({
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     )}
-                    <ReactECharts 
-                        option={getOption()} 
-                        style={{ height: '100%', width: '100%' }}
-                        opts={{ renderer: 'svg' }} // Use SVG renderer for better performance
-                    />
+                    {chartData.length > 0 && (
+                        <AreaChart
+                            data={chartData}
+                            xField="time"
+                            yField="value"
+                            autoFit
+                            style={{
+                                stroke: gradientColor,
+                                lineWidth: 2,
+                                fill: `l(90) 0:${gradientColor}00 1:${gradientColor}33`,
+                                shape: 'smooth',
+                            }}
+                            axis={false}
+                            tooltip={false}
+                        />
+                    )}
                 </div>
             </CardContent>
         </Card>

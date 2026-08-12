@@ -11,6 +11,9 @@ export interface ScheduledTask {
   is_active: number // 1 or 0
   created_at: number
   updated_at: number
+  last_error?: string | null // 最近一次执行失败的错误信息
+  last_run_at?: number | null // 最近一次执行时间戳
+  run_status?: 'success' | 'failed' | null // 最近一次执行状态
 }
 
 export interface CreateTaskDTO {
@@ -104,4 +107,23 @@ export async function updateTask(id: number, data: Partial<CreateTaskDTO> & { is
   values.push(id)
 
   await execute(`UPDATE scheduled_tasks SET ${fields.join(", ")} WHERE id = $${i}`, values)
+}
+
+/**
+ * 记录任务执行结果（不删除任务，保留失败记录以便排查）
+ * @param id 任务 ID
+ * @param success 是否成功
+ * @param errorMsg 失败时的错误信息
+ */
+export async function markTaskResult(id: number, success: boolean, errorMsg?: string): Promise<void> {
+  await initDB()
+  await execute(
+    `UPDATE scheduled_tasks
+     SET last_run_at = $1,
+         run_status = $2,
+         last_error = $3,
+         updated_at = $1
+     WHERE id = $4`,
+    [Date.now(), success ? 'success' : 'failed', success ? null : (errorMsg || 'Unknown error'), id]
+  )
 }

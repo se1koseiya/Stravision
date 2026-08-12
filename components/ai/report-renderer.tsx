@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Download, Loader2, ExternalLink, Maximize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { sanitizeHtml } from "@/lib/security/sanitize-html"
+import { toast } from "sonner"
 
 interface ReportRendererProps {
   htmlContent: string
@@ -40,40 +41,54 @@ export function ReportRenderer({
     URL.revokeObjectURL(url)
   }
 
-  // 生成并下载PDF
+  // 生成并下载PDF（前端 jspdf + html-to-image 方案）
   const downloadPdf = async () => {
     setIsGeneratingPdf(true)
     setPdfError(null)
 
     try {
-      const response = await fetch('/api/reports/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          htmlContent,
-          reportTitle,
-          reportId,
-        }),
-      })
+      const htmlToImage = await import('html-to-image')
+      const { default: jsPDF } = await import('jspdf')
 
-      if (!response.ok) {
-        throw new Error('PDF生成失败')
+      // 创建临时容器渲染报告 HTML，避免受当前组件样式干扰
+      const container = document.createElement('div')
+      container.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;padding:40px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;'
+      container.innerHTML = htmlContent
+      document.body.appendChild(container)
+
+      try {
+        const dataUrl = await htmlToImage.toPng(container, { backgroundColor: '#ffffff' })
+
+        const img = new window.Image()
+        img.src = dataUrl
+        await new Promise((resolve) => { img.onload = resolve })
+
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+        const imgWidth = 210 // A4 width in mm
+        const pageHeight = 297 // A4 height in mm
+        const imgHeight = (img.height * imgWidth) / img.width
+        let heightLeft = imgHeight
+        let position = 0
+
+        pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight
+          pdf.addPage()
+          pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight)
+          heightLeft -= pageHeight
+        }
+
+        pdf.save(`${reportTitle}_${Date.now()}.pdf`)
+        toast.success("PDF 已下载")
+      } finally {
+        document.body.removeChild(container)
       }
-
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${reportTitle}_${Date.now()}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
     } catch (error) {
       console.error('PDF生成错误:', error)
       setPdfError(error instanceof Error ? error.message : 'PDF生成失败')
+      toast.error("PDF 下载失败")
     } finally {
       setIsGeneratingPdf(false)
     }

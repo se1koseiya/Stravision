@@ -47,32 +47,32 @@ const ActionNode = ({ id, data, selected }: NodeProps) => {
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-orange-500 !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
+        className="w-3 h-3 !bg-green-500 !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
       />
       
       <Card className={cn(
         "w-60 border-2 shadow-sm transition-all duration-300",
-        selected ? "border-orange-500 shadow-lg shadow-orange-500/20" : "border-orange-100 dark:border-orange-900",
-        status === 'running' ? "ring-2 ring-orange-400 ring-offset-2 border-orange-500" : "",
-        status === 'completed' ? "border-orange-500 bg-orange-50/30 dark:bg-orange-900/10" : "",
+        selected ? "border-green-500 shadow-lg shadow-green-500/20" : "border-green-100 dark:border-green-900",
+        status === 'running' ? "ring-2 ring-green-400 ring-offset-2 border-green-500" : "",
+        status === 'completed' ? "border-green-500 bg-green-50/30 dark:bg-green-900/10" : "",
         "bg-white dark:bg-zinc-900"
       )}>
-        <CardHeader className="p-3 pb-2 bg-orange-50/50 dark:bg-orange-900/10 border-b border-orange-100 dark:border-orange-900/50 rounded-t-lg">
+        <CardHeader className="p-3 pb-2 bg-green-50/50 dark:bg-green-900/10 border-b border-green-100 dark:border-green-900/50 rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className={cn(
-                "p-1.5 rounded-md text-orange-600 dark:text-orange-400 transition-colors",
-                status === 'running' ? "bg-orange-200 dark:bg-orange-800 animate-spin" : "bg-orange-100 dark:bg-orange-900/50"
+                "p-1.5 rounded-md text-green-600 dark:text-green-400 transition-colors",
+                status === 'running' ? "bg-green-200 dark:bg-green-800 animate-spin" : "bg-green-100 dark:bg-green-900/50"
               )}>
                 <Icon className="w-4 h-4" />
               </div>
-              <span className="font-semibold text-sm text-orange-900 dark:text-orange-100">
+              <span className="font-semibold text-sm text-green-900 dark:text-green-100">
                 {data.label}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {status === 'running' && <Badge className="bg-orange-500 text-[10px] h-5 px-1">Active</Badge>}
-              <Badge variant="outline" className="text-[10px] h-5 bg-white dark:bg-zinc-800 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400">
+              {status === 'running' && <Badge className="bg-green-500 text-[10px] h-5 px-1">Active</Badge>}
+              <Badge variant="outline" className="text-[10px] h-5 bg-white dark:bg-zinc-800 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400">
                 执行
               </Badge>
             </div>
@@ -137,7 +137,7 @@ const ActionNode = ({ id, data, selected }: NodeProps) => {
           )}
 
           {data.type === 'ai_adjust' && (
-             <div className="p-2 bg-orange-50 dark:bg-orange-950/30 rounded text-xs text-orange-800 dark:text-orange-300">
+             <div className="p-2 bg-green-50 dark:bg-green-950/30 rounded text-xs text-green-800 dark:text-green-300">
                AI 将根据当前环境自动调整下周的种植计划。
              </div>
           )}

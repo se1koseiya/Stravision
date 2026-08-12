@@ -10,6 +10,7 @@ import { MQTTService } from '@/lib/mqtt-service'
 import { getCurrentUser } from '@/lib/auth'
 import { checkSecurity, logRequest } from '@/lib/security'
 import { initDB, execute } from '@/lib/db/database'
+import { RELAY_DEVICE_RANGE } from '@/lib/constants'
 
 // Helper to log device action
 async function logDeviceAction(deviceName: string, action: string, operator: string, details: string) {
@@ -56,7 +57,8 @@ function log(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: any): voi
  */
 interface ControlRequest {
   type: 'relay' | 'led' | 'stepper' | 'stepper_reset'
-  relayNum?: number       // Relay number (5-8)
+  relayNum?: number       // Relay number (5-8, 向后兼容)
+  device_id?: number      // 设备注册表 ID（自定义设备用）
   newState?: number       // Relay state (0/1)
   led1?: number           // LED 1 brightness (0-255)
   led2?: number           // LED 2 brightness (0-255)
@@ -93,16 +95,22 @@ function validateControlRequest(data: ControlRequest): string | null {
   if (!data.type || (data.type !== 'relay' && data.type !== 'led' && data.type !== 'stepper' && data.type !== 'stepper_reset' && data.type !== 'stepper_preset')) {
     return 'Invalid or missing type field.'
   }
-  
+
   if (data.type === 'relay') {
-    if (data.relayNum === undefined || data.newState === undefined) {
-      return 'Relay command requires relayNum and newState'
-    }
-    if (data.relayNum < 5 || data.relayNum > 8) {
-      return 'Relay number must be between 5 and 8'
+    if (data.newState === undefined) {
+      return 'Relay command requires newState'
     }
     if (data.newState !== 0 && data.newState !== 1) {
       return 'Relay state must be 0 or 1'
+    }
+    // 如果使用 device_id，跳过 relayNum 范围校验（node_id 由设备注册表提供）
+    if (data.device_id === undefined && data.relayNum === undefined) {
+      return 'Relay command requires relayNum or device_id'
+    }
+    if (data.relayNum !== undefined && data.device_id === undefined) {
+      if (data.relayNum < RELAY_DEVICE_RANGE.MIN || data.relayNum > RELAY_DEVICE_RANGE.MAX) {
+        return 'Relay number must be between 5 and 8'
+      }
     }
   } else if (data.type === 'led') {
     // LED brightness validation is optional as they are optional fields
@@ -215,12 +223,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const allowedControls = permissions.allowedControls || [];
 
       if (body.type === 'relay') {
-        const relayId = `relay${body.relayNum}`;
-        if (!allowedControls.includes(relayId)) {
-           log('WARN', 'Permission denied for relay control', { user: currentUser.username, relayId });
+        // 自定义设备用 device_id 权限检查，传统设备用 relay${num}
+        const permKey = body.device_id ? `device_${body.device_id}` : `relay${body.relayNum}`;
+        if (!allowedControls.includes(permKey)) {
+           log('WARN', 'Permission denied for relay control', { user: currentUser.username, permKey });
            await logRequest(req, 403, currentUser.id);
            return NextResponse.json(
-             { success: false, message: `Permission denied: You cannot control ${relayId}`, timestamp: Date.now() },
+             { success: false, message: `Permission denied: You cannot control ${permKey}`, timestamp: Date.now() },
              { status: 403 }
            );
         }
@@ -290,11 +299,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       })
     })
 
+    // 如果提供了 device_id，从设备注册表获取 node_id
+    let nodeId: string | undefined
+    let registryDeviceName: string | undefined
+    if (body.device_id) {
+      try {
+        const { getDevice } = await import('@/lib/db/device-registry-service')
+        const dev = await getDevice(body.device_id)
+        if (!dev) {
+          return NextResponse.json(
+            { success: false, message: `Device not found: ${body.device_id}`, timestamp: Date.now() },
+            { status: 404 }
+          )
+        }
+        nodeId = dev.node_id || undefined
+        registryDeviceName = dev.name
+        // 如果设备有 relay_num 配置，同时设置 relayNum（向后兼容 MQTT 消息中的状态字段）
+        if (dev.config?.relay_num !== undefined && body.relayNum === undefined) {
+          body.relayNum = dev.config.relay_num
+        }
+      } catch (e) {
+        log('ERROR', 'Failed to lookup device from registry', { device_id: body.device_id, error: e })
+      }
+    }
+
     // Send control command via MQTT
     try {
       await mqttService.sendControlCommand({
         type: body.type,
         relayNum: body.relayNum,
+        node_id: nodeId,
         newState: body.newState,
         led1: body.led1,
         led2: body.led2,
@@ -318,20 +352,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       let detailsStr: string
 
       if (body.type === 'relay') {
-        deviceName = `Relay ${body.relayNum}`
+        deviceName = registryDeviceName || `Relay ${body.relayNum}`
         actionStr = body.newState ? 'Turn On' : 'Turn Off'
-        detailsStr = `Switched Relay ${body.relayNum} ${body.newState ? 'ON' : 'OFF'}`
+        detailsStr = `Switched ${deviceName} ${body.newState ? 'ON' : 'OFF'}`
       } else if (body.type === 'led') {
         deviceName = 'RGB Light'
         actionStr = 'Adjust Color'
         detailsStr = `R:${body.led1} G:${body.led2} B:${body.led3}`
       } else if (body.type === 'stepper' || body.type === 'stepper_reset') {
-        deviceName = '摄像头云台'
+        deviceName = registryDeviceName || '摄像头云台'
         const directionNames = ['停止', '左移', '右移']
         actionStr = body.type === 'stepper_reset' ? '复位居中' : (directionNames[body.stepper_direction!] || '控制')
-        detailsStr = body.type === 'stepper_reset' ? '将丝杆滑台复位到最左侧原点(0mm)' : `摄像头云台${actionStr}`
+        detailsStr = body.type === 'stepper_reset' ? '将丝杆滑台复位到最左侧原点(0mm)' : `${deviceName}${actionStr}`
       } else {
-        deviceName = 'Unknown'
+        deviceName = registryDeviceName || 'Unknown'
         actionStr = 'Unknown'
         detailsStr = ''
       }

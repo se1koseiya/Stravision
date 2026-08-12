@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { convertBlobToWav } from "@/lib/voice/voice-utils"
 
 interface QwenSpeechRecognitionOptions {
   language?: string
   dialect?: string
+  /** 是否优先使用浏览器原生 SpeechRecognition（零延迟、免费，Edge/Chrome 国内可用） */
+  preferBrowser?: boolean
   onResult?: (transcript: string, confidence: number, segments?: any[]) => void
   onError?: (error: string) => void
   onStart?: () => void
@@ -43,6 +46,7 @@ export function useQwenSpeechRecognition(options: QwenSpeechRecognitionOptions =
   const {
     language = 'zh-CN',
     dialect = 'auto',
+    preferBrowser = false,
     onResult,
     onError,
     onStart,
@@ -64,6 +68,8 @@ export function useQwenSpeechRecognition(options: QwenSpeechRecognitionOptions =
   const audioChunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
   const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // 浏览器原生 SpeechRecognition 实例引用（preferBrowser 模式）
+  const browserRecognitionRef = useRef<any>(null)
 
   // 获取支持的语言列表
   const fetchSupportedLanguages = useCallback(async () => {
@@ -88,13 +94,86 @@ export function useQwenSpeechRecognition(options: QwenSpeechRecognitionOptions =
   }, [fetchSupportedLanguages])
 
   const startRecording = useCallback(async () => {
-    try {
-      setError(null)
-      setIsRecording(true)
-      onStart?.()
+    setError(null)
+    setTranscript("")
+    setConfidence(0)
+    setIsRecording(true)
+    onStart?.()
 
+    // 优先使用浏览器原生 SpeechRecognition（零延迟、免费）
+    // Chrome 在国内可能无法访问 Google 语音服务，Edge 浏览器可用微软自家服务
+    if (preferBrowser) {
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      if (!SpeechRecognitionAPI) {
+        setError('浏览器不支持原生语音识别，请使用 Edge/Chrome 或切换到服务器 ASR')
+        setIsRecording(false)
+        onEnd?.()
+        return
+      }
+      try {
+        const recognition = new SpeechRecognitionAPI()
+        recognition.continuous = false
+        recognition.interimResults = true // 开启中间结果，实时显示文字
+        recognition.maxAlternatives = 1
+
+        // 语言映射
+        const langMap: Record<string, string> = {
+          'zh-CN': 'zh-CN', 'zh-WU': 'zh-CN', 'zh-HK': 'zh-HK', 'zh-TW': 'zh-TW',
+          'en-US': 'en-US', 'ja-JP': 'ja-JP', 'ko-KR': 'ko-KR',
+        }
+        recognition.lang = langMap[language] || 'zh-CN'
+
+        recognition.onresult = (event: any) => {
+          const lastResult = event.results[event.results.length - 1]
+          const transcript = lastResult[0].transcript
+          const confidence = lastResult[0].confidence || 0.9
+
+          setTranscript(transcript)
+          setConfidence(confidence)
+          setDetectedLanguage(language)
+          setDetectedDialect(dialect)
+
+          // 仅在最终结果时回调（避免多次触发）
+          if (lastResult.isFinal) {
+            onResult?.(transcript, confidence, [])
+          }
+        }
+
+        recognition.onerror = (event: any) => {
+          const errMap: Record<string, string> = {
+            'no-speech': '未检测到语音',
+            'audio-capture': '麦克风访问失败',
+            'not-allowed': '麦克风权限被拒绝',
+            'network': '网络错误（Chrome 国内可能无法访问 Google 语音服务，建议使用 Edge）',
+            'service-not-allowed': '浏览器语音服务不可用',
+          }
+          const msg = errMap[event.error] || `浏览器语音识别失败: ${event.error}`
+          setError(msg)
+          onError?.(msg)
+        }
+
+        recognition.onend = () => {
+          setIsRecording(false)
+          setIsProcessing(false)
+          onEnd?.()
+        }
+
+        browserRecognitionRef.current = recognition
+        recognition.start()
+        return
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '浏览器语音识别启动失败'
+        setError(msg)
+        onError?.(msg)
+        setIsRecording(false)
+        onEnd?.()
+        return
+      }
+    }
+
+    try {
       // 请求麦克风权限
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000, // Qwen3-ASR 推荐的采样率
           channelCount: 1,   // 单声道
@@ -125,15 +204,31 @@ export function useQwenSpeechRecognition(options: QwenSpeechRecognitionOptions =
         setIsProcessing(true)
 
         try {
-          // 合并音频数据
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-          
-          // 首先尝试服务器端ASR
-          await tryServerASR(audioBlob)
-          
+          // 直接使用 webm/opus 压缩格式上传（体积仅 WAV 的 1/10，大幅提速）
+          const webmBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+
+          // 首先尝试服务器端ASR（直接上传 webm）
+          try {
+            await tryServerASR(webmBlob, 'webm')
+          } catch (firstErr) {
+            // 如果是格式不支持错误，回退转 WAV 重试
+            const errMsg = firstErr instanceof Error ? firstErr.message : ''
+            if (errMsg.includes('格式不支持') || errMsg.includes('format') || errMsg.includes('InvalidParameter')) {
+              console.warn('webm 格式不被支持，回退转 WAV 重试...')
+              try {
+                const wavBlob = await convertBlobToWav(webmBlob)
+                await tryServerASR(wavBlob, 'wav')
+              } catch (retryErr) {
+                throw retryErr
+              }
+            } else {
+              throw firstErr
+            }
+          }
+
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Network error'
-          
+
           // 如果服务器ASR失败，尝试浏览器内置语音识别
           if (errorMsg.includes('API key') || errorMsg.includes('欠费') || errorMsg.includes('Arrearage')) {
             console.log('Server ASR failed, trying browser speech recognition...')
@@ -176,9 +271,9 @@ export function useQwenSpeechRecognition(options: QwenSpeechRecognitionOptions =
   }, [language, dialect, onStart, onResult, onError, onEnd, maxDuration, chunkSize])
 
   // 尝试服务器端ASR
-  const tryServerASR = async (audioBlob: Blob) => {
+  const tryServerASR = async (audioBlob: Blob, format: 'webm' | 'wav' = 'webm') => {
     const formData = new FormData()
-    formData.append('audio', audioBlob, 'recording.webm')
+    formData.append('audio', audioBlob, `recording.${format}`)
     formData.append('language', language)
     formData.append('dialect', dialect)
 
@@ -275,6 +370,14 @@ export function useQwenSpeechRecognition(options: QwenSpeechRecognitionOptions =
   }
 
   const stopRecording = useCallback(async () => {
+    // 停止浏览器原生语音识别
+    if (browserRecognitionRef.current) {
+      try {
+        browserRecognitionRef.current.stop()
+      } catch { /* ignore */ }
+      browserRecognitionRef.current = null
+    }
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop()
     }

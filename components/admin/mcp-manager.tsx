@@ -108,7 +108,7 @@ export function MCPManager() {
       dataIndex: 'priority',
       key: 'priority',
       width: 80,
-      render: (val: number) => <Text strong style={{ color: '#1890ff' }}>#{val}</Text>
+      render: (val: number) => <Text strong style={{ color: '#1677ff' }}>#{val}</Text>
     },
     {
       title: 'Icon',
@@ -140,7 +140,7 @@ export function MCPManager() {
       render: (val: string, record: MCPServer) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Text>{val}</Text>
-          {record.official && <ShieldOutlined style={{ color: '#1890ff', fontSize: 12 }} />}
+          {record.official && <ShieldOutlined style={{ color: '#1677ff', fontSize: 12 }} />}
         </div>
       )
     },
@@ -241,7 +241,7 @@ export function MCPManager() {
         onCancel={() => setModalOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setModalOpen(false)}>Cancel</Button>,
-          <Button key="save" type="primary" onClick={handleSave} style={{ background: '#1890ff' }}>Save MCP Server</Button>
+          <Button key="save" type="primary" onClick={handleSave}>Save MCP Server</Button>
         ]}
         width={800}
         styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
@@ -343,7 +343,7 @@ export function MCPManager() {
           </div>
 
           <div>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 4, color: '#1890ff' }}>Default Env Vars (JSON Object)</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4, color: '#1677ff' }}>Default Env Vars (JSON Object)</Text>
             <Input.TextArea 
               placeholder='{"API_KEY": ""}' 
               value={editingServer?.envVars || "{}"}

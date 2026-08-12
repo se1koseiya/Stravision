@@ -113,34 +113,35 @@ export async function getDevicePatterns(userId: number, deviceId?: number): Prom
 export async function saveDevicePattern(pattern: Omit<DevicePattern, 'id' | 'created_at' | 'updated_at'>): Promise<void> {
   const pool = getPool();
   const now = Date.now();
-  
+
+  // 🔥 upsert：相同 (user_id, device_id, pattern_type) 只保留一行
+  // 首次保存写入完整记录；重复保存只刷新 pattern_data，不重置统计计数
   await pool.query(
     `INSERT INTO device_patterns (user_id, device_id, pattern_type, pattern_data, confidence, success_count, total_count, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [pattern.user_id, pattern.device_id, pattern.pattern_type, pattern.pattern_data, pattern.confidence, pattern.success_count, pattern.total_count, now, now]
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+     ON CONFLICT (user_id, device_id, pattern_type)
+     DO UPDATE SET pattern_data = EXCLUDED.pattern_data, updated_at = EXCLUDED.updated_at`,
+    [pattern.user_id, pattern.device_id, pattern.pattern_type, pattern.pattern_data, pattern.confidence, pattern.success_count, pattern.total_count, now]
   );
 }
 
 export async function updateDevicePatternStats(userId: number, deviceId: number, patternType: string, success: boolean): Promise<void> {
   const pool = getPool();
   const now = Date.now();
-  
-  const result = await pool.query(
-    'SELECT * FROM device_patterns WHERE user_id = $1 AND device_id = $2 AND pattern_type = $3',
-    [userId, deviceId, patternType]
+
+  // 🔥 原子 upsert：首次出现时 INSERT，已存在时原子自增计数
+  // 旧实现是 SELECT-then-UPDATE，首次模式永远查不到记录导致丢失
+  await pool.query(
+    `INSERT INTO device_patterns (user_id, device_id, pattern_type, pattern_data, confidence, success_count, total_count, created_at, updated_at)
+     VALUES ($1, $2, $3, '{}', 0.5, $4::int, 1, $5, $5)
+     ON CONFLICT (user_id, device_id, pattern_type)
+     DO UPDATE SET
+       success_count = device_patterns.success_count + $4,
+       total_count = device_patterns.total_count + 1,
+       confidence = (device_patterns.success_count + $4)::float / (device_patterns.total_count + 1),
+       updated_at = $5`,
+    [userId, deviceId, patternType, success ? 1 : 0, now]
   );
-  
-  if (result.rows.length > 0) {
-    const pattern = result.rows[0];
-    const newSuccessCount = success ? pattern.success_count + 1 : pattern.success_count;
-    const newTotalCount = pattern.total_count + 1;
-    const newConfidence = newSuccessCount / newTotalCount;
-    
-    await pool.query(
-      'UPDATE device_patterns SET success_count = $1, total_count = $2, confidence = $3, updated_at = $4 WHERE id = $5',
-      [newSuccessCount, newTotalCount, newConfidence, now, pattern.id]
-    );
-  }
 }
 
 /**
@@ -167,36 +168,34 @@ export async function getSuccessfulStrategies(userId: number, goal?: string): Pr
 export async function saveSuccessfulStrategy(strategy: Omit<SuccessfulStrategy, 'id' | 'created_at' | 'updated_at'>): Promise<void> {
   const pool = getPool();
   const now = Date.now();
-  
+
+  // 🔥 upsert：相同 (user_id, goal) 只保留一行
   await pool.query(
     `INSERT INTO successful_strategies (user_id, goal, steps, success_rate, avg_execution_time, conditions, use_count, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [strategy.user_id, strategy.goal, strategy.steps, strategy.success_rate, strategy.avg_execution_time, strategy.conditions, strategy.use_count, now, now]
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+     ON CONFLICT (user_id, goal)
+     DO UPDATE SET steps = EXCLUDED.steps, conditions = EXCLUDED.conditions, updated_at = EXCLUDED.updated_at`,
+    [strategy.user_id, strategy.goal, strategy.steps, strategy.success_rate, strategy.avg_execution_time, strategy.conditions, strategy.use_count, now]
   );
 }
 
 export async function updateStrategyStats(userId: number, goal: string, executionTime: number, success: boolean): Promise<void> {
   const pool = getPool();
   const now = Date.now();
-  
-  const result = await pool.query(
-    'SELECT * FROM successful_strategies WHERE user_id = $1 AND goal = $2',
-    [userId, goal]
+
+  // 🔥 原子 upsert：首次出现时 INSERT，已存在时原子自增计数并滚动平均
+  // 旧实现是 SELECT-then-UPDATE，新策略永远查不到记录导致丢失
+  await pool.query(
+    `INSERT INTO successful_strategies (user_id, goal, steps, success_rate, avg_execution_time, conditions, use_count, created_at, updated_at)
+     VALUES ($1, $2, '[]', $3::float, $4, NULL, 1, $5, $5)
+     ON CONFLICT (user_id, goal)
+     DO UPDATE SET
+       use_count = successful_strategies.use_count + 1,
+       avg_execution_time = (successful_strategies.avg_execution_time * successful_strategies.use_count + $4) / (successful_strategies.use_count + 1),
+       success_rate = (successful_strategies.success_rate * successful_strategies.use_count + $3) / (successful_strategies.use_count + 1),
+       updated_at = $5`,
+    [userId, goal, success ? 1 : 0, executionTime, now]
   );
-  
-  if (result.rows.length > 0) {
-    const strategy = result.rows[0];
-    const newUseCount = strategy.use_count + 1;
-    const newAvgTime = Math.round((strategy.avg_execution_time * strategy.use_count + executionTime) / newUseCount);
-    const newSuccessRate = success 
-      ? (strategy.success_rate * strategy.use_count + 1) / newUseCount
-      : (strategy.success_rate * strategy.use_count) / newUseCount;
-    
-    await pool.query(
-      'UPDATE successful_strategies SET use_count = $1, avg_execution_time = $2, success_rate = $3, updated_at = $4 WHERE id = $5',
-      [newUseCount, newAvgTime, newSuccessRate, now, strategy.id]
-    );
-  }
 }
 
 /**

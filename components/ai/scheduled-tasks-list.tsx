@@ -5,6 +5,7 @@ import { Loader2, Clock, MoreHorizontal, Pencil, Trash2, Play } from "lucide-rea
 import { Empty, theme, Switch, Dropdown, App } from "antd"
 import type { MenuProps } from "antd"
 import { ManualTaskCreateModal } from "@/components/ai/manual-task-create-modal"
+import { DEVICE_IDS } from "@/lib/constants"
 
 export interface ScheduledTask {
   id: number
@@ -38,10 +39,10 @@ const safeParseParams = (params?: string | null): any => {
 }
 
 const DEVICE_NAMES: Record<number, string> = {
-  5: "灌溉水泵",
-  6: "通风风扇",
-  7: "补光灯",
-  8: "白光灯",
+  [DEVICE_IDS.PUMP]: "灌溉水泵",
+  [DEVICE_IDS.FAN]: "通风风扇",
+  [DEVICE_IDS.RGB_LIGHT]: "补光灯",
+  [DEVICE_IDS.WHITE_LIGHT]: "白光灯",
 }
 
 const getDeviceName = (id?: number) => (id != null ? DEVICE_NAMES[id] || `设备 ${id}` : "")

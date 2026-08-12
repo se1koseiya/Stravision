@@ -1,0 +1,81 @@
+{
+  "name": "berry-realm-playbook",
+  "version": "1.0.0",
+  "description": "Berry Realm 项目开发规范合集：UI/UX 设计约定、AI 流式渲染规则、硬件控制安全策略、代码陷阱与修复模式。当在本项目开发功能、修复 bug 或重构代码时调用。",
+  "author": "Berry Realm Contributors",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/berry-realm/berry-realm-playbook",
+  "keywords": [
+    "trae-skill",
+    "berry-realm",
+    "agriculture",
+    "ai-assistant",
+    "ant-design",
+    "development-standards",
+    "playbook"
+  ],
+  "categories": [
+    "development",
+    "ai-assistant",
+    "ui-ux",
+    "database",
+    "streaming"
+  ],
+  "project": {
+    "name": "Berry Realm",
+    "version": "v4.0",
+    "type": "smart-agriculture-platform"
+  },
+  "compatibility": {
+    "trae": ">=1.0.0",
+    "trae-work": ">=1.0.0",
+    "claude-code": "manual",
+    "cursor": "manual"
+  },
+  "files": [
+    {
+      "path": "SKILL.md",
+      "type": "skill-core",
+      "description": "核心规范文档（10 章节）"
+    },
+    {
+      "path": "README.md",
+      "type": "documentation",
+      "description": "安装/使用/卸载说明"
+    },
+    {
+      "path": "LICENSE",
+      "type": "license",
+      "description": "Apache 2.0 许可证"
+    },
+    {
+      "path": "VERSION",
+      "type": "metadata",
+      "description": "语义化版本号"
+    },
+    {
+      "path": "manifest.json",
+      "type": "metadata",
+      "description": "本发布清单"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "type": "documentation",
+      "description": "版本变更记录"
+    }
+  ],
+  "stats": {
+    "chapters": 10,
+    "hard_constraints": 150,
+    "critical_constraints": 30,
+    "user_preferences": 25,
+    "gotchas": 50
+  },
+  "install": {
+    "target_dir": ".trae/skills/berry-realm-playbook/",
+    "method": "unzip-and-copy",
+    "auto_load": true
+  },
+  "release_date": "2026-07-24",
+  "checksum": ""
+}

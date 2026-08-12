@@ -70,25 +70,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // admin 操作市场 KB 时，user.id 可能是 admin 而不是 publisher；用条目的真实 owner 调用 updateItem
   const { userId: ownerId } = await resolveItemOwnerId(itemId, user.id, (user as any).role)
 
-  const ok = await updateItem(itemId, ownerId, {
-    title: body.title,
-    content: body.content,
-    content_type: body.content_type,
-    collection_id: body.collection_id,
-    file_url: body.file_url,
-    file_size: body.file_size,
-    mime_type: body.mime_type,
-    source_url: body.source_url,
-    source_metadata: body.source_metadata,
-    summary: body.summary,
-    tags: Array.isArray(body.tags) ? body.tags : undefined,
-    is_favorite: body.is_favorite !== undefined ? !!body.is_favorite : undefined,
-    is_archived: body.is_archived !== undefined ? !!body.is_archived : undefined,
-    access_level: body.access_level,
+  // 过滤掉 undefined 字段，避免 updateItem 把 undefined 写入 PG（会触发类型/约束错误）
+  // 仅当字段在 body 中明确出现时才传递（null 是合法值，表示清除）
+  const patch: any = {
     change_summary: body.change_summary,
     change_type: body.change_type,
     create_version: createVersion
-  })
+  }
+  for (const k of [
+    "title", "content", "content_type", "collection_id", "file_url", "file_size",
+    "mime_type", "source_url", "source_metadata", "summary", "access_level"
+  ] as const) {
+    if (k in body) patch[k] = body[k]
+  }
+  if (Array.isArray(body.tags)) patch.tags = body.tags
+  if (body.is_favorite !== undefined) patch.is_favorite = !!body.is_favorite
+  if (body.is_archived !== undefined) patch.is_archived = !!body.is_archived
+
+  const ok = await updateItem(itemId, ownerId, patch)
   if (!ok) return jsonError("更新失败或无权限", 404)
 
   if (contentChanged) {
