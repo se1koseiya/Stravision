@@ -1,7 +1,8 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { Hero } from "@/components/landing-art/hero"
+import { Nav } from "@/components/landing-art/hero"
+import { CinematicReveal } from "@/components/landing-art/cinematic-reveal"
 import { Manifesto } from "@/components/landing-art/manifesto"
 import { AIChapters } from "@/components/landing-art/ai-story"
 import { Personas } from "@/components/landing-art/personas"
@@ -24,10 +25,11 @@ export default function ArtPage() {
   return (
     <main className="relative bg-[#08080A] text-white selection:bg-[#1677ff] selection:text-white font-sans overflow-x-clip">
       <LandingCursor />
+      <Nav />
       {/* 电影级编辑叙事流：
-          序章 → 信仰 → 推理 → 三重人格 → 系统 → 数据 → 邀请 */}
+          开场虹膜 → 序章 → 信仰 → 推理 → 三重人格 → 系统 → 数据 → 邀请 */}
       <div className="relative z-10 flex flex-col">
-        <Hero />
+        <CinematicReveal />
         <Manifesto />
         <AIChapters />
         <Personas />

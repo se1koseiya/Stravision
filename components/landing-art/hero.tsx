@@ -53,7 +53,6 @@ export function Hero() {
 
   return (
     <>
-      <Nav />
       <section ref={ref} className="relative w-full h-[150vh] overflow-hidden bg-[#08080A]">
         <div className="sticky top-0 h-screen w-full overflow-hidden">
           {/* ============ 背景柔光：中性聚光，不与球体绿晕争色 ============ */}
@@ -249,7 +248,7 @@ export function Hero() {
 /* ============================================================
    NAV —— 顶部发丝线，纯文字导航，mix-blend-difference 自适应
    ============================================================ */
-function Nav() {
+export function Nav() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 mix-blend-difference">
       <div className="grid grid-cols-3 items-center max-w-[1600px] mx-auto px-6 lg:px-10 py-5">
