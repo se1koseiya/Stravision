@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // 固定项目根目录：父目录存在杂散 package-lock.json 时 Next 会误判 workspace root
+  outputFileTracingRoot: path.join(__dirname),
   // Disable source maps in production to save memory
   productionBrowserSourceMaps: false,
   // Increase timeout for static page generation

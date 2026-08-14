@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { getCurrentUser } from "@/lib/auth";
-import { pool } from "@/lib/db/database";
+import { getPool } from "@/lib/db/database";
 
 const ONLYOFFICE_JWT_SECRET =
   process.env.ONLYOFFICE_JWT_SECRET || "onlyoffice_secret_change_me";
@@ -52,7 +52,7 @@ export async function GET(
 
   try {
     // 查询文档信息
-    const itemResult = await pool.query(
+    const itemResult = await getPool().query(
       `SELECT ki.id, ki.title, ki.file_url, ki.content_type, ki.collection_id,
               ki.updated_at, ki.user_id,
               kc.is_marketplace

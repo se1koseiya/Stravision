@@ -28,13 +28,13 @@ rm -rf node_modules/.cache
 echo "✅ 清理完成"
 echo ""
 
-# 构建（使用webpack而不是turbopack以节省内存）
-echo "📦 开始构建 (使用webpack模式)..."
+# 构建（使用turbopack，Next 16 默认编译器；webpack 模式存在编译 bug 已弃用）
+echo "📦 开始构建 (使用turbopack模式)..."
 echo "⏱️  预计时间: 15-30分钟"
 echo ""
 
-# 尝试使用webpack构建
-if pnpm build --webpack; then
+# 使用turbopack构建（Next 16 默认，无需额外参数）
+if pnpm build; then
     echo ""
     echo "✅ 构建成功!"
     echo ""

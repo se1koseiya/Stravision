@@ -1,0 +1,109 @@
+diff --git a/es/XMarkdown/AnimationText.js b/es/XMarkdown/AnimationText.js
+index 21569c6..8b6fff9 100644
+--- a/es/XMarkdown/AnimationText.js
++++ b/es/XMarkdown/AnimationText.js
+@@ -1,4 +1,7 @@
+-import React, { useEffect, useMemo, useRef, useState } from 'react';
++import React, { useEffect, useMemo, useRef } from 'react';
++// PATCHED (upstream fix: ant-design/x PR #1998, issue #1958):
++// 移除 useState + useEffect 的分块更新，改为 useRef 渲染阶段同步计算，
++// 消除流式渲染中 AnimationText 的额外重渲染级联（Maximum update depth exceeded）。
+ const AnimationText = /*#__PURE__*/React.memo(props => {
+   const {
+     text,
+@@ -8,20 +11,22 @@ const AnimationText = /*#__PURE__*/React.memo(props => {
+     fadeDuration = 200,
+     easing = 'ease-in-out'
+   } = animationConfig || {};
+-  const [chunks, setChunks] = useState([]);
+   const prevTextRef = useRef('');
++  const chunksRef = useRef([]);
++  const prevText = prevTextRef.current;
++  let chunks;
++  if (text === prevText) {
++    chunks = chunksRef.current;
++  } else if (!(prevText && text.startsWith(prevText))) {
++    chunks = [text];
++  } else {
++    const newText = text.slice(prevText.length);
++    chunks = newText ? [...chunksRef.current, newText] : chunksRef.current;
++  }
+   useEffect(() => {
+-    if (text === prevTextRef.current) return;
+-    if (!(prevTextRef.current && text.indexOf(prevTextRef.current) === 0)) {
+-      setChunks([text]);
+-      prevTextRef.current = text;
+-      return;
+-    }
+-    const newText = text.slice(prevTextRef.current.length);
+-    if (!newText) return;
+-    setChunks(prev => [...prev, newText]);
+     prevTextRef.current = text;
+-  }, [text]);
++    chunksRef.current = chunks;
++  }, [text, chunks]);
+   const animationStyle = useMemo(() => ({
+     animation: `x-markdown-fade-in ${fadeDuration}ms ${easing} forwards`,
+     color: 'inherit'
+@@ -31,4 +36,4 @@ const AnimationText = /*#__PURE__*/React.memo(props => {
+     key: `animation-text-${index}`
+   }, text)));
+ });
+-export default AnimationText;
+\ No newline at end of file
++export default AnimationText;
+diff --git a/lib/XMarkdown/AnimationText.js b/lib/XMarkdown/AnimationText.js
+index 75053e1..8401074 100644
+--- a/lib/XMarkdown/AnimationText.js
++++ b/lib/XMarkdown/AnimationText.js
+@@ -7,6 +7,9 @@ exports.default = void 0;
+ var _react = _interopRequireWildcard(require("react"));
+ function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function (e) { return e ? t : r; })(e); }
+ function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && Object.prototype.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
++// PATCHED (upstream fix: ant-design/x PR #1998, issue #1958):
++// 移除 useState + useEffect 的分块更新，改为 useRef 渲染阶段同步计算，
++// 消除流式渲染中 AnimationText 的额外重渲染级联（Maximum update depth exceeded）。
+ const AnimationText = /*#__PURE__*/_react.default.memo(props => {
+   const {
+     text,
+@@ -16,20 +19,22 @@ const AnimationText = /*#__PURE__*/_react.default.memo(props => {
+     fadeDuration = 200,
+     easing = 'ease-in-out'
+   } = animationConfig || {};
+-  const [chunks, setChunks] = (0, _react.useState)([]);
+   const prevTextRef = (0, _react.useRef)('');
++  const chunksRef = (0, _react.useRef)([]);
++  const prevText = prevTextRef.current;
++  let chunks;
++  if (text === prevText) {
++    chunks = chunksRef.current;
++  } else if (!(prevText && text.startsWith(prevText))) {
++    chunks = [text];
++  } else {
++    const newText = text.slice(prevText.length);
++    chunks = newText ? [...chunksRef.current, newText] : chunksRef.current;
++  }
+   (0, _react.useEffect)(() => {
+-    if (text === prevTextRef.current) return;
+-    if (!(prevTextRef.current && text.indexOf(prevTextRef.current) === 0)) {
+-      setChunks([text]);
+-      prevTextRef.current = text;
+-      return;
+-    }
+-    const newText = text.slice(prevTextRef.current.length);
+-    if (!newText) return;
+-    setChunks(prev => [...prev, newText]);
+     prevTextRef.current = text;
+-  }, [text]);
++    chunksRef.current = chunks;
++  }, [text, chunks]);
+   const animationStyle = (0, _react.useMemo)(() => ({
+     animation: `x-markdown-fade-in ${fadeDuration}ms ${easing} forwards`,
+     color: 'inherit'
+@@ -39,4 +44,4 @@ const AnimationText = /*#__PURE__*/_react.default.memo(props => {
+     key: `animation-text-${index}`
+   }, text)));
+ });
+-var _default = exports.default = AnimationText;
+\ No newline at end of file
++var _default = exports.default = AnimationText;

@@ -98,6 +98,10 @@ export function CheckpointConfirm({
   const hasForm = paramFields.length > 0
 
   // 初始化表单默认值
+  // 🔥 依赖用稳定签名而非 paramFields 数组本身：父级每次渲染都会重新解析出新的
+  // data/paramFields 对象，若直接依赖会导致 effect 每轮渲染都触发 setFieldsValue，
+  // 在 Bubble.List 全量重渲染场景下可能级联出 Maximum update depth exceeded。
+  const paramFieldsSignature = paramFields.map((f) => `${f.key}:${String(f.default)}`).join("|")
   useEffect(() => {
     if (hasForm) {
       const defaults: Record<string, string | number | boolean> = {}
@@ -106,7 +110,8 @@ export function CheckpointConfirm({
       })
       form.setFieldsValue(defaults)
     }
-  }, [data.id, hasForm, form, paramFields])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.id, paramFieldsSignature, hasForm, form])
 
   const handleChoose = async (optionId: string) => {
     if (isResolved) return

@@ -50,6 +50,10 @@ export function ClarifyCard({ data, onReply }: ClarifyCardProps) {
   const isResolved = !!resolvedText
 
   // 初始化表单默认值
+  // 🔥 依赖用稳定签名而非 fields 数组本身：父级每次渲染都会重新 JSON.parse 出新的
+  // data/fields 对象，若直接依赖会导致 effect 每轮渲染都触发 setFieldsValue，
+  // 在 Bubble.List 全量重渲染场景下可能级联出 Maximum update depth exceeded。
+  const fieldsSignature = fields.map((f) => `${f.key}:${String(f.default)}`).join("|")
   useEffect(() => {
     if (hasForm) {
       const defaults: Record<string, string | number | boolean> = {}
@@ -58,7 +62,8 @@ export function ClarifyCard({ data, onReply }: ClarifyCardProps) {
       })
       form.setFieldsValue(defaults)
     }
-  }, [data, hasForm, form, fields])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldsSignature, hasForm, form])
 
   const handleSubmit = async () => {
     if (hasForm) {

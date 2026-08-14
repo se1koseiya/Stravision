@@ -3,6 +3,11 @@
   "version": "4.1.0",
   "private": true,
   "packageManager": "pnpm@10.30.1",
+  "pnpm": {
+    "patchedDependencies": {
+      "@ant-design/x-markdown@2.8.0": "patches/@ant-design__x-markdown@2.8.0.patch"
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "dev:ws": "node server/ws-server.js",

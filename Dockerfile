@@ -13,7 +13,9 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
+# patches/ 必须一并复制：package.json 的 pnpm.patchedDependencies 引用了其中的补丁
 COPY package.json pnpm-lock.yaml .npmrc ./
+COPY patches ./patches
 
 # 配置 pnpm 和 git 以处理网络问题
 RUN pnpm config set registry https://registry.npmmirror.com && \
@@ -40,8 +42,8 @@ ENV NODE_OPTIONS="--max-old-space-size=3072"
 # Disable source maps in production to reduce memory usage
 ENV GENERATE_SOURCEMAP=false
 
-# Use webpack instead of turbopack for lower memory usage on 4GB servers
-RUN pnpm build --webpack || pnpm build
+# 使用 turbopack 编译（Next 16 默认；webpack 模式存在编译 bug 已弃用）
+RUN pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner

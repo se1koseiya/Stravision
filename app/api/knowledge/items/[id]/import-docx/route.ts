@@ -101,10 +101,12 @@ export async function POST(
   }
 
   // 更新 item content（同时保留原 title，仅当原 title 为空或为"未命名"时使用提取的 title）
-  const currentItemTitle = item?.title ?? (await queryOne<{ title: string }>(
-    "SELECT title FROM knowledge_items WHERE id = $1",
-    [itemId]
-  ))?.title || ""
+  const currentItemTitle =
+    (item?.title ??
+      (await queryOne<{ title: string }>(
+        "SELECT title FROM knowledge_items WHERE id = $1",
+        [itemId]
+      ))?.title) || ""
   const newTitle =
     !currentItemTitle || currentItemTitle === "未命名文档" || currentItemTitle === ""
       ? conv.title || currentItemTitle || "导入文档"

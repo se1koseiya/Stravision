@@ -182,6 +182,99 @@ function extractDeviceActionsFromResponse(aiResponse: string): Array<{
   return actions;
 }
 
+/** 旧版 JSON 设备控制指令的 action 集合（新架构已改为原生 tool_call） */
+const LEGACY_DEVICE_ACTIONS = ['toggle_relay', 'set_led', 'control_camera', 'reset_camera'] as const;
+
+/**
+ * 🔥 从 AI 回复文本中提取旧版 JSON 设备控制指令（```json {"action":"toggle_relay",...}``` 或裸露内联 JSON）。
+ *
+ * 用途：当模型未走原生 tool_call、而是模仿旧格式输出文本 JSON 时，
+ * 服务端据此合成真实工具调用并执行，避免"只说不做"。
+ * 返回的动作已按 name+参数去重。
+ */
+function extractLegacyDeviceControlCalls(text: string): Array<{ name: string; arguments: Record<string, any> }> {
+  const calls: Array<{ name: string; arguments: Record<string, any> }> = [];
+  if (!text || !text.includes('"action"')) return calls;
+
+  const seen = new Set<string>();
+  const tryAdd = (raw: string) => {
+    let data: any;
+    try { data = JSON.parse(raw) } catch { return }
+    if (!data || typeof data !== 'object') return;
+    const action = data.action;
+    if (typeof action !== 'string' || !(LEGACY_DEVICE_ACTIONS as readonly string[]).includes(action)) return;
+
+    let args: Record<string, any> | null = null;
+    if (action === 'toggle_relay') {
+      const value = Number(data.value);
+      if (value !== 0 && value !== 1) return;
+      args = { value };
+      if (typeof data.device_id === 'number') args.device_id = data.device_id;
+      else if (typeof data.device === 'number' && data.device >= 5 && data.device <= 8) args.device = data.device;
+      else return; // 无有效设备标识，跳过
+    } else if (action === 'set_led') {
+      const { r, g, b } = data;
+      if ([r, g, b].some(v => typeof v !== 'number' || v < 0 || v > 255)) return;
+      args = { r, g, b };
+    } else if (action === 'control_camera') {
+      const direction = Number(data.direction);
+      if (![0, 1, 2].includes(direction)) return;
+      args = { direction };
+      if (typeof data.distance_mm === 'number' && data.distance_mm >= 0 && data.distance_mm <= 700) {
+        args.distance_mm = data.distance_mm;
+      }
+    } else if (action === 'reset_camera') {
+      args = {};
+    }
+    if (!args) return;
+
+    const key = `${action}:${JSON.stringify(args)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    calls.push({ name: action, arguments: args });
+  };
+
+  // 1) ```json 代码块内的动作 JSON
+  const codeBlockRegex = /```(?:json)?\s*\n?([\s\S]*?)```/g;
+  let m: RegExpExecArray | null;
+  while ((m = codeBlockRegex.exec(text)) !== null) {
+    const block = m[1].trim();
+    if (block.startsWith('{')) tryAdd(block);
+  }
+
+  // 2) 裸露的内联动作 JSON（无代码块包裹）
+  const inlineRegex = /\{\s*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera|reset_camera)"[^{}]*\}/g;
+  while ((m = inlineRegex.exec(text)) !== null) {
+    tryAdd(m[0]);
+  }
+
+  return calls;
+}
+
+/**
+ * 🔥 清洗历史 assistant 消息中的旧版 JSON 设备控制指令。
+ *
+ * 旧架构让 AI 输出 ```json {"action":"toggle_relay",...}``` 代码块由前端解析执行，
+ * 该链路已移除；若这些样例原样回喂，模型会 few-shot 模仿旧格式继续输出文本 JSON
+ * 而不走原生 tool_call（表现为"只说不做"）。这里替换为中性描述以消除污染。
+ */
+function sanitizeLegacyDeviceControlMessages(messages: any[]): any[] {
+  const actionAlt = [...LEGACY_DEVICE_ACTIONS, 'move_camera_and_look', 'take_camera_snapshot'].join('|');
+  const codeBlockRegex = new RegExp(
+    '```(?:json)?\\s*\\n?(\\{[\\s\\S]*?"action"\\s*:\\s*"(?:' + actionAlt + ')"[\\s\\S]*?\\})\\s*\\n?```',
+    'g'
+  );
+  const inlineRegex = new RegExp('\\{\\s*"action"\\s*:\\s*"(?:' + actionAlt + ')"[^{}]*\\}', 'g');
+
+  return messages.map((m: any) => {
+    if (m?.role !== 'assistant' || typeof m.content !== 'string' || !m.content.includes('"action"')) return m;
+    const content = m.content
+      .replace(codeBlockRegex, '[设备控制指令（历史记录，已通过工具调用执行）]')
+      .replace(inlineRegex, '[设备控制指令（历史记录）]');
+    return content === m.content ? m : { ...m, content };
+  });
+}
+
 export async function POST(req: Request) {
   // 这两个变量在 try 外声明，以便外层 catch 能访问并退还配额
   let quotaReserved = false
@@ -640,7 +733,7 @@ export async function POST(req: Request) {
 - **输出 <CHECKPOINT> 后必须立即停止，等待用户回复，严禁继续执行**
 - 简单查询/单步可逆操作（如查看数据、单次开关设备）无需 checkpoint，避免过度打扰
 **MCP 工具规则**：
-1. 禁止搜索设备操作指令（开关灯/水泵/摄像头等是自带能力，直接输出 JSON 控制）
+1. 禁止搜索设备操作指令（开关灯/水泵/摄像头等是自带能力，**必须通过 Function Calling 调用对应工具**；严禁输出 JSON 代码块形式的控制指令，未实际调用工具前禁止声称设备已开启/已关闭）
 2. 搜索农业知识（生长标准、温湿度范围、病害防治）
 3. 搜索关键词须含【月份/季节】，如 \`${currentMonth}月 草莓大棚 通风策略\`
 4. 基于搜索结果对比当前数据生成调控建议
@@ -1309,6 +1402,11 @@ export async function POST(req: Request) {
       }
     }
 
+    // 🔥 清洗历史消息中的旧版 JSON 设备控制指令样例，防止模型 few-shot 模仿旧格式"只说不做"
+    fullMessages = sanitizeLegacyDeviceControlMessages(fullMessages)
+    if (requestBody.messages) requestBody.messages = fullMessages
+    if (requestBody.input?.messages) requestBody.input.messages = fullMessages
+
     // 语音助手模式：限制 max_tokens，避免回复过长导致 TTS 等待
     if (voiceMode) {
       if (requestBody.parameters) {
@@ -1435,6 +1533,8 @@ export async function POST(req: Request) {
             if (planMode) {
               console.log(`[Agent Loop] Plan mode manually enabled by user (enablePlanning=true)`)
             }
+            // 🔥 旧版 JSON 设备控制兜底：每次请求最多接管一次，避免模型反复输出旧格式导致循环执行
+            let legacyJsonFallbackUsed = false
 
             while (iteration < MAX_AGENT_ITERATIONS) {
               iteration++
@@ -2102,6 +2202,94 @@ export async function POST(req: Request) {
                 lastRoundHadToolCalls = true
                 continue
               } else {
+                // 🔥 兜底执行：模型输出了旧版 JSON 设备控制指令而非原生 tool_call
+                // （常见于历史会话污染或模型 function calling 依从性差）。
+                // 旧的"前端解析 JSON 执行"链路已移除，若服务端不接管，指令将无人执行，
+                // AI 只是"声称"控制了设备。这里将 JSON 转换为真实工具调用并阻塞执行。
+                if (!legacyJsonFallbackUsed && !planMode && isDeviceOnline && mandatorySkillsEnabled !== false) {
+                  const legacyCalls = extractLegacyDeviceControlCalls(accumulatedContent)
+                  if (legacyCalls.length > 0 && iteration < MAX_AGENT_ITERATIONS) {
+                    legacyJsonFallbackUsed = true
+                    console.log(`[Agent Loop] Round ${iteration} - Legacy JSON device control detected, executing ${legacyCalls.length} calls as fallback:`,
+                      legacyCalls.map(c => `${c.name}(${JSON.stringify(c.arguments)})`))
+
+                    // 合成与原生 tool_call 格式一致的调用
+                    const syntheticToolCalls = legacyCalls.map((c, i) => ({
+                      id: `legacy-fallback-${Date.now()}-${i}`,
+                      type: 'function',
+                      function: { name: c.name, arguments: JSON.stringify(c.arguments) }
+                    }))
+
+                    fullMessages.push({
+                      role: 'assistant',
+                      content: accumulatedContent || '',
+                      tool_calls: syntheticToolCalls
+                    })
+
+                    // 通知前端（与原生 tool_call 一致的事件格式）
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `tool-status-${Date.now()}`, object: 'chat.completion.chunk',
+                      created: Date.now(), model: effectiveModel,
+                      tool_calls: syntheticToolCalls,
+                      agent_iteration: iteration
+                    })}\n\n`))
+
+                    const toolCallObjects = syntheticToolCalls.map(tc => ({
+                      id: tc.id,
+                      name: tc.function.name,
+                      arguments: JSON.parse(tc.function.arguments),
+                      timestamp: Date.now()
+                    }))
+
+                    const toolResults = await executeToolCallsSmart(
+                      toolCallObjects,
+                      orchestrator,
+                      agentContext,
+                      (completed, total, currentTool) => {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                          id: `tool-progress-${Date.now()}`,
+                          object: 'chat.completion.chunk',
+                          created: Date.now(),
+                          model: effectiveModel,
+                          tool_progress: { completed, total, current: currentTool }
+                        })}\n\n`))
+                      }
+                    )
+
+                    for (const [toolCallId, result] of toolResults.entries()) {
+                      const toolCall = syntheticToolCalls.find(tc => tc.id === toolCallId)
+                      if (!toolCall) continue
+                      const toolData = result.success ? result.data : { error: result.error }
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        id: `tool-result-${Date.now()}`,
+                        object: 'chat.completion.chunk',
+                        created: Date.now(),
+                        model: effectiveModel,
+                        tool_result: {
+                          name: toolCall.function.name,
+                          args: JSON.parse(toolCall.function.arguments),
+                          result: toolData
+                        }
+                      })}\n\n`))
+                      fullMessages.push({
+                        role: 'tool',
+                        tool_call_id: toolCallId,
+                        content: JSON.stringify(toolData)
+                      })
+                    }
+
+                    // 提醒模型：指令已真实执行，基于 tool 结果汇报，禁止再输出 JSON 代码块
+                    fullMessages.push({
+                      role: 'system',
+                      content: '设备控制指令已通过原生工具调用真实执行完毕，上方 tool 消息是真实执行结果（confirmed 字段表示设备是否真实达到目标状态）。请基于该结果向用户如实汇报。严禁再输出 JSON 代码块形式的设备控制指令。'
+                    })
+
+                    requestBody = { ...requestBody, messages: fullMessages }
+                    lastRoundHadToolCalls = true
+                    continue
+                  }
+                }
+
                 // 无工具调用，但需要判断这是"已完成最终回答"还是"工具后只输出了过渡文本"
                 // 🔥 关键修复：累积内容过短（如"我来帮您查询..."）且历史中有 tool 结果时，
                 // 说明 LLM 还没真正基于工具结果回答 → 标记继续下一轮（让 LLM 真正输出最终答案）

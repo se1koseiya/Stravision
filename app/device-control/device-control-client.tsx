@@ -72,7 +72,8 @@ import {
   Compass,
   ArrowRight,
   RotateCcw,
-  Target
+  Target,
+  Trash2
 } from "lucide-react"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
@@ -95,6 +96,22 @@ import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 
 const { Text } = Typography
+
+// 滑台预设位置类型
+type SlidePreset = {
+  id: number
+  name: string
+  desc: string
+  mm: number
+}
+
+// 默认滑台预设位置
+const DEFAULT_SLIDE_PRESETS: SlidePreset[] = [
+  { id: 1, name: "预设位 1", desc: "左侧 (0mm)", mm: 2.5 },
+  { id: 2, name: "预设位 2", desc: "中间 (350mm)", mm: 350.0 },
+  { id: 3, name: "预设位 3", desc: "右侧 (700mm)", mm: 700.0 },
+  { id: 4, name: "预设位 4", desc: "作业位", mm: 125.0 },
+]
 
 // 动态载入监控视频组件
 const LiveStreamPlayer = dynamic(
@@ -331,6 +348,27 @@ export default function DeviceControlClient() {
   const [stepPulses, setStepPulses] = useState(1600)
   const [presetPulses, setPresetPulses] = useState(112000)
   const [presetSpeed, setPresetSpeed] = useState(10000)
+
+  // 滑台预设位置（支持动态增删，localStorage 持久化）
+  const [presets, setPresets] = useState<SlidePreset[]>(() => {
+    try {
+      const saved = localStorage.getItem("slide_presets")
+      return saved ? (JSON.parse(saved) as SlidePreset[]) : DEFAULT_SLIDE_PRESETS
+    } catch {
+      return DEFAULT_SLIDE_PRESETS
+    }
+  })
+  const [presetModalOpen, setPresetModalOpen] = useState(false)
+  const [newPresetName, setNewPresetName] = useState("")
+  const [newPresetMm, setNewPresetMm] = useState(0)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("slide_presets", JSON.stringify(presets))
+    } catch {
+      // 忽略存储失败
+    }
+  }, [presets])
 
   // 日志状态
   const [logs, setLogs] = useState<any[]>([])
@@ -806,6 +844,33 @@ export default function DeviceControlClient() {
         }
       }
     })
+  }
+
+  // 添加滑台预设位置
+  const handleAddPreset = () => {
+    const name = newPresetName.trim()
+    if (!name) {
+      message.warning('请输入预设位名称')
+      return
+    }
+    if (!(newPresetMm > 0)) {
+      message.warning('请输入有效的行程位置 (mm)')
+      return
+    }
+    setPresets((prev) => [
+      ...prev,
+      { id: Date.now(), name, desc: `自定义 (${newPresetMm}mm)`, mm: newPresetMm },
+    ])
+    setNewPresetName("")
+    setNewPresetMm(0)
+    setPresetModalOpen(false)
+    message.success(`已添加预设位：${name} (${newPresetMm}mm)`)
+  }
+
+  // 删除滑台预设位置
+  const handleDeletePreset = (id: number) => {
+    setPresets((prev) => prev.filter((p) => p.id !== id))
+    message.success('已删除预设位')
   }
 
   // ==================== 全屏控制功能 ====================
@@ -1665,11 +1730,11 @@ export default function DeviceControlClient() {
                                   </button>
                                 </div>
 
-                                {/* 全屏模式 - 沉浸式控制界面 */}
+                                {/* 全屏模式 - 极简飞书风控制界面 */}
                                 {isFullscreen && (
-                                  <div className="absolute inset-0 z-50 flex">
+                                  <div className="absolute inset-0 z-50 flex bg-[#17171a] text-white/85">
                                     {/* 左侧：全屏视频区域 */}
-                                    <div className="flex-1 relative bg-gradient-to-br from-zinc-950 via-black to-zinc-900">
+                                    <div className="flex-1 relative bg-black overflow-hidden">
                                       {/* 视频内容 */}
                                       <div className="absolute inset-0 flex items-center justify-center">
                                         {selectedCamera?.url ? (
@@ -1681,38 +1746,40 @@ export default function DeviceControlClient() {
                                             controls={false}
                                           />
                                         ) : (
-                                          <div className="flex flex-col items-center justify-center text-zinc-600">
-                                            <Signal className="size-12 animate-pulse mb-3" />
-                                            <span className="text-sm font-medium">摄像头未连接</span>
-                                            <span className="text-xs text-zinc-500 mt-1">请配置摄像头 URL</span>
+                                          <div className="flex flex-col items-center justify-center text-zinc-500 select-none">
+                                            <Signal className="size-8 mb-2 opacity-70" />
+                                            <span className="text-[13px] font-medium">摄像头未连接</span>
+                                            <span className="text-[11px] text-zinc-600 mt-1">请在系统设置中配置摄像头 URL</span>
                                           </div>
                                         )}
                                       </div>
 
-                                      {/* 左上角状态信息 */}
-                                      <div className="absolute top-6 left-6 flex items-center gap-4">
-                                        <div className="flex items-center gap-2 bg-white/5 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-xl shadow-lg">
-                                          <div
-                                            className="size-2.5 rounded-full animate-pulse"
-                                            style={{ backgroundColor: selectedCamera?.url ? token.colorSuccess : token.colorError }}
+                                      {/* 左上角：LIVE 状态 + 摄像头切换（飞书风：薄边、小字、紧凑） */}
+                                      <div className="absolute top-5 left-5 flex items-center gap-2">
+                                        <div
+                                          className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-white/10 bg-white/[0.04]"
+                                          title={selectedCamera?.url ? '在线' : '离线'}
+                                        >
+                                          <span
+                                            className={cn(
+                                              "inline-block size-1.5 rounded-full",
+                                              selectedCamera?.url ? "bg-[#00d6b9] animate-pulse" : "bg-[#f54a45]"
+                                            )}
                                           />
-                                          <span className="text-white/90 font-semibold text-sm">{selectedCamera?.name || '未选择'}</span>
-                                          <span style={{ color: token.colorSuccess }} className="text-xs font-mono tracking-wider">LIVE</span>
+                                          <span className="text-[11px] font-medium tracking-wide">
+                                            {selectedCamera?.url ? 'LIVE' : 'OFFLINE'}
+                                          </span>
                                         </div>
-
-                                        {/* 摄像头切换 */}
-                                        <div className="flex gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-xl">
+                                        <div className="flex h-7 p-0.5 rounded-md border border-white/10 bg-white/[0.04]">
                                           {cameras.map((cam) => (
                                             <button
                                               key={cam.id}
                                               onClick={() => setSelectedCameraId(cam.id)}
-                                              style={{
-                                                backgroundColor: selectedCameraId === cam.id ? token.colorPrimary : 'transparent',
-                                                color: selectedCameraId === cam.id ? '#fff' : 'rgba(255,255,255,0.6)',
-                                              }}
                                               className={cn(
-                                                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
-                                                selectedCameraId !== cam.id && "hover:text-white hover:bg-white/10"
+                                                "px-2.5 text-[11px] font-medium rounded-[5px] transition-colors",
+                                                selectedCameraId === cam.id
+                                                  ? "bg-white/10 text-white"
+                                                  : "text-white/45 hover:text-white/80"
                                               )}
                                             >
                                               {cam.name.includes('A') ? 'A' : 'B'}
@@ -1721,168 +1788,146 @@ export default function DeviceControlClient() {
                                         </div>
                                       </div>
 
+                                      {/* 右上角：性能条（飞书：低调单行） */}
+                                      <div className="absolute top-5 right-5 flex items-center gap-3 h-7 px-3 rounded-md border border-white/10 bg-white/[0.04] text-[11px] font-mono">
+                                        <span className="flex items-center gap-1.5">
+                                          <span className="text-white/40">FPS</span>
+                                          <span className="text-white/70">--</span>
+                                        </span>
+                                        <span className="text-white/15">|</span>
+                                        <span className="flex items-center gap-1.5">
+                                          <span className="text-white/40">GPU</span>
+                                          <span className="text-white/70">--</span>
+                                        </span>
+                                        <span className="text-white/15">|</span>
+                                        <span className="flex items-center gap-1.5">
+                                          <span className="text-white/40">CPU</span>
+                                          <span className="text-white/70">--</span>
+                                        </span>
+                                        <span className="text-white/15">|</span>
+                                        <span className="flex items-center gap-1.5">
+                                          <span className="text-white/40">显存</span>
+                                          <span className="text-white/70">--</span>
+                                        </span>
+                                      </div>
+
                                       {/* 左下角提示 */}
-                                      <div className="absolute bottom-6 left-6 text-white/40 text-xs font-medium">
+                                      <div className="absolute bottom-5 left-5 text-[11px] text-white/35 select-none">
                                         按 ESC 退出全屏
                                       </div>
                                     </div>
 
-                                    {/* 右侧：玻璃态控制面板 */}
-                                    <div className="w-[340px] bg-gradient-to-b from-white/8 via-white/5 to-white/3 backdrop-blur-2xl border-l border-white/10 flex flex-col shadow-2xl">
+                                    {/* 右侧：飞书风侧栏控制面板 */}
+                                    <div className="w-[320px] shrink-0 bg-[#1f1f23] border-l border-white/[0.06] flex flex-col">
                                       {/* 面板头部 */}
-                                      <div className="p-6 border-b border-white/10">
-                                        <div className="flex items-center justify-between">
-                                          <div>
-                                            <h2 className="text-white font-bold text-base">云台控制</h2>
-                                            <p className="text-white/50 text-xs mt-0.5">700mm 行程范围</p>
-                                          </div>
-                                          <button
-                                            onClick={toggleFullscreen}
-                                            style={{
-                                              backgroundColor: 'rgba(255,255,255,0.1)',
-                                              borderColor: 'rgba(255,255,255,0.1)',
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = token.colorError}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
-                                            className="size-9 rounded-xl text-white/70 hover:text-white flex items-center justify-center transition-all duration-200 backdrop-blur-sm border"
-                                            title="退出全屏"
-                                          >
-                                            <Minimize2 className="size-4" />
-                                          </button>
+                                      <div className="h-12 px-4 flex items-center justify-between border-b border-white/[0.06]">
+                                        <div className="flex items-baseline gap-2">
+                                          <span className="text-[13px] font-semibold text-white/90">云台控制</span>
+                                          <span className="text-[11px] text-white/40">700mm 行程</span>
                                         </div>
+                                        <button
+                                          onClick={toggleFullscreen}
+                                          className="size-7 rounded-md flex items-center justify-center text-white/45 hover:text-white hover:bg-white/[0.06] transition-colors"
+                                          title="退出全屏"
+                                        >
+                                          <Minimize2 className="size-3.5" />
+                                        </button>
                                       </div>
 
                                       {/* 位置信息卡片 */}
-                                      <div className="px-6 py-5">
-                                        <div
-                                          className="backdrop-blur-xl rounded-2xl p-5"
-                                          style={{
-                                            background: `linear-gradient(to bottom right, ${token.colorPrimary}20, ${token.colorPrimary}08)`,
-                                            borderColor: `${token.colorPrimary}40`,
-                                          }}
-                                        >
+                                      <div className="px-4 pt-4">
+                                        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
                                           <div className="flex items-center justify-between">
                                             <div>
-                                              <span className="text-white/60 text-xs font-medium block">当前位置</span>
-                                              <div className="flex items-baseline gap-1 mt-1">
-                                                <span style={{ color: token.colorPrimary }} className="font-black text-2xl font-mono tracking-tight">{systemStats.stepperPosition}</span>
-                                                <span className="text-white/50 text-sm font-medium">mm</span>
+                                              <div className="text-[11px] text-white/40">当前位置</div>
+                                              <div className="mt-1 flex items-baseline gap-1">
+                                                <span className="text-[22px] font-semibold text-white tabular-nums leading-none">
+                                                  {systemStats.stepperPosition}
+                                                </span>
+                                                <span className="text-[12px] text-white/40">mm</span>
                                               </div>
                                             </div>
-                                            <div
-                                              className="size-12 rounded-xl flex items-center justify-center"
-                                              style={{
-                                                backgroundColor: `${token.colorPrimary}20`,
-                                                borderColor: `${token.colorPrimary}40`,
-                                              }}
-                                            >
-                                              <Compass style={{ color: token.colorPrimary }} className="size-6" />
-                                            </div>
+                                            <Compass className="size-4 text-white/35" />
                                           </div>
-                                          <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 text-xs">
-                                            <span className="text-white/50">脉冲:</span>
-                                            <span className="text-white/80 font-mono">{deviceData?.stepper_position || 0} p</span>
-                                            <span className="text-white/30 mx-1">|</span>
-                                            <span className="text-white/50">方向:</span>
-                                            <span style={{ color: deviceData?.stepper_direction === 0 ? 'rgba(255,255,255,0.6)' : token.colorPrimary }} className="font-medium">
+                                          <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2 text-[11px]">
+                                            <span className="text-white/40">脉冲</span>
+                                            <span className="text-white/70 font-mono">{deviceData?.stepper_position || 0} p</span>
+                                            <span className="text-white/15 mx-0.5">|</span>
+                                            <span className="text-white/40">方向</span>
+                                            <span
+                                              className={cn(
+                                                "font-medium",
+                                                deviceData?.stepper_direction === 0 ? "text-white/55" : "text-[#3370ff]"
+                                              )}
+                                            >
                                               {deviceData?.stepper_direction === 0 ? '停止' : deviceData?.stepper_direction === 1 ? '左移' : '右移'}
                                             </span>
                                           </div>
                                         </div>
                                       </div>
 
-                                      {/* 精致罗盘控制器 */}
-                                      <div className="px-6 py-4 flex-1 flex flex-col items-center justify-center">
-                                        <div className="relative">
-                                          {/* 外圈装饰 */}
-                                          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-white/5 blur-xl scale-110 opacity-50" />
+                                      {/* 飞书风罗盘控制器 */}
+                                      <div className="px-4 pt-5 flex-1 flex flex-col items-center">
+                                        <div className="relative size-36 rounded-full border border-white/[0.08] bg-white/[0.02] flex items-center justify-center">
+                                          {/* 左按钮 */}
+                                          <button
+                                            onClick={() => handleStepperControl(1)}
+                                            disabled={!connectionStatus.connected || deviceData?.stepper_direction !== 0}
+                                            className={cn(
+                                              "absolute left-1.5 size-11 rounded-full flex items-center justify-center transition-colors",
+                                              "border border-white/[0.08] bg-white/[0.04] text-white/65 hover:text-white hover:bg-white/[0.08]",
+                                              "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/[0.04] disabled:hover:text-white/65"
+                                            )}
+                                            title="向左"
+                                          >
+                                            <ChevronLeft className="size-5" />
+                                          </button>
 
-                                          {/* 主罗盘 */}
-                                          <div className="relative size-40 rounded-full bg-gradient-to-br from-zinc-800/80 to-zinc-900/80 border-2 border-white/20 shadow-2xl flex items-center justify-center">
-                                            {/* 方向刻度 */}
-                                            <div className="absolute inset-2 rounded-full border border-white/10" />
-                                            <div className="absolute top-3 left-1/2 -translate-x-1/2 text-white/30 text-[8px] font-bold">↑</div>
-                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-white/30 text-[8px] font-bold">↓</div>
+                                          {/* 右按钮 */}
+                                          <button
+                                            onClick={() => handleStepperControl(2)}
+                                            disabled={!connectionStatus.connected || deviceData?.stepper_direction !== 0}
+                                            className={cn(
+                                              "absolute right-1.5 size-11 rounded-full flex items-center justify-center transition-colors",
+                                              "border border-white/[0.08] bg-white/[0.04] text-white/65 hover:text-white hover:bg-white/[0.08]",
+                                              "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/[0.04] disabled:hover:text-white/65"
+                                            )}
+                                            title="向右"
+                                          >
+                                            <ChevronRight className="size-5" />
+                                          </button>
 
-                                            {/* 左按钮 */}
-                                            <button
-                                              onClick={() => handleStepperControl(1)}
-                                              disabled={!connectionStatus.connected || deviceData?.stepper_direction !== 0}
-                                              className={cn(
-                                                "absolute left-2 size-14 rounded-full flex items-center justify-center transition-all duration-200",
-                                                "bg-gradient-to-br from-white/15 to-white/5 border border-white/20",
-                                                "disabled:opacity-40 disabled:cursor-not-allowed"
-                                              )}
-                                              onMouseEnter={(e) => {
-                                                if (!e.currentTarget.disabled) {
-                                                  e.currentTarget.style.background = `linear-gradient(to bottom right, ${token.colorPrimary}40, ${token.colorPrimary}20)`
-                                                  e.currentTarget.style.borderColor = `${token.colorPrimary}50`
-                                                }
-                                              }}
-                                              onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'linear-gradient(to bottom right, rgba(255,255,255,0.15), rgba(255,255,255,0.05))'
-                                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'
-                                              }}
-                                            >
-                                              <ChevronLeft className="size-7 text-white/80" />
-                                            </button>
-
-                                            {/* 右按钮 */}
-                                            <button
-                                              onClick={() => handleStepperControl(2)}
-                                              disabled={!connectionStatus.connected || deviceData?.stepper_direction !== 0}
-                                              className={cn(
-                                                "absolute right-2 size-14 rounded-full flex items-center justify-center transition-all duration-200",
-                                                "bg-gradient-to-br from-white/15 to-white/5 border border-white/20",
-                                                "disabled:opacity-40 disabled:cursor-not-allowed"
-                                              )}
-                                              onMouseEnter={(e) => {
-                                                if (!e.currentTarget.disabled) {
-                                                  e.currentTarget.style.background = `linear-gradient(to bottom right, ${token.colorPrimary}40, ${token.colorPrimary}20)`
-                                                  e.currentTarget.style.borderColor = `${token.colorPrimary}50`
-                                                }
-                                              }}
-                                              onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'linear-gradient(to bottom right, rgba(255,255,255,0.15), rgba(255,255,255,0.05))'
-                                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'
-                                              }}
-                                            >
-                                              <ChevronRight className="size-7 text-white/80" />
-                                            </button>
-
-                                            {/* 中央停止按钮 */}
-                                            <button
-                                              onClick={() => handleStepperControl(0)}
-                                              disabled={!connectionStatus.connected || deviceData?.stepper_direction === 0}
-                                              className={cn(
-                                                "size-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-xl border-2 border-white/30",
-                                                "disabled:opacity-40 disabled:cursor-not-allowed"
-                                              )}
-                                              style={{
-                                                background: `linear-gradient(to bottom right, ${token.colorError}90, ${token.colorError}99)`,
-                                              }}
-                                            >
-                                              <span className="size-4 bg-white rounded-full shadow-inner" />
-                                            </button>
-                                          </div>
+                                          {/* 中央停止按钮 */}
+                                          <button
+                                            onClick={() => handleStepperControl(0)}
+                                            disabled={!connectionStatus.connected || deviceData?.stepper_direction === 0}
+                                            className={cn(
+                                              "size-12 rounded-full flex items-center justify-center transition-colors border",
+                                              "disabled:opacity-30 disabled:cursor-not-allowed"
+                                            )}
+                                            style={{
+                                              backgroundColor: '#f54a45',
+                                              borderColor: 'rgba(255,255,255,0.15)',
+                                            }}
+                                            title="停止"
+                                          >
+                                            <span className="block size-2.5 rounded-[2px] bg-white" />
+                                          </button>
                                         </div>
 
-                                        {/* 移动距离选择 */}
-                                        <div className="mt-6 flex gap-2">
+                                        {/* 移动距离选择（飞书 chip 风格） */}
+                                        <div className="mt-5 flex gap-1.5">
                                           {[10, 50, 100].map((mmVal) => {
                                             const isSelected = stepPulses === mmVal * 160
                                             return (
                                               <button
                                                 key={mmVal}
                                                 onClick={() => setStepPulses(mmVal * 160)}
-                                                style={{
-                                                  backgroundColor: isSelected ? token.colorPrimary : 'rgba(255,255,255,0.1)',
-                                                  borderColor: isSelected ? 'transparent' : 'rgba(255,255,255,0.1)',
-                                                  color: isSelected ? '#fff' : 'rgba(255,255,255,0.7)',
-                                                }}
                                                 className={cn(
-                                                  "px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200",
-                                                  !isSelected && "hover:bg-white/20 hover:text-white"
+                                                  "h-7 px-3 rounded-md text-[12px] font-medium transition-colors border",
+                                                  isSelected
+                                                    ? "bg-[#3370ff] border-transparent text-white"
+                                                    : "border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white hover:bg-white/[0.06]"
                                                 )}
                                               >
                                                 {mmVal}mm
@@ -1893,8 +1938,8 @@ export default function DeviceControlClient() {
                                       </div>
 
                                       {/* 操作按钮区 */}
-                                      <div className="px-6 py-5 border-t border-white/10 space-y-3">
-                                        <div className="grid grid-cols-2 gap-3">
+                                      <div className="px-4 py-4 border-t border-white/[0.06] space-y-2">
+                                        <div className="grid grid-cols-2 gap-2">
                                           <button
                                             onClick={() => {
                                               toggleFullscreen()
@@ -1902,28 +1947,24 @@ export default function DeviceControlClient() {
                                             }}
                                             disabled={!connectionStatus.connected}
                                             className={cn(
-                                              "px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-white",
-                                              "disabled:opacity-40 disabled:cursor-not-allowed"
+                                              "h-9 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition-colors",
+                                              "bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white",
+                                              "disabled:opacity-30 disabled:cursor-not-allowed"
                                             )}
-                                            style={{
-                                              background: `linear-gradient(to right, ${token.colorWarning}80, ${token.colorWarning}99)`,
-                                            }}
                                           >
-                                            <RotateCcw className="size-4" />
+                                            <RotateCcw className="size-3.5" />
                                             复位
                                           </button>
                                           <button
                                             onClick={() => message.info('预设定位功能')}
                                             disabled={!connectionStatus.connected}
                                             className={cn(
-                                              "px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-white",
-                                              "disabled:opacity-40 disabled:cursor-not-allowed"
+                                              "h-9 rounded-md text-[12px] font-medium flex items-center justify-center gap-1.5 transition-colors",
+                                              "bg-[#3370ff] hover:bg-[#2860e6] text-white border border-transparent",
+                                              "disabled:opacity-30 disabled:cursor-not-allowed"
                                             )}
-                                            style={{
-                                              background: `linear-gradient(to right, ${token.colorInfo}80, ${token.colorInfo}99)`,
-                                            }}
                                           >
-                                            <Target className="size-4" />
+                                            <Target className="size-3.5" />
                                             预设
                                           </button>
                                         </div>
@@ -1932,14 +1973,14 @@ export default function DeviceControlClient() {
                                         <div className="flex gap-2">
                                           <button
                                             onClick={() => message.info('截图功能')}
-                                            className="flex-1 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-white/10"
+                                            className="flex-1 h-8 rounded-md text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/85"
                                           >
                                             <Camera className="size-3.5" />
                                             截图
                                           </button>
                                           <button
                                             onClick={() => message.info('录像功能')}
-                                            className="flex-1 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-white/10"
+                                            className="flex-1 h-8 rounded-md text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/85"
                                           >
                                             <Video className="size-3.5" />
                                             录像
@@ -2031,24 +2072,34 @@ export default function DeviceControlClient() {
                           <div className="lg:col-span-7 space-y-3">
                             <div className="flex justify-between items-center text-xs">
                               <span className="font-extrabold text-slate-600 dark:text-zinc-400">预设位置</span>
-                              <button onClick={() => message.info('添加预设位模块暂未集成后端数据库')} className="text-[#19a15f] hover:underline font-bold">+ 添加预设位</button>
+                              <button onClick={() => setPresetModalOpen(true)} className="text-[#19a15f] hover:underline font-bold">+ 添加预设位</button>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              {[
-                                { name: "预设位 1", desc: "左侧 (0mm)", mm: 2.5 },
-                                { name: "预设位 2", desc: "中间 (350mm)", mm: 350.0 },
-                                { name: "预设位 3", desc: "右侧 (700mm)", mm: 700.0 },
-                                { name: "预设位 4", desc: "作业位", mm: 125.0 }
-                              ].map((preset) => (
+                              {presets.map((preset) => (
                                 <div
-                                  key={preset.name}
+                                  key={preset.id}
                                   onClick={() => handlePresetTrigger(preset.name, preset.mm)}
-                                  className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-zinc-950/20 hover:border-emerald-500 cursor-pointer transition-all"
+                                  className="group p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-zinc-950/20 hover:border-emerald-500 cursor-pointer transition-all"
                                 >
                                   <div className="flex justify-between items-center text-[10px] font-bold text-foreground">
                                     <span>{preset.name}</span>
-                                    <span className="text-[8px] text-slate-400">•••</span>
+                                    <Popconfirm
+                                      title="删除该预设位？"
+                                      description={`将删除「${preset.name}」`}
+                                      okText="删除"
+                                      cancelText="取消"
+                                      okButtonProps={{ danger: true }}
+                                      onConfirm={(e) => { e?.stopPropagation(); handleDeletePreset(preset.id) }}
+                                      onCancel={(e) => e?.stopPropagation()}
+                                    >
+                                      <span
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <Trash2 className="size-3" />
+                                      </span>
+                                    </Popconfirm>
                                   </div>
                                   <span className="text-[9px] text-muted-foreground block mt-1">{preset.desc}</span>
                                   <span className="text-[10px] text-[#19a15f] font-bold mt-1.5 block flex items-center gap-0.5">
@@ -2102,6 +2153,40 @@ export default function DeviceControlClient() {
                         </div>
 
                       </div>
+
+                      {/* 添加预设位置弹窗 */}
+                      <Modal
+                        open={presetModalOpen}
+                        onCancel={() => setPresetModalOpen(false)}
+                        title="添加预设位"
+                        okText="添加"
+                        cancelText="取消"
+                        onOk={handleAddPreset}
+                      >
+                        <div className="space-y-4 pt-2">
+                          <div>
+                            <span className="text-xs font-bold text-slate-600 dark:text-zinc-400 block mb-1.5">预设位名称</span>
+                            <Input
+                              placeholder="例如：左侧采摘位"
+                              value={newPresetName}
+                              onChange={(e) => setNewPresetName(e.target.value)}
+                              maxLength={20}
+                            />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-600 dark:text-zinc-400 block mb-1.5">行程位置 (mm)</span>
+                            <InputNumber
+                              min={0}
+                              max={800}
+                              value={newPresetMm}
+                              onChange={(v) => setNewPresetMm(v || 0)}
+                              className="w-full"
+                              placeholder="0 ~ 800"
+                              addonAfter="mm"
+                            />
+                          </div>
+                        </div>
+                      </Modal>
 
                       {/* 底部的两个温湿度/CO2 传感器 */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

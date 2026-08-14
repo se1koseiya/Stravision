@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BerryOrb from "@/components/smoothui/berry-orb";
+import { detectOrbExpression, type OrbExpression } from "@/lib/ai/orb-expression";
 import type { DeviceData } from "@/lib/contexts/device-context";
 import {
   useVoiceController,
@@ -312,6 +313,25 @@ export function RealtimeVoiceOrb({
 
   const isActive = status !== "idle" && status !== "error";
 
+  // 🔥 Berry Orb 表情：跟随语音状态机 + AI 说话内容
+  const orbExpression: OrbExpression = useMemo(() => {
+    switch (status) {
+      case "connecting":
+      case "processing":
+        return "thinking";
+      case "speaking": {
+        // 根据 AI 正在说的内容推断情绪（优先当前流式 transcript）
+        const lastAi = [...history].reverse().find((m) => m.role === "assistant")?.content ?? "";
+        return detectOrbExpression(transcript || lastAi, "speaking");
+      }
+      case "error":
+        return "angry";
+      case "listening":
+      default:
+        return "idle";
+    }
+  }, [status, transcript, history]);
+
   return (
     <div className={cn("relative font-sans", className)}>
       {/* Main Orb */}
@@ -325,7 +345,7 @@ export function RealtimeVoiceOrb({
       >
         {/* Orb Background */}
         <div className="absolute inset-0 rounded-full overflow-hidden shadow-2xl">
-          <BerryOrb size={`${size}px`} isActive={isActive} className="w-full h-full" />
+          <BerryOrb size={`${size}px`} isActive={isActive} expression={orbExpression} className="w-full h-full" />
         </div>
 
         {/* Center Icon */}
@@ -381,8 +401,7 @@ export function RealtimeVoiceOrb({
                 status === "processing" && "bg-blue-100/80 text-blue-600 border-blue-200",
                 status === "speaking" && "bg-green-100/80 text-green-600 border-green-200",
                 status === "connecting" && "bg-yellow-100/80 text-yellow-600 border-yellow-200",
-                status === "error" && "bg-red-100/90 text-red-700 border-red-300",
-                status === "idle" && "bg-white/80 text-muted-foreground border-border"
+                status === "error" && "bg-red-100/90 text-red-700 border-red-300"
               )}
             >
               {statusText}

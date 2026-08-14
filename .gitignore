@@ -58,6 +58,13 @@ nginx/certs/
 # Build logs
 build-*.txt
 tsc-out.txt
+build.log
+
+# WorkBuddy workspace memory
+.workbuddy/
+
+# 临时测试页（orb 动画验证）
+app/orb-test/
 
 # 大体积天气背景视频（超过 GitHub 100MB 单文件限制，需 LFS 或去除）
 public/weathervideo/lightrain.mp4

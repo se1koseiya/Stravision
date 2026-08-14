@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef, useState, type ReactNode } from "react"
+import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AnimatePresence } from "framer-motion"
 import { Bubble, Actions } from "@ant-design/x"
 import type { ActionsFeedbackProps, ActionsItemProps } from "@ant-design/x"
@@ -10,6 +10,7 @@ import { CheckOutlined, ShareAltOutlined } from "@ant-design/icons"
 import { Zap, X, CheckCircle2, ClipboardList, Wrench, XCircle, AlertCircle, ArrowDown } from "lucide-react"
 import XMarkdown from "@ant-design/x-markdown"
 import BerryOrb from "@/components/smoothui/berry-orb"
+import { detectOrbExpression, type OrbExpression } from "@/lib/ai/orb-expression"
 import type { Message } from "@/app/ai-assistant/types"
 import { ChatMessageRenderer } from "@/app/ai-assistant/_components/chat-message-renderer"
 import { AgentThoughtChain } from "@/app/ai-assistant/_components/agent-thought-chain"
@@ -486,7 +487,54 @@ export function ChatBubbleList({
 }: ChatBubbleListProps) {
   const listRef = useRef<HTMLDivElement>(null)
 
+  // 🔥 rendererProps 由 page.tsx 内联构造，每次渲染都是新对象（内部闭包也是新引用）。
+  // 直接把函数 props 透传给 ChatMessageRenderer 会让其 memo 失效（函数引用每次都变）。
+  // 方案：ref 持有最新 rendererProps + 一次性创建的稳定转发函数，
+  // 保证函数 prop 引用恒定，调用时永远转发到最新回调（无闭包过期问题）。
+  const rendererPropsRef = useRef(rendererProps)
+  rendererPropsRef.current = rendererProps
+  const [stableRendererFns] = useState(() => ({
+    onOpenStudio: ((title: string, html: string) =>
+      rendererPropsRef.current.onOpenStudio?.(title, html)) as (title: string, html: string) => void,
+    onOpenStudioFromTask: (() =>
+      rendererPropsRef.current.onOpenStudioFromTask?.()) as () => void,
+    onExecuteCommand: ((command: any) =>
+      rendererPropsRef.current.onExecuteCommand(command)) as (command: any) => Promise<void>,
+    onRetryCommand: ((errorMsg: string) =>
+      rendererPropsRef.current.onRetryCommand(errorMsg)) as (errorMsg: string) => void,
+    onSendMessage: ((text: string) =>
+      rendererPropsRef.current.onSendMessage(text)) as (text: string) => void,
+    onRespondToCheckpoint: ((replyText: string, fallback: (text: string) => void) =>
+      rendererPropsRef.current.onRespondToCheckpoint?.(replyText, fallback)) as (
+        replyText: string,
+        fallback: (text: string) => void
+      ) => void,
+    onSetInput: ((text: string) =>
+      rendererPropsRef.current.onSetInput(text)) as (text: string) => void,
+  }))
+
   const filteredMessages = messages.filter((m) => !m.isSilent)
+
+  // 🔥 Berry Orb 表情：根据对话状态 + AI 回复内容推断
+  // - 加载中且正在执行工具/Agent 步骤 → working
+  // - 加载中（等待/流式输出）→ 有内容时按内容检测（兜底 speaking），无内容时 thinking
+  // - 加载完成 → 按最后一条 AI 消息内容检测（兜底 idle）
+  const orbExpression: OrbExpression = useMemo(() => {
+    let lastAiText = ""
+    for (let i = filteredMessages.length - 1; i >= 0; i--) {
+      const m = filteredMessages[i]
+      if (m.role === "assistant" && typeof m.content === "string" && m.content.trim()) {
+        lastAiText = m.content
+        break
+      }
+    }
+    if (isLoading) {
+      if (agentStatus) return "working"
+      return lastAiText ? detectOrbExpression(lastAiText, "speaking") : "thinking"
+    }
+    return detectOrbExpression(lastAiText, "idle")
+  }, [filteredMessages, isLoading, agentStatus])
+
   // 🔥 历史记忆摘要（PAST_MEMORY）消息：单独抽出，用卡片组件渲染（不进入 Bubble.List）
   const isMemorySummary = (m: Message) =>
     m.role === "assistant" && typeof m.content === "string" && m.content.includes("<PAST_MEMORY>")
@@ -525,7 +573,7 @@ export function ChatBubbleList({
       className: "!max-w-[85%]",
       // 🔥 给整条 AI 气泡加 group 标识，用于触发 BubbleTime 的 hover 显示
       rootClassName: "group/ai-bubble",
-      avatar: <BerryOrb size="36px" theme={darkMode ? 'dark' : 'light'} isActive={isLoading} />,
+      avatar: <BerryOrb size="36px" theme={darkMode ? 'dark' : 'light'} isActive={isLoading} expression={orbExpression} />,
       // 🔥 气泡时间：hover 整条 AI 气泡时才显示
       header: <BubbleTime darkMode={!!darkMode} />,
       footer: (content: unknown) => {
@@ -621,6 +669,7 @@ export function ChatBubbleList({
             <ChatMessageRenderer
               msg={cleanedMsg}
               {...rendererProps}
+              {...stableRendererFns}
               isStreaming={isLastItem && isLoading}
               hasThinkingInChain={hasThinkingInChain}
               suppressTaskPlanner={isLastItem && !!latestTaskListContent}
@@ -711,7 +760,7 @@ export function ChatBubbleList({
         }
         return (
           <div id={anchorId} data-msg-anchor={anchorId}>
-            <ChatMessageRenderer msg={msg} {...rendererProps} />
+            <ChatMessageRenderer msg={msg} {...rendererProps} {...stableRendererFns} />
           </div>
         )
       },

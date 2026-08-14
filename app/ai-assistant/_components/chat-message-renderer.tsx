@@ -1826,7 +1826,11 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
                 } else {
                   replyText = `【检查点确认】我选择：${optionLabel}\n请根据此选择继续执行。`
                 }
-                handleCheckpointRespond(replyText)
+                if (props.onRespondToCheckpoint) {
+                  props.onRespondToCheckpoint(replyText, props.onSendMessage)
+                } else {
+                  props.onSendMessage(replyText)
+                }
               }}
             />
           )
@@ -1841,8 +1845,8 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
         && msg.role === "assistant"
         && (
           <FallbackInfoCheckpoint
-            onProvide={(text) => onSendMessage(text)}
-            onSkip={() => onSendMessage("【跳过】我没有额外信息，请基于现有数据继续。")}
+            onProvide={(text) => props.onSendMessage(text)}
+            onSkip={() => props.onSendMessage("【跳过】我没有额外信息，请基于现有数据继续。")}
           />
         )
       }
@@ -1906,7 +1910,60 @@ function FallbackInfoCheckpoint({
   )
 }
 
-// 流式输出期间不使用 memo，确保每个 chunk 都触发重渲染实现逐字效果
-export const ChatMessageRenderer = ChatMessageRendererBase
+// ---------------------------------------------------------------------------
+// 🔥 React.memo 自定义比较 —— 修复 Maximum update depth exceeded，同时保留流式动画
+//
+// 背景：Bubble.List 是受控组件，ChatBubbleList 每次渲染都会重建 items / role 配置，
+// contentRender 随之被反复调用。若不做 memo，整条消息子树（XMarkdown 流式渲染、
+// antd Form 卡片等）会跟着每个父级渲染反复重渲染；子树中带 useEffect 的组件
+// （如 ClarifyCard / CheckpointConfirm）依赖"每次渲染新建的对象"（data.fields || [] 等），
+// 副作用会被持续触发，React 19 下最终报 Maximum update depth exceeded。
+//
+// 动画保活原理：流式期间 msg.content / isStreaming 每个 chunk 都在变化，
+// 下方比较函数对 content / isStreaming / reasoning 等"语义 props"按值比较，
+// 流式更新照常触发重渲染（逐字/淡入动画不受影响）；
+// 仅在语义 props 完全没变时跳过重渲染，切断副作用级联。
+//
+// 注意：函数 props（onSendMessage 等）由父级 chat-bubble-list 通过 ref 转发为稳定引用，
+// 因此这里可以做引用比较而不会产生闭包过期问题。
+// ---------------------------------------------------------------------------
+function areRendererPropsEqual(prev: ChatMessageRendererProps, next: ChatMessageRendererProps): boolean {
+  const pm = prev.msg
+  const nm = next.msg
+  if (pm !== nm) {
+    if (
+      pm.role !== nm.role ||
+      pm.content !== nm.content ||
+      pm.reasoning?.text !== nm.reasoning?.text ||
+      pm.reasoning?.durationMs !== nm.reasoning?.durationMs ||
+      pm.citations !== nm.citations ||
+      pm.tasks !== nm.tasks ||
+      pm.commandErrors !== nm.commandErrors ||
+      pm.errorType !== nm.errorType ||
+      pm.errorRaw !== nm.errorRaw ||
+      pm.errorStatus !== nm.errorStatus
+    ) {
+      return false
+    }
+  }
+  return (
+    prev.isStreaming === next.isStreaming &&
+    prev.hasThinkingInChain === next.hasThinkingInChain &&
+    prev.suppressTaskPlanner === next.suppressTaskPlanner &&
+    prev.deviceData === next.deviceData &&
+    prev.autoExecuteCommands === next.autoExecuteCommands &&
+    prev.assistantMode === next.assistantMode &&
+    prev.enableReasoning === next.enableReasoning &&
+    prev.onOpenStudio === next.onOpenStudio &&
+    prev.onOpenStudioFromTask === next.onOpenStudioFromTask &&
+    prev.onExecuteCommand === next.onExecuteCommand &&
+    prev.onRetryCommand === next.onRetryCommand &&
+    prev.onSendMessage === next.onSendMessage &&
+    prev.onRespondToCheckpoint === next.onRespondToCheckpoint &&
+    prev.onSetInput === next.onSetInput
+  )
+}
+
+export const ChatMessageRenderer = React.memo(ChatMessageRendererBase, areRendererPropsEqual)
 
 ChatMessageRenderer.displayName = "ChatMessageRenderer"
