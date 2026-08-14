@@ -40,7 +40,7 @@ function FloatingXiaozhiContent() {
   
   // Voice settings from AI settings dialog
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [selectedVoice, setSelectedVoice] = useState('Mochi');
+  const [selectedVoice, setSelectedVoice] = useState('Tina');
   
   // Draggable position state
   const [position, setPosition] = useState(DEFAULT_POSITION);

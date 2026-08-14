@@ -524,16 +524,24 @@ wss.on('connection', async (clientWs, req) => {
 
   // Handle client messages
   clientWs.on('message', (data) => {
-    const msg = data.toString();
-    
-    // Log session.update to debug voice parameter
+    let msg = data.toString();
+
+    // 🔥 音色兜底：旧 TTS 音色（Cherry/Mochi/Chelsie）在 Omni 实时模型不支持，
+    // 客户端若仍发送这些音色，改写为后台配置的 Omni 音色（默认 Tina），
+    // 避免上游报 "Voice 'X' is not supported"
     try {
       const parsed = JSON.parse(msg);
-      if (parsed.type === 'session.update') {
-        console.log('[WS Server] session.update voice:', parsed.session?.voice);
+      if (parsed.type === 'session.update' && parsed.session && parsed.session.voice) {
+        const legacyVoices = ['Cherry', 'Mochi', 'Chelsie'];
+        if (legacyVoices.includes(parsed.session.voice)) {
+          const fallbackVoice = omniConfig?.voice || 'Tina';
+          console.log(`[WS Server] Rewriting unsupported voice '${parsed.session.voice}' -> '${fallbackVoice}'`);
+          parsed.session.voice = fallbackVoice;
+          msg = JSON.stringify(parsed);
+        }
       }
     } catch (e) {}
-    
+
     if (isTargetOpen) {
       targetWs.send(msg);
     } else {

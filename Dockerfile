@@ -72,6 +72,8 @@ COPY --from=builder /app/package.json ./package.json
 
 # Copy WebSocket server
 COPY --from=builder /app/server ./server
+# Copy Yjs 协作 WebSocket 服务（yjs-ws 服务入口 ws-server/yjs-server.js）
+COPY --from=builder /app/ws-server ./ws-server
 
 # Copy AI agents and skills required at runtime
 COPY --from=builder /app/.agents ./.agents

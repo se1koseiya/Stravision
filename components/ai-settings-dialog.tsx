@@ -21,15 +21,18 @@ export interface VoiceSettings {
 }
 
 export function getVoiceSettings(): VoiceSettings {
-  if (typeof window === 'undefined') return { enabled: true, voice: 'Mochi', readAloud: true }
+  if (typeof window === 'undefined') return { enabled: true, voice: 'Tina', readAloud: true }
   try {
     const saved = localStorage.getItem(VOICE_SETTINGS_KEY)
     if (saved) {
       const parsed = JSON.parse(saved)
-      return { enabled: parsed.enabled ?? true, voice: parsed.voice || 'Mochi', readAloud: parsed.readAloud ?? true }
+      // 旧 TTS 音色（Mochi/Cherry/Chelsie）Omni 实时模型不支持，迁移到 Tina
+      const v = parsed.voice
+      const migratedVoice = !v || ['Mochi', 'Cherry', 'Chelsie'].includes(v) ? 'Tina' : v
+      return { enabled: parsed.enabled ?? true, voice: migratedVoice, readAloud: parsed.readAloud ?? true }
     }
   } catch { }
-  return { enabled: true, voice: 'Mochi', readAloud: true }
+  return { enabled: true, voice: 'Tina', readAloud: true }
 }
 
 export function saveVoiceSettings(settings: VoiceSettings) {

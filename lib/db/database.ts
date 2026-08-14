@@ -464,8 +464,7 @@ export async function initDB(): Promise<void> {
           message TEXT,
           expires_at BIGINT,
           created_at BIGINT NOT NULL,
-          responded_at BIGINT,
-          UNIQUE(collection_id, invitee_id, status) WHERE status = 'pending'
+          responded_at BIGINT
         )`,
         // 知识库 - 操作日志/活动流
         `CREATE TABLE IF NOT EXISTS kb_operation_logs (
@@ -550,6 +549,8 @@ export async function initDB(): Promise<void> {
       }
 
       const indexStatements = [
+        // 知识库邀请：同一 (collection, invitee) 只允许一个 pending 邀请（部分唯一索引）
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_kb_invitations_pending ON kb_invitations(collection_id, invitee_id, status) WHERE status = 'pending'",
         "CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email)",
         "CREATE INDEX IF NOT EXISTS idx_ai_cron_jobs_status_time ON ai_cron_jobs(status, scheduled_time)",
         "CREATE INDEX IF NOT EXISTS idx_ai_cron_jobs_user ON ai_cron_jobs(user_id)",
