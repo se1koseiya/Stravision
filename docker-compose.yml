@@ -21,6 +21,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Cap 人机行为验证：构建期注入前端 widget endpoint
+        NEXT_PUBLIC_CAP_API_ENDPOINT: ${NEXT_PUBLIC_CAP_API_ENDPOINT:-}
     volumes:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads
@@ -171,6 +174,48 @@ services:
     depends_on:
       - web
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  # Cap 人机行为验证（自托管 PoW CAPTCHA，https://trycap.dev）
+  # 仪表盘仅绑定本机（SSH 隧道访问）；widget/验证走 nginx /cap/ 反向代理
+  cap:
+    image: tiago2/cap:latest
+    environment:
+      - ADMIN_KEY=${CAP_ADMIN_KEY}
+      - REDIS_URL=redis://valkey:6379
+      - TZ=Asia/Shanghai
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  # Cap 所需的 Valkey（Redis 兼容）存储
+  valkey:
+    image: valkey/valkey:9-alpine
+    volumes:
+      - cap-valkey-data:/data
+    command: valkey-server --save 60 1 --loglevel warning --maxmemory-policy noeviction
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
     logging:
       driver: "json-file"
       options:

@@ -42,6 +42,10 @@ ENV NODE_OPTIONS="--max-old-space-size=3072"
 # Disable source maps in production to reduce memory usage
 ENV GENERATE_SOURCEMAP=false
 
+# Cap 人机行为验证：构建期注入前端 widget endpoint（NEXT_PUBLIC_ 变量在构建时内联）
+ARG NEXT_PUBLIC_CAP_API_ENDPOINT
+ENV NEXT_PUBLIC_CAP_API_ENDPOINT=$NEXT_PUBLIC_CAP_API_ENDPOINT
+
 # 使用 turbopack 编译（Next 16 默认；webpack 模式存在编译 bug 已弃用）
 RUN pnpm build
 
