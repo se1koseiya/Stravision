@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { initDB } from '@/lib/db/database';
 import { incrementAiUsage, getUserAiQuota } from '@/lib/db/ai-quota-service';
+import { readProvidersConfig, resolveDefaultModelId, resolveProvider } from '@/lib/ai/provider-resolver';
 
 export const runtime = 'nodejs';
 
@@ -30,24 +31,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.SYSTEM_OPENAI_API_KEY;
-    const baseUrl = process.env.SYSTEM_OPENAI_BASE_URL || 'https://api.openai.com/v1';
+    // Determine the model to use
+    // Priority:
+    // 1. model param from request (explicitly specified, non-'auto')
+    // 2. Admin UI 配置的默认模型（data/ai-providers-config.json → defaultModelId）
+    // 3. SYSTEM_OPENAI_MODEL env var
+    // 4. Default fallback 'qwen-plus'
+    let selectedModel = model || process.env.SYSTEM_OPENAI_MODEL || 'qwen-plus';
+
+    // 当未显式指定模型（或为 'auto'）时，从 adminUI 配置解析实际默认模型（而非硬编码）
+    if (!model || model === 'auto') {
+      try {
+        const providersConfig = await readProvidersConfig()
+        const adminDefaultModel = resolveDefaultModelId(providersConfig)
+        if (adminDefaultModel) {
+          selectedModel = adminDefaultModel
+        }
+      } catch (e) {
+        console.warn('[Automation Generate] Failed to read providers config, fallback to env:', e)
+      }
+    }
+
+    // 通过 provider-resolver 解析出 baseUrl / apiKey（优先 admin 配置的提供商，兜底系统环境变量）
+    let resolvedProvider: Awaited<ReturnType<typeof resolveProvider>> = null
+    try {
+      resolvedProvider = await resolveProvider(selectedModel)
+    } catch (e) {
+      console.warn('[Automation Generate] resolveProvider error, fallback to env:', e)
+    }
+
+    const apiKey = resolvedProvider?.apiKey || process.env.SYSTEM_OPENAI_API_KEY;
+    const baseUrl = resolvedProvider?.baseUrl
+      || process.env.SYSTEM_OPENAI_BASE_URL
+      || 'https://api.openai.com/v1';
 
     if (!apiKey) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }
-
-    // Determine the model to use
-    // Priority:
-    // 1. model param from request (if provided and valid)
-    // 2. SYSTEM_OPENAI_MODEL env var
-    // 3. Default fallback 'qwen-plus'
-    
-    // Map 'auto' to a specific powerful model or keep logic flexible
-    let selectedModel = model === 'auto' ? (process.env.SYSTEM_OPENAI_MODEL || 'qwen-plus') : (model || process.env.SYSTEM_OPENAI_MODEL || 'qwen-plus');
-    
-    // If the request specifically asks for a model, try to use it, but fallback to system model if empty string
-    if (!selectedModel) selectedModel = 'qwen-plus';
 
     const systemPrompt = `你是一个专业的 IoT 自动化专家。根据用户描述生成 JSON 策略。
 
@@ -90,7 +110,12 @@ export async function POST(req: Request) {
 
 仅输出有效的 JSON，不要包含任何解释文字。`;
 
-    const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
+    // baseUrl 可能已含 /chat/completions（resolveProvider 已规范化），兼容两种情况
+    const chatUrl = /\/chat\/completions$/.test(baseUrl)
+      ? baseUrl
+      : `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
+
+    const response = await fetch(chatUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
