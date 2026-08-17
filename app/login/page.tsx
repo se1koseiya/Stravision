@@ -227,9 +227,9 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* Cap Widget */}
+        {/* Cap Widget —— CAP 启用即始终显示（不再依赖邮箱/密码已填），验证完成后收起 */}
         <AnimatePresence>
-          {shouldShowCaptcha && (
+          {capRequired && !captchaCompleted && (
             <motion.div
               initial={{ height: 0, opacity: 0, marginTop: 0 }}
               animate={{ height: "auto", opacity: 1, marginTop: 12 }}
