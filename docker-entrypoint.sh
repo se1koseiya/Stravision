@@ -4,6 +4,10 @@ set -e
 mkdir -p /app/public/uploads
 chown -R nextjs:nodejs /app/public/uploads
 chown -R nextjs:nodejs /app/data
+# 文档库：docs 目录（挂载或镜像内置）授权 nextjs 写入，manifest 文件同样可写
+mkdir -p /app/docs
+chown -R nextjs:nodejs /app/docs 2>/dev/null || true
+chown nextjs:nodejs /app/lib/blog/docs-manifest.json 2>/dev/null || true
 
 # Start WebSocket server in background with auto-restart
 (

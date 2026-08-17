@@ -27,6 +27,9 @@ services:
     volumes:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads
+      # 文档库（blog/docs）：docs 目录 + manifest 索引挂载持久化（镜像内无 docs，运行时 nextjs 用户无法创建）
+      - ./docs:/app/docs
+      - ./lib/blog/docs-manifest.json:/app/lib/blog/docs-manifest.json
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}

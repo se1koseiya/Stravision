@@ -88,6 +88,9 @@ COPY --from=builder /app/data ./data
 # Ensure data directory exists and has correct permissions
 RUN mkdir -p data && chown -R nextjs:nodejs data && chmod -R 755 data
 
+# 文档库（blog/docs）：预建 docs 目录并授权 nextjs 运行时写入（.dockerignore 排除了 docs，镜像内无此目录）
+RUN mkdir -p docs && chown -R nextjs:nodejs docs && chmod -R 755 docs
+
 # Switch back to root to fix permissions at runtime via entrypoint
 USER root
 
