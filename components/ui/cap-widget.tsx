@@ -114,7 +114,22 @@ export default function CapWidget({ onSuccess, onError, className, endpoint }: C
               {scriptState === "loading" && (
                 <div className="text-xs text-gray-400 py-2 text-center">正在加载安全验证…</div>
               )}
-              <cap-widget ref={widgetRef as any} data-cap-api-endpoint={resolvedEndpoint}></cap-widget>
+              <cap-widget
+                ref={widgetRef as any}
+                data-cap-api-endpoint={resolvedEndpoint}
+                style={{
+                  // 用 widget 暴露的 CSS 变量贴合浅色登录页主题
+                  ["--cap-background" as any]: "#e8e7e3",
+                  ["--cap-border-color" as any]: "#d6d4cd",
+                  ["--cap-border-radius" as any]: "10px",
+                  ["--cap-color" as any]: "#1a1a1a",
+                  ["--cap-checkbox-background" as any]: "#ffffff",
+                  ["--cap-checkbox-border" as any]: "#b9b6ad",
+                  ["--cap-checkbox-border-radius" as any]: "6px",
+                  ["--cap-checkbox-size" as any]: "20px",
+                  ["--cap-focus-ring" as any]: "#06c",
+                }}
+              ></cap-widget>
             </>
           )}
         </div>

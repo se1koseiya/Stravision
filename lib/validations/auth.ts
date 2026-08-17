@@ -39,12 +39,16 @@ export const avatarUrlSchema = z
 export const loginSchema = z.object({
   email: z.string().trim(), // Allow non-email username login if we wanted, but here we strictly use email
   password: z.string(),
+  // Cap 人机验证令牌与邮箱验证码：可选字段必须显式声明，否则 zod 会剥离未知字段导致令牌丢失
+  capToken: z.string().optional(),
+  verificationCode: z.string().optional(),
 })
 
 export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   username: usernameSchema,
+  capToken: z.string().optional(),
 })
 
 export const updateUserSchema = z.object({
