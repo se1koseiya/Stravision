@@ -12,7 +12,7 @@
  * 配置：NEXT_PUBLIC_CAP_API_ENDPOINT 为浏览器可访问的 Cap 实例地址（含 site-key 路径）
  */
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 // 为自定义元素声明 JSX 类型
 declare global {
@@ -28,7 +28,8 @@ declare global {
   }
 }
 
-const CAP_WIDGET_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/cap-widget@0.1.53"
+// 自托管 widget 脚本（jsdelivr CDN 在国内浏览器端经常加载失败，导致验证码不显示/无法完成验证）
+const CAP_WIDGET_SCRIPT_URL = "/cap-widget.js"
 
 interface CapWidgetProps {
   /** 验证成功回调，携带 cap-token */
@@ -45,6 +46,8 @@ export default function CapWidget({ onSuccess, onError, className, endpoint }: C
   const widgetRef = useRef<HTMLElement>(null)
   const onSuccessRef = useRef(onSuccess)
   const onErrorRef = useRef(onError)
+  // 脚本加载状态：loading | ready | error
+  const [scriptState, setScriptState] = useState<"loading" | "ready" | "error">("loading")
 
   // 保持回调引用最新
   useEffect(() => {
@@ -52,12 +55,22 @@ export default function CapWidget({ onSuccess, onError, className, endpoint }: C
     onErrorRef.current = onError
   })
 
-  // 懒加载 cap-widget 脚本（全局只注入一次）
+  // 懒加载 cap-widget 脚本（全局只注入一次），并跟踪加载结果
   useEffect(() => {
-    if (document.querySelector(`script[src="${CAP_WIDGET_SCRIPT_URL}"]`)) return
+    const existing = document.querySelector(`script[data-cap-widget]`) as HTMLScriptElement | null
+    if (existing) {
+      setScriptState(existing.dataset.loaded === "1" ? "ready" : "loading")
+      return
+    }
     const script = document.createElement("script")
     script.src = CAP_WIDGET_SCRIPT_URL
     script.async = true
+    script.dataset.capWidget = "1"
+    script.onload = () => {
+      script.dataset.loaded = "1"
+      setScriptState("ready")
+    }
+    script.onerror = () => setScriptState("error")
     document.head.appendChild(script)
   }, [])
 
@@ -91,7 +104,20 @@ export default function CapWidget({ onSuccess, onError, className, endpoint }: C
   return (
     <div className={className}>
       {resolvedEndpoint ? (
-        <cap-widget ref={widgetRef as any} data-cap-api-endpoint={resolvedEndpoint}></cap-widget>
+        <div className="min-h-[40px]">
+          {scriptState === "error" ? (
+            <div className="text-xs text-red-500 p-2 border border-red-200 rounded bg-red-50">
+              安全验证加载失败，请刷新页面重试
+            </div>
+          ) : (
+            <>
+              {scriptState === "loading" && (
+                <div className="text-xs text-gray-400 py-2 text-center">正在加载安全验证…</div>
+              )}
+              <cap-widget ref={widgetRef as any} data-cap-api-endpoint={resolvedEndpoint}></cap-widget>
+            </>
+          )}
+        </div>
       ) : (
         <div className="text-xs text-red-500 p-2 border border-red-200 rounded">
           Cap 未配置：请设置 NEXT_PUBLIC_CAP_API_ENDPOINT 环境变量
