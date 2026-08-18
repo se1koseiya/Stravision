@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, NextFetchEvent } from "next/server"
-import { rateLimit, getClientIp, resetIp, unbanIp } from "@/lib/rate-limit"
+import { rateLimit, getClientIp, unbanIp } from "@/lib/rate-limit"
 import { getInternalApiSecret } from "@/lib/constants"
 import { verifyToken } from "@/lib/token"
 
@@ -186,63 +186,12 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
     const result = rateLimit(req, { 
        limit, 
        windowMs, 
-       autoBan: banEnabled,
+       autoBan: false,  // 已移除自动封禁：限流返回 429，但不再自动封 IP（避免误封正常用户）
        violationLimit: config.violationLimit,
        banDuration: config.banDuration
     });
     
     if (!result.success) {
-      if (banEnabled && result.banned) {
-        if ("newBan" in result && result.newBan) {
-          // Persist ban to DB asynchronously
-          const protocol = req.nextUrl.protocol
-          const host = req.headers.get("host") || 'localhost:3000'
-          event.waitUntil(
-            fetch(`${protocol}//${host}/api/internal/security/ban`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'x-internal-secret': getInternalApiSecret()
-              },
-              body: JSON.stringify({ ip, reason: "Auto-ban: Frequent suspicious activity" })
-            }).catch(e => console.error("Failed to persist ban:", e))
-          )
-        }
-
-        // Check if unbanned in DB (Allowlist Check)
-        try {
-           const protocol = req.nextUrl.protocol
-           const host = req.headers.get("host") || 'localhost:3000'
-           const checkRes = await fetch(`${protocol}//${host}/api/internal/security/check?ip=${ip}`, {
-              headers: { "x-internal-secret": getInternalApiSecret() }
-           })
-           
-           if (checkRes.ok) {
-             const { banned } = await checkRes.json()
-             if (!banned) {
-               // Unbanned in DB -> Unban locally
-               resetIp(ip)
-               return NextResponse.next()
-             }
-           }
-        } catch (e) {
-           console.error("Security check failed:", e)
-        }
-
-        console.warn(`[Security] IP ${ip} blocked due to suspicious behavior (Auto-Ban)`);
-        
-        // For API requests, return JSON error
-        if (pathname.startsWith("/api")) {
-          return new NextResponse(JSON.stringify({ error: "Access Denied: Suspicious activity detected." }), {
-            status: 403,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
-        
-        // For page requests (login/register), redirect to Access Denied page
-        return NextResponse.redirect(new URL("/access-denied", req.url));
-      }
-
       // For API requests, return JSON error
       if (pathname.startsWith("/api")) {
         return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
