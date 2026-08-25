@@ -1,27 +1,49 @@
 "use client"
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Zap, Pause, MoreHorizontal, Wand2, Loader2, Trash2, Bolt, ArrowRight, Play, Filter, Search } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AutomationRule } from "@/lib/db/automation-service";
-import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PageHeader } from "@/components/page-header";
-import { PageHeaderRight } from "@/components/page-header-right";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { UserPublic } from "@/lib/db/user-service";
+import { AutomationRule } from "@/lib/db/automation-service";
+import { PageHeader } from "@/components/page-header";
+import { PageHeaderRight } from "@/components/page-header-right";
+import { toast } from "sonner";
 
-import Image from "next/image";
+// antd 组件（飞书式整体排版）
+import { Button, Segmented, Input, Dropdown, Empty, Spin, Tag, Divider } from "antd";
+import {
+  PlusOutlined,
+  ThunderboltOutlined,
+  MoreOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  SearchOutlined,
+  ArrowRightOutlined,
+  CameraOutlined,
+  FieldTimeOutlined,
+  AimOutlined,
+  AppstoreOutlined,
+  RobotOutlined,
+  DashboardOutlined,
+  BellOutlined,
+} from "@ant-design/icons";
+
+// 触发器/节点类型 → 图标
+const typeIcon: Record<string, React.ReactNode> = {
+  vlm: <CameraOutlined />,
+  sensor: <AimOutlined />,
+  schedule: <FieldTimeOutlined />,
+  logic: <AppstoreOutlined />,
+  ai: <RobotOutlined />,
+  action: <DashboardOutlined />,
+  default: <ThunderboltOutlined />,
+};
 
 export default function AutomationPage() {
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, active, paused
+  const [filter, setFilter] = useState<string | number>("all"); // all, active, paused
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
 
@@ -44,9 +66,7 @@ export default function AutomationPage() {
     try {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
-      if (data.authenticated && data.user) {
-        setCurrentUser(data.user);
-      }
+      if (data.authenticated && data.user) setCurrentUser(data.user);
     } catch (e) {
       console.error("Failed to fetch user:", e);
     }
@@ -72,7 +92,6 @@ export default function AutomationPage() {
   const filteredRules = Array.isArray(rules) ? rules.filter(rule => {
     const matchesSearch = rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (rule.description || "").toLowerCase().includes(searchQuery.toLowerCase());
-
     if (filter === "active") return rule.is_active && matchesSearch;
     if (filter === "paused") return !rule.is_active && matchesSearch;
     return matchesSearch;
@@ -83,219 +102,213 @@ export default function AutomationPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F1EFEA] dark:bg-[#0B1220]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex h-screen items-center justify-center bg-[#F5F7FA] dark:bg-[#0B1220]">
+        <Spin size="large" />
       </div>
     );
   }
 
   return (
     <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
-      {/* Global Background */}
-      <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-[#0B1220]" />
-      <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:hidden" />
-      <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
+      {/* 飞书式浅灰底 */}
+      <div className="absolute inset-0 bg-[#F5F7FA] dark:bg-[#0B1220]" />
 
       <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
-        {/* Header */}
         <PageHeader user={currentUser}>
           <PageHeaderRight>
-            <div className="relative hidden md:block">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="hidden md:block">
               <Input
-                placeholder="搜索..."
+                prefix={<SearchOutlined className="text-slate-400" />}
+                placeholder="搜索策略..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-[160px] h-8 rounded-lg text-sm border-transparent bg-muted/50 focus:w-[200px] transition-all"
+                allowClear
+                className="!w-[200px] !rounded-md"
+                size="middle"
               />
             </div>
           </PageHeaderRight>
         </PageHeader>
 
-        {/* Content Area */}
-        <div className="relative container mx-auto py-6 md:py-10 space-y-8 overflow-y-auto h-full scrollbar-hide px-4 md:px-6" data-lenis-prevent>
-
-          {/* Page Title Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="relative container mx-auto py-6 md:py-8 space-y-5 overflow-y-auto h-full scrollbar-hide px-4 md:px-8" data-lenis-prevent>
+          {/* 页头：标题 + 操作（飞书式顶栏） */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                <Bolt className="w-8 h-8 text-[#0052D9]" />
+              <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#1677ff]/10 text-[#1677ff]">
+                  <ThunderboltOutlined />
+                </span>
                 自动化策略
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-lg">
-                管理大棚的智能控制逻辑。通过可视化编辑器编排 VLM 视觉识别、传感器阈值与定时任务。
+              <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1.5">
+                通过可视化编辑器编排 VLM 视觉识别、传感器阈值与定时任务
               </p>
             </div>
-          </div>
-
-          {/* Action Bar & Filter Capsules */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-40 py-2 -mx-2 px-2 md:mx-0 md:px-0 rounded-2xl md:static md:py-0">
-
-            {/* Capsule Filter Tabs —— 腾讯分段控件 */}
-            <div className="bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 p-1 rounded-lg flex items-center gap-0.5 shadow-sm">
-              <button
-                onClick={() => setFilter("all")}
-                className={cn(
-                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
-                  filter === "all"
-                    ? "bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                )}
-              >
-                全部 ({rules.length})
-              </button>
-              <button
-                onClick={() => setFilter("active")}
-                className={cn(
-                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2",
-                  filter === "active"
-                    ? "bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                )}
-              >
-                <span className={cn("w-1.5 h-1.5 rounded-full bg-green-500", filter !== "active" && "opacity-40")} />
-                运行中 ({activeCount})
-              </button>
-              <button
-                onClick={() => setFilter("paused")}
-                className={cn(
-                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2",
-                  filter === "paused"
-                    ? "bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                )}
-              >
-                <span className={cn("w-1.5 h-1.5 rounded-full bg-amber-500", filter !== "paused" && "opacity-40")} />
-                已暂停 ({pausedCount})
-              </button>
-            </div>
-
             <Link href="/automation/editor">
-              <Button className="bg-[#0052D9] text-white hover:bg-[#0052D9]/90 rounded-md px-5 h-9 shadow-sm border-0 transition-all">
-                <Plus className="w-4 h-4 mr-1.5" />
+              <Button type="primary" icon={<PlusOutlined />} className="!h-9 !px-5">
                 新建策略
               </Button>
             </Link>
           </div>
 
-          {/* Rules Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+          {/* 筛选 + 搜索（飞书式工具条） */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:sticky md:top-0 z-40 py-2 bg-[#F5F7FA]/95 dark:bg-[#0B1220]/95 backdrop-blur">
+            <Segmented
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { label: `全部 (${rules.length})`, value: "all" },
+                { label: `运行中 (${activeCount})`, value: "active" },
+                { label: `已暂停 (${pausedCount})`, value: "paused" },
+              ]}
+              className="!rounded-md"
+            />
+            <Input
+              prefix={<SearchOutlined className="text-slate-400" />}
+              placeholder="搜索策略名称或描述..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              allowClear
+              className="!max-w-xs !rounded-md"
+            />
+          </div>
+
+          {/* 策略卡片网格（飞书式卡片） */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
             <AnimatePresence mode="popLayout">
               {filteredRules.map((rule, idx) => (
                 <motion.div
                   key={rule.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2, delay: idx * 0.05 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.18, delay: Math.min(idx * 0.04, 0.3) }}
                 >
-                  <Card className={cn(
-                    "h-full border border-slate-200/70 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden relative bg-white dark:bg-slate-900",
-                    rule.is_active ? "hover:shadow-[0_8px_24px_rgba(0,82,217,0.08)]" : "opacity-80 hover:opacity-100"
-                  )}>
-                    {/* Status Indicator Bar */}
-                    <div className={cn(
-                      "absolute top-0 left-0 w-full h-1 transition-colors duration-300",
-                      rule.is_active ? "bg-gradient-to-r from-green-400 to-emerald-500" : "bg-slate-200 dark:bg-slate-700"
-                    )} />
+                  <div
+                    className={cn(
+                      "group relative h-full flex flex-col rounded-[10px] bg-white dark:bg-slate-900 border transition-all duration-200 overflow-hidden",
+                      "border-slate-200/80 dark:border-slate-700/70 hover:border-[#1677ff]/40 hover:shadow-[0_6px_20px_rgba(22,119,255,0.08)]",
+                      !rule.is_active && "opacity-80 hover:opacity-100"
+                    )}
+                  >
+                    {/* 顶部状态条（飞书式左侧色条改为顶部细条） */}
+                    <div
+                      className={cn(
+                        "h-[3px] w-full shrink-0",
+                        rule.is_active ? "bg-[#00B96B]" : "bg-slate-200 dark:bg-slate-700"
+                      )}
+                    />
 
-                    <CardHeader className="pb-3 relative">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "p-2 rounded-lg",
-                            rule.is_active ? "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                          )}>
-                            {rule.trigger_type === 'vlm' ? <Wand2 className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                          </div>
-                          {rule.is_active ? (
-                            <Badge variant="outline" className="border-green-200 text-green-700 dark:border-green-800 dark:text-green-400 bg-green-50 dark:bg-green-900/10">
-                              运行中
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-slate-200 text-slate-500 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                              已暂停
-                            </Badge>
+                    {/* 头部：图标 + 状态 */}
+                    <div className="flex items-start justify-between px-4 pt-3.5 pb-2">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center justify-center w-9 h-9 rounded-lg text-base",
+                            rule.is_active
+                              ? "bg-[#00B96B]/10 text-[#00B96B]"
+                              : "bg-slate-100 text-slate-400 dark:bg-slate-800"
                           )}
-                        </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600 -mr-2">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-32">
-                            <DropdownMenuItem onClick={() => toast.info("功能开发中")}>
-                              <Play className="w-4 h-4 mr-2" /> 立即运行
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-500 focus:text-red-600 focus:bg-red-50" onClick={() => handleDelete(rule.id)}>
-                              <Trash2 className="w-4 h-4 mr-2" /> 删除规则
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        >
+                          {typeIcon[rule.trigger_type] || typeIcon.default}
+                        </span>
+                        <Tag
+                          bordered={false}
+                          className={cn(
+                            "!rounded-md !px-2 !py-0 !m-0 !text-xs !leading-6",
+                            rule.is_active
+                              ? "!bg-[#E8FFF5] !text-[#00A870]"
+                              : "!bg-slate-100 !text-slate-500 dark:!bg-slate-800 dark:!text-slate-400"
+                          )}
+                        >
+                          {rule.is_active ? "运行中" : "已暂停"}
+                        </Tag>
                       </div>
 
-                      <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#0052D9] dark:group-hover:text-blue-400 transition-colors">
+                      <Dropdown
+                        trigger={["click"]}
+                        menu={{
+                          items: [
+                            { key: "run", icon: <PlayCircleOutlined />, label: "立即运行" },
+                            { type: "divider" },
+                            { key: "delete", icon: <DeleteOutlined />, label: "删除规则", danger: true },
+                          ],
+                          onClick: ({ key }) => {
+                            if (key === "run") toast.info("功能开发中");
+                            if (key === "delete") handleDelete(rule.id);
+                          },
+                        }}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<MoreOutlined />}
+                          className="!text-slate-400 !-mr-1"
+                        />
+                      </Dropdown>
+                    </div>
+
+                    {/* 标题与描述 */}
+                    <div className="px-4 pb-2.5">
+                      <h3 className="text-[15px] font-semibold text-slate-900 dark:text-slate-100 leading-snug truncate group-hover:text-[#1677ff] dark:group-hover:text-blue-400 transition-colors">
                         {rule.name}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2 min-h-[2.5em] text-slate-500 dark:text-slate-400">
-                        {rule.description || '暂无描述'}
-                      </CardDescription>
-                    </CardHeader>
+                      </h3>
+                      <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2.5em]">
+                        {rule.description || "暂无描述"}
+                      </p>
+                    </div>
 
-                    <CardContent className="pt-2">
-                      {/* Metrics */}
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-lg p-2.5 flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
-                          <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">触发次数</span>
-                          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono font-medium">
-                            <Zap className="w-3 h-3 text-amber-500" />
-                            {rule.execution_count}
-                          </div>
-                        </div>
-                        <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-lg p-2.5 flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
-                          <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">上次运行</span>
-                          <div className="text-xs text-slate-700 dark:text-slate-300 font-mono mt-0.5 truncate">
-                            {rule.last_triggered_at ? new Date(rule.last_triggered_at).toLocaleTimeString() : '--:--'}
-                          </div>
-                        </div>
+                    <Divider className="!my-0 !border-slate-100 dark:!border-slate-800" />
+
+                    {/* 指标行（飞书式紧凑指标） */}
+                    <div className="grid grid-cols-2 gap-0 px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] text-slate-400">触发次数</span>
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 tabular-nums">
+                          {rule.execution_count}
+                        </span>
                       </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] text-slate-400">上次运行</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-300 font-mono truncate">
+                          {rule.last_triggered_at ? new Date(rule.last_triggered_at).toLocaleTimeString() : "--:--"}
+                        </span>
+                      </div>
+                    </div>
 
+                    {/* 操作区 */}
+                    <div className="mt-auto px-4 pb-4">
                       <Link href={`/automation/editor?id=${rule.id}`} className="block">
-                        <Button className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#0052D9]/50 hover:text-[#0052D9] dark:hover:text-blue-400 hover:bg-[#0052D9]/[0.03] rounded-md shadow-sm transition-all group/btn">
-                          编辑策略 <ArrowRight className="w-4 h-4 ml-1 opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
+                        <Button
+                          block
+                          className="!rounded-md !text-slate-600 dark:!text-slate-300"
+                        >
+                          编辑策略 <ArrowRightOutlined className="opacity-50 group-hover:translate-x-0.5 transition-transform" />
                         </Button>
                       </Link>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
 
           {filteredRules.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 px-4 text-center"
-            >
-              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6 text-slate-300 dark:text-slate-600">
-                <Filter className="w-10 h-10" />
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">没有找到规则</h3>
-              <p className="text-slate-500 max-w-sm mx-auto mb-8">
-                {searchQuery ? "尝试更换搜索关键词" : "您可以创建一个新的自动化策略来开始使用"}
-              </p>
-              {!searchQuery && (
-                <Link href="/automation/editor">
-                  <Button variant="outline" className="rounded-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    创建新规则
-                  </Button>
-                </Link>
-              )}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-16">
+              <Empty
+                description={
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {searchQuery ? "没有匹配的策略，试试更换关键词" : "还没有自动化策略，创建一个开始使用"}
+                  </span>
+                }
+              >
+                {!searchQuery && (
+                  <Link href="/automation/editor">
+                    <Button type="primary" icon={<PlusOutlined />}>创建新规则</Button>
+                  </Link>
+                )}
+              </Empty>
             </motion.div>
           )}
         </div>

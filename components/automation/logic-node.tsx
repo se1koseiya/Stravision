@@ -1,13 +1,11 @@
 
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
+import { Tag, Select, Input, Typography } from 'antd';
 import { GitMerge, Clock, Calculator, ArrowRightLeft, Maximize } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { useReactFlow } from '@xyflow/react';
+
+const { Text } = Typography;
 
 const LogicIcons = {
   condition: GitMerge,
@@ -33,145 +31,141 @@ const LogicNode = ({ id, data, selected }: NodeProps) => {
 
   return (
     <div className={cn(
-      "relative group transition-all duration-300",
-      selected ? "scale-105" : "",
+      "relative group transition-all duration-200",
       status === 'running' && "animate-pulse"
     )}>
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-purple-500 !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
+        className="w-3 h-3 !bg-[#722ED1] !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
       />
       
-      <Card className={cn(
-        "w-56 border shadow-sm transition-all duration-300",
-        selected ? "border-[#0052D9] ring-1 ring-[#0052D9]/20 shadow-[0_4px_16px_rgba(0,82,217,0.15)]" : "border-purple-100 dark:border-purple-900",
-        status === 'running' ? "ring-2 ring-purple-400 ring-offset-2 border-purple-500" : "",
-        status === 'completed' ? "border-purple-500 bg-purple-50/30 dark:bg-purple-900/10" : "",
-        "bg-white dark:bg-zinc-900"
+      {/* 飞书式节点卡片：白底 + 1px 边框 + 左侧类型色条 */}
+      <div className={cn(
+        "relative w-56 rounded-[10px] bg-white dark:bg-zinc-900 border shadow-sm transition-all duration-200 overflow-hidden",
+        selected
+          ? "border-[#1677ff] shadow-[0_4px_16px_rgba(22,119,255,0.18)]"
+          : "border-slate-200 dark:border-slate-700",
+        status === 'running' ? "ring-2 ring-[#1677ff]/25 border-[#1677ff]" : "",
+        status === 'completed' ? "border-[#00B96B] bg-[#F6FFED]/70 dark:bg-zinc-900" : ""
       )}>
-        <CardHeader className="p-3 pb-2 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-700/60 rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "p-1.5 rounded-md text-purple-600 dark:text-purple-400 transition-colors",
-                status === 'running' ? "bg-purple-200 dark:bg-purple-800 animate-spin" : "bg-purple-100 dark:bg-purple-900/50"
-              )}>
-                <Icon className="w-4 h-4" />
-              </div>
-              <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
-                {data.label}
-              </span>
+        {/* 左侧类型色条 */}
+        <div className={cn(
+          "absolute left-0 top-0 bottom-0 w-[3px]",
+          status === 'running' ? "bg-[#1677ff]" : "bg-[#722ED1]"
+        )} />
+
+        {/* 头部：图标 + 标题 + 类型标签 */}
+        <div className="flex items-center justify-between pl-4 pr-2.5 pt-3 pb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={cn(
+              "flex items-center justify-center w-7 h-7 rounded-md text-[#722ED1] shrink-0",
+              status === 'running' ? "bg-[#722ED1]/15" : "bg-[#722ED1]/10"
+            )}>
+              <Icon className="w-3.5 h-3.5" />
             </div>
-            <div className="flex items-center gap-2">
-              {status === 'running' && <Badge className="bg-purple-500 text-[10px] h-5 px-1">Processing</Badge>}
-              <Badge variant="outline" className="text-[10px] h-5 bg-white dark:bg-zinc-800 border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400">
-                逻辑
-              </Badge>
-            </div>
+            <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate">
+              {data.label}
+            </span>
           </div>
-        </CardHeader>
-        <CardContent className="p-3 space-y-3">
+          <Tag
+            bordered={false}
+            className="!m-0 !text-[11px] !leading-[18px] !px-1.5 !rounded !bg-[#F6F0FF] !text-[#722ED1] shrink-0"
+          >
+            逻辑
+          </Tag>
+        </div>
+
+        {/* 配置体 */}
+        <div className="px-3 pb-3 space-y-2">
           {data.type === 'condition' && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Select 
-                  defaultValue={(data.config as any)?.operator || "and"} 
-                  onValueChange={(val) => updateConfig('operator', val)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="and">且 (AND)</SelectItem>
-                    <SelectItem value="or">或 (OR)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <Select
+              size="small"
+              className="!w-full"
+              defaultValue={(data.config as any)?.operator || "and"}
+              onChange={(val) => updateConfig('operator', val)}
+              options={[
+                { value: 'and', label: '且 (AND)' },
+                { value: 'or', label: '或 (OR)' },
+              ]}
+            />
           )}
           
           {data.type === 'compare' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center">
-                <div className="text-xs text-center text-muted-foreground">输入值</div>
-                <Select 
-                  defaultValue={(data.config as any)?.operator || "gt"}
-                  onValueChange={(val) => updateConfig('operator', val)}
-                >
-                  <SelectTrigger className="h-8 w-14 text-xs px-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gt">&gt;</SelectItem>
-                    <SelectItem value="lt">&lt;</SelectItem>
-                    <SelectItem value="eq">=</SelectItem>
-                    <SelectItem value="gte">≥</SelectItem>
-                    <SelectItem value="lte">≤</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input 
-                  className="h-8 text-xs" 
-                  placeholder="数值" 
-                  defaultValue={(data.config as any)?.value || "30"} 
-                  onChange={(e) => updateConfig('value', e.target.value)}
-                />
-              </div>
+            <div className="flex items-center gap-1.5">
+              <Text type="secondary" className="!text-[11px] whitespace-nowrap">输入值</Text>
+              <Select
+                size="small"
+                className="!w-[64px]"
+                defaultValue={(data.config as any)?.operator || "gt"}
+                onChange={(val) => updateConfig('operator', val)}
+                options={[
+                  { value: 'gt', label: '>' },
+                  { value: 'lt', label: '<' },
+                  { value: 'eq', label: '=' },
+                  { value: 'gte', label: '≥' },
+                  { value: 'lte', label: '≤' },
+                ]}
+              />
+              <Input
+                size="small"
+                className="!text-xs"
+                placeholder="数值"
+                defaultValue={(data.config as any)?.value || "30"}
+                onChange={(e) => updateConfig('value', e.target.value)}
+              />
             </div>
           )}
 
           {data.type === 'range' && (
-            <div className="space-y-2">
-               <div className="flex items-center gap-2">
-                 <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center w-full">
-                    <Input 
-                      className="h-8 text-xs text-center" 
-                      placeholder="Min" 
-                      defaultValue={(data.config as any)?.min || ""} 
-                      onChange={(e) => updateConfig('min', e.target.value)}
-                    />
-                    <span className="text-xs text-muted-foreground">&lt; 值 &lt;</span>
-                    <Input 
-                      className="h-8 text-xs text-center" 
-                      placeholder="Max" 
-                      defaultValue={(data.config as any)?.max || ""} 
-                      onChange={(e) => updateConfig('max', e.target.value)}
-                    />
-                 </div>
-               </div>
+            <div className="flex items-center gap-1.5">
+              <Input
+                size="small"
+                className="!text-xs text-center"
+                placeholder="Min"
+                defaultValue={(data.config as any)?.min || ""}
+                onChange={(e) => updateConfig('min', e.target.value)}
+              />
+              <Text type="secondary" className="!text-[11px] whitespace-nowrap">&lt; 值 &lt;</Text>
+              <Input
+                size="small"
+                className="!text-xs text-center"
+                placeholder="Max"
+                defaultValue={(data.config as any)?.max || ""}
+                onChange={(e) => updateConfig('max', e.target.value)}
+              />
             </div>
           )}
           
           {data.type === 'delay' && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">等待</span>
-              <Input 
-                className="h-8 text-xs" 
-                defaultValue={(data.config as any)?.duration || "5"} 
+            <div className="flex items-center gap-1.5">
+              <Text type="secondary" className="!text-[11px] whitespace-nowrap">等待</Text>
+              <Input
+                size="small"
+                className="!text-xs"
+                defaultValue={(data.config as any)?.duration || "5"}
                 onChange={(e) => updateConfig('duration', e.target.value)}
               />
-              <Select 
+              <Select
+                size="small"
+                className="!w-[76px]"
                 defaultValue={(data.config as any)?.unit || "m"}
-                onValueChange={(val) => updateConfig('unit', val)}
-              >
-                <SelectTrigger className="h-8 w-16 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="s">秒</SelectItem>
-                  <SelectItem value="m">分钟</SelectItem>
-                  <SelectItem value="h">小时</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(val) => updateConfig('unit', val)}
+                options={[
+                  { value: 's', label: '秒' },
+                  { value: 'm', label: '分钟' },
+                  { value: 'h', label: '小时' },
+                ]}
+              />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-purple-500 !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
+        className="w-3 h-3 !bg-[#722ED1] !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
       />
     </div>
   );

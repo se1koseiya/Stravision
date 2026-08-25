@@ -1,12 +1,10 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
+import { Tag, Select, Input } from 'antd';
 import { Sparkles, Bot, BrainCircuit, MessageSquareText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useReactFlow } from '@xyflow/react';
+
+const { TextArea } = Input;
 
 const AiIcons = {
   process: BrainCircuit,
@@ -32,77 +30,82 @@ const AiNode = ({ id, data, selected }: NodeProps) => {
 
   return (
     <div className={cn(
-      "relative group transition-all duration-300",
-      selected ? "scale-105" : "",
+      "relative group transition-all duration-200",
       status === 'running' && "animate-pulse"
     )}>
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-indigo-500 !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
+        className="w-3 h-3 !bg-[#1677ff] !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
       />
       
-      <Card className={cn(
-        "w-72 border shadow-sm transition-all duration-300",
-        selected ? "border-[#0052D9] ring-1 ring-[#0052D9]/20 shadow-[0_4px_16px_rgba(0,82,217,0.15)]" : "border-indigo-100 dark:border-indigo-900",
-        status === 'running' ? "ring-2 ring-indigo-400 ring-offset-2 border-indigo-500" : "",
-        status === 'completed' ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-900/10" : "",
-        "bg-white dark:bg-zinc-900"
+      {/* 飞书式节点卡片（AI 节点，蓝色主题） */}
+      <div className={cn(
+        "relative w-72 rounded-[10px] bg-white dark:bg-zinc-900 border shadow-sm transition-all duration-200 overflow-hidden",
+        selected
+          ? "border-[#1677ff] shadow-[0_4px_16px_rgba(22,119,255,0.18)]"
+          : "border-slate-200 dark:border-slate-700",
+        status === 'running' ? "ring-2 ring-[#1677ff]/25 border-[#1677ff]" : "",
+        status === 'completed' ? "border-[#00B96B] bg-[#F6FFED]/70 dark:bg-zinc-900" : ""
       )}>
-        <CardHeader className="p-3 pb-2 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-700/60 rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "p-1.5 rounded-md text-indigo-600 dark:text-indigo-400 transition-colors",
-                status === 'running' ? "bg-indigo-200 dark:bg-indigo-800 animate-spin" : "bg-indigo-100 dark:bg-indigo-900/50"
-              )}>
-                <Icon className="w-4 h-4" />
-              </div>
-              <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
-                {data.label}
-              </span>
+        {/* 左侧类型色条 */}
+        <div className={cn(
+          "absolute left-0 top-0 bottom-0 w-[3px]",
+          status === 'running' ? "bg-[#1677ff]" : "bg-[#1677ff]"
+        )} />
+
+        {/* 头部 */}
+        <div className="flex items-center justify-between pl-4 pr-2.5 pt-3 pb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={cn(
+              "flex items-center justify-center w-7 h-7 rounded-md text-[#1677ff] shrink-0",
+              status === 'running' ? "bg-[#1677ff]/15" : "bg-[#1677ff]/10"
+            )}>
+              <Icon className="w-3.5 h-3.5" />
             </div>
-            <div className="flex items-center gap-2">
-              {status === 'running' && <Badge className="bg-indigo-500 text-[10px] h-5 px-1">Processing</Badge>}
-              <Badge variant="outline" className="text-[10px] h-5 bg-white dark:bg-zinc-800 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
-                AI Agent
-              </Badge>
-            </div>
+            <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate">
+              {data.label}
+            </span>
           </div>
-        </CardHeader>
-        <CardContent className="p-3 space-y-3">
-          <div className="space-y-2">
-            <Select 
-              defaultValue={(data.config as any)?.model || "qwen-plus"}
-              onValueChange={(val) => updateConfig('model', val)}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="选择模型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">智能模式 (Auto)</SelectItem>
-                <SelectItem value="qwen-vl-plus">Qwen VL Plus</SelectItem>
-                <SelectItem value="qwen-vl-max">Qwen VL Max</SelectItem>
-                <SelectItem value="qwen-plus">Qwen Plus</SelectItem>
-                <SelectItem value="qwen-max">Qwen Max</SelectItem>
-                <SelectItem value="deepseek-r1">DeepSeek R1</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Textarea 
-              className="min-h-[60px] text-xs resize-none bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-900/50 focus-visible:ring-indigo-400" 
-              placeholder="输入 Prompt 提示词..."
-              defaultValue={(data.config as any)?.prompt || ""}
-              onChange={(e) => updateConfig('prompt', e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          <Tag
+            bordered={false}
+            className="!m-0 !text-[11px] !leading-[18px] !px-1.5 !rounded !bg-[#E6F4FF] !text-[#1677ff] shrink-0"
+          >
+            AI Agent
+          </Tag>
+        </div>
+
+        {/* 配置体 */}
+        <div className="px-3 pb-3 space-y-2">
+          <Select
+            size="small"
+            className="!w-full"
+            defaultValue={(data.config as any)?.model || "qwen-plus"}
+            onChange={(val) => updateConfig('model', val)}
+            options={[
+              { value: 'auto', label: '智能模式 (Auto)' },
+              { value: 'qwen-vl-plus', label: 'Qwen VL Plus' },
+              { value: 'qwen-vl-max', label: 'Qwen VL Max' },
+              { value: 'qwen-plus', label: 'Qwen Plus' },
+              { value: 'qwen-max', label: 'Qwen Max' },
+              { value: 'deepseek-r1', label: 'DeepSeek R1' },
+            ]}
+          />
+          
+          <TextArea
+            rows={2}
+            className="!text-xs !rounded-md !bg-slate-50 dark:!bg-zinc-800/60 !border-slate-200 dark:!border-slate-700 focus:!border-[#1677ff]"
+            placeholder="输入 Prompt 提示词..."
+            defaultValue={(data.config as any)?.prompt || ""}
+            onChange={(e) => updateConfig('prompt', e.target.value)}
+          />
+        </div>
+      </div>
       
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-indigo-500 !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
+        className="w-3 h-3 !bg-[#1677ff] !border-2 !border-white dark:!border-zinc-900 transition-transform hover:scale-125"
       />
     </div>
   );

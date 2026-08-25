@@ -30,11 +30,8 @@ import { Button } from '@/components/ui/button';
 import { Plus, Play, Save, Settings, ArrowLeft, Wand2, LogOut, LayoutGrid, Loader2, Bolt, Search, Sparkles, BrainCircuit, Zap, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+// antd 组件（飞书式整体风格）
+import { Button as AntButton, Input as AntInput, Tag as AntTag, Drawer as AntDrawer } from 'antd';
 import { DeviceSidebarList } from "@/components/automation/device-sidebar-list";
 import { PageNavigation } from "@/components/page-navigation";
 import { UserAvatarMenu } from "@/components/user-avatar-menu";
@@ -646,84 +643,88 @@ function AutomationEditor() {
       {/* Editor Layout Grid */}
       <div className="relative z-10 w-full h-full flex flex-col">
         
-        {/* 腾讯风格顶部工具栏：实底白色、1px 边框、圆角、蓝主按钮 */}
+        {/* 飞书式顶部工具栏（antd 组件） */}
         <div className="absolute top-0 left-0 w-full z-50 pointer-events-none px-5 py-4 flex items-start justify-between">
            {/* Left: Context & Back */}
            <div className="flex items-center gap-3 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 rounded-lg shadow-sm pl-1.5 pr-4 py-1.5">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => router.push('/automation')} 
-                className="h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
-              >
-                 <ArrowLeft className="w-4 h-4" />
-              </Button>
+              <AntButton
+                type="text"
+                size="small"
+                onClick={() => router.push('/automation')}
+                icon={<ArrowLeft className="w-4 h-4" />}
+                className="!text-slate-500"
+              />
               
               <div className="flex flex-col justify-center">
                   <div className="flex items-center gap-2">
-                    <Input 
-                      value={ruleName} 
+                    <AntInput
+                      value={ruleName}
                       onChange={(e) => setRuleName(e.target.value)}
-                      className="h-7 w-52 text-sm font-semibold border-none shadow-none focus-visible:ring-0 px-0 bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                      variant="borderless"
+                      className="!w-52 !text-sm !font-semibold !px-0"
                       placeholder="策略名称"
                     />
-                    <Badge variant="secondary" className="text-[10px] h-5 px-2 bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400 font-medium border-0">草稿</Badge>
+                    <AntTag color="blue" bordered={false} className="!m-0 !text-[10px] !leading-5 !rounded !px-2">
+                      草稿
+                    </AntTag>
                   </div>
               </div>
            </div>
            
            {/* Right: Actions */}
            <div className="flex items-center gap-2 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 rounded-lg shadow-sm p-1.5">
-                <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group"
+                <AntButton
+                    type="text"
+                    size="small"
+                    className="!h-8 !px-3.5 !text-slate-600"
                     onClick={() => setIsAiInputVisible(true)}
+                    icon={<Sparkles className="w-4 h-4 text-amber-500" />}
                 >
-                    <Sparkles className="w-4 h-4 mr-1.5 text-amber-500 group-hover:animate-pulse" />
                     AI 生成
-                </Button>
+                </AntButton>
                 <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
-                <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                <AntButton
+                    type="text"
+                    size="small"
+                    className="!h-8 !px-3.5 !text-slate-600"
                     onClick={handleSimulation}
                     disabled={isSimulating}
+                    icon={isSimulating ? <Loader2 className="w-4 h-4 animate-spin text-[#1677ff]" /> : <Play className="w-4 h-4 text-[#1677ff]" />}
                 >
-                    {isSimulating ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-[#0052D9]" /> : <Play className="w-4 h-4 mr-1.5 text-[#0052D9]" />}
                     {isSimulating ? '模拟运行中...' : '模拟运行'}
-                </Button>
+                </AntButton>
                 <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
-                <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                <AntButton
+                    type="text"
+                    size="small"
+                    className="!h-8 !px-3.5 !text-slate-600"
                     onClick={handleRun}
                     disabled={isRunning}
+                    icon={isRunning ? <Loader2 className="w-4 h-4 animate-spin text-[#1677ff]" /> : <Zap className="w-4 h-4 text-[#1677ff]" />}
                 >
-                    {isRunning ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-[#0052D9]" /> : <Zap className="w-4 h-4 mr-1.5 text-[#0052D9]" />}
                     {isRunning ? '正在运行...' : '立即运行'}
-                </Button>
+                </AntButton>
                 <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
-                <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                <AntButton
+                    type="text"
+                    size="small"
+                    className="!h-8 !px-3.5 !text-slate-600"
                     onClick={() => setIsDeviceSheetOpen(true)}
+                    icon={<LayoutGrid className="w-4 h-4" />}
                 >
-                    <LayoutGrid className="w-4 h-4 mr-1.5 opacity-70" />
                     设备
-                </Button>
+                </AntButton>
                 <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
-                <Button 
-                    size="sm" 
-                    onClick={handleSave} 
+                <AntButton
+                    type="primary"
+                    size="small"
+                    className="!h-8 !px-5"
+                    onClick={handleSave}
                     disabled={isSaving}
-                    className="h-8 px-5 rounded-md bg-[#0052D9] text-white hover:bg-[#0052D9]/90 shadow-sm border-0 transition-all"
+                    icon={isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 >
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="flex items-center font-medium"><Save className="w-4 h-4 mr-1.5" /> 保存</span>}
-                </Button>
+                    保存
+                </AntButton>
              </div>
         </div>
 
@@ -751,7 +752,7 @@ function AutomationEditor() {
             />
             
             <Controls 
-                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-sm rounded-lg overflow-hidden m-4 [&>button]:border-slate-200 [&>button]:text-slate-600 [&>button:hover]:bg-slate-50 [&>button:hover]:text-[#0052D9]" 
+                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-sm rounded-lg overflow-hidden m-4 [&>button]:border-slate-200 [&>button]:text-slate-600 [&>button:hover]:bg-slate-50 [&>button:hover]:text-[#1677ff]" 
                 showInteractive={false}
             />
             
@@ -766,7 +767,7 @@ function AutomationEditor() {
                 <div className="px-4 border-b border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between shrink-0 h-12">
                   {!isNodeLibraryCollapsed && (
                     <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                      <div className="p-1.5 rounded-md bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400">
+                      <div className="p-1.5 rounded-md bg-[#1677ff]/10 text-[#1677ff] dark:text-blue-400">
                         <LayoutGrid className="w-4 h-4" />
                       </div>
                       <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">组件库</span>
@@ -786,10 +787,11 @@ function AutomationEditor() {
                 {!isNodeLibraryCollapsed && (
                   <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-300">
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-                      <Input 
-                        placeholder="搜索组件..." 
-                        className="pl-8 h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 focus:border-[#0052D9]/40 focus:ring-2 focus:ring-[#0052D9]/10 rounded-md text-sm transition-all" 
+                      <AntInput
+                        prefix={<Search className="w-3.5 h-3.5 text-slate-400" />}
+                        placeholder="搜索组件..."
+                        size="middle"
+                        className="!rounded-md !bg-slate-50 dark:!bg-slate-800/60"
                       />
                     </div>
                   </div>
@@ -820,14 +822,14 @@ function AutomationEditor() {
                         ].map((item, idx) => (
                           <div 
                             key={idx}
-                            className={`group flex items-center rounded-md border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 hover:border-[#0052D9]/40 hover:bg-[#0052D9]/[0.04] dark:hover:bg-[#0052D9]/10 transition-all duration-150 cursor-grab active:cursor-grabbing ${isNodeLibraryCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2.5'}`}
+                            className={`group flex items-center rounded-md border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 hover:border-[#1677ff]/40 hover:bg-[#1677ff]/[0.04] dark:hover:bg-[#1677ff]/10 transition-all duration-150 cursor-grab active:cursor-grabbing ${isNodeLibraryCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2.5'}`}
                             draggable
                             onDragStart={(e) => onDragStart(e, item.type, item.subType, item.label)}
                           >
                              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150 ${
                                item.color === 'green' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
                                item.color === 'purple' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400' :
-                               item.color === 'blue' ? 'bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400' :
+                               item.color === 'blue' ? 'bg-[#1677ff]/10 text-[#1677ff] dark:text-blue-400' :
                                'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                              }`}>
                                 {item.icon}
@@ -854,37 +856,36 @@ function AutomationEditor() {
           </ReactFlow>
         </div>
 
-        {/* Device Sidebar Sheet */}
-        <Sheet open={isDeviceSheetOpen} onOpenChange={setIsDeviceSheetOpen}>
-          <SheetContent side="right" className="w-[400px] sm:w-[540px] border-l border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-950 p-0 shadow-2xl">
-             <SheetHeader className="p-6 border-b border-slate-100 dark:border-slate-800">
-               <SheetTitle className="flex items-center gap-2 text-lg">
-                 <LayoutGrid className="w-5 h-5 text-slate-500" />
-                 设备状态监控
-               </SheetTitle>
-             </SheetHeader>
-             <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
-                <DeviceSidebarList />
-             </div>
-          </SheetContent>
-        </Sheet>
+        {/* 设备面板（antd Drawer） */}
+        <AntDrawer
+          open={isDeviceSheetOpen}
+          onClose={() => setIsDeviceSheetOpen(false)}
+          title={
+            <span className="flex items-center gap-2 !text-[15px]">
+              <LayoutGrid className="w-4 h-4 text-slate-500" />
+              设备状态监控
+            </span>
+          }
+          width={480}
+          className="!rounded-l-lg overflow-hidden"
+        >
+           <DeviceSidebarList />
+        </AntDrawer>
 
         {/* Floating AI Input Bar */}
         {isAiInputVisible && (
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[60] w-full max-w-2xl px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-lg p-1.5 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 relative flex items-center pl-3 bg-slate-50 dark:bg-slate-800/60 rounded-md border border-slate-200/70 dark:border-slate-700/60 focus-within:border-[#0052D9]/40">
-                    <Wand2 className="w-4 h-4 text-[#0052D9] mr-2 shrink-0" />
-                    <Input 
+                  <div className="flex-1 relative flex items-center pl-3 bg-slate-50 dark:bg-slate-800/60 rounded-md border border-slate-200/70 dark:border-slate-700/60 focus-within:border-[#1677ff]/40">
+                    <Wand2 className="w-4 h-4 text-[#1677ff] mr-2 shrink-0" />
+                    <AntInput 
                       value={isListening ? (aiPrompt + (transcript ? ` ${transcript}` : '')) : aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAiGenerate()}
+                      onPressEnter={handleAiGenerate}
+                      variant="borderless"
                       placeholder={isListening ? "正在聆听..." : "描述你想要的自动化场景..."}
-                      className={cn(
-                        "border-none shadow-none focus-visible:ring-0 bg-transparent text-sm h-11 transition-all p-0 flex-1",
-                        isListening && "placeholder:text-[#0052D9] placeholder:animate-pulse"
-                      )}
+                      className="!bg-transparent !text-sm !flex-1"
                       autoFocus
                     />
                     
@@ -898,7 +899,7 @@ function AutomationEditor() {
                             "h-8 w-8 rounded-md transition-all",
                             isListening 
                               ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-600 animate-pulse" 
-                              : "text-slate-400 hover:text-[#0052D9] hover:bg-[#0052D9]/10"
+                              : "text-slate-400 hover:text-[#1677ff] hover:bg-[#1677ff]/10"
                           )}
                           title="语音输入"
                         >
@@ -907,25 +908,26 @@ function AutomationEditor() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 pr-1 shrink-0">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <AntButton
+                      size="small"
                       onClick={() => {
                         setIsAiInputVisible(false);
                         stopListening();
                       }}
-                      className="h-10 rounded-xl px-4 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="!h-9 !px-4 !text-slate-500"
                     >
                       取消
-                    </Button>
-                    <Button 
+                    </AntButton>
+                    <AntButton
+                      type="primary"
+                      size="small"
                       onClick={handleAiGenerate}
                       disabled={isAiGenerating || (!aiPrompt.trim() && !transcript)}
-                      className="h-10 rounded-xl px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 whitespace-nowrap"
+                      className="!h-9 !px-5 whitespace-nowrap"
+                      icon={isAiGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                     >
-                      {isAiGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                       立即生成
-                    </Button>
+                    </AntButton>
                   </div>
                 </div>
                 {/* Quota Indicator */}
