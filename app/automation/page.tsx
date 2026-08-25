@@ -11,7 +11,7 @@ import { PageHeaderRight } from "@/components/page-header-right";
 import { toast } from "sonner";
 
 // antd 组件（飞书式整体排版）
-import { Button, Segmented, Input, Dropdown, Empty, Spin, Tag, Divider } from "antd";
+import { Button, Segmented, Input, Dropdown, Empty, Spin, Divider } from "antd";
 import {
   PlusOutlined,
   ThunderboltOutlined,
@@ -46,6 +46,7 @@ export default function AutomationPage() {
   const [filter, setFilter] = useState<string | number>("all"); // all, active, paused
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   const fetchRules = async () => {
     try {
@@ -86,6 +87,66 @@ export default function AutomationPage() {
       }
     } catch (e) {
       toast.error("删除失败");
+    }
+  };
+
+  // —— 立即运行某条规则（修复"功能开发中"bug，调真实执行 API）——
+  const handleRunRule = async (rule: AutomationRule) => {
+    if (runningId) return;
+    setRunningId(rule.id);
+    const loadingToast = toast.loading(`正在运行「${rule.name}」...`);
+    try {
+      let graphData: any = {};
+      try {
+        graphData = JSON.parse(rule.graph_data || "{}");
+      } catch {
+        toast.error('执行失败', {
+          description: '规则数据已损坏，请重新编辑',
+          id: loadingToast,
+        });
+        return;
+      }
+      if (!Array.isArray(graphData.nodes) || graphData.nodes.length === 0) {
+        toast.error('执行失败', {
+          description: '规则为空，请先在编辑器添加节点',
+          id: loadingToast,
+        });
+        return;
+      }
+      const res = await fetch('/api/automation/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          graph_data: graphData,
+          force: true,
+          context: { sensorData: undefined, timestamp: Date.now() },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error('执行失败', {
+          description: data.message || data.error || '未知错误',
+          id: loadingToast,
+        });
+        return;
+      }
+      const actionsCount = Array.isArray(data.actions) ? data.actions.length : 0;
+      if (actionsCount > 0) {
+        toast.success(`成功执行 ${actionsCount} 个动作`, { id: loadingToast });
+      } else {
+        toast.info(data.message || '当前条件未触发任何动作', {
+          id: loadingToast,
+          duration: 4000,
+        });
+      }
+      fetchRules();
+    } catch (e) {
+      toast.error('执行失败', {
+        description: e instanceof Error ? e.message : String(e),
+        id: loadingToast,
+      });
+    } finally {
+      setRunningId(null);
     }
   };
 
@@ -188,54 +249,68 @@ export default function AutomationPage() {
                   <div
                     className={cn(
                       "group relative h-full flex flex-col rounded-[10px] bg-white dark:bg-slate-900 border transition-all duration-200 overflow-hidden",
-                      "border-slate-200/80 dark:border-slate-700/70 hover:border-[#1677ff]/40 hover:shadow-[0_6px_20px_rgba(22,119,255,0.08)]",
+                      "border-slate-200/80 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.05)]",
                       !rule.is_active && "opacity-80 hover:opacity-100"
                     )}
                   >
-                    {/* 顶部状态条（飞书式左侧色条改为顶部细条） */}
-                    <div
-                      className={cn(
-                        "h-[3px] w-full shrink-0",
-                        rule.is_active ? "bg-[#00B96B]" : "bg-slate-200 dark:bg-slate-700"
-                      )}
-                    />
-
                     {/* 头部：图标 + 状态 */}
-                    <div className="flex items-start justify-between px-4 pt-3.5 pb-2">
+                    <div className="flex items-start justify-between px-4 pt-4 pb-2">
                       <div className="flex items-center gap-2.5">
                         <span
                           className={cn(
-                            "inline-flex items-center justify-center w-9 h-9 rounded-lg text-base",
-                            rule.is_active
-                              ? "bg-[#00B96B]/10 text-[#00B96B]"
-                              : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                            "inline-flex items-center justify-center w-9 h-9 rounded-lg text-base transition-colors",
+                            "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+                            "group-hover:bg-slate-900/[0.06] group-hover:text-slate-700 dark:group-hover:text-slate-200"
                           )}
                         >
                           {typeIcon[rule.trigger_type] || typeIcon.default}
                         </span>
-                        <Tag
-                          bordered={false}
-                          className={cn(
-                            "!rounded-md !px-2 !py-0 !m-0 !text-xs !leading-6",
-                            rule.is_active
-                              ? "!bg-[#E8FFF5] !text-[#00A870]"
-                              : "!bg-slate-100 !text-slate-500 dark:!bg-slate-800 dark:!text-slate-400"
-                          )}
-                        >
-                          {rule.is_active ? "运行中" : "已暂停"}
-                        </Tag>
+                        {(() => {
+                          const isRunning = runningId === rule.id;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={cn(
+                                  "w-1.5 h-1.5 rounded-full shrink-0",
+                                  isRunning
+                                    ? "bg-blue-500 animate-pulse"
+                                    : rule.is_active
+                                      ? "bg-emerald-500"
+                                      : "bg-slate-300 dark:bg-slate-600"
+                                )}
+                              />
+                              <span
+                                className={cn(
+                                  "text-xs font-medium tracking-tight",
+                                  isRunning
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : rule.is_active
+                                      ? "text-slate-700 dark:text-slate-300"
+                                      : "text-slate-400 dark:text-slate-500"
+                                )}
+                              >
+                                {isRunning ? "执行中..." : rule.is_active ? "运行中" : "已暂停"}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <Dropdown
                         trigger={["click"]}
                         menu={{
                           items: [
-                            { key: "run", icon: <PlayCircleOutlined />, label: "立即运行" },
+                            {
+                              key: "run",
+                              icon: <PlayCircleOutlined />,
+                              label: "立即运行",
+                              disabled: runningId === rule.id,
+                            },
                             { type: "divider" },
                             { key: "delete", icon: <DeleteOutlined />, label: "删除规则", danger: true },
                           ],
                           onClick: ({ key }) => {
-                            if (key === "run") toast.info("功能开发中");
+                            if (key === "run") handleRunRule(rule);
                             if (key === "delete") handleDelete(rule.id);
                           },
                         }}
