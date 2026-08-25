@@ -1,6 +1,6 @@
 "use client"
 
-import { Panel, useReactFlow, useStore } from "@xyflow/react"
+import { Panel, useReactFlow } from "@xyflow/react"
 import { Tooltip, Dropdown } from "antd"
 import {
   MinusIcon,
@@ -11,7 +11,7 @@ import {
   SunIcon,
   MoonIcon,
   ShareIcon,
-  Squares2X2Icon,
+  TrashIcon,
 } from "@heroicons/react/24/outline"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -21,26 +21,25 @@ interface CanvasBottomToolbarProps {
   onRedo: () => void
   canUndo: boolean
   canRedo: boolean
+  onDelete: () => void
+  selectedCount: number
 }
 
 /**
- * 画布底部右下浮动工具条：分享 / 缩放 / 适配 / 主题 / 撤销重做
+ * 画布底部右下浮动工具条：删除所选 / 缩放 / 适配 / 主题 / 撤销重做
  */
 export function CanvasBottomToolbar({
   onUndo,
   onRedo,
   canUndo,
   canRedo,
+  onDelete,
+  selectedCount,
 }: CanvasBottomToolbarProps) {
   const { zoomIn, zoomOut, fitView, getZoom } = useReactFlow()
   const { theme, setTheme } = useTheme()
 
   const zoomPercent = Math.round(getZoom() * 100)
-
-  const setZoom = (v: number) => {
-    // 通过 getViewport/setViewport 间接设置；这里调用 zoomIn/Out 多次不可靠，简化用 fitView + 自定义：
-    // ReactFlow 的 useReactFlow 暴露 setViewport
-  }
 
   const isDark = theme === "dark"
 
@@ -78,6 +77,26 @@ export function CanvasBottomToolbar({
   return (
     <Panel position="bottom-right" className="!m-4">
       <div className="nodrag pointer-events-auto flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white px-1.5 py-1 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+        {/* 删除所选（节点 / 连线） */}
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={selectedCount === 0}
+          className={cn(
+            "nodrag flex h-8 items-center justify-center gap-1 rounded-md px-2 text-[12px] font-medium transition-colors",
+            selectedCount > 0
+              ? "text-red-500 hover:bg-red-50 hover:text-red-600"
+              : "text-slate-300 cursor-not-allowed"
+          )}
+        >
+          <TrashIcon className="h-4 w-4" />
+          {selectedCount > 0 && (
+            <span className="tabular-nums text-[11px]">{selectedCount}</span>
+          )}
+        </button>
+
+        <div className="mx-0.5 h-5 w-px bg-slate-200" />
+
         {/* 分享 / 导出 */}
         <IconBtn tip="分享 / 导出" onClick={() => alert("导出功能待接入")}>
           <ShareIcon className="h-4 w-4" />

@@ -70,6 +70,8 @@ function AutomationEditor() {
   const [isSaving, setIsSaving] = useState(false);
   // adminUI 配置的 AI 默认模型 + 可用模型列表（注入到画布上下文）
   const [aiDefaults, setAiDefaults] = useState<EditorAIDefaults>({ modelId: null, models: [] })
+  // 当前选中元素数量（节点 + 边）
+  const [selectedCount, setSelectedCount] = useState(0)
 
   // 🔥 关键修复：规范化 nodes，确保每个节点都有合法的 position 和 id 字段，
   // 否则 React Flow 内部访问 node.position.x 时会抛出 "Cannot read properties of undefined (reading 'x')"
@@ -228,7 +230,7 @@ function AutomationEditor() {
   // 撤销/重做历史栈（快照节点/边集合）
   const undoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
   const redoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
-  const { screenToFlowPosition, toObject } = useReactFlow();
+  const { screenToFlowPosition, toObject, deleteElements, getNodes, getEdges } = useReactFlow();
 
   // Voice Interaction Hooks
   const { 
@@ -310,6 +312,50 @@ function AutomationEditor() {
     (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [],
   );
+
+  // —— 删除节点（Delete/Backspace 或工具栏按钮触发）——
+  const onNodesDelete = useCallback(
+    (deleted: Node[]) => {
+      const ids = new Set(deleted.map((d) => d.id))
+      if (ids.size === 0) return
+      undoStackRef.current.push({ nodes, edges })
+      redoStackRef.current = []
+      setNodes((nds) => nds.filter((n) => !ids.has(n.id)))
+      // 级联删除与这些节点相连的边
+      setEdges((eds) => eds.filter((e) => !ids.has(e.source) && !ids.has(e.target)))
+    },
+    [nodes, edges, setNodes, setEdges],
+  )
+
+  // —— 删除连线（单独选中边后 Delete）——
+  const onEdgesDelete = useCallback(
+    (deleted: Edge[]) => {
+      const ids = new Set(deleted.map((d) => d.id))
+      if (ids.size === 0) return
+      undoStackRef.current.push({ nodes, edges })
+      redoStackRef.current = []
+      setEdges((eds) => eds.filter((e) => !ids.has(e.id)))
+    },
+    [nodes, edges, setEdges],
+  )
+
+  // —— 选中变化：记录数量，用于工具栏删除按钮状态 ——
+  const onSelectionChange = useCallback(
+    ({ nodes: selNodes, edges: selEdges }: { nodes: Node[]; edges: Edge[] }) => {
+      setSelectedCount((selNodes?.length || 0) + (selEdges?.length || 0))
+    },
+    [],
+  )
+
+  // —— 工具栏「删除所选」：删除所有选中的节点与边 ——
+  const handleDeleteSelected = useCallback(() => {
+    const selNodes = getNodes().filter((n) => n.selected)
+    const selEdges = getEdges().filter((e) => e.selected)
+    if (selNodes.length === 0 && selEdges.length === 0) return
+    undoStackRef.current.push({ nodes, edges })
+    redoStackRef.current = []
+    deleteElements({ nodes: selNodes, edges: selEdges })
+  }, [nodes, edges, getNodes, getEdges, deleteElements])
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -787,9 +833,17 @@ function AutomationEditor() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodesDelete={onNodesDelete}
+            onEdgesDelete={onEdgesDelete}
+            onSelectionChange={onSelectionChange}
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
+            deleteKeyCode={['Backspace', 'Delete']}
+            multiSelectionKeyCode="Shift"
+            selectionKeyCode="Shift"
+            selectionOnDrag
+            panOnDrag
             fitView
             className="bg-transparent"
             proOptions={{ hideAttribution: true }}
@@ -808,6 +862,8 @@ function AutomationEditor() {
               onRedo={handleRedo}
               canUndo={undoStackRef.current.length > 0}
               canRedo={redoStackRef.current.length > 0}
+              onDelete={handleDeleteSelected}
+              selectedCount={selectedCount}
             />
 
             {/* Floating Component Library (Left) */}
