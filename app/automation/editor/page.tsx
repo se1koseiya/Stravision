@@ -25,6 +25,7 @@ import TriggerNode from '@/components/automation/trigger-node';
 import LogicNode from '@/components/automation/logic-node';
 import ActionNode from '@/components/automation/action-node';
 import AiNode from '@/components/automation/ai-node';
+import { EditorAIDefaultsContext, type EditorAIDefaults } from '@/components/automation/ai-node';
 import { NODE_TYPES } from '@/components/automation/node-types';
 import { Button } from '@/components/ui/button';
 import { Plus, Play, Save, Settings, ArrowLeft, Wand2, LogOut, LayoutGrid, Loader2, Bolt, Search, Sparkles, BrainCircuit, Zap, Mic, MicOff, Volume2, VolumeX, Activity, Clock, Hand, GitCompare, SlidersHorizontal, GitBranch, Timer, TrendingUp, ShieldAlert, ScanLine, ToggleRight, Bell, Webhook, Database } from 'lucide-react';
@@ -67,6 +68,8 @@ function AutomationEditor() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [isSaving, setIsSaving] = useState(false);
+  // adminUI 配置的 AI 默认模型 + 可用模型列表（注入到画布上下文）
+  const [aiDefaults, setAiDefaults] = useState<EditorAIDefaults>({ modelId: null, models: [] })
 
   // 🔥 关键修复：规范化 nodes，确保每个节点都有合法的 position 和 id 字段，
   // 否则 React Flow 内部访问 node.position.x 时会抛出 "Cannot read properties of undefined (reading 'x')"
@@ -281,6 +284,22 @@ function AutomationEditor() {
     fetchUser();
   }, []);
 
+  // 拉取 adminUI 配置的 AI 默认模型 + 可用模型，注入到画布上下文
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/ai/default-model')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (cancelled || !d) return
+        setAiDefaults({
+          modelId: d.modelId || null,
+          models: Array.isArray(d.models) ? d.models : [],
+        })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   // ... (keeping existing callbacks onNodesChange, onEdgesChange, onConnect, onDragOver, onDrop, onDragStart)
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -373,12 +392,14 @@ function AutomationEditor() {
         position: position && typeof position.x === 'number' && typeof position.y === 'number'
           ? position
           : { x: 100 + nodes.length * 50, y: 100 },
-        data: { label, type: subType },
+        data: type === 'aiNode'
+          ? { label, type: subType, config: { model: aiDefaults.modelId || 'qwen-plus' } }
+          : { label, type: subType },
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [screenToFlowPosition, nodes],
+    [screenToFlowPosition, nodes, aiDefaults.modelId],
   );
 
   const onDragStart = (event: React.DragEvent, nodeType: string, subType: string, label: string) => {
@@ -666,6 +687,7 @@ function AutomationEditor() {
   };
 
   return (
+    <EditorAIDefaultsContext.Provider value={aiDefaults}>
     <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
       {/* Global Background */}
       <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-[#0B1220]" />
@@ -1062,6 +1084,7 @@ function AutomationEditor() {
         )}
       </div>
     </div>
+    </EditorAIDefaultsContext.Provider>
   );
 }
 
