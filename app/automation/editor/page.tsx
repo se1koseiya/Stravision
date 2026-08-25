@@ -826,12 +826,7 @@ function AutomationEditor() {
                             draggable
                             onDragStart={(e) => onDragStart(e, item.type, item.subType, item.label)}
                           >
-                             <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150 ${
-                               item.color === 'green' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
-                               item.color === 'purple' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400' :
-                               item.color === 'blue' ? 'bg-[#1677ff]/10 text-[#1677ff] dark:text-blue-400' :
-                               'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                             }`}>
+                             <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-200 text-slate-500 group-hover:border-[#1677ff]/40 group-hover:text-[#1677ff] group-hover:bg-[#1677ff]/[0.06] flex items-center justify-center shrink-0 transition-colors duration-150">
                                 {item.icon}
                              </div>
                              {!isNodeLibraryCollapsed && (
