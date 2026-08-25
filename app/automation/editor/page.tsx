@@ -33,8 +33,7 @@ import { toast } from 'sonner';
 // antd 组件（飞书式整体风格）
 import { Button as AntButton, Input as AntInput, Tag as AntTag, Drawer as AntDrawer } from 'antd';
 import { DeviceSidebarList } from "@/components/automation/device-sidebar-list";
-// 新增：画布左右工具栏（参考那套画布的功能设计）
-import { CanvasLeftToolbar, type CanvasTool } from "@/components/automation/canvas-left-toolbar";
+// 新增：画布底部右下工具栏
 import { CanvasBottomToolbar } from "@/components/automation/canvas-bottom-toolbar";
 import { PageNavigation } from "@/components/page-navigation";
 import { UserAvatarMenu } from "@/components/user-avatar-menu";
@@ -53,31 +52,10 @@ const nodeTypes = {
   aiNode: AiNode,
 };
 
-const initialNodes: Node[] = [
-  {
-    id: '1',
-    type: 'triggerNode',
-    position: { x: 100, y: 150 },
-    data: { label: 'VLM 视觉识别', type: 'vlm' },
-  },
-  {
-    id: '2',
-    type: 'logicNode',
-    position: { x: 500, y: 150 },
-    data: { label: '置信度判断', type: 'compare' },
-  },
-  {
-    id: '3',
-    type: 'actionNode',
-    position: { x: 900, y: 150 },
-    data: { label: '发送病害预警', type: 'notification' },
-  },
-];
+// 空白画布起步（不再预置示例节点和彩色连线）
+const initialNodes: Node[] = []
 
-const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#22c55e', strokeWidth: 2 } },
-  { id: 'e2-3', source: '2', target: '3', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 } },
-];
+const initialEdges: Edge[] = []
 
 function AutomationEditor() {
   const router = useRouter();
@@ -244,11 +222,10 @@ function AutomationEditor() {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null);
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
-  const [tool, setTool] = useState<CanvasTool>("select");
   // 撤销/重做历史栈（快照节点/边集合）
   const undoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
   const redoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
-  const { screenToFlowPosition, toObject, setNodes: rfSetNodes, setEdges: rfSetEdges } = useReactFlow();
+  const { screenToFlowPosition, toObject } = useReactFlow();
 
   // Voice Interaction Hooks
   const { 
@@ -356,17 +333,17 @@ function AutomationEditor() {
     const prev = undoStackRef.current.pop()
     if (!prev) return
     redoStackRef.current.push(snapshot())
-    rfSetNodes(prev.nodes)
-    rfSetEdges(prev.edges)
-  }, [nodes, edges, rfSetNodes, rfSetEdges])
+    setNodes(prev.nodes)
+    setEdges(prev.edges)
+  }, [nodes, edges, setNodes, setEdges])
 
   const handleRedo = useCallback(() => {
     const next = redoStackRef.current.pop()
     if (!next) return
     undoStackRef.current.push(snapshot())
-    rfSetNodes(next.nodes)
-    rfSetEdges(next.edges)
-  }, [nodes, edges, rfSetNodes, rfSetEdges])
+    setNodes(next.nodes)
+    setEdges(next.edges)
+  }, [nodes, edges, setNodes, setEdges])
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -719,9 +696,6 @@ function AutomationEditor() {
                       className="!w-52 !text-sm !font-semibold !px-0"
                       placeholder="策略名称"
                     />
-                    <AntTag color="blue" bordered={false} className="!m-0 !text-[10px] !leading-5 !rounded !px-2">
-                      草稿
-                    </AntTag>
                   </div>
               </div>
            </div>
@@ -814,19 +788,9 @@ function AutomationEditor() {
               canRedo={redoStackRef.current.length > 0}
             />
 
-            {/* 左侧垂直工具栏（选择/手型/便签 + 撤销重做） */}
-            <CanvasLeftToolbar
-              tool={tool}
-              onToolChange={setTool}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              canUndo={undoStackRef.current.length > 0}
-              canRedo={redoStackRef.current.length > 0}
-            />
-            
-            {/* Floating Component Library (Right of the left toolbar) */}
+            {/* Floating Component Library (Left) */}
             <aside 
-              className={`absolute top-24 bottom-6 z-40 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] left-[72px] ${
+              className={`absolute top-24 bottom-6 z-40 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] left-6 ${
                 isNodeLibraryCollapsed ? 'w-16' : 'w-80'
               }`}
             >
