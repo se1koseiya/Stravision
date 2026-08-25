@@ -43,7 +43,10 @@ const ActionNode = ({ id, data, selected }: NodeProps) => {
       )}>
         <div className="px-5 pt-2.5 pb-3 space-y-2">
           <div className="flex items-center justify-between h-3.5">
-            <span className="text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">执行</span>
+            <span className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">
+              <svg viewBox="0 0 10 10" className="w-2 h-2 fill-slate-400"><path d="M2 1 L9 5 L2 9 Z" /></svg>
+              执行
+            </span>
             {status === 'running' && <span className="text-[10px] text-[#1677ff] font-medium">运行中</span>}
           </div>
           <div className="text-[14px] font-medium text-slate-900 leading-snug">

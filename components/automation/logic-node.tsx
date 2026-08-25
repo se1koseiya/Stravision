@@ -38,7 +38,13 @@ const LogicNode = ({ id, data, selected }: NodeProps) => {
       )}>
         <div className="px-5 pt-2.5 pb-3 space-y-2">
           <div className="flex items-center justify-between h-3.5">
-            <span className="text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">逻辑</span>
+            <span className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">
+              {/* 菱形图标 = 判定（decision）语义 */}
+              <svg viewBox="0 0 10 10" className="w-2 h-2">
+                <path d="M5 0 L10 5 L5 10 L0 5 Z" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              逻辑
+            </span>
             {status === 'running' && <span className="text-[10px] text-[#1677ff] font-medium">运行中</span>}
           </div>
           <div className="text-[14px] font-medium text-slate-900 leading-snug">
@@ -130,10 +136,20 @@ const LogicNode = ({ id, data, selected }: NodeProps) => {
         </div>
       </div>
       
+      {/* 两个出口：是 (true) / 否 (false) */}
       <Handle
+        id="true"
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-slate-700 transition-colors"
+        style={{ top: '30%' }}
+        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-emerald-500 transition-colors"
+      />
+      <Handle
+        id="false"
+        type="source"
+        position={Position.Right}
+        style={{ top: '70%' }}
+        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-rose-500 transition-colors"
       />
     </div>
   );

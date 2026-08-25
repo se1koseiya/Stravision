@@ -37,7 +37,10 @@ const AiNode = ({ id, data, selected }: NodeProps) => {
       )}>
         <div className="px-5 pt-2.5 pb-3 space-y-2">
           <div className="flex items-center justify-between h-3.5">
-            <span className="text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">AI Agent</span>
+            <span className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">
+              <svg viewBox="0 0 10 10" className="w-2 h-2 stroke-slate-400 fill-none" strokeWidth="1.2"><path d="M5 0 L10 5 L5 10 L0 5 Z" /></svg>
+              AI Agent
+            </span>
             {status === 'running' && <span className="text-[10px] text-[#1677ff] font-medium">运行中</span>}
           </div>
           <div className="text-[14px] font-medium text-slate-900 leading-snug">

@@ -33,6 +33,9 @@ import { toast } from 'sonner';
 // antd 组件（飞书式整体风格）
 import { Button as AntButton, Input as AntInput, Tag as AntTag, Drawer as AntDrawer } from 'antd';
 import { DeviceSidebarList } from "@/components/automation/device-sidebar-list";
+// 新增：画布左右工具栏（参考那套画布的功能设计）
+import { CanvasLeftToolbar, type CanvasTool } from "@/components/automation/canvas-left-toolbar";
+import { CanvasBottomToolbar } from "@/components/automation/canvas-bottom-toolbar";
 import { PageNavigation } from "@/components/page-navigation";
 import { UserAvatarMenu } from "@/components/user-avatar-menu";
 import type { UserPublic } from "@/lib/db/user-service";
@@ -241,7 +244,11 @@ function AutomationEditor() {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null);
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
-  const { screenToFlowPosition, toObject } = useReactFlow();
+  const [tool, setTool] = useState<CanvasTool>("select");
+  // 撤销/重做历史栈（快照节点/边集合）
+  const undoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
+  const redoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
+  const { screenToFlowPosition, toObject, setNodes: rfSetNodes, setEdges: rfSetEdges } = useReactFlow();
 
   // Voice Interaction Hooks
   const { 
@@ -309,9 +316,57 @@ function AutomationEditor() {
   );
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true, style: { strokeWidth: 2 } }, eds)),
-    [],
-  );
+    (params: Connection) => {
+      // 逻辑节点（判定）的 true/false 两个出口，连线时打上是/否标签
+      let label = ""
+      if (params.sourceHandle === "true") label = "是"
+      else if (params.sourceHandle === "false") label = "否"
+
+      // 记录快照（用于撤销）
+      undoStackRef.current.push({ nodes, edges })
+      if (undoStackRef.current.length > 50) undoStackRef.current.shift()
+      redoStackRef.current = []
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            animated: true,
+            label,
+            labelStyle: { fill: "#475569", fontSize: 11, fontWeight: 500 },
+            labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9 },
+            labelBgPadding: [4, 2],
+            labelBgBorderRadius: 4,
+            style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+          },
+          eds
+        )
+      )
+    },
+    [nodes, edges, setEdges]
+  )
+
+  // 撤销 / 重做（基于节点/边历史快照）
+  const snapshot = () => ({
+    nodes: JSON.parse(JSON.stringify(nodes)) as Node[],
+    edges: JSON.parse(JSON.stringify(edges)) as Edge[],
+  })
+
+  const handleUndo = useCallback(() => {
+    const prev = undoStackRef.current.pop()
+    if (!prev) return
+    redoStackRef.current.push(snapshot())
+    rfSetNodes(prev.nodes)
+    rfSetEdges(prev.edges)
+  }, [nodes, edges, rfSetNodes, rfSetEdges])
+
+  const handleRedo = useCallback(() => {
+    const next = redoStackRef.current.pop()
+    if (!next) return
+    undoStackRef.current.push(snapshot())
+    rfSetNodes(next.nodes)
+    rfSetEdges(next.edges)
+  }, [nodes, edges, rfSetNodes, rfSetEdges])
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -751,14 +806,27 @@ function AutomationEditor() {
                 className="opacity-[0.15] dark:opacity-[0.1]" 
             />
             
-            <Controls 
-                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-sm rounded-lg overflow-hidden m-4 [&>button]:border-slate-200 [&>button]:text-slate-600 [&>button:hover]:bg-slate-50 [&>button:hover]:text-[#1677ff]" 
-                showInteractive={false}
+            {/* 底部右下浮动工具栏（zoom / 主题 / 撤销重做） */}
+            <CanvasBottomToolbar
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={undoStackRef.current.length > 0}
+              canRedo={redoStackRef.current.length > 0}
+            />
+
+            {/* 左侧垂直工具栏（选择/手型/便签 + 撤销重做） */}
+            <CanvasLeftToolbar
+              tool={tool}
+              onToolChange={setTool}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={undoStackRef.current.length > 0}
+              canRedo={redoStackRef.current.length > 0}
             />
             
-            {/* Floating Component Library (Left Side) */}
+            {/* Floating Component Library (Right of the left toolbar) */}
             <aside 
-              className={`absolute top-24 left-6 bottom-6 z-40 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+              className={`absolute top-24 bottom-6 z-40 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] left-[72px] ${
                 isNodeLibraryCollapsed ? 'w-16' : 'w-80'
               }`}
             >
