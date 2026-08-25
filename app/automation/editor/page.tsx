@@ -829,55 +829,83 @@ function AutomationEditor() {
                   </div>
                 )}
 
-                {/* Content */}
+                {/* Content — 按类型分组的紧凑 palette（折叠态隐藏） */}
+                {!isNodeLibraryCollapsed && (
                 <div className="flex-1 overflow-y-auto px-3 pb-5 scrollbar-none hover:scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 transition-all">
-                  <div className="space-y-4 pt-3">
-                    {/* Triggers Group */}
-                    <div className="space-y-2">
-                      {!isNodeLibraryCollapsed && (
-                        <div className="px-1 flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">触发器</span>
-                          <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
-                        </div>
-                      )}
-                      
-                      <div className="grid grid-cols-1 gap-1.5">
-                        {[
-                          { type: 'triggerNode', subType: 'vlm', label: 'VLM 视觉识别', icon: <Wand2 className="w-4 h-4" />, color: 'green', desc: 'AI 视觉识别物体与异常' },
-                          { type: 'triggerNode', subType: 'sensor', label: '传感器数值', icon: <Bolt className="w-4 h-4" />, color: 'green', desc: '实时监听温湿度等数据' },
-                          { type: 'logicNode', subType: 'compare', label: '数值比较', icon: <Search className="w-4 h-4" />, color: 'purple', desc: '比较两个数值的大小关系' },
-                          { type: 'logicNode', subType: 'range', label: '范围判断', icon: <LayoutGrid className="w-4 h-4" />, color: 'purple', desc: '判断数值是否在指定范围内' },
-                          { type: 'aiNode', subType: 'llm', label: 'AI 智能处理', icon: <Sparkles className="w-4 h-4" />, color: 'blue', desc: '使用 LLM 分析数据并决策' },
-                          { type: 'aiNode', subType: 'trend', label: '趋势分析', icon: <BrainCircuit className="w-4 h-4" />, color: 'blue', desc: '分析历史数据预测趋势' },
-                          { type: 'actionNode', subType: 'device', label: '设备控制', icon: <Settings className="w-4 h-4" />, color: 'orange', desc: '控制开关、模式或参数' },
-                          { type: 'actionNode', subType: 'notification', label: '发送通知', icon: <LogOut className="w-4 h-4 rotate-180" />, color: 'orange', desc: '发送站内信或邮件通知' },
-                        ].map((item, idx) => (
-                          <div 
-                            key={idx}
-                            className={`group flex items-center rounded-md border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 hover:border-[#1677ff]/40 hover:bg-[#1677ff]/[0.04] dark:hover:bg-[#1677ff]/10 transition-all duration-150 cursor-grab active:cursor-grabbing ${isNodeLibraryCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2.5'}`}
-                            draggable
-                            onDragStart={(e) => onDragStart(e, item.type, item.subType, item.label)}
-                          >
-                             <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-200 text-slate-500 group-hover:border-[#1677ff]/40 group-hover:text-[#1677ff] group-hover:bg-[#1677ff]/[0.06] flex items-center justify-center shrink-0 transition-colors duration-150">
-                                {item.icon}
-                             </div>
-                             {!isNodeLibraryCollapsed && (
-                               <div className="flex-1 min-w-0">
-                                  <h4 className="text-[13px] font-medium text-slate-800 dark:text-slate-200">{item.label}</h4>
-                                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-px line-clamp-1">{item.desc}</p>
-                               </div>
-                             )}
-                             {isNodeLibraryCollapsed && (
-                               <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">
-                                 {item.label}
-                               </div>
-                             )}
+                  {(() => {
+                    // 节点定义（按类型分组）
+                    const groups: { key: string; label: string; icon: React.ReactNode; items: { type: string; subType: string; label: string; icon: React.ReactNode; desc: string }[] }[] = [
+                      {
+                        key: 'trigger', label: '触发器',
+                        icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 fill-slate-400"><path d="M2 1 L9 5 L2 9 Z" /></svg>,
+                        items: [
+                          { type: 'triggerNode', subType: 'vlm', label: 'VLM 视觉识别', icon: <Wand2 className="w-3.5 h-3.5" />, desc: 'AI 视觉识别物体与异常' },
+                          { type: 'triggerNode', subType: 'sensor', label: '传感器数值', icon: <Bolt className="w-3.5 h-3.5" />, desc: '实时监听温湿度等数据' },
+                        ],
+                      },
+                      {
+                        key: 'logic', label: '判定',
+                        icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>,
+                        items: [
+                          { type: 'logicNode', subType: 'compare', label: '数值比较', icon: <Search className="w-3.5 h-3.5" />, desc: '比较两个数值大小' },
+                          { type: 'logicNode', subType: 'range', label: '范围判断', icon: <LayoutGrid className="w-3.5 h-3.5" />, desc: '判断数值是否在范围内' },
+                        ],
+                      },
+                      {
+                        key: 'ai', label: 'AI',
+                        icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>,
+                        items: [
+                          { type: 'aiNode', subType: 'llm', label: '智能处理', icon: <Sparkles className="w-3.5 h-3.5" />, desc: 'LLM 分析决策' },
+                          { type: 'aiNode', subType: 'trend', label: '趋势分析', icon: <BrainCircuit className="w-3.5 h-3.5" />, desc: '历史数据预测' },
+                        ],
+                      },
+                      {
+                        key: 'action', label: '执行',
+                        icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 fill-slate-400"><path d="M2 1 L9 5 L2 9 Z" /></svg>,
+                        items: [
+                          { type: 'actionNode', subType: 'device', label: '设备控制', icon: <Settings className="w-3.5 h-3.5" />, desc: '控制开关/模式/参数' },
+                          { type: 'actionNode', subType: 'notification', label: '发送通知', icon: <LogOut className="w-3.5 h-3.5 rotate-180" />, desc: '站内信或邮件' },
+                        ],
+                      },
+                    ]
+
+                    return (
+                      <div className="space-y-4 pt-3">
+                        {groups.map((g) => (
+                          <div key={g.key}>
+                            {/* 分组标题 */}
+                            <div className="px-1 flex items-center gap-1.5 mb-2">
+                              <span className="text-slate-400">{g.icon}</span>
+                              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">{g.label}</span>
+                              <div className="h-px flex-1 bg-slate-100 ml-0.5" />
+                              <span className="text-[10px] text-slate-300 tabular-nums">{g.items.length}</span>
+                            </div>
+                            {/* 2 列紧凑网格 */}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {g.items.map((it) => (
+                                <div
+                                  key={it.subType}
+                                  title={`${it.label} — ${it.desc}`}
+                                  draggable
+                                  onDragStart={(e) => onDragStart(e, it.type, it.subType, it.label)}
+                                  className="group flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-md border border-slate-200/70 bg-white hover:border-[#1677ff]/40 hover:bg-[#1677ff]/[0.04] hover:shadow-sm transition-all duration-150 cursor-grab active:cursor-grabbing"
+                                >
+                                  <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-200 text-slate-500 group-hover:border-[#1677ff]/40 group-hover:text-[#1677ff] group-hover:bg-[#1677ff]/[0.06] flex items-center justify-center transition-colors duration-150">
+                                    {it.icon}
+                                  </div>
+                                  <span className="text-[11.5px] font-medium text-slate-700 group-hover:text-[#1677ff] truncate w-full text-center transition-colors">
+                                    {it.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
+                    )
+                  })()}
                 </div>
+                )}
               </div>
             </aside>
           </ReactFlow>
