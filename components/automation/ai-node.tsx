@@ -43,13 +43,13 @@ const AiNode = ({ id, data, selected }: NodeProps) => {
       />
       
       <Card className={cn(
-        "w-72 border-2 shadow-sm transition-all duration-300",
-        selected ? "border-indigo-500 shadow-lg shadow-indigo-500/20" : "border-indigo-100 dark:border-indigo-900",
+        "w-72 border shadow-sm transition-all duration-300",
+        selected ? "border-[#0052D9] ring-1 ring-[#0052D9]/20 shadow-[0_4px_16px_rgba(0,82,217,0.15)]" : "border-indigo-100 dark:border-indigo-900",
         status === 'running' ? "ring-2 ring-indigo-400 ring-offset-2 border-indigo-500" : "",
         status === 'completed' ? "border-indigo-500 bg-indigo-50/30 dark:bg-indigo-900/10" : "",
         "bg-white dark:bg-zinc-900"
       )}>
-        <CardHeader className="p-3 pb-2 bg-indigo-50/50 dark:bg-indigo-900/10 border-b border-indigo-100 dark:border-indigo-900/50 rounded-t-lg">
+        <CardHeader className="p-3 pb-2 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-700/60 rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className={cn(
@@ -58,7 +58,7 @@ const AiNode = ({ id, data, selected }: NodeProps) => {
               )}>
                 <Icon className="w-4 h-4" />
               </div>
-              <span className="font-semibold text-sm text-indigo-900 dark:text-indigo-100">
+              <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
                 {data.label}
               </span>
             </div>

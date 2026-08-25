@@ -119,7 +119,7 @@ export default function AutomationPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                <Bolt className="w-8 h-8 text-green-500" />
+                <Bolt className="w-8 h-8 text-[#0052D9]" />
                 自动化策略
               </h1>
               <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-lg">
@@ -131,15 +131,15 @@ export default function AutomationPage() {
           {/* Action Bar & Filter Capsules */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-40 py-2 -mx-2 px-2 md:mx-0 md:px-0 rounded-2xl md:static md:py-0">
 
-            {/* Capsule Filter Tabs */}
-            <div className="bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-full flex items-center gap-1 backdrop-blur-sm border border-white/20 dark:border-white/5">
+            {/* Capsule Filter Tabs —— 腾讯分段控件 */}
+            <div className="bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 p-1 rounded-lg flex items-center gap-0.5 shadow-sm">
               <button
                 onClick={() => setFilter("all")}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                   filter === "all"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    ? "bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 )}
               >
                 全部 ({rules.length})
@@ -147,32 +147,32 @@ export default function AutomationPage() {
               <button
                 onClick={() => setFilter("active")}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2",
+                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2",
                   filter === "active"
-                    ? "bg-white dark:bg-slate-700 text-green-600 dark:text-green-400 shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    ? "bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 )}
               >
-                <span className={cn("w-1.5 h-1.5 rounded-full bg-green-500", filter !== "active" && "opacity-50")} />
+                <span className={cn("w-1.5 h-1.5 rounded-full bg-green-500", filter !== "active" && "opacity-40")} />
                 运行中 ({activeCount})
               </button>
               <button
                 onClick={() => setFilter("paused")}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2",
+                  "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2",
                   filter === "paused"
-                    ? "bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    ? "bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 )}
               >
-                <span className={cn("w-1.5 h-1.5 rounded-full bg-amber-500", filter !== "paused" && "opacity-50")} />
+                <span className={cn("w-1.5 h-1.5 rounded-full bg-amber-500", filter !== "paused" && "opacity-40")} />
                 已暂停 ({pausedCount})
               </button>
             </div>
 
             <Link href="/automation/editor">
-              <Button className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 shadow-lg shadow-slate-900/20 rounded-full px-6 transition-all hover:scale-105 active:scale-95 border border-transparent dark:border-white/20">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button className="bg-[#0052D9] text-white hover:bg-[#0052D9]/90 rounded-md px-5 h-9 shadow-sm border-0 transition-all">
+                <Plus className="w-4 h-4 mr-1.5" />
                 新建策略
               </Button>
             </Link>
@@ -191,8 +191,8 @@ export default function AutomationPage() {
                   transition={{ duration: 0.2, delay: idx * 0.05 }}
                 >
                   <Card className={cn(
-                    "h-full border-0 shadow-sm hover:shadow-xl transition-all duration-300 group overflow-hidden relative bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl ring-1 ring-slate-200/50 dark:ring-slate-800/50",
-                    rule.is_active ? "shadow-green-500/5 hover:shadow-green-500/10" : "opacity-80 grayscale-[0.5] hover:grayscale-0 hover:opacity-100"
+                    "h-full border border-slate-200/70 dark:border-slate-700/70 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden relative bg-white dark:bg-slate-900",
+                    rule.is_active ? "hover:shadow-[0_8px_24px_rgba(0,82,217,0.08)]" : "opacity-80 hover:opacity-100"
                   )}>
                     {/* Status Indicator Bar */}
                     <div className={cn(
@@ -237,7 +237,7 @@ export default function AutomationPage() {
                         </DropdownMenu>
                       </div>
 
-                      <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                      <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#0052D9] dark:group-hover:text-blue-400 transition-colors">
                         {rule.name}
                       </CardTitle>
                       <CardDescription className="line-clamp-2 min-h-[2.5em] text-slate-500 dark:text-slate-400">
@@ -264,7 +264,7 @@ export default function AutomationPage() {
                       </div>
 
                       <Link href={`/automation/editor?id=${rule.id}`} className="block">
-                        <Button className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm transition-all group/btn">
+                        <Button className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#0052D9]/50 hover:text-[#0052D9] dark:hover:text-blue-400 hover:bg-[#0052D9]/[0.03] rounded-md shadow-sm transition-all group/btn">
                           编辑策略 <ArrowRight className="w-4 h-4 ml-1 opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
                         </Button>
                       </Link>

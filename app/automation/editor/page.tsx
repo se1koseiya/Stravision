@@ -646,87 +646,85 @@ function AutomationEditor() {
       {/* Editor Layout Grid */}
       <div className="relative z-10 w-full h-full flex flex-col">
         
-        {/* Minimalist Floating Header */}
-        <div className="absolute top-0 left-0 w-full z-50 pointer-events-none p-6 flex items-start justify-between">
+        {/* 腾讯风格顶部工具栏：实底白色、1px 边框、圆角、蓝主按钮 */}
+        <div className="absolute top-0 left-0 w-full z-50 pointer-events-none px-5 py-4 flex items-start justify-between">
            {/* Left: Context & Back */}
-           <div className="flex items-center gap-4 pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-2 pr-6 rounded-full border border-white/20 dark:border-white/10 shadow-sm transition-all hover:shadow-md hover:bg-white/90 dark:hover:bg-slate-900/90">
+           <div className="flex items-center gap-3 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 rounded-lg shadow-sm pl-1.5 pr-4 py-1.5">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => router.push('/automation')} 
-                className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
+                className="h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
               >
-                 <ArrowLeft className="w-5 h-5" />
+                 <ArrowLeft className="w-4 h-4" />
               </Button>
               
-              <div className="flex flex-col">
+              <div className="flex flex-col justify-center">
                   <div className="flex items-center gap-2">
                     <Input 
                       value={ruleName} 
                       onChange={(e) => setRuleName(e.target.value)}
-                      className="h-6 w-48 text-sm font-bold border-none shadow-none focus-visible:ring-0 px-0 bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                      className="h-7 w-52 text-sm font-semibold border-none shadow-none focus-visible:ring-0 px-0 bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                       placeholder="策略名称"
                     />
-                    <Badge variant="secondary" className="text-[10px] h-5 px-2 bg-green-500/10 text-green-600 dark:text-green-400 font-medium border-0">Draft</Badge>
+                    <Badge variant="secondary" className="text-[10px] h-5 px-2 bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400 font-medium border-0">草稿</Badge>
                   </div>
               </div>
            </div>
            
            {/* Right: Actions */}
-           <div className="flex items-center gap-3 pointer-events-auto">
-             <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-1.5 rounded-full border border-white/20 dark:border-white/10 shadow-sm">
+           <div className="flex items-center gap-2 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 rounded-lg shadow-sm p-1.5">
                 <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-9 px-4 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group"
+                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group"
                     onClick={() => setIsAiInputVisible(true)}
                 >
-                    <Sparkles className="w-4 h-4 mr-2 text-amber-500 group-hover:animate-pulse" />
+                    <Sparkles className="w-4 h-4 mr-1.5 text-amber-500 group-hover:animate-pulse" />
                     AI 生成
                 </Button>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
                 <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-9 px-4 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                     onClick={handleSimulation}
                     disabled={isSimulating}
                 >
-                    {isSimulating ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 mr-2 text-indigo-500" />}
+                    {isSimulating ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-[#0052D9]" /> : <Play className="w-4 h-4 mr-1.5 text-[#0052D9]" />}
                     {isSimulating ? '模拟运行中...' : '模拟运行'}
                 </Button>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
                 <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-9 px-4 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                     onClick={handleRun}
                     disabled={isRunning}
                 >
-                    {isRunning ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-rose-500" /> : <Zap className="w-4 h-4 mr-2 text-rose-500" />}
+                    {isRunning ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-[#0052D9]" /> : <Zap className="w-4 h-4 mr-1.5 text-[#0052D9]" />}
                     {isRunning ? '正在运行...' : '立即运行'}
                 </Button>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
                 <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-9 px-4 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    className="h-8 px-3.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                     onClick={() => setIsDeviceSheetOpen(true)}
                 >
-                    <LayoutGrid className="w-4 h-4 mr-2 opacity-70" />
+                    <LayoutGrid className="w-4 h-4 mr-1.5 opacity-70" />
                     设备
                 </Button>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
                 <Button 
                     size="sm" 
                     onClick={handleSave} 
                     disabled={isSaving}
-                    className="h-9 px-5 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 shadow-lg shadow-slate-900/20 border-0 transition-all hover:scale-105 active:scale-95"
+                    className="h-8 px-5 rounded-md bg-[#0052D9] text-white hover:bg-[#0052D9]/90 shadow-sm border-0 transition-all"
                 >
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="flex items-center font-medium"><Save className="w-4 h-4 mr-2" /> 保存</span>}
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="flex items-center font-medium"><Save className="w-4 h-4 mr-1.5" /> 保存</span>}
                 </Button>
              </div>
-           </div>
         </div>
 
         {/* Main Content: React Flow Canvas */}
@@ -753,7 +751,7 @@ function AutomationEditor() {
             />
             
             <Controls 
-                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-sm rounded-xl overflow-hidden m-6" 
+                className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-sm rounded-lg overflow-hidden m-4 [&>button]:border-slate-200 [&>button]:text-slate-600 [&>button:hover]:bg-slate-50 [&>button:hover]:text-[#0052D9]" 
                 showInteractive={false}
             />
             
@@ -763,81 +761,81 @@ function AutomationEditor() {
                 isNodeLibraryCollapsed ? 'w-16' : 'w-80'
               }`}
             >
-              <div className="flex-1 flex flex-col bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] rounded-[24px] overflow-hidden transition-all duration-300">
+              <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] rounded-xl overflow-hidden transition-all duration-300">
                 {/* Header */}
-                <div className="p-4 border-b border-slate-200/30 dark:border-slate-800/30 flex items-center justify-between shrink-0 h-16">
+                <div className="px-4 border-b border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between shrink-0 h-12">
                   {!isNodeLibraryCollapsed && (
-                    <div className="flex items-center gap-2.5 px-1 animate-in fade-in slide-in-from-left-2 duration-300">
-                      <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                      <div className="p-1.5 rounded-md bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400">
                         <LayoutGrid className="w-4 h-4" />
                       </div>
-                      <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-slate-100">组件库</span>
+                      <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">组件库</span>
                     </div>
                   )}
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className={`h-9 w-9 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all ${isNodeLibraryCollapsed ? 'mx-auto' : ''}`}
+                    className={`h-8 w-8 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all ${isNodeLibraryCollapsed ? 'mx-auto' : ''}`}
                     onClick={() => setIsNodeLibraryCollapsed(!isNodeLibraryCollapsed)}
                   >
-                    {isNodeLibraryCollapsed ? <Plus className="w-5 h-5 rotate-0 transition-transform duration-300 group-hover:rotate-90" /> : <ArrowLeft className="w-4 h-4" />}
+                    {isNodeLibraryCollapsed ? <Plus className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
                   </Button>
                 </div>
 
                 {/* Search - Only shown when expanded */}
                 {!isNodeLibraryCollapsed && (
-                  <div className="px-4 py-3 animate-in fade-in zoom-in-95 duration-300">
-                    <div className="relative group">
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                  <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
                       <Input 
                         placeholder="搜索组件..." 
-                        className="pl-9 h-10 bg-slate-500/5 dark:bg-slate-400/5 border-transparent focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all" 
+                        className="pl-8 h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 focus:border-[#0052D9]/40 focus:ring-2 focus:ring-[#0052D9]/10 rounded-md text-sm transition-all" 
                       />
                     </div>
                   </div>
                 )}
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto px-3 pb-6 scrollbar-none hover:scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 transition-all">
-                  <div className="space-y-6 pt-2">
+                <div className="flex-1 overflow-y-auto px-3 pb-5 scrollbar-none hover:scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 transition-all">
+                  <div className="space-y-4 pt-3">
                     {/* Triggers Group */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {!isNodeLibraryCollapsed && (
-                        <div className="px-2 flex items-center gap-3 opacity-40">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">触发器</span>
-                          <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-200 to-transparent dark:from-slate-700"></div>
+                        <div className="px-1 flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">触发器</span>
+                          <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800"></div>
                         </div>
                       )}
                       
-                      <div className="grid grid-cols-1 gap-2">
+                      <div className="grid grid-cols-1 gap-1.5">
                         {[
-                          { type: 'triggerNode', subType: 'vlm', label: 'VLM 视觉识别', icon: <Wand2 className="w-5 h-5" />, color: 'green', desc: 'AI 视觉识别物体与异常' },
-                          { type: 'triggerNode', subType: 'sensor', label: '传感器数值', icon: <Bolt className="w-5 h-5" />, color: 'green', desc: '实时监听温湿度等数据' },
-                          { type: 'logicNode', subType: 'compare', label: '数值比较', icon: <Search className="w-5 h-5" />, color: 'purple', desc: '比较两个数值的大小关系' },
-                          { type: 'logicNode', subType: 'range', label: '范围判断', icon: <LayoutGrid className="w-5 h-5" />, color: 'purple', desc: '判断数值是否在指定范围内' },
-                          { type: 'aiNode', subType: 'llm', label: 'AI 智能处理', icon: <Sparkles className="w-5 h-5" />, color: 'blue', desc: '使用 LLM 分析数据并决策' },
-                          { type: 'aiNode', subType: 'trend', label: '趋势分析', icon: <BrainCircuit className="w-5 h-5" />, color: 'blue', desc: '分析历史数据预测趋势' },
-                          { type: 'actionNode', subType: 'device', label: '设备控制', icon: <Settings className="w-5 h-5" />, color: 'orange', desc: '控制开关、模式或参数' },
+                          { type: 'triggerNode', subType: 'vlm', label: 'VLM 视觉识别', icon: <Wand2 className="w-4 h-4" />, color: 'green', desc: 'AI 视觉识别物体与异常' },
+                          { type: 'triggerNode', subType: 'sensor', label: '传感器数值', icon: <Bolt className="w-4 h-4" />, color: 'green', desc: '实时监听温湿度等数据' },
+                          { type: 'logicNode', subType: 'compare', label: '数值比较', icon: <Search className="w-4 h-4" />, color: 'purple', desc: '比较两个数值的大小关系' },
+                          { type: 'logicNode', subType: 'range', label: '范围判断', icon: <LayoutGrid className="w-4 h-4" />, color: 'purple', desc: '判断数值是否在指定范围内' },
+                          { type: 'aiNode', subType: 'llm', label: 'AI 智能处理', icon: <Sparkles className="w-4 h-4" />, color: 'blue', desc: '使用 LLM 分析数据并决策' },
+                          { type: 'aiNode', subType: 'trend', label: '趋势分析', icon: <BrainCircuit className="w-4 h-4" />, color: 'blue', desc: '分析历史数据预测趋势' },
+                          { type: 'actionNode', subType: 'device', label: '设备控制', icon: <Settings className="w-4 h-4" />, color: 'orange', desc: '控制开关、模式或参数' },
                           { type: 'actionNode', subType: 'notification', label: '发送通知', icon: <LogOut className="w-4 h-4 rotate-180" />, color: 'orange', desc: '发送站内信或邮件通知' },
                         ].map((item, idx) => (
                           <div 
                             key={idx}
-                            className={`group relative flex items-center ${isNodeLibraryCollapsed ? 'justify-center p-2' : 'gap-3 p-3'} rounded-2xl border border-transparent hover:border-white dark:hover:border-white/10 hover:bg-white/50 dark:hover:bg-white/5 hover:shadow-xl hover:shadow-black/5 transition-all duration-300 cursor-grab active:cursor-grabbing overflow-hidden`}
+                            className={`group flex items-center rounded-md border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 hover:border-[#0052D9]/40 hover:bg-[#0052D9]/[0.04] dark:hover:bg-[#0052D9]/10 transition-all duration-150 cursor-grab active:cursor-grabbing ${isNodeLibraryCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2.5'}`}
                             draggable
                             onDragStart={(e) => onDragStart(e, item.type, item.subType, item.label)}
                           >
-                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${
-                               item.color === 'green' ? 'bg-primary/10 text-primary' :
-                               item.color === 'purple' ? 'bg-violet-500/10 text-violet-600' :
-                               item.color === 'blue' ? 'bg-blue-500/10 text-blue-600' :
-                               'bg-amber-500/10 text-amber-600'
-                             } group-hover:scale-110`}>
+                             <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150 ${
+                               item.color === 'green' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                               item.color === 'purple' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400' :
+                               item.color === 'blue' ? 'bg-[#0052D9]/10 text-[#0052D9] dark:text-blue-400' :
+                               'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                             }`}>
                                 {item.icon}
                              </div>
                              {!isNodeLibraryCollapsed && (
-                               <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-1">
-                                  <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.label}</h4>
-                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity">{item.desc}</p>
+                               <div className="flex-1 min-w-0">
+                                  <h4 className="text-[13px] font-medium text-slate-800 dark:text-slate-200">{item.label}</h4>
+                                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-px line-clamp-1">{item.desc}</p>
                                </div>
                              )}
                              {isNodeLibraryCollapsed && (
@@ -858,7 +856,7 @@ function AutomationEditor() {
 
         {/* Device Sidebar Sheet */}
         <Sheet open={isDeviceSheetOpen} onOpenChange={setIsDeviceSheetOpen}>
-          <SheetContent side="right" className="w-[400px] sm:w-[540px] border-l border-slate-200/60 dark:border-slate-800/60 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl p-0 shadow-2xl">
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] border-l border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-950 p-0 shadow-2xl">
              <SheetHeader className="p-6 border-b border-slate-100 dark:border-slate-800">
                <SheetTitle className="flex items-center gap-2 text-lg">
                  <LayoutGrid className="w-5 h-5 text-slate-500" />
@@ -874,18 +872,18 @@ function AutomationEditor() {
         {/* Floating AI Input Bar */}
         {isAiInputVisible && (
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[60] w-full max-w-2xl px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] rounded-[24px] p-2 flex flex-col gap-1">
+             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-lg p-1.5 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 relative flex items-center pl-4 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-white/20 dark:border-white/5">
-                    <Wand2 className="w-5 h-5 text-indigo-500 mr-2 shrink-0" />
+                  <div className="flex-1 relative flex items-center pl-3 bg-slate-50 dark:bg-slate-800/60 rounded-md border border-slate-200/70 dark:border-slate-700/60 focus-within:border-[#0052D9]/40">
+                    <Wand2 className="w-4 h-4 text-[#0052D9] mr-2 shrink-0" />
                     <Input 
                       value={isListening ? (aiPrompt + (transcript ? ` ${transcript}` : '')) : aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAiGenerate()}
                       placeholder={isListening ? "正在聆听..." : "描述你想要的自动化场景..."}
                       className={cn(
-                        "border-none shadow-none focus-visible:ring-0 bg-transparent text-sm h-12 transition-all p-0 flex-1",
-                        isListening && "placeholder:text-indigo-500 placeholder:animate-pulse"
+                        "border-none shadow-none focus-visible:ring-0 bg-transparent text-sm h-11 transition-all p-0 flex-1",
+                        isListening && "placeholder:text-[#0052D9] placeholder:animate-pulse"
                       )}
                       autoFocus
                     />
@@ -897,10 +895,10 @@ function AutomationEditor() {
                           size="icon"
                           onClick={toggleListening}
                           className={cn(
-                            "h-8 w-8 rounded-full transition-all",
+                            "h-8 w-8 rounded-md transition-all",
                             isListening 
                               ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-600 animate-pulse" 
-                              : "text-slate-400 hover:text-indigo-500 hover:bg-indigo-500/10"
+                              : "text-slate-400 hover:text-[#0052D9] hover:bg-[#0052D9]/10"
                           )}
                           title="语音输入"
                         >
