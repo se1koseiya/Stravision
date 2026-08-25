@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -11,6 +11,7 @@ import {
   addEdge,
   Connection,
   Edge,
+  type EdgeProps,
   Node,
   NodeChange,
   EdgeChange,
@@ -25,10 +26,11 @@ import TriggerNode from '@/components/automation/trigger-node';
 import LogicNode from '@/components/automation/logic-node';
 import ActionNode from '@/components/automation/action-node';
 import AiNode from '@/components/automation/ai-node';
+import { DeletableEdge } from '@/components/automation/deletable-edge';
 import { EditorAIDefaultsContext, type EditorAIDefaults } from '@/components/automation/ai-node';
 import { NODE_TYPES } from '@/components/automation/node-types';
 import { Button } from '@/components/ui/button';
-import { Plus, Play, Save, Settings, ArrowLeft, Wand2, LogOut, LayoutGrid, Loader2, Bolt, Search, Sparkles, BrainCircuit, Zap, Mic, MicOff, Volume2, VolumeX, Activity, Clock, Hand, GitCompare, SlidersHorizontal, GitBranch, Timer, TrendingUp, ShieldAlert, ScanLine, ToggleRight, Bell, Webhook, Database } from 'lucide-react';
+import { Plus, Play, Save, Settings, ArrowLeft, Wand2, LogOut, LayoutGrid, Loader2, Bolt, Search, Sparkles, BrainCircuit, Zap, Mic, MicOff, Volume2, VolumeX, Activity, Clock, Hand, GitCompare, SlidersHorizontal, GitBranch, Timer, TrendingUp, ShieldAlert, ScanLine, ToggleRight, Bell, Webhook, Database, MousePointer2, SquareDashed, Trash2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 // antd 组件（飞书式整体风格）
@@ -72,6 +74,8 @@ function AutomationEditor() {
   const [aiDefaults, setAiDefaults] = useState<EditorAIDefaults>({ modelId: null, models: [] })
   // 当前选中元素数量（节点 + 边）
   const [selectedCount, setSelectedCount] = useState(0)
+  // 交互模式：select = 平移/单选（默认），box = 拖拽框选多选
+  const [interactionMode, setInteractionMode] = useState<'select' | 'box'>('select')
 
   // 🔥 关键修复：规范化 nodes，确保每个节点都有合法的 position 和 id 字段，
   // 否则 React Flow 内部访问 node.position.x 时会抛出 "Cannot read properties of undefined (reading 'x')"
@@ -144,7 +148,7 @@ function AutomationEditor() {
         target: e.target,
         sourceHandle: e.sourceHandle,
         targetHandle: e.targetHandle,
-        type: e.type,
+        type: e.type || 'deletable',
         data: e.data,
         label: e.label,
         animated: e.animated,
@@ -357,6 +361,24 @@ function AutomationEditor() {
     deleteElements({ nodes: selNodes, edges: selEdges })
   }, [nodes, edges, getNodes, getEdges, deleteElements])
 
+  // —— 删除单条连线（自定义边上的红色删除按钮触发）——
+  const handleDeleteEdge = useCallback(
+    (id: string) => {
+      onEdgesDelete([{ id } as unknown as Edge])
+    },
+    [onEdgesDelete],
+  )
+
+  // 自定义边类型：deletable 连线（选中后中点下方出现删除按钮）
+  const edgeTypes = useMemo(
+    () => ({
+      deletable: (props: EdgeProps) => (
+        <DeletableEdge {...props} onDelete={handleDeleteEdge} />
+      ),
+    }),
+    [handleDeleteEdge],
+  )
+
   const onConnect = useCallback(
     (params: Connection) => {
       // 逻辑节点（判定）的 true/false 两个出口，连线时打上是/否标签
@@ -373,6 +395,7 @@ function AutomationEditor() {
         addEdge(
           {
             ...params,
+            type: 'deletable',
             animated: true,
             label,
             labelStyle: { fill: "#475569", fontSize: 11, fontWeight: 500 },
@@ -839,11 +862,13 @@ function AutomationEditor() {
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            defaultEdgeOptions={{ type: 'deletable' }}
             deleteKeyCode={['Backspace', 'Delete']}
             multiSelectionKeyCode="Shift"
-            selectionKeyCode="Shift"
-            selectionOnDrag
-            panOnDrag
+            selectionOnDrag={interactionMode === 'box'}
+            panOnDrag={interactionMode === 'select'}
+            selectionKeyCode={interactionMode === 'box' ? null : 'Shift'}
             fitView
             className="bg-transparent"
             proOptions={{ hideAttribution: true }}
@@ -855,6 +880,39 @@ function AutomationEditor() {
                 variant={BackgroundVariant.Dots} 
                 className="opacity-[0.15] dark:opacity-[0.1]" 
             />
+
+            {/* 顶部居中编辑工具栏：选择 / 框选 / 删除（可见操作入口） */}
+            <Panel position="top-center" className="!mt-4">
+              <div className="nodrag pointer-events-auto flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-1.5 py-1 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+                <AntButton
+                  type={interactionMode === 'select' ? 'primary' : 'text'}
+                  size="small"
+                  onClick={() => setInteractionMode('select')}
+                  icon={<MousePointer2 className="w-4 h-4" />}
+                >
+                  选择
+                </AntButton>
+                <AntButton
+                  type={interactionMode === 'box' ? 'primary' : 'text'}
+                  size="small"
+                  onClick={() => setInteractionMode('box')}
+                  icon={<SquareDashed className="w-4 h-4" />}
+                >
+                  框选
+                </AntButton>
+                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+                <AntButton
+                  type="text"
+                  size="small"
+                  danger
+                  disabled={selectedCount === 0}
+                  onClick={handleDeleteSelected}
+                  icon={<Trash2 className="w-4 h-4" />}
+                >
+                  {selectedCount > 0 ? `删除(${selectedCount})` : '删除'}
+                </AntButton>
+              </div>
+            </Panel>
             
             {/* 底部右下浮动工具栏（zoom / 主题 / 撤销重做） */}
             <CanvasBottomToolbar
