@@ -5,12 +5,24 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { UserPublic } from "@/lib/db/user-service"
-import { UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, ChevronDownIcon, QuestionMarkCircleIcon, SunIcon, MoonIcon } from "@heroicons/react/24/outline"
+import {
+  UserIcon,
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  ChevronDownIcon,
+  QuestionMarkCircleIcon,
+  SunIcon,
+  MoonIcon,
+  MapPinIcon,
+  CloudIcon,
+  HeartIcon,
+  ArrowTopRightOnSquareIcon,
+  CheckBadgeIcon,
+} from "@heroicons/react/24/outline"
 import { Activity as ActivityIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -18,8 +30,6 @@ import { cn } from "@/lib/utils"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { useTheme } from "next-themes"
-import { MapPinIcon, CloudIcon, HeartIcon } from "@heroicons/react/24/solid"
-import { Crown, Sparkles } from "lucide-react"
 
 interface UserAvatarMenuProps {
   user?: UserPublic | null
@@ -32,19 +42,81 @@ interface UserAvatarMenuProps {
  */
 function getInitials(username: string): string {
   if (!username) return "U"
-
-  // 如果是中文名,取第一个字
   if (/[\u4e00-\u9fa5]/.test(username)) {
     return username.charAt(0)
   }
-
-  // 如果是英文名,取首字母
   const parts = username.trim().split(/\s+/)
   if (parts.length >= 2) {
     return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
   }
-
   return username.charAt(0).toUpperCase()
+}
+
+// 会员徽标配色（克制高级感，单一色调 + 微渐变，避免彩虹）
+const membershipStyle = {
+  plus: {
+    label: "Plus",
+    icon: CheckBadgeIcon,
+    cls: "from-amber-400 to-orange-500 text-white",
+    ringCls: "ring-amber-400/30",
+    textCls: "text-amber-700 dark:text-amber-300",
+  },
+  pro: {
+    label: "Pro",
+    icon: CheckBadgeIcon,
+    cls: "from-slate-700 to-slate-900 text-white",
+    ringCls: "ring-slate-500/30",
+    textCls: "text-slate-700 dark:text-slate-300",
+  },
+  free: {
+    label: "免费",
+    icon: SparkleMini,
+    cls: "from-slate-300 to-slate-400 text-white",
+    ringCls: "ring-slate-300/30",
+    textCls: "text-muted-foreground",
+  },
+} as const
+
+function SparkleMini(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...props}>
+      <path d="M12 2l1.6 6.4L20 10l-6.4 1.6L12 18l-1.6-6.4L4 10l6.4-1.6L12 2z" />
+    </svg>
+  )
+}
+
+// iOS 风格小开关
+function Toggle({
+  on,
+  onChange,
+  accent = "bg-slate-900 dark:bg-slate-200",
+}: {
+  on: boolean
+  onChange: () => void
+  accent?: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={(e) => {
+        e.preventDefault()
+        onChange()
+      }}
+      className={cn(
+        "relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full transition-colors duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40",
+        on ? accent : "bg-slate-300/70 dark:bg-slate-600/70"
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none inline-block h-[18px] w-[18px] transform rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.18)] transition-transform duration-200 ease-out",
+          on ? "translate-x-[18px]" : "translate-x-[2px]"
+        )}
+      />
+    </button>
+  )
 }
 
 export function UserAvatarMenu({ user, variant = "default", className }: UserAvatarMenuProps) {
@@ -56,28 +128,25 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
 
   if (!user) return null
 
+  const membership = (user.membership || "free") as keyof typeof membershipStyle
+  const mem = membershipStyle[membership]
+  const isDark = theme === "dark"
+
   const handleLogout = async () => {
     if (isLoggingOut) return
-
     setIsLoggingOut(true)
-    
     try {
-      // 先等待请求完成，再跳转，确保 cookie 已被服务端清除指令覆盖
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        cache: "no-store"
-      })
-      
-      // 强制刷新并跳转到登录页，清除客户端缓存
+      await fetch("/api/auth/logout", { method: "POST", cache: "no-store" })
       window.location.href = "/login"
     } catch (error) {
       console.error("登出请求发送失败:", error)
-      // 即使失败也强制跳转
       window.location.href = "/login"
-    } finally {
-      // 不需要 setIsLoggingOut(false) 因为页面会跳转
     }
   }
+
+  // 统一菜单行容器样式（Apple HIG：最小 44px 触控、充足留白）
+  const itemBase =
+    "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm cursor-pointer outline-none select-none transition-colors duration-150 focus:bg-foreground/[0.04] data-[highlighted]:bg-foreground/[0.04]"
 
   return (
     <DropdownMenu>
@@ -89,7 +158,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
           >
             <Avatar className="size-10 border-2 border-white/60 shadow-md cursor-pointer hover:border-white/80 transition-all hover:scale-105 dark:border-white/20 dark:hover:border-white/40">
               <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
-              <AvatarFallback className="bg-green-500 text-white font-semibold">
+              <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-white font-semibold">
                 {getInitials(user.username)}
               </AvatarFallback>
             </Avatar>
@@ -104,7 +173,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
           >
             <Avatar className="size-9 border border-black/5 dark:border-white/10">
               <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
-              <AvatarFallback className="bg-green-500 text-white font-semibold">
+              <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-white font-semibold">
                 {getInitials(user.username)}
               </AvatarFallback>
             </Avatar>
@@ -117,7 +186,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
           <button id="user-menu-trigger" className={cn("flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none", className)}>
             <Avatar className="size-9 border-2 border-white/20 cursor-pointer hover:border-white/40 transition-colors">
               <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
-              <AvatarFallback className="bg-green-500 text-white font-semibold">
+              <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-white font-semibold">
                 {getInitials(user.username)}
               </AvatarFallback>
             </Avatar>
@@ -127,178 +196,189 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
           </button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60 bg-popover border-border text-popover-foreground">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.username}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-          </div>
-        </DropdownMenuLabel>
-        
-        {/* 会员卡片 */}
-        <div className={cn(
-          "mx-1 my-1.5 rounded-xl p-3 relative overflow-hidden",
-          user.membership === 'plus'
-            ? "bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800"
-            : user.membership === 'pro'
-            ? "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
-            : "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700"
-        )}>
-          {/* 背景装饰 */}
-          {user.membership && user.membership !== 'free' && (
-            <div className="absolute -right-2 -top-2 size-12 opacity-20">
-              {user.membership === 'plus' ? (
-                <Crown className="size-full text-violet-600 dark:text-violet-400" />
-              ) : (
-                <Sparkles className="size-full text-blue-600 dark:text-blue-400" />
+
+      <DropdownMenuContent
+        align="end"
+        sideOffset={10}
+        className={cn(
+          // 精致容器：Apple 风阴影 + 模糊 + 圆角
+          "w-[300px] rounded-2xl border border-border/60 bg-popover/95 backdrop-blur-xl p-1.5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.35),0_8px_20px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.6)]",
+          "text-popover-foreground"
+        )}
+      >
+        {/* ── 用户卡片头：头像 + 名称 + 会员徽标（同行精致化）── */}
+        <div className="px-3 pt-3 pb-2.5">
+          <div className="flex items-start gap-3">
+            <Avatar className="size-11 shrink-0 ring-2 ring-background shadow-sm">
+              <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
+              <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-white font-semibold text-base">
+                {getInitials(user.username)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground">
+                  {user.username}
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded-full bg-gradient-to-br px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                    mem.cls
+                  )}
+                >
+                  <mem.icon className="size-2.5" />
+                  {mem.label}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-xs text-muted-foreground/80">{user.email}</p>
+              {membership !== "free" && (
+                <button
+                  onClick={() => router.push("/membership")}
+                  className="mt-1.5 inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  查看会员权益
+                  <ArrowTopRightOnSquareIcon className="size-3" />
+                </button>
+              )}
+              {membership === "free" && (
+                <button
+                  onClick={() => router.push("/membership")}
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-foreground hover:bg-foreground/10 transition-colors"
+                >
+                  升级会员 →
+                </button>
               )}
             </div>
-          )}
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {user.membership === 'plus' ? (
-                <Crown className="size-5 text-violet-600 dark:text-violet-400" />
-              ) : user.membership === 'pro' ? (
-                <Sparkles className="size-5 text-blue-600 dark:text-blue-400" />
-              ) : (
-                <UserIcon className="size-5 text-slate-500 dark:text-slate-400" />
-              )}
-              <span className={cn(
-                "text-sm font-semibold",
-                user.membership === 'plus' 
-                  ? "text-violet-700 dark:text-violet-300"
-                  : user.membership === 'pro'
-                  ? "text-blue-700 dark:text-blue-300"
-                  : "text-slate-600 dark:text-slate-400"
-              )}>
-                {user.membership === 'plus' ? 'Plus会员' : user.membership === 'pro' ? 'Pro会员' : '免费用户'}
+          </div>
+
+          {/* 天气：精致单行（替换原独立蓝色卡） */}
+          {!loading && weatherData?.current && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-2.5 py-1.5 text-[11px] text-muted-foreground">
+              <MapPinIcon className="size-3 text-muted-foreground/70" />
+              <span className="truncate max-w-[100px]">{weatherData.location?.name || "未知"}</span>
+              <span className="text-muted-foreground/40">·</span>
+              <CloudIcon className="size-3 text-muted-foreground/70" />
+              <span className="truncate max-w-[80px]">{weatherData.current?.condition?.text || ""}</span>
+              <span className="ml-auto font-semibold tabular-nums text-foreground/80">
+                {weatherData.current?.temp_c?.toFixed(0)}°
               </span>
-            </div>
-            {user.membership === 'free' && (
-              <button
-                onClick={() => router.push('/membership')}
-                className="text-xs px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                升级
-              </button>
-            )}
-          </div>
-          
-          {/* 会员权益提示 */}
-          {user.membership && user.membership !== 'free' && (
-            <div className="mt-2 text-xs opacity-70">
-              {user.membership === 'plus' ? '解锁高级AI助手 · 专属数据报告' : '解锁全部功能 · 优先技术支持'}
             </div>
           )}
         </div>
-        
-        {/* 天气信息 */}
-        {!loading && weatherData && (
-          <div className="px-2 py-2 mx-1 my-1 rounded-lg bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/30 dark:to-cyan-950/30 border border-blue-100/50 dark:border-blue-900/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <MapPinIcon className="size-3.5 text-blue-500 dark:text-blue-400" />
-                <span className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate max-w-[100px]">
-                  {weatherData.location?.name || '未知'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                {weatherData.current?.condition?.icon && (
-                  <img 
-                    src={weatherData.current.condition.icon} 
-                    alt={weatherData.current.condition.text}
-                    className="size-5"
-                  />
-                )}
-                <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">
-                  {weatherData.current?.temp_c?.toFixed(0)}°
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 mt-1 text-xs text-blue-600/70 dark:text-blue-400/70">
-              <CloudIcon className="size-3" />
-              <span className="truncate">{weatherData.current?.condition?.text || '未知天气'}</span>
-            </div>
-          </div>
-        )}
-        
-        <DropdownMenuSeparator className="bg-border" />
-        
-        {/* 长辈模式切换 */}
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={toggleElderFriendlyMode}
-        >
-          <HeartIcon className={cn("mr-2 size-4", isElderFriendlyMode ? "text-pink-500" : "")} />
-          <span className="flex items-center gap-2">
-            长辈模式
-            {isElderFriendlyMode && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400">已开启</span>
+
+        <DropdownMenuSeparator className="mx-2 my-0 bg-border/60" />
+
+        {/* ── 模式切换：精致开关 ── */}
+        <div className="px-1.5 py-1.5 space-y-0.5">
+          <DropdownMenuItem
+            className={itemBase}
+            onSelect={(e) => {
+              e.preventDefault()
+              toggleElderFriendlyMode()
+            }}
+          >
+            <HeartIcon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-pink-500 transition-colors" />
+            <span className="flex-1 text-foreground">长辈模式</span>
+            <Toggle on={isElderFriendlyMode} onChange={toggleElderFriendlyMode} accent="bg-pink-500" />
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className={itemBase}
+            onSelect={(e) => {
+              e.preventDefault()
+              setTheme(isDark ? "light" : "dark")
+            }}
+          >
+            {isDark ? (
+              <SunIcon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-amber-500 transition-colors" />
+            ) : (
+              <MoonIcon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-slate-500 transition-colors" />
             )}
-          </span>
-        </DropdownMenuItem>
-        
-        {/* 深浅色切换 */}
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {theme === "dark" ? (
-            <SunIcon className="mr-2 size-4" />
-          ) : (
-            <MoonIcon className="mr-2 size-4" />
-          )}
-          <span>{theme === "dark" ? "浅色模式" : "深色模式"}</span>
-        </DropdownMenuItem>
-        
-        <DropdownMenuSeparator className="bg-border" />
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={() => router.push("/profile")}
-        >
-          <UserIcon className="mr-2 size-4" />
-          <span>个人中心</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={() => router.push("/activity")}
-        >
-          <ActivityIcon className="mr-2 size-4" />
-          <span>活动动态</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={() => router.push("/settings")}
-        >
-          <Cog6ToothIcon className="mr-2 size-4" />
-          <span>个人设置</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={() => router.push("/my-mcp")}
-        >
-          <svg className="mr-2 size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
-          <span>我的 MCP</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-green-50 focus:text-green-900 dark:focus:bg-green-900/20 dark:focus:text-green-100"
-          onClick={() => router.push("/help")}
-        >
-          <QuestionMarkCircleIcon className="mr-2 size-4" />
-          <span>帮助中心</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer focus:bg-accent focus:text-accent-foreground text-red-500 focus:text-red-500"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-        >
-          <ArrowRightOnRectangleIcon className="mr-2 size-4" />
-          <span>{isLoggingOut ? "登出中..." : "登出"}</span>
-        </DropdownMenuItem>
+            <span className="flex-1 text-foreground">{isDark ? "浅色模式" : "深色模式"}</span>
+            <Toggle on={isDark} onChange={() => setTheme(isDark ? "light" : "dark")} />
+          </DropdownMenuItem>
+        </div>
+
+        <DropdownMenuSeparator className="mx-2 my-0 bg-border/60" />
+
+        {/* ── 路由菜单：统一图标 + 标签 + 右箭头 ── */}
+        <div className="px-1.5 py-1.5 space-y-0.5">
+          <DropdownMenuItem className={itemBase} onClick={() => router.push("/profile")}>
+            <UserIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-foreground">个人中心</span>
+            <ChevronRightHint />
+          </DropdownMenuItem>
+          <DropdownMenuItem className={itemBase} onClick={() => router.push("/activity")}>
+            <ActivityIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-foreground">活动动态</span>
+            <ChevronRightHint />
+          </DropdownMenuItem>
+          <DropdownMenuItem className={itemBase} onClick={() => router.push("/settings")}>
+            <Cog6ToothIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-foreground">个人设置</span>
+            <ChevronRightHint />
+          </DropdownMenuItem>
+          <DropdownMenuItem className={itemBase} onClick={() => router.push("/my-mcp")}>
+            <MyMcpIcon />
+            <span className="flex-1 text-foreground">我的 MCP</span>
+            <ChevronRightHint />
+          </DropdownMenuItem>
+          <DropdownMenuItem className={itemBase} onClick={() => router.push("/help")}>
+            <QuestionMarkCircleIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-foreground">帮助中心</span>
+            <ChevronRightHint />
+          </DropdownMenuItem>
+        </div>
+
+        <DropdownMenuSeparator className="mx-2 my-0 bg-border/60" />
+
+        {/* ── 登出：温和暗红色，与正常行同高 ── */}
+        <div className="px-1.5 py-1.5">
+          <DropdownMenuItem
+            className={cn(
+              itemBase,
+              "text-muted-foreground hover:text-red-500 data-[highlighted]:text-red-500 focus:text-red-500"
+            )}
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            <ArrowRightOnRectangleIcon className="size-4 shrink-0" />
+            <span className="flex-1">{isLoggingOut ? "登出中…" : "登出"}</span>
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+// 菜单右端的极淡右箭头指示（路由型菜单）
+function ChevronRightHint() {
+  return (
+    <svg
+      className="size-3.5 shrink-0 text-muted-foreground/40 transition-transform group-data-[highlighted]:translate-x-0.5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+// 我的 MCP 图标（与原 SVG 保持一致，作为独立组件便于上色）
+function MyMcpIcon() {
+  return (
+    <svg
+      className="size-4 shrink-0 text-muted-foreground"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    </svg>
   )
 }
