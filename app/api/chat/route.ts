@@ -293,7 +293,7 @@ export async function POST(req: Request) {
     const aiFeatures = await getAIFeaturesConfig()
     console.log('[Chat API] AI Features Config:', aiFeatures ? 'Loaded' : 'Using defaults')
     
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt: rawSystemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId, persona, enablePlanning, voiceMode } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt: rawSystemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId, persona, enablePlanning, voiceMode, customModels } =
       await req.json()
 
     // 语音助手模式：限制回复长度，避免 TTS 合成时间过长（不影响文字对话）
@@ -391,7 +391,7 @@ export async function POST(req: Request) {
           inputTokens = estimateTokens(JSON.stringify(messages || []))
           outputTokens = estimateTokens(outputText || '')
         }
-        const result = await settleCredits(user.id as number, inputTokens, outputTokens, effectiveModel || 'auto', estimated)
+        const result = await settleCredits(user.id as number, inputTokens, outputTokens, effectiveModel || 'auto', estimated, customModels)
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'credit_usage', credit: result })}\n\n`))
       } catch (e) {
         console.error('[Credits] emit event failed:', e)

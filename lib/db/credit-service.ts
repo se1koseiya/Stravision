@@ -101,17 +101,30 @@ export function defaultModelRate(modelId: string): number {
   return 1
 }
 
-/** 获取某模型的积分倍率（admin 配置优先，未配置走启发式默认） */
-export async function getModelRate(modelId: string): Promise<{ modelRate: number; config: CreditConfig }> {
+/** 获取某模型的积分倍率（用户自定义 > admin 配置 > 启发式默认） */
+export async function getModelRate(
+  modelId: string,
+  customModels?: Array<{ id: string; rateMultiplier?: number }>,
+): Promise<{ modelRate: number; config: CreditConfig }> {
   const config = await getCreditsConfig()
   let modelRate: number | undefined
   try {
-    const providersConfig = await readProvidersConfig()
-    for (const p of providersConfig.providers) {
-      const m = (p.models as any[]).find(m => m.id === modelId)
+    // 1) 用户自配模型（前端从 localStorage 传入）
+    if (customModels) {
+      const m = customModels.find(c => c.id === modelId)
       if (m && typeof m.rateMultiplier === 'number' && m.rateMultiplier > 0) {
         modelRate = m.rateMultiplier
-        break
+      }
+    }
+    // 2) admin 配置的提供商模型
+    if (modelRate === undefined) {
+      const providersConfig = await readProvidersConfig()
+      for (const p of providersConfig.providers) {
+        const m = (p.models as any[]).find(m => m.id === modelId)
+        if (m && typeof m.rateMultiplier === 'number' && m.rateMultiplier > 0) {
+          modelRate = m.rateMultiplier
+          break
+        }
       }
     }
   } catch { /* ignore */ }
@@ -234,8 +247,9 @@ export async function settleCredits(
   outputTokens: number,
   modelId: string,
   estimated = false,
+  customModels?: Array<{ id: string; rateMultiplier?: number }>,
 ): Promise<CreditUsageResult> {
-  const { modelRate, config } = await getModelRate(modelId)
+  const { modelRate, config } = await getModelRate(modelId, customModels)
   const credits = calculateCredits(inputTokens, outputTokens, modelRate, config)
 
   try {

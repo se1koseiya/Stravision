@@ -685,7 +685,7 @@ export function ChatBubbleList({
             {!isStreamingThis && msg.creditUsage && typeof msg.creditUsage.credits === 'number' && (
               <div
                 className="mt-1.5 flex items-center justify-end gap-1 text-[10.5px] text-slate-300 dark:text-slate-600 select-none"
-                title={`输入 ${msg.creditUsage.inputTokens} tokens × 输出 ${msg.creditUsage.outputTokens} tokens × 模型倍率 ${msg.creditUsage.modelRate} × 全局倍率 ${msg.creditUsage.globalMultiplier}`}
+                title={`本次消耗 ${msg.creditUsage.credits.toFixed(2)} 积分`}
               >
                 <Zap className="w-3 h-3" />
                 <span>消耗 {msg.creditUsage.credits.toFixed(2)} 积分</span>

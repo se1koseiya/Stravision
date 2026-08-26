@@ -2830,7 +2830,16 @@ function AIAssistantContent() {
           mandatorySkillsEnabled, // 传递核心技能开启状态
           enableMcp,
           persona: selectedPersona, // 传递当前选中的 AI 角色
-          enablePlanning // 传递计划模式开关，后端据此初始化 planMode
+          enablePlanning, // 传递计划模式开关，后端据此初始化 planMode
+          // 用户自配模型列表（让服务端用对应倍率计算积分）
+          customModels: (() => {
+            try {
+              const raw = typeof window !== 'undefined' ? localStorage.getItem('berry-realm.custom-models.v1') : null
+              if (!raw) return undefined
+              const list = JSON.parse(raw)
+              return Array.isArray(list) ? list.map((c: any) => ({ id: c.id, rateMultiplier: c.rateMultiplier })) : undefined
+            } catch { return undefined }
+          })()
         })
       })
       
@@ -5364,7 +5373,26 @@ function AIAssistantContent() {
                 </div>
               )}
               <div className="flex items-center justify-center gap-2">
-                <DynamicModelSelector value={selectedModel || aiSettings?.model || ""} onValueChange={setSelectedModel} />
+                <DynamicModelSelector
+                  value={selectedModel || aiSettings?.model || ""}
+                  onValueChange={(id) => {
+                    setSelectedModel(id)
+                    // 切换到用户自配模型时，把 baseUrl/apiKey/modelId 写入 aiSettings
+                    if (id.startsWith('custom-')) {
+                      try {
+                        const raw = localStorage.getItem('berry-realm.custom-models.v1')
+                        const list = raw ? JSON.parse(raw) : []
+                        const c = list.find((x: any) => x.id === id)
+                        if (c) {
+                          setAiSettings(prev => prev
+                            ? { ...prev, apiKey: c.apiKey, apiUrl: c.baseUrl, model: c.modelId }
+                            : { apiKey: c.apiKey, apiUrl: c.baseUrl, model: c.modelId }
+                          )
+                        }
+                      } catch {}
+                    }
+                  }}
+                />
                 <PredictiveInsightCard onTrigger={(prompt) => handleSend(prompt)} />
               </div>
               <div className="flex-1" />
