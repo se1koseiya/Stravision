@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import {
   Loader2, Plus, Trash2, Pencil, Check, X, Eye, EyeOff,
   Server, Zap, Globe, Key, Star, ArrowUpDown,
-  Sparkles, Brain, Camera, Cpu, Bot, CircleDot, BookOpen
+  Sparkles, Brain, Camera, Cpu, Bot, CircleDot, BookOpen, Coins
 } from "lucide-react"
 
 // ====== 类型 ======
@@ -24,6 +24,8 @@ export interface ProviderModel {
   supportsEmbedding?: boolean
   maxTokens?: number
   contextWindow?: number
+  /** 积分倍率（相对基准的计费倍数；未设置按模型名启发式） */
+  rateMultiplier?: number
 }
 
 export interface AIProvider {
@@ -588,6 +590,15 @@ function ProviderDialog({
                   onChange={e => updateModel(idx, 'description', e.target.value)}
                   style={{ fontSize: '12px', height: '32px' }}
                 />
+                <InputNumber
+                  placeholder="积分倍率"
+                  min={0.1} max={10} step={0.1} precision={2}
+                  value={model.rateMultiplier ?? undefined}
+                  onChange={v => updateModel(idx, 'rateMultiplier', v === null ? undefined : Number(v))}
+                  style={{ fontSize: '12px', height: '32px', width: '92px' }}
+                  addonAfter="×"
+                  title="积分倍率：该模型回复按 token 消耗积分的相对倍数（flash≈0.2 / 标准≈1 / 旗舰≈3）"
+                />
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <label title="视觉" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                     <input
@@ -661,6 +672,27 @@ export function AIProvidersManager() {
   const [testingEmbedding, setTestingEmbedding] = useState(false)
   const [embedTestResult, setEmbedTestResult] = useState<{ ok: boolean; msg: string; provider?: string; model?: string; dim?: number; preview?: number[] } | null>(null)
 
+  // AI 助手积分制度配置（token 计费 × 模型倍率 × 全局倍率）
+  const [creditConfig, setCreditConfig] = useState<{
+    enabled: boolean
+    globalMultiplier: number
+    outputWeight: number
+    tokensPerCredit: number
+    plusMonthlyQuota: number
+    proMonthlyQuota: number
+  } | null>(null)
+  const [creditDraft, setCreditDraft] = useState({
+    enabled: true,
+    globalMultiplier: 1,
+    outputWeight: 3,
+    tokensPerCredit: 1000,
+    plusMonthlyQuota: 2000,
+    proMonthlyQuota: 300,
+  })
+  const [savingCredit, setSavingCredit] = useState(false)
+  const setCredit = (k: keyof typeof creditDraft, v: number | boolean) =>
+    setCreditDraft(d => ({ ...d, [k]: v }))
+
   const fetchProviders = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/ai-providers')
@@ -679,6 +711,18 @@ export function AIProvidersManager() {
         setEmbEnabledDraft(!!data.embeddingConfig.enabled)
       } else {
         setEmbeddingConfig(null)
+      }
+      // 积分制度配置
+      if (data.creditConfig && typeof data.creditConfig === 'object') {
+        setCreditConfig(data.creditConfig)
+        setCreditDraft({
+          enabled: data.creditConfig.enabled !== false,
+          globalMultiplier: Number(data.creditConfig.globalMultiplier) || 1,
+          outputWeight: Number(data.creditConfig.outputWeight) || 3,
+          tokensPerCredit: Number(data.creditConfig.tokensPerCredit) || 1000,
+          plusMonthlyQuota: Number(data.creditConfig.plusMonthlyQuota) || 2000,
+          proMonthlyQuota: Number(data.creditConfig.proMonthlyQuota) || 300,
+        })
       }
     } catch (e) {
       console.error(e)
@@ -714,6 +758,28 @@ export function AIProvidersManager() {
       toast.error(e.message)
     } finally {
       setSavingEmbedding(false)
+    }
+  }
+
+  const handleSaveCredit = async () => {
+    setSavingCredit(true)
+    try {
+      const res = await fetch('/api/admin/ai-providers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creditConfig: creditDraft })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || '保存失败')
+        return
+      }
+      setCreditConfig(data.config.creditConfig)
+      toast.success('积分制度配置已保存')
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setSavingCredit(false)
     }
   }
 
@@ -1082,6 +1148,102 @@ export function AIProvidersManager() {
 
       {/* 知识库全局行为配置（上传/分块/GLM/检索/UI），所有魔数 admin 可调 */}
       <KnowledgeConfigCard />
+
+      {/* AI 助手积分制度配置（token 计费 × 模型倍率 × 全局倍率） */}
+      <Card style={{ border: '1px solid #EDEEEF' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: '#F2F3F5', color: '#1677ff', flexShrink: 0,
+          }}>
+            <Coins size={16} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+              <Typography.Text strong>AI 助手积分制度</Typography.Text>
+              <Tag color="gold" style={{ fontSize: 10 }}>WorkBuddy 式：token × 倍率</Tag>
+              <div style={{ flex: 1 }} />
+              <Button size="small" type="primary" onClick={handleSaveCredit} loading={savingCredit} icon={!savingCredit ? <Check size={14} /> : null}>
+                保存
+              </Button>
+            </div>
+            <p style={{ fontSize: 12, color: '#8F959E', marginTop: 4, marginBottom: 12 }}>
+              每次 AI 回复按真实 token 计费：积分 =（输入 tokens + 输出 tokens × 输出权重）÷ 每积分token数 × 模型倍率 × 全局倍率。
+              每个模型可在下方模型编辑器中单独设置倍率（×0.2 ~ ×3）；未设置时按模型名启发式（flash/air=0.2、标准=1、旗舰=3）。
+              ProPlus 不再无限使用，改为每月固定积分额度。
+            </p>
+
+            <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>启用积分制</div>
+                <Switch
+                  checked={creditDraft.enabled}
+                  onChange={(v) => setCredit('enabled', v)}
+                  checkedChildren="开启"
+                  unCheckedChildren="关闭"
+                />
+                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>关闭时回退旧的按次配额逻辑</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>全局倍率</div>
+                <InputNumber
+                  min={0.1} max={100} step={0.1} precision={2}
+                  value={creditDraft.globalMultiplier}
+                  onChange={(v) => setCredit('globalMultiplier', Number(v) || 1)}
+                  style={{ width: '100%' }}
+                  addonAfter="×"
+                />
+                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>所有模型统一乘的系数</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>输出权重</div>
+                <InputNumber
+                  min={1} max={20} step={0.5} precision={2}
+                  value={creditDraft.outputWeight}
+                  onChange={(v) => setCredit('outputWeight', Number(v) || 3)}
+                  style={{ width: '100%' }}
+                  addonAfter="×"
+                />
+                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>输出 token 按输入 N 倍计价</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>每积分 token 数</div>
+                <InputNumber
+                  min={100} max={100000} step={100}
+                  value={creditDraft.tokensPerCredit}
+                  onChange={(v) => setCredit('tokensPerCredit', Number(v) || 1000)}
+                  style={{ width: '100%' }}
+                  addonAfter="tok"
+                />
+                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>1 积分 = N 个基准 token</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>ProPlus 月度额度</div>
+                <InputNumber
+                  min={10} max={1000000} step={100}
+                  value={creditDraft.plusMonthlyQuota}
+                  onChange={(v) => setCredit('plusMonthlyQuota', Number(v) || 2000)}
+                  style={{ width: '100%' }}
+                  addonAfter="积分/月"
+                />
+                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>ProPlus 每月积分（不再无限）</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>Pro 月度额度</div>
+                <InputNumber
+                  min={10} max={1000000} step={50}
+                  value={creditDraft.proMonthlyQuota}
+                  onChange={(v) => setCredit('proMonthlyQuota', Number(v) || 300)}
+                  style={{ width: '100%' }}
+                  addonAfter="积分/月"
+                />
+                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>Pro 每月积分</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* 提供商列表 */}
       {providers.length === 0 ? (

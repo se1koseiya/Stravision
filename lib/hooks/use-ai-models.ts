@@ -7,6 +7,8 @@ export interface ProviderModel {
   icon?: string
   supportsVision: boolean
   supportsReasoning: boolean
+  /** 积分倍率（admin 配置或启发式默认；未配置时 undefined） */
+  rateMultiplier?: number
 }
 
 export interface AIProvider {
@@ -43,6 +45,8 @@ export interface ModelsConfig {
   providers?: AIProvider[]   // 新增：提供商列表
   /** admin 后台配置的默认/自动选择模型 ID（可选） */
   defaultModelId?: string | null
+  /** 积分全局倍率（所有模型统一乘的系数，前端显示生效倍率用） */
+  creditMultiplier?: number
 }
 
 export function useAIModels() {
@@ -66,6 +70,7 @@ export function useAIModels() {
       let categories: Category[] = []
       let providers: AIProvider[] = []
       let defaultModelId: string | null = null
+      let creditMultiplier = 1
 
       // 解析旧版模型配置（兼容）
       if (modelsRes.status === 'fulfilled' && modelsRes.value.ok) {
@@ -80,6 +85,7 @@ export function useAIModels() {
         providers = pData.providers || []
         // admin 配置的默认模型 ID（自动回退到第一个 enabled 模型）
         defaultModelId = pData.defaultModelId ?? null
+        creditMultiplier = typeof pData.creditMultiplier === 'number' && pData.creditMultiplier > 0 ? pData.creditMultiplier : 1
 
         // 如果有提供商数据，用提供商的模型补充/覆盖旧模型列表
         if (providers.length > 0) {
@@ -115,7 +121,7 @@ export function useAIModels() {
         }
       }
 
-      setConfig({ models, categories, providers, defaultModelId })
+      setConfig({ models, categories, providers, defaultModelId, creditMultiplier })
       setError(null)
     } catch (err) {
       console.error('[useAIModels] Error:', err)

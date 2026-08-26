@@ -305,6 +305,15 @@ export interface ProvidersConfig {
   embeddingConfig?: EmbeddingConfig
   /** 知识库全局配置（可选，未设置时使用 DEFAULT_KNOWLEDGE_CONFIG） */
   knowledgeConfig?: KnowledgeConfig
+  /** AI 助手积分制度配置（admin 可选；token 计费 × 模型倍率 × 全局倍率） */
+  creditConfig?: {
+    enabled?: boolean
+    globalMultiplier?: number
+    outputWeight?: number
+    tokensPerCredit?: number
+    plusMonthlyQuota?: number
+    proMonthlyQuota?: number
+  }
 }
 
 /**
@@ -562,11 +571,24 @@ function detectTypeFromUrl(url: string): AIProvider['type'] {
 }
 
 /**
+ * 模型默认倍率（admin 未配置 rateMultiplier 时的启发式，与 credit-service 保持一致）
+ */
+export function heuristicModelRate(modelId: string): number {
+  const id = (modelId || '').toLowerCase()
+  if (/(flash|air|free|turbo|lite|mini)/.test(id)) return 0.2
+  if (/(max|ultra|flagship|o1|opus)/.test(id)) return 3
+  if (/(deepseek-v4|deepseek-v3\.2|glm-4\.6|glm-5)/.test(id)) return 1.5
+  return 1
+}
+
+/**
  * 获取所有可用提供商的公开信息（不含 apiKey），用于前端展示
+ * 附带积分倍率：每模型 rateMultiplier（admin 配置或启发式默认）+ 全局 creditMultiplier
  */
 export async function getPublicProviders() {
   const config = await readProvidersConfig()
   const defaultModelId = resolveDefaultModelId(config)
+  const globalMultiplier = config.creditConfig?.globalMultiplier ?? 1
 
   return {
     providers: config.providers
@@ -583,9 +605,15 @@ export async function getPublicProviders() {
           icon: m.icon,
           supportsVision: m.supportsVision,
           supportsReasoning: m.supportsReasoning,
+          // 积分倍率（模型倍率 × 全局倍率 = 生效倍率）
+          rateMultiplier: typeof (m as any).rateMultiplier === 'number' && (m as any).rateMultiplier > 0
+            ? (m as any).rateMultiplier
+            : heuristicModelRate(m.id),
         })),
       })),
     // admin 配置的默认模型 ID（如果配置无效则自动回退到第一个 enabled 模型）
     defaultModelId,
+    // 积分全局倍率（前端展示 ×N 用）
+    creditMultiplier: globalMultiplier,
   }
 }

@@ -83,6 +83,14 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
   const allModels = config.models.filter(m => m.enabled)
   const currentModelIcon = getModelIcon2(value, allModels)
 
+  // 积分倍率显示：生效倍率 = 模型倍率 × 全局倍率
+  const globalMultiplier = typeof config.creditMultiplier === 'number' && config.creditMultiplier > 0 ? config.creditMultiplier : 1
+  const effectiveRate = (rate?: number) => {
+    const r = typeof rate === 'number' && rate > 0 ? rate : 1
+    const e = r * globalMultiplier
+    return Number(e.toFixed(2))
+  }
+
   // 扁平化所有启用的模型（按提供商顺序）
   const flatModels = providers.length > 0
     ? providers.flatMap((p: AIProvider) => getModelsByProvider(p.id))
@@ -131,8 +139,17 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-zinc-100 leading-tight">
-                    {model.name}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-zinc-100 leading-tight truncate">
+                      {model.name}
+                    </span>
+                    {/* 积分倍率徽章（×N = 消耗积分的相对倍数） */}
+                    <span
+                      className="flex-shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
+                      title={`积分倍率：模型 ×${typeof (model as any).rateMultiplier === 'number' ? (model as any).rateMultiplier : 1} 全局 ×${globalMultiplier}，回复按 token 消耗此倍率的积分`}
+                    >
+                      ×{effectiveRate((model as any).rateMultiplier)}
+                    </span>
                   </div>
                   {model.description && (
                     <div className="mt-1 text-[12px] text-gray-400 dark:text-zinc-500 leading-relaxed line-clamp-2">

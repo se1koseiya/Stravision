@@ -22,6 +22,8 @@ export interface ProviderModel {
   supportsEmbedding?: boolean   // 是否可作为 embedding 模型（可选；不设置则按 id 启发式判断）
   maxTokens?: number
   contextWindow?: number
+  /** 积分倍率：该模型相对基准的计费倍数（如 flash=0.2 / 标准=1 / 旗舰=3）；未设置按模型名启发式 */
+  rateMultiplier?: number
 }
 
 export interface EmbeddingConfig {
@@ -57,6 +59,15 @@ export interface ProvidersConfig {
   embeddingConfig?: EmbeddingConfig
   /** 知识库全局配置（admin 可选） */
   knowledgeConfig?: KnowledgeConfig
+  /** AI 助手积分制度配置（token 计费 × 模型倍率 × 全局倍率） */
+  creditConfig?: {
+    enabled?: boolean
+    globalMultiplier?: number
+    outputWeight?: number
+    tokensPerCredit?: number
+    plusMonthlyQuota?: number
+    proMonthlyQuota?: number
+  }
 }
 
 // ====== 默认配置 ======
@@ -182,6 +193,7 @@ export async function GET(request: NextRequest) {
     defaultModelId: config.defaultModelId ?? null,
     embeddingConfig: config.embeddingConfig ?? null,
     knowledgeConfig: config.knowledgeConfig ?? DEFAULT_KNOWLEDGE_CONFIG,
+    creditConfig: config.creditConfig ?? null,
   })
 }
 
@@ -223,6 +235,7 @@ export async function POST(request: NextRequest) {
         supportsReasoning: !!m.supportsReasoning,
         maxTokens: m.maxTokens,
         contextWindow: m.contextWindow,
+        rateMultiplier: typeof m.rateMultiplier === 'number' && m.rateMultiplier > 0 ? m.rateMultiplier : undefined,
       })),
       enabled: body.enabled !== false,
       isDefault: body.isDefault || false,
@@ -346,6 +359,26 @@ export async function PATCH(request: NextRequest) {
     if ('defaultModelId' in body) {
       config.defaultModelId = body.defaultModelId
     }
+    // ===== 积分制度配置 =====
+    if ('creditConfig' in body) {
+      const cc = body.creditConfig
+      if (cc === null) {
+        config.creditConfig = undefined
+      } else if (cc && typeof cc === 'object') {
+        const num = (v: unknown, fallback?: number) => {
+          const n = Number(v)
+          return Number.isFinite(n) && n > 0 ? n : fallback
+        }
+        config.creditConfig = {
+          enabled: cc.enabled !== false,
+          globalMultiplier: num(cc.globalMultiplier, 1),
+          outputWeight: num(cc.outputWeight, 3),
+          tokensPerCredit: num(cc.tokensPerCredit, 1000),
+          plusMonthlyQuota: num(cc.plusMonthlyQuota, 2000),
+          proMonthlyQuota: num(cc.proMonthlyQuota, 300),
+        }
+      }
+    }
     if ('embeddingConfig' in body) {
       const ec = body.embeddingConfig
       if (ec === null) {
@@ -390,7 +423,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, config: {
       defaultModelId: config.defaultModelId,
       embeddingConfig: config.embeddingConfig,
-      knowledgeConfig: config.knowledgeConfig || DEFAULT_KNOWLEDGE_CONFIG
+      knowledgeConfig: config.knowledgeConfig || DEFAULT_KNOWLEDGE_CONFIG,
+      creditConfig: config.creditConfig ?? null,
     } })
   } catch (error: any) {
     console.error('[AI Providers] PATCH error:', error)

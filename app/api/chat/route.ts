@@ -15,6 +15,7 @@ import { initDB } from '@/lib/db/database'
 import { getSummarizationConfig, STEPPER } from '@/lib/constants'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserAiQuota, reserveAiUsage, refundAiUsage } from '@/lib/db/ai-quota-service'
+import { checkCreditAllowance, settleCredits, estimateTokens, getCreditsConfig } from '@/lib/db/credit-service'
 import { getMCPToolDefinitions } from '@/lib/mcp/mcp-tool-definitions'
 import { executeMCPToolCall } from '@/lib/mcp/mcp-tool-executor'
 import { isMultimodal } from '@/lib/mcp/builtin-device-control'
@@ -353,25 +354,77 @@ export async function POST(req: Request) {
     // 是否使用系统托管 Key（用于配额扣减判断）
     const useSystemKey = !userApiKey || !!resolved
 
-    // 请求前预扣减配额（原子操作）：使用系统托管 Key 时必须预扣，避免并发请求绕过配额
-    // 原子化：检查与扣减在同一 SQL 中完成，杜绝 check-then-increment 的并发窗口
-    if (useSystemKey) {
-      quotaReserved = await reserveAiUsage(user.id as number)
-      if (!quotaReserved) {
-        // 预扣失败 → 配额不足，读取详情用于构造友好提示
-        const quota = await getUserAiQuota(user.id as number)
-        let reason: string
-        if (quota.reason === 'membership_required') {
-          reason = 'AI 功能仅限 Pro/Plus 会员使用，请升级会员后继续使用'
-        } else if (quota.reason === 'limit_reached') {
-          reason = '今日额度已用完'
-        } else {
-          reason = '余额不足'
+    // ===== AI 助手积分制度（token 计费 × 模型倍率 × 全局倍率） =====
+    // 开启时：请求前仅做额度检查，流结束后按真实 usage 结算并在 [DONE] 前推送 credit_usage 事件
+    // 关闭时：回退旧的按次预扣逻辑（reserveAiUsage/refundAiUsage）
+    const creditConfig = await getCreditsConfig()
+    const creditsEnabled = creditConfig.enabled
+
+    // token 用量追踪（上游流式响应的 usage 字段；agent 多轮会多次累计）
+    const usageTracker = { input: 0, output: 0, hasReal: false }
+    const trackUsage = (u: unknown) => {
+      const usage = u as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined
+      if (!usage) return
+      const p = Number(usage.prompt_tokens) || 0
+      const c = Number(usage.completion_tokens) || 0
+      if (p || c) {
+        usageTracker.input += p
+        usageTracker.output += c
+        usageTracker.hasReal = true
+      }
+    }
+
+    // 流结束时结算积分并推送 credit_usage 事件（气泡下方显示消耗）
+    // outputText：本分支累计的输出文本（上游未返回 usage 时本地估算）
+    const emitCreditEvent = async (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+      encoder: TextEncoder,
+      outputText: string,
+    ) => {
+      try {
+        if (!creditsEnabled || !useSystemKey || !user?.id) return
+        let inputTokens = usageTracker.input
+        let outputTokens = usageTracker.output
+        let estimated = false
+        if (!usageTracker.hasReal) {
+          estimated = true
+          inputTokens = estimateTokens(JSON.stringify(messages || []))
+          outputTokens = estimateTokens(outputText || '')
         }
-        return Response.json(
-          { error: `${reason}。`, quota },
-          { status: 403 }
-        )
+        const result = await settleCredits(user.id as number, inputTokens, outputTokens, effectiveModel || 'auto', estimated)
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'credit_usage', credit: result })}\n\n`))
+      } catch (e) {
+        console.error('[Credits] emit event failed:', e)
+      }
+    }
+
+    // 请求前配额检查
+    if (useSystemKey) {
+      if (creditsEnabled) {
+        // 积分制：检查月度额度 + 充值余额（不预扣，流结束按实际结算）
+        const denyReason = await checkCreditAllowance(user.id as number)
+        if (denyReason) {
+          return Response.json({ error: `${denyReason}。` }, { status: 403 })
+        }
+      } else {
+        // 旧按次配额：原子预扣
+        quotaReserved = await reserveAiUsage(user.id as number)
+        if (!quotaReserved) {
+          // 预扣失败 → 配额不足，读取详情用于构造友好提示
+          const quota = await getUserAiQuota(user.id as number)
+          let reason: string
+          if (quota.reason === 'membership_required') {
+            reason = 'AI 功能仅限 Pro/Plus 会员使用，请升级会员后继续使用'
+          } else if (quota.reason === 'limit_reached') {
+            reason = '今日额度已用完'
+          } else {
+            reason = '余额不足'
+          }
+          return Response.json(
+            { error: `${reason}。`, quota },
+            { status: 403 }
+          )
+        }
       }
     }
 
@@ -1314,6 +1367,8 @@ export async function POST(req: Request) {
         messages: fullMessages,
         stream: true,
         temperature: 0.7,
+        // 积分计费：让上游在流式最后一个 chunk 返回真实 token usage
+        ...(creditsEnabled && !isAudioModel ? { stream_options: { include_usage: true } } : {}),
         ...(enableSearch ? { enable_search: true } : {}),
         ...(isAudioModel ? {
             modalities: ["text", "audio"],
@@ -1399,6 +1454,8 @@ export async function POST(req: Request) {
         messages: fullMessages,
         stream: true,
         temperature: 0.7,
+        // 积分计费：让上游在流式最后一个 chunk 返回真实 token usage
+        ...(creditsEnabled ? { stream_options: { include_usage: true } } : {}),
       }
     }
 
@@ -1473,6 +1530,8 @@ export async function POST(req: Request) {
       const encoder = new TextEncoder()
       const stream = new ReadableStream({
         async start(controller) {
+          // agent 整体输出文本（跨多轮累计，用于积分估算兜底）
+          let agentOutputText = ""
           // Keep-Alive ping to prevent gateway timeouts during long tool chains
           const keepAlive = setInterval(() => {
             try { controller.enqueue(encoder.encode(": keep-alive\n\n")) } catch { clearInterval(keepAlive) }
@@ -1634,6 +1693,7 @@ export async function POST(req: Request) {
               let hasToolCalls = false
               let currentToolCalls: any[] = []
               let accumulatedContent = ""
+              let agentRoundOutput = ""
 
               while (true) {
                 // 超时保护：防止 LLM 返回 200 但 body 流卡住导致 Agent Loop 无限阻塞
@@ -1657,6 +1717,7 @@ export async function POST(req: Request) {
                   if (trimmed.startsWith("data: ")) {
                     try {
                       const json = JSON.parse(trimmed.slice(6))
+                      trackUsage(json.usage)
                       const delta = json.choices?.[0]?.delta
                       
                       // 检查 tool_calls
@@ -1679,6 +1740,8 @@ export async function POST(req: Request) {
 
                       if (delta?.content) {
                         accumulatedContent += delta.content
+                        agentRoundOutput += delta.content
+                        agentOutputText += delta.content
 
                         // 🔥 应用智能过滤器，拦截裸露的 TASK_LIST JSON（传入累积内容用于上下文判断）
                         let filteredContent = filterBareTaskListJson(delta.content, accumulatedContent)
@@ -2469,9 +2532,11 @@ export async function POST(req: Request) {
                       if (trimmed.startsWith("data: ")) {
                         try {
                           const json = JSON.parse(trimmed.slice(6))
+                          trackUsage(json.usage)
                           const delta = json.choices?.[0]?.delta
                           if (delta?.content) {
                             finalAccumulated += delta.content
+                            agentOutputText += delta.content
                             // 推送给前端
                             const filteredContent = filterBareTaskListJson(delta.content, finalAccumulated)
                             const filteredFinal = filterDisabledFeatures(filteredContent, aiFeatures)
@@ -2512,6 +2577,8 @@ export async function POST(req: Request) {
             }
 
             clearInterval(keepAlive)
+            // 积分结算：按本轮真实 usage（或估算）扣积分并推送 credit_usage 事件
+            await emitCreditEvent(controller, encoder, agentOutputText)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
             // 生成性能报告并记录
@@ -2683,6 +2750,7 @@ export async function POST(req: Request) {
                     if (data === "[DONE]") continue
                     try {
                       const json = JSON.parse(data)
+                      trackUsage(json.usage)
                       const content = json.output?.choices?.[0]?.message?.content || json.output?.text || ""
                       if (typeof content === "string") {
                         let next = ""
@@ -2714,6 +2782,7 @@ export async function POST(req: Request) {
                   }
                 }
               }
+              await emitCreditEvent(controller, encoder, acc)
               controller.enqueue(encoder.encode("data: [DONE]\n\n"))
               controller.close()
             } catch (e) { controller.error(e instanceof Error ? e : new Error(String(e))) }
@@ -2771,6 +2840,9 @@ export async function POST(req: Request) {
               model: model,
               choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
             })}\n\n`))
+            // 积分结算（非 SSE 完整响应：usage 在顶层 JSON）
+            trackUsage(data?.usage)
+            await emitCreditEvent(controller, encoder, content)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
           }
@@ -2825,6 +2897,7 @@ export async function POST(req: Request) {
 
                   try {
                     const json = JSON.parse(data)
+                    trackUsage(json.usage)
                     // (Handle Reasoning, Content, Citations...)
                     const rawReasoning = json.output?.choices?.[0]?.message?.reasoning_content || ""
                     if (typeof rawReasoning === "string" && rawReasoning.length > 0) {
@@ -2879,6 +2952,7 @@ export async function POST(req: Request) {
                 }
               }
             }
+            await emitCreditEvent(controller, encoder, acc)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
           } catch (error) { controller.error(error) }
@@ -2919,6 +2993,7 @@ export async function POST(req: Request) {
                 if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
                   try {
                     const json = JSON.parse(trimmed.slice(6))
+                    trackUsage(json.usage)
                     const delta = json.choices?.[0]?.delta
                     if (delta?.content) {
                       accumulatedContent += delta.content
@@ -2944,6 +3019,8 @@ export async function POST(req: Request) {
             if (buffer.trim()) {
               controller.enqueue(encoder.encode(buffer + "\n"))
             }
+            // 积分结算：直通转发分支（usage 已在行解析时追踪）
+            await emitCreditEvent(controller, encoder, accumulatedContent)
             controller.close()
           } catch (e) {
             // 流传输失败 → 退还预扣配额

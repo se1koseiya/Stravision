@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth"
 import { updateUser, NotificationSettings } from "@/lib/db/user-service"
 import { getUserAiQuota } from "@/lib/db/ai-quota-service"
+import { getUserCreditStatus } from "@/lib/db/credit-service"
 import { initDB } from "@/lib/db/database"
 
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
 
     await initDB()
     
-    // 获取配额信息
+    // 获取配额信息（旧按次）
     let quota = null
     try {
         quota = await getUserAiQuota(user.id as number)
@@ -20,13 +21,23 @@ export async function GET() {
         console.error("Failed to get user quota:", e)
     }
 
+    // 积分制度：月度额度 / 已用 / 剩余 / 充值余额（token 计费 × 模型倍率 × 全局倍率）
+    let credit = null
+    try {
+        credit = await getUserCreditStatus(user.id as number)
+    } catch (e) {
+        console.error("Failed to get user credit:", e)
+    }
+
     return Response.json({
       success: true,
       user: {
         ...user,
-        quota
+        quota,
+        credit
       },
-      quota // 方便前端直接读取
+      quota,  // 方便前端直接读取（旧）
+      credit  // 积分视图（新）
     })
   } catch (error) {
     console.error("Failed to get user settings:", error)

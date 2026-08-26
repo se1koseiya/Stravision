@@ -56,6 +56,16 @@ export default function SettingsPage() {
    const fileInputRef = useRef<HTMLInputElement>(null)
    // 配额状态
    const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number; daily_usage: number; balance: number; reason?: string } | null>(null)
+   // 积分视图（积分制度：token 计费 × 模型倍率 × 全局倍率）
+   const [creditInfo, setCreditInfo] = useState<{
+      membership?: string
+      monthlyQuota: number
+      monthlyUsed: number
+      monthlyRemaining: number
+      balance: number
+      totalRemaining: number
+      canUse: boolean
+   } | null>(null)
 
    // Fetch current user on mount
    useEffect(() => {
@@ -83,6 +93,7 @@ export default function SettingsPage() {
             const qRes = await fetch("/api/user/settings")
             const qData = await qRes.json()
             if (qData?.quota) setQuotaInfo(qData.quota)
+            if (qData?.credit) setCreditInfo(qData.credit)
          } catch {}
       }
 
@@ -390,47 +401,84 @@ export default function SettingsPage() {
                            </div>
                         </div>
 
-                        {/* AI 配额信息 */}
-                        {quotaInfo && (
+                        {/* AI 积分信息（积分制度：token 计费 × 模型倍率 × 全局倍率） */}
+                        {(creditInfo || quotaInfo) && (
                            <div className="pt-8">
                               <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-                                 <h4 className="font-bold mb-4">AI 配额</h4>
-                                 <div className="space-y-4 text-sm">
-                                    <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
-                                       <span className="text-zinc-500">会员等级</span>
-                                       <span className="font-bold text-xs tracking-wider bg-zinc-200 dark:bg-zinc-800 px-2 py-1 uppercase">
-                                          {currentUser?.membership || 'FREE'}
-                                       </span>
+                                 <h4 className="font-bold mb-4">AI 积分</h4>
+                                 {creditInfo ? (
+                                    <div className="space-y-4 text-sm">
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">会员等级</span>
+                                          <span className="font-bold text-xs tracking-wider bg-zinc-200 dark:bg-zinc-800 px-2 py-1 uppercase">
+                                             {creditInfo.membership || 'FREE'}
+                                          </span>
+                                       </div>
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">本月额度</span>
+                                          <span className="font-mono">
+                                             {creditInfo.monthlyQuota > 0
+                                                ? `${creditInfo.monthlyQuota.toFixed(0)} 积分`
+                                                : '0 积分'}
+                                          </span>
+                                       </div>
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">本月已用</span>
+                                          <span className="font-mono">{creditInfo.monthlyUsed.toFixed(2)} 积分</span>
+                                       </div>
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">本月剩余</span>
+                                          <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                                             {creditInfo.monthlyRemaining.toFixed(2)} 积分
+                                          </span>
+                                       </div>
+                                       <div className="flex justify-between py-2">
+                                          <span className="text-zinc-500">充值积分余额</span>
+                                          <span className="font-mono">{creditInfo.balance.toFixed(2)} 积分</span>
+                                       </div>
+                                       {creditInfo.monthlyQuota > 0 && (
+                                          <div className="mt-2 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                                             <div
+                                                className="h-full rounded-full transition-all"
+                                                style={{
+                                                   width: `${Math.min(100, (creditInfo.monthlyUsed / creditInfo.monthlyQuota) * 100)}%`,
+                                                   background: creditInfo.monthlyUsed >= creditInfo.monthlyQuota ? "#ef4444" : "#1677ff",
+                                                }}
+                                             />
+                                          </div>
+                                       )}
+                                       <p className="text-xs text-zinc-400 leading-relaxed">
+                                          每次 AI 回复按 token 计费（输入 + 输出×权重 ÷ 每积分token数 × 模型倍率 × 全局倍率），
+                                          回复完成后在消息气泡右下显示本次消耗。ProPlus 每月固定积分额度，不再无限使用。
+                                       </p>
                                     </div>
-                                    <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
-                                       <span className="text-zinc-500">每日限额</span>
-                                       <span className="font-mono">
-                                          {quotaInfo.daily_limit >= 999999 ? "无限" : `${quotaInfo.daily_limit} 次/天`}
-                                       </span>
-                                    </div>
-                                    <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
-                                       <span className="text-zinc-500">今日已用</span>
-                                       <span className="font-mono">
-                                          {quotaInfo.daily_usage}
-                                          {quotaInfo.daily_limit < 999999 && quotaInfo.daily_limit > 0 && (
-                                             <span className="text-zinc-400"> / {quotaInfo.daily_limit}</span>
-                                          )}
-                                       </span>
-                                    </div>
-                                    <div className="flex justify-between py-2">
-                                       <span className="text-zinc-500">额外余额</span>
-                                       <span className="font-mono">{quotaInfo.balance} 次</span>
-                                    </div>
-                                 </div>
-                                 {quotaInfo.daily_limit < 999999 && quotaInfo.daily_limit > 0 && (
-                                    <div className="mt-4 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                                       <div
-                                          className="h-full rounded-full transition-all"
-                                          style={{
-                                             width: `${Math.min(100, (quotaInfo.daily_usage / quotaInfo.daily_limit) * 100)}%`,
-                                             background: quotaInfo.daily_usage >= quotaInfo.daily_limit ? "#ef4444" : "#1677ff",
-                                          }}
-                                       />
+                                 ) : (
+                                    <div className="space-y-4 text-sm">
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">会员等级</span>
+                                          <span className="font-bold text-xs tracking-wider bg-zinc-200 dark:bg-zinc-800 px-2 py-1 uppercase">
+                                             {currentUser?.membership || 'FREE'}
+                                          </span>
+                                       </div>
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">每日限额</span>
+                                          <span className="font-mono">
+                                             {quotaInfo!.daily_limit >= 999999 ? "无限" : `${quotaInfo!.daily_limit} 次/天`}
+                                          </span>
+                                       </div>
+                                       <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
+                                          <span className="text-zinc-500">今日已用</span>
+                                          <span className="font-mono">
+                                             {quotaInfo!.daily_usage}
+                                             {quotaInfo!.daily_limit < 999999 && quotaInfo!.daily_limit > 0 && (
+                                                <span className="text-zinc-400"> / {quotaInfo!.daily_limit}</span>
+                                             )}
+                                          </span>
+                                       </div>
+                                       <div className="flex justify-between py-2">
+                                          <span className="text-zinc-500">额外余额</span>
+                                          <span className="font-mono">{quotaInfo!.balance} 次</span>
+                                       </div>
                                     </div>
                                  )}
                               </div>

@@ -631,6 +631,48 @@ export async function initDB(): Promise<void> {
         if (error.code !== '42701') console.error('Error adding membership:', error.message)
       }
 
+      // ===== AI 助手积分制度（token 计费 × 模型倍率 × 全局倍率） =====
+      // 积分充值余额：与旧 ai_balance 复用同一列（INTEGER → 兼容小数积分，PG INTEGER 列做 UPDATE a-b 仍可用整数近似；
+      // 为支持 0.01 精度，改用新 NUMERIC 列 credit_balance，旧 ai_balance 仅作展示兼容）
+      try {
+        await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_credit_quota NUMERIC(12,2) DEFAULT 0")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding monthly_credit_quota:', error.message)
+      }
+      try {
+        await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_credit_used NUMERIC(12,2) DEFAULT 0")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding monthly_credit_used:', error.message)
+      }
+      try {
+        await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_cycle_date TEXT")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding credit_cycle_date:', error.message)
+      }
+      try {
+        await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance NUMERIC(12,2) DEFAULT 0")
+      } catch (error: any) {
+        if (error.code !== '42701') console.error('Error adding credit_balance:', error.message)
+      }
+      // 消耗日志表
+      try {
+        await p.query(`CREATE TABLE IF NOT EXISTS ai_credit_logs (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL,
+          model_id TEXT,
+          input_tokens INTEGER DEFAULT 0,
+          output_tokens INTEGER DEFAULT 0,
+          credits NUMERIC(12,2) NOT NULL,
+          model_rate NUMERIC(8,2) DEFAULT 1,
+          global_multiplier NUMERIC(8,2) DEFAULT 1,
+          estimated INTEGER DEFAULT 0,
+          created_at BIGINT NOT NULL
+        )`)
+        await p.query("CREATE INDEX IF NOT EXISTS idx_ai_credit_logs_user ON ai_credit_logs(user_id, created_at DESC)")
+      } catch (error: any) {
+        console.error('Error creating ai_credit_logs:', error.message)
+      }
+
       try {
         await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0")
       } catch (error: any) {

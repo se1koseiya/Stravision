@@ -1021,6 +1021,14 @@ function AIAssistantContent() {
   
   // Quota state
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null)
+  // 积分视图（积分制度：token 计费 × 模型倍率 × 全局倍率）
+  const [creditInfo, setCreditInfo] = useState<{
+    monthlyRemaining: number
+    balance: number
+    totalRemaining: number
+    canUse: boolean
+    reason?: string
+  } | null>(null)
 
   useEffect(() => {
     // 每次页面加载或发送消息后刷新配额
@@ -1031,6 +1039,9 @@ function AIAssistantContent() {
             const data = await res.json()
             if (data && data.quota) {
                 setQuotaInfo(data.quota)
+            }
+            if (data && data.credit) {
+                setCreditInfo(data.credit)
             }
         } catch (e) {
             console.error("Failed to load quota", e)
@@ -3053,6 +3064,21 @@ function AIAssistantContent() {
                  // 将当前正在生成的回复占位符重新追加回去
                  setMessages(prev => [...prev, assistantMsg])
                  continue
+              }
+
+              // 积分消耗事件：回复完成后在气泡下方显示本次消耗
+              if (data.type === 'credit_usage' && data.credit) {
+                assistantMsg.creditUsage = data.credit
+                if (streamSessionId === sessionId) {
+                  setMessages(prev => {
+                    const newMsgs = [...prev]
+                    if (newMsgs.length > 0) {
+                      newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+                    }
+                    return newMsgs
+                  })
+                }
+                continue
               }
 
               // Handle tool results
@@ -5177,8 +5203,8 @@ function AIAssistantContent() {
               {/* 底部留白（探索入口已移至上方侧边栏） */}
 
             </div>
-            {/* ===== 配额指示器 ===== */}
-            {quotaInfo && (
+            {/* ===== 配额指示器（积分制度） ===== */}
+            {(quotaInfo || creditInfo) && (
               <div
                 onClick={() => setShowPlanDialog(true)}
                 style={{
@@ -5190,32 +5216,62 @@ function AIAssistantContent() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f5f5f5" }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", fontWeight: 500 }}>
-                    AI 配额
-                  </span>
-                  <span style={{ fontSize: 11, color: darkMode ? "#d4d4d8" : "#374151" }}>
-                    {quotaInfo.reason === 'membership_required'
-                      ? <span style={{ color: "#1677ff" }}>升级解锁</span>
-                      : quotaInfo.daily_limit >= 999999
-                        ? "无限"
-                        : `${quotaInfo.daily_usage}/${quotaInfo.daily_limit}`
-                    }
-                    {quotaInfo.reason !== 'membership_required' && quotaInfo.balance > 0 && (
-                      <span style={{ color: "#1677ff", marginLeft: 6 }}>+{quotaInfo.balance}</span>
+                {creditInfo ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", fontWeight: 500 }}>
+                        本月积分
+                      </span>
+                      <span style={{ fontSize: 11, color: darkMode ? "#d4d4d8" : "#374151", fontWeight: 600 }}>
+                        {creditInfo.canUse
+                          ? `${creditInfo.totalRemaining.toFixed(1)} 积分`
+                          : <span style={{ color: "#ef4444" }}>积分不足</span>}
+                        {creditInfo.balance > 0 && (
+                          <span style={{ color: "#1677ff", marginLeft: 6 }}>+{creditInfo.balance.toFixed(1)}</span>
+                        )}
+                      </span>
+                    </div>
+                    <div style={{ height: 3, borderRadius: 2, background: darkMode ? "#27272a" : "#e5e7eb", overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${Math.min(100, creditInfo.canUse ? 100 : 100)}%`,
+                        background: creditInfo.canUse ? "#1677ff" : "#ef4444",
+                        borderRadius: 2,
+                        transition: "width 0.3s",
+                        opacity: 0.7,
+                      }} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", fontWeight: 500 }}>
+                        AI 配额
+                      </span>
+                      <span style={{ fontSize: 11, color: darkMode ? "#d4d4d8" : "#374151" }}>
+                        {quotaInfo!.reason === 'membership_required'
+                          ? <span style={{ color: "#1677ff" }}>升级解锁</span>
+                          : quotaInfo!.daily_limit >= 999999
+                            ? "无限"
+                            : `${quotaInfo!.daily_usage}/${quotaInfo!.daily_limit}`
+                        }
+                        {quotaInfo!.reason !== 'membership_required' && quotaInfo!.balance > 0 && (
+                          <span style={{ color: "#1677ff", marginLeft: 6 }}>+{quotaInfo!.balance}</span>
+                        )}
+                      </span>
+                    </div>
+                    {quotaInfo!.reason !== 'membership_required' && quotaInfo!.daily_limit < 999999 && quotaInfo!.daily_limit > 0 && (
+                      <div style={{ height: 3, borderRadius: 2, background: darkMode ? "#27272a" : "#e5e7eb", overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%",
+                          width: `${Math.min(100, (quotaInfo!.daily_usage / quotaInfo!.daily_limit) * 100)}%`,
+                          background: quotaInfo!.daily_usage >= quotaInfo!.daily_limit ? "#ef4444" : "#1677ff",
+                          borderRadius: 2,
+                          transition: "width 0.3s",
+                        }} />
+                      </div>
                     )}
-                  </span>
-                </div>
-                {quotaInfo.reason !== 'membership_required' && quotaInfo.daily_limit < 999999 && quotaInfo.daily_limit > 0 && (
-                  <div style={{ height: 3, borderRadius: 2, background: darkMode ? "#27272a" : "#e5e7eb", overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%",
-                      width: `${Math.min(100, (quotaInfo.daily_usage / quotaInfo.daily_limit) * 100)}%`,
-                      background: quotaInfo.daily_usage >= quotaInfo.daily_limit ? "#ef4444" : "#1677ff",
-                      borderRadius: 2,
-                      transition: "width 0.3s",
-                    }} />
-                  </div>
+                  </>
                 )}
               </div>
             )}

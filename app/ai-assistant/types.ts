@@ -56,6 +56,18 @@ export interface Message {
   errorRaw?: string
   /** HTTP 状态码 */
   errorStatus?: number
+  /**
+   * 本次回复消耗的积分（积分制度：token 计费 × 模型倍率 × 全局倍率）
+   * 服务端在流式结束时推送 credit_usage 事件填充
+   */
+  creditUsage?: {
+    credits: number
+    inputTokens: number
+    outputTokens: number
+    modelRate: number
+    globalMultiplier: number
+    estimated: boolean
+  }
 }
 
 export interface AISettings {

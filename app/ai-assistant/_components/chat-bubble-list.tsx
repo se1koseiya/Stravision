@@ -681,6 +681,16 @@ export function ChatBubbleList({
                 ))}
               </div>
             )}
+            {/* 积分消耗：回复完成后在气泡右下显示本次消耗（积分制度） */}
+            {!isStreamingThis && msg.creditUsage && typeof msg.creditUsage.credits === 'number' && (
+              <div
+                className="mt-1.5 flex items-center justify-end gap-1 text-[10.5px] text-slate-300 dark:text-slate-600 select-none"
+                title={`输入 ${msg.creditUsage.inputTokens} tokens × 输出 ${msg.creditUsage.outputTokens} tokens × 模型倍率 ${msg.creditUsage.modelRate} × 全局倍率 ${msg.creditUsage.globalMultiplier}`}
+              >
+                <Zap className="w-3 h-3" />
+                <span>消耗 {msg.creditUsage.credits.toFixed(2)} 积分</span>
+              </div>
+            )}
           </div>
         )
       },
