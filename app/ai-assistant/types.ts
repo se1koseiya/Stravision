@@ -68,6 +68,8 @@ export interface Message {
     globalMultiplier: number
     estimated: boolean
   }
+  /** 流式过程中实时估算的积分（每收到一个 delta 用累计 chars × 公式估算；流结束后被 creditUsage 替换） */
+  liveCredits?: number
 }
 
 export interface AISettings {

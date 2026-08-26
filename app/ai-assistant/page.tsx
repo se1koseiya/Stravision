@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Image } from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex } from "antd"
+import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex, Tag, Progress } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
 import { Conversations } from "@ant-design/x"
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen, Lock, AlertTriangle, Crown } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -246,6 +246,36 @@ function AIAssistantContent() {
   const [enableReasoning, setEnableReasoning] = useState(false)
   // 用 useAIModels 拉取一次 providers 配置（与下拉框共用同一份数据），保证 modelSupportsReasoning 与下拉框完全一致
   const { config: aiConfig, loading: aiConfigLoading, refetch: aiConfigRefetch, getDefaultModelId } = useAIModels()
+
+  /**
+   * 实时积分估算：拿到某模型的倍率（admin 在「提供商 → 模型」里配；未配时与 credit-service 启发式一致）
+   */
+  const getModelRate = (modelId: string): number => {
+    if (!aiConfig?.models) return 1
+    const m = aiConfig.models.find(x => x.id === modelId)
+    if (m && typeof (m as any).rateMultiplier === 'number' && (m as any).rateMultiplier > 0) {
+      return (m as any).rateMultiplier
+    }
+    const id = (modelId || '').toLowerCase()
+    if (/(flash|air|free|turbo|lite|mini)/.test(id)) return 0.2
+    if (/(max|ultra|flagship|o1|opus)/.test(id)) return 3
+    return 1
+  }
+  /**
+   * 客户端实时积分估算（流式输出中：累计 input + output 字符数 → 估算 tokens → 算积分）
+   * 与服务端 credit-service 公式保持一致：credits = (input + output × outputWeight) / tokensPerCredit × modelRate
+   */
+  const estimateLiveCredits = (inputChars: number, outputChars: number, modelId: string) => {
+    const modelRate = getModelRate(modelId)
+    const outputWeight = 3
+    const tokensPerCredit = 1000
+    // 字符近似 token：中英混排加权 0.5（与 credit-service.estimateTokens 同量级）
+    const estInputTokens = inputChars * 0.5
+    const estOutputTokens = outputChars * 0.5
+    const weighted = estInputTokens + estOutputTokens * outputWeight
+    const raw = (weighted / tokensPerCredit) * modelRate
+    return Math.max(0.01, Math.ceil(raw * 100) / 100)
+  }
   const [enablePlanning, setEnablePlanning] = useState(false) // 计划模式：生成任务规划
   const [approvalMode, setApprovalMode] = useState<"request" | "auto" | "full">(() => {
     // 从localStorage读取上次选择的权限模式，默认为request
@@ -633,7 +663,8 @@ function AIAssistantContent() {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
-  const [showPlanDialog, setShowPlanDialog] = useState(false)
+  const [showExhaustedDialog, setShowExhaustedDialog] = useState(false)
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false)
   const [greeting, setGreeting] = useState("晚上好")
   
   // 持久化approvalMode到localStorage
@@ -1023,6 +1054,7 @@ function AIAssistantContent() {
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null)
   // 积分视图（积分制度：token 计费 × 模型倍率 × 全局倍率）
   const [creditInfo, setCreditInfo] = useState<{
+    membership?: string
     monthlyRemaining: number
     balance: number
     totalRemaining: number
@@ -2859,7 +2891,7 @@ function AIAssistantContent() {
           const errorData = JSON.parse(errorText)
           if (res.status === 403 && errorData.error && (errorData.error.includes("额度") || errorData.error.includes("余额") || errorData.error.includes("升级"))) {
             if (errorData.quota) setQuotaInfo(errorData.quota)
-            setShowPlanDialog(true)
+            setShowExhaustedDialog(true)
             setIsLoading(false)
             return
           }
@@ -3415,6 +3447,14 @@ function AIAssistantContent() {
                     assistantMsg.content += content
                 } else {
                     assistantMsg.content = content
+                }
+
+                // 实时积分估算（流式过程中：累计 chars × 公式 → 气泡实时显示消耗）
+                {
+                    const creditsModelId = selectedModel || aiSettings?.model || 'auto'
+                    const inputChars = JSON.stringify(currentMessagesForApi || []).length
+                    const outputChars = (assistantMsg.content?.length) || 0
+                    assistantMsg.liveCredits = estimateLiveCredits(inputChars, outputChars, creditsModelId)
                 }
 
                 // 实时清理 TASK_LIST、SCHEDULE_TASK 和 TOOL_USED 标签，防止在流式输出时裸露
@@ -5215,7 +5255,7 @@ function AIAssistantContent() {
             {/* ===== 配额指示器（积分制度） ===== */}
             {(quotaInfo || creditInfo) && (
               <div
-                onClick={() => setShowPlanDialog(true)}
+                onClick={() => setShowCreditsDialog(true)}
                 style={{
                   padding: "8px 14px",
                   cursor: "pointer",
@@ -6003,99 +6043,165 @@ function AIAssistantContent() {
         }}
       />
 
-      {/* 配额耗尽 / 升级提示弹窗 */}
+      {/* 配额耗尽 / 升级提示弹窗（自动弹，简洁直接） */}
       <Modal
-        open={showPlanDialog}
-        onCancel={() => setShowPlanDialog(false)}
+        open={showExhaustedDialog}
+        onCancel={() => setShowExhaustedDialog(false)}
         footer={null}
-        width={420}
+        width={400}
         centered
         title={null}
-        styles={{ body: { padding: 0 } }}
+        closable={false}
+        styles={{ body: { padding: "24px 24px 20px" } }}
       >
-        <div style={{ textAlign: "center", padding: "32px 24px 24px" }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: quotaInfo?.reason === 'membership_required'
-              ? (darkMode ? "rgba(22,119,255,0.12)" : "#eff6ff")
-              : (darkMode ? "rgba(239,68,68,0.12)" : "#fef2f2"),
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-          }}>
-            <span style={{ fontSize: 26 }}>{quotaInfo?.reason === 'membership_required' ? '🔒' : '⚠'}</span>
+        <div className="flex flex-col items-center text-center">
+          <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mb-4">
+            {quotaInfo?.reason === 'membership_required' ? (
+              <Lock className="w-[18px] h-[18px] text-amber-500" />
+            ) : (
+              <AlertTriangle className="w-[18px] h-[18px] text-amber-500" />
+            )}
           </div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: darkMode ? "#e4e4e7" : "#111827" }}>
-            {quotaInfo?.reason === 'membership_required' ? '升级会员解锁 AI 功能' : 'AI 配额已用尽'}
+          <h3 className="text-[15px] font-semibold text-slate-900 dark:text-zinc-100 mb-2 tracking-tight">
+            {quotaInfo?.reason === 'membership_required' ? '需要升级会员' : '积分额度已用尽'}
           </h3>
-          <p style={{ fontSize: 13, color: darkMode ? "#a1a1aa" : "#6b7280", marginBottom: 20, lineHeight: 1.6 }}>
+          <p className="text-[12.5px] text-slate-500 dark:text-zinc-400 leading-relaxed mb-5 max-w-[280px]">
             {quotaInfo?.reason === 'membership_required'
-              ? 'AI 功能仅限 Pro/Plus 会员使用，升级会员后即可解锁全部 AI 能力。'
-              : quotaInfo?.reason === 'no_balance'
-                ? '您的每日额度和额外余额均已用完。额度将在每日 0:00 重置，或联系管理员充值。'
-                : '您的每日额度已用完。额度将在每日 0:00 重置，或联系管理员充值。'}
+              ? 'AI 功能仅限 Pro/Plus 会员使用，升级后可解锁全部能力。'
+              : quotaInfo?.reason === 'no_credits'
+                ? '本月积分已用完且充值余额为 0，请等待下月 1 号刷新或充值积分。'
+                : '当前条件下无法继续调用 AI，请充值积分或升级会员。'}
           </p>
 
-          {/* 配额详情（仅非会员限制时显示） */}
-          {quotaInfo && quotaInfo.reason !== 'membership_required' && (
-            <div style={{
-              display: "flex", justifyContent: "center", gap: 24,
-              padding: "16px 0", marginBottom: 20,
-              borderTop: `1px solid ${darkMode ? "#27272a" : "#f0f0f0"}`,
-              borderBottom: `1px solid ${darkMode ? "#27272a" : "#f0f0f0"}`,
-            }}>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: "#1677ff" }}>
-                  {quotaInfo.daily_limit >= 999999 ? "∞" : quotaInfo.daily_limit}
-                </div>
-                <div style={{ fontSize: 11, color: darkMode ? "#71717a" : "#9ca3af", marginTop: 2 }}>每日限额</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: darkMode ? "#e4e4e7" : "#374151" }}>
-                  {quotaInfo.daily_usage}
-                </div>
-                <div style={{ fontSize: 11, color: darkMode ? "#71717a" : "#9ca3af", marginTop: 2 }}>今日已用</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: "#52c41a" }}>
-                  {quotaInfo.balance}
-                </div>
-                <div style={{ fontSize: 11, color: darkMode ? "#71717a" : "#9ca3af", marginTop: 2 }}>额外余额</div>
-              </div>
+          {/* 当前状态卡：会员 + 剩余积分 */}
+          <div className="w-full rounded-lg bg-slate-50 dark:bg-zinc-800/50 px-3.5 py-3 mb-5">
+            <div className="flex items-center justify-between text-[12.5px] mb-2">
+              <span className="text-slate-500 dark:text-zinc-400">当前会员</span>
+              <Tag
+                bordered={false}
+                color={creditInfo?.membership === 'plus' ? 'gold' : creditInfo?.membership === 'pro' ? 'blue' : 'default'}
+                className="!m-0 !text-[11px]"
+              >
+                {(creditInfo?.membership || user?.membership || 'FREE').toUpperCase()}
+              </Tag>
             </div>
-          )}
-
-          {/* 会员等级说明 */}
-          <div style={{
-            background: darkMode ? "#18181b" : "#f9fafb",
-            borderRadius: 8, padding: "12px 16px", marginBottom: 20,
-            textAlign: "left",
-          }}>
-            <div style={{ fontSize: 12, color: darkMode ? "#71717a" : "#9ca3af", marginBottom: 6, fontWeight: 500 }}>会员等级</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: darkMode ? "#d4d4d8" : "#374151" }}>免费用户</span>
-                <span style={{ color: darkMode ? "#71717a" : "#9ca3af" }}>不可使用 AI</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "#1677ff", fontWeight: 500 }}>Pro 会员</span>
-                <span style={{ color: "#1677ff" }}>70 次/天</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "#1677ff", fontWeight: 500 }}>Plus 会员</span>
-                <span style={{ color: "#1677ff" }}>无限使用</span>
-              </div>
+            <div className="flex items-center justify-between text-[12.5px]">
+              <span className="text-slate-500 dark:text-zinc-400">积分剩余</span>
+              <span className="font-mono font-medium text-slate-900 dark:text-zinc-100">
+                {(creditInfo?.totalRemaining ?? 0).toFixed(1)} 积分
+              </span>
             </div>
           </div>
 
-          <AntButton
-            type="primary"
-            block
-            onClick={() => setShowPlanDialog(false)}
-            style={{ height: 38, borderRadius: 8, fontWeight: 500 }}
-          >
-            我知道了
-          </AntButton>
+          <div className="flex items-center gap-2 w-full">
+            <AntButton block className="!h-9 !rounded-md" onClick={() => setShowExhaustedDialog(false)}>
+              我知道了
+            </AntButton>
+            <AntButton
+              type="primary"
+              block
+              className="!h-9 !rounded-md"
+              icon={<Crown className="w-[13px] h-[13px]" />}
+              onClick={() => {
+                setShowExhaustedDialog(false)
+                setShowCreditsDialog(true)
+              }}
+            >
+              充值 / 升级
+            </AntButton>
+          </div>
         </div>
+      </Modal>
+
+      {/* 积分详情弹窗（点击左下角指示器手动弹） */}
+      <Modal
+        open={showCreditsDialog}
+        onCancel={() => setShowCreditsDialog(false)}
+        footer={null}
+        width={440}
+        centered
+        title={
+          <div className="flex items-center justify-between -mb-2">
+            <span className="text-[14px] font-semibold">AI 积分</span>
+            <Tag
+              bordered={false}
+              color={creditInfo?.membership === 'plus' ? 'gold' : creditInfo?.membership === 'pro' ? 'blue' : 'default'}
+              className="!m-0 !text-[11px]"
+            >
+              {(creditInfo?.membership || user?.membership || 'FREE').toUpperCase()}
+            </Tag>
+          </div>
+        }
+        closable
+        styles={{ body: { padding: "12px 20px 16px" } }}
+      >
+        {creditInfo ? (
+          <div className="flex flex-col gap-3">
+            {/* 本月额度卡 */}
+            <div className="rounded-lg border border-slate-200/80 dark:border-zinc-700/80 px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[12px] text-slate-500 dark:text-zinc-400">本月额度</span>
+                <span className="text-[12.5px] font-mono tabular-nums text-slate-700 dark:text-zinc-300">
+                  {creditInfo.monthlyUsed.toFixed(1)} / {creditInfo.monthlyQuota > 0 ? creditInfo.monthlyQuota : '—'}
+                </span>
+              </div>
+              <Progress
+                percent={creditInfo.monthlyQuota > 0 ? Math.min(100, (creditInfo.monthlyUsed / creditInfo.monthlyQuota) * 100) : 0}
+                showInfo={false}
+                strokeColor={creditInfo.monthlyUsed >= creditInfo.monthlyQuota ? '#ef4444' : '#1677ff'}
+                size="small"
+                className="!mb-0"
+              />
+              <div className="flex items-center justify-between mt-2 text-[12.5px]">
+                <span className="text-slate-500 dark:text-zinc-400">本月剩余</span>
+                <span className="font-mono font-medium text-[#1677ff]">
+                  {creditInfo.monthlyRemaining.toFixed(1)} 积分
+                </span>
+              </div>
+            </div>
+
+            {/* 充值余额卡 */}
+            <div className="rounded-lg border border-slate-200/80 dark:border-zinc-700/80 px-4 py-3 flex items-center justify-between">
+              <div>
+                <div className="text-[12px] text-slate-500 dark:text-zinc-400">充值积分余额</div>
+                <div className="text-[15px] font-mono font-medium text-slate-900 dark:text-zinc-100 mt-0.5">
+                  {creditInfo.balance.toFixed(1)} 积分
+                </div>
+              </div>
+              <AntButton size="small" className="!h-8 !rounded-md">充值</AntButton>
+            </div>
+
+            {/* 会员等级表 */}
+            <div className="rounded-lg bg-slate-50/70 dark:bg-zinc-800/40 px-4 py-2.5">
+              <div className="text-[11.5px] text-slate-400 dark:text-zinc-500 mb-1.5">会员等级</div>
+              <div className="flex flex-col gap-1 text-[12.5px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-zinc-400">免费用户</span>
+                  <span className="text-slate-400 dark:text-zinc-500">不可使用 AI</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 dark:text-zinc-300">Pro</span>
+                  <span className="font-mono tabular-nums text-slate-500 dark:text-zinc-500">300 积分/月</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#1677ff]">Plus</span>
+                  <span className="font-mono tabular-nums text-[#1677ff]">2000 积分/月</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-1">
+              <AntButton block className="!h-9 !rounded-md" onClick={() => setShowCreditsDialog(false)}>
+                关闭
+              </AntButton>
+              <AntButton type="primary" block className="!h-9 !rounded-md" icon={<Crown className="w-[13px] h-[13px]" />}>
+                升级 Plus
+              </AntButton>
+            </div>
+          </div>
+        ) : (
+          <div className="py-6 text-center text-[12.5px] text-slate-400">加载中...</div>
+        )}
       </Modal>
 
     </>

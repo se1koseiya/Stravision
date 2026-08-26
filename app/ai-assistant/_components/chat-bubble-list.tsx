@@ -681,16 +681,27 @@ export function ChatBubbleList({
                 ))}
               </div>
             )}
-            {/* 积分消耗：回复完成后在气泡右下显示本次消耗（积分制度） */}
-            {!isStreamingThis && msg.creditUsage && typeof msg.creditUsage.credits === 'number' && (
-              <div
-                className="mt-1.5 flex items-center justify-end gap-1 text-[10.5px] text-slate-300 dark:text-slate-600 select-none"
-                title={`本次消耗 ${msg.creditUsage.credits.toFixed(2)} 积分`}
-              >
-                <Zap className="w-3 h-3" />
-                <span>消耗 {msg.creditUsage.credits.toFixed(2)} 积分</span>
-              </div>
-            )}
+            {/* 积分消耗：流式中显示实时估算（~ 前缀），回复完成后用服务端真实值 */}
+            {(() => {
+              const realCredits = msg.creditUsage?.credits
+              const liveCredits = msg.liveCredits
+              const display = isStreamingThis
+                ? (typeof liveCredits === 'number' ? `~${liveCredits.toFixed(2)}` : null)
+                : (typeof realCredits === 'number' ? realCredits.toFixed(2) : null)
+              if (!display) return null
+              const tip = isStreamingThis
+                ? `实时估算（流式输出中，每收到一个 token 重算）。流结束后会显示服务端真实值。`
+                : `本次消耗 ${display} 积分`
+              return (
+                <div
+                  className="mt-1.5 flex items-center justify-end gap-1 text-[10.5px] text-slate-300 dark:text-slate-600 select-none"
+                  title={tip}
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>消耗 {display} 积分</span>
+                </div>
+              )
+            })()}
           </div>
         )
       },
