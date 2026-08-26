@@ -31,6 +31,8 @@ export interface AIModel {
   providerName?: string
   supportsVision?: boolean
   supportsReasoning?: boolean
+  /** admin 在「提供商 → 模型」里配的积分倍率（显示与计费都基于此） */
+  rateMultiplier?: number
 }
 
 export interface Category {
@@ -104,6 +106,8 @@ export function useAIModels() {
                 providerName: p.name,
                 supportsVision: m.supportsVision,
                 supportsReasoning: m.supportsReasoning,
+                // 保留 admin 在「提供商 → 模型」里配的积分倍率（不要被旧版启发式覆盖）
+                rateMultiplier: (m as any).rateMultiplier,
               })
             }
           }
