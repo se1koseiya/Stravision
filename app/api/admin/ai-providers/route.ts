@@ -59,10 +59,9 @@ export interface ProvidersConfig {
   embeddingConfig?: EmbeddingConfig
   /** 知识库全局配置（admin 可选） */
   knowledgeConfig?: KnowledgeConfig
-  /** AI 助手积分制度配置（token 计费 × 模型倍率 × 全局倍率） */
+  /** AI 助手积分制度配置（每模型倍率在「提供商 → 模型」里配；这里配置通用换算 + 月度额度） */
   creditConfig?: {
     enabled?: boolean
-    globalMultiplier?: number
     outputWeight?: number
     tokensPerCredit?: number
     plusMonthlyQuota?: number
@@ -359,7 +358,7 @@ export async function PATCH(request: NextRequest) {
     if ('defaultModelId' in body) {
       config.defaultModelId = body.defaultModelId
     }
-    // ===== 积分制度配置 =====
+    // ===== 积分制度配置（每个模型自己的倍率在「提供商 → 模型」里配；这里只配通用换算参数） =====
     if ('creditConfig' in body) {
       const cc = body.creditConfig
       if (cc === null) {
@@ -371,7 +370,6 @@ export async function PATCH(request: NextRequest) {
         }
         config.creditConfig = {
           enabled: cc.enabled !== false,
-          globalMultiplier: num(cc.globalMultiplier, 1),
           outputWeight: num(cc.outputWeight, 3),
           tokensPerCredit: num(cc.tokensPerCredit, 1000),
           plusMonthlyQuota: num(cc.plusMonthlyQuota, 2000),

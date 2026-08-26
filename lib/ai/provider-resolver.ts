@@ -305,10 +305,9 @@ export interface ProvidersConfig {
   embeddingConfig?: EmbeddingConfig
   /** 知识库全局配置（可选，未设置时使用 DEFAULT_KNOWLEDGE_CONFIG） */
   knowledgeConfig?: KnowledgeConfig
-  /** AI 助手积分制度配置（admin 可选；token 计费 × 模型倍率 × 全局倍率） */
+  /** AI 助手积分制度配置（admin 可选；通用换算 + 月度额度） */
   creditConfig?: {
     enabled?: boolean
-    globalMultiplier?: number
     outputWeight?: number
     tokensPerCredit?: number
     plusMonthlyQuota?: number

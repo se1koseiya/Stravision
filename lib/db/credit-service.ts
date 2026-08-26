@@ -2,16 +2,14 @@ import { queryOne, execute, initDB } from "./database"
 import { readProvidersConfig } from "@/lib/ai/provider-resolver"
 
 /**
- * AI 助手积分制度（WorkBuddy 式：按 token 计费 × 模型倍率 × 全局倍率）
+ * AI 助手积分制度（按 token 计费，倍率由 admin 在每个模型管理里单独配）
  *
  * 计算公式：
- *   积分 = (input_tokens + output_tokens × outputWeight) / tokensPerCredit
- *          × modelRate × globalMultiplier
+ *   积分 = (input_tokens + output_tokens × outputWeight) / tokensPerCredit × modelRate
  *
  * - outputWeight：输出 token 权重（默认 3，贴近主流 LLM API 输出/输入定价比例）
  * - tokensPerCredit：每积分对应的基准 token 数（默认 1000，即 1 积分 = 1000 基准 token）
- * - modelRate：每模型倍率（admin 可配；未配置时按模型名启发式）
- * - globalMultiplier：全局倍率（admin 可配，默认 1）
+ * - modelRate：每模型倍率（admin 在「提供商 → 模型」里配；未配置时按模型名启发式）
  *
  * 会员额度：
  * - plus（ProPlus）：月度积分额度（默认 2000 积分/月），不再"无限"
@@ -22,8 +20,6 @@ import { readProvidersConfig } from "@/lib/ai/provider-resolver"
 export interface CreditConfig {
   /** 积分制开关（关闭时回退旧的按次配额逻辑） */
   enabled: boolean
-  /** 全局倍率，所有模型统一乘的系数（默认 1.0，admin 可调） */
-  globalMultiplier: number
   /** 输出 token 权重（默认 3：输出 token 计 3 倍输入 token） */
   outputWeight: number
   /** 每积分对应的基准 token 数（默认 1000） */
@@ -36,7 +32,6 @@ export interface CreditConfig {
 
 export const DEFAULT_CREDIT_CONFIG: CreditConfig = {
   enabled: true,
-  globalMultiplier: 1.0,
   outputWeight: 3,
   tokensPerCredit: 1000,
   plusMonthlyQuota: 2000,
@@ -48,7 +43,6 @@ export interface CreditUsageResult {
   inputTokens: number
   outputTokens: number
   modelRate: number
-  globalMultiplier: number
   /** 上游是否返回了真实 usage（false = 本地估算） */
   estimated: boolean
 }
@@ -76,7 +70,6 @@ export async function getCreditsConfig(): Promise<CreditConfig> {
     const raw = (config as any).creditConfig || {}
     return {
       enabled: raw.enabled !== false,
-      globalMultiplier: numOr(raw.globalMultiplier, DEFAULT_CREDIT_CONFIG.globalMultiplier),
       outputWeight: numOr(raw.outputWeight, DEFAULT_CREDIT_CONFIG.outputWeight),
       tokensPerCredit: numOr(raw.tokensPerCredit, DEFAULT_CREDIT_CONFIG.tokensPerCredit),
       plusMonthlyQuota: numOr(raw.plusMonthlyQuota, DEFAULT_CREDIT_CONFIG.plusMonthlyQuota),
@@ -138,11 +131,11 @@ export function calculateCredits(
   inputTokens: number,
   outputTokens: number,
   modelRate: number,
-  config: Pick<CreditConfig, 'globalMultiplier' | 'outputWeight' | 'tokensPerCredit'>,
+  config: Pick<CreditConfig, 'outputWeight' | 'tokensPerCredit'>,
 ): number {
   const tpc = config.tokensPerCredit > 0 ? config.tokensPerCredit : 1000
   const weighted = inputTokens + outputTokens * config.outputWeight
-  const raw = (weighted / tpc) * modelRate * config.globalMultiplier
+  const raw = (weighted / tpc) * modelRate
   return Math.max(0.01, Math.ceil(raw * 100) / 100)
 }
 
@@ -289,7 +282,7 @@ export async function settleCredits(
     await execute(
       `INSERT INTO ai_credit_logs (user_id, model_id, input_tokens, output_tokens, credits, model_rate, global_multiplier, estimated)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [userId, modelId, inputTokens, outputTokens, credits, modelRate, config.globalMultiplier, estimated ? 1 : 0]
+      [userId, modelId, inputTokens, outputTokens, credits, modelRate, estimated ? 1 : 0]
     )
   } catch (e) {
     // 结算失败不阻塞响应，但要留痕
@@ -301,7 +294,6 @@ export async function settleCredits(
     inputTokens,
     outputTokens,
     modelRate,
-    globalMultiplier: config.globalMultiplier,
     estimated,
   }
 }

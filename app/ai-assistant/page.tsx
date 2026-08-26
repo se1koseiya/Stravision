@@ -3,15 +3,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Image } from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex, Tag, Progress } from "antd"
+import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex, Tag, Progress, Popover, Divider } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
 import { Conversations } from "@ant-design/x"
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen, Lock, AlertTriangle, Crown } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen, Lock, AlertTriangle, Crown, Wallet, Palette, HelpCircle, RefreshCw } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
 const MessageWithReport = dynamic(() => import("@/components/ai/message-with-report").then(mod => ({ default: mod.MessageWithReport })), { ssr: false })
@@ -664,7 +663,7 @@ function AIAssistantContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
   const [showExhaustedDialog, setShowExhaustedDialog] = useState(false)
-  const [showCreditsDialog, setShowCreditsDialog] = useState(false)
+  const [showUserPopover, setShowUserPopover] = useState(false)
   const [greeting, setGreeting] = useState("晚上好")
   
   // 持久化approvalMode到localStorage
@@ -1056,6 +1055,8 @@ function AIAssistantContent() {
   const [creditInfo, setCreditInfo] = useState<{
     membership?: string
     monthlyRemaining: number
+    monthlyUsed: number
+    monthlyQuota: number
     balance: number
     totalRemaining: number
     canUse: boolean
@@ -5252,107 +5253,52 @@ function AIAssistantContent() {
               {/* 底部留白（探索入口已移至上方侧边栏） */}
 
             </div>
-            {/* ===== 配额指示器（积分制度） ===== */}
-            {(quotaInfo || creditInfo) && (
+            {/* ===== 用户区（点击头像触发 Popover 浅色面板） ===== */}
+            <Popover
+              trigger="click"
+              open={showUserPopover}
+              onOpenChange={setShowUserPopover}
+              placement="rightTop"
+              arrow={false}
+              content={
+                <UserPanelContent
+                  user={user}
+                  creditInfo={creditInfo}
+                  darkMode={darkMode}
+                  router={router}
+                  setShowUserPopover={setShowUserPopover}
+                  setSettingsOpen={setSettingsOpen}
+                  handleUserMenuClick={handleUserMenuClick}
+                  toggleDarkMode={toggleDarkMode}
+                />
+              }
+              overlayInnerStyle={{ padding: 0, borderRadius: 16, width: 296, overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.14)' }}
+            >
               <div
-                onClick={() => setShowCreditsDialog(true)}
                 style={{
-                  padding: "8px 14px",
-                  cursor: "pointer",
-                  borderTop: darkMode ? "1px solid #27272a" : "1px solid #f0f0f0",
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 14px", margin: "0 8px 10px",
+                  borderRadius: 10, cursor: "pointer",
+                  background: darkMode ? "#27272a" : "#f5f5f5",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f5f5f5" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#3f3f46" : "#e5e7eb" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f5f5f5" }}
               >
-                {creditInfo ? (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", fontWeight: 500 }}>
-                        本月积分
-                      </span>
-                      <span style={{ fontSize: 11, color: darkMode ? "#d4d4d8" : "#374151", fontWeight: 600 }}>
-                        {creditInfo.canUse
-                          ? `${creditInfo.totalRemaining.toFixed(1)} 积分`
-                          : <span style={{ color: "#ef4444" }}>积分不足</span>}
-                        {creditInfo.balance > 0 && (
-                          <span style={{ color: "#1677ff", marginLeft: 6 }}>+{creditInfo.balance.toFixed(1)}</span>
-                        )}
-                      </span>
-                    </div>
-                    <div style={{ height: 3, borderRadius: 2, background: darkMode ? "#27272a" : "#e5e7eb", overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%",
-                        width: `${Math.min(100, creditInfo.canUse ? 100 : 100)}%`,
-                        background: creditInfo.canUse ? "#1677ff" : "#ef4444",
-                        borderRadius: 2,
-                        transition: "width 0.3s",
-                        opacity: 0.7,
-                      }} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", fontWeight: 500 }}>
-                        AI 配额
-                      </span>
-                      <span style={{ fontSize: 11, color: darkMode ? "#d4d4d8" : "#374151" }}>
-                        {quotaInfo!.reason === 'membership_required'
-                          ? <span style={{ color: "#1677ff" }}>升级解锁</span>
-                          : quotaInfo!.daily_limit >= 999999
-                            ? "无限"
-                            : `${quotaInfo!.daily_usage}/${quotaInfo!.daily_limit}`
-                        }
-                        {quotaInfo!.reason !== 'membership_required' && quotaInfo!.balance > 0 && (
-                          <span style={{ color: "#1677ff", marginLeft: 6 }}>+{quotaInfo!.balance}</span>
-                        )}
-                      </span>
-                    </div>
-                    {quotaInfo!.reason !== 'membership_required' && quotaInfo!.daily_limit < 999999 && quotaInfo!.daily_limit > 0 && (
-                      <div style={{ height: 3, borderRadius: 2, background: darkMode ? "#27272a" : "#e5e7eb", overflow: "hidden" }}>
-                        <div style={{
-                          height: "100%",
-                          width: `${Math.min(100, (quotaInfo!.daily_usage / quotaInfo!.daily_limit) * 100)}%`,
-                          background: quotaInfo!.daily_usage >= quotaInfo!.daily_limit ? "#ef4444" : "#1677ff",
-                          borderRadius: 2,
-                          transition: "width 0.3s",
-                        }} />
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ===== 底部用户区 ===== */}
-            <Dropdown
-              menu={{
-                items: [
-                  { key: "settings", icon: <SettingsIcon size={14} />, label: "设置" },
-                  { type: "divider" as const },
-                  { key: "darkMode", icon: <Moon size={14} />, label: darkMode ? "浅色模式" : "深色模式" },
-                  { type: "divider" as const },
-                  { key: "logout", icon: <LogOut size={14} />, label: "退出登录" },
-                ],
-                onClick: handleUserMenuClick,
-              }}
-              trigger={["click"]}
-              placement="topRight"
-            >
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "12px 14px",
-                cursor: "pointer",
-              }}>
                 <AntAvatar size={32} src={user?.avatar_url} style={{ backgroundColor: darkMode ? "rgba(22,119,255,0.18)" : "#e6f4ff", color: "#1677ff", flexShrink: 0, fontSize: 14 }}>
                   {user?.username?.[0]?.toUpperCase() || "B"}
                 </AntAvatar>
-                <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>
-                  {user?.username || "管理员"}
-                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {user?.username || "管理员"}
+                  </div>
+                  <div style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", marginTop: 2 }}>
+                    {(creditInfo?.membership || user?.membership || 'free').toUpperCase()}
+                  </div>
+                </div>
+                <ChevronRight size={14} style={{ color: darkMode ? "#71717a" : "#9ca3af", flexShrink: 0 }} />
               </div>
-            </Dropdown>
+            </Popover>
           </div>
         </AntLayout.Sider>
 
@@ -6113,96 +6059,6 @@ function AIAssistantContent() {
         </div>
       </Modal>
 
-      {/* 积分详情弹窗（点击左下角指示器手动弹） */}
-      <Modal
-        open={showCreditsDialog}
-        onCancel={() => setShowCreditsDialog(false)}
-        footer={null}
-        width={440}
-        centered
-        title={
-          <div className="flex items-center justify-between -mb-2">
-            <span className="text-[14px] font-semibold">AI 积分</span>
-            <Tag
-              bordered={false}
-              color={creditInfo?.membership === 'plus' ? 'gold' : creditInfo?.membership === 'pro' ? 'blue' : 'default'}
-              className="!m-0 !text-[11px]"
-            >
-              {(creditInfo?.membership || user?.membership || 'FREE').toUpperCase()}
-            </Tag>
-          </div>
-        }
-        closable
-        styles={{ body: { padding: "12px 20px 16px" } }}
-      >
-        {creditInfo ? (
-          <div className="flex flex-col gap-3">
-            {/* 本月额度卡 */}
-            <div className="rounded-lg border border-slate-200/80 dark:border-zinc-700/80 px-4 py-3.5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[12px] text-slate-500 dark:text-zinc-400">本月额度</span>
-                <span className="text-[12.5px] font-mono tabular-nums text-slate-700 dark:text-zinc-300">
-                  {creditInfo.monthlyUsed.toFixed(1)} / {creditInfo.monthlyQuota > 0 ? creditInfo.monthlyQuota : '—'}
-                </span>
-              </div>
-              <Progress
-                percent={creditInfo.monthlyQuota > 0 ? Math.min(100, (creditInfo.monthlyUsed / creditInfo.monthlyQuota) * 100) : 0}
-                showInfo={false}
-                strokeColor={creditInfo.monthlyUsed >= creditInfo.monthlyQuota ? '#ef4444' : '#1677ff'}
-                size="small"
-                className="!mb-0"
-              />
-              <div className="flex items-center justify-between mt-2 text-[12.5px]">
-                <span className="text-slate-500 dark:text-zinc-400">本月剩余</span>
-                <span className="font-mono font-medium text-[#1677ff]">
-                  {creditInfo.monthlyRemaining.toFixed(1)} 积分
-                </span>
-              </div>
-            </div>
-
-            {/* 充值余额卡 */}
-            <div className="rounded-lg border border-slate-200/80 dark:border-zinc-700/80 px-4 py-3 flex items-center justify-between">
-              <div>
-                <div className="text-[12px] text-slate-500 dark:text-zinc-400">充值积分余额</div>
-                <div className="text-[15px] font-mono font-medium text-slate-900 dark:text-zinc-100 mt-0.5">
-                  {creditInfo.balance.toFixed(1)} 积分
-                </div>
-              </div>
-              <AntButton size="small" className="!h-8 !rounded-md">充值</AntButton>
-            </div>
-
-            {/* 会员等级表 */}
-            <div className="rounded-lg bg-slate-50/70 dark:bg-zinc-800/40 px-4 py-2.5">
-              <div className="text-[11.5px] text-slate-400 dark:text-zinc-500 mb-1.5">会员等级</div>
-              <div className="flex flex-col gap-1 text-[12.5px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600 dark:text-zinc-400">免费用户</span>
-                  <span className="text-slate-400 dark:text-zinc-500">不可使用 AI</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-700 dark:text-zinc-300">Pro</span>
-                  <span className="font-mono tabular-nums text-slate-500 dark:text-zinc-500">300 积分/月</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#1677ff]">Plus</span>
-                  <span className="font-mono tabular-nums text-[#1677ff]">2000 积分/月</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-1">
-              <AntButton block className="!h-9 !rounded-md" onClick={() => setShowCreditsDialog(false)}>
-                关闭
-              </AntButton>
-              <AntButton type="primary" block className="!h-9 !rounded-md" icon={<Crown className="w-[13px] h-[13px]" />}>
-                升级 Plus
-              </AntButton>
-            </div>
-          </div>
-        ) : (
-          <div className="py-6 text-center text-[12.5px] text-slate-400">加载中...</div>
-        )}
-      </Modal>
 
     </>
     </App>
@@ -6213,4 +6069,220 @@ function AIAssistantContent() {
 function copyText(text: string) {
   navigator.clipboard.writeText(text)
   toast.success("已复制到剪贴板")
+}
+
+/** 用户面板（点击头像触发的 Popover 内容） */
+function UserPanelContent({
+  user,
+  creditInfo,
+  darkMode,
+  router,
+  setShowUserPopover,
+  setSettingsOpen,
+  handleUserMenuClick,
+  toggleDarkMode,
+}: {
+  user: UserPublic | null
+  creditInfo: {
+    membership?: string
+    monthlyRemaining: number
+    monthlyUsed: number
+    monthlyQuota: number
+    balance: number
+    totalRemaining: number
+    canUse: boolean
+    reason?: string
+  } | null
+  darkMode: boolean
+  router: ReturnType<typeof useRouter>
+  setShowUserPopover: (v: boolean) => void
+  setSettingsOpen: (v: boolean) => void
+  handleUserMenuClick: (e: { key: string }) => void
+  toggleDarkMode: () => void
+}) {
+  const tier = (creditInfo?.membership || user?.membership || 'free').toLowerCase()
+  const tierLabel = tier === 'plus' ? 'Plus 版' : tier === 'pro' ? 'Pro 版' : '体验版'
+  const close = () => setShowUserPopover(false)
+  const tx = darkMode ? '#a0a0a8' : '#6b7280'
+
+  return (
+    <div style={{ background: darkMode ? '#1f1f23' : '#ffffff' }}>
+      {/* Header：头像 + 用户名 + 关闭 */}
+      <div style={{ padding: '12px 14px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AntAvatar size={36} src={user?.avatar_url} style={{ backgroundColor: '#e6f4ff', color: '#1677ff', flexShrink: 0 }}>
+            {user?.username?.[0]?.toUpperCase() || 'U'}
+          </AntAvatar>
+          <div style={{ lineHeight: 1.3 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: darkMode ? '#f5f5f5' : '#111827' }}>
+              {user?.username || '未登录'}
+            </div>
+            <div style={{ fontSize: 11.5, color: tx, marginTop: 2 }}>
+              {user?.email || (user?.uid ? `UID: ${user.uid.slice(0, 8)}` : '')}
+            </div>
+          </div>
+        </div>
+        <AntButton type="text" size="small" icon={<X size={14} />} onClick={close} />
+      </div>
+
+      {/* 体验版 / Pro / Plus + 升级按钮 */}
+      <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: tier === 'plus' ? '#f0b429' : tier === 'pro' ? '#1677ff' : '#6b7280',
+          }}
+        >
+          {tierLabel}
+        </span>
+        {tier !== 'plus' && (
+          <AntButton
+            type="primary"
+            size="small"
+            icon={<Crown size={12} />}
+            onClick={() => { close(); router.push('/subscription') }}
+          >
+            升级
+          </AntButton>
+        )}
+      </div>
+
+      {/* 积分余额（厚实卡片：总额 / 本月剩余 / 充值余额 / 进度条） */}
+      <div style={{ padding: '10px 12px' }}>
+        <div
+          onClick={() => { close(); router.push('/subscription') }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? '#27272c' : '#f3f4f6' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? '#25262b' : '#f9fafb' }}
+          style={{
+            padding: '12px 14px',
+            borderRadius: 10,
+            background: darkMode ? '#25262b' : '#f9fafb',
+            border: darkMode ? '0.5px solid #34353a' : '0.5px solid #e5e7eb',
+            cursor: 'pointer',
+            transition: 'background 0.15s',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Wallet size={14} style={{ color: tx }} />
+              <span style={{ fontSize: 12.5, color: tx }}>积分余额</span>
+            </div>
+            <ChevronRight size={12} style={{ color: tx }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
+            <span style={{
+              fontSize: 22, fontWeight: 600,
+              fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+              color: darkMode ? '#1677ff' : '#1677ff',
+              letterSpacing: -0.3,
+            }}>
+              {(creditInfo?.totalRemaining ?? 0).toFixed(2)}
+            </span>
+            <span style={{ fontSize: 12, color: tx }}>积分</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 2, background: darkMode ? '#3a3a40' : '#e5e7eb', overflow: 'hidden', marginBottom: 8 }}>
+            <div style={{
+              height: '100%',
+              width: `${Math.min(100, (creditInfo?.monthlyQuota ?? 0) > 0 ? ((creditInfo?.monthlyUsed ?? 0) / creditInfo!.monthlyQuota) * 100 : 0)}%`,
+              background: '#1677ff',
+              borderRadius: 2, transition: 'width 0.3s',
+            }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: tx }}>
+            <span>本月剩余 <strong style={{ color: darkMode ? '#e4e4e7' : '#374151', fontWeight: 500 }}>{(creditInfo?.monthlyRemaining ?? 0).toFixed(1)}</strong></span>
+            <span>充值 <strong style={{ color: darkMode ? '#e4e4e7' : '#374151', fontWeight: 500 }}>+{(creditInfo?.balance ?? 0).toFixed(2)}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      {/* 设置 / 外观 / 帮助与反馈 / 检查更新 */}
+      <div style={{ padding: '4px 6px' }}>
+        <PanelRow
+          darkMode={darkMode}
+          icon={<SettingsIcon size={15} />}
+          label="设置"
+          onClick={() => { close(); setSettingsOpen(true) }}
+        />
+        <PanelRow
+          darkMode={darkMode}
+          icon={<Palette size={15} />}
+          label="外观"
+          right={
+            <Segmented
+              size="small"
+              value={darkMode ? 'dark' : 'light'}
+              onChange={(v) => {
+                if ((v === 'dark') !== darkMode) toggleDarkMode()
+              }}
+              options={[
+                { label: '浅色', value: 'light' },
+                { label: '深色', value: 'dark' },
+              ]}
+              style={{ fontSize: 11 }}
+            />
+          }
+        />
+        <PanelRow
+          darkMode={darkMode}
+          icon={<HelpCircle size={15} />}
+          label="帮助与反馈"
+          onClick={() => { close(); router.push('/help') }}
+        />
+        <PanelRow
+          darkMode={darkMode}
+          icon={<RefreshCw size={15} />}
+          label="检查更新"
+          onClick={() => { close(); toast.info('已是最新版本') }}
+        />
+      </div>
+
+      {/* 退出登录 */}
+      <div style={{ padding: '8px 14px 12px' }}>
+        <AntButton
+          block
+          icon={<LogOut size={14} />}
+          onClick={() => { close(); handleUserMenuClick({ key: 'logout' }) }}
+        >
+          退出登录
+        </AntButton>
+      </div>
+    </div>
+  )
+}
+
+/** 用户面板单行（避免每次 render 重建组件） */
+function PanelRow({
+  darkMode,
+  icon,
+  label,
+  right,
+  onClick,
+}: {
+  darkMode: boolean
+  icon: React.ReactNode
+  label: string
+  right?: React.ReactNode
+  onClick?: () => void
+}) {
+  const tx = darkMode ? '#a0a0a8' : '#6b7280'
+  const hoverBg = darkMode ? '#27272c' : '#f3f4f6'
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px', borderRadius: 8, cursor: onClick ? 'pointer' : 'default',
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={(e) => { if (onClick) e.currentTarget.style.background = hoverBg }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: tx, display: 'flex' }}>{icon}</span>
+        <span style={{ fontSize: 13, color: darkMode ? '#e4e4e7' : '#1f2937' }}>{label}</span>
+      </div>
+      {right && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: tx }}>{right}</div>}
+    </div>
+  )
 }

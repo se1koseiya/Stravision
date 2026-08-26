@@ -1,21 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from 'react'
-import { useAIModels, type AIProvider } from '@/lib/hooks/use-ai-models'
-import { ChevronDown } from "@/components/animate-ui/icons/chevron-down"
-import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax, OpenAI } from '@lobehub/icons'
-import { Sparkles, Loader2, Check, Pencil, Plus, X } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useAIModels, type AIProvider } from "@/lib/hooks/use-ai-models"
+import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax, OpenAI, Claude, Gemini, Grok, Mistral, Glama, Gemma, Hunyuan, Doubao, Spark } from "@lobehub/icons"
+import { Sparkles } from "lucide-react"
+import { Dropdown, Button, Switch, Divider, Modal, Form, Input, Tag, Tooltip } from "antd"
 import {
-  PromptInputModelSelect,
-  PromptInputModelSelectTrigger,
-  PromptInputModelSelectContent,
-} from "@/components/ui/assistant-ui"
-import {
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+  DownOutlined,
+  CheckOutlined,
+  EditOutlined,
+  RobotOutlined,
+  CloseOutlined,
+} from "@ant-design/icons"
+import { cn } from "@/lib/utils"
 
 interface DynamicModelSelectorProps {
   value: string
@@ -31,53 +28,71 @@ interface CustomModel {
   rateMultiplier?: number
 }
 
-const CUSTOM_MODELS_KEY = 'berry-realm.custom-models.v1'
-const MAX_MODE_KEY = 'berry-realm.max-mode.v1'
+const CUSTOM_MODELS_KEY = "berry-realm.custom-models.v1"
+const MAX_MODE_KEY = "berry-realm.max-mode.v1"
 
-function getModelIcon(iconType: string, size: number = 18) {
+const brandIcon = (C: any, size: number) => {
+  const Comp = C?.Color || C
+  return <Comp size={size} />
+}
+
+const getModelIcon = (iconType: string, size: number = 16) => {
   switch (iconType) {
-    case 'qwen': return <Qwen.Color size={size} />
-    case 'deepseek': return <DeepSeek.Color size={size} />
-    case 'moonshot': return <Moonshot size={size} />
-    case 'zhipu': return <Zhipu.Color size={size} />
-    case 'minimax': return <Minimax size={size} />
-    case 'openai': return <OpenAI.Color size={size} />
-    case 'sparkles': return <Sparkles size={size * 0.7} className="text-blue-500" />
-    default: return <Qwen.Color size={size} />
+    case "qwen": return brandIcon(Qwen, size)
+    case "deepseek": return brandIcon(DeepSeek, size)
+    case "moonshot": return brandIcon(Moonshot, size)
+    case "kimi": return brandIcon(Moonshot, size)
+    case "zhipu": return brandIcon(Zhipu, size)
+    case "minimax": return brandIcon(Minimax, size)
+    case "openai": return brandIcon(OpenAI, size)
+    case "claude": return brandIcon(Claude, size)
+    case "gemini": return brandIcon(Gemini, size)
+    case "grok": return brandIcon(Grok, size)
+    case "mistral": return brandIcon(Mistral, size)
+    case "llama": return brandIcon(Glama, size)
+    case "gemma": return brandIcon(Gemma, size)
+    case "hunyuan": return brandIcon(Hunyuan, size)
+    case "doubao": return brandIcon(Doubao, size)
+    case "spark": return brandIcon(Spark, size)
+    case "sparkles": return <Sparkles size={size * 0.7} className="text-blue-500" />
+    default: return <RobotOutlined style={{ fontSize: size * 0.8, color: "#8F959E" }} />
   }
 }
 
 const getModelIcon2 = (modelId: string, models: any[]) => {
   const model = models.find(m => m.id === modelId)
   if (!model) {
-    if (modelId === 'auto') return 'sparkles'
-    if (modelId.includes('qwen')) return 'qwen'
-    if (modelId.includes('deepseek')) return 'deepseek'
-    if (modelId.includes('kimi')) return 'moonshot'
-    if (modelId.includes('gpt') || modelId.includes('o1') || modelId.includes('o3')) return 'openai'
-    return 'qwen'
+    if (modelId === "auto") return "sparkles"
+    if (modelId.includes("qwen")) return "qwen"
+    if (modelId.includes("deepseek")) return "deepseek"
+    if (modelId.includes("kimi")) return "moonshot"
+    if (modelId.includes("gpt") || modelId.includes("o1") || modelId.includes("o3")) return "openai"
+    return ""
   }
   return model.icon
 }
 
+/**
+ * 动态模型选择器（antd 风格，飞书式克制设计）
+ * - 触发：antd Text Button（图标 + 名称 + 下箭头）
+ * - 下拉：Max 模式开关 / Auto / 模型列表（右侧灰字倍率）/ 配置自定义模型
+ * - 自定义模型：localStorage 持久化，OpenAI 兼容 API
+ */
 export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelectorProps) {
   const { config, loading, error, getProviders, getModelsByProvider } = useAIModels()
 
-  // 用户自配模型（localStorage 持久化）
-  const [customModels, setCustomModels] = useState<CustomModel[]>([])
-  const [maxMode, setMaxMode] = useState(false)
-  const [configOpen, setConfigOpen] = useState(false)
-  const [editingCustom, setEditingCustom] = useState<CustomModel | null>(null)
-
-  // 从 localStorage 加载
-  useEffect(() => {
+  const [customModels, setCustomModels] = useState<CustomModel[]>(() => {
     try {
       const raw = localStorage.getItem(CUSTOM_MODELS_KEY)
-      if (raw) setCustomModels(JSON.parse(raw))
-      const m = localStorage.getItem(MAX_MODE_KEY)
-      if (m === '1') setMaxMode(true)
-    } catch { /* ignore */ }
-  }, [])
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  })
+  const [maxMode, setMaxMode] = useState(() => {
+    try { return localStorage.getItem(MAX_MODE_KEY) === "1" } catch { return false }
+  })
+  const [open, setOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingCustom, setEditingCustom] = useState<CustomModel | null>(null)
 
   const persistCustom = (list: CustomModel[]) => {
     setCustomModels(list)
@@ -85,367 +100,322 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
   }
   const toggleMax = (v: boolean) => {
     setMaxMode(v)
-    try { localStorage.setItem(MAX_MODE_KEY, v ? '1' : '0') } catch {}
+    try { localStorage.setItem(MAX_MODE_KEY, v ? "1" : "0") } catch {}
   }
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-2 py-1 rounded-lg">
-        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-        <span className="text-sm text-gray-400">加载中...</span>
-      </div>
+      <Button type="text" size="small" className="!h-7 !px-2">
+        <span className="text-[13px] text-gray-400">加载中...</span>
+      </Button>
     )
   }
-
   if (error || !config) {
     return (
-      <div className="flex items-center gap-2 px-2 py-1 rounded-lg">
-        <span className="text-sm text-red-500">加载失败</span>
-      </div>
+      <Button type="text" size="small" className="!h-7 !px-2">
+        <span className="text-[13px] text-red-400">加载失败</span>
+      </Button>
     )
   }
 
   const providers = getProviders()
   const allModels = config.models.filter(m => m.enabled)
-  const globalMultiplier = typeof config.creditMultiplier === 'number' && config.creditMultiplier > 0 ? config.creditMultiplier : 1
   const effectiveRate = (rate?: number) => {
-    const r = typeof rate === 'number' && rate > 0 ? rate : 1
-    return Number((r * globalMultiplier).toFixed(2))
+    const r = typeof rate === "number" && rate > 0 ? rate : 1
+    return Number(r.toFixed(2))
   }
-  const currentModelIcon = getModelIcon2(value, allModels)
 
-  // 扁平化所有启用的模型（按提供商顺序）
   const flatModels = providers.length > 0
     ? providers.flatMap((p: AIProvider) => getModelsByProvider(p.id))
     : allModels
+  const visibleModels = maxMode ? flatModels.filter((m: any) => m.supportsReasoning) : flatModels
 
-  // Max 模式：只显示支持推理的模型（reasoning）
-  const visibleModels = maxMode
-    ? flatModels.filter((m: any) => m.supportsReasoning)
-    : flatModels
-
-  // 当前选中模型的展示名（trigger 显示）
+  // 当前选中模型展示名
   const currentDisplayName = (() => {
-    if (value === 'auto') return 'Auto'
-    const m = visibleModels.find((x: any) => x.id === value)
+    if (value === "auto") return "Auto"
+    const m = flatModels.find((x: any) => x.id === value)
     if (m) return m.name
     const c = customModels.find(x => x.id === value)
     if (c) return c.name
-    const anyM = flatModels.find((x: any) => x.id === value) || allModels.find((x: any) => x.id === value)
-    return anyM?.name || customModels.find(x => x.id === value)?.name || value
+    const legacy = allModels.find((x: any) => x.id === value)
+    return legacy?.name || value
   })()
+  const currentIconType = value === "auto" ? "sparkles" : getModelIcon2(value, flatModels)
 
-  const renderRow = (id: string, icon: React.ReactNode, name: string, rate: number, badges?: string[]) => (
-    <DropdownMenuItem
-      key={id}
-      onSelect={(e) => { e.preventDefault(); onValueChange(id) }}
-      className={cn(
-        "flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer outline-none",
-        "transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800/60",
-        "focus:bg-gray-50 dark:focus:bg-zinc-800/60"
-      )}
-    >
-      <div className="flex-shrink-0">{icon}</div>
-      <span className="flex-1 text-[13.5px] font-medium text-gray-900 dark:text-zinc-100 truncate">{name}</span>
-      {badges && badges.length > 0 && (
-        <div className="flex items-center gap-1 mr-1">
-          {badges.map((b, i) => (
-            <span
-              key={i}
-              className={cn(
-                "px-1.5 py-0.5 rounded-md text-[10px] font-medium",
-                i % 2 === 0
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                  : "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
-              )}
-            >{b}</span>
-          ))}
-        </div>
-      )}
-      <span className="flex-shrink-0 text-[12px] font-mono tabular-nums text-gray-400 dark:text-zinc-500">
-        {rate.toFixed(2)}x
-      </span>
-      {value === id && (
-        <Check size={14} strokeWidth={2.5} className="flex-shrink-0 text-blue-500" />
-      )}
-    </DropdownMenuItem>
-  )
+  const pick = (id: string) => {
+    onValueChange(id)
+    setOpen(false)
+  }
 
-  return (
-    <PromptInputModelSelect value={value} onValueChange={onValueChange}>
-      <PromptInputModelSelectTrigger className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-transparent hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors font-medium text-sm h-auto focus:ring-0 border-0 shadow-none group">
-        {currentModelIcon && currentModelIcon !== 'sparkles' && (
-          <span className="w-4 h-4 inline-flex items-center justify-center">
-            {getModelIcon(currentModelIcon, 16)}
-          </span>
-        )}
-        <span className="text-gray-700 dark:text-zinc-200 font-medium">
-          {currentDisplayName}
-        </span>
-        <ChevronDown size={12} className="text-gray-400" />
-      </PromptInputModelSelectTrigger>
-
-      <PromptInputModelSelectContent
-        align="start"
-        sideOffset={8}
+  const renderRow = (id: string, icon: React.ReactNode, name: string, rate: number, badges?: string[]) => {
+    const selected = value === id
+    return (
+      <div
+        key={id}
+        onClick={() => pick(id)}
         className={cn(
-          "w-[380px] p-0 rounded-2xl bg-white dark:bg-zinc-900",
-          "border border-gray-100 dark:border-zinc-800",
-          "shadow-[0_8px_30px_rgba(0,0,0,0.08)]",
-          "overflow-hidden"
+          "flex items-center gap-2 px-2.5 py-[7px] rounded-md cursor-pointer transition-colors",
+          selected ? "bg-[#1677ff]/[0.06]" : "hover:bg-gray-100 dark:hover:bg-zinc-800"
         )}
       >
-        {/* 顶部：Max 模式 + Auto 行 */}
-        <div className="px-3 pt-3 pb-2">
-          <div className="flex items-center justify-between py-1.5 px-1">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500/15 to-blue-500/15 flex items-center justify-center">
-                <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-              </div>
-              <span className="text-[13.5px] font-medium text-gray-900 dark:text-zinc-100">Max 模式</span>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={maxMode}
-              onClick={(e) => { e.preventDefault(); toggleMax(!maxMode) }}
-              className={cn(
-                "relative w-9 h-5 rounded-full transition-colors",
-                maxMode ? "bg-blue-500" : "bg-gray-200 dark:bg-zinc-700"
-              )}
-            >
-              <span
-                className={cn(
-                  "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform",
-                  maxMode ? "translate-x-[18px]" : "translate-x-0.5"
-                )}
-              />
-            </button>
-          </div>
-
-          {renderRow('auto', <Sparkles className="w-4 h-4 text-blue-500" />, 'Auto', effectiveRate(0.6))}
-        </div>
-
-        {/* 分隔线 */}
-        {(visibleModels.length > 0 || customModels.length > 0) && (
-          <div className="h-px bg-gray-100 dark:bg-zinc-800 mx-3" />
+        <span className="flex-shrink-0 w-4 inline-flex justify-center text-gray-500 dark:text-zinc-400">{icon}</span>
+        <span className={cn(
+          "flex-1 text-[13px] truncate",
+          selected ? "font-medium text-[#1677ff]" : "text-gray-700 dark:text-zinc-300"
+        )}>
+          {name}
+        </span>
+        {badges && badges.length > 0 && (
+          <span className="flex items-center gap-1">
+            {badges.map((b, i) => (
+              <Tag key={i} bordered={false} className={cn(
+                "!text-[10px] !leading-4 !px-1.5 !m-0",
+                i % 2 === 0 ? "!bg-[#E8F3FF] !text-[#1677ff]" : "!bg-[#FFF7E8] !text-[#FF7D00]"
+              )}>{b}</Tag>
+            ))}
+          </span>
         )}
+        <span className="flex-shrink-0 text-[12px] tabular-nums text-gray-400 dark:text-zinc-500">
+          {rate.toFixed(2)}x
+        </span>
+        {selected && <CheckOutlined className="flex-shrink-0 !text-[12px] !text-[#1677ff]" />}
+      </div>
+    )
+  }
 
-        {/* 模型列表（max 模式时显示推理模型） */}
-        {maxMode ? (
-          <div className="py-1 max-h-[320px] overflow-y-auto">
-            {visibleModels.length > 0 ? visibleModels.map((m: any) => renderRow(
+  const customRow = (c: CustomModel) => {
+    const selected = value === c.id
+    return (
+      <div
+        key={c.id}
+        onClick={() => pick(c.id)}
+        className={cn(
+          "flex items-center gap-2 px-2.5 py-[7px] rounded-md cursor-pointer transition-colors group",
+          selected ? "bg-[#1677ff]/[0.06]" : "hover:bg-gray-100 dark:hover:bg-zinc-800"
+        )}
+      >
+        <span className="flex-shrink-0 w-4 inline-flex justify-center text-gray-400">
+          <RobotOutlined style={{ fontSize: 13 }} />
+        </span>
+        <span className={cn(
+          "flex-1 text-[13px] truncate",
+          selected ? "font-medium text-[#1677ff]" : "text-gray-700 dark:text-zinc-300"
+        )}>
+          {c.name}
+        </span>
+        <span className="flex-shrink-0 text-[12px] tabular-nums text-gray-400 dark:text-zinc-500">
+          {effectiveRate(c.rateMultiplier ?? 1).toFixed(2)}x
+        </span>
+        {selected && <CheckOutlined className="flex-shrink-0 !text-[12px] !text-[#1677ff]" />}
+        <span
+          role="button"
+          onClick={(e) => { e.stopPropagation(); setEditingCustom(c); setModalOpen(true) }}
+          className="flex-shrink-0 p-0.5 rounded hover:bg-gray-200/70 dark:hover:bg-zinc-700/70 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <EditOutlined style={{ fontSize: 11 }} />
+        </span>
+      </div>
+    )
+  }
+
+  const listContent = (
+    <div className="w-[360px] max-w-[92vw] rounded-lg border border-gray-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 p-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.10)]">
+      {/* Max 模式 */}
+      <div className="flex items-center justify-between px-2.5 py-1.5">
+        <span className="text-[13px] text-gray-700 dark:text-zinc-300">Max 模式</span>
+        <Switch size="small" checked={maxMode} onChange={toggleMax} />
+      </div>
+      <Divider className="!my-1" />
+
+      {/* Auto */}
+      {renderRow("auto", <Sparkles className="w-3.5 h-3.5 text-blue-500" />, "Auto", effectiveRate(0.6))}
+
+      {/* 模型列表 */}
+      {(visibleModels.length > 0 || customModels.length > 0) && (
+        <>
+          <Divider className="!my-1" />
+          <div className="max-h-[300px] overflow-y-auto py-0.5">
+            {visibleModels.map((m: any) => renderRow(
               m.id,
-              getModelIcon(m.icon || 'qwen', 16),
+              getModelIcon(m.icon || "qwen", 15),
               m.name,
               effectiveRate(m.rateMultiplier),
               m.badges,
-            )) : (
-              <div className="px-3 py-4 text-[12.5px] text-gray-400 dark:text-zinc-500 text-center">
-                暂无可用推理模型
+            ))}
+            {customModels.map(customRow)}
+            {visibleModels.length === 0 && customModels.length === 0 && (
+              <div className="px-2.5 py-4 text-center text-[12.5px] text-gray-400 dark:text-zinc-500">
+                暂无可用模型
               </div>
             )}
           </div>
-        ) : (
-          <>
-            {visibleModels.length > 0 && (
-              <div className="py-1 max-h-[320px] overflow-y-auto">
-                {visibleModels.map((m: any) => renderRow(
-                  m.id,
-                  getModelIcon(m.icon || 'qwen', 16),
-                  m.name,
-                  effectiveRate(m.rateMultiplier),
-                  m.badges,
-                ))}
-              </div>
-            )}
-            {/* 用户自配模型（"我的模型"分组） */}
-            {customModels.length > 0 && (
-              <div className="py-1">
-                {customModels.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer outline-none transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800/60"
-                    onClick={(e) => { e.preventDefault(); onValueChange(c.id) }}
-                  >
-                    <div className="flex-shrink-0 w-4 h-4 inline-flex items-center justify-center rounded bg-gray-100 dark:bg-zinc-800">
-                      <Pencil className="w-2.5 h-2.5 text-gray-500 dark:text-zinc-400" />
-                    </div>
-                    <span className="flex-1 text-[13.5px] font-medium text-gray-900 dark:text-zinc-100 truncate">{c.name}</span>
-                    <span className="flex-shrink-0 text-[12px] font-mono tabular-nums text-gray-400 dark:text-zinc-500">
-                      {effectiveRate(c.rateMultiplier ?? 1).toFixed(2)}x
-                    </span>
-                    {value === c.id && (
-                      <Check size={14} strokeWidth={2.5} className="flex-shrink-0 text-blue-500" />
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditingCustom(c) }}
-                      className="flex-shrink-0 p-1 rounded hover:bg-gray-200/60 dark:hover:bg-zinc-700/60"
-                      title="编辑"
-                    >
-                      <Pencil className="w-3 h-3 text-gray-400" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+        </>
+      )}
 
-        {/* 底部：配置自定义模型 */}
-        <div className="h-px bg-gray-100 dark:bg-zinc-800 mx-3" />
-        <div className="p-2">
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); setEditingCustom({ id: `custom-${Date.now()}`, name: '', baseUrl: '', apiKey: '', modelId: '' }); setConfigOpen(true) }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[13.5px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            <span>配置自定义模型</span>
-          </button>
-        </div>
-      </PromptInputModelSelectContent>
+      <Divider className="!my-1" />
 
-      {/* 自定义模型编辑对话框 */}
-      {editingCustom && (
-        <CustomModelDialog
-          open={configOpen || !!editingCustom}
+      {/* 配置自定义模型 */}
+      <div
+        role="button"
+        onClick={() => { setEditingCustom(null); setModalOpen(true) }}
+        className="flex items-center gap-2 px-2.5 py-[7px] rounded-md cursor-pointer text-[13px] text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+      >
+        <EditOutlined className="!text-[13px]" />
+        <span>配置自定义模型</span>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      <Dropdown
+        open={open}
+        onOpenChange={setOpen}
+        trigger={["click"]}
+        placement="bottomLeft"
+        dropdownRender={() => listContent}
+      >
+        <Button
+          type="text"
+          size="small"
+          className="!h-7 !px-2 !rounded-md hover:!bg-black/[0.05] dark:hover:!bg-white/[0.08]"
+        >
+          <span className="flex items-center gap-1.5 text-[13px] text-gray-700 dark:text-zinc-200">
+            {currentIconType && currentIconType !== "sparkles" && (
+              <span className="inline-flex">{getModelIcon(currentIconType, 15)}</span>
+            )}
+            {(!currentIconType || currentIconType === "sparkles") && (
+              <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+            )}
+            <span className="font-medium">{currentDisplayName}</span>
+            <DownOutlined className="!text-[9px] !text-gray-400" />
+          </span>
+        </Button>
+      </Dropdown>
+
+      {/* 配置自定义模型对话框 */}
+      <Modal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={() => {}}
+        footer={null}
+        width={480}
+        title={
+          <span className="!text-[15px] !font-medium">配置自定义模型</span>
+        }
+        closeIcon={<CloseOutlined className="!text-[12px] !text-gray-400" />}
+      >
+        <CustomModelForm
           initial={editingCustom}
-          onClose={() => { setEditingCustom(null); setConfigOpen(false) }}
           onSave={(m) => {
             const exists = customModels.find(x => x.id === m.id)
-            const next = exists
-              ? customModels.map(x => x.id === m.id ? m : x)
-              : [...customModels, m]
+            const next = exists ? customModels.map(x => x.id === m.id ? m : x) : [...customModels, m]
             persistCustom(next)
-            setEditingCustom(null)
-            setConfigOpen(false)
+            setModalOpen(false)
+            // 保存后如果编辑的是当前选中的，刷新选中
+            if (editingCustom && value === editingCustom.id) onValueChange(m.id)
           }}
+          onDelete={editingCustom ? (m) => {
+            persistCustom(customModels.filter(x => x.id !== m.id))
+            if (value === m.id) onValueChange("auto")
+            setModalOpen(false)
+          } : undefined}
+          editing={!!editingCustom}
         />
-      )}
-    </PromptInputModelSelect>
+      </Modal>
+    </>
   )
 }
 
-function CustomModelDialog({
-  open,
+function CustomModelForm({
   initial,
-  onClose,
   onSave,
+  onDelete,
+  editing,
 }: {
-  open: boolean
-  initial: CustomModel
-  onClose: () => void
+  initial: CustomModel | null
   onSave: (m: CustomModel) => void
+  onDelete?: (m: CustomModel) => void
+  editing: boolean
 }) {
-  const [name, setName] = useState(initial.name)
-  const [baseUrl, setBaseUrl] = useState(initial.baseUrl)
-  const [apiKey, setApiKey] = useState(initial.apiKey)
-  const [modelId, setModelId] = useState(initial.modelId)
-  const [rateMultiplier, setRateMultiplier] = useState<number | undefined>(initial.rateMultiplier)
+  const [form] = Form.useForm<CustomModel>()
 
-  if (!open) return null
+  useEffect(() => {
+    if (initial) {
+      form.setFieldsValue(initial)
+    } else {
+      form.resetFields()
+    }
+  }, [initial, form])
 
-  const handleSave = () => {
-    if (!name.trim() || !baseUrl.trim() || !modelId.trim()) return
+  const handleOk = async () => {
+    const values = await form.validateFields()
     onSave({
-      id: initial.id,
-      name: name.trim(),
-      baseUrl: baseUrl.trim(),
-      apiKey: apiKey.trim(),
-      modelId: modelId.trim(),
-      rateMultiplier: rateMultiplier,
+      id: initial?.id || `custom-${Date.now()}`,
+      name: values.name.trim(),
+      baseUrl: values.baseUrl.trim(),
+      apiKey: values.apiKey.trim(),
+      modelId: values.modelId.trim(),
+      rateMultiplier: values.rateMultiplier ?? undefined,
     })
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="w-[440px] max-w-[92vw] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-zinc-800 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-zinc-100">配置自定义模型</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-800"
-            title="关闭"
-          >
-            <X className="w-4 h-4 text-gray-400" />
-          </button>
+    <Form form={form} layout="vertical" requiredMark={false} className="!mt-1">
+      <Form.Item
+        name="name"
+        label={<span className="!text-[13px] !text-gray-600">显示名称</span>}
+        rules={[{ required: true, message: "请输入显示名称" }]}
+      >
+        <Input placeholder="如：我的 Moonshot" className="!h-8 !text-[13px]" />
+      </Form.Item>
+      <Form.Item
+        name="baseUrl"
+        label={<span className="!text-[13px] !text-gray-600">Base URL</span>}
+        rules={[{ required: true, message: "请输入 Base URL" }]}
+        extra={<span className="!text-[11px] !text-gray-400">OpenAI 兼容端点，如 https://api.example.com/v1</span>}
+      >
+        <Input placeholder="https://api.example.com/v1" className="!h-8 !text-[13px] !font-mono" />
+      </Form.Item>
+      <Form.Item
+        name="apiKey"
+        label={<span className="!text-[13px] !text-gray-600">API Key</span>}
+        rules={[{ required: true, message: "请输入 API Key" }]}
+      >
+        <Input.Password placeholder="sk-..." className="!h-8 !text-[13px] !font-mono" />
+      </Form.Item>
+      <div className="grid grid-cols-2 gap-3">
+        <Form.Item
+          name="modelId"
+          label={<span className="!text-[13px] !text-gray-600">模型 ID</span>}
+          rules={[{ required: true, message: "请输入模型 ID" }]}
+        >
+          <Input placeholder="kimi-k2-0711-preview" className="!h-8 !text-[13px] !font-mono" />
+        </Form.Item>
+        <Form.Item
+          name="rateMultiplier"
+          label={
+            <Tooltip title="该模型回复按 token 消耗积分的相对倍数（不填默认 1）">
+              <span className="!text-[13px] !text-gray-600">积分倍率（可选）</span>
+            </Tooltip>
+          }
+        >
+          <Input type="number" step={0.1} min={0.1} placeholder="默认 1" className="!h-8 !text-[13px]" />
+        </Form.Item>
+      </div>
+      <div className="flex items-center justify-between mt-1">
+        <div>
+          {editing && onDelete && initial && (
+            <Button type="text" danger size="small" className="!text-[12px] !px-2" onClick={() => onDelete(initial)}>
+              删除该模型
+            </Button>
+          )}
         </div>
-        <p className="text-[12px] text-gray-500 dark:text-zinc-400 mb-4 leading-relaxed">
-          配置任意 OpenAI 兼容的 API 端点（如 OpenRouter、Moonshot、自建部署等）。仅保存在本设备。
-        </p>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-[12px] font-medium text-gray-700 dark:text-zinc-300 block mb-1">显示名称</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="如：我的 Moonshot"
-              className="h-9"
-            />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-gray-700 dark:text-zinc-300 block mb-1">Base URL</label>
-            <Input
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://api.example.com/v1"
-              className="h-9 font-mono text-[12px]"
-            />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-gray-700 dark:text-zinc-300 block mb-1">API Key</label>
-            <Input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-..."
-              className="h-9 font-mono text-[12px]"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[12px] font-medium text-gray-700 dark:text-zinc-300 block mb-1">模型 ID</label>
-              <Input
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value)}
-                placeholder="kimi-k2-0711-preview"
-                className="h-9 font-mono text-[12px]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-gray-700 dark:text-zinc-300 block mb-1">积分倍率（可选）</label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0.1"
-                value={rateMultiplier ?? ''}
-                onChange={(e) => setRateMultiplier(e.target.value === '' ? undefined : Number(e.target.value))}
-                placeholder="默认 1"
-                className="h-9"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 mt-5">
-          <Button variant="ghost" size="sm" onClick={onClose}>取消</Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!name.trim() || !baseUrl.trim() || !modelId.trim()}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            保存
-          </Button>
+        <div className="flex items-center gap-2">
+          <Button size="small" className="!text-[13px]" onClick={() => form.resetFields()}>重置</Button>
+          <Button type="primary" size="small" className="!text-[13px]" onClick={handleOk}>保存</Button>
         </div>
       </div>
-    </div>
+    </Form>
   )
 }

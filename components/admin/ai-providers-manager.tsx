@@ -10,6 +10,11 @@ import {
   Server, Zap, Globe, Key, Star, ArrowUpDown,
   Sparkles, Brain, Camera, Cpu, Bot, CircleDot, BookOpen, Coins
 } from "lucide-react"
+// 模型品牌图标（@lobehub/icons：Qwen/DeepSeek/Kimi/智谱/MiniMax/OpenAI/Claude/Gemini/Grok 等）
+import {
+  Qwen, DeepSeek, Moonshot, Zhipu, Minimax, OpenAI,
+  Claude, Gemini, Grok, Mistral, Glama, Gemma, Hunyuan, Doubao, Spark,
+} from "@lobehub/icons"
 
 // ====== 类型 ======
 
@@ -51,13 +56,45 @@ const PROVIDER_TYPE_ICONS: Record<string, React.ReactNode> = {
   glm: <Brain size={16} />,
 }
 
+// 品牌图标渲染（自动回退 .Color 变体；lobehub 组件可能只有彩色或只有单色）
+const brandIcon = (C: any, size: number) => {
+  const Comp = C?.Color || C
+  return <Comp size={size} />
+}
+
+/** 可选模型图标 key（admin 模型编辑器的图标选择器） */
+export const MODEL_ICON_KEYS = [
+  'qwen', 'deepseek', 'moonshot', 'kimi', 'zhipu', 'minimax', 'openai',
+  'claude', 'gemini', 'grok', 'mistral', 'llama', 'gemma',
+  'hunyuan', 'doubao', 'spark', 'sparkles',
+] as const
+
 const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
-  qwen: <Sparkles size={14} />,
-  deepseek: <Brain size={14} />,
-  openai: <Cpu size={14} />,
-  xiaomi: <Zap size={14} />,
-  zhipu: <Brain size={14} />,
+  qwen: brandIcon(Qwen, 14),
+  deepseek: brandIcon(DeepSeek, 14),
+  moonshot: brandIcon(Moonshot, 14),
+  kimi: brandIcon(Moonshot, 14),
+  zhipu: brandIcon(Zhipu, 14),
+  minimax: brandIcon(Minimax, 14),
+  openai: brandIcon(OpenAI, 14),
+  claude: brandIcon(Claude, 14),
+  gemini: brandIcon(Gemini, 14),
+  grok: brandIcon(Grok, 14),
+  mistral: brandIcon(Mistral, 14),
+  llama: brandIcon(Glama, 14),
+  gemma: brandIcon(Gemma, 14),
+  hunyuan: brandIcon(Hunyuan, 14),
+  doubao: brandIcon(Doubao, 14),
+  spark: brandIcon(Spark, 14),
   sparkles: <Sparkles size={14} />,
+}
+
+const MODEL_ICON_NAMES: Record<string, string> = {
+  qwen: '通义千问', deepseek: 'DeepSeek', moonshot: 'Kimi', kimi: 'Kimi',
+  zhipu: '智谱', minimax: 'MiniMax', openai: 'OpenAI', claude: 'Claude',
+  gemini: 'Gemini', grok: 'Grok', mistral: 'Mistral', llama: 'Glama',
+  gemma: 'Gemma', hunyuan: '混元', doubao: '豆包', spark: '讯飞星火',
+  sparkles: '通用',
 }
 
 function getModelIcon(icon?: string) {
@@ -590,6 +627,22 @@ function ProviderDialog({
                   onChange={e => updateModel(idx, 'description', e.target.value)}
                   style={{ fontSize: '12px', height: '32px' }}
                 />
+                <Select
+                  value={model.icon || ''}
+                  onChange={v => updateModel(idx, 'icon', v || undefined)}
+                  placeholder="图标"
+                  style={{ width: 108, fontSize: '12px', height: 32 }}
+                  options={MODEL_ICON_KEYS.map(k => ({
+                    value: k,
+                    label: (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        {getModelIcon(k)}
+                        <span style={{ fontSize: 12 }}>{MODEL_ICON_NAMES[k]}</span>
+                      </span>
+                    ),
+                  }))}
+                  popupMatchSelectWidth={false}
+                />
                 <InputNumber
                   placeholder="积分倍率"
                   min={0.1} max={10} step={0.1} precision={2}
@@ -672,10 +725,9 @@ export function AIProvidersManager() {
   const [testingEmbedding, setTestingEmbedding] = useState(false)
   const [embedTestResult, setEmbedTestResult] = useState<{ ok: boolean; msg: string; provider?: string; model?: string; dim?: number; preview?: number[] } | null>(null)
 
-  // AI 助手积分制度配置（token 计费 × 模型倍率 × 全局倍率）
+  // AI 助手积分制度配置（每模型倍率在「提供商 → 模型」里配；这里只配通用换算 + 月度额度）
   const [creditConfig, setCreditConfig] = useState<{
     enabled: boolean
-    globalMultiplier: number
     outputWeight: number
     tokensPerCredit: number
     plusMonthlyQuota: number
@@ -683,7 +735,6 @@ export function AIProvidersManager() {
   } | null>(null)
   const [creditDraft, setCreditDraft] = useState({
     enabled: true,
-    globalMultiplier: 1,
     outputWeight: 3,
     tokensPerCredit: 1000,
     plusMonthlyQuota: 2000,
@@ -717,7 +768,6 @@ export function AIProvidersManager() {
         setCreditConfig(data.creditConfig)
         setCreditDraft({
           enabled: data.creditConfig.enabled !== false,
-          globalMultiplier: Number(data.creditConfig.globalMultiplier) || 1,
           outputWeight: Number(data.creditConfig.outputWeight) || 3,
           tokensPerCredit: Number(data.creditConfig.tokensPerCredit) || 1000,
           plusMonthlyQuota: Number(data.creditConfig.plusMonthlyQuota) || 2000,
@@ -1162,15 +1212,14 @@ export function AIProvidersManager() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
               <Typography.Text strong>AI 助手积分制度</Typography.Text>
-              <Tag color="gold" style={{ fontSize: 10 }}>WorkBuddy 式：token × 倍率</Tag>
               <div style={{ flex: 1 }} />
               <Button size="small" type="primary" onClick={handleSaveCredit} loading={savingCredit} icon={!savingCredit ? <Check size={14} /> : null}>
                 保存
               </Button>
             </div>
             <p style={{ fontSize: 12, color: '#8F959E', marginTop: 4, marginBottom: 12 }}>
-              每次 AI 回复按真实 token 计费：积分 =（输入 tokens + 输出 tokens × 输出权重）÷ 每积分token数 × 模型倍率 × 全局倍率。
-              每个模型可在下方模型编辑器中单独设置倍率（×0.2 ~ ×3）；未设置时按模型名启发式（flash/air=0.2、标准=1、旗舰=3）。
+              每次 AI 回复按真实 token 计费：积分 =（输入 tokens + 输出 tokens × 输出权重）÷ 每积分token数 × 该模型倍率。
+              <strong style={{ color: '#1F2329' }}>每个模型的倍率</strong>在「提供商 → 模型」里独立配（未配时按模型名启发式：flash/air=0.2、标准=1、旗舰=3）。
               ProPlus 不再无限使用，改为每月固定积分额度。
             </p>
 
@@ -1184,17 +1233,6 @@ export function AIProvidersManager() {
                   unCheckedChildren="关闭"
                 />
                 <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>关闭时回退旧的按次配额逻辑</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>全局倍率</div>
-                <InputNumber
-                  min={0.1} max={100} step={0.1} precision={2}
-                  value={creditDraft.globalMultiplier}
-                  onChange={(v) => setCredit('globalMultiplier', Number(v) || 1)}
-                  style={{ width: '100%' }}
-                  addonAfter="×"
-                />
-                <div style={{ fontSize: 11, color: '#8F959E', marginTop: 4 }}>所有模型统一乘的系数</div>
               </div>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: '#646A73', marginBottom: 6 }}>输出权重</div>

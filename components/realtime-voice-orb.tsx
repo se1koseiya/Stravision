@@ -344,7 +344,7 @@ export function RealtimeVoiceOrb({
         whileTap={{ scale: 0.95 }}
       >
         {/* Orb Background */}
-        <div className="absolute inset-0 rounded-full overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 rounded-full shadow-2xl">
           <BerryOrb size={`${size}px`} isActive={isActive} expression={orbExpression} className="w-full h-full" />
         </div>
 
