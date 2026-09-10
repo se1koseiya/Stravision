@@ -122,6 +122,13 @@ export async function initDB(): Promise<void> {
           user_agent TEXT,
           created_at BIGINT NOT NULL
         )`,
+        `CREATE TABLE IF NOT EXISTS ip_locations (
+          ip TEXT PRIMARY KEY,
+          country TEXT,
+          region TEXT,
+          city TEXT,
+          updated_at BIGINT NOT NULL
+        )`,
         `CREATE TABLE IF NOT EXISTS device_logs (
           id BIGSERIAL PRIMARY KEY,
           device_name TEXT NOT NULL,
@@ -671,6 +678,94 @@ export async function initDB(): Promise<void> {
         await p.query("CREATE INDEX IF NOT EXISTS idx_ai_credit_logs_user ON ai_credit_logs(user_id, created_at DESC)")
       } catch (error: any) {
         console.error('Error creating ai_credit_logs:', error.message)
+      }
+
+      // ===== 产品更新日志（公开 changelog 页 + admin 管理） =====
+      try {
+        await p.query(`CREATE TABLE IF NOT EXISTS changelog_entries (
+          id BIGSERIAL PRIMARY KEY,
+          version TEXT NOT NULL,
+          title TEXT DEFAULT '',
+          summary TEXT DEFAULT '',
+          released_at TEXT NOT NULL,
+          items JSONB NOT NULL DEFAULT '[]'::jsonb,
+          published INTEGER NOT NULL DEFAULT 1,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`)
+        await p.query("CREATE INDEX IF NOT EXISTS idx_changelog_released ON changelog_entries(released_at DESC, version DESC)")
+        // 首次建表时种子数据（仅表为空时插入；内容为本项目真实更新历史，时间跨度大二上→现在）
+        const seedCheck = await p.query("SELECT COUNT(*)::int AS n FROM changelog_entries")
+        if (seedCheck.rows[0]?.n === 0) {
+          const now = Date.now()
+          const seeds = [
+            {
+              version: "3.6.0", title: "大棚监控底座：让数据先上线", summary: "项目起点：先把大棚的实时数据搬进浏览器，打稳设备接入与账号体系两块地基。",
+              released_at: "2025-12-26",
+              items: [
+                { tag: "new", text: "实时监控卡：温湿光、土壤含水率等环境指标接入，MQTT 秒级推送" },
+                { tag: "new", text: "用户系统：注册登录、多角色权限与个人中心" },
+                { tag: "improve", text: "仪表盘基础布局与暗色主题适配" },
+              ],
+            },
+            {
+              version: "3.7.0", title: "莓小智上线：会聊天的农事助手", summary: "AI 对话能力落地，流式思维链 + 知识库问答，种草莓的问题可以直接问了。",
+              released_at: "2026-03-20",
+              items: [
+                { tag: "new", text: "对话助手：流式输出与思维链展示，支持多模型切换" },
+                { tag: "new", text: "知识库问答：上传种植资料即可定向提问" },
+                { tag: "fix", text: "修复 SSE 断线重连导致的回复丢失" },
+              ],
+            },
+            {
+              version: "3.8.0", title: "积分与订阅体系", summary: "给 AI 能力加上计量与商业化底座，套餐、用量、兑换码一步到位。",
+              released_at: "2026-06-05",
+              items: [
+                { tag: "new", text: "积分计费：按模型倍率 × 全局倍率结算，月度额度自动刷新" },
+                { tag: "new", text: "兑换码体系：激活 Plus 会员与加量积分" },
+                { tag: "improve", text: "订阅管理页上线，用量与余额一目了然" },
+              ],
+            },
+            {
+              version: "3.9.0", title: "设备调控闭环：从对话到执行留痕", summary: "莓小智现在可以直接控制大棚设备，每一次操作都可回溯。",
+              released_at: "2026-08-28",
+              items: [
+                { tag: "new", text: "设备控制卡：对话里直接开关风机、水泵等继电器设备" },
+                { tag: "new", text: "操作留痕：所有设备指令记录执行状态，支持失败重试" },
+                { tag: "improve", text: "实时监控卡接入 MQTT 推送，环境数据秒级刷新" },
+              ],
+            },
+            {
+              version: "4.0.0", title: "莓界 4.0：会主动打理大棚的农事 AI", summary: "本次更新重塑了产品门户，并带来深度研究、记忆档案与设备调控三大场景能力。",
+              released_at: "2026-09-04",
+              items: [
+                { tag: "new", text: "全新官网门户：首屏对话演示、真实组件场景卡与 3D 角色工牌" },
+                { tag: "new", text: "深度研究：多轮检索 + 引用溯源，研究结论一键存入知识库" },
+                { tag: "new", text: "记忆档案：莓小智记住你的称呼、大棚、品种与关注重点，跨设备同步" },
+                { tag: "improve", text: "订阅管理页全面改版，套餐、用量与兑换卡一目了然" },
+                { tag: "fix", text: "修复应用图标更新后浏览器长期缓存不刷新的问题" },
+              ],
+            },
+            {
+              version: "4.1.0", title: "技能工坊：对话里把文档变成技能", summary: "本次更新带来了全新的技能工坊，粘贴技术文档即可自动生成可复用的 AI 技能。",
+              released_at: "2026-09-10",
+              items: [
+                { tag: "new", text: "技能工坊：对话中粘贴技术文档，自动走「分析 → 生成 → 校验 → 自测 → 发布」管线产出技能" },
+                { tag: "new", text: "技能商店：内置技能全量上架，用户可一键安装到自己的莓小智" },
+                { tag: "new", text: "产品更新日志页上线，版本变化集中呈现" },
+                { tag: "improve", text: "长耗时工具统一双层超时防护，深度研究与技能锻造不再被网关掐断" },
+              ],
+            },
+          ]
+          for (const s of seeds) {
+            await p.query(
+              "INSERT INTO changelog_entries (version, title, summary, released_at, items, published, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,1,$6,$6)",
+              [s.version, s.title, s.summary, s.released_at, JSON.stringify(s.items), now]
+            )
+          }
+        }
+      } catch (error: any) {
+        console.error('Error creating changelog_entries:', error.message)
       }
 
       try {

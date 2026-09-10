@@ -33,6 +33,30 @@ export interface EmbeddingConfig {
 }
 
 /**
+ * 联网搜索配置（深度研究 / web_search 工具用）
+ * protocol = 'zhipu'：providerId 不限定类型，选 GLM 走智谱 Web Search 协议（自研引擎+搜狗/夸克），
+ *   选其他 provider 时按其 baseUrl 调 /web_search（兼容端点同样可用）。
+ * protocol = 'exa'：走 Exa Search 官方 API（https://api.exa.ai/search，x-api-key 鉴权，有免费额度），
+ *   provider 的 apiKey 即 Exa API Key，baseUrl 可留空或指向代理端点。
+ */
+export type WebSearchProtocol = 'zhipu' | 'exa' | 'anysearch'
+
+export interface WebSearchConfig {
+  enabled: boolean
+  providerId: string
+  /** 搜索协议：zhipu = 智谱 Web Search（自研引擎+搜狗/夸克，国内直连）；exa = Exa Search（api.exa.ai，有免费额度）；anysearch = AnySearch MCP（api.anysearch.com，免 Key 匿名可用） */
+  protocol?: WebSearchProtocol
+  /** 直存 API Key（Exa / AnySearch 等免 provider 协议直接粘贴；anysearch 可不填走匿名）。exaApiKey 为旧字段，兼容读取 */
+  apiKey?: string
+  /** @deprecated 旧版 Exa 独立 Key 字段，兼容读取；新写入用 apiKey */
+  exaApiKey?: string
+  /** 智谱搜索引擎：search_std / search_pro / search_pro_sogou / search_pro_quark；Exa 下为 auto / neural / keyword；anysearch 无引擎概念 */
+  engine?: string
+  /** 默认返回条数 */
+  defaultCount?: number
+}
+
+/**
  * 知识库全局配置
  * 所有魔数 / 开关 / 行为阈值都集中在这里，admin 后台可改
  */
@@ -303,6 +327,8 @@ export interface ProvidersConfig {
   defaultModelId?: string
   /** 知识库 embedding 配置（可选） */
   embeddingConfig?: EmbeddingConfig
+  /** 联网搜索配置（可选；未设置时回退 GLM provider / SYSTEM_GLM_API_KEY） */
+  webSearchConfig?: WebSearchConfig
   /** 知识库全局配置（可选，未设置时使用 DEFAULT_KNOWLEDGE_CONFIG） */
   knowledgeConfig?: KnowledgeConfig
   /** AI 助手积分制度配置（admin 可选；通用换算 + 月度额度） */
@@ -312,6 +338,8 @@ export interface ProvidersConfig {
     tokensPerCredit?: number
     plusMonthlyQuota?: number
     proMonthlyQuota?: number
+    /** 全局积分倍率（乘在每模型倍率之上；未配置按 1 计） */
+    globalMultiplier?: number
   }
 }
 
@@ -343,6 +371,88 @@ export async function readProvidersConfig(): Promise<ProvidersConfig> {
  * 获取合并后的知识库配置
  * 深合并 admin 配置和 DEFAULT_KNOWLEDGE_CONFIG，确保任何字段都有默认值
  */
+/**
+ * 解析联网搜索凭据（供 web-search-service 调用）。
+ * 优先级：
+ *   1) admin 后台 webSearchConfig 指定的 provider（不限类型）
+ *   2) 任一启用的 GLM 类型 provider
+ *   3) 环境变量 SYSTEM_GLM_API_KEY / GLM_API_KEY
+ * 返回的 baseUrl 已归一为搜索端点 base（不含 /web_search 后缀）。
+ */
+export async function resolveWebSearchProvider(): Promise<{
+  providerId: string
+  baseUrl: string
+  apiKey: string
+  /** 搜索协议，决定 web-search-service 走哪种 API 形态；默认智谱 */
+  protocol: WebSearchProtocol
+  engine?: string
+  defaultCount?: number
+} | null> {
+  const config = await readProvidersConfig()
+  const wsc = config.webSearchConfig
+
+  // 1) admin 显式指定
+  if (wsc?.enabled) {
+    const directKey = wsc.apiKey || wsc.exaApiKey || ''
+
+    // Exa 协议：直存 Key 优先（固定走官方端点），否则借所选 provider
+    if (wsc.protocol === 'exa' && directKey) {
+      return {
+        providerId: 'admin-exa',
+        baseUrl: 'https://api.exa.ai',
+        apiKey: directKey,
+        protocol: 'exa',
+        engine: wsc.engine,
+        defaultCount: wsc.defaultCount
+      }
+    }
+
+    // AnySearch 协议：走远程 MCP，免 Key 匿名可用（有 Key 则提升限额）
+    if (wsc.protocol === 'anysearch') {
+      return {
+        providerId: 'admin-anysearch',
+        baseUrl: 'https://api.anysearch.com/mcp',
+        apiKey: directKey,
+        protocol: 'anysearch',
+        defaultCount: wsc.defaultCount
+      }
+    }
+
+    const p = wsc.providerId
+      ? config.providers.find(x => x.id === wsc.providerId && x.enabled && x.apiKey)
+      : undefined
+    if (p) {
+      return {
+        providerId: p.id,
+        baseUrl: p.baseUrl,
+        apiKey: p.apiKey,
+        protocol: wsc.protocol === 'exa' ? 'exa' : 'zhipu',
+        engine: wsc.engine,
+        defaultCount: wsc.defaultCount
+      }
+    }
+  }
+
+  // 2) 任一 GLM provider 兜底
+  const glm = config.providers.find(p => p.type === 'glm' && p.enabled && p.apiKey)
+  if (glm) {
+    return { providerId: glm.id, baseUrl: glm.baseUrl, apiKey: glm.apiKey, protocol: 'zhipu' }
+  }
+
+  // 3) 环境变量兜底
+  const envKey = process.env.SYSTEM_GLM_API_KEY || process.env.GLM_API_KEY || ''
+  if (envKey) {
+    return {
+      providerId: 'env-glm',
+      baseUrl: process.env.SYSTEM_GLM_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4',
+      apiKey: envKey,
+      protocol: 'zhipu'
+    }
+  }
+
+  return null
+}
+
 export async function getKnowledgeConfig(): Promise<KnowledgeConfig> {
   const config = await readProvidersConfig()
   const admin = config.knowledgeConfig || {}

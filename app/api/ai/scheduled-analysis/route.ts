@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { guardAiQuota } from '@/lib/api/ai-quota-guard'
 
 /**
  * POST /api/ai/scheduled-analysis - 执行定时分析任务
  */
 export async function POST(req: NextRequest) {
   try {
+    // 🔥 额度守卫：此前完全无鉴权且 userId 由请求体任意传入
+    const guard = await guardAiQuota()
+    if (!guard.ok) return guard.response
+
     const body = await req.json()
     const {
-      userId,
       sessionId,
       analysisType,
       context,
       deviceData,
       originalTask
     } = body
+    // userId 一律取登录身份，不信任请求体
+    const userId = guard.user.id as number
 
     console.log(`[Scheduled Analysis] Running analysis for user ${userId}:`, originalTask)
 

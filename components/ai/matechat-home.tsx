@@ -157,24 +157,49 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
     setIpGif(Math.random() < 0.5 ? "watch" : "eat")
   }, [])
 
+  // 招呼语：记忆档案里有「称呼」时用名字打招呼（等记忆接口返回或 500ms 超时再开始打字）
+  const DEFAULT_GREETING = "莓园今天怎么样？我来帮你打理。"
+  const [greeting, setGreeting] = useState(DEFAULT_GREETING)
+  const [greetingReady, setGreetingReady] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    const timer = setTimeout(() => setGreetingReady(true), 500)
+    fetch("/api/ai/memory-profile")
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        const memories: { key?: string; label?: string; value?: string }[] =
+          Array.isArray(data?.memories) ? data.memories : []
+        const nick = memories.find(m => (m.label === "称呼" || m.key === "nickname") && m.value)?.value
+        if (!cancelled && nick) setGreeting(`${nick}，${DEFAULT_GREETING}`)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) {
+          clearTimeout(timer)
+          setGreetingReady(true)
+        }
+      })
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [])
+
   // 招呼语打字机效果
-  const GREETING = "莓园今天怎么样？我来帮你打理。"
   const [typed, setTyped] = useState("")
   const [typingDone, setTypingDone] = useState(false)
   useEffect(() => {
+    if (!greetingReady) return
     setTyped("")
     setTypingDone(false)
     let i = 0
     const id = setInterval(() => {
       i += 1
-      setTyped(GREETING.slice(0, i))
-      if (i >= GREETING.length) {
+      setTyped(greeting.slice(0, i))
+      if (i >= greeting.length) {
         clearInterval(id)
         setTypingDone(true)
       }
     }, 90)
     return () => clearInterval(id)
-  }, [])
+  }, [greeting, greetingReady])
 
   // 当前选中的权限模式信息
   const currentMode = APPROVAL_MODES.find(m => m.key === approvalMode) ?? APPROVAL_MODES[0]
@@ -335,7 +360,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
               borderRadius: 22,
               padding: "12px 14px",
               background: darkMode ? "#16161a" : "#ffffff",
-              border: darkMode ? "1px solid #27272a" : "1px solid #e5e7eb",
+              border: darkMode ? "1px solid #3A3A3D" : "1px solid #e5e7eb",
               boxShadow: darkMode
                 ? "0 1px 0 rgba(255,255,255,0.04) inset"
                 : "0 1px 2px rgba(15,23,42,0.04)",
@@ -445,10 +470,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                 {setEnableSearch && (
                   <button
                     onClick={() => {
-                      if (!hasSearchTool && !enableSearch) {
-                        alert("未安装搜索工具")
-                        return
-                      }
+                      // 内置 web_search / deep_research 工具由服务端无条件注入，无需安装任何 MCP
                       setEnableSearch(!enableSearch)
                     }}
                     title="联网搜索：让模型检索最新信息"
@@ -646,25 +668,25 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                   style={{
                     padding: "8px 14px",
                     borderRadius: 999,
-                    border: darkMode ? "1px solid #2a2a2d" : "1px solid #e5e7eb",
-                    background: darkMode ? "#16161a" : "#f9fafb",
-                    color: darkMode ? "#d4d4d8" : "#4b5563",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
-                    e.currentTarget.style.borderColor = darkMode ? "#3f3f46" : "#d1d5db"
-                    e.currentTarget.style.transform = "translateY(-1px)"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = darkMode ? "#16161a" : "#f9fafb"
-                    e.currentTarget.style.borderColor = darkMode ? "#2a2a2d" : "#e5e7eb"
-                    e.currentTarget.style.transform = "translateY(0)"
-                  }}
+border: darkMode ? "1px solid #3A3A3D" : "1px solid #e5e7eb",
+              background: darkMode ? "#16161a" : "#f9fafb",
+              color: darkMode ? "#E4E4E7" : "#4b5563",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
+              e.currentTarget.style.borderColor = darkMode ? "#52525B" : "#d1d5db"
+              e.currentTarget.style.transform = "translateY(-1px)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = darkMode ? "#16161a" : "#f9fafb"
+              e.currentTarget.style.borderColor = darkMode ? "#3A3A3D" : "#e5e7eb"
+              e.currentTarget.style.transform = "translateY(0)"
+            }}
                 >
                   <span style={{ display: "inline-flex", opacity: 0.85 }}>{action.icon}</span>
                   <span>{action.label}</span>

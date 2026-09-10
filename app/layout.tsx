@@ -83,16 +83,31 @@ export default async function RootLayout({
   }
 
   // Record normal access (optional, but requested "record every visiting ip")
-  // To avoid slowing down page loads, we fire and forget, but in Server Components 
+  // To avoid slowing down page loads, we fire and forget, but in Server Components
   // we can't easily fire-and-forget without `void`.
   // Also, doing this on every layout render might be heavy.
   // We'll record it.
+  // 解码 auth cookie 获取 user_id（仅本地 JWT 校验，无 DB 开销），供在线用户统计使用
+  let accessUserId: number | undefined
+  try {
+    const cookieHeader = headersList.get("cookie") || ""
+    const authMatch = cookieHeader.match(/(?:^|;\s*)auth=([^;]+)/)
+    if (authMatch) {
+      const { verifyToken } = await import("@/lib/token")
+      const payload = await verifyToken(decodeURIComponent(authMatch[1]))
+      if (payload?.id) accessUserId = payload.id
+    }
+  } catch {
+    // token 无效按未登录处理
+  }
+
   recordAccessLog({
     ip,
     method: "GET",
     path: "PAGE_VIEW", // Not easy to get full path in layout
     status: 200,
     duration: 0,
+    user_id: accessUserId,
     user_agent: headersList.get("user-agent") || ""
   }).catch(console.error);
 

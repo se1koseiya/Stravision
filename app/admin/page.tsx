@@ -43,13 +43,15 @@ import {
   MenuUnfoldOutlined,
   DashboardOutlined,
   UserOutlined,
+  TeamOutlined,
   NotificationOutlined,
   CheckCircleFilled,
   ExclamationCircleFilled,
   BookOutlined,
   DatabaseOutlined,
   SoundOutlined,
-  ExperimentOutlined
+  ExperimentOutlined,
+  HistoryOutlined
 } from "@ant-design/icons"
 import type { TableColumnsType, MenuProps } from "antd"
 import Image from "next/image"
@@ -57,15 +59,18 @@ import Link from "next/link"
 import { UserPublic } from "@/lib/db/user-service"
 import { UserDialog } from "@/components/admin/user-dialog"
 import { BannedIPsManager } from "@/components/admin/banned-ips-manager"
+import { OnlineUsersPanel } from "@/components/admin/online-users-panel"
 import { AccessLogsViewer } from "@/components/admin/access-logs-viewer"
 import { RateLimitSettings } from "@/components/admin/rate-limit-settings"
 import { AnnouncementSender } from "@/components/admin/announcement-sender"
 import { ChangelogSender } from "@/components/admin/changelog-sender"
+import { ChangelogManager } from "@/components/admin/changelog-manager"
 import { MaintenanceSettings } from "@/components/admin/maintenance-settings"
 import { MCPMarketManager } from "@/components/admin/mcp-market-manager"
 import { KnowledgeMarketManager } from "@/components/admin/knowledge-market-manager"
 import { FeatureAnnouncementAdmin } from "@/components/dashboard/feature-announcement-admin"
 import { CameraSettings } from "@/components/admin/camera-settings"
+import { BrandingSettings } from "@/components/admin/branding-settings"
 import { SkillManager } from "@/components/admin/skill-manager"
 import { DocsManager } from "@/components/admin/docs-manager"
 import { AIFeaturesSettings } from "@/components/admin/ai-features-settings"
@@ -83,11 +88,13 @@ const { Text, Title } = AntTypography
 type AdminSection =
   | "dashboard"
   | "users"
+  | "online-users"
   | "ai-models"
   | "ai-providers"
   | "model-marketplace"
   | "security"
   | "announcement"
+  | "changelog"
   | "settings"
   | "voice-test"
   | "mcp-market"
@@ -119,8 +126,10 @@ const sidebarGroups: SidebarGroup[] = [
     label: "系统管理",
     items: [
       { key: "users", label: "用户管理", icon: <UserOutlined /> },
+      { key: "online-users", label: "在线用户", icon: <TeamOutlined /> },
       { key: "security", label: "安全设置", icon: <LockOutlined /> },
       { key: "announcement", label: "公告管理", icon: <NotificationOutlined /> },
+      { key: "changelog", label: "更新日志", icon: <HistoryOutlined /> },
       { key: "settings", label: "系统设置", icon: <SettingOutlined /> },
       { key: "devices", label: "设备管理", icon: <DatabaseOutlined /> }
     ]
@@ -150,11 +159,13 @@ const sidebarGroups: SidebarGroup[] = [
 const sectionMeta: Record<AdminSection, { label: string; breadcrumb: string[] }> = {
   dashboard: { label: "概览", breadcrumb: ["首页"] },
   users: { label: "用户管理", breadcrumb: ["系统管理", "用户管理"] },
+  "online-users": { label: "在线用户", breadcrumb: ["系统管理", "在线用户"] },
   "ai-models": { label: "AI 模型", breadcrumb: ["AI 配置", "模型管理"] },
   "ai-providers": { label: "AI 提供商", breadcrumb: ["AI 配置", "提供商管理"] },
   "model-marketplace": { label: "模型市场", breadcrumb: ["AI 配置", "模型市场"] },
   security: { label: "安全设置", breadcrumb: ["系统管理", "安全"] },
   announcement: { label: "公告管理", breadcrumb: ["系统管理", "公告"] },
+  changelog: { label: "更新日志", breadcrumb: ["系统管理", "更新日志"] },
   settings: { label: "系统设置", breadcrumb: ["系统管理"] },
   "voice-test": { label: "语音测试", breadcrumb: ["AI 配置", "语音测试"] },
   "mcp-market": { label: "MCP 市场", breadcrumb: ["扩展", "MCP 市场"] },
@@ -173,6 +184,7 @@ export default function AdminPage() {
   const [activeSection, setActiveSection] = useState<AdminSection>("dashboard")
   const [collapsed, setCollapsed] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const [onlineCount, setOnlineCount] = useState<number | null>(null)
 
   useEffect(() => {
     // 强制使用浅色主题 — 避免跟随系统深色模式导致侧边栏/顶栏变深色
@@ -206,6 +218,12 @@ export default function AdminPage() {
   useEffect(() => {
     fetchCurrentUser()
     fetchUsers()
+    fetch("/api/admin/online-users?window=5")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.online_users) setOnlineCount(data.online_users.length)
+      })
+      .catch(() => {})
   }, [])
 
   const handleEdit = (user: UserPublic) => {
@@ -258,6 +276,29 @@ export default function AdminPage() {
         }
         const cfg = map[role] ?? { color: "default", label: role }
         return <Tag color={cfg.color}>{cfg.label}</Tag>
+      }
+    },
+    {
+      title: "AI 积分",
+      key: "credits",
+      width: 150,
+      render: (_: any, record: UserPublic) => {
+        if (!record.membership || record.membership === "free") {
+          return <Text type="secondary">—</Text>
+        }
+        const d = new Date()
+        const cycle = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+        const quota = record.monthly_credit_quota ?? 0
+        const used = record.credit_cycle_date === cycle ? (record.monthly_credit_used ?? 0) : 0
+        const balance = record.credit_balance ?? 0
+        return (
+          <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+            <div>
+              月额 <b>{quota > 0 ? quota : "默认"}</b> · 已用 <b>{used}</b>
+            </div>
+            <Text type="secondary">余额 {balance}</Text>
+          </div>
+        )
       }
     },
     {
@@ -332,6 +373,14 @@ export default function AdminPage() {
               </Card>
               <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
+                  title="当前在线"
+                  value={onlineCount ?? "—"}
+                  prefix={<TeamOutlined style={{ color: "#1677ff" }} />}
+                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+                />
+              </Card>
+              <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
+                <Statistic
                   title="系统状态"
                   value="正常"
                   prefix={<CheckCircleFilled style={{ color: "#1677ff" }} />}
@@ -371,6 +420,9 @@ export default function AdminPage() {
           </div>
         )
 
+      case "online-users":
+        return <OnlineUsersPanel />
+
       case "ai-models":
         return <AIModelsManager />
       case "ai-providers":
@@ -395,9 +447,13 @@ export default function AdminPage() {
           </Space>
         )
 
+      case "changelog":
+        return <ChangelogManager />
+
       case "settings":
         return (
           <Space direction="vertical" style={{ width: "100%" }} size={12}>
+            <BrandingSettings />
             <AIFeaturesSettings />
             <VoiceSettings />
             <RateLimitSettings />

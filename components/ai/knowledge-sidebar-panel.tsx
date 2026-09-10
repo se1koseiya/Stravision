@@ -20,7 +20,7 @@ import {
   Tag, Clock, History, RotateCcw, Download, Eye, Edit3, Upload, Sparkles, BookOpen,
   Link2, FileCode, Database, RefreshCw, Settings, Share2, Lock, Filter, PanelLeftOpen,
   ArrowLeft, AlertCircle, CheckCircle2, Loader2, Hash, Copy, ExternalLink, Save,
-  ShieldCheck, HardDrive, Cloud, Users, Activity as ActivityIcon
+  ShieldCheck, HardDrive, Cloud, Users, Activity as ActivityIcon, Globe
 } from "lucide-react"
 import { Dropdown, Tooltip, App, Modal, Input as AntInput, Select, Empty, Spin, Tabs } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
@@ -234,6 +234,10 @@ export function KnowledgeSidebarPanel({
   const [showCreateCollection, setShowCreateCollection] = useState(false)
   const [showCreateItem, setShowCreateItem] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  // AI 深度研究：输入主题 → 联网检索融合 → 自动入库向量化（约 1-3 分钟）
+  const [showResearch, setShowResearch] = useState(false)
+  const [researchTopic, setResearchTopic] = useState("")
+  const [researching, setResearching] = useState(false)
   // 协作管理：当前用户 + 选中的集合
   const [currentUserId, setCurrentUserId] = useState<number>(0)
   const [currentUserRole, setCurrentUserRole] = useState<"user" | "admin" | "super_admin">("user")
@@ -578,6 +582,43 @@ export function KnowledgeSidebarPanel({
     await Promise.all([loadItems(), loadCollections(), loadTags(), loadStats(), loadRecommendations()])
     setRefreshing(false)
     message.success("已刷新")
+  }
+
+  /** AI 深度研究：联网检索 → 多源融合 → 入库向量化（服务端约 1-3 分钟） */
+  const handleResearch = async () => {
+    const topic = researchTopic.trim()
+    if (!topic) {
+      message.warning("请输入研究主题")
+      return
+    }
+    setResearching(true)
+    message.info("研究已开始，AI 正在联网检索并融合知识，约需 1-3 分钟…", 5)
+    try {
+      const res = await fetch("/api/knowledge/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, collectionId: typeof selectedCollection === "number" ? selectedCollection : undefined })
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) {
+        message.error(data?.error || `研究失败（HTTP ${res.status}）`)
+        return
+      }
+      message.success(
+        data.embed
+          ? `已完成「${data.title}」：${data.sources?.length ?? 0} 条来源，${data.embed.chunkCount} 个分块已向量化`
+          : `已完成「${data.title}」：${data.sources?.length ?? 0} 条来源（向量化失败，可在条目详情重试）`,
+        6
+      )
+      setShowResearch(false)
+      setResearchTopic("")
+      await loadItems()
+      await loadStats()
+    } catch (e: any) {
+      message.error(e?.message || "研究请求失败")
+    } finally {
+      setResearching(false)
+    }
   }
 
   const handleItemClick = async (item: KnowledgeItem) => {
@@ -938,6 +979,21 @@ export function KnowledgeSidebarPanel({
                   <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} strokeWidth={1.6} />
                 </button>
               </Tooltip>
+
+              <Tooltip title="AI 研究：联网检索并沉淀为知识条目">
+                <button
+                  onClick={() => setShowResearch(true)}
+                  disabled={researching}
+                  className={cn(
+                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors",
+                    showResearch || researching
+                      ? isDark ? "bg-blue-950/40 text-blue-400" : "bg-blue-50 text-blue-600"
+                      : isDark ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50" : "hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+                  )}
+                >
+                  {researching ? <Loader2 size={15} className="animate-spin" /> : <Globe size={15} strokeWidth={1.6} />}
+                </button>
+              </Tooltip>
             </div>
 
             {/* 中部：数据条 / 状态文字（不抢戏，weight 400 灰色） */}
@@ -1099,6 +1155,47 @@ export function KnowledgeSidebarPanel({
           />
         )}
       </AnimatePresence>
+
+      {/* ============== Modal：AI 深度研究 ============== */}
+      <Modal
+        open={showResearch}
+        onCancel={() => { if (!researching) setShowResearch(false) }}
+        onOk={handleResearch}
+        okText={researching ? "研究中…" : "开始研究"}
+        cancelText="取消"
+        okButtonProps={{ disabled: researching || !researchTopic.trim() }}
+        cancelButtonProps={{ disabled: researching }}
+        closable={!researching}
+        maskClosable={false}
+        keyboard={!researching}
+        width={480}
+        title={
+          <span className="flex items-center gap-2">
+            <Globe size={16} strokeWidth={1.8} style={{ color: "#1677ff" }} />
+            AI 深度研究
+          </span>
+        }
+      >
+        <p className={cn("text-[12.5px] leading-relaxed mb-3", isDark ? "text-zinc-400" : "text-gray-500")}>
+          AI 自动拆解多视角子查询 → 联网检索并阅读网页 → 分析缺口补搜 → 融合为带引用的知识条目，
+          自动存入知识库并完成向量化。整个流程约需 1-3 分钟。
+        </p>
+        <AntInput.TextArea
+          value={researchTopic}
+          onChange={(e) => setResearchTopic(e.target.value)}
+          placeholder="输入研究主题，例如：草莓白粉病的综合防治方案"
+          rows={3}
+          maxLength={300}
+          showCount
+          disabled={researching}
+          onPressEnter={(e) => { if (!researching && researchTopic.trim() && !(e as any).shiftKey) handleResearch() }}
+        />
+        {typeof selectedCollection === "number" && (
+          <p className={cn("text-[11.5px] mt-2", isDark ? "text-zinc-500" : "text-gray-400")}>
+            研究结果将存入当前选中的集合
+          </p>
+        )}
+      </Modal>
 
       {/* ============== Modal：新建集合 ============== */}
       <CreateCollectionModal

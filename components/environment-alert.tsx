@@ -29,6 +29,33 @@ interface ActiveAlert {
 const STORAGE_KEY = 'environment_alert_expirations'
 const ALERT_COUNTDOWN = 10 // 10秒倒计时
 
+// 对外/公开页面不弹环境预警（仅在登录后的内部业务页面显示）
+const PUBLIC_ROUTES = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/landing',
+  '/changelog',
+  '/blog',
+  '/docs',
+  '/help',
+  '/showcase',
+  '/terms',
+  '/privacy',
+  '/plans',
+  '/apply',
+  '/access-denied',
+  '/maintenance',
+  '/too-many-requests',
+]
+
+function isPublicRoute(pathname: string): boolean {
+  if (pathname === '/') return true
+  return PUBLIC_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(r + '/')
+  )
+}
+
 // 从localStorage读取忽略设置
 function getStoredExpirations(): Record<string, number> {
   if (typeof window === 'undefined') return {}
@@ -123,7 +150,7 @@ export function EnvironmentAlert() {
       } catch {}
     }
 
-    if (pathname === "/" || pathname === "/login" || pathname === "/register") return
+    if (isPublicRoute(pathname)) return
     fetchSettings()
     
     // 加载持久化的忽略设置
@@ -173,7 +200,7 @@ export function EnvironmentAlert() {
   }, [])
 
   useEffect(() => {
-    if (pathname === '/' || pathname === '/login' || pathname === '/register' || !deviceData || !alertsEnabled) return
+    if (isPublicRoute(pathname) || !deviceData || !alertsEnabled) return
 
     const checkAndTrigger = (condition: boolean, config: AlertConfig) => {
       const now = Date.now()

@@ -232,14 +232,22 @@ export async function updateDevice(id: number, input: UpdateDeviceInput): Promis
 
 /**
  * 删除设备
+ *
+ * 默认保护：critical 设备不允许直接删除（先在管理后台解除 critical 标记），
+ * 防止 AI 助手或误操作把关键控制设备从注册表里移走。
  */
-export async function deleteDevice(id: number): Promise<boolean> {
+export async function deleteDevice(id: number, options?: { force?: boolean }): Promise<{ deleted: boolean; blocked?: 'critical' | 'not_found' }> {
   await initDB()
+  if (!options?.force) {
+    const existing = await getDevice(id)
+    if (!existing) return { deleted: false, blocked: 'not_found' }
+    if (existing.is_critical) return { deleted: false, blocked: 'critical' }
+  }
   const result = await execute(
     `DELETE FROM devices WHERE id = $1`,
     [id]
   )
-  return result.rowCount > 0
+  return { deleted: result.rowCount > 0 }
 }
 
 // ─── 传感器数据存储 ───

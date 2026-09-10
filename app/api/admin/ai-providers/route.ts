@@ -37,6 +37,23 @@ export interface EmbeddingConfig {
   enabled: boolean
 }
 
+export interface WebSearchConfig {
+  /** 是否启用（admin 总开关；关闭后 web_search / deep_research 工具不可用） */
+  enabled: boolean
+  /** 搜索用的 provider id（不限类型；直存 Key 或 anysearch 免 Key 时可留空） */
+  providerId: string
+  /** 搜索协议：zhipu = 智谱 Web Search 兼容端点（默认）；exa = Exa 官方 API；anysearch = AnySearch MCP（免 Key 匿名可用） */
+  protocol?: 'zhipu' | 'exa' | 'anysearch'
+  /** 直存 API Key（Exa/AnySearch 等免 provider 协议；anysearch 可不填）。GET 回显脱敏值，PATCH 缺省时保留原值。exaApiKey 为旧字段兼容 */
+  apiKey?: string
+  /** @deprecated 旧版 Exa 独立 Key 字段，仅兼容读取 */
+  exaApiKey?: string
+  /** 智谱：search_std / search_pro / search_pro_sogou / search_pro_quark；Exa：auto / neural / keyword；anysearch 无引擎概念 */
+  engine?: string
+  /** 默认返回条数 */
+  defaultCount?: number
+}
+
 export interface AIProvider {
   id: string                    // 唯一标识，如 "dashscope", "openai", "xiaomi-mimo", "zhipu-glm"
   name: string                  // 显示名称，如 "阿里云百炼 (DashScope)", "OpenAI", "小米 MIMO", "智谱 GLM (BigModel)"
@@ -57,6 +74,8 @@ export interface ProvidersConfig {
   defaultModelId?: string
   /** 知识库 embedding 配置（admin 可选） */
   embeddingConfig?: EmbeddingConfig
+  /** 联网搜索配置（admin 可选；未设置时回退 GLM provider / 环境变量） */
+  webSearchConfig?: WebSearchConfig
   /** 知识库全局配置（admin 可选） */
   knowledgeConfig?: KnowledgeConfig
   /** AI 助手积分制度配置（每模型倍率在「提供商 → 模型」里配；这里配置通用换算 + 月度额度） */
@@ -66,6 +85,8 @@ export interface ProvidersConfig {
     tokensPerCredit?: number
     plusMonthlyQuota?: number
     proMonthlyQuota?: number
+    /** 全局积分倍率（乘在每模型倍率之上；未配置按 1 计） */
+    globalMultiplier?: number
   }
 }
 
@@ -191,6 +212,7 @@ export async function GET(request: NextRequest) {
     providers: maskedProviders,
     defaultModelId: config.defaultModelId ?? null,
     embeddingConfig: config.embeddingConfig ?? null,
+    webSearchConfig: maskWebSearchConfig(config.webSearchConfig ?? null),
     knowledgeConfig: config.knowledgeConfig ?? DEFAULT_KNOWLEDGE_CONFIG,
     creditConfig: config.creditConfig ?? null,
   })
@@ -374,6 +396,7 @@ export async function PATCH(request: NextRequest) {
           tokensPerCredit: num(cc.tokensPerCredit, 1000),
           plusMonthlyQuota: num(cc.plusMonthlyQuota, 2000),
           proMonthlyQuota: num(cc.proMonthlyQuota, 300),
+          globalMultiplier: num(cc.globalMultiplier, 1),
         }
       }
     }
@@ -407,6 +430,42 @@ export async function PATCH(request: NextRequest) {
         }
       }
     }
+    // ===== 联网搜索配置（web_search / deep_research 工具用；provider 不限类型）=====
+    if ('webSearchConfig' in body) {
+      const wsc = body.webSearchConfig
+      if (wsc === null) {
+        config.webSearchConfig = undefined
+      } else if (wsc && typeof wsc === 'object') {
+        // 直存 Key：PATCH 缺省该字段时保留原值（兼容迁移旧 exaApiKey）；传空字符串则清除
+        const prevKey = config.webSearchConfig?.apiKey ?? config.webSearchConfig?.exaApiKey
+        const nextKey =
+          wsc.apiKey === undefined ? (prevKey || undefined) : (String(wsc.apiKey).trim() || undefined)
+        const providerId = String(wsc.providerId || '')
+        const protocol = wsc.protocol === 'exa' ? 'exa' : wsc.protocol === 'anysearch' ? 'anysearch' : 'zhipu'
+        // anysearch 免 Key 匿名可用，enabled 下无 provider 无 Key 也合法；其余协议需要 provider 或 Key 二选一
+        if (wsc.enabled && !providerId && !nextKey && protocol !== 'anysearch') {
+          return NextResponse.json({ error: 'webSearchConfig.enabled 为 true 时需要提供 providerId 或直存 API Key' }, { status: 400 })
+        }
+        const count = Number(wsc.defaultCount)
+        config.webSearchConfig = {
+          enabled: !!wsc.enabled,
+          providerId,
+          protocol,
+          apiKey: nextKey,
+          engine: protocol === 'anysearch' ? undefined : (wsc.engine ? String(wsc.engine) : undefined),
+          defaultCount: Number.isFinite(count) && count > 0 ? Math.min(Math.floor(count), 50) : undefined
+        }
+        if (config.webSearchConfig.enabled && providerId) {
+          const p = config.providers.find(x => x.id === config.webSearchConfig!.providerId)
+          if (!p) {
+            return NextResponse.json({ error: `Provider "${config.webSearchConfig.providerId}" 不存在` }, { status: 400 })
+          }
+          if (!p.apiKey) {
+            return NextResponse.json({ error: `Provider "${p.name}" 尚未配置 API Key` }, { status: 400 })
+          }
+        }
+      }
+    }
     if ('knowledgeConfig' in body) {
       // 知识库配置：深合并到当前配置
       const kc = body.knowledgeConfig
@@ -421,6 +480,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, config: {
       defaultModelId: config.defaultModelId,
       embeddingConfig: config.embeddingConfig,
+      webSearchConfig: maskWebSearchConfig(config.webSearchConfig ?? null),
       knowledgeConfig: config.knowledgeConfig || DEFAULT_KNOWLEDGE_CONFIG,
       creditConfig: config.creditConfig ?? null,
     } })
@@ -430,8 +490,18 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-function isPlainObject(x: any): x is Record<string, any> {
-  return !!x && typeof x === "object" && !Array.isArray(x)
+/** webSearchConfig 回显前脱敏：直存 Key 只露前 4 后 4（与 provider apiKey 脱敏规则一致） */
+function maskWebSearchConfig(wsc: WebSearchConfig | null): WebSearchConfig | null {
+  const mask = (k: string) => `${k.slice(0, 4)}${'*'.repeat(Math.max(0, k.length - 8))}${k.slice(-4)}`
+  if (!wsc) return wsc
+  return {
+    ...wsc,
+    apiKey: wsc.apiKey ? mask(wsc.apiKey) : undefined,
+    exaApiKey: wsc.exaApiKey ? mask(wsc.exaApiKey) : undefined
+  }
+}
+
+function isPlainObject(x: any): x is Record<string, any> {  return !!x && typeof x === "object" && !Array.isArray(x)
 }
 function mergeKnowledgeConfig(base: any, override: any): any {
   if (!isPlainObject(override)) return base

@@ -18,6 +18,8 @@ export interface AgentContext {
   memory?: AgentMemory;
   mcpConfigs?: any[];
   appUrl?: string;
+  /** 长耗时工具（deep_research）的阶段进度回调，chat 路由转发为 SSE 推给前端思维链 */
+  onProgress?: (stage: string, detail?: string) => void;
 }
 
 export interface Message {

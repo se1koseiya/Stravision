@@ -135,18 +135,6 @@ export const MCP_SERVER_TOOLS: Record<
   firecrawl: [
     { name: "mcp_firecrawl_scrape", displayName: "网页抓取", description: "抓取网页内容" },
   ],
-  "soil-sensor": [
-    { name: "mcp_soil_sensor_query", displayName: "土壤传感器", description: "查询土壤墒情数据" },
-  ],
-  "crop-disease": [
-    { name: "mcp_crop_disease_diagnose", displayName: "病害诊断", description: "作物病虫害识别与防治" },
-  ],
-  "irrigation-system": [
-    { name: "mcp_irrigation_query", displayName: "灌溉系统", description: "智能灌溉控制与查询" },
-  ],
-  "farm-data": [
-    { name: "mcp_farm_data_query", displayName: "农场数据", description: "农场运营数据分析" },
-  ],
   "spectrum-stravision": [
     { name: "get_channel", displayName: "光谱通道", description: "获取指定波长光谱值" },
     { name: "get_all_spectrum", displayName: "全波段光谱", description: "获取所有18通道数据" },

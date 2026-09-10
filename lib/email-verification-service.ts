@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import { initDB, execute, queryOne } from './db/database';
-import { getVerificationEmailText } from './email-templates';
+import { getVerificationEmailText, buildBrandedCodeEmailHtml } from './email-templates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -43,158 +43,14 @@ export async function sendVerificationEmail(email: string): Promise<{ success: b
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Stravision <onboarding@resend.dev>',
       to: [email],
-      subject: '验证您的邮箱 - Stravision',
+      subject: '验证您的邮箱 - 莓界 Berry Realm',
       text: getVerificationEmailText(code),
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>验证您的邮箱 - Stravision</title>
-            <style>
-              body {
-                margin: 0;
-                padding: 0;
-                background-color: #FAFAFA;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                -webkit-font-smoothing: antialiased;
-              }
-              .wrapper {
-                width: 100%;
-                table-layout: fixed;
-                background-color: #FAFAFA;
-                padding-bottom: 40px;
-              }
-              .container {
-                max-width: 480px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                border: 1px solid #e4e4e7;
-                border-radius: 24px;
-                overflow: hidden;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-              }
-              .header {
-                padding: 40px 0 24px;
-                text-align: center;
-              }
-              .logo {
-                width: 48px;
-                height: 48px;
-                border-radius: 12px;
-              }
-              .content {
-                padding: 0 40px 40px;
-                text-align: center;
-              }
-              .title {
-                font-size: 24px;
-                font-weight: 700;
-                color: #18181b;
-                margin: 16px 0 8px;
-                letter-spacing: -0.5px;
-              }
-              .subtitle {
-                font-size: 15px;
-                color: #71717a;
-                line-height: 1.6;
-                margin-bottom: 32px;
-              }
-              .code-container {
-                background: #f4f4f5;
-                border: 1px solid #e4e4e7;
-                border-radius: 16px;
-                padding: 24px;
-                margin: 0 auto 32px;
-                text-align: center;
-                width: fit-content;
-                min-width: 200px;
-              }
-              .code {
-                font-family: 'SF Mono', 'Roboto Mono', monospace;
-                font-size: 32px;
-                font-weight: 600;
-                color: #18181b;
-                letter-spacing: 8px;
-                line-height: 1;
-              }
-              .divider {
-                height: 1px;
-                background-color: #f4f4f5;
-                margin: 0;
-              }
-              .footer {
-                padding: 32px 40px;
-                text-align: center;
-                background-color: #ffffff;
-              }
-              .footer-text {
-                color: #a1a1aa;
-                font-size: 12px;
-                line-height: 1.6;
-                margin: 0;
-              }
-              .links {
-                margin-top: 16px;
-              }
-              .link {
-                color: #71717a;
-                text-decoration: none;
-                font-size: 12px;
-                margin: 0 8px;
-                transition: color 0.2s;
-              }
-              .link:hover {
-                color: #18181b;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="wrapper">
-              <div style="height: 40px;"></div>
-              <div class="container">
-                <!-- Header -->
-                <div class="header">
-                  <img src="https://stravision.cheesestrawberry.top/logo.png" alt="Stravision" class="logo">
-                </div>
-
-                <!-- Content -->
-                <div class="content">
-                  <h1 class="title">验证您的邮箱</h1>
-                  <p class="subtitle">感谢注册 Stravision OS。<br>请使用下方的验证码完成身份验证。</p>
-                  
-                  <div class="code-container">
-                    <div class="code">${code}</div>
-                  </div>
-                  
-                  <p style="color: #a1a1aa; font-size: 13px; margin: 0; line-height: 1.5;">
-                    验证码将在 <strong>10分钟</strong> 后失效。<br>
-                    如非本人操作，请忽略此邮件。
-                  </p>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- Footer -->
-                <div class="footer">
-                  <p class="footer-text">
-                    © ${new Date().getFullYear()} Stravision IoT Platform<br>
-                    Designed for Future Agriculture
-                  </p>
-                  <div class="links">
-                    <a href="https://stravision.cheesestrawberry.top" class="link">官网</a>
-                    <span style="color: #e4e4e7;">|</span>
-                    <a href="https://stravision.cheesestrawberry.top/docs" class="link">文档</a>
-                    <span style="color: #e4e4e7;">|</span>
-                    <a href="#" class="link">帮助</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </body>
-        </html>
-      `,
+      html: buildBrandedCodeEmailHtml({
+        title: '验证您的邮箱',
+        subtitle: '感谢注册莓界 Berry Realm。<br>请使用下方的验证码完成身份验证。',
+        code,
+        note: '验证码将在 <strong>10分钟</strong> 后失效。<br>如非本人操作，请忽略此邮件。',
+      }),
     });
     
     if (error) {
@@ -331,157 +187,13 @@ export async function sendPasswordResetEmail(email: string): Promise<{ success: 
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Stravision <onboarding@resend.dev>',
       to: [email],
-      subject: '重置您的密码 - Stravision',
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>重置您的密码 - Stravision</title>
-            <style>
-              body {
-                margin: 0;
-                padding: 0;
-                background-color: #FAFAFA;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                -webkit-font-smoothing: antialiased;
-              }
-              .wrapper {
-                width: 100%;
-                table-layout: fixed;
-                background-color: #FAFAFA;
-                padding-bottom: 40px;
-              }
-              .container {
-                max-width: 480px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                border: 1px solid #e4e4e7;
-                border-radius: 24px;
-                overflow: hidden;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-              }
-              .header {
-                padding: 40px 0 24px;
-                text-align: center;
-              }
-              .logo {
-                width: 48px;
-                height: 48px;
-                border-radius: 12px;
-              }
-              .content {
-                padding: 0 40px 40px;
-                text-align: center;
-              }
-              .title {
-                font-size: 24px;
-                font-weight: 700;
-                color: #18181b;
-                margin: 16px 0 8px;
-                letter-spacing: -0.5px;
-              }
-              .subtitle {
-                font-size: 15px;
-                color: #71717a;
-                line-height: 1.6;
-                margin-bottom: 32px;
-              }
-              .code-container {
-                background: #f4f4f5;
-                border: 1px solid #e4e4e7;
-                border-radius: 16px;
-                padding: 24px;
-                margin: 0 auto 32px;
-                text-align: center;
-                width: fit-content;
-                min-width: 200px;
-              }
-              .code {
-                font-family: 'SF Mono', 'Roboto Mono', monospace;
-                font-size: 32px;
-                font-weight: 600;
-                color: #ef4444;
-                letter-spacing: 8px;
-                line-height: 1;
-              }
-              .divider {
-                height: 1px;
-                background-color: #f4f4f5;
-                margin: 0;
-              }
-              .footer {
-                padding: 32px 40px;
-                text-align: center;
-                background-color: #ffffff;
-              }
-              .footer-text {
-                color: #a1a1aa;
-                font-size: 12px;
-                line-height: 1.6;
-                margin: 0;
-              }
-              .links {
-                margin-top: 16px;
-              }
-              .link {
-                color: #71717a;
-                text-decoration: none;
-                font-size: 12px;
-                margin: 0 8px;
-                transition: color 0.2s;
-              }
-              .link:hover {
-                color: #18181b;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="wrapper">
-              <div style="height: 40px;"></div>
-              <div class="container">
-                <!-- Header -->
-                <div class="header">
-                  <img src="https://stravision.cheesestrawberry.top/logo.png" alt="Stravision" class="logo">
-                </div>
-
-                <!-- Content -->
-                <div class="content">
-                  <h1 class="title">重置您的密码</h1>
-                  <p class="subtitle">我们收到了重置您 Stravision 账户密码的请求。<br>请使用下方验证码完成操作。</p>
-                  
-                  <div class="code-container">
-                    <div class="code">${code}</div>
-                  </div>
-                  
-                  <p style="color: #a1a1aa; font-size: 13px; margin: 0; line-height: 1.5;">
-                    验证码将在 <strong>10分钟</strong> 后失效。<br>
-                    如非本人操作，请立即修改密码并联系支持。
-                  </p>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- Footer -->
-                <div class="footer">
-                  <p class="footer-text">
-                    © ${new Date().getFullYear()} Stravision IoT Platform<br>
-                    Designed for Future Agriculture
-                  </p>
-                  <div class="links">
-                    <a href="https://stravision.cheesestrawberry.top" class="link">官网</a>
-                    <span style="color: #e4e4e7;">|</span>
-                    <a href="https://stravision.cheesestrawberry.top/docs" class="link">文档</a>
-                    <span style="color: #e4e4e7;">|</span>
-                    <a href="#" class="link">帮助</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </body>
-        </html>
-      `,
+      subject: '重置您的密码 - 莓界 Berry Realm',
+      html: buildBrandedCodeEmailHtml({
+        title: '重置您的密码',
+        subtitle: '我们收到了重置您莓园账户密码的请求。<br>请使用下方验证码完成操作。',
+        code,
+        note: '验证码将在 <strong>10分钟</strong> 后失效。<br>如非本人操作，请立即修改密码并联系支持。',
+      }),
     });
     
     if (error) {

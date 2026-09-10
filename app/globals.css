@@ -812,6 +812,129 @@ h6 {
     color: rgba(255, 255, 255, 0.35) !important;
   }
 
+  /* ---------------------------------------------------------------------
+     Landing 尾屏 CTA — 右侧插画左缘羽化过渡
+     ⚠️ 必须挂在"容器"上，不能挂在 <img> 上：
+     插画自然比例 1672×941，以 h-full w-auto 撑满 section 高度后，其渲染
+     宽度远大于右列宽度，左侧会被父级 overflow-hidden 裁掉——也就是说用户
+     看到的那条硬直边是"容器的裁切线"，而非图片自身边缘。若把 mask 加在
+     img 上，羽化区会整体落在被裁掉的区域里，完全看不到效果。
+     挂在容器上则百分比参照容器宽度（= 可见宽度），羽化必然可见。
+     被"擦掉"的像素露出的是 section 自身的渐变背景，所以纯色/渐变背景
+     都能自然融合（比叠加固定色值的遮罩层更可靠）。
+     羽化宽度控制在 22% 以内：插画主体（莓小智）从图片约 20% 处开始，
+     再宽会把角色边缘一起吃掉。多点停靠比两点线性更柔和。
+     --------------------------------------------------------------------- */
+  .landing-cta-figure {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.04) 3%,
+      rgba(0, 0, 0, 0.14) 7%,
+      rgba(0, 0, 0, 0.34) 11%,
+      rgba(0, 0, 0, 0.62) 15%,
+      rgba(0, 0, 0, 0.88) 18.5%,
+      #000 22%
+    );
+    mask-image: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.04) 3%,
+      rgba(0, 0, 0, 0.14) 7%,
+      rgba(0, 0, 0, 0.34) 11%,
+      rgba(0, 0, 0, 0.62) 15%,
+      rgba(0, 0, 0, 0.88) 18.5%,
+      #000 22%
+    );
+  }
+  /* 移动端插画独占整行、居中展示，此时不需要羽化（否则左缘会发虚） */
+  @media (max-width: 767.98px) {
+    .landing-cta-figure {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     深度思考面板（DeepThinking）— 左侧细线 + 限高滚动 + 上下渐隐
+     视觉语言对齐宿主产品：中性灰阶、无卡片容器、无装饰
+     --------------------------------------------------------------------- */
+  .berry-think-panel {
+    border-left: 1px solid #e4e4e7;
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d8 transparent;
+  }
+  /* 思考正文统一灰色：XMarkdown / antd 的 styles.body 会被内部元素自身颜色覆盖，
+     这里用 !important 兜底，确保正文、加粗、列表、标题全部落在同一灰阶 */
+  .berry-think-panel,
+  .berry-think-panel :where(p, div, span, li, ul, ol, strong, b, em, h1, h2, h3, h4, h5, h6, td, th, blockquote, code, pre) {
+    color: #8c8c8c !important;
+  }
+  /* 思考内容一律不加粗：strong/b/标题全部压回 400，保持整段同一字重 */
+  .berry-think-panel,
+  .berry-think-panel * {
+    font-weight: 400 !important;
+  }
+  .berry-think-panel code,
+  .berry-think-panel pre {
+    background: transparent !important;
+    border: 0 !important;
+  }
+  .berry-think-panel a,
+  .berry-think-panel a * {
+    color: #71717a !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .berry-think-panel::-webkit-scrollbar {
+    width: 4px;
+  }
+  .berry-think-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .berry-think-panel::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 999px;
+  }
+  .berry-think-panel::-webkit-scrollbar-thumb:hover {
+    background: #a1a1aa;
+  }
+  /* 内容超出可视高度时，上下边缘渐隐（与滚动条同时出现） */
+  .berry-think-panel--faded {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 18px,
+      #000 calc(100% - 22px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 18px,
+      #000 calc(100% - 22px),
+      transparent 100%
+    );
+  }
+  .dark .berry-think-panel {
+    border-left-color: #3f3f46;
+    scrollbar-color: #52525b transparent;
+  }
+  .dark .berry-think-panel,
+  .dark .berry-think-panel :where(p, div, span, li, ul, ol, strong, b, em, h1, h2, h3, h4, h5, h6, td, th, blockquote, code, pre) {
+    color: #a1a1aa !important;
+  }
+  .dark .berry-think-panel a,
+  .dark .berry-think-panel a * {
+    color: #d4d4d8 !important;
+  }
+  .dark .berry-think-panel::-webkit-scrollbar-thumb {
+    background: #52525b;
+  }
+  .dark .berry-think-panel::-webkit-scrollbar-thumb:hover {
+    background: #71717a;
+  }
+
   .elder-friendly-text .text-xl {
     @apply text-2xl;
   }
@@ -988,4 +1111,121 @@ h6 {
   0% { transform: translateY(-10px); opacity: 0; }
   20% { opacity: 0.7; }
   100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* ============================================================
+   落地页 / 更新日志页 设计令牌（landing-v4 shared.ts 引用）
+   浅色为默认值，.dark 下整组切换为深色（暗夜绿调）
+   ============================================================ */
+:root {
+  --lg-ink: #222222;
+  --lg-muted: #696969;
+  --lg-surface: #FFFFFF;
+  --lg-accent: #7DE9AC;
+  --lg-accent-strong: #4ED18F;
+  --lg-nav-hover: #009456;
+  --lg-mint: #DAFBE6;
+  --lg-hero-mint: #CCF8E3;
+  --lg-cyan: #E2FCFF;
+  --lg-blue: #DAF1FF;
+  --lg-chip: #D8FFE9;
+  --lg-glow: #53FF98;
+  --lg-brand-primary: #72E3AD;
+  --lg-brand-secondary: #3B82F6;
+  --lg-hero-yellow: #FFF85E;
+  --lg-hero-green: #75FF9F;
+  --lg-emerald300: #5EE9B5;
+  --lg-emerald400: #00D492;
+  --lg-neutral950: #0A0A0A;
+  --lg-neutral800: #262626;
+  --lg-desc: #383838;
+  --lg-eyebrow-gray: #444444;
+  --lg-near-white: #FCFFFF;
+  --lg-dark3: #D4D4D4;
+  --lg-green-mid: #49A775;
+  --lg-green-ink: #4AAF7A;
+  --lg-line: rgba(34, 34, 34, 0.1);
+  --lg-hairline: rgba(34, 34, 34, 0.08);
+  --lg-panel-border: rgba(69, 144, 103, 0.244);
+  --lg-icon-border: rgba(76, 189, 131, 0.51);
+  --lg-preview-halo: #DAF5E4;
+  --lg-mix-platform-card: #E6FDEE;
+  --lg-mix-panel: #ECFDF2;
+  --lg-mix-preview: #FAFFFB;
+  --lg-mix-idle: #F7F7F7;
+  --lg-mix-voices: #EDFDFF;
+  --lg-mix-workflow-icon: #DEFAE8;
+  --lg-mix-download-blue: #E5F5FF;
+  --lg-mix-download-mint: #E1FCEB;
+  /* 主按钮（深色模式下翻转为白底墨字，对齐 Loomy 深色版） */
+  --lg-btn-bg: #0A0A0A;
+  --lg-btn-fg: #FFFFFF;
+  /* 卡片表面 */
+  --lg-card: #FFFFFF;
+  /* 半透明白色「幽灵」面（芯片 / 叠层 / 圆盘），深色下换为低透明白 */
+  --lg-ghost: rgba(255, 255, 255, 0.72);
+  --lg-ghost-soft: rgba(255, 255, 255, 0.55);
+  --lg-chip-strong: rgba(255, 255, 255, 0.9);
+  /* 预览窗口描边（近白细线） */
+  --lg-window-border: rgba(255, 255, 255, 0.74);
+  /* 口碑区圆盘 */
+  --lg-disc: rgba(255, 255, 255, 0.48);
+  --lg-disc-ring: rgba(255, 255, 255, 0.42);
+  --lg-disc-ring-border: rgba(34, 34, 34, 0.05);
+  /* bento 卡③ 浅 mint 底 */
+  --lg-mint-strong: #CFF8E4;
+}
+
+.dark {
+  /* 对齐 Loomy 深色实测：底 oklch(.17 .012 165)=#0C110E，字 oklch(.94 .012 165)=#E4EEE9 */
+  --lg-ink: #E4EEE9;
+  --lg-muted: #9BA39E;
+  --lg-surface: #0C110E;
+  --lg-accent: #7DE9AC;
+  --lg-accent-strong: #4ED18F;
+  --lg-nav-hover: #4ED18F;
+  --lg-mint: #12241A;
+  --lg-hero-mint: #112019;
+  --lg-cyan: #0E1E20;
+  --lg-blue: #0E1A24;
+  --lg-chip: #12291D;
+  --lg-glow: #53FF98;
+  --lg-brand-primary: #72E3AD;
+  --lg-brand-secondary: #3B82F6;
+  --lg-hero-yellow: #FFF85E;
+  --lg-hero-green: #75FF9F;
+  --lg-emerald300: #5EE9B5;
+  --lg-emerald400: #00D492;
+  --lg-neutral950: #0A0A0A;
+  --lg-neutral800: #262626;
+  --lg-desc: #D6DAD6;
+  --lg-eyebrow-gray: #C2CAC5;
+  --lg-near-white: #171C18;
+  --lg-dark3: #4B4F4C;
+  --lg-green-mid: #8FE7BC;
+  --lg-green-ink: #7DE9AC;
+  --lg-line: rgba(255, 255, 255, 0.14);
+  --lg-hairline: rgba(255, 255, 255, 0.09);
+  --lg-panel-border: rgba(125, 233, 172, 0.28);
+  --lg-icon-border: rgba(125, 233, 172, 0.4);
+  --lg-preview-halo: #12241A;
+  --lg-mix-platform-card: #16281D;
+  --lg-mix-panel: #131F17;
+  --lg-mix-preview: #121713;
+  --lg-mix-idle: #1B201C;
+  --lg-mix-voices: #0D1B1A;
+  --lg-mix-workflow-icon: #16281D;
+  --lg-mix-download-blue: #0C1A24;
+  --lg-mix-download-mint: #0C1D12;
+  --lg-btn-bg: #FAFAFA;
+  --lg-btn-fg: #0C110E;
+  --lg-card: #191E1A;
+  --lg-ghost: rgba(255, 255, 255, 0.08);
+  --lg-ghost-soft: rgba(255, 255, 255, 0.05);
+  --lg-chip-strong: #161B17;
+  --lg-window-border: rgba(255, 255, 255, 0.09);
+  --lg-disc: rgba(255, 255, 255, 0.05);
+  --lg-disc-ring: rgba(255, 255, 255, 0.045);
+  --lg-disc-ring-border: rgba(255, 255, 255, 0.08);
+  --lg-mint-strong: #12241A;
 }

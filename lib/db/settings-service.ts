@@ -92,6 +92,62 @@ export async function updateRateLimitConfig(config: RateLimitConfig): Promise<vo
   )
 }
 
+// ===========================================================================
+// 应用图标（品牌图标）
+// 存储 key: app_icon
+// 结构: { url: string | null, updatedAt: number }
+// - url 为 null 表示使用内置默认图标（public/logo.png）
+// - url 为 /uploads/... 时指向用户上传并持久化的图标文件
+// 说明：全站 /logo.png（favicon、PWA manifest、侧边栏品牌位、邮件模板）统一由
+//       app/api/branding/icon/route.ts 动态输出，因此修改此处即可全局生效。
+// ===========================================================================
+
+export interface AppIconConfig {
+  /** 当前图标公开访问路径（如 /uploads/xxx.png）；null = 使用内置默认图标 */
+  url: string | null
+  /** 最近更新时间戳（ms）；0 表示从未自定义 */
+  updatedAt: number
+}
+
+export const DEFAULT_APP_ICON_CONFIG: AppIconConfig = {
+  url: null,
+  updatedAt: 0,
+}
+
+export async function getAppIconConfig(): Promise<AppIconConfig> {
+  await initDB()
+  const row = await queryOne<{ value: string }>(
+    "SELECT value FROM system_settings WHERE key = $1",
+    ["app_icon"]
+  )
+
+  if (!row) return DEFAULT_APP_ICON_CONFIG
+  try {
+    const parsed = JSON.parse(row.value) as Partial<AppIconConfig>
+    return {
+      url: typeof parsed.url === "string" && parsed.url ? parsed.url : null,
+      updatedAt: typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0,
+    }
+  } catch {
+    return DEFAULT_APP_ICON_CONFIG
+  }
+}
+
+export async function updateAppIconConfig(config: AppIconConfig): Promise<void> {
+  await initDB()
+  const now = Date.now()
+  await execute(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    [
+      "app_icon",
+      JSON.stringify({ url: config.url, updatedAt: config.updatedAt || now }),
+      now,
+    ]
+  )
+}
+
 export interface GreenhouseCameraUrls {
   cameraAUrl: string
   cameraBUrl: string

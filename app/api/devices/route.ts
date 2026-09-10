@@ -16,6 +16,21 @@ import {
   DeviceType,
 } from '@/lib/db/device-registry-service'
 
+/**
+ * 设备写入后刷新 MQTT 动态订阅（bug 修复）：
+ * subscribeToDynamicDeviceTopics 此前全库无调用方 —— admin 新增 sensor 设备并配置了
+ * subscribe_topic 后，MQTT 客户端不会订阅新 topic，设备数据永远到不了平台。
+ * POST/PATCH 落库成功后立即刷新。MQTT 未连接时静默跳过（连接成功后 init 会全量加载一次）。
+ */
+async function refreshMqttSubscriptions(): Promise<void> {
+  try {
+    const { MQTTService } = await import('@/lib/mqtt-service')
+    await MQTTService.getInstance().refreshDynamicSubscriptions()
+  } catch (e) {
+    console.error('[Devices API] refresh MQTT subscriptions failed:', e)
+  }
+}
+
 export async function GET(req: NextRequest) {
   const securityCheck = await checkSecurity(req)
   if (!securityCheck.allowed) return securityCheck.response!
@@ -89,6 +104,11 @@ export async function POST(req: NextRequest) {
       is_enabled: body.is_enabled,
       sort_order: body.sort_order,
     })
+
+    // 🔥 动态订阅刷新：新增 sensor 设备后立即订阅其 topic，否则数据到不了平台
+    if (device.type === 'sensor' && device.subscribe_topic) {
+      await refreshMqttSubscriptions()
+    }
 
     await logRequest(req, 200, currentUser.id)
     return NextResponse.json({ device }, { status: 201 })

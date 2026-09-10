@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { AuthLayout } from "@/components/auth/auth-layout"
 import CapWidget from "@/components/ui/cap-widget"
 import { isCapRequiredClient } from "@/lib/cap-client"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
@@ -21,6 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+
+/* 登录卡片顶部美术资源（public/web/login/） */
+const LOGIN_ART = "/web/login/memory.png"
 
 // Helper for redirect
 const getRedirectPath = () => {
@@ -50,6 +52,9 @@ export default function LoginPage() {
   // 测试环境（NODE_ENV≠production）跳过人机验证：不渲染 widget、不强制校验
   const capRequired = isCapRequiredClient()
   const shouldShowCaptcha = capRequired && email.length > 0 && password.length > 0
+
+  // 协议勾选（对齐 Loomy/Accio 登录卡）
+  const [agreed, setAgreed] = useState(false)
 
   useEffect(() => {
     if (!shouldShowCaptcha) {
@@ -137,6 +142,10 @@ export default function LoginPage() {
   }
 
   const onSubmit = async () => {
+    if (!agreed) {
+      setError("请先阅读并同意《用户协议》与《隐私政策》")
+      return
+    }
     // 仅生产环境强制人机验证；测试环境跳过
     if (capRequired && (!captchaCompleted || !capToken)) {
       setError("请完成人机验证")
@@ -197,115 +206,195 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout
-      title="欢迎回来"
-      subtitle="登录您的 IoT 管控中心"
-    >
-      <div className="space-y-3.5">
-        <div className="space-y-1.5">
-          <Input
-            id="email"
-            type="email"
-            placeholder="账户邮箱"
-            className="h-11 rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 text-sm shadow-inner"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-white font-sans">
+      {/* 背景光斑：左下柠檬黄 + 右上薄荷绿（对齐 Loomy 登录页） */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(42% 44% at 4% 96%, rgba(255,248,94,0.35) 0%, transparent 70%), radial-gradient(46% 48% at 97% 6%, rgba(117,255,159,0.30) 0%, transparent 70%)",
+        }}
+      />
 
-        <div className="space-y-1.5 relative">
-          <Input
-            id="password"
-            type="password"
-            placeholder="密码"
-            className="h-11 rounded-full bg-[#e8e7e3] border-none text-[#111] placeholder:text-[#999] focus-visible:ring-1 focus-visible:ring-black px-5 pr-20 text-sm shadow-inner"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Link href="/forgot-password" className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-[#666] hover:text-black transition-colors font-medium">
-            忘记密码？
-          </Link>
-        </div>
+      {/* 左上品牌 */}
+      <Link
+        href="/"
+        className="absolute left-6 top-6 z-20 flex items-center gap-2.5"
+        aria-label="莓界 Berry Realm 首页"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="" className="size-8 rounded-[10px] object-cover" />
+        <span className="text-[17px] font-extrabold tracking-tight text-[#222]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
+          莓界
+        </span>
+      </Link>
 
-        {/* Cap Widget —— CAP 启用即始终显示（不再依赖邮箱/密码已填），验证完成后收起 */}
-        <AnimatePresence>
-          {capRequired && !captchaCompleted && (
-            <motion.div
-              initial={{ height: 0, opacity: 0, marginTop: 0 }}
-              animate={{ height: "auto", opacity: 1, marginTop: 12 }}
-              exit={{ height: 0, opacity: 0, marginTop: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
-            >
-              <div className="py-1">
-                <CapWidget
-                  onSuccess={(token) => {
-                    setCaptchaCompleted(true)
-                    setCapToken(token)
-                  }}
-                  onError={() => {
-                    setCaptchaCompleted(false)
-                    setCapToken("")
-                  }}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <Button
-          className="w-full h-11 rounded-full bg-black hover:bg-black/80 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 text-sm tracking-wider mt-2"
-          onClick={onSubmit}
-          disabled={loading}
+      {/* 居中登录卡 */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[400px] overflow-hidden rounded-[20px] bg-white shadow-[0_24px_70px_-24px_rgba(15,23,42,0.28)] ring-1 ring-black/[0.04]"
         >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              <span>验证中...</span>
-            </>
-          ) : "登 录"}
-        </Button>
-
-        {error && (
-          <div className="p-2.5 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[11px] font-medium text-center flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            {error}
+          {/* 顶部美术：海报轮换 + 白色曲线收边（对齐 Loomy 卡片插画语言） */}
+          <div className="relative h-44 overflow-hidden bg-[#F3FAF5]">
+            <Image
+              src={LOGIN_ART}
+              alt="莓小智"
+              fill
+              sizes="400px"
+              className="object-cover"
+              style={{ objectPosition: "center 22%" }}
+              priority
+            />
+            <div
+              aria-hidden
+              className="absolute inset-x-[-10%] bottom-[-34px] h-[68px] rounded-[100%] bg-white"
+            />
           </div>
-        )}
 
-        <div className="flex items-center justify-between gap-4 py-2">
-          <div className="h-[1px] flex-1 bg-[#e4e2dd]"></div>
-          <span className="text-[10px] text-[#aaa] uppercase tracking-widest font-medium">其他方式</span>
-          <div className="h-[1px] flex-1 bg-[#e4e2dd]"></div>
-        </div>
+          <div className="px-7 pb-7 pt-4">
+            <h1 className="text-[22px] font-bold leading-tight text-[#1a1a1a]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
+              欢迎登录
+            </h1>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[#999]">
+              欢迎使用莓界，登录您的莓园管控中心
+            </p>
 
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 h-10 rounded-full bg-white/50 border-[#e4e2dd] text-[#555] hover:bg-white hover:text-black transition-all shadow-sm"
-            onClick={() => window.location.href = "/api/auth/alipay/login"}
-          >
-            <Image src="/alipay.svg" alt="Alipay" width={16} height={16} className="w-4 h-4 mr-1.5 opacity-80" />
-            <span className="text-xs font-medium">支付宝</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 h-10 rounded-full bg-white/50 border-[#e4e2dd] text-[#555] hover:bg-white hover:text-black transition-all shadow-sm"
-            onClick={() => window.location.href = "/api/auth/qq/login"}
-          >
-            <svg className="w-4 h-4 mr-1.5 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-              <path d="M824.8 613.2c-16-51.4-34.4-94.6-62.7-165.3C766.5 262.2 689.3 112 511.5 112 331.7 112 256.2 265.2 261 447.9c-28.4 70.8-46.7 113.7-62.7 165.3-34 109.5-23 154.8-14.6 155.8 18 2.2 70.1-82.4 70.1-82.4 0 49 25.2 112.9 79.8 159-26.4 8.1-85.7 29.9-71.6 53.8 11.4 19.3 196.2 12.3 249.5 6.3 53.3 6 238.1 13 249.5-6.3 14.1-23.8-45.2-45.7-71.6-53.8 54.6-46.2 79.8-110.1 79.8-159 0 0 52.1 84.6 70.1 82.4 8.5-1.1 19.5-46.4-14.5-155.8z" fill="currentColor" />
-            </svg>
-            <span className="text-xs font-medium">QQ</span>
-          </Button>
-        </div>
+            <div className="mt-6 space-y-3">
+              <Input
+                id="email"
+                type="email"
+                placeholder="账户邮箱"
+                className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F]"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="密码"
+                  className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F] pr-16"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+                />
+                <Link
+                  href="/forgot-password"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#999] transition-colors hover:text-[#009456]"
+                >
+                  忘记密码？
+                </Link>
+              </div>
+            </div>
 
-        <p className="text-xs text-center text-[#999] pt-3.5 font-medium">
-          还没有账户？{" "}
-          <Link href="/register" className="text-black hover:text-[#4a8c3f] font-semibold transition-all underline underline-offset-4">
-            立即注册
-          </Link>
-        </p>
+            {/* Cap Widget —— CAP 启用即始终显示（不再依赖邮箱/密码已填），验证完成后收起 */}
+            <AnimatePresence>
+              {capRequired && !captchaCompleted && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: "auto", opacity: 1, marginTop: 12 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="py-1">
+                    <CapWidget
+                      onSuccess={(token) => {
+                        setCaptchaCompleted(true)
+                        setCapToken(token)
+                      }}
+                      onError={() => {
+                        setCaptchaCompleted(false)
+                        setCapToken("")
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Button
+              className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[15px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
+              onClick={onSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>验证中...</span>
+                </>
+              ) : (
+                "登 录"
+              )}
+            </Button>
+
+            {/* 协议勾选（对齐 Loomy 登录卡） */}
+            <label className="mt-4 flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-[#999]">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] transition-colors checked:border-[#009456] checked:bg-[#009456] bg-no-repeat bg-center"
+                style={
+                  agreed
+                    ? { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.7 5.3a1 1 0 0 1 0 1.4l-4.5 4.5a1 1 0 0 1-1.4 0L4.3 8.7a1 1 0 0 1 1.4-1.4l1.8 1.8 3.8-3.8a1 1 0 0 1 1.4 0z'/%3E%3C/svg%3E\")" }
+                    : undefined
+                }
+              />
+              <span>
+                阅读并同意
+                <Link href="/terms" className="mx-0.5 text-[#009456] hover:underline">《用户协议》</Link>
+                <Link href="/privacy" className="mx-0.5 text-[#009456] hover:underline">《隐私政策》</Link>
+                ，未注册的账户登录后将自动注册
+              </span>
+            </label>
+
+            {error && (
+              <div className="mt-3 flex items-center justify-center gap-2 rounded-[10px] border border-red-100 bg-red-50 p-2.5 text-[11px] font-medium text-red-600">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-4 py-4">
+              <div className="h-px flex-1 bg-[#eeeeee]" />
+              <span className="text-[10px] font-medium uppercase tracking-widest text-[#bbb]">或使用</span>
+              <div className="h-px flex-1 bg-[#eeeeee]" />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+                onClick={() => window.location.href = "/api/auth/alipay/login"}
+              >
+                <Image src="/alipay.svg" alt="Alipay" width={16} height={16} className="mr-1.5 h-4 w-4 opacity-80" />
+                <span className="text-xs font-medium">支付宝</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+                onClick={() => window.location.href = "/api/auth/qq/login"}
+              >
+                <svg className="mr-1.5 h-4 w-4 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M824.8 613.2c-16-51.4-34.4-94.6-62.7-165.3C766.5 262.2 689.3 112 511.5 112 331.7 112 256.2 265.2 261 447.9c-28.4 70.8-46.7 113.7-62.7 165.3-34 109.5-23 154.8-14.6 155.8 18 2.2 70.1-82.4 70.1-82.4 0 49 25.2 112.9 79.8 159-26.4 8.1-85.7 29.9-71.6 53.8 11.4 19.3 196.2 12.3 249.5 6.3 53.3 6 238.1 13 249.5-6.3 14.1-23.8-45.2-45.7-71.6-53.8 54.6-46.2 79.8-110.1 79.8-159 0 0 52.1 84.6 70.1 82.4 8.5-1.1 19.5-46.4-14.5-155.8z" fill="currentColor" />
+                </svg>
+                <span className="text-xs font-medium">QQ</span>
+              </Button>
+            </div>
+
+            <p className="pt-4 text-center text-xs font-medium text-[#999]">
+              还没有账户？{" "}
+              <Link href="/register" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#009456]">
+                立即注册
+              </Link>
+            </p>
+          </div>
+        </motion.div>
       </div>
 
       {/* Warning / Verification Dialog */}
@@ -391,6 +480,6 @@ export default function LoginPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AuthLayout>
+    </div>
   )
 }

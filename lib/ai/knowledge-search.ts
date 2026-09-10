@@ -79,9 +79,16 @@ export interface SearchOptions {
 
 export interface SearchHit {
   item: KnowledgeItemWithTags
+  /** RRF 融合后的最终排序分 */
   score: number
+  /** 关键词通道贡献的 RRF 分量（0 表示该通道未命中） */
   keywordScore: number
+  /** 语义通道贡献的 RRF 分量（0 表示该通道未命中） */
   semanticScore: number
+  /** 语义通道的原始余弦相似度，仅用于调试与阈值判断，不参与排序 */
+  semanticCosine?: number
+  /** Rerank 前的检索分（RRF），rerank 启用时保留便于排查排序变化 */
+  retrievalScore?: number
   matchedChunk?: KnowledgeChunk
   matchedSnippet?: string
   highlights?: string[]
@@ -321,56 +328,75 @@ export async function search(
   const minScore = options.minScore ?? 0
 
   // 1) 记录查询
-  const logId = await logQuery(userId, queryText, {
+  // 🔥 性能优化：不在这里 await。DB 写入与下面的检索并行执行，
+  // 省掉一次阻塞等待（这段在主 LLM 调用之前，直接贡献首字延迟）。
+  // 真正需要 logId 时在「更新日志」处再 await。
+  const logIdPromise = logQuery(userId, queryText, {
     sessionId: options.sessionId,
     queryType: mode,
     resultsCount: 0
-  })
+  }).catch(() => undefined as number | undefined)
 
-  // 2) 关键词结果
-  const kwResults = (mode === "keyword" || mode === "hybrid")
-    ? await keywordSearch(userId, queryText, options)
-    : []
+  // 2) 关键词 + 语义并行检索
+  // 🔥 性能优化：原本两个 await 串行，等于多等一整轮 embedding API 往返
+  // （semanticSearch 要把 query 向量化）。两者无依赖，改成 Promise.all。
+  const [kwResults, semResults] = await Promise.all([
+    (mode === "keyword" || mode === "hybrid")
+      ? keywordSearch(userId, queryText, options)
+      : Promise.resolve([]),
+    (mode === "semantic" || mode === "hybrid")
+      ? semanticSearch(userId, queryText, options)
+      : Promise.resolve([]),
+  ])
 
-  // 3) 语义结果
-  const semResults = (mode === "semantic" || mode === "hybrid")
-    ? await semanticSearch(userId, queryText, options)
-    : []
-
-  // 4) 归一化并合并
+  // 4) RRF 融合（Reciprocal Rank Fusion）
+  //
+  // 旧实现把「关键词排名归一化分」与「语义余弦相似度」直接加权相加，量纲根本不一致：
+  // 余弦集中在 0.7-0.9，而 rank 归一化分（1 - idx/len）会随候选集变大整体被稀释，
+  // 两者相加在数学上没有意义，这正是排序时常显得莫名其妙的主因。
+  // RRF 只消费「排名」、不消费「分数」，天然免疫量纲问题：
+  //   score(d) = Σ  w_channel / (k + rank_channel(d))，k 取经验值 60
+  const RRF_K = 60
   const hitMap = new Map<number, SearchHit>()
 
-  // 关键词结果归一化到 0-1
-  if (kwResults.length > 0) {
-    // 用 rank-based 归一化
-    for (let idx = 0; idx < kwResults.length; idx++) {
-      const item = kwResults[idx]
-      const score = 1 - idx / Math.max(kwResults.length, 1) // 越靠前分数越高
+  // 关键词通道
+  for (let idx = 0; idx < kwResults.length; idx++) {
+    const item = kwResults[idx]
+    const rrf = keywordWeight / (RRF_K + idx + 1)
+    const existing = hitMap.get(item.id)
+    if (existing) {
+      existing.keywordScore = rrf
+      existing.score += rrf
+    } else {
       hitMap.set(item.id, {
         item,
-        score: score * keywordWeight,
-        keywordScore: score,
+        score: rrf,
+        keywordScore: rrf,
         semanticScore: 0,
         highlights: await extractHighlights(queryText, item)
       })
     }
   }
 
-  // 语义结果归一化（cosine 本身就是 0-1）
-  for (const { item, score, matchedChunk } of semResults) {
-    const existing = hitMap.get(item.id)
+  // 语义通道
+  for (let idx = 0; idx < semResults.length; idx++) {
+    const { item, score, matchedChunk } = semResults[idx]
+    const rrf = semanticWeight / (RRF_K + idx + 1)
     const snippet = await makeSnippet(matchedChunk.content, queryText)
+    const existing = hitMap.get(item.id)
     if (existing) {
-      existing.semanticScore = score
-      existing.score += score * semanticWeight
+      existing.semanticScore = rrf
+      existing.semanticCosine = score
+      existing.score += rrf
       existing.matchedChunk = matchedChunk
       existing.matchedSnippet = snippet
     } else {
       hitMap.set(item.id, {
         item: item as KnowledgeItemWithTags,
-        score: score * semanticWeight,
+        score: rrf,
         keywordScore: 0,
-        semanticScore: score,
+        semanticScore: rrf,
+        semanticCosine: score,
         matchedChunk,
         matchedSnippet: snippet,
         highlights: []
@@ -379,15 +405,20 @@ export async function search(
   }
 
   // 5) 排序 + 过滤
-  const hits = Array.from(hitMap.values())
+  //    注意：这里不能直接 slice(limit)。Rerank 的价值来自「过召回再精排」，
+  //    如果候选池已经被截到 limit，rerank 看到的东西和最终返回的一样多，等于白跑。
+  const rankedHits = Array.from(hitMap.values())
     .filter(h => h.score >= minScore)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
 
-  // 5.5) 智谱 GLM Rerank（仅当 admin kc.glm.enableRerank=true 且 hits>1 时启用）
-  // 对 hybrid 检索的 top-N 候选按与查询的相关性重新打分，能显著提升精度
-  // 全部参数（开关/候选上限/混合权重）走 config；调用方可用 options 临时覆盖
-  if (hits.length > 1 && kc.glm.enableRerank) {
+  const rerankEnabled = kc.glm.enableRerank && rankedHits.length > 1
+  const candidatePoolSize = rerankEnabled
+    ? Math.min(rankedHits.length, Math.max(limit, kc.glm.rerankTopN))
+    : limit
+  const candidates = rankedHits.slice(0, candidatePoolSize)
+
+  // 5.5) 智谱 GLM Rerank：过召回 top-N 候选，按「查询-文档相关性」重新精排
+  if (rerankEnabled) {
     try {
       const { callGLMRerank } = await import("./embedding-service")
       const { readProvidersConfig } = await import("./provider-resolver")
@@ -397,8 +428,10 @@ export async function search(
         ? cfg.providers.find(p => p.id === ec.providerId && p.apiKey)
         : cfg.providers.find(p => p.type === "glm" && p.apiKey)
       if (rerankProvider) {
-        const topN = Math.min(hits.length, kc.glm.rerankTopN)
-        const docs = hits.slice(0, topN).map(h => h.matchedSnippet || h.matchedChunk?.content || h.item.summary || h.item.title)
+        const topN = Math.min(candidates.length, kc.glm.rerankTopN)
+        const toRerank = candidates.slice(0, topN)
+        const rest = candidates.slice(topN)
+        const docs = toRerank.map(h => h.matchedSnippet || h.matchedChunk?.content || h.item.summary || h.item.title)
         const rerankResults = await callGLMRerank({
           apiKey: rerankProvider.apiKey,
           query: queryText,
@@ -406,16 +439,24 @@ export async function search(
           topN: topN
         })
         if (rerankResults.length > 0) {
-          // rerankResults 按 relevance_score 降序；其 index 指向 hits.slice(0, topN) 中的位置
-          const blend = kc.glm.rerankBlend
-          const newHits = rerankResults.map((r, i) => {
-            const original = hits[r.index] || hits[i]
-            // 混合分数 = rerank_score * blend + 原始 score * (1-blend)
-            const blended = r.score * blend + original.score * (1 - blend)
-            return { ...original, score: blended, matchedSnippet: r.document || original.matchedSnippet }
-          })
-          hits.length = 0
-          hits.push(...newHits)
+          // rerank 模型本身就是为「查询-文档相关性」训练的，直接用它的分数排序。
+          // 旧实现把 rerank 分与检索分按 blend 混合，但两者差两个数量级
+          // （rerank 分接近 0-1，RRF 分最大仅约 1/60），混合只会稀释 rerank 效果。
+          const reranked = rerankResults
+            .map(r => {
+              const original = toRerank[r.index] ?? toRerank[0]
+              if (!original) return null
+              return {
+                ...original,
+                score: r.score,
+                retrievalScore: original.score,
+                matchedSnippet: r.document || original.matchedSnippet
+              } as SearchHit
+            })
+            .filter((h): h is SearchHit => h !== null)
+          candidates.length = 0
+          // 未参与 rerank 的候选保持原 RRF 顺序，排在后
+          candidates.push(...reranked, ...rest)
         }
       }
     } catch (e) {
@@ -423,7 +464,10 @@ export async function search(
     }
   }
 
-  // 6) 更新日志
+  const hits = candidates.slice(0, limit)
+
+  // 6) 更新日志（此处才 await 第 1 步的 DB 写入，此时检索早已完成，不再阻塞主流程）
+  const logId = await logIdPromise
   if (logId) {
     await execute(
       `UPDATE knowledge_query_log SET results_count = $1 WHERE id = $2 AND user_id = $3`,

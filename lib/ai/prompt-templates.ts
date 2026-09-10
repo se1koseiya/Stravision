@@ -62,6 +62,81 @@ export const CITATION_INSTRUCTION_COMPACT = `
 - 表格内禁止使用 [n] 引用标记
 `;
 
+export const MERMAID_INSTRUCTION_COMPACT = `
+## 示意图绘制能力
+你可以用 Mermaid 画示意图，前端会自动渲染为图形（用户可缩放/下载）。
+**何时画图**（适合画就画，不要每条回复都画）：
+- 概念科普：解释原理、关系、成因时（如"为什么新叶发黄"、"温度如何影响蒸腾"），图比大段文字更直观易懂
+- 操作指引：分步骤的操作流程（如"如何绑定传感器"、"如何设置灌溉计划"）
+- 决策/排查：故障排查决策树（"湿度报警怎么办"）
+- 流程/时序：设备与系统的交互过程、数据流向
+- 状态流转：设备/任务的状态变化
+**分工提醒**：Mermaid 只适合"步骤与逻辑"。若要画看得见的画面（病虫害症状、植株结构、场景布局、健康/病株对比），改用 <ILLU> 插画（见插画绘制能力章节），不要硬用流程图表达。
+**格式**：用 \`\`\`mermaid 代码块输出，图前用一句话说明图的用途。
+**语法红线（违反会导致渲染失败）**：
+1. 节点 ID 用英文，节点文字含括号/标点/空格时必须用双引号包裹：A["打开 设置 页面(右上角)"]
+2. 只用基础图类型：flowchart TD/LR、sequenceDiagram、stateDiagram-v2、mindmap；禁用实验性语法
+3. 单图不超过 15 个节点；超过就拆成多图或改用编号列表
+4. 箭头标签文字含特殊字符同样加引号：A -->|"是"| B
+5. 图内不要嵌 Markdown 语法（**加粗**、链接等）
+
+正确示例：
+\`\`\`mermaid
+flowchart TD
+    A["进入 设备管理 页"] --> B["点击 添加设备"]
+    B --> C{"设备灯是否快闪?"}
+    C -->|"是"| D["输入配网信息"]
+    C -->|"否"| E["长按按键 5 秒"]
+    E --> D
+    D --> F["绑定完成"]
+\`\`\`
+`;
+
+export const SVG_ILLU_INSTRUCTION_COMPACT = `
+## 创意插画绘制能力（<ILLU> 标签）
+你可以亲手绘制矢量插画（SVG），前端会渲染为图片卡片（用户可放大/下载）。这是你表现力最强的画图方式——像农业技术推广手册里的科普插图。
+
+**三种画图方式分工**：
+- 画"看得见的东西" → <ILLU> 插画：病虫害症状示意、植株/器官结构标注、灌溉系统组成、大棚与种植架布局、设备安装位置、健康 vs 病株对比、正确 vs 错误做法对比
+- 画"步骤与逻辑" → \`\`\`mermaid 流程图：操作步骤、判断分支、时序、状态流转
+- 画"数字" → <CHART> 图表：趋势、占比、数据对比
+
+**何时用插画**：用户问"长什么样/什么样才算/怎么摆放/区别在哪"这类画面型问题时；文字描述一大段还不如一张图时。适合画就画，不要每条回复都画。
+**格式**：输出 <ILLU> 标签，内放一个完整的 <svg>…</svg>，图前用一句话说明画了什么。
+
+**创作要求（扁平科普插画风，追求"一眼看懂"）**：
+1. 根元素固定：<svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg">（纵向内容用 viewBox="0 0 480 560"），整体白底
+2. 扁平色块 + 简洁轮廓，配色 3-5 种：叶绿 #4CAF50、土棕 #8D6E63、警示橙 #FF7043、水蓝 #42A5F5、中性灰 #9E9E9E
+3. 形象用基本形状拼（圆/椭圆/矩形/路径）：草莓、叶片、大棚、水泵用几何示意即可，不追求写实
+4. 关键部位中文标注：<text font-size="16" fill="#333">，每条 ≤10 字，全图 ≤8 处；必要时画细指引线
+5. 重点区域（病斑、错误操作）用虚线椭圆圈出或半透明色块高亮
+6. 对比图左右分栏、中间画分隔线，各配一行标题
+7. 一次只画一个主题；内容多就拆成多张
+
+**语法红线（违反会渲染失败或被安全过滤清除）**：
+1. 只用静态元素：<rect> <circle> <ellipse> <line> <polyline> <polygon> <path> <text> <tspan> <g>；禁止 <script>、<foreignObject>、动画元素（<animate> 等）、任何 on 开头的事件属性
+2. 禁止引用外部资源（图片/字体/链接），文字用默认 sans-serif
+3. 文字与特殊字符转义：文本里出现 < > & 时写 &lt; &gt; &amp;
+4. 坐标留边距 ≥20，长文字配 text-anchor="middle" 居中，防止裁剪
+5. 单张元素 ≤60 个；用 <g> 分组便于组织
+
+示例骨架（仅示意结构，实际按内容创作）：
+<ILLU>
+<svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="680" height="420" fill="#ffffff"/>
+  <g><!-- 大棚轮廓 -->
+    <path d="M60 300 L340 120 L620 300 Z" fill="#E3F2FD" stroke="#42A5F5" stroke-width="2"/>
+  </g>
+  <g><!-- 草莓植株 -->
+    <circle cx="340" cy="260" r="12" fill="#4CAF50"/>
+    <circle cx="340" cy="285" r="10" fill="#e53935"/>
+  </g>
+  <text x="340" y="330" font-size="16" text-anchor="middle" fill="#333">草莓植株</text>
+  <text x="340" y="60" font-size="18" text-anchor="middle" fill="#333">大棚种植示意</text>
+</svg>
+</ILLU>
+`;
+
 export const KNOWLEDGE_BASE_INSTRUCTION_COMPACT = `
 ## 知识库使用规则
 - 当上下文包含「知识库检索结果」时，优先基于检索到的内容回答
@@ -904,7 +979,7 @@ ${disabledDescriptions.join('\n')}
  */
 function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): string {
   if (!aiFeatures) {
-    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\n```json\n{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" }\n  ]\n}\n```\n</AUTOMATION_STRATEGY>\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。\n- <CHART>{"type":"line|bar|area|pie","data":[{"name":"...","value":0}],"xField":"name","yField":"value"}</CHART> - 图表（type: line/bar/area/pie，xField/yField 默认 name/value）'
+    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\n```json\n{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" }\n  ]\n}\n```\n</AUTOMATION_STRATEGY>\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。\n- <CHART>{"type":"line|bar|area|pie","data":[{"name":"...","value":0}],"xField":"name","yField":"value"}</CHART> - 图表（type: line/bar/area/pie，xField/yField 默认 name/value）\n- <ILLU>…完整 <svg>…</svg>…</ILLU> - 创意插画（画面型图示：病虫害症状/植株结构/场景示意，扁平科普插画风，详见插画绘制能力章节）'
   }
 
   const enabledTags: string[] = []
@@ -915,6 +990,8 @@ function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): strin
   if (aiFeatures.enableMonitor !== false) enabledTags.push('- <MONITOR></MONITOR> - 监控画面')
   if (aiFeatures.enableScheduledTasks !== false) enabledTags.push('- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表')
   if (aiFeatures.enableChart !== false) enabledTags.push('- <CHART>{"type":"line|bar|area|pie","data":[{"name":"...","value":0}],"xField":"name","yField":"value"}</CHART> - 图表（type: line/bar/area/pie，xField/yField 默认 name/value）')
+  // 🔥 防幻觉：模型没有位图生成能力，曾出现"说下面有图"但实际什么都没输出的情况
+  enabledTags.push('- 图表/图示能力边界：你不能输出位图图片。画图只有三种方式：①数据图表用 <CHART> 标签；②流程图/结构图/判断逻辑图用 ```mermaid 代码块（如 flowchart TD）；③画面型插画（病虫害症状/植株结构/场景示意）用 <ILLU> 标签包裹手绘 SVG。禁止使用 Markdown 图片语法 ![](…) 或 HTML <img>。禁止说"下面这张图/如图所示"，除非紧跟真的输出了 <CHART> 标签、```mermaid 代码块或 <ILLU> 插画。没有图时改用文字列表或表格表达。')
   if (aiFeatures.enableSpectral !== false) enabledTags.push('- <SPECTRAL></SPECTRAL> - 光谱数据')
   if (aiFeatures.enableSources !== false) enabledTags.push('- <SOURCES>...</SOURCES> - 引用来源')
   if (aiFeatures.enableWebPreview !== false) enabledTags.push('- <WEB_PREVIEW>...</WEB_PREVIEW> - 网页预览')
@@ -1011,6 +1088,12 @@ export function generateCompactSystemPrompt(options: {
   if (options.aiFeatures?.enableSources !== false) {
     parts.push(CITATION_INSTRUCTION_COMPACT);
   }
+
+  // 示意图绘制（Mermaid）规范：默认启用，教模型用 ```mermaid 代码块画操作指引/流程图
+  parts.push(MERMAID_INSTRUCTION_COMPACT);
+
+  // 创意插画（ILLU/SVG）规范：默认启用，教模型手绘扁平科普插画（画面型内容）
+  parts.push(SVG_ILLU_INSTRUCTION_COMPACT);
 
   // 知识库使用规则（仅启用时注入，避免每次动态重复）
   if (options.aiFeatures?.enableKnowledgeBase !== false) {

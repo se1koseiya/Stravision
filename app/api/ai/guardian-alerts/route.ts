@@ -73,9 +73,14 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: true })
     }
 
-    // 路由：手动触发守护检查
+    // 路由：手动触发守护检查（走 LLM 分析，须检查积分；dismiss/已读不消耗 token 不检查）
     const sensorData = body?.sensorData
     if (sensorData && typeof sensorData === 'object') {
+      const { checkCreditAllowance } = await import('@/lib/db/credit-service')
+      const denyReason = await checkCreditAllowance(user.id as number)
+      if (denyReason) {
+        return Response.json({ error: `${denyReason}。` }, { status: 403 })
+      }
       const created: GuardianAlert[] = await checkAndNotify(user.id as number, sensorData)
       return Response.json({ triggered: created.length, alerts: created })
     }

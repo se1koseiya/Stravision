@@ -14,7 +14,8 @@ import {
   Typography,
   Divider,
   Row,
-  Col
+  Col,
+  InputNumber
 } from "antd"
 import { UploadOutlined, PlusOutlined } from "@ant-design/icons"
 import type { UploadProps } from "antd"
@@ -41,6 +42,13 @@ const CONTROLS = [
   { id: "stepper", label: "丝杆滑台 (摄像头云台)" }
 ]
 
+/** 本月已用积分（周期不是当前月时视为 0，与 credit-service 的惰性重置一致） */
+function monthlyUsedOf(user: UserPublic): number {
+  const d = new Date()
+  const cycle = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+  return user.credit_cycle_date === cycle ? (user.monthly_credit_used ?? 0) : 0
+}
+
 export function UserDialog({ open, onOpenChange, user, currentUserRole, onSuccess }: UserDialogProps) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -57,12 +65,14 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
           membership: user.membership || "free",
           avatar_url: user.avatar_url || "",
           daily_ai_limit: user.daily_ai_limit ?? 10,
-          ai_balance: user.ai_balance ?? 0
+          ai_balance: user.ai_balance ?? 0,
+          monthly_credit_quota: user.monthly_credit_quota ?? 0,
+          credit_balance: user.credit_balance ?? 0
         })
         setAllowedControls(user.permissions?.allowedControls || [])
       } else {
         form.resetFields()
-        form.setFieldsValue({ membership: "free", daily_ai_limit: 0 })
+        form.setFieldsValue({ membership: "free", daily_ai_limit: 0, monthly_credit_quota: 0, credit_balance: 0 })
         setAllowedControls([])
       }
     }
@@ -89,7 +99,9 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
         membership: values.membership,
         permissions: { allowedControls },
         daily_ai_limit: Number(values.daily_ai_limit) || 0,
-        ai_balance: Number(values.ai_balance) || 0
+        ai_balance: Number(values.ai_balance) || 0,
+        monthly_credit_quota: Number(values.monthly_credit_quota) || 0,
+        credit_balance: Number(values.credit_balance) || 0
       }
       if (!user && values.email) body.email = values.email
       if (values.password) body.password = values.password
@@ -234,6 +246,49 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
             </Form.Item>
           </Col>
         </Row>
+
+        <Divider style={{ marginTop: 8, marginBottom: 12 }} />
+
+        <Typography.Text strong style={{ marginBottom: 8, display: "block" }}>
+          AI 积分额度（按 token 计费）
+        </Typography.Text>
+        <Row gutter={12}>
+          <Col span={12}>
+            <Form.Item
+              name="monthly_credit_quota"
+              label="月度积分额度"
+              extra="填 0 = 跟随会员等级默认额度"
+            >
+              <InputNumber min={0} step={100} style={{ width: "100%" }} placeholder="0" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="credit_balance"
+              label="充值积分余额"
+              extra="月度额度用完后自动扣减"
+            >
+              <InputNumber min={0} step={10} precision={2} style={{ width: "100%" }} placeholder="0" />
+            </Form.Item>
+          </Col>
+        </Row>
+        {user && (
+          <div
+            style={{
+              background: "#F7F8FA",
+              borderRadius: 6,
+              padding: "8px 12px",
+              marginBottom: 8,
+              fontSize: 12,
+              color: "#646A73",
+              lineHeight: 1.8
+            }}
+          >
+            本月已用 <b>{monthlyUsedOf(user)}</b> 积分 · 月度额度{" "}
+            <b>{user.monthly_credit_quota ? user.monthly_credit_quota : "跟随等级默认"}</b> ·
+            充值余额 <b>{user.credit_balance ?? 0}</b>
+          </div>
+        )}
 
         <Divider style={{ marginTop: 8, marginBottom: 12 }} />
 

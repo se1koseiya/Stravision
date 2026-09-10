@@ -7,7 +7,7 @@ import type { ActionsFeedbackProps, ActionsItemProps } from "@ant-design/x"
 import type { BubbleListProps } from "@ant-design/x"
 import { Pagination, message } from "antd"
 import { CheckOutlined, ShareAltOutlined } from "@ant-design/icons"
-import { Zap, X, CheckCircle2, ClipboardList, Wrench, XCircle, AlertCircle, ArrowDown } from "lucide-react"
+import { Zap, X, CheckCircle2, ClipboardList, Wrench, XCircle, AlertCircle, ArrowDown, Loader2 } from "lucide-react"
 import XMarkdown from "@ant-design/x-markdown"
 import BerryOrb from "@/components/smoothui/berry-orb"
 import { detectOrbExpression, type OrbExpression } from "@/lib/ai/orb-expression"
@@ -487,6 +487,11 @@ export function ChatBubbleList({
 }: ChatBubbleListProps) {
   const listRef = useRef<HTMLDivElement>(null)
 
+  // 最近一次 contentRender 算出来的「thought chain 是否可见」，
+  // footer 里同一条消息渲染时复用，避免重复算。
+  // 反过来也保证"任务执行中"胶囊只在 chain 不可见时出现。
+  const chainVisibleRef = useRef<boolean>(false)
+
   // 🔥 rendererProps 由 page.tsx 内联构造，每次渲染都是新对象（内部闭包也是新引用）。
   // 直接把函数 props 透传给 ChatMessageRenderer 会让其 memo 失效（函数引用每次都变）。
   // 方案：ref 持有最新 rendererProps + 一次性创建的稳定转发函数，
@@ -581,9 +586,13 @@ export function ChatBubbleList({
         // 🔥 整合：AI 动作总结 + 操作按钮 同行显示（TRAE 风格：单行紧凑）
         // - 左侧：任务完成状态 + 耗时 + 工具调用次数
         // - 右侧：点赞/点踩/复制/语音
+        // 优化：当 thought chain 可见时，"任务执行中"胶囊与 chain 顶部状态条重复，
+        // 只保留 chain 入口；仅当 chain 不可见时回退到胶囊。
         return (
           <div className="flex items-center gap-2.5 flex-wrap">
-            {aiActionSummary && <AIActionSummaryCard summary={aiActionSummary} className="!mt-0 flex-1 min-w-0" />}
+            {aiActionSummary && !chainVisibleRef.current ? (
+              <AIActionSummaryCard summary={aiActionSummary} className="!mt-0 flex-1 min-w-0" />
+            ) : null}
             <BubbleActions content={text} onSpeak={onTtsSpeak} />
           </div>
         )
@@ -598,9 +607,30 @@ export function ChatBubbleList({
         const isWorkingBubble =
           isLastItem && msg.role === "assistant" && isLoading && !msg.content
         if (isWorkingBubble) {
+          // 🔥 修复：工具调用/多轮 Agent 执行期间 content 一直为空，
+          // 之前直接 return WorkingIndicator（笼统的「正在工作」），把思维链和
+          // agentStatus（如「第 N 轮工具调用: xxx」）全部短路，用户完全看不到
+          // AI 在调用什么工具；LLM 超时的 llm_error 步骤也会被吞掉。
+          // 现在：有思维链步骤时优先渲染思维链；agentStatus 文字始终展示；
+          // 只在真正空白（首字节未到）时才退回 WorkingIndicator。
+          const hasChainSteps = showThoughtChain && agentSteps.length > 0
+          chainVisibleRef.current = !!hasChainSteps
           return (
             <div id={`msg-${msgIndex ?? 0}`} data-msg-anchor={`msg-${msgIndex ?? 0}`}>
-              <WorkingIndicator darkMode={!!darkMode} />
+              {hasChainSteps && (
+                <AgentThoughtChain
+                  steps={agentSteps}
+                  isActive={isLoading}
+                  className="!mt-0 !mb-2"
+                />
+              )}
+              {!hasChainSteps && <WorkingIndicator darkMode={!!darkMode} />}
+              {agentStatus && (
+                <div className="flex items-center gap-1.5 text-[12.5px] text-slate-500 dark:text-zinc-400 mt-1.5 px-0.5">
+                  <Loader2 size={12} className="animate-spin shrink-0 text-[#1677ff]" />
+                  <span className="truncate">{agentStatus}</span>
+                </div>
+              )}
             </div>
           )
         }
@@ -612,6 +642,8 @@ export function ChatBubbleList({
           && isLastItem
           && msg.role === "assistant"
           && agentSteps.length > 0
+        // 把 chain 可见性缓存给 footer 复用（强制转 boolean，避免 isLastItem 为 undefined 时类型不匹配）
+        chainVisibleRef.current = !!showChainInBubble
         // 🔥 当最后一条 AI 消息包含 <TASK_LIST> 任务规划时，思考链默认折叠
         // 避免和任务规划卡片"打架"（TRAE 风格中两者不会同时展开）
         const msgContent = typeof msg?.content === "string" ? msg.content : ""

@@ -7,6 +7,10 @@ import { FileTextOutlined, ArrowRightOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Bubble, Think, Sources, CodeHighlighter, Mermaid } from "@ant-design/x"
 import XMarkdown, { type ComponentProps } from "@ant-design/x-markdown"
+import { MermaidCard } from "@/components/ai/mermaid-card"
+import { SvgCard } from "@/components/ai/svg-card"
+import { DeviceForgeCard, DeviceForgeSkeleton } from "@/components/ai/device-forge-card"
+import { parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
 import { Card, Flex, Typography, Button, Input } from "antd"
 import { cn } from "@/lib/utils"
 import { BerryXCard } from "@/components/ui/berry-xcard"
@@ -40,6 +44,7 @@ import { ClarifyCard, type ClarifyData } from "@/components/ai/clarify-card"
 import { PlanApprovalCard, type PlanData } from "@/components/ai/plan-approval-card"
 import { RateLimitErrorCard } from "@/components/ai/rate-limit-error-card-editorial"
 import { CheckpointConfirm, parseCheckpointContent, stripCheckpointTags, tryParseJsonWithRepair, type CheckpointData } from "@/components/ai/checkpoint-confirm"
+import { SkillForgeCard, SkillForgeCardSkeleton, parseSkillForgeCardData } from "@/components/ai/skill-forge-card"
 
 const { Text } = Typography
 
@@ -173,11 +178,11 @@ const ThinkComponent = React.memo((props: ComponentProps) => {
   const [loading, setLoading] = React.useState(true)
   const [expand, setExpand] = React.useState(true)
 
+  // 思考常驻：完成后保留内容，仅更新标题/结束 loading，不自动折叠
   React.useEffect(() => {
     if (props.streamStatus === "done") {
       setTitle("思考完成")
       setLoading(false)
-      setExpand(false)
     }
   }, [props.streamStatus])
 
@@ -209,6 +214,37 @@ function getNodeText(node: React.ReactNode): string {
   return ""
 }
 
+// MermaidErrorBoundary — mermaid 语法错误时降级显示源码（避免渲染异常白屏/整树崩溃）
+class MermaidErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallbackCode: string },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallbackCode: string }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch(err: unknown) {
+    console.warn("[Mermaid] render failed, fallback to source code:", err)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="my-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-3">
+          <div className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 mb-1.5">
+            <AlertTriangle size={13} strokeWidth={1.75} />
+            <span>示意图语法有误，已显示原始代码</span>
+          </div>
+          <pre className="text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 overflow-x-auto whitespace-pre-wrap">{this.props.fallbackCode}</pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 const EnhancedCodeBlock = React.memo((props: ComponentProps) => {
   const { children, streamStatus, lang } = props
   const [expanded, setExpanded] = React.useState(false)
@@ -228,11 +264,13 @@ const EnhancedCodeBlock = React.memo((props: ComponentProps) => {
   if (isMermaid && !isStreaming && codeText.trim()) {
     return (
       <div className="my-3">
-        <Mermaid
-          actions={{ enableZoom: true, enableDownload: true, enableCopy: true }}
-        >
-          {codeText}
-        </Mermaid>
+        <MermaidErrorBoundary fallbackCode={codeText}>
+          <Mermaid
+            actions={{ enableZoom: true, enableDownload: true, enableCopy: true }}
+          >
+            {codeText}
+          </Mermaid>
+        </MermaidErrorBoundary>
       </div>
     )
   }
@@ -288,8 +326,14 @@ EnhancedCodeBlock.displayName = "EnhancedCodeBlock"
 
 // ---------------------------------------------------------------------------
 // DeepThinking — 渲染 msg.reasoning 字段（DeepSeek-R1 等思考模型的推理过程）
-// 极简：单行折叠条 + 纯文本，与 AgentThoughtChain 风格一致
+// 样式：灰色「深度思考」标签 + chevron + 左侧细线限高滚动面板
+// 折叠策略：流式中自动展开并跟随滚动到底部；结束后延迟自动折叠（默认折叠态）
+//           一旦用户手动点过展开/折叠，就永久尊重用户选择，不再自动干预
 // ---------------------------------------------------------------------------
+
+const THINK_PANEL_MAX_H = 340
+// 流式结束后延迟多久自动折叠（留给用户瞄一眼"思考完成"）
+const THINK_AUTO_COLLAPSE_MS = 900
 
 function DeepThinking({
   reasoning,
@@ -298,13 +342,31 @@ function DeepThinking({
   reasoning?: { text: string; durationMs?: number }
   isStreaming?: boolean
 }) {
-  const [expanded, setExpanded] = React.useState(true)
+  // null = 用户未手动干预（此时由"流式展开 / 结束自动折叠"驱动）
+  const [userChoice, setUserChoice] = React.useState<boolean | null>(null)
+  const [autoFolded, setAutoFolded] = React.useState(false)
+  const [scrollable, setScrollable] = React.useState(false)
+  const scrollRef = React.useRef<HTMLDivElement | null>(null)
 
-  // 流式输出中 → 展开显示；完成后 → 折叠
+  // 流式开始 → 重置为自动模式（清掉上一轮的自动折叠标记与用户选择）
   React.useEffect(() => {
-    if (isStreaming) setExpanded(true)
-    else setExpanded(false)
+    if (isStreaming) {
+      setAutoFolded(false)
+      setUserChoice(null)
+    }
   }, [isStreaming])
+
+  // 流式结束 → 延迟自动折叠
+  React.useEffect(() => {
+    if (isStreaming || !reasoning?.text) return
+    const timer = setTimeout(() => setAutoFolded(true), THINK_AUTO_COLLAPSE_MS)
+    return () => clearTimeout(timer)
+  }, [isStreaming, reasoning?.text])
+
+  // 展开态：用户手动选择优先；未干预时 流式中展开 / 结束后看自动折叠
+  const expanded = userChoice ?? (isStreaming ? true : !autoFolded)
+
+  const toggle = () => setUserChoice((prev) => !(prev ?? expanded))
 
   // 稳定 streaming 对象引用，避免 XMarkdown 因 prop 引用变化触发无限渲染
   // 保留动画 + 节流（同 MarkdownPart 策略），避免 useStreaming/AnimationText 死循环
@@ -321,6 +383,30 @@ function DeepThinking({
   // 流式节流：同 MarkdownPart，防止高频 chunk 触发 Maximum update depth
   const throttledText = useThrottledContent(reasoning?.text ?? "", isStreaming ?? false)
 
+  // 自动滚到底部：跟随流式最新思考，完成后停在末尾便于回看
+  // （依赖里只有 throttledText / expanded / isStreaming，用户手动上滑后不会被反复拽回底部）
+  React.useEffect(() => {
+    if (!expanded) return
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [throttledText, expanded, isStreaming])
+
+  // 内容超出限高时才启用上下渐隐遮罩（内容短时不遮最后一行）
+  React.useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !expanded) {
+      setScrollable(false)
+      return
+    }
+    const check = () => setScrollable(el.scrollHeight > el.clientHeight + 1)
+    check()
+    if (typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [expanded, throttledText])
+
   if (!reasoning?.text) return null
 
   const isDone = !isStreaming && reasoning.text.length > 0
@@ -330,27 +416,40 @@ function DeepThinking({
     <div className="mb-2">
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
-        className={cn(
-          "inline-flex items-center gap-1 text-[12px] px-0.5 rounded transition-colors",
-          isStreaming ? "text-[#1677ff]" : "text-zinc-500 hover:text-zinc-700"
-        )}
+        onClick={toggle}
+        title={expanded ? "折叠思考过程" : "展开思考过程"}
+        className="group/think inline-flex items-center gap-1 text-[13px] leading-5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
         style={{ fontWeight: 400 }}
       >
+        <span>深度思考</span>
+        {duration && isDone && (
+          <span className="text-zinc-300 dark:text-zinc-600">· {duration}</span>
+        )}
+        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
         <ChevronRight
           size={12}
-          className={cn("transition-transform", expanded && "rotate-90")}
+          className={cn(
+            "shrink-0 text-zinc-400 group-hover/think:text-zinc-600 transition-transform duration-200",
+            expanded && "rotate-90"
+          )}
         />
-        <span>深度思考</span>
-        {duration && isDone && <span className="text-zinc-400">· {duration}</span>}
-        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
       </button>
       {expanded && (
-        <div className="mt-1.5 pl-0.5">
+        <div
+          ref={scrollRef}
+          className={cn(
+            "berry-think-panel mt-2 ml-1.5 pl-3.5 pr-1.5 overflow-y-auto overscroll-contain",
+            scrollable && "berry-think-panel--faded"
+          )}
+          style={{ maxHeight: THINK_PANEL_MAX_H }}
+        >
+          {/* 注意：@ant-design/x-markdown 只支持根容器 style，不支持 styles（旧代码写成
+              styles={{body:{color}}} 是无效 prop，被静默丢弃 → 思考正文一直是黑的）。
+              这里用 style 设根容器字体/行高，颜色再由 .berry-think-panel 的 CSS 兜底覆盖子元素。 */}
           <XMarkdown
             paragraphTag="div"
             streaming={streaming}
-            styles={{ body: { fontSize: 12.5, lineHeight: 1.6, color: '#8c8c8c' } }}
+            style={{ fontSize: 14, lineHeight: 1.8, color: "#8c8c8c" }}
           >
             {throttledText}
           </XMarkdown>
@@ -621,52 +720,48 @@ const MarkdownComponents: Record<string, React.ComponentType<ComponentProps>> = 
 // 触发 Maximum update depth exceeded。80ms ≈ 12.5fps，肉眼流畅且不堆积渲染。
 const STREAM_THROTTLE_MS = 80
 
-// 节流 hook：流式时按时间窗口节流 content；非流式时立即同步。
-// 关键：最后一个 chunk 总会被 flush（setTimeout 兜底），不会丢内容。
+// 节流 hook（rAF 泵版本）：
+// 旧实现把 flush 放在 [content, isStreaming] effect 里（elapsed>=MS 时直接 setThrottled），
+// 一旦上游 content 以任何形式高频/震荡变化（如错误文本回写、标签边界抖动导致 part 重切），
+// effect→setState→render→effect 会被 React 计为 nested updates，最终报
+// Maximum update depth exceeded。
+// 新设计：流式期间 content 变化【不触发任何 setState 级联】——
+// 由 requestAnimationFrame 循环在 React 渲染周期之外主动拉取最新内容（≈12.5fps），
+// 每帧最多一次 setState 且仅在值变化时触发，结构上不可能形成更新级联；
+// 非流式时仅在值确实变化时同步一次，保证最终内容完整。
 function useThrottledContent(content: string, isStreaming: boolean) {
   const [throttled, setThrottled] = React.useState(content)
-  const lastFlushRef = React.useRef(0)
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestContentRef = React.useRef(content)
+  const throttledRef = React.useRef(content)
+  // 渲染期同步 ref（安全：ref 写入不触发渲染）
+  latestContentRef.current = content
+  throttledRef.current = throttled
 
+  // 非流式：内容定稿，值变化时同步一次（相同值 bail out，不产生额外渲染）
   React.useEffect(() => {
-    latestContentRef.current = content
-
-    // 非流式：立即同步，保证最终内容完整
-    if (!isStreaming) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
-      }
+    if (!isStreaming && throttledRef.current !== content) {
+      throttledRef.current = content
       setThrottled(content)
-      return
-    }
-
-    // 流式：节流
-    const now = Date.now()
-    const elapsed = now - lastFlushRef.current
-
-    if (elapsed >= STREAM_THROTTLE_MS) {
-      lastFlushRef.current = now
-      setThrottled(content)
-    } else if (!timerRef.current) {
-      const remaining = STREAM_THROTTLE_MS - elapsed
-      timerRef.current = setTimeout(() => {
-        timerRef.current = null
-        lastFlushRef.current = Date.now()
-        setThrottled(latestContentRef.current)
-      }, remaining)
     }
   }, [content, isStreaming])
 
+  // 流式：rAF 节流泵，完全脱离 React 更新周期
   React.useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-        timerRef.current = null
+    if (!isStreaming) return
+    let rafId: number
+    let lastFlush = 0
+    const tick = (t: number) => {
+      rafId = requestAnimationFrame(tick)
+      const latest = latestContentRef.current
+      if (t - lastFlush >= STREAM_THROTTLE_MS && throttledRef.current !== latest) {
+        lastFlush = t
+        throttledRef.current = latest
+        setThrottled(latest)
       }
     }
-  }, [])
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [isStreaming])
 
   return throttled
 }
@@ -721,10 +816,33 @@ const MarkdownPart = React.memo(function MarkdownPart({
 MarkdownPart.displayName = "MarkdownPart"
 
 const TAG_REGEX =
-  /(<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*$|<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|<\s*CLARIFY\s*>[\s\S]*?(?:<\/\s*CLARIFY\s*>|$)|<\s*DECISION\s*>[\s\S]*?(?:<\/\s*DECISION\s*>|$)|<\s*PLAN\s*>[\s\S]*?(?:<\/\s*PLAN\s*>|$)|<\s*VISION_INSPECTION\s*\/?>|<\s*VISION_INSPECTION\s*>[\s\S]*?(?:<\/\s*VISION_INSPECTION\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g
+  /(<\s*DEVICE_FORGE\s*>[\s\S]*?(?:<\/\s*DEVICE_FORGE\s*>|$)|<\s*ILLU[^>]*>[\s\S]*?(?:<\/\s*ILLU\s*>|$)|<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*$|<\s*SKILL_FORGE\s*(?:>[\s\S]*?(?:<\/\s*SKILL_FORGE\s*>|$)|(?:\/>))|<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|<\s*CLARIFY\s*>[\s\S]*?(?:<\/\s*CLARIFY\s*>|$)|<\s*DECISION\s*>[\s\S]*?(?:<\/\s*DECISION\s*>|$)|<\s*PLAN\s*>[\s\S]*?(?:<\/\s*PLAN\s*>|$)|<\s*VISION_INSPECTION\s*\/?>|<\s*VISION_INSPECTION\s*>[\s\S]*?(?:<\/\s*VISION_INSPECTION\s*>|$)|<\s*VISION_INSPECTION\s*\/?>|<\s*VISION_INSPECTION\s*>[\s\S]*?(?:<\/\s*VISION_INSPECTION\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```mermaid\s*[\s\S]*?```|```json\s*[\s\S]*?```)/g
 
 // ---------------------------------------------------------------------------
 // renderTaggedContent — handles special XML tags, delegates markdown to XMarkdown
+
+/** 判定一个对象是否为图表配置（<CHART> 标签或裸 ```json 输出均可） */
+function isChartConfig(obj: any): boolean {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    !Array.isArray(obj) &&
+    typeof obj.type === "string" &&
+    ["line", "bar", "area", "pie", "column", "histogram", "scatter"].includes(obj.type.toLowerCase()) &&
+    Array.isArray(obj.data) &&
+    obj.data.length > 0
+  )
+}
+
+/** 剥离 CHART 标签（含 TAG_REGEX 未接住的属性变体与流式未闭合场景），返回可尝试解析的 JSON 文本 */
+function extractChartJson(part: string): string | null {
+  if (!/<\s*CHART/.test(part)) return null
+  const jsonStr = part
+    .replace(/<\s*CHART[^>]*>/, "")
+    .replace(/<\/\s*CHART\s*>/, "")
+    .trim()
+  return jsonStr || null
+}
 // ---------------------------------------------------------------------------
 
 /**
@@ -1019,6 +1137,10 @@ function renderTaggedContent(
 
   const parts = content.split(TAG_REGEX)
 
+  // 🔥 DEVICE_FORGE 去重：同一条消息只渲染第一张设备接入卡。
+  // 当「前端工具结果直推注入」与「模型自身复述标签」同时存在时，避免出现两张一模一样的卡。
+  let forgeCardRendered = false
+
   // 去重：同一消息中只要有真实 [REPORT:...] 内容块，就隐藏 <REPORT_GENERATING> 占位符
   // 占位符只在"还没有任何真实报告内容"时才有意义；一旦真实内容出现，占位符变成冗余 UI
   const hasRealReport = parts.some((p) => /^\[REPORT:/.test(p))
@@ -1027,6 +1149,55 @@ function renderTaggedContent(
     <>
       {parts.map((part, index) => {
         if (!part) return null
+        // 🔥 DEVICE_FORGE 设备接入表单卡：模型输出 <DEVICE_FORGE>{card JSON}</DEVICE_FORGE>，
+        // 渲染可编辑接入配置表单 + 生成步骤/失败原因 + 「装入莓小智」「发布技能工坊」
+        if (part.match(/^<\s*DEVICE_FORGE/)) {
+          const closed = /<\/\s*DEVICE_FORGE\s*>$/.test(part)
+          if (!closed) {
+            // 未闭合（流式进行中）：若还没有真实卡片则显示骨架；已有则忽略该残留片段
+            return forgeCardRendered ? null : <DeviceForgeSkeleton key={index} />
+          }
+          const inner = part
+            .replace(/^<\s*DEVICE_FORGE\s*>/, "")
+            .replace(/<\/\s*DEVICE_FORGE\s*>\s*$/, "")
+            .trim()
+          const forgeData = parseDeviceForgeCardData(inner)
+          if (forgeData) {
+            if (forgeCardRendered) return null
+            forgeCardRendered = true
+            return (
+              <DeviceForgeCard
+                key={index}
+                data={forgeData}
+                onSendMessage={props.onSendMessage || onSendMessage}
+              />
+            )
+          }
+          return null
+        }
+        // 🔥 Mermaid 示意图：直接用 mermaid.js 渲染，不再依赖 XMarkdown 内部处理
+        // （此前 mermaid 代码块在渲染链路中静默消失，表现为"AI 说给你画图但图没了"）
+        if (part.startsWith("```mermaid")) {
+          const code = part.replace(/^```mermaid\s*/, "").replace(/```$/, "").trim()
+          return code ? <MermaidCard key={index} code={code} /> : null
+        }
+        // 🔥 ILLU 创意插画：模型手绘 SVG（画面型科普：病虫害症状/植株结构/场景示意），
+        // sanitize 后渲染；流式未闭合时 TAG_REGEX 已捕获（$ 兜底），此处显示骨架
+        if (part.match(/^<\s*ILLU/)) {
+          const closed = /<\/\s*ILLU\s*>\s*$/.test(part)
+          const svgCode = part
+            .replace(/^<\s*ILLU[^>]*>/, "")
+            .replace(/<\/\s*ILLU\s*>\s*$/, "")
+            .trim()
+          return svgCode ? (
+            <SvgCard key={index} code={svgCode} streaming={!closed} />
+          ) : null
+        }
+        // ```svg 代码块兜底：模型偶尔不套 <ILLU> 标签、直接用代码块输出 SVG
+        if (part.startsWith("```svg")) {
+          const code = part.replace(/^```svg\s*/, "").replace(/```$/, "").trim()
+          return code ? <SvgCard key={index} code={code} /> : null
+        }
         // JSON code blocks (IoT commands & schedule_task & automation strategy)
         if (part.startsWith("```json")) {
           try {
@@ -1105,10 +1276,41 @@ function renderTaggedContent(
                   </div>
                 )
               }
-              return null
+
+              // 🔥 图表配置兜底：AI 有时不套 <CHART> 标签、直接用 ```json 输出图表配置，
+              // 此前被静默 return null，表现为"AI 说给你画图但图消失"。
+              if (!Array.isArray(parsed) && isChartConfig(parsed)) {
+                return (
+                  <div key={index} className="my-3 w-full min-w-[300px] md:min-w-[600px] h-[320px] rounded-lg overflow-hidden bg-white border border-gray-100">
+                    <ChartRenderer options={parsed} style={{ height: "100%", width: "100%" }} />
+                  </div>
+                )
+              }
+
+              // 其余无法识别的 JSON 不再静默吞掉：折叠展示，保留排查证据
+              return (
+                <details key={index} className="my-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                  <summary className="px-3 py-2 cursor-pointer text-zinc-500 dark:text-zinc-400 select-none">结构化数据（未识别类型，点击展开）</summary>
+                  <pre className="px-3 pb-2 overflow-x-auto text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap break-all">{jsonContent}</pre>
+                </details>
+              )
             }
-            return null
-          } catch { return null }
+            // 非 JSON 对象的 ```json 块同样不再静默吞掉
+            return (
+              <details key={index} className="my-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                <summary className="px-3 py-2 cursor-pointer text-zinc-500 dark:text-zinc-400 select-none">代码块（点击展开）</summary>
+                <pre className="px-3 pb-2 overflow-x-auto text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap break-all">{jsonContent}</pre>
+              </details>
+            )
+          } catch {
+            // JSON 解析失败：可能是流式中断的半截 JSON，折叠展示原文
+            return (
+              <details key={index} className="my-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                <summary className="px-3 py-2 cursor-pointer text-zinc-500 dark:text-zinc-400 select-none">代码块（解析失败，点击展开）</summary>
+                <pre className="px-3 pb-2 overflow-x-auto text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap break-all">{part.replace(/^```json\s*/, "").replace(/```$/, "")}</pre>
+              </details>
+            )
+          }
         }
 
         // SPECTRAL
@@ -1431,6 +1633,28 @@ function renderTaggedContent(
         if (part.match(/^<\s*CONTROL_BENTO/))
           return <div key={index} className="my-4"><ControlBentoGrid /></div>
 
+        // SKILL_FORGE - 技能工坊结果卡片（读文档 → 生成技能 → 自测 → 注册）
+        if (part.match(/^<\s*SKILL_FORGE/)) {
+          const inner = part.replace(/^<\s*SKILL_FORGE[^>]*>/, "").replace(/<\/\s*SKILL_FORGE\s*>$/, "").trim()
+          const cardData = parseSkillForgeCardData(inner)
+          if (!cardData) {
+            // 流式中 JSON 未闭合：骨架占位；流结束仍解析失败：降级展示原始内容
+            if (props.isStreaming) {
+              return <SkillForgeCardSkeleton key={index} />
+            }
+            return (
+              <div key={index} className="my-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[12px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+                技能锻造报告解析失败：{inner.slice(0, 200) || "（内容为空）"}
+              </div>
+            )
+          }
+          return (
+            <div key={index}>
+              <SkillForgeCard data={cardData} onSendMessage={onSendMessage} />
+            </div>
+          )
+        }
+
         // AUTOMATION_STRATEGY
         if (part.match(/^<\s*AUTOMATION_STRATEGY/)) {
           try {
@@ -1593,6 +1817,29 @@ function renderTaggedContent(
 
         if (!part.trim()) return null
 
+        // 🔥 CHART 兜底：TAG_REGEX 未接住的标签变体（如带其他属性、流式未闭合）
+        // 此前直接掉进 XMarkdown，被当作未知 HTML 静默吞掉，表现为"图消失"
+        const chartJson = extractChartJson(part)
+        if (chartJson !== null) {
+          try {
+            const parsed = JSON.parse(chartJson)
+            if (isChartConfig(parsed)) {
+              return (
+                <div key={index} className="my-3 w-full min-w-[300px] md:min-w-[600px] h-[320px] rounded-lg overflow-hidden bg-white border border-gray-100">
+                  <ChartRenderer options={parsed} style={{ height: "100%", width: "100%" }} />
+                </div>
+              )
+            }
+          } catch {
+            return (
+              <div key={index} className="p-3 bg-red-50 dark:bg-red-950/30 text-red-500 rounded-lg text-xs">
+                图表配置解析失败：
+                <pre className="mt-1 overflow-x-auto text-[11px] whitespace-pre-wrap break-all">{chartJson.slice(0, 300)}</pre>
+              </div>
+            )
+          }
+        }
+
         // Default: render with XMarkdown (handles <think>, <sup>, markdown)
         return (
           <div key={index}>
@@ -1627,6 +1874,30 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
   }
 
   let content: Message["content"] = msg.content
+
+  // 🔥 深度思考兜底（关键）：
+  // 流式结束后 page.tsx 会用 `{ ...assistantMsg }` 覆盖最后一条消息，而 assistantMsg
+  // 的 content 是【未剥离 REASONING 的原始累积文本】、且不带 reasoning 字段
+  // （reasoning 只在流式过程中临时挂在 setMessages 的对象上）。
+  // 结果就是：流式时能看到「深度思考」面板，一结束面板消失、思考文本以正文样式裸露在回答里。
+  // 这里统一兜底：把 content 里的 <REASONING> 块抽出来交给 DeepThinking 渲染，
+  // 并从正文中剥离 —— 同时覆盖「流结束后回写」「历史会话回放」「其它流式分支」三种情况。
+  let effectiveReasoning = msg.reasoning
+  if (typeof content === "string" && content.includes("<REASONING>")) {
+    const blocks: string[] = []
+    const stripped = content.replace(
+      /<REASONING>([\s\S]*?)(?:<\/REASONING>|$)/g,
+      (_m, inner: string) => {
+        blocks.push(inner)
+        return ""
+      }
+    )
+    content = stripped.replace(/<\/?REASONING>/g, "").replace(/^\s*\n+/, "").trim()
+    const innerText = blocks.join("\n\n").trim()
+    if (innerText && !effectiveReasoning?.text) {
+      effectiveReasoning = { text: innerText, durationMs: effectiveReasoning?.durationMs }
+    }
+  }
 
   // 清理工具调用标签（不需要 aiFeatures 过滤）
   if (typeof content === "string") {
@@ -1717,7 +1988,7 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
       <div className="space-y-2">
         {/* 深度思考内容（DeepSeek-R1 等推理模型）— 当思考链已包含时跳过，避免重复 */}
         {props.enableReasoning !== false && !props.hasThinkingInChain && (
-          <DeepThinking reasoning={msg.reasoning} isStreaming={props.isStreaming} />
+          <DeepThinking reasoning={effectiveReasoning} isStreaming={props.isStreaming} />
         )}
         {content.map((part, i) => (
           <div key={i}>
@@ -1782,7 +2053,7 @@ function ChatMessageRendererBase(props: ChatMessageRendererProps) {
     <>
       {/* 深度思考内容（DeepSeek-R1 等推理模型）— 当思考链已包含时跳过，避免重复 */}
       {props.enableReasoning !== false && !props.hasThinkingInChain && (
-        <DeepThinking reasoning={msg.reasoning} isStreaming={props.isStreaming} />
+        <DeepThinking reasoning={effectiveReasoning} isStreaming={props.isStreaming} />
       )}
       {/* 流式输出等待首chunk时：显示打字光标动画，避免白屏 */}
       {(typeof fullText === "string" && !fullText.trim() && props.isStreaming) ? (

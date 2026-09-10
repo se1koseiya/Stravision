@@ -141,8 +141,12 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
   ]
   
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-  
-  if (isProtectedRoute) {
+
+  // 落地页 Hero 内嵌演示：仅放行页面外壳（含移动端 ios 变体），所有数据 API 仍走鉴权
+  const isLandingEmbedDemo =
+    pathname.startsWith("/ai-assistant") && url.searchParams.get("embed") === "landing"
+
+  if (isProtectedRoute && !isLandingEmbedDemo) {
     const token = req.cookies.get("auth")?.value
     if (!token) {
       const url = req.nextUrl.clone()
@@ -235,8 +239,8 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
   ]
   
   const isProtected = protectedPaths.some(path => pathname.startsWith(path))
-  
-  if (isProtected) {
+
+  if (isProtected && !isLandingEmbedDemo) {
     const token = req.cookies.get("auth")?.value
     if (!token) {
       // 如果没有 auth cookie，重定向到登录页

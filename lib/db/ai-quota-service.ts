@@ -23,6 +23,11 @@ export async function reserveAiUsage(userId: number): Promise<boolean> {
   // 尝试 1：扣除每日免费额度（原子 CAS）
   // 仅当 last_ai_usage_date = today 且 daily_ai_usage < limit 时成功
   // 或当 last_ai_usage_date != today 时重置并扣除
+  //
+  // 🔥 漏洞修复：原 WHERE 末尾有 `OR membership = 'plus'`，
+  // 这会让 plus 会员无条件命中、彻底绕开 daily_ai_limit 与 daily_ai_usage，
+  // 表现为「额度已耗尽仍能无限聊天」。plus 的更高额度应当体现在
+  // daily_ai_limit 字段上（数据层），而不是在 SQL 里硬编码放行。
   const freeResult = await execute(
     `UPDATE users
      SET daily_ai_usage = CASE
@@ -35,7 +40,6 @@ export async function reserveAiUsage(userId: number): Promise<boolean> {
        AND (
          (last_ai_usage_date = $2 AND daily_ai_usage < daily_ai_limit)
          OR (last_ai_usage_date != $2 AND daily_ai_limit > 0)
-         OR membership = 'plus'
        )`,
     [userId, today]
   )

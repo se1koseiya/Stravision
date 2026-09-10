@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AgentMonitor } from '../monitor';
 import { Action, ToolResult } from '../types';
 
@@ -66,16 +67,16 @@ describe('AgentMonitor', () => {
     });
 
     it('应该更新工具使用统计', () => {
-      mockAction.type = 'get_weather';
+      mockAction.type = 'tool_call';
       monitor.recordAction(mockAction, mockResult);
       monitor.recordAction(mockAction, mockResult);
       
-      mockAction.type = 'control_device';
+      mockAction.type = 'device_control';
       monitor.recordAction(mockAction, mockResult);
       
       const metrics = monitor.getMetrics();
-      expect(metrics.toolUsageStats['get_weather']).toBe(2);
-      expect(metrics.toolUsageStats['control_device']).toBe(1);
+      expect(metrics.toolUsageStats['tool_call']).toBe(2);
+      expect(metrics.toolUsageStats['device_control']).toBe(1);
     });
 
     it('应该记录最近的动作', () => {
@@ -101,7 +102,7 @@ describe('AgentMonitor', () => {
 
   describe('异常检测', () => {
     it('应该检测高错误率', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
       // 记录10个动作，其中4个失败（40%错误率）
       for (let i = 0; i < 6; i++) {
@@ -121,7 +122,7 @@ describe('AgentMonitor', () => {
     });
 
     it('应该检测响应缓慢', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
       mockResult.executionTime = 6000;
       monitor.recordAction(mockAction, mockResult);
@@ -134,7 +135,7 @@ describe('AgentMonitor', () => {
     });
 
     it('应该检测工具失败', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
       mockAction.retryCount = 3;
       mockResult.success = false;
@@ -152,11 +153,11 @@ describe('AgentMonitor', () => {
 
   describe('详细统计', () => {
     it('应该返回详细统计信息', () => {
-      mockAction.type = 'get_weather';
+      mockAction.type = 'tool_call';
       monitor.recordAction(mockAction, mockResult);
       monitor.recordAction(mockAction, mockResult);
       
-      mockAction.type = 'control_device';
+      mockAction.type = 'device_control';
       monitor.recordAction(mockAction, mockResult);
       
       const stats = monitor.getDetailedStats();
@@ -164,7 +165,7 @@ describe('AgentMonitor', () => {
       expect(stats.metrics.totalActions).toBe(3);
       expect(stats.successRate).toBe(1);
       expect(stats.topTools.length).toBe(2);
-      expect(stats.topTools[0].tool).toBe('get_weather');
+      expect(stats.topTools[0].tool).toBe('tool_call');
       expect(stats.topTools[0].count).toBe(2);
     });
   });

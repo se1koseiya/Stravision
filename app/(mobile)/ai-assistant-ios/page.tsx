@@ -208,12 +208,57 @@ function MobileDeepThinking({
   reasoning?: { text: string; durationMs?: number }
   isStreaming?: boolean
 }) {
-  const [expanded, setExpanded] = useState(true)
+  // null = 用户未手动干预（此时由"流式展开 / 结束自动折叠"驱动）
+  const [userChoice, setUserChoice] = useState<boolean | null>(null)
+  const [autoFolded, setAutoFolded] = useState(false)
+  const [scrollable, setScrollable] = useState(false)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
+  // 流式开始 → 重置为自动模式
   useEffect(() => {
-    if (isStreaming) setExpanded(true)
-    else if (reasoning?.text) setExpanded(false)
+    if (isStreaming) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAutoFolded(false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUserChoice(null)
+    }
+  }, [isStreaming])
+
+  // 流式结束 → 延迟自动折叠（用户手动点过则不干预）
+  useEffect(() => {
+    if (isStreaming || !reasoning?.text) return
+    const timer = setTimeout(() => setAutoFolded(true), 900)
+    return () => clearTimeout(timer)
   }, [isStreaming, reasoning?.text])
+
+  // 展开态：用户手动选择优先；未干预时 流式中展开 / 结束后看自动折叠
+  const expanded = userChoice ?? (isStreaming ? true : !autoFolded)
+
+  const toggle = () => setUserChoice((prev) => !(prev ?? expanded))
+
+  // 自动滚到底部：跟随流式最新思考，完成后停在末尾便于回看
+  useEffect(() => {
+    if (!expanded) return
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [reasoning?.text, expanded, isStreaming])
+
+  // 内容超出限高时才启用上下渐隐遮罩
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !expanded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setScrollable(false)
+      return
+    }
+    const check = () => setScrollable(el.scrollHeight > el.clientHeight + 1)
+    check()
+    if (typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [expanded, reasoning?.text])
 
   if (!reasoning?.text) return null
 
@@ -224,23 +269,33 @@ function MobileDeepThinking({
     <div className="mb-2">
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
-        className={cn(
-          "inline-flex items-center gap-1 text-[12px] px-0.5 rounded transition-colors",
-          isStreaming ? "text-[#1677ff]" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
-        )}
+        onClick={toggle}
+        title={expanded ? "折叠思考过程" : "展开思考过程"}
+        className="group/think inline-flex items-center gap-1 text-[13px] leading-5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
         style={{ fontWeight: 400 }}
       >
+        <span>深度思考</span>
+        {duration && isDone && (
+          <span className="text-zinc-300 dark:text-zinc-600">· {duration}</span>
+        )}
+        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
         <ChevronRight
           size={12}
-          className={cn("transition-transform", expanded && "rotate-90")}
+          className={cn(
+            "shrink-0 text-zinc-400 group-hover/think:text-zinc-600 transition-transform duration-200",
+            expanded && "rotate-90"
+          )}
         />
-        <span>深度思考</span>
-        {duration && isDone && <span className="text-zinc-400">· {duration}</span>}
-        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
       </button>
       {expanded && (
-        <div className="mt-1.5 pl-0.5 text-[12.5px] leading-[1.6] text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-words">
+        <div
+          ref={scrollRef}
+          className={cn(
+            "berry-think-panel mt-2 ml-1.5 pl-3.5 pr-1.5 overflow-y-auto overscroll-contain text-[14px] leading-[1.8] text-[#8c8c8c] dark:text-zinc-400 whitespace-pre-wrap break-words",
+            scrollable && "berry-think-panel--faded"
+          )}
+          style={{ maxHeight: 280 }}
+        >
           {reasoning.text}
           {isStreaming && (
             <span className="inline-block w-1.5 h-4 bg-[#1677ff]/70 animate-pulse rounded-sm ml-0.5 align-middle" />
@@ -249,6 +304,32 @@ function MobileDeepThinking({
       )}
     </div>
   )
+}
+
+// 深度思考兜底：content 里若残留 <REASONING> 原始块（标签式思考未被剥离），
+// 抽出来交给 MobileDeepThinking 渲染，并从正文剥离（与 PC 端 ChatMessageRenderer 同逻辑）
+function splitReasoningFromContent(
+  rawContent: string,
+  reasoning?: { text: string; durationMs?: number }
+): { content: string; reasoning?: { text: string; durationMs?: number } } {
+  if (!rawContent || !rawContent.includes("<REASONING>")) return { content: rawContent, reasoning }
+  const blocks: string[] = []
+  const stripped = rawContent.replace(
+    /<REASONING>([\s\S]*?)(?:<\/REASONING>|$)/g,
+    (_m, inner: string) => {
+      blocks.push(inner)
+      return ""
+    }
+  )
+  const clean = stripped.replace(/<\/?REASONING>/g, "").replace(/^\s*\n+/, "").trim()
+  const innerText = blocks.join("\n\n").trim()
+  return {
+    content: clean,
+    reasoning:
+      innerText && !reasoning?.text
+        ? { text: innerText, durationMs: reasoning?.durationMs }
+        : reasoning,
+  }
 }
 
 function ChatBubbleList({
@@ -369,8 +450,12 @@ function ChatBubbleList({
   )
 
   const items = messages.map((msg, index) => {
-    const content = typeof msg.content === 'string' ? msg.content : 
+    const rawContent = typeof msg.content === 'string' ? msg.content : 
       msg.content.map(c => c.type === 'text' ? c.text : '').join('')
+    // 深度思考兜底：content 里若残留 <REASONING> 原始块，抽出来交给 MobileDeepThinking
+    const normalized = splitReasoningFromContent(rawContent, msg.reasoning)
+    const content = normalized.content
+    const reasoning = normalized.reasoning
     
     if (msg.role === 'assistant') {
       return {
@@ -379,9 +464,9 @@ function ChatBubbleList({
         placement: 'start' as const,
         avatar: <BerryOrb size="36px" theme={darkMode ? 'dark' : 'light'} isActive={isLoading && index === messages.length - 1} />,
         // 头部插槽：思考过程（对齐 PC 端：流式展开、完成折叠、显示耗时）
-        header: msg.reasoning ? (
+        header: reasoning ? (
           <MobileDeepThinking
-            reasoning={msg.reasoning}
+            reasoning={reasoning}
             isStreaming={isLoading && index === messages.length - 1}
           />
         ) : undefined,

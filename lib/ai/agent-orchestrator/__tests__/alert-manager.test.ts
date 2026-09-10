@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AlertManager } from '../alert-manager';
 import { AgentMetrics } from '../types';
 
@@ -12,7 +13,8 @@ describe('AlertManager', () => {
       successfulActions: 70,
       failedActions: 30,
       avgResponseTime: 1000,
-      errorRate: 0.3,
+      // 阈值是 > 0.3 严格大于，取 0.35 以稳定命中 high-error-rate
+      errorRate: 0.35,
       toolUsageStats: {},
       recentActions: [],
     };
@@ -20,20 +22,22 @@ describe('AlertManager', () => {
 
   describe('规则检查', () => {
     it('应该检测到高错误率', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       alertManager.checkMetrics(mockMetrics);
       
       const alerts = alertManager.getAlerts();
       expect(alerts.length).toBeGreaterThan(0);
-      expect(alerts[0].ruleId).toBe('high-error-rate');
-      expect(alerts[0].severity).toBe('error');
+      // 不依赖告警顺序：多条规则可能同时命中（如失败次数与错误率）
+      const hit = alerts.find(a => a.ruleId === 'high-error-rate');
+      expect(hit).toBeDefined();
+      expect(hit!.severity).toBe('error');
       
       consoleSpy.mockRestore();
     });
 
     it('应该检测到极高错误率', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       mockMetrics.errorRate = 0.6;
       alertManager.checkMetrics(mockMetrics);
@@ -46,7 +50,7 @@ describe('AlertManager', () => {
     });
 
     it('应该检测到响应缓慢', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       mockMetrics.avgResponseTime = 6000;
       mockMetrics.errorRate = 0.1; // 降低错误率避免触发其他告警
@@ -54,13 +58,14 @@ describe('AlertManager', () => {
       
       const alerts = alertManager.getAlerts({ severity: 'warning' });
       expect(alerts.length).toBeGreaterThan(0);
-      expect(alerts[0].ruleId).toBe('slow-response');
+      // 不依赖告警顺序：失败次数等规则可能先于 slow-response 命中
+      expect(alerts.some(a => a.ruleId === 'slow-response')).toBe(true);
       
       consoleSpy.mockRestore();
     });
 
     it('应该检测到响应极慢', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       mockMetrics.avgResponseTime = 12000;
       mockMetrics.errorRate = 0.1;
@@ -76,7 +81,7 @@ describe('AlertManager', () => {
 
   describe('冷却时间', () => {
     it('应该遵守冷却时间', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       // 第一次触发
       alertManager.checkMetrics(mockMetrics);
@@ -96,7 +101,7 @@ describe('AlertManager', () => {
 
   describe('告警管理', () => {
     it('应该能够确认告警', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       alertManager.checkMetrics(mockMetrics);
       const alerts = alertManager.getAlerts();
@@ -112,7 +117,7 @@ describe('AlertManager', () => {
     });
 
     it('应该能够清除所有告警', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       alertManager.checkMetrics(mockMetrics);
       expect(alertManager.getAlerts().length).toBeGreaterThan(0);
@@ -124,7 +129,7 @@ describe('AlertManager', () => {
     });
 
     it('应该能够按严重程度过滤', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       mockMetrics.errorRate = 0.6; // 触发 critical
       mockMetrics.avgResponseTime = 6000; // 触发 warning
@@ -144,7 +149,7 @@ describe('AlertManager', () => {
 
   describe('统计信息', () => {
     it('应该返回正确的统计信息', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       mockMetrics.errorRate = 0.6; // critical
       mockMetrics.avgResponseTime = 6000; // warning
@@ -163,7 +168,7 @@ describe('AlertManager', () => {
 
   describe('自定义规则', () => {
     it('应该能够添加自定义规则', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       alertManager.addRule({
         id: 'custom-rule',
@@ -187,7 +192,7 @@ describe('AlertManager', () => {
     });
 
     it('应该能够禁用规则', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       alertManager.updateRule('high-error-rate', { enabled: false });
       

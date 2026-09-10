@@ -725,6 +725,26 @@ export function AIProvidersManager() {
   const [testingEmbedding, setTestingEmbedding] = useState(false)
   const [embedTestResult, setEmbedTestResult] = useState<{ ok: boolean; msg: string; provider?: string; model?: string; dim?: number; preview?: number[] } | null>(null)
 
+  // 联网搜索配置（web_search / deep_research 工具用，provider 不限类型，协议可插拔）
+  const [webSearchConfig, setWebSearchConfig] = useState<{
+    enabled: boolean
+    providerId: string
+    protocol?: 'zhipu' | 'exa' | 'anysearch'
+    /** 回显的是脱敏值，仅用于展示「已设置」；真实 Key 不会返回前端 */
+    apiKey?: string
+    /** @deprecated 旧版 Exa 独立 Key 字段，兼容展示 */
+    exaApiKey?: string
+    engine?: string
+    defaultCount?: number
+  } | null>(null)
+  const [wsProviderDraft, setWsProviderDraft] = useState<string>('')
+  const [wsProtocolDraft, setWsProtocolDraft] = useState<'zhipu' | 'exa' | 'anysearch'>('zhipu')
+  const [wsExaKeyDraft, setWsExaKeyDraft] = useState<string>('')
+  const [wsEngineDraft, setWsEngineDraft] = useState<string>('search_pro_sogou')
+  const [wsCountDraft, setWsCountDraft] = useState<number>(8)
+  const [wsEnabledDraft, setWsEnabledDraft] = useState<boolean>(true)
+  const [savingWebSearch, setSavingWebSearch] = useState(false)
+
   // AI 助手积分制度配置（每模型倍率在「提供商 → 模型」里配；这里只配通用换算 + 月度额度）
   const [creditConfig, setCreditConfig] = useState<{
     enabled: boolean
@@ -762,6 +782,18 @@ export function AIProvidersManager() {
         setEmbEnabledDraft(!!data.embeddingConfig.enabled)
       } else {
         setEmbeddingConfig(null)
+      }
+      // 联网搜索配置
+      if (data.webSearchConfig && typeof data.webSearchConfig === 'object') {
+        setWebSearchConfig(data.webSearchConfig)
+        setWsProviderDraft(data.webSearchConfig.providerId || '')
+        const proto = data.webSearchConfig.protocol === 'exa' ? 'exa' : 'zhipu'
+        setWsProtocolDraft(proto)
+        setWsEngineDraft(data.webSearchConfig.engine || (proto === 'exa' ? 'auto' : 'search_pro_sogou'))
+        setWsCountDraft(Number(data.webSearchConfig.defaultCount) || 8)
+        setWsEnabledDraft(!!data.webSearchConfig.enabled)
+      } else {
+        setWebSearchConfig(null)
       }
       // 积分制度配置
       if (data.creditConfig && typeof data.creditConfig === 'object') {
@@ -808,6 +840,39 @@ export function AIProvidersManager() {
       toast.error(e.message)
     } finally {
       setSavingEmbedding(false)
+    }
+  }
+
+  const handleSaveWebSearch = async () => {
+    setSavingWebSearch(true)
+    try {
+      const res = await fetch('/api/admin/ai-providers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webSearchConfig: {
+            providerId: wsProtocolDraft === 'anysearch' ? '' : wsProviderDraft,
+            protocol: wsProtocolDraft,
+            // 只在输入了新 Key 时才发送该字段（缺省 = 保留服务端已存的原值）
+            ...(wsExaKeyDraft.trim() ? { apiKey: wsExaKeyDraft.trim() } : {}),
+            engine: wsEngineDraft || undefined,
+            defaultCount: wsCountDraft || undefined,
+            enabled: wsEnabledDraft
+          }
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || '保存失败')
+        return
+      }
+      setWebSearchConfig(data.config.webSearchConfig || null)
+      setWsExaKeyDraft('') // 保存成功后清空输入框，回显走脱敏占位
+      toast.success('联网搜索配置已保存')
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setSavingWebSearch(false)
     }
   }
 
@@ -1190,6 +1255,137 @@ export function AIProvidersManager() {
                 当前：provider <code>{embeddingConfig.providerId}</code> · model <code>{embeddingConfig.model}</code>
                 {embeddingConfig.dimension && <> · {embeddingConfig.dimension} 维</>}
                 {embeddingConfig.enabled ? ' · 已启用' : ' · 已关闭'}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* 联网搜索配置：web_search / deep_research 工具的检索源 */}
+      <Card style={{ border: '1px solid #EDEEEF' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '8px', flexShrink: 0,
+            background: '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <Globe size={18} color="#D46B08" />
+          </div>
+          <div style={{ flex: 1, minWidth: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <Typography.Text strong>联网搜索源</Typography.Text>
+              <Tag color="orange" style={{ fontSize: '10px' }}>
+                影响 web_search / 深度研究
+              </Tag>
+            </div>
+            <p style={{ fontSize: '12px', color: '#8F959E', marginTop: '4px', marginBottom: '12px' }}>
+              AI 助手联网搜索与深度研究（自动检索并沉淀知识）所用的提供商与协议。
+              <strong style={{ color: '#1F2329' }}>智谱协议</strong>国内直连（自研引擎 + 搜狗/夸克，复用 GLM Key）；
+              <strong style={{ color: '#1F2329' }}>Exa</strong> 语义检索质量高、有免费额度（dashboard.exa.ai 申请）；
+              <strong style={{ color: '#1F2329' }}>AnySearch</strong> 统一实时搜索（网页 + 金融/学术等垂直领域 + 并行批量），免 Key 匿名可用。
+              未配置时自动回退到 GLM 提供商或 SYSTEM_GLM_API_KEY。
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Select
+                value={wsProtocolDraft}
+                onChange={(v) => {
+                  const proto = v as 'zhipu' | 'exa' | 'anysearch'
+                  setWsProtocolDraft(proto)
+                  // 切协议时重置引擎为该协议的默认值，避免把智谱引擎值带进其他协议
+                  setWsEngineDraft(proto === 'exa' ? 'auto' : proto === 'anysearch' ? '' : 'search_pro_sogou')
+                }}
+                style={{ width: '170px' }}
+                options={[
+                  { value: 'zhipu', label: '智谱协议' },
+                  { value: 'exa', label: 'Exa（免费额度）' },
+                  { value: 'anysearch', label: 'AnySearch（免 Key）' }
+                ]}
+              />
+              {(wsProtocolDraft === 'exa' || wsProtocolDraft === 'anysearch') && (
+                <Input.Password
+                  value={wsExaKeyDraft}
+                  onChange={(e) => setWsExaKeyDraft(e.target.value)}
+                  placeholder={
+                    (webSearchConfig?.apiKey || webSearchConfig?.exaApiKey)
+                      ? `已设置（${(webSearchConfig.apiKey || webSearchConfig.exaApiKey || '').slice(0, 8)}…），输入新值可覆盖`
+                      : wsProtocolDraft === 'anysearch'
+                        ? 'AnySearch API Key（可选，匿名也可用）'
+                        : '粘贴 Exa API Key'
+                  }
+                  style={{ width: '260px' }}
+                  autoComplete="new-password"
+                />
+              )}
+              {wsProtocolDraft !== 'anysearch' && (
+                <Select
+                  value={wsProviderDraft || undefined}
+                  onChange={(v) => setWsProviderDraft(v)}
+                  allowClear
+                  style={{ width: '200px' }}
+                  placeholder={wsProtocolDraft === 'exa' ? '提供商（可选，作兜底）' : '选择提供商'}
+                  options={providers.filter(p => p.enabled && p.apiKey).map(p => ({ value: p.id, label: p.name }))}
+                />
+              )}
+              {wsProtocolDraft !== 'anysearch' && (
+                <Select
+                  value={wsEngineDraft || undefined}
+                  onChange={(v) => setWsEngineDraft(v)}
+                  style={{ width: '180px' }}
+                  placeholder={wsProtocolDraft === 'exa' ? '检索类型' : '搜索引擎'}
+                  options={
+                    wsProtocolDraft === 'exa'
+                      ? [
+                          { value: 'auto', label: '自动（Auto）' },
+                          { value: 'neural', label: '语义（Neural）' },
+                          { value: 'keyword', label: '关键词（Keyword）' }
+                        ]
+                      : [
+                          { value: 'search_std', label: '标准版' },
+                          { value: 'search_pro', label: '高级版（智谱自研）' },
+                          { value: 'search_pro_sogou', label: '高级版（搜狗）' },
+                          { value: 'search_pro_quark', label: '高级版（夸克）' }
+                        ]
+                  }
+                />
+              )}
+              <InputNumber
+                value={wsCountDraft}
+                onChange={(v) => setWsCountDraft(v ?? 8)}
+                min={1}
+                max={50}
+                style={{ width: '120px' }}
+                addonAfter="条"
+              />
+              <Switch
+                checked={wsEnabledDraft}
+                onChange={setWsEnabledDraft}
+                checkedChildren="启用"
+                unCheckedChildren="关闭"
+              />
+              <Button
+                size="small"
+                type="primary"
+                onClick={handleSaveWebSearch}
+                disabled={
+                  savingWebSearch ||
+                  (wsProtocolDraft !== 'anysearch' &&
+                    !wsProviderDraft &&
+                    !((wsProtocolDraft === 'exa') && (wsExaKeyDraft.trim() || webSearchConfig?.apiKey || webSearchConfig?.exaApiKey)))
+                }
+                icon={savingWebSearch ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+              >
+                保存
+              </Button>
+            </div>
+            {webSearchConfig && (
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#8F959E' }}>
+                当前：{webSearchConfig.protocol === 'exa' ? 'Exa 协议' : webSearchConfig.protocol === 'anysearch' ? 'AnySearch 协议' : '智谱协议'}
+                {(webSearchConfig.apiKey || webSearchConfig.exaApiKey) && (
+                  <> · Key <code>{webSearchConfig.apiKey || webSearchConfig.exaApiKey}</code></>
+                )}
+                {webSearchConfig.providerId && <> · provider <code>{webSearchConfig.providerId}</code></>}
+                {webSearchConfig.engine && <> · {webSearchConfig.protocol === 'exa' ? '类型' : '引擎'} <code>{webSearchConfig.engine}</code></>}
+                {webSearchConfig.defaultCount && <> · {webSearchConfig.defaultCount} 条</>}
+                {webSearchConfig.enabled ? ' · 已启用' : ' · 已关闭'}
               </div>
             )}
           </div>

@@ -80,6 +80,15 @@ export async function setUserPreference(pref: Omit<UserPreference, 'id' | 'creat
   );
 }
 
+export async function deleteUserPreference(userId: number, key: string): Promise<boolean> {
+  const pool = getPool();
+  const result = await pool.query(
+    'DELETE FROM user_preferences WHERE user_id = $1 AND preference_key = $2',
+    [userId, key]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function getAllUserPreferences(userId: number): Promise<UserPreference[]> {
   const pool = getPool();
   const result = await pool.query(

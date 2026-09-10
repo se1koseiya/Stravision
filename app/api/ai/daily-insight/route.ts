@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getSensorHistory } from '@/lib/db/device-service';
+import { getCreditsConfig, checkCreditAllowance } from '@/lib/db/credit-service';
 import { incrementAiUsage, getUserAiQuota } from '@/lib/db/ai-quota-service';
 import OpenAI from 'openai';
 
@@ -15,7 +16,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check Quota
+    // 🔥 额度守卫：积分制开启时按积分检查（此前只走旧按次配额，积分耗尽拦不住）
+    const creditsEnabled = (await getCreditsConfig()).enabled;
+    if (creditsEnabled) {
+      const denyReason = await checkCreditAllowance(user.id as number);
+      if (denyReason) {
+        return NextResponse.json({
+          insight: denyReason,
+          recommendation: '请等待月度刷新或充值积分',
+          riskLevel: "low",
+          error: denyReason,
+        }, { status: 403 });
+      }
+    } else {
+    // Check Quota（旧按次配额，仅积分制关闭时使用）
     const quota = await getUserAiQuota(user.id as number);
     if (!quota.can_use) {
       const msg = quota.reason === 'membership_required'
@@ -28,6 +42,7 @@ export async function GET() {
         error: msg,
         quota,
       }, { status: 403 });
+    }
     }
 
     // 1. Fetch last 24h data for key metrics
@@ -151,8 +166,10 @@ export async function GET() {
       }
     }
 
-    // Deduct Quota
-    await incrementAiUsage(user.id as number);
+    // Deduct Quota（旧按次配额；积分制下由 settle 体系按实际 token 结算，不按次扣）
+    if (!creditsEnabled) {
+      await incrementAiUsage(user.id as number);
+    }
 
     return NextResponse.json(result);
 

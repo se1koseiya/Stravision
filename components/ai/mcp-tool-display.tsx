@@ -28,9 +28,10 @@ const getToolDisplayName = (toolName: string) => {
     'mcp_firecrawl_scrape': '网页抓取',
     'mcp_amap_route': '路线规划',
     'device_status_check': '设备状态检查',
-    'mcp_soil_sensor_query': '农场土壤检测',
-    'mcp_crop_disease_diagnose': '病害视觉诊断',
-    'mcp_irrigation_query': '农场智能灌溉'
+    'get_sensor_history': '传感器历史',
+    'get_current_conditions': '当前环境态势',
+    'analyze_soil': '土壤诊断',
+    'get_device_activity': '设备操作记录'
   }
   return displayNames[toolName] || toolName
 }

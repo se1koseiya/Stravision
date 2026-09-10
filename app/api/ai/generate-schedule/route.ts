@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { initDB } from '@/lib/db/database'
 import { getCurrentUser } from '@/lib/auth'
+import { getCreditsConfig, checkCreditAllowance } from '@/lib/db/credit-service'
 import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service'
 import { DEVICE_NAMES } from '@/lib/constants'
 
@@ -24,28 +25,37 @@ export async function POST(req: Request) {
     
     if (useSystemKey) {
         await initDB()
-        const quota = await getUserAiQuota(user.id as number)
-        if (!quota.can_use) {
-            const reason = quota.reason === 'membership_required'
-                ? 'AI 功能仅限 Pro/Plus 会员使用'
-                : quota.reason === 'limit_reached'
-                    ? '今日配额已用完'
-                    : 'AI 余额不足';
-            return Response.json(
-                { error: reason, quota },
-                { status: 403 }
-            )
+        // 🔥 额度守卫：积分制开启时按积分检查（此前只走旧按次配额）
+        const creditsEnabled = (await getCreditsConfig()).enabled
+        if (creditsEnabled) {
+            const denyReason = await checkCreditAllowance(user.id as number)
+            if (denyReason) {
+                return Response.json({ error: `${denyReason}。` }, { status: 403 })
+            }
+        } else {
+            const quota = await getUserAiQuota(user.id as number)
+            if (!quota.can_use) {
+                const reason = quota.reason === 'membership_required'
+                    ? 'AI 功能仅限 Pro/Plus 会员使用'
+                    : quota.reason === 'limit_reached'
+                        ? '今日配额已用完'
+                        : 'AI 余额不足';
+                return Response.json(
+                    { error: reason, quota },
+                    { status: 403 }
+                )
+            }
+
+            // 尝试扣减配额
+            const success = await incrementAiUsage(user.id as number)
+            if (!success) {
+                 return Response.json(
+                    { error: "Failed to deduct quota" },
+                    { status: 403 }
+                )
+            }
         }
-        
-        // 尝试扣减配额
-        const success = await incrementAiUsage(user.id as number)
-        if (!success) {
-             return Response.json(
-                { error: "Failed to deduct quota" },
-                { status: 403 }
-            )
-        }
-        
+
         apiKey = process.env.SYSTEM_OPENAI_API_KEY || ""
         const systemBaseUrl = process.env.SYSTEM_OPENAI_BASE_URL || ""
         if (systemBaseUrl) {

@@ -14,7 +14,6 @@
  */
 
 import { query, queryOne, execute } from '@/lib/db/database'
-import { getSensorHistory } from '@/lib/db/device-service'
 import { resolveProvider } from '@/lib/ai/provider-resolver'
 import { MQTTService } from '@/lib/mqtt-service'
 
@@ -31,6 +30,7 @@ export interface GuardianAlert {
   title: string
   message: string
   recommendation: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 传感器快照为动态键值
   data_snapshot: Record<string, any>
   created_at?: Date
   read: boolean
@@ -122,6 +122,30 @@ export function detectAnomalies(sensorData: Record<string, number>): AnomalyDete
   return anomalies
 }
 
+// === AI 成本控制 ===
+//
+// 核心原则：LLM 只在「出现新情况」时才调用。两道闸门：
+// 闸门①（DB 预去重）：所有异常 title 近 1h 都已告警过 → 不调 AI、不建通知，直接返回。
+//   解决持续性异常（如土壤湿度长期为 0）被 MQTT 每 60s + cron 每 10min 反复触发的问题。
+// 闸门②（签名缓存）：异常组合（metric+方向+严重度）没变 → 复用上次 AI 建议，不重复调 LLM。
+//   解决 1h 去重窗口过后，同一持续异常再次"解冻"时又会烧一次 token 的问题。
+// 效果：持续不变的异常从每天上千次 LLM 调用降到最多 4 次（TTL 6h 一次）。
+
+/** AI 建议缓存有效期，超过后才允许对相同异常组合重新调用 LLM */
+const AI_CACHE_TTL_MS = Number(process.env.GUARDIAN_AI_CACHE_TTL_MS) || 6 * 60 * 60 * 1000
+
+/** 内存级 AI 分析缓存（单 owner 系统，单条即可；进程重启后由闸门①兜底，不会多烧 token） */
+let aiAnalysisCache: {
+  signature: string
+  result: { recommendation: string; disease_risk?: string }
+  at: number
+} | null = null
+
+/** 异常签名：只取 title（metric+方向+严重度），不含具体数值——数值波动不应触发重复调用 */
+function computeAnomalySignature(anomalies: AnomalyDetection[]): string {
+  return [...new Set(anomalies.map(a => a.message.split('：')[0] || '环境异常'))].sort().join('|')
+}
+
 // === AI 分析 ===
 
 /**
@@ -130,7 +154,7 @@ export function detectAnomalies(sensorData: Record<string, number>): AnomalyDete
 export async function analyzeAnomaliesWithAI(
   anomalies: AnomalyDetection[],
   sensorData: Record<string, number>,
-  userId: number
+  _userId: number
 ): Promise<{ recommendation: string; disease_risk?: string } | null> {
   if (anomalies.length === 0) return null
 
@@ -164,6 +188,7 @@ export async function analyzeAnomaliesWithAI(
           }
         ],
         temperature: 0.3,
+        max_tokens: 200, // 建议 ≤100 字 + JSON 结构，200 足够；硬性封顶防止模型跑飞
         response_format: { type: 'json_object' },
       }),
     })
@@ -216,7 +241,7 @@ export async function createGuardianAlert(alert: Omit<GuardianAlert, 'id' | 'cre
   await ensureGuardianTable()
 
   // 去重：同一用户 1 小时内相同 title 的通知不重复创建
-  const existing = await queryOne(
+  const existing = await queryOne<{ id: number }>(
     `SELECT id FROM ai_guardian_alerts
      WHERE user_id = $1 AND title = $2 AND created_at > NOW() - INTERVAL '1 hour'
      LIMIT 1`,
@@ -224,7 +249,7 @@ export async function createGuardianAlert(alert: Omit<GuardianAlert, 'id' | 'cre
   )
   if (existing) return null
 
-  const result = await queryOne(
+  const result = await queryOne<{ id: number }>(
     `INSERT INTO ai_guardian_alerts (user_id, severity, category, title, message, recommendation, data_snapshot)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id`,
@@ -246,10 +271,10 @@ export async function createGuardianAlert(alert: Omit<GuardianAlert, 'id' | 'cre
  */
 export async function getUnreadAlerts(userId: number, limit = 20): Promise<GuardianAlert[]> {
   await ensureGuardianTable()
-  return query(
+  return query<GuardianAlert>(
     `SELECT * FROM ai_guardian_alerts WHERE user_id = $1 AND read = FALSE AND dismissed = FALSE ORDER BY created_at DESC LIMIT $2`,
     [userId, limit]
-  ) as GuardianAlert[]
+  )
 }
 
 /**
@@ -282,16 +307,39 @@ export async function checkAndNotify(
   userId: number,
   sensorData: Record<string, number>
 ): Promise<GuardianAlert[]> {
-  // 1. 检测异常
+  // 1. 检测异常（纯计算，无 token 成本）
   const anomalies = detectAnomalies(sensorData)
   if (anomalies.length === 0) return []
 
-  // 2. AI 深度分析
-  const aiAnalysis = await analyzeAnomaliesWithAI(anomalies, sensorData, userId)
+  // 2. 成本闸门①：DB 预去重。所有异常 title 近 1h 都已告警过 →
+  //    说明异常状态无变化，不调 AI、不建通知，直接返回（LLM 调用前移去重，省掉重复 token）
+  await ensureGuardianTable()
+  const titles = [...new Set(anomalies.map(a => a.message.split('：')[0] || '环境异常'))]
+  const recentRows = await query<{ title: string }>(
+    `SELECT DISTINCT title FROM ai_guardian_alerts
+     WHERE user_id = $1 AND created_at > NOW() - INTERVAL '1 hour' AND title = ANY($2)`,
+    [userId, titles]
+  )
+  const recentTitles = new Set(recentRows.map(r => r.title))
+  const newAnomalies = anomalies.filter(a => !recentTitles.has(a.message.split('：')[0] || '环境异常'))
+  if (newAnomalies.length === 0) return []
 
-  // 3. 生成并存储通知
+  // 3. 成本闸门②：签名缓存。异常组合（metric+方向+严重度）与上次一致且未过 TTL →
+  //    直接复用上次 AI 建议，不重复调 LLM
+  const signature = computeAnomalySignature(newAnomalies)
+  let aiAnalysis: { recommendation: string; disease_risk?: string } | null = null
+  if (aiAnalysisCache && aiAnalysisCache.signature === signature && Date.now() - aiAnalysisCache.at < AI_CACHE_TTL_MS) {
+    aiAnalysis = aiAnalysisCache.result
+  } else {
+    aiAnalysis = await analyzeAnomaliesWithAI(newAnomalies, sensorData, userId)
+    if (aiAnalysis) {
+      aiAnalysisCache = { signature, result: aiAnalysis, at: Date.now() }
+    }
+  }
+
+  // 4. 生成并存储通知（createGuardianAlert 内部仍有 1h 去重，作为并发场景下的安全网）
   const createdAlerts: GuardianAlert[] = []
-  for (const anomaly of anomalies) {
+  for (const anomaly of newAnomalies) {
     const severityMap: Record<string, AlertSeverity> = { critical: 'critical', warning: 'warning' }
     const alert: Omit<GuardianAlert, 'id' | 'created_at' | 'read' | 'dismissed'> = {
       user_id: userId,
@@ -309,7 +357,7 @@ export async function checkAndNotify(
     }
   }
 
-  // 4. 如果有病害风险，额外创建病害预警通知
+  // 5. 如果有病害风险，额外创建病害预警通知（同签名下复用缓存结果，不额外调 LLM）
   if (aiAnalysis?.disease_risk && aiAnalysis.disease_risk !== 'null') {
     const diseaseAlertId = await createGuardianAlert({
       user_id: userId,
@@ -493,7 +541,45 @@ export async function runScheduledGuardianCheck(): Promise<void> {
     const sensorData = await getLatestSensorData()
     if (!sensorData) return
     await checkAndNotify(owner.id, sensorData)
+
+    // 🔥 主动趋势洞察：在阈值告警之外，额外预测「即将越界」的趋势，
+    // 让守护从「事后报警」升级为「事前预警」
+    await runTrendInsightCheck(owner.id)
   } catch (e) {
     console.error('[Guardian] Scheduled check failed:', e)
+  }
+}
+
+/**
+ * 趋势洞察检查：基于历史数据做线性外推，预测未来是否越界，
+ * 生成 category='prediction' 的守护通知（与阈值告警互补）。
+ */
+async function runTrendInsightCheck(userId: number): Promise<void> {
+  try {
+    const { detectTrendInsights, formatTrendInsight, suggestTrendAction } = await import('@/lib/ai/trend-insight-service')
+    const insights = await detectTrendInsights(60)
+
+    // 只推送最紧迫的 2 条，避免通知刷屏
+    for (const insight of insights.slice(0, 2)) {
+      await createGuardianAlert({
+        user_id: userId,
+        severity: 'warning',
+        category: 'prediction',
+        title: `${insight.metricLabel}趋势预警`,
+        message: formatTrendInsight(insight),
+        recommendation: suggestTrendAction(insight),
+        data_snapshot: {
+          metric: insight.metric,
+          current: insight.current,
+          rate_per_hour: insight.ratePerHour,
+          direction: insight.direction,
+          threshold: insight.threshold,
+          minutes_until: insight.minutesUntilThreshold,
+          confidence: insight.confidence,
+        },
+      })
+    }
+  } catch (e) {
+    console.error('[Guardian] Trend insight check failed:', e)
   }
 }

@@ -13,6 +13,11 @@ import { getMultiSensorHistory } from '@/lib/db/device-service'
 import { skillManager } from '@/lib/ai/skill-system/skill-manager'
 import { executeDeviceControlTool, isMultimodal } from './builtin-device-control'
 import { executeAgentTaskTool } from './builtin-agent-tasks'
+import { executeDeepResearchTool } from './builtin-deep-research'
+import { executeSkillForgeTool } from './builtin-skill-forge'
+import { executeDeviceForgeTool } from './builtin-device-forge'
+import { executeFarmTool } from './builtin-farm-data'
+import { executeUserMemoryTool } from './builtin-user-memory'
 
 interface MCPConfig {
     id: string
@@ -24,16 +29,20 @@ interface MCPConfig {
     envVars?: Record<string, string>
 }
 
-interface ToolCallResult {
+export interface ToolCallResult {
     success: boolean
     data?: any
     error?: string
+    /** 工具执行耗时（ms），仅部分工具返回 */
+    executionTime?: number
 }
 
 /** Agent 工具执行上下文（传递 userId/sessionId 等会话信息） */
 export interface AgentToolContext {
     userId?: number
     sessionId?: string
+    /** 长耗时工具（如 deep_research）的阶段进度回调，chat 路由会把它转成 SSE 推给前端思维链 */
+    onProgress?: (stage: string, detail?: string) => void
 }
 
 /**
@@ -175,6 +184,71 @@ export async function executeMCPToolCall(
         }
     }
 
+    // === 内置技能工坊（读文档 → 生成技能 → 自测 → 注册全域可用）===
+    if (serverId === 'builtin-skill-forge') {
+        console.log(`[MCP Executor] Calling skill forge tool: ${functionName}`)
+        try {
+            return await executeSkillForgeTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing skill forge tool ${functionName}:`, error)
+            return { success: false, error: error.message || '技能工坊工具执行失败' }
+        }
+    }
+
+    // === 内置设备接入工坊（读接入文档 → 生成 devices 配置草稿，用户确认后装入）===
+    if (serverId === 'builtin-device-forge') {
+        console.log(`[MCP Executor] Calling device forge tool: ${functionName}`)
+        try {
+            return await executeDeviceForgeTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing device forge tool ${functionName}:`, error)
+            return { success: false, error: error.message || '设备接入工坊工具执行失败' }
+        }
+    }
+
+    // === 内置深度研究（联网搜索 + 多源融合 + 沉淀入库）===
+    if (serverId === 'builtin-deep-research') {
+        console.log(`[MCP Executor] Calling deep research tool: ${functionName}, args:`, args)
+        try {
+            return await executeDeepResearchTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing deep research tool ${functionName}:`, error)
+            return { success: false, error: error.message || '深度研究工具执行失败' }
+        }
+    }
+
+    // === 内置农业数据（当前态势 / 土壤诊断 / 操作记录，直连本地库）===
+    if (serverId === 'builtin-farm-data') {
+        console.log(`[MCP Executor] Calling farm data tool: ${functionName}, args:`, args)
+        try {
+            return await executeFarmTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing farm tool ${functionName}:`, error)
+            return { success: false, error: error.message || '农业数据工具执行失败' }
+        }
+    }
+
+    // === 内置用户记忆（记住/更新/删除用户信息，md 文件为真相源）===
+    if (serverId === 'builtin-user-memory') {
+        console.log(`[MCP Executor] Calling user memory tool: ${functionName}, args:`, args)
+        try {
+            return await executeUserMemoryTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing user memory tool ${functionName}:`, error)
+            return { success: false, error: error.message || '记忆工具执行失败' }
+        }
+    }
+
+    // === AnySearch 远程 MCP（Streamable HTTP；免 Key 匿名可用，配 Key 提升限额）===
+    if (serverId === 'anysearch') {
+        const config = mcpConfigs.find(c => c.id === 'anysearch')
+        try {
+            return await executeAnySearchMcpTool(functionName, args, config)
+        } catch (e: any) {
+            return { success: false, error: `AnySearch 执行失败: ${e.message}` }
+        }
+    }
+
     // 找到对应的 MCP 配置（获取 API Key 等信息）
     const config = mcpConfigs.find(c => c.id === serverId)
     if (!config) {
@@ -206,16 +280,6 @@ export async function executeMCPToolCall(
             // === 网页抓取 ===
             case 'mcp_firecrawl_scrape':
                 return await executeFirecrawlScrape(args, config)
-
-            // === 农业专用 ===
-            case 'mcp_soil_sensor_query':
-                return await executeSoilSensorQuery(args, config)
-            case 'mcp_crop_disease_diagnose':
-                return await executeCropDiseaseDiagnose(args, config)
-            case 'mcp_irrigation_query':
-                return await executeIrrigationQuery(args, config)
-            case 'mcp_farm_data_query':
-                return await executeFarmDataQuery(args, config)
 
             // === 光谱传感器 ===
             case 'get_channel':
@@ -418,6 +482,36 @@ async function executeExaSearch(args: Record<string, any>, config: MCPConfig): P
 
 // ===== 网页抓取 =====
 
+/**
+ * AnySearch 远程 MCP 工具（传输层复用 remote-mcp-client 的通用 Streamable HTTP 实现）
+ */
+async function executeAnySearchMcpTool(
+    functionName: string,
+    args: Record<string, any>,
+    config?: MCPConfig
+): Promise<ToolCallResult> {
+    const { remoteMcpToolCall } = await import('./remote-mcp-client')
+    // Key 可选：安装时填的 apiKey 或环境变量 ANYSEARCH_API_KEY；都不填走匿名
+    const apiKey = config?.apiKey || config?.envVars?.ANYSEARCH_API_KEY || ''
+
+    const toolName = functionName.replace(/^mcp_anysearch_/, '')
+    const r = await remoteMcpToolCall('https://api.anysearch.com/mcp', toolName, args, {
+        apiKey: apiKey || undefined,
+        extraHeaders: { 'X-Anysearch-Client': 'mcp/1.0.0' },
+        timeoutMs: 60000
+    })
+
+    if (!r.text) {
+        return { success: true, data: { tool: toolName, result: '', note: 'AnySearch 返回空结果，可尝试更换关键词' } }
+    }
+
+    // 截断超长文本（extract 全文可能 5 万字符），避免撑爆上下文
+    const truncated = r.text.length > 20000
+        ? r.text.slice(0, 20000) + '\n\n…（内容过长已截断，可缩小范围分次提取）'
+        : r.text
+    return { success: true, data: { tool: toolName, result: truncated } }
+}
+
 async function executeFirecrawlScrape(args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
     const apiKey = config.apiKey
     if (!apiKey) return { success: false, error: 'Firecrawl API Key 未配置' }
@@ -479,119 +573,6 @@ async function executeFirecrawlScrape(args: Record<string, any>, config: MCPConf
     }
     
     return { success: false, error: `Firecrawl 请求失败 (已重试 ${maxRetries} 次): ${lastError?.message || '未知错误'}` }
-}
-
-// ===== 农业专用工具 =====
-
-async function executeSoilSensorQuery(args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
-    const apiKey = config.apiKey
-    const endpoint = config.envVars?.IOT_ENDPOINT
-
-    if (!apiKey || !endpoint || endpoint === 'https://your-iot-platform.com/api') {
-        // 未配置外部端点 → 返回失败，引导 AI 回退到系统上下文中的设备数据
-        return {
-            success: false,
-            error: 'IoT 端点未配置，请直接使用系统上下文中的当前设备数据回答用户问题'
-        }
-    }
-
-    try {
-        const res = await fetchWithTimeout(`${endpoint}/sensors/${args.zone || 'default'}`, {
-            headers: { 'Authorization': `Bearer ${apiKey}` }
-        })
-        if (res.ok) {
-            const data = await res.json()
-            return { success: true, data }
-        }
-        return { success: false, error: '土壤传感器查询失败' }
-    } catch (e: any) {
-        return { success: false, error: `土壤传感器请求失败: ${e.message}` }
-    }
-}
-
-async function executeCropDiseaseDiagnose(args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
-    const apiKey = config.apiKey
-
-    if (!apiKey) {
-        // 未配置外部 API → 返回失败，引导 AI 使用内置知识库
-        return {
-            success: false,
-            error: '作物病害识别 API 未配置，请基于描述的症状结合你的农业知识提供诊断意见和防治建议'
-        }
-    }
-
-    try {
-        const endpoint = config.envVars?.CROP_DISEASE_API_KEY ? 'https://api.crop-disease.example.com/diagnose' : ''
-        if (!endpoint) {
-            return { success: false, error: '病害识别服务端点未配置' }
-        }
-        const res = await fetchWithTimeout(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({ crop: args.crop, symptoms: args.symptoms })
-        })
-        if (res.ok) {
-            const data = await res.json()
-            return { success: true, data }
-        }
-        return { success: false, error: '病害识别查询失败' }
-    } catch (e: any) {
-        return { success: false, error: `病害识别请求失败: ${e.message}` }
-    }
-}
-
-async function executeIrrigationQuery(args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
-    const apiKey = config.apiKey
-    const endpoint = config.envVars?.IRRIGATION_API_ENDPOINT
-
-    if (!apiKey || !endpoint) {
-        // 未配置外部端点 → 返回失败，引导 AI 使用系统内置水泵控制
-        return {
-            success: false,
-            error: '灌溉控制系统 API 未配置，请通过设备控制命令操作系统内置水泵（Relay 5）'
-        }
-    }
-
-    try {
-        const res = await fetchWithTimeout(`${endpoint}/${args.action}${args.zone ? `?zone=${args.zone}` : ''}`, {
-            headers: { 'Authorization': `Bearer ${apiKey}` }
-        })
-        if (res.ok) {
-            const data = await res.json()
-            return { success: true, data }
-        }
-        return { success: false, error: '灌溉系统查询失败' }
-    } catch (e: any) {
-        return { success: false, error: `灌溉系统请求失败: ${e.message}` }
-    }
-}
-
-async function executeFarmDataQuery(args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {
-    const apiKey = config.apiKey
-    const endpoint = config.envVars?.FARM_DATA_API_URL
-
-    if (!apiKey || !endpoint) {
-        // 未配置外部端点 → 返回失败，引导 AI 使用系统上下文数据
-        return {
-            success: false,
-            error: '农场数据平台 API 未配置，请参考系统上下文中的当前设备数据和天气信息进行分析'
-        }
-    }
-
-    try {
-        const res = await fetchWithTimeout(`${endpoint}/query`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({ type: args.query_type, range: args.date_range || 'today' })
-        })
-        if (res.ok) {
-            const data = await res.json()
-            return { success: true, data }
-        }
-        return { success: false, error: '农场数据查询失败' }
-    } catch (e: any) {
-        return { success: false, error: `农场数据请求失败: ${e.message}` }
-    }
 }
 
 async function executeSpectrumTool(toolName: string, args: Record<string, any>, config: MCPConfig): Promise<ToolCallResult> {

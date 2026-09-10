@@ -52,6 +52,9 @@ data/*.db
 data/*.json
 !data/.gitkeep
 
+# 用户记忆档案（每个用户一个 md，含隐私，不入库）
+data/user-memory/
+
 # Certificates
 nginx/certs/
 
@@ -69,3 +72,10 @@ app/orb-test/
 # 大体积天气背景视频（超过 GitHub 100MB 单文件限制，需 LFS 或去除）
 public/weathervideo/lightrain.mp4
 public/weathervideo/snow.mp4
+
+# 临时调试脚本 / 探针截图（不入库）
+/tmp/
+tmp/
+_tmp_*
+_l1.json
+_l2.json

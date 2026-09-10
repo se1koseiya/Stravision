@@ -411,13 +411,7 @@ export function ChatSenderInput({
                             </span>
                             <button
                               onClick={() => {
-                                const hasSearchTool = availableTools.some(
-                                  (t) => t.name.includes("search") || t.name.includes("exa") || t.name.includes("brave"),
-                                )
-                                if (!hasSearchTool && !enableSearch) {
-                                  toast.error("未安装搜索工具", { description: "请先安装搜索类 MCP 工具" })
-                                  return
-                                }
+                                // 内置 web_search / deep_research 工具由服务端无条件注入，无需安装任何 MCP
                                 setEnableSearch(!enableSearch)
                               }}
                               style={{
@@ -615,16 +609,10 @@ export function ChatSenderInput({
                     {/* 研究（联网搜索）— 内联按钮 */}
                     <button
                       onClick={() => {
-                        const hasSearchTool = availableTools.some(
-                          (t) => t.name.includes("search") || t.name.includes("exa") || t.name.includes("brave"),
-                        )
-                        if (!hasSearchTool && !enableSearch) {
-                          toast.error("未安装搜索工具", { description: "请先安装搜索类 MCP 工具" })
-                          return
-                        }
+                        // 内置 web_search / deep_research 工具由服务端无条件注入，无需安装任何 MCP
                         setEnableSearch(!enableSearch)
                       }}
-                      title="联网搜索：让模型检索最新信息"
+                      title="联网搜索：让模型检索最新信息，也可深度研究并沉淀到知识库"
                       className="inline-flex items-center gap-1.5"
                       style={{
                         padding: "4px 10px",

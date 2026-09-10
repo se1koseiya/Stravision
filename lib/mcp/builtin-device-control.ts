@@ -20,7 +20,7 @@ import { MQTTService, type DeviceData } from '@/lib/mqtt-service'
 import { getUserById } from '@/lib/db/user-service'
 import { getGreenhouseCameraUrls } from '@/lib/db/settings-service'
 import { DEVICE_NAMES, DEVICE_IDS, STEPPER, RELAY_DEVICE_RANGE } from '@/lib/constants'
-import { listDevices, getDevice } from '@/lib/db/device-registry-service'
+import { listDevices, getDevice, deleteDevice } from '@/lib/db/device-registry-service'
 import { spawn } from 'node:child_process'
 
 // === 类型定义 ===
@@ -29,6 +29,7 @@ interface ToolCallResult {
   success: boolean
   data?: any
   error?: string
+  code?: string
 }
 
 interface MultimodalImage {
@@ -718,12 +719,102 @@ export async function executeDeviceControlTool(
         return await executeTakeCameraSnapshot(args, userId)
       case 'move_camera_and_look':
         return await executeMoveCameraAndLook(args, userId)
+      case 'delete_device':
+        return await executeDeleteDevice(args, userId)
       default:
         return { success: false, error: `未知的设备控制工具: ${functionName}` }
     }
   } catch (error: any) {
     console.error(`[DeviceControl] Error executing ${functionName}:`, error)
     return { success: false, error: error.message || '设备控制工具执行失败' }
+  }
+}
+
+/**
+ * 删除设备注册表中的设备（AI 助手工具）
+ *
+ * 权限与保护：
+ * - 仅 admin/super_admin 可调用
+ * - critical（关键设备）默认不允许删除，必须显式传 force=true 才会被强制移除
+ * - 删除 sensor 后立即刷新 MQTT 动态订阅（避免旧 topic 仍在收数据）
+ *
+ * 使用方式：
+ * - delete_device({ device_id: 10 })                        → 删除 #10
+ * - delete_device({ device_id: 10, force: true })           → 强制删除关键设备
+ * - delete_device({ device_name: "ME-2000" })               → 按名称匹配（同名取第一个）
+ */
+async function executeDeleteDevice(args: Record<string, any>, userId?: number): Promise<ToolCallResult> {
+  const { device_id, device_name, force } = args
+
+  // 至少给一个标识
+  if (device_id === undefined && !device_name) {
+    return { success: false, error: '缺少参数：需提供 device_id（设备注册表 ID）或 device_name（设备名）' }
+  }
+
+  // 权限校验
+  const perm = await fetchUserPermissions(userId)
+  if (!perm) return { success: false, error: '无法获取用户信息' }
+  if (!perm.isAdmin) {
+    return { success: false, error: '权限不足：只有 admin / super_admin 才能删除设备（防止 AI 误删关键设备）' }
+  }
+
+  // 解析目标设备
+  let targetId: number | null = null
+  let resolvedName: string | null = null
+
+  if (device_id !== undefined && device_id !== null) {
+    const id = Number(device_id)
+    if (!Number.isFinite(id) || id <= 0) {
+      return { success: false, error: `device_id 必须是正整数，收到 ${device_id}` }
+    }
+    const dev = await getDevice(id)
+    if (!dev) return { success: false, error: `设备注册表中未找到 device_id=${id}` }
+    targetId = id
+    resolvedName = dev.name
+  } else {
+    // 按名称匹配（同名取第一个）
+    const all = await listDevices({ includeDisabled: true })
+    const matched = all.find(d => d.name === device_name)
+    if (!matched) {
+      return { success: false, error: `按名称未找到设备「${device_name}」。请先调用 list_devices 确认正确名称或改用 device_id` }
+    }
+    targetId = matched.id
+    resolvedName = matched.name
+  }
+
+  if (targetId === null) return { success: false, error: '未解析到目标设备' }
+
+  // 执行删除（critical 保护由 service 层处理）
+  const result = await deleteDevice(targetId, { force: force === true })
+  if (result.blocked === 'critical') {
+    return {
+      success: false,
+      error: `设备「${resolvedName}」(id=${targetId}) 是关键设备（is_critical=1），受删除保护。需要强制删除时请调用 delete_device({ device_id: ${targetId}, force: true })，或在设备管理页先解除「关键设备」标记`,
+      code: 'CRITICAL_PROTECTED',
+    }
+  }
+  if (result.blocked === 'not_found') {
+    return { success: false, error: `设备 id=${targetId} 在删除前已被移除，请刷新设备列表` }
+  }
+  if (!result.deleted) {
+    return { success: false, error: `删除失败：设备 id=${targetId}` }
+  }
+
+  // sensor 删除后刷新 MQTT 动态订阅
+  try {
+    await MQTTService.getInstance().refreshDynamicSubscriptions()
+  } catch (e) {
+    console.error('[DeviceControl] refresh MQTT subscriptions after delete failed:', e)
+  }
+
+  return {
+    success: true,
+    data: {
+      device_id: targetId,
+      device_name: resolvedName,
+      force: force === true,
+      message: `设备「${resolvedName}」(id=${targetId}) 已从注册表删除${force === true ? '（强制删除了关键设备）' : ''}`,
+    },
   }
 }
 

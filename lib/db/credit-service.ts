@@ -126,6 +126,11 @@ export async function getModelRate(
 
 /**
  * 计算一次调用消耗的积分（保留 2 位小数，向上取整到 0.01）
+ *
+ * 🔥 硬性上限：单次输入/输出 token 截断到 MAX_*_PER_TURN。防止上游 usage 异常
+ * 或消息 JSON 化失控（含 base64 图片等）导致单次扣费破表（典型：13376.21 误扣事件）。
+ * 上限按"农业单轮对话现实上限"设的：input 30 万 ≈ 60 万汉字，output 6 万 ≈ 12 万汉字，
+ * 已远超任何正常单轮。
  */
 export function calculateCredits(
   inputTokens: number,
@@ -134,7 +139,9 @@ export function calculateCredits(
   config: Pick<CreditConfig, 'outputWeight' | 'tokensPerCredit'>,
 ): number {
   const tpc = config.tokensPerCredit > 0 ? config.tokensPerCredit : 1000
-  const weighted = inputTokens + outputTokens * config.outputWeight
+  const safeIn = Math.max(0, Math.min(inputTokens, MAX_INPUT_TOKENS_PER_TURN))
+  const safeOut = Math.max(0, Math.min(outputTokens, MAX_OUTPUT_TOKENS_PER_TURN))
+  const weighted = safeIn + safeOut * config.outputWeight
   const raw = (weighted / tpc) * modelRate
   return Math.max(0.01, Math.ceil(raw * 100) / 100)
 }
@@ -142,16 +149,36 @@ export function calculateCredits(
 /**
  * 无上游 usage 时的本地 token 估算（中英混排近似）。
  * 规则：CJK 字符 ≈ 1 token；连续非 CJK 字符 ≈ 0.3 token/char（≈4 chars/token）
+ *
+ * 🔥 关键：剥离 dataURL/base64 块（视觉巡检工具 take_camera_snapshot 等会把 base64 图片
+ * 塞进 tool 消息的 content 里）。如果不剥离，一张图可导致数万"字符×0.3"被算成 token，
+ * 一次普通巡检对话就可能扣掉数千积分（典型异常：13376 积分）。
+ * 用 `<base64:N>` 占位（N 为原始 base64 长度），保留"这里有过图片"的存在感但不计入 token。
  */
 export function estimateTokens(text: string): number {
   if (!text) return 0
+  // 1) 剥离 data URL（data:image/png;base64,XXXXXX → <base64:XXXXXX长度>）
+  //    注意：必须先做，否则后面 replace 还会把 XXXXXX 里奇怪的字符数错
+  // 2) 剥离纯 base64 长串（≥64 字符的连续 A-Za-z0-9+/= 块）—— 兜底捕获非 dataURL 形式的 base64
+  const stripped = text
+    .replace(/data:[a-zA-Z0-9+\-./]+;base64,([A-Za-z0-9+/=]+)/g, (_m, b64) => `<base64:${b64.length}>`)
+    .replace(/[A-Za-z0-9+/=]{64,}/g, (m) => `<base64:${m.length}>`)
   let cjk = 0, other = 0
-  for (const ch of text) {
+  for (const ch of stripped) {
     if (/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(ch)) cjk++
     else other++
   }
   return Math.ceil(cjk + other * 0.3)
 }
+
+/** 估算文本中的 token 数（同上规则，但接受任意输入并在调用前安全归一） */
+export function estimateTokensSafe(input: unknown): number {
+  return estimateTokens(typeof input === 'string' ? input : input ? JSON.stringify(input) : '')
+}
+
+/** 单次结算的硬性上限：超过即截断。防止上游 usage 异常或 JSON 序列化失控导致扣费失控 */
+export const MAX_INPUT_TOKENS_PER_TURN = 300_000
+export const MAX_OUTPUT_TOKENS_PER_TURN = 60_000
 
 /** 当前月周期标识（yyyy-mm） */
 function currentCycle(): string {
@@ -218,16 +245,35 @@ export async function getUserCreditStatus(userId: number): Promise<UserCreditSta
 }
 
 /**
+ * 发起新对话的最低积分门槛。
+ *
+ * 🔥 漏洞修复：原判定是 `totalRemaining > 0`——只看「还有没有」不看「够不够」。
+ * 实测单轮重对话（长文档 + agent 多轮工具调用）可消耗 50+ 积分，剩 0.45 的用户
+ * 每次都能通过 `> 0` 检查发起一轮大额消耗（结算时 GREATEST(0,...) 又不允许余额为负），
+ * 等于永远拦不住。低于该门槛一律拒绝发起新对话，需充值。
+ */
+export const MIN_CREDITS_TO_START = 2
+
+/**
  * 请求前的额度检查（不预扣，流结束后按实际 usage 结算）
  * @returns null = 允许；string = 拒绝原因（友好提示）
  */
 export async function checkCreditAllowance(userId: number): Promise<string | null> {
   const status = await getUserCreditStatus(userId)
-  if (status.canUse) return null
+  // 🔥 诊断日志：排查「积分耗尽仍能聊天」时，直接看后端算出的真实数字
+  console.log(
+    `[Credits] check user=${userId}: membership=${status.membership} ` +
+    `quota=${status.monthlyQuota} used=${status.monthlyUsed} monthlyRemaining=${status.monthlyRemaining} ` +
+    `balance=${status.balance} totalRemaining=${status.totalRemaining} canUse=${status.canUse} reason=${status.reason ?? '-'}`
+  )
   if (status.reason === 'membership_required') {
     return 'AI 功能仅限 Pro/Plus 会员使用，请升级会员后继续使用'
   }
-  return '积分额度已用完：本月积分已耗尽且充值余额为 0，请等待月度刷新或充值积分'
+  // 总剩余不足以发起一轮对话：拒绝（含 canUse=false 与「剩一点但不够一轮」两种情况）
+  if (status.totalRemaining < MIN_CREDITS_TO_START) {
+    return `积分余额不足（剩余 ${status.totalRemaining.toFixed(2)}，发起对话至少需要 ${MIN_CREDITS_TO_START} 积分，单轮对话实际消耗可能更高），请等待月度刷新或充值积分`
+  }
+  return null
 }
 
 /**
@@ -268,14 +314,15 @@ export async function settleCredits(
     const fromBalance = Math.max(0, credits - fromMonthly)
 
     // 原子更新（CAS 防并发双扣错乱：余额分支带条件）
+    // 注意：不回写 monthly_credit_quota，否则会把"按等级默认算出的额度"固化成用户个性化额度，
+    // 破坏"0 = 跟随等级默认"语义（admin 后续调整全局默认额度时该用户将不再跟随）。
     await execute(
       `UPDATE users
        SET monthly_credit_used = $2,
-           monthly_credit_quota = $3,
-           credit_cycle_date = $4,
-           credit_balance = CASE WHEN $5 > 0 THEN GREATEST(0, credit_balance - $5) ELSE credit_balance END
+           credit_cycle_date = $3,
+           credit_balance = CASE WHEN $4 > 0 THEN GREATEST(0, credit_balance - $4) ELSE credit_balance END
        WHERE id = $1`,
-      [userId, used + fromMonthly, quota, cycle, fromBalance]
+      [userId, used + fromMonthly, cycle, fromBalance]
     )
 
     // 消耗日志
@@ -305,6 +352,67 @@ export async function addCreditBalance(userId: number, amount: number) {
     `UPDATE users SET credit_balance = credit_balance + $1, updated_at = $3 WHERE id = $2`,
     [amount, userId, Date.now()]
   )
+}
+
+/**
+ * 退还单次 credit log：把 ai_credit_logs 一行记录的 credits 退回到对应用户。
+ *
+ * 🔥 用途：计费异常时（典型：JSON 化含 base64 图片导致 estimateTokens 失控 → 单次扣 13376），
+ * admin 可按 log id 退还，避免用户投诉。退还时**优先恢复月度额度**，月度已用部分扣到 0 时
+ * 再退到 credit_balance，保留 credit_cycle_date 不变（不破坏跨月语义）。
+ *
+ * 行为：
+ * - 已退还（refunded=1）的 log 再次调用直接抛错，拒绝重复退款
+ * - 月度额度不够全退时，差额退到充值余额
+ * - 退还后写 ai_credit_logs.refunded=1 + 退还时间戳，保留审计证据
+ */
+export async function refundCreditLog(logId: number): Promise<{ userId: number; credits: number; fromMonthly: number; fromBalance: number }> {
+  await initDB()
+  const log = await queryOne<any>(
+    `SELECT id, user_id, credits, model_id, refunded, refunded_at, created_at
+     FROM ai_credit_logs WHERE id = $1`,
+    [logId]
+  )
+  if (!log) throw new Error(`credit log ${logId} 不存在`)
+  if (log.refunded === 1) throw new Error(`credit log ${logId} 已于 ${log.refunded_at} 退还过，禁止重复退款`)
+
+  const credits = Number(log.credits) || 0
+  if (credits <= 0) throw new Error(`credit log ${logId} 金额为 0，无需退还`)
+
+  const userId = log.user_id
+  const user = await queryOne<any>(
+    `SELECT monthly_credit_used, credit_cycle_date FROM users WHERE id = $1`,
+    [userId]
+  )
+  if (!user) throw new Error(`user ${userId} 不存在`)
+
+  // 优先退月度额度（同周期内）；若月度已用 < credits，差额退到 balance
+  const cycle = currentCycle()
+  const monthlyUsed = user.credit_cycle_date === cycle ? (Number(user.monthly_credit_used) || 0) : 0
+  const fromMonthly = Math.min(monthlyUsed, credits)
+  const fromBalance = credits - fromMonthly
+
+  const newMonthlyUsed = monthlyUsed - fromMonthly
+  // 月度使用未变化时也要把 cycle_date 写回，保证后续查询不"丢周期"
+  const cycleDate = user.credit_cycle_date || cycle
+
+  await execute(
+    `UPDATE users
+     SET monthly_credit_used = $2,
+         credit_cycle_date = $3,
+         credit_balance = credit_balance + $4
+     WHERE id = $1`,
+    [userId, newMonthlyUsed, cycleDate, fromBalance]
+  )
+
+  await execute(
+    `UPDATE ai_credit_logs
+     SET refunded = 1, refunded_at = $2
+     WHERE id = $1`,
+    [logId, Date.now()]
+  )
+
+  return { userId, credits, fromMonthly, fromBalance }
 }
 
 /** 设置用户个性化月度积分额度（admin；0 = 跟随等级默认） */

@@ -38,6 +38,14 @@ export interface User {
   alipay_user_id?: string | null
   created_at: number
   updated_at: number
+  // AI 积分制字段（credit-service）
+  daily_ai_limit?: number | null
+  daily_ai_usage?: number | null
+  ai_balance?: number | null
+  monthly_credit_quota?: number | string | null
+  monthly_credit_used?: number | string | null
+  credit_balance?: number | string | null
+  credit_cycle_date?: string | null
 }
 
 export interface UserPermissions {
@@ -71,6 +79,14 @@ export interface UserPublic {
   daily_ai_limit?: number
   daily_ai_usage?: number
   ai_balance?: number
+  /** 个性化月度积分额度（0 = 跟随会员等级默认额度） */
+  monthly_credit_quota?: number
+  /** 本月已用积分（credit_cycle_date 为当前月才有效） */
+  monthly_credit_used?: number
+  /** 充值积分余额 */
+  credit_balance?: number
+  /** 积分周期 yyyy-mm */
+  credit_cycle_date?: string
 }
 
 /**
@@ -99,6 +115,10 @@ export interface UpdateUserInput {
   notification_settings?: NotificationSettings
   daily_ai_limit?: number
   ai_balance?: number
+  /** 个性化月度积分额度（0 = 跟随等级默认） */
+  monthly_credit_quota?: number
+  /** 充值积分余额 */
+  credit_balance?: number
 }
 
 /**
@@ -136,7 +156,9 @@ export function toPublicUser(user: User): UserPublic {
     : 'free') as MembershipTier;
 
   return {
-    id: user.id,
+    // BIGSERIAL(int8) 经 pg 返回字符串，统一转数字以匹配 UserPublic.id: number，
+    // 避免 `typeof id === 'number'` 之类的运行时判断被字符串误伤
+    id: Number(user.id),
     uid: user.uid,
     email: user.email,
     username: user.username,
@@ -146,10 +168,21 @@ export function toPublicUser(user: User): UserPublic {
     permissions: permissions,
     notification_settings,
     created_at: user.created_at,
-    daily_ai_limit: user.daily_ai_limit,
-    daily_ai_usage: user.daily_ai_usage,
-    ai_balance: user.ai_balance,
+    daily_ai_limit: toNum(user.daily_ai_limit),
+    daily_ai_usage: toNum(user.daily_ai_usage),
+    ai_balance: toNum(user.ai_balance),
+    // NUMERIC 列经 pg 返回字符串，统一转数字
+    monthly_credit_quota: toNum(user.monthly_credit_quota),
+    monthly_credit_used: toNum(user.monthly_credit_used),
+    credit_balance: toNum(user.credit_balance),
+    credit_cycle_date: user.credit_cycle_date ?? undefined,
   }
+}
+
+function toNum(v: unknown): number | undefined {
+  if (v === null || v === undefined || v === '') return undefined
+  const n = Number(v)
+  return Number.isFinite(n) ? n : undefined
 }
 
 /**
@@ -400,6 +433,16 @@ export async function updateUser(id: number, input: UpdateUserInput): Promise<Us
   if (input.ai_balance !== undefined) {
     updates.push(`ai_balance = $${values.length + 1}`)
     values.push(input.ai_balance)
+  }
+
+  if (input.monthly_credit_quota !== undefined) {
+    updates.push(`monthly_credit_quota = $${values.length + 1}`)
+    values.push(Math.max(0, Number(input.monthly_credit_quota) || 0))
+  }
+
+  if (input.credit_balance !== undefined) {
+    updates.push(`credit_balance = $${values.length + 1}`)
+    values.push(Math.max(0, Number(input.credit_balance) || 0))
   }
 
   if (updates.length === 0) {

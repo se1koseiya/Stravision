@@ -137,7 +137,8 @@ export class BuiltinSkillLoader {
 - <SPECTRAL>: 展示光谱分析图
 - <SCHEDULED_TASKS>: 展示/管理定时任务
 - <MONITOR>: 展示实时直播流
-- <AUTOMATION_STRATEGY>: 展示自动化策略卡片`,
+- <AUTOMATION_STRATEGY>: 展示自动化策略卡片
+- <SKILL_FORGE>: 技能锻造结果卡片。仅当 create_skill_from_doc / refine_skill 工具返回的 note 中给出了卡片 JSON 时才输出，且必须原样复制工具给的 JSON，禁止自己编造或改写 JSON 字段`,
         source: 'builtin'
       }
     ];

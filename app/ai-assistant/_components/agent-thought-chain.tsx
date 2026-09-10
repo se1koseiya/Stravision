@@ -162,11 +162,12 @@ function getIconForChildType(type: AgentChildItem["type"]): React.ReactNode {
 // ---------------------------------------------------------------------------
 const itemContentStyles: ThoughtChainProps['styles'] = {
   itemContent: {
-    backgroundColor: 'rgba(0,0,0,.02)',
+    // 中性灰：浅色下是浅灰面板、深色下是微亮面板，两种主题都可读
+    backgroundColor: 'rgba(128,128,128,.08)',
     borderRadius: 8,
     padding: 10,
     marginBlockStart: 8,
-    border: '1px solid rgba(0,0,0,.05)',
+    border: '1px solid rgba(128,128,128,.16)',
   },
 }
 
@@ -296,9 +297,12 @@ function buildItems(
     const contentParts: React.ReactNode[] = []
     flushPending(contentParts)
     const summaryKey = `summary-${items.length}`
+    // 🔥 标题语义：出现过 task → 工作状态是"整理结果中"；
+    // 只有 narrative（LLM 首字节前的初始思考阶段）→ 显示"思考中"更贴切
+    const hasTask = steps.some((s) => (s.kind || "narrative") === "task")
     items.push({
       key: summaryKey,
-      title: isWorking ? "整理结果中" : "执行总结",
+      title: isWorking ? (hasTask ? "整理结果中" : "思考中") : "执行总结",
       collapsible: true,
       content: (
         <Flex gap="small" vertical>

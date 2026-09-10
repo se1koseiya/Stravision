@@ -6,6 +6,10 @@ import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import { Activity, FileText, Zap, Calendar, Camera, Search, BarChart3, Brain } from "lucide-react"
 import XMarkdown from "@ant-design/x-markdown"
+import { MermaidCard } from "@/components/ai/mermaid-card"
+import { SvgCard } from "@/components/ai/svg-card"
+import { DeviceForgeCard, DeviceForgeSkeleton } from "@/components/ai/device-forge-card"
+import { parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
 
 import type { Message } from "@/app/ai-assistant/types"
 import { DeviceControlCard } from "@/components/ai/device-control-card"
@@ -14,6 +18,7 @@ import { SpectralCard } from "@/components/ai/spectral-card"
 import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { PremiumReportLoader } from "@/app/ai-assistant/_components/premium-report-loader"
 import { CheckpointConfirm, parseCheckpointContent } from "@/components/ai/checkpoint-confirm"
+import { SkillForgeCard, parseSkillForgeCardData } from "@/components/ai/skill-forge-card"
 
 const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
   ssr: false,
@@ -47,7 +52,7 @@ export interface MobileMessageContentProps {
 // ---------------------------------------------------------------------------
 
 const TAG_REGEX =
-  /(<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```json\s*[\s\S]*?```)/g
+  /(<\s*DEVICE_FORGE\s*>[\s\S]*?(?:<\/\s*DEVICE_FORGE\s*>|$)|<\s*ILLU[^>]*>[\s\S]*?(?:<\/\s*ILLU\s*>|$)|<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SKILL_FORGE\s*(?:>[\s\S]*?(?:<\/\s*SKILL_FORGE\s*>|$)|(?:\/>))|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```mermaid\s*[\s\S]*?```|```json\s*[\s\S]*?```)/g
 
 // ---------------------------------------------------------------------------
 // 手机端能力卡片（精简版）
@@ -93,6 +98,19 @@ function MobileCapabilitiesCard({ onExampleClick }: { onExampleClick: (ex: strin
 
 // ---------------------------------------------------------------------------
 // renderTaggedContent — 处理特殊 XML 标签，markdown 委托给 XMarkdown
+
+/** 判定一个对象是否为图表配置（与 PC 端 chat-message-renderer 保持一致） */
+function isMobileChartConfig(obj: any): boolean {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    !Array.isArray(obj) &&
+    typeof obj.type === "string" &&
+    ["line", "bar", "area", "pie", "column", "histogram", "scatter"].includes(obj.type.toLowerCase()) &&
+    Array.isArray(obj.data) &&
+    obj.data.length > 0
+  )
+}
 // ---------------------------------------------------------------------------
 
 function renderTaggedContent(
@@ -111,11 +129,52 @@ function renderTaggedContent(
 
   const parts = content.split(TAG_REGEX)
 
+  // 🔥 DEVICE_FORGE 去重：同一条消息只渲染第一张设备接入卡（前端直推注入 + 模型复述可能并存）
+  let forgeCardRendered = false
+
   return (
     <>
       {parts.map((part, index) => {
         if (!part) return null
-        // JSON 代码块（IoT 指令）
+        // 🔥 DEVICE_FORGE 设备接入表单卡（与 PC 端同构）
+        if (part.match(/^<\s*DEVICE_FORGE/)) {
+          const closed = /<\/\s*DEVICE_FORGE\s*>$/.test(part)
+          if (!closed) {
+            // 未闭合（流式进行中）：若已有真实卡片则忽略残留片段，否则显示骨架
+            return forgeCardRendered ? null : <DeviceForgeSkeleton key={index} />
+          }
+          const inner = part
+            .replace(/^<\s*DEVICE_FORGE\s*>/, "")
+            .replace(/<\/\s*DEVICE_FORGE\s*>\s*$/, "")
+            .trim()
+          const forgeData = parseDeviceForgeCardData(inner)
+          if (forgeData) {
+            if (forgeCardRendered) return null
+            forgeCardRendered = true
+            return <DeviceForgeCard key={index} data={forgeData} onSendMessage={onSendMessage} />
+          }
+          return null
+        }
+        // 🔥 Mermaid 示意图（与 PC 端同构，直接用 mermaid.js 渲染）
+        if (part.startsWith("```mermaid")) {
+          const code = part.replace(/^```mermaid\s*/, "").replace(/```$/, "").trim()
+          return code ? <MermaidCard key={index} code={code} /> : null
+        }
+        // 🔥 ILLU 创意插画（与 PC 端同构：模型手绘 SVG，sanitize 后渲染）
+        if (part.match(/^<\s*ILLU/)) {
+          const closed = /<\/\s*ILLU\s*>\s*$/.test(part)
+          const svgCode = part
+            .replace(/^<\s*ILLU[^>]*>/, "")
+            .replace(/<\/\s*ILLU\s*>\s*$/, "")
+            .trim()
+          return svgCode ? <SvgCard key={index} code={svgCode} streaming={!closed} /> : null
+        }
+        // ```svg 代码块兜底（与 PC 端一致）
+        if (part.startsWith("```svg")) {
+          const code = part.replace(/^```svg\s*/, "").replace(/```$/, "").trim()
+          return code ? <SvgCard key={index} code={code} /> : null
+        }
+        // JSON 代码块（IoT 指令 / 图表配置兜底）
         if (part.startsWith("```json")) {
           try {
             const jsonContent = part.replace(/^```json\s*/, "").replace(/```$/, "").trim()
@@ -151,10 +210,38 @@ function renderTaggedContent(
                   </div>
                 )
               }
-              return null
+              // 🔥 图表配置兜底：AI 不套 <CHART> 标签直接输出 ```json 图表配置时，
+              // 此前被静默吞掉，表现为"说好的图消失"
+              if (!Array.isArray(parsed) && isMobileChartConfig(parsed)) {
+                return (
+                  <div key={index} className="my-3 w-full h-[260px] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+                    <ChartRenderer options={parsed} style={{ height: "100%", width: "100%" }} />
+                  </div>
+                )
+              }
+
+              // 未识别的 JSON 不再静默吞掉：折叠展示
+              return (
+                <details key={index} className="my-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                  <summary className="px-3 py-2 text-zinc-500 dark:text-zinc-400 select-none">结构化数据（点击展开）</summary>
+                  <pre className="px-3 pb-2 overflow-x-auto text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap break-all">{jsonContent}</pre>
+                </details>
+              )
             }
-            return null
-          } catch { return null }
+            return (
+              <details key={index} className="my-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                <summary className="px-3 py-2 text-zinc-500 dark:text-zinc-400 select-none">代码块（点击展开）</summary>
+                <pre className="px-3 pb-2 overflow-x-auto text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap break-all">{jsonContent}</pre>
+              </details>
+            )
+          } catch {
+            return (
+              <details key={index} className="my-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                <summary className="px-3 py-2 text-zinc-500 dark:text-zinc-400 select-none">代码块（解析失败，点击展开）</summary>
+                <pre className="px-3 pb-2 overflow-x-auto text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-wrap break-all">{part.replace(/^```json\s*/, "").replace(/```$/, "")}</pre>
+              </details>
+            )
+          }
         }
 
         // SPECTRAL — 光谱卡片（手机端全宽）
@@ -268,6 +355,14 @@ function renderTaggedContent(
         // SCHEDULED_TASKS — 定时任务列表
         if (part.match(/^<\s*SCHEDULED_TASKS/))
           return <div key={index} className="my-3"><ScheduledTasksList /></div>
+
+        // SKILL_FORGE - 技能工坊结果卡片（读文档 → 生成技能 → 自测 → 注册）
+        if (part.match(/^<\s*SKILL_FORGE/)) {
+          const inner = part.replace(/^<\s*SKILL_FORGE[^>]*>/, "").replace(/<\/\s*SKILL_FORGE\s*>$/, "").trim()
+          const cardData = parseSkillForgeCardData(inner)
+          if (!cardData) return null
+          return <div key={index}><SkillForgeCard data={cardData} onSendMessage={onSendMessage} /></div>
+        }
 
         // AUTOMATION_STRATEGY
         if (part.match(/^<\s*AUTOMATION_STRATEGY/)) {

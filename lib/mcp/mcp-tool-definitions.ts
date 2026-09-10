@@ -170,7 +170,8 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
               enum: ['pending', 'completed', 'all'],
               description: '筛选状态：pending=待执行, completed=已完成, all=全部。默认 all'
             }
-          }
+          },
+          required: []
         }
       }
     },
@@ -222,7 +223,8 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
               enum: ['pending', 'in_progress', 'completed', 'all'],
               description: '筛选状态。默认 all'
             }
-          }
+          },
+          required: []
         }
       }
     },
@@ -260,7 +262,8 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
               type: 'string',
               description: '进入计划模式的原因，如"需要综合分析温湿度、天气和病虫害情况后制定管理方案"'
             }
-          }
+          },
+          required: []
         }
       }
     },
@@ -451,6 +454,91 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
     }
   ],
 
+  // === AnySearch 远程 MCP（Streamable HTTP，匿名可用）===
+  'anysearch': [
+    {
+      type: 'function',
+      function: {
+        name: 'mcp_anysearch_search',
+        description: 'AnySearch 实时搜索：通用自然语言网页搜索，也支持垂直领域（金融/学术/安全/法律/代码等）结构化检索。一次调用只承载一个意图。',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: '自然语言搜索查询，一次一个意图'
+            },
+            max_results: {
+              type: 'number',
+              description: '返回结果数 1-10，默认 10'
+            }
+          },
+          required: ['query']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'mcp_anysearch_get_sub_domains',
+        description: '查询 AnySearch 垂直领域目录（金融/学术/法律等），返回可用的 sub_domain 及其参数 schema。在调用带 domain 的 search 之前必须先调用本工具。',
+        parameters: {
+          type: 'object',
+          properties: {
+            domains: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '要查询的领域列表（最多 5 个），如 ["finance", "academic"]'
+            }
+          },
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'mcp_anysearch_batch_search',
+        description: 'AnySearch 并行批量搜索：一次执行 1-5 个相互独立的搜索查询，单个失败不影响其他。',
+        parameters: {
+          type: 'object',
+          properties: {
+            queries: {
+              type: 'array',
+              description: '1-5 个查询对象，每个含 query 字段（可选 max_results）',
+              items: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: '搜索查询' },
+                  max_results: { type: 'number', description: '该条结果数 1-10' }
+                },
+                required: ['query']
+              }
+            }
+          },
+          required: ['queries']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'mcp_anysearch_extract',
+        description: 'AnySearch 网页全文提取：抓取 URL 对应 HTML 页面的完整内容并转为 Markdown（截断至 5 万字符）。',
+        parameters: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: '目标网页 URL（http/https）'
+            }
+          },
+          required: ['url']
+        }
+      }
+    }
+  ],
+
   // === 网页抓取 ===
   'firecrawl': [
     {
@@ -467,106 +555,6 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
             }
           },
           required: ['url']
-        }
-      }
-    }
-  ],
-
-  // === 农业专用 ===
-  'soil-sensor': [
-    {
-      type: 'function',
-      function: {
-        name: 'mcp_soil_sensor_query',
-        description: '查询指定区域的土壤传感器数据，获取土壤湿度、温度、pH值、NPK养分等参数。用于精准农业决策。',
-        parameters: {
-          type: 'object',
-          properties: {
-            zone: {
-              type: 'string',
-              description: '监测区域名称或编号，例如"zone-1"、"大棚A"'
-            },
-            metrics: {
-              type: 'array',
-              items: { type: 'string' },
-              description: '需要查询的指标列表，可选值：moisture(湿度)、temperature(温度)、ph(pH值)、nitrogen(氮)、phosphorus(磷)、potassium(钾)'
-            }
-          },
-          required: ['zone']
-        }
-      }
-    }
-  ],
-
-  'crop-disease': [
-    {
-      type: 'function',
-      function: {
-        name: 'mcp_crop_disease_diagnose',
-        description: '根据症状描述或图片分析诊断作物病虫害，提供防治建议。',
-        parameters: {
-          type: 'object',
-          properties: {
-            crop: {
-              type: 'string',
-              description: '作物类型，例如"草莓"、"番茄"、"水稻"'
-            },
-            symptoms: {
-              type: 'string',
-              description: '病害症状描述，例如"叶片出现黄色斑点，边缘枯萎"'
-            }
-          },
-          required: ['crop', 'symptoms']
-        }
-      }
-    }
-  ],
-
-  'irrigation-control': [
-    {
-      type: 'function',
-      function: {
-        name: 'mcp_irrigation_query',
-        description: '查询当前灌溉系统状态和灌溉计划，或获取灌溉建议。',
-        parameters: {
-          type: 'object',
-          properties: {
-            action: {
-              type: 'string',
-              enum: ['status', 'schedule', 'recommendation'],
-              description: 'status(查询状态)、schedule(查看计划)、recommendation(获取建议)'
-            },
-            zone: {
-              type: 'string',
-              description: '灌溉区域名称或编号'
-            }
-          },
-          required: ['action']
-        }
-      }
-    }
-  ],
-
-  'farm-data': [
-    {
-      type: 'function',
-      function: {
-        name: 'mcp_farm_data_query',
-        description: '查询农场综合数据，包括传感器汇总、产量统计、历史分析报表。',
-        parameters: {
-          type: 'object',
-          properties: {
-            query_type: {
-              type: 'string',
-              enum: ['summary', 'history', 'report', 'alerts'],
-              description: 'summary(实时汇总)、history(历史数据)、report(生成报表)、alerts(预警通知)'
-            },
-            date_range: {
-              type: 'string',
-              description: '时间范围，例如"today"、"last_7_days"、"last_30_days"'
-            }
-          },
-          required: ['query_type']
         }
       }
     }
@@ -753,6 +741,31 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
           required: ['direction', 'distance_mm']
         }
       }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'delete_device',
+        description: '从设备注册表删除一条设备（仅 admin / super_admin 可调用；删除后不可恢复，MQTT 订阅会立即同步）。\n\n使用场景：用户明确要求把某设备"从平台删除 / 移除 / 注销"，或设备文档/草稿测试后需要清理。\n\n安全保护：critical（关键设备）默认拒绝删除，必须显式传 force=true 才会被强制移除——防止 AI 助手误操作把水泵/风扇等关键控制设备从注册表里清掉。如需删除关键设备，请先与用户二次确认后用 delete_device({ device_id: X, force: true })。\n\n参数优先级：device_id（推荐）> device_name（同名取第一个）。删除前可先调用 list_devices 确认 id 与名称。',
+        parameters: {
+          type: 'object',
+          properties: {
+            device_id: {
+              type: 'number',
+              description: '设备注册表 ID（推荐）。可先调用 list_devices 获取可用设备 ID。'
+            },
+            device_name: {
+              type: 'string',
+              description: '按设备名称匹配删除（同名取第一个）。建议优先使用 device_id 避免歧义。'
+            },
+            force: {
+              type: 'boolean',
+              description: '强制删除关键设备（critical）。默认 false；只有用户明确同意后才能传 true。'
+            }
+          },
+          required: []
+        }
+      }
     }
   ],
 
@@ -834,11 +847,307 @@ const MCP_TOOL_REGISTRY: Record<string, MCPToolDefinition[]> = {
         }
       }
     }
+  ],
+
+  // === 内置技能工坊（读文档 → 生成技能 → 自测 → 注册全域可用）===
+  'builtin-skill-forge': [
+    {
+      type: 'function',
+      function: {
+        name: 'create_skill_from_doc',
+        description: '技能工坊：读取一份技术文档（设备协议、产品说明、接口文档、报文示例等），自动分析其中的能力/属性/数据规则，生成一个平台技能，并进行自测（关键词路由测试 + AI 彩排回答测试），通过后注册并发布到技能商店——之后平台 AI 助手在任何对话中都能通过技能清单路由加载它。当用户提供技术文档并希望"接入平台""做成技能""让 AI 学会这个设备"时使用本工具。注意：1. 全流程含多轮 AI 调用，约需 1-3 分钟；2. 仅当用户已给出较完整的技术文档原文时才调用本工具——若用户只说"接入某设备"但没提供文档，先用 ask_user_question 或直接回复索取文档原文/关键参数；3. 若文档关键信息（功能/字段/报文）明显不足，本工具会返回 needs_user_input 与待补充问题清单，此时必须向用户追问（优先 ask_user_question）而不是重试。',
+        parameters: {
+          type: 'object',
+          properties: {
+            document: {
+              type: 'string',
+              description: '技术文档原文（含报文示例、字段定义等关键内容），完整粘贴'
+            },
+            document_name: {
+              type: 'string',
+              description: '可选：文档名称（如"XX土壤传感器通信协议V2"），用于锻造记录'
+            },
+            publish: {
+              type: 'boolean',
+              description: '是否发布到技能商店，默认 true。用户明确说"先测试别上线"时传 false（保存为草稿）'
+            }
+          },
+          required: ['document']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'refine_skill',
+        description: '技能工坊：按用户反馈修订一个已注册的技能。支持重新命名/重新映射、补充报文样例后重新生成、修正字段理解偏差等。系统会自动使用该技能最初锻造时的源文档（也支持用 extra_document 补充新资料），重新走生成 → 校验 → 自测 → 更新注册全流程。当用户对已生成技能的某些字段、指令或回答效果不满意时使用。',
+        parameters: {
+          type: 'object',
+          properties: {
+            skill_id: {
+              type: 'string',
+              description: '要修订的技能 ID（来自先前 create_skill_from_doc 的结果或技能清单）'
+            },
+            feedback: {
+              type: 'string',
+              description: '用户反馈/修改要求，尽量具体（如"温度单位应该是摄氏度，且波特率写错了"）'
+            },
+            extra_document: {
+              type: 'string',
+              description: '可选：用户补充的新资料/报文样例原文，与源文档合并用于重新生成'
+            },
+            publish: {
+              type: 'boolean',
+              description: '修订后是否发布，默认 true'
+            }
+          },
+          required: ['skill_id', 'feedback']
+        }
+      }
+    }
+  ],
+
+  // === 内置设备接入工坊（读接入文档 → 生成 devices 配置草稿 → 用户确认装入）===
+  'builtin-device-forge': [
+    {
+      type: 'function',
+      function: {
+        name: 'connect_device_from_doc',
+        description: '设备接入工坊：读取一份设备接入文档（MQTT 通信协议、报文样例、字段定义表等），自动分析设备类型/数据点/控制通道，生成一份可直接写入平台 devices 注册表的接入配置草稿（订阅 topic、发布 topic、数据点字段映射 metrics 等），并经校验 + 报文干跑核对。当用户提供设备接入文档并希望"把这个设备接入平台/接入莓小智/让平台收它的数据/能在平台控制它"时使用。注意：1. 全流程含多轮 AI 调用约需 1-2 分钟；2. 仅当用户已给出较完整的接入文档原文时才调用——若用户只说"接入某设备"但没给文档，先用 ask_user_question 或直接回复索取文档/关键参数；3. 生成的是草稿不落库，前端会渲染成可编辑表单，用户点「装入莓小智」才真正写入 devices 表；4. 若用户想让 AI 也"学会"该设备（如对话中查询/操作），装入后可在表单上点「发布技能工坊」→ 走 create_skill_from_doc。',
+        parameters: {
+          type: 'object',
+          properties: {
+            document: {
+              type: 'string',
+              description: '设备接入文档原文（MQTT topic/报文样例/字段单位/控制指令等），完整粘贴'
+            },
+            document_name: {
+              type: 'string',
+              description: '可选：文档名称（如"XX土壤传感器MQTT协议V2"），用于记录'
+            }
+          },
+          required: ['document']
+        }
+      }
+    }
+  ],
+
+  // === 内置深度研究工具包（联网搜索 + 知识沉淀）===
+  'builtin-deep-research': [
+    {
+      type: 'function',
+      function: {
+        name: 'web_search',
+        description: '联网搜索最新信息。返回结构化的搜索结果（标题/摘要/链接/来源/发布时间）。适用于需要即时信息的问题：最新新闻、价格行情、天气、新发布的资料等。只做快速检索，不生成长文；如需系统性研究某个主题并沉淀为知识，请改用 deep_research 工具。',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: '搜索关键词。建议用具体、精炼的词组，一次只搜一个主题'
+            },
+            count: {
+              type: 'number',
+              description: '返回结果条数，默认 6，最大 20'
+            },
+            recency: {
+              type: 'string',
+              enum: ['day', 'week', 'month', 'year'],
+              description: '时间范围过滤：day=一天内, week=一周内, month=一月内, year=一年内。不传则不限时间'
+            }
+          },
+          required: ['query']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'deep_research',
+        description: '深度研究：AI 自动多视角拆解子查询、联网检索并阅读网页、分析信息缺口并补搜，最终把多源信息融合成一篇带引用标注的结构化知识条目，自动存入用户知识库（打上「AI研究」标签并向量化）。存入后用户后续提问可直接命中这条知识。适用于「帮我研究 XX 并记住」「整理一份关于 XX 的资料存到知识库」这类沉淀型请求。注意：整个流程约需 1-3 分钟，简单事实问题请用 web_search 而不要用本工具。',
+        parameters: {
+          type: 'object',
+          properties: {
+            topic: {
+              type: 'string',
+              description: '要研究的主题，一句话描述。例如："草莓白粉病的综合防治方案"'
+            },
+            collectionId: {
+              type: 'number',
+              description: '可选：存入的知识库集合 ID。不传则存到用户默认空间'
+            },
+            maxSubQueries: {
+              type: 'number',
+              description: '拆解的子查询数量（1-6），默认 3。主题越宽泛可适当调大'
+            },
+            maxRounds: {
+              type: 'number',
+              description: '信息缺口补搜轮数（0-3），默认 1。0 表示只搜一轮不补搜'
+            }
+          },
+          required: ['topic']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'knowledge_save',
+        description: '把用户直接提供的内容（笔记、资料、要点、对话结论等）保存到用户的知识库并自动向量化。当用户说「记住这个」「把这个存到知识库」「收进知识库」「帮我记下」并提供具体内容时，必须使用本工具真正落库，而不要只输出文本让用户手动粘贴。注意：需要联网调研的主题请用 deep_research；本工具用于直接保存用户给定的内容，不联网。',
+        parameters: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description: '条目标题，简洁准确，包含关键检索词（如作物名+病症+措施）'
+            },
+            content: {
+              type: 'string',
+              description: '条目正文（Markdown）。应完整保留用户提供的原始信息，可适当整理结构但不得编造或遗漏'
+            },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '可选标签（最多 10 个），建议嵌入高频检索关键词以提升召回'
+            },
+            collectionId: {
+              type: 'number',
+              description: '可选：存入的知识库集合 ID。不传则存到用户默认空间'
+            }
+          },
+          required: ['title', 'content']
+        }
+      }
+    }
+  ],
+
+  // === 农业数据（内置：直连本地 sensor_readings / device_logs，无需任何外部 API） ===
+  'builtin-farm-data': [
+    {
+      type: 'function',
+      function: {
+        name: 'get_current_conditions',
+        description: '获取大棚当前环境态势：空气温湿度、光照、CO2、土壤湿度、氮磷钾、雨量共 9 项指标的最新值，以及 24 小时均值和变化趋势（升/降/平）。当用户问"现在棚里什么情况""当前温湿度""环境正常吗"时使用。注意：本工具返回的是"当前瞬时值"，查询历史曲线请用 get_sensor_history。',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'analyze_soil',
+        description: '土壤诊断：读取土壤湿度与氮磷钾含量，给出丰缺评级（缺乏/中等/丰富）、综合肥力指数以及灌溉与施肥建议。当用户问"土壤怎么样""要不要浇水""该施什么肥""缺不缺肥""地干不干"时使用。',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_inspection_report',
+        description: '执行一次大棚综合巡检：汇总环境、土壤、设备数据，并自动对照作物适宜区间标出所有偏离项（含处置建议）。当用户要求"巡检""巡棚""做个检查""生成巡检报告""看看有没有问题""现在状态正常吗"时使用。返回已标注异常的结论，可直接据此撰写报告。注意：本工具只做数据侧检查，要看作物长势画面请另行调用 take_camera_snapshot。',
+        parameters: {
+          type: 'object',
+          properties: {
+            crop: {
+              type: 'string',
+              description: '可选：作物类型，默认"草莓"。当前内置草莓的适宜区间阈值，其他作物仅做数据汇总不做异常判定'
+            }
+          },
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_device_activity',
+        description: '查询设备操作记录（谁在什么时间对哪个设备做了什么操作，如灌溉、补光、通风、开关继电器）。用于回答"上周浇过几次水""最近谁动过设备""有没有按时通风"这类农事追溯问题。',
+        parameters: {
+          type: 'object',
+          properties: {
+            deviceName: {
+              type: 'string',
+              description: '可选：只看指定设备的记录，不传则返回全部设备'
+            },
+            sinceHours: {
+              type: 'number',
+              description: '可选：回溯多少小时，默认 168（7 天）'
+            },
+            limit: {
+              type: 'number',
+              description: '可选：最多返回多少条，默认 20，上限 100'
+            }
+          },
+          required: []
+        }
+      }
+    }
+  ],
+
+  // === 内置用户记忆（显式工具：AI 自主判断何时记住/更新/删除用户信息）===
+  'builtin-user-memory': [
+    {
+      type: 'function',
+      function: {
+        name: 'remember_user_info',
+        description: '记住用户的一条个人信息。当用户在对话中透露出可长期复用的稳定信息时调用，例如"我叫小朱"（key=user_name）、"我种的是红颜草莓"（key=strawberry_variety）、"我在1号棚"（key=greenhouse_info）。\n\n【重要】当用户在【纠正】之前记住的信息时也调用本工具——例如"你记错了，我叫小朱不叫小张"、"我改名了，现在叫老王"，此时把 key 传成对应类型、value 传【纠正后的正确值】（小朱、老王）即可，系统会覆盖旧值。\n\n不要记忆临时性指令（如"帮我开风扇"）。value 用简短中文（≤20字）。',
+        parameters: {
+          type: 'object',
+          properties: {
+            key: {
+              type: 'string',
+              description: '信息类型。常用：user_name=用户称呼/姓名, greenhouse_info=大棚/场地, strawberry_variety=草莓品种, growth_stage=生育期/定植时间, focus_area=关注重点/目标, preferred_temperature=偏好温度, preferred_humidity=偏好湿度, watering_habit=浇水习惯, response_style=回复风格, automation_preference=自动化倾向。也可传中文（如"称呼""品种"）。'
+            },
+            value: {
+              type: 'string',
+              description: '具体内容（≤20字），只填核心值，不要带主语前缀。如用户说"我叫小朱"→ value="小朱"（不是"我小朱"）；"我种的是红颜草莓"→ value="红颜"；"我在1号棚"→ value="1号棚"。'
+            }
+          },
+          required: ['key', 'value']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'list_user_memory',
+        description: '列出已记住的关于当前用户的全部信息。当需要确认"我之前记住了什么"、或用户问"你记得我什么/你记住我叫什么了吗"时，先调用本工具查一下再回答，避免瞎猜。',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'forget_user_info',
+        description: '删除已记住的一条用户信息。当用户说"别记了""删掉""忘记我叫XX""以后别叫我XX了""别记我名字"时调用。传 key 删除指定项（如 user_name），传 key="*" 清空该用户全部记忆。',
+        parameters: {
+          type: 'object',
+          properties: {
+            key: {
+              type: 'string',
+              description: '要删除的信息类型 key（如 user_name、strawberry_variety），传 "*" 或 "all" 清空全部记忆'
+            }
+          },
+          required: ['key']
+        }
+      }
+    }
   ]
 }
 
 /** 内置工具服务器 ID 列表（始终可用，不依赖用户 MCP 配置） */
-const BUILTIN_SERVER_IDS = ['builtin-sensor-history', 'builtin-agent-tools', 'builtin-skill-loader', 'builtin-device-control', 'builtin-agent-tasks']
+const BUILTIN_SERVER_IDS = ['builtin-sensor-history', 'builtin-agent-tools', 'builtin-skill-loader', 'builtin-device-control', 'builtin-agent-tasks', 'builtin-deep-research', 'builtin-skill-forge', 'builtin-device-forge', 'builtin-farm-data', 'builtin-user-memory']
 
 /**
  * 根据用户启用的 MCP 服务列表，生成对应的 OpenAI tools 定义

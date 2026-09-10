@@ -210,6 +210,195 @@ export async function getLastLogin(userId: number): Promise<LoginLog | undefined
   return log || undefined
 }
 
+// ============ IP 归属地（带缓存） ============
+
+export interface IpLocationInfo {
+  ip: string
+  country: string | null
+  region: string | null
+  city: string | null
+  is_local?: boolean
+}
+
+const IP_LOCATION_CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 天
+
+function isLocalIp(ip: string): boolean {
+  return ip === "127.0.0.1" || ip === "::1" || ip === "unknown" ||
+    ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.16.") ||
+    ip.startsWith("172.17.") || ip.startsWith("172.18.") || ip.startsWith("172.19.") ||
+    ip.startsWith("172.2") || ip.startsWith("172.30.") || ip.startsWith("172.31.")
+}
+
+/**
+ * 查询 IP 归属地。优先级：本地 IP 直接标记 → ip_locations 缓存 → login_logs 历史记录 → 外部 API（结果写回缓存）。
+ */
+export async function getIpLocation(ip: string): Promise<IpLocationInfo> {
+  if (isLocalIp(ip)) {
+    return { ip, country: "本地网络", region: null, city: null, is_local: true }
+  }
+
+  await initDB()
+  const now = Date.now()
+
+  // 1. 缓存表
+  const cached = await queryOne<{ ip: string; country: string | null; region: string | null; city: string | null; updated_at: string }>(
+    "SELECT * FROM ip_locations WHERE ip = $1 AND updated_at > $2",
+    [ip, now - IP_LOCATION_CACHE_TTL]
+  )
+  if (cached) {
+    return { ip, country: cached.country, region: cached.region, city: cached.city }
+  }
+
+  // 2. login_logs 历史（登录时已查过归属地）
+  const fromLogin = await queryOne<{ country: string | null; region: string | null; city: string | null }>(
+    "SELECT country, region, city FROM login_logs WHERE ip = $1 AND country IS NOT NULL ORDER BY created_at DESC LIMIT 1",
+    [ip]
+  )
+  if (fromLogin) {
+    await saveIpLocation(ip, fromLogin.country, fromLogin.region, fromLogin.city)
+    return { ip, country: fromLogin.country, region: fromLogin.region, city: fromLogin.city }
+  }
+
+  // 3. 外部 API
+  const location = await fetchIpLocation(ip)
+  const info: IpLocationInfo = {
+    ip,
+    country: location?.country ?? null,
+    region: location?.region ?? null,
+    city: location?.city ?? null
+  }
+  if (location) {
+    await saveIpLocation(ip, info.country, info.region, info.city)
+  } else {
+    // 查不到也写入缓存（空结果），避免反复请求外部 API；TTL 由 updated_at 控制
+    await saveIpLocation(ip, null, null, null)
+  }
+  return info
+}
+
+async function saveIpLocation(ip: string, country: string | null, region: string | null, city: string | null): Promise<void> {
+  try {
+    await execute(
+      `INSERT INTO ip_locations (ip, country, region, city, updated_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (ip) DO UPDATE SET country = $2, region = $3, city = $4, updated_at = $5`,
+      [ip, country, region, city, Date.now()]
+    )
+  } catch (e) {
+    console.warn("Failed to save ip location cache:", e)
+  }
+}
+
+// ============ 在线用户 ============
+
+export interface OnlineUser {
+  user_id: number
+  username: string
+  email: string | null
+  avatar_url: string | null
+  role: string
+  last_ip: string
+  ip_count: number
+  requests: number
+  last_active: number
+  location: IpLocationInfo | null
+}
+
+export interface OnlineGuest {
+  ip: string
+  requests: number
+  last_active: number
+  location: IpLocationInfo | null
+}
+
+export interface OnlineSnapshot {
+  window_minutes: number
+  generated_at: number
+  online_users: OnlineUser[]
+  guest_ips: OnlineGuest[]
+}
+
+/**
+ * 获取在线快照：最近 windowMinutes 分钟内有访问记录的登录用户 + 未登录 IP。
+ * 依赖 access_logs（app/layout.tsx 每次页面渲染都会记录 user_id + ip）。
+ */
+export async function getOnlineSnapshot(windowMinutes: number = 5): Promise<OnlineSnapshot> {
+  await initDB()
+  const since = Date.now() - windowMinutes * 60 * 1000
+
+  // 登录用户聚合：按 user_id 分组，取最近一次 IP / 时间 + 窗口内请求数与去重 IP 数
+  const userRows = await query<{
+    user_id: number
+    username: string
+    email: string | null
+    avatar_url: string | null
+    role: string
+    last_ip: string
+    ip_count: string | number
+    requests: string | number
+    last_active: string | number
+  }>(
+    `SELECT a.user_id, u.username, u.email, u.avatar_url, u.role,
+            (array_agg(a.ip ORDER BY a.created_at DESC))[1] AS last_ip,
+            COUNT(DISTINCT a.ip) AS ip_count,
+            COUNT(*) AS requests,
+            MAX(a.created_at) AS last_active
+     FROM access_logs a
+     JOIN users u ON u.id = a.user_id
+     WHERE a.created_at > $1 AND a.user_id IS NOT NULL
+     GROUP BY a.user_id, u.username, u.email, u.avatar_url, u.role
+     ORDER BY last_active DESC`,
+    [since]
+  )
+
+  // 未登录 IP（游客 / 爬虫）
+  const guestRows = await query<{ ip: string; requests: string | number; last_active: string | number }>(
+    `SELECT ip, COUNT(*) AS requests, MAX(created_at) AS last_active
+     FROM access_logs
+     WHERE created_at > $1 AND user_id IS NULL
+     GROUP BY ip
+     ORDER BY last_active DESC
+     LIMIT 50`,
+    [since]
+  )
+
+  // 归属地批量查询（getIpLocation 自带缓存，仅首次会请求外部 API）
+  const allIps = Array.from(new Set([...userRows.map((r) => r.last_ip), ...guestRows.map((r) => r.ip)]))
+  const locationMap = new Map<string, IpLocationInfo>()
+  await Promise.all(
+    allIps.map(async (ip) => {
+      try {
+        locationMap.set(ip, await getIpLocation(ip))
+      } catch {
+        // 单个 IP 查询失败不影响整体
+      }
+    })
+  )
+
+  return {
+    window_minutes: windowMinutes,
+    generated_at: Date.now(),
+    online_users: userRows.map((r) => ({
+      user_id: Number(r.user_id),
+      username: r.username,
+      email: r.email,
+      avatar_url: r.avatar_url,
+      role: r.role,
+      last_ip: r.last_ip,
+      ip_count: Number(r.ip_count),
+      requests: Number(r.requests),
+      last_active: Number(r.last_active),
+      location: locationMap.get(r.last_ip) ?? null
+    })),
+    guest_ips: guestRows.map((r) => ({
+      ip: r.ip,
+      requests: Number(r.requests),
+      last_active: Number(r.last_active),
+      location: locationMap.get(r.ip) ?? null
+    }))
+  }
+}
+
 export async function checkSuspiciousLogin(
   userId: number, 
   currentIp: string, 

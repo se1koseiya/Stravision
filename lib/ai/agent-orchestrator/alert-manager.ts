@@ -270,19 +270,84 @@ export class AlertManager {
   }
 
   /**
-   * 邮件通知（待实现）
+   * 邮件通知
+   * 通过环境变量配置 SMTP 信息：
+   * - ALERT_SMTP_HOST / ALERT_SMTP_PORT / ALERT_SMTP_USER / ALERT_SMTP_PASS
+   * - ALERT_EMAIL_FROM / ALERT_EMAIL_TO
+   * 未配置时静默跳过（不报错），保持向后兼容。
    */
   private async sendEmailNotification(alert: Alert, config: any) {
-    // TODO: 实现邮件发送
-    console.log('Email notification not implemented yet');
+    const host = config?.host || process.env.ALERT_SMTP_HOST
+    const port = Number(config?.port || process.env.ALERT_SMTP_PORT || 465)
+    const user = config?.user || process.env.ALERT_SMTP_USER
+    const pass = config?.pass || process.env.ALERT_SMTP_PASS
+    const to = config?.to || process.env.ALERT_EMAIL_TO
+    const from = config?.from || process.env.ALERT_EMAIL_FROM
+
+    if (!host || !user || !pass || !to || !from) {
+      console.log('[AlertManager] Email notification skipped (SMTP not configured)')
+      return
+    }
+
+    // 优先用系统邮件服务（如果项目里已有），否则走裸 SMTP 需要引入依赖。
+    // 为避免引入额外依赖，这里通过 fetch 调内部邮件发送端点；若不存在则记录并跳过。
+    const emailEndpoint = process.env.ALERT_EMAIL_ENDPOINT
+    if (!emailEndpoint) {
+      console.log('[AlertManager] Email notification skipped (ALERT_EMAIL_ENDPOINT not set)')
+      return
+    }
+
+    try {
+      const res = await fetch(emailEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to,
+          from,
+          subject: `[Agent告警] ${alert.severity.toUpperCase()} - ${alert.ruleName}`,
+          text: `告警级别：${alert.severity}\n规则：${alert.ruleName}\n消息：${alert.message}\n时间：${new Date(alert.timestamp).toLocaleString('zh-CN')}`,
+        }),
+      })
+      if (!res.ok) {
+        console.warn(`[AlertManager] Email send failed: ${res.status}`)
+      }
+    } catch (e) {
+      console.error('[AlertManager] Email send error:', e)
+    }
   }
 
   /**
-   * Webhook 通知（待实现）
+   * Webhook 通知（钉钉/企业微信/Slack 等）
+   * 通过环境变量 ALERT_WEBHOOK_URL 配置，或通过 config.url 传入。
+   * 兼容钉钉/企业微信的 markdown 消息格式。
    */
   private async sendWebhookNotification(alert: Alert, config: any) {
-    // TODO: 实现 Webhook 调用
-    console.log('Webhook notification not implemented yet');
+    const url = config?.url || process.env.ALERT_WEBHOOK_URL
+    if (!url) {
+      console.log('[AlertManager] Webhook notification skipped (no URL configured)')
+      return
+    }
+
+    const payload = {
+      msgtype: 'markdown',
+      markdown: {
+        title: `Agent告警：${alert.ruleName}`,
+        text: `### 🚨 Agent 告警\n> **级别**：${alert.severity.toUpperCase()}\n> **规则**：${alert.ruleName}\n> **消息**：${alert.message}\n> **时间**：${new Date(alert.timestamp).toLocaleString('zh-CN')}`,
+      },
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        console.warn(`[AlertManager] Webhook send failed: ${res.status}`)
+      }
+    } catch (e) {
+      console.error('[AlertManager] Webhook send error:', e)
+    }
   }
 
   /**

@@ -38,6 +38,10 @@ export async function GET() {
       },
       quota,  // 方便前端直接读取（旧）
       credit  // 积分视图（新）
+    }, {
+      // 🔥 额度/用户数据不允许缓存：否则积分耗尽后前端仍显示旧余额（或反向误导），
+      // 且含用户敏感信息，任何中间层都不应缓存。
+      headers: { 'Cache-Control': 'no-store' }
     })
   } catch (error) {
     console.error("Failed to get user settings:", error)

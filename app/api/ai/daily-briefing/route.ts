@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
+import { guardAiQuota } from "@/lib/api/ai-quota-guard"
 
 export async function POST(req: Request) {
   try {
+    // 🔥 额度守卫：此前此接口完全无鉴权且直接烧系统 key
+    const guard = await guardAiQuota()
+    if (!guard.ok) return guard.response
+
     const { deviceData, weatherData, username } = await req.json()
 
     const apiKey = process.env.SYSTEM_OPENAI_API_KEY || process.env.DASHSCOPE_API_KEY

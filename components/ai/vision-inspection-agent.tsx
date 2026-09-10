@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { memo, useMemo } from "react"
 import { Card, Progress, Steps, Tag, Typography } from "antd"
 import {
   CameraOutlined,
@@ -57,10 +57,33 @@ const STEP_ITEMS: { key: StepKey; title: string; description: string }[] = [
 /** 根据状态文本推断当前步骤 */
 function inferStep(status: string): StepKey {
   if (!status) return "init"
+  // 注意顺序：「完成」必须最先判断，否则「巡检完成，已捕获…」会被下面的「捕获」命中
   if (status.includes("完成")) return "done"
   if (status.includes("分析") || status.includes("AI") || status.includes("发送")) return "analyze"
-  if (status.includes("优化") || status.includes("捕捉到") || status.includes("截取") || status.includes("截图") || status.includes("捕捉") || status.includes("实时画面")) return "capture"
-  if (status.includes("连接") || status.includes("获取")) return "connect"
+  // 抓帧中 / 已抓到
+  if (
+    status.includes("已捕获") ||
+    status.includes("捕捉到") ||
+    status.includes("截取") ||
+    status.includes("截图") ||
+    status.includes("捕捉") ||
+    status.includes("解码") ||
+    status.includes("稳定") ||
+    status.includes("优化")
+  ) {
+    return "capture"
+  }
+  // 建连：等待播放器挂载、缓冲画面数据、重试
+  if (
+    status.includes("连接") ||
+    status.includes("获取") ||
+    status.includes("缓冲") ||
+    status.includes("挂载") ||
+    status.includes("重试") ||
+    status.includes("等待")
+  ) {
+    return "connect"
+  }
   if (status.includes("移动") || status.includes("云台")) return "move"
   if (status.includes("初始化")) return "init"
   return "init"
@@ -70,7 +93,7 @@ function inferStep(status: string): StepKey {
 // 主组件
 // ---------------------------------------------------------------------------
 
-export function VisionInspectionAgent({
+function VisionInspectionAgentImpl({
   isActive,
   status,
   cameraUrl,
@@ -82,8 +105,19 @@ export function VisionInspectionAgent({
 }: VisionInspectionAgentProps) {
   const currentStep = useMemo(() => inferStep(status), [status])
   const currentIndex = STEP_ITEMS.findIndex((s) => s.key === currentStep)
-  const showCamera = !!cameraUrl && currentStep !== "done" && currentStep !== "analyze"
-  const showCaptured = !!capturedImage && (currentStep === "analyze" || currentStep === "done")
+
+  // 抓帧期间绝不能卸载 <video>：一旦卸载，抓帧逻辑就永远等不到元素，
+  // 只能白白耗到超时。因此只要在抓到图之前，摄像头常驻挂载。
+  const showCaptured = !!capturedImage
+  const showCamera = !!cameraUrl && !showCaptured
+
+  // 关键：LiveStreamPlayer 的 useEffect 依赖 sources。
+  // 若每次渲染都传入新的数组字面量，播放器会被反复 destroy + 重建，
+  // 流永远缓冲不完 —— 这正是「摄像头加载超时」的根因。
+  const sources = useMemo(
+    () => (cameraUrl ? [{ src: cameraUrl }] : []),
+    [cameraUrl]
+  )
 
   const progress = Math.round(((currentIndex + 1) / STEP_ITEMS.length) * 100)
   const isDone = currentStep === "done"
@@ -135,7 +169,7 @@ export function VisionInspectionAgent({
           >
             <LiveStreamPlayer
               id={videoElementId}
-              sources={[{ src: cameraUrl }]}
+              sources={sources}
               autoplay
               muted
               controls={false}
@@ -230,5 +264,8 @@ export function VisionInspectionAgent({
     </Card>
   )
 }
+
+// 巡检过程中 status 会高频更新，memo 避免无关的父级渲染波及播放器子树
+export const VisionInspectionAgent = memo(VisionInspectionAgentImpl)
 
 export default VisionInspectionAgent

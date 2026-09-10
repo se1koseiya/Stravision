@@ -16,8 +16,8 @@
  *    - /layout_parsing 文档解析（glm-ocr），用于图片/PDF 的高级 OCR
  */
 
-import { createHash } from "node:crypto"
 import { readProvidersConfig, getKnowledgeConfig } from "./provider-resolver"
+import { chunkDocument } from "./markdown-chunker"
 import { createChunk, deleteChunksByItem, updateChunkEmbedding, listChunks } from "../db/knowledge-service"
 import type { KnowledgeItem } from "../db/knowledge-service"
 
@@ -56,102 +56,14 @@ export interface SimilarityResult {
 }
 
 // ============== 文本分块 ==============
+//
+// 分块实现已迁移到 lib/ai/markdown-chunker.ts：
+// 基于 mdast AST 做结构感知切分，保留标题面包屑，代码块/表格不再被截断，
+// token 计数走 js-tiktoken（旧实现的按字符估算低估中文 token 两倍以上）。
+// 这里保留类型定义，具体分块逻辑见 markdown-chunker。
 
-/**
- * 简单分块：按段落（空行/换行）优先，再按句子边界，最后按字符滑动窗口
- * 中文文本保留标点切分；英文按 . 切分
- */
-export function chunkText(text: string, options: ChunkOptions = {}): TextChunk[] {
-  if (!text || text.trim().length === 0) return []
-
-  const chunkSize = options.chunkSize ?? 500
-  const chunkOverlap = options.chunkOverlap ?? 50
-  const minChunkSize = options.minChunkSize ?? 50
-  const maxTokens = options.maxTokens ?? null
-
-  const normalized = text.replace(/\r\n/g, "\n").trim()
-  const chunks: TextChunk[] = []
-  let charOffset = 0
-  let chunkIndex = 0
-
-  // 1) 先按段落（双换行）切分
-  const paragraphs = normalized.split(/\n{2,}/)
-  let buffer = ""
-  let bufferStart = 0
-
-  /** 检查是否需要 flush（按字符或 token 限制） */
-  const shouldFlush = (extra: string) => {
-    const nextLen = buffer.length + extra.length + 2
-    if (nextLen > chunkSize) return true
-    if (maxTokens) {
-      const nextTokens = estimateTokenCount(buffer + extra)
-      if (nextTokens > maxTokens) return true
-    }
-    return false
-  }
-
-  const flushBuffer = (end: number) => {
-    if (buffer.length < minChunkSize) return
-    chunks.push({
-      index: chunkIndex++,
-      content: buffer.trim(),
-      startOffset: bufferStart,
-      endOffset: end,
-      tokenCount: estimateTokenCount(buffer),
-      hash: createHash("sha256").update(buffer).digest("hex").slice(0, 16)
-    })
-  }
-
-  for (const para of paragraphs) {
-    const trimmed = para.trim()
-    if (!trimmed) continue
-    if (shouldFlush(trimmed)) {
-      // 当前 buffer 已满，先 flush
-      if (buffer) {
-        flushBuffer(bufferStart + buffer.length)
-        // 保留 overlap
-        const overlap = buffer.slice(-chunkOverlap)
-        buffer = overlap
-        bufferStart = bufferStart + buffer.length - overlap.length
-      }
-      // 如果单段落超长，按句子切
-      if (trimmed.length > chunkSize) {
-        const sentences = splitSentences(trimmed)
-        for (const sent of sentences) {
-          if (shouldFlush(sent)) {
-            flushBuffer(bufferStart + buffer.length)
-            const overlap = buffer.slice(-chunkOverlap)
-            buffer = overlap
-            bufferStart = bufferStart + buffer.length - overlap.length
-          }
-          buffer += (buffer ? " " : "") + sent
-        }
-      } else {
-        buffer += (buffer ? "\n\n" : "") + trimmed
-      }
-    } else {
-      buffer += (buffer ? "\n\n" : "") + trimmed
-    }
-  }
-  if (buffer.trim()) flushBuffer(bufferStart + buffer.length)
-
-  return chunks
-}
-
-function splitSentences(text: string): string[] {
-  // 中英文混合句子切分
-  return text
-    .split(/(?<=[。！？!?；;])|(?<=[。！？!?]["""''])|(?<=\.\s)|(?<=\n)/)
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
-}
-
-export function estimateTokenCount(text: string): number {
-  // 简单估算：中文 1.5 字符/token，英文 0.25 token/字符
-  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
-  const otherChars = text.length - chineseChars
-  return Math.ceil(chineseChars / 1.5 + otherChars / 4)
-}
+export { chunkDocument, chunkMarkdown, chunkPlainText, countTokens, estimateTokens } from "./markdown-chunker"
+export type { StructuredChunk, ChunkerOptions } from "./markdown-chunker"
 
 // ============== Embedding Providers ==============
 
@@ -624,41 +536,46 @@ export async function embedItem(item: KnowledgeItem, options: ChunkOptions & { u
   model: string
   provider: EmbeddingProvider
 }> {
-  // 1) 文本准备：title + content + summary
-  const text = [item.title, item.summary || "", item.content || ""].filter(Boolean).join("\n\n")
+  // 1) 文本准备：把 title 提升为 H1，让每个 chunk 都带上标题面包屑。
+  //    这叫 contextual chunk headers —— 「白粉病用什么药」这类省略主语的查询，
+  //    原先召回不到正文里只写「白粉病」的块，带上标题后就能命中。
+  const text = [
+    `# ${item.title}`,
+    item.summary ? `> ${item.summary}` : "",
+    item.content || ""
+  ].filter(Boolean).join("\n\n")
   if (!text.trim()) {
     return { chunkCount: 0, model: "none", provider: "local" }
   }
 
-  // 2) 根据 embedding 模型从 admin knowledgeConfig.chunking.maxTokensByModel 推断 maxTokens
-  //    用户可通过 admin 后台或单次调用 options.maxTokens 覆盖
-  let chunkOpts: ChunkOptions = { ...options }
-  if (!chunkOpts.maxTokens) {
-    const provider = await resolveEmbeddingProvider()
-    const kc = await getKnowledgeConfig()
-    const configured = kc.chunking.maxTokensByModel[provider.model]
-    chunkOpts.maxTokens = configured || kc.chunking.maxTokensByModel["*"] || null
+  // 2) token 上限 = embedding 模型的硬限制 与 admin 配置的块大小目标 取小。
+  //    旧实现直接用 chunkSize 当字符数、再按「1.5 字符/token」折算，
+  //    中文场景低估两倍以上，是 chunk 撑爆 GLM embedding-2 上限的根因。
+  const kc = await getKnowledgeConfig()
+  let modelMaxTokens = options.maxTokens
+  if (!modelMaxTokens) {
+    const providerInfo = await resolveEmbeddingProvider()
+    modelMaxTokens =
+      kc.chunking.maxTokensByModel[providerInfo.model] ||
+      kc.chunking.maxTokensByModel["*"] ||
+      undefined
   }
-  if (chunkOpts.chunkSize === undefined) {
-    const kc = await getKnowledgeConfig()
-    chunkOpts.chunkSize = kc.chunking.chunkSize
-  }
-  if (chunkOpts.chunkOverlap === undefined) {
-    const kc = await getKnowledgeConfig()
-    chunkOpts.chunkOverlap = kc.chunking.chunkOverlap
-  }
-  if (chunkOpts.minChunkSize === undefined) {
-    const kc = await getKnowledgeConfig()
-    chunkOpts.minChunkSize = kc.chunking.minChunkSize
-  }
+  const sizeTarget = options.chunkSize ?? kc.chunking.chunkSize ?? 500
+  // 留 10% 安全余量：估算与真实 tokenizer 总有偏差，卡在模型上限边缘会直接报错
+  const maxTokens = Math.max(120, Math.floor(Math.min(modelMaxTokens ?? Number.POSITIVE_INFINITY, sizeTarget) * 0.9))
 
-  // 3) 分块
-  const chunks = chunkText(text, chunkOpts)
+  // 3) 分块：AST 结构感知（标题层级 / 代码块 / 表格）
+  const chunks = await chunkDocument(text, item.content_type, {
+    maxTokens,
+    minTokens: Math.max(10, Math.floor(maxTokens * 0.05))
+  })
 
-  // 3) 删除旧 chunks
+  // 4) 删除旧 chunks
   await deleteChunksByItem(item.id)
 
-  // 4) 创建新 chunks + 生成 embedding
+  // 5) 创建新 chunks + 生成 embedding
+  //    content 列存干净正文（用于展示与引用），embedding 则用带标题面包屑的 content
+  //    （面包屑只进向量，不污染展示文本）
   let model = "none"
   let provider: EmbeddingProvider = "local"
   for (const c of chunks) {
@@ -666,12 +583,12 @@ export async function embedItem(item: KnowledgeItem, options: ChunkOptions & { u
       item_id: item.id,
       version_id: item.current_version,
       chunk_index: c.index,
-      content: c.content,
+      content: c.rawContent,
       content_hash: c.hash,
       token_count: c.tokenCount,
       start_offset: c.startOffset,
       end_offset: c.endOffset,
-      metadata: null,
+      metadata: c.headingPath.length > 0 ? JSON.stringify({ headingPath: c.headingPath }) : null,
       embedding: null,
       embedding_model: null
     })

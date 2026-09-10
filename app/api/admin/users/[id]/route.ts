@@ -13,6 +13,10 @@ const updateUserSchema = z.object({
   avatar_url: avatarUrlSchema,
   daily_ai_limit: z.number().min(0).optional(),
   ai_balance: z.number().min(0).optional(),
+  /** 个性化月度积分额度（0 = 跟随会员等级默认） */
+  monthly_credit_quota: z.number().min(0).optional(),
+  /** 充值积分余额 */
+  credit_balance: z.number().min(0).optional(),
 });
 
 export async function PUT(

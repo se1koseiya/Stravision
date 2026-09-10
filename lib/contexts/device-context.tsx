@@ -140,6 +140,13 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     refreshDevices()
   }, [refreshDevices])
 
+  // 设备接入工坊「装入莓小智」成功后广播该事件 → 重新拉取设备注册表
+  useEffect(() => {
+    const onChanged = () => { refreshDevices() }
+    window.addEventListener('berry:devices-changed', onChanged)
+    return () => window.removeEventListener('berry:devices-changed', onChanged)
+  }, [refreshDevices])
+
   const startTimeoutCheck = useCallback(() => {
     if (timeoutCheckRef.current) {
       clearTimeout(timeoutCheckRef.current)

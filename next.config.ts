@@ -84,16 +84,29 @@ const nextConfig: NextConfig = {
   // 生产环境由 nginx 反代，不需要这条
   async rewrites() {
     const isDev = process.env.NODE_ENV !== "production";
-    if (!isDev) return [];
-
     const onlyofficeHost = process.env.ONLYOFFICE_URL || "http://localhost:8080";
 
-    return [
-      {
-        source: "/onlyoffice/:path*",
-        destination: `${onlyofficeHost}/:path*`,
-      },
-    ];
+    return {
+      // beforeFiles 的匹配时机早于 public/ 静态文件与 _next 资源，
+      // 因此这里可以把 /logo.png 从静态文件手里"接管"给动态端点：
+      // 管理员在 admin UI 更换应用图标后，全站（favicon、PWA manifest 图标、
+      // 侧边栏品牌位、邮件模板 logo）随之后续请求即时生效，无需重新构建部署。
+      beforeFiles: [
+        {
+          source: "/logo.png",
+          destination: "/api/branding/icon",
+        },
+      ],
+      afterFiles: isDev
+        ? [
+            {
+              source: "/onlyoffice/:path*",
+              destination: `${onlyofficeHost}/:path*`,
+            },
+          ]
+        : [],
+      fallback: [],
+    };
   },
   async headers() {
     const isDev = process.env.NODE_ENV !== "production";

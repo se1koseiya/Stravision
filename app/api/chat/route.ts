@@ -6,10 +6,12 @@ export async function GET() {
   })
 }
 
-import { generateMemoryEnhancedPrompt } from '@/lib/ai/memory-prompt-enhancer'
+import { generateMemoryEnhancedPrompt, extractPreferencesFromMessage } from '@/lib/ai/memory-prompt-enhancer'
 import { getPersonaPrompt } from '@/lib/ai/persona-system'
 import { resolveProvider, normalizeOpenAIChatCompletionsUrl, readProvidersConfig, resolveDefaultModelId } from '@/lib/ai/provider-resolver'
 import { learnFromConversation } from '@/lib/ai/auto-learning-service'
+import { extractMemoriesFromConversation, persistMemories } from '@/lib/ai/memory-extraction-service'
+import { getUserMemoryForPrompt, writeUserMemory, getMemoryKeyLabel } from '@/lib/ai/user-memory-file-service'
 import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
 import { getSummarizationConfig, STEPPER } from '@/lib/constants'
@@ -42,239 +44,8 @@ async function getAIFeaturesConfig(): Promise<AIFeatureConfig | undefined> {
   }
 }
 
-/**
- * 🔥 智能过滤器：拦截裸露的 TASK_LIST JSON
- * 防止 AI 错误输出导致 JSON 暴露在用户界面
- *
- * 重要：只过滤裸露的 JSON，保留正确包裹在 <TASK_LIST> 标签内的 JSON
- *
- * @param chunkContent 当前流式 chunk 的内容
- * @param accumulatedContent 累积的全部内容（用于判断是否已处于 <TASK_LIST> 块内）
- */
-function filterBareTaskListJson(chunkContent: string, accumulatedContent: string = ''): string {
-  if (!chunkContent) return chunkContent
-
-  // 使用累积内容判断是否已经处于 <TASK_LIST> 块内
-  // 如果累积内容中已有 <TASK_LIST> 开标签但还没有 </TASK_LIST> 闭标签，
-  // 说明当前 chunk 是 TASK_LIST 块内部内容，不应过滤
-  const accHasOpenTag = accumulatedContent.includes('<TASK_LIST>')
-  const accHasCloseTag = accumulatedContent.includes('</TASK_LIST>')
-  const chunkHasOpenTag = chunkContent.includes('<TASK_LIST>')
-  const chunkHasCloseTag = chunkContent.includes('</TASK_LIST>')
-
-  // 如果累积内容或当前 chunk 包含 TASK_LIST 标签，说明是正确的格式，不要过滤
-  if (accHasOpenTag || accHasCloseTag || chunkHasOpenTag || chunkHasCloseTag) {
-    return chunkContent
-  }
-
-  // 🔥 关键修复：先识别并保留 schedule_task JSON 代码块
-  // schedule_task JSON 绝不能被 TASK_LIST 过滤器误删
-  // 用占位符替换，过滤完再恢复
-  const scheduleTaskBlocks: string[] = []
-  let stashed = chunkContent
-  stashed = stashed.replace(/```json\s*[\s\S]*?"action"\s*:\s*"schedule_task"[\s\S]*?(?:```|$)/g, (match) => {
-    scheduleTaskBlocks.push(match)
-    return `\x00ST_BLOCK_${scheduleTaskBlocks.length - 1}\x00`
-  })
-
-  // 🔥 关键修复：同时识别并保留自动化策略 JSON
-  // 自动化策略是含 nodes/edges 的图结构，含 triggerNode/logicNode/actionNode
-  // 使用非贪婪匹配直到遇到 ``` 或字符串结尾；不要求 JSON 已闭合（流式支持）
-  const automationBlocks: string[] = []
-  stashed = stashed.replace(/```json\s*[\s\S]*?(?:```|$)/g, (match) => {
-    const jsonText = match.replace(/^```json\s*/, "").replace(/```$/, "").trim()
-    // 任何含策略标记的代码块都保护
-    if (jsonText.includes('"triggerNode"') || jsonText.includes('"logicNode"') || jsonText.includes('"actionNode"')) {
-      automationBlocks.push(match)
-      return `\x00AUTO_BLOCK_${automationBlocks.length - 1}\x00`
-    }
-    return match
-  })
-
-  // 🔥 关键修复：保护无 fence 的裸策略 JSON（如 { "nodes": [...], "edges": [...] }）
-  // 避免被下方的 TASK_LIST 模式误识别（虽然一般不会匹配，但作为保险）
-  stashed = stashed.replace(/\{\s*"(?:nodes|edges)"[\s\S]*?"nodes"\s*:\s*\[[\s\S]*?\}\s*(?=\n|$)/g, (match) => {
-    if (match.includes('"triggerNode"') || match.includes('"logicNode"') || match.includes('"actionNode"')) {
-      automationBlocks.push('```json\n' + match + '\n```')
-      return `\x00AUTO_BLOCK_${automationBlocks.length - 1}\x00`
-    }
-    return match
-  })
-
-  // 只有在没有标签包裹的情况下，才过滤裸露的 JSON
-
-  // 1. 拦截完整的裸露 TASK_LIST JSON 对象
-  // 匹配模式：{ "status": "in_progress", "tasks": [...] }
-  const taskListJsonPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"\s*,\s*"tasks"\s*:\s*\[[\s\S]*?\]\s*\}/g
-  const hasTaskListJson = taskListJsonPattern.test(stashed)
-
-  if (hasTaskListJson) {
-    stashed = stashed.replace(taskListJsonPattern, (match) => {
-      // 二次防御：不能是 schedule_task JSON
-      if (match.includes('"action": "schedule_task"')) return match
-      console.warn('[TASK_LIST Filter] Intercepted BARE TASK_LIST JSON (no tags):', match.slice(0, 100))
-      return '' // 完全移除裸露的 JSON
-    })
-  }
-
-  // 2. 拦截不完整的裸露 TASK_LIST JSON 片段（流式输出时）
-  // 匹配模式：{ "status": "in_progress", "tasks": [{ "id": "task-1"...
-  const incompleteTaskPattern = /\{\s*"status"\s*:\s*"(?:in_progress|completed|pending)"[\s\S]*?(?:"tasks"\s*:\s*\[[\s\S]*)?$/
-  if (incompleteTaskPattern.test(stashed)) {
-    const lastBrace = stashed.lastIndexOf('{')
-    if (lastBrace !== -1) {
-      const potentialJson = stashed.slice(lastBrace)
-      // 二次防御：必须包含 tasks 或 status，且不能是 schedule_task
-      if (
-        (potentialJson.includes('"tasks"') || (potentialJson.includes('"status"') && potentialJson.includes('"in_progress"'))) &&
-        !potentialJson.includes('"action": "schedule_task"')
-      ) {
-        console.warn('[TASK_LIST Filter] Intercepted incomplete BARE TASK_LIST JSON (no tags)')
-        stashed = stashed.slice(0, lastBrace).trim()
-      }
-    }
-  }
-
-  // 还原 schedule_task 代码块
-  const result = stashed.replace(/\x00ST_BLOCK_(\d+)\x00/g, (_, idx) => {
-    return scheduleTaskBlocks[Number(idx)] || ''
-  })
-  // 还原自动化策略代码块
-  return result.replace(/\x00AUTO_BLOCK_(\d+)\x00/g, (_, idx) => {
-    return automationBlocks[Number(idx)] || ''
-  })
-}
-
-/**
- * 🔥 从 AI 回复文本中解析设备控制动作
- *
- * AI 输出设备控制为 JSON 动作（如 {"action":"toggle_relay","device":5,"value":1}），
- * 前端解析后调用 /api/ai/device-control 执行。服务端无法获知执行结果，
- * 但可从"AI 生成了控制指令"这一事实学习用户的使用意图/模式。
- *
- * 仅提取 toggle_relay（设备 5-8）这类有明确 device+value 的动作；
- * set_led / control_camera 等不映射到清晰的开关量，跳过。
- */
-function extractDeviceActionsFromResponse(aiResponse: string): Array<{
-  deviceId: number;
-  action: string;
-  success: boolean;
-  executionTime: number;
-}> {
-  const actions: Array<{ deviceId: number; action: string; success: boolean; executionTime: number }> = [];
-
-  // 匹配 ```json ... ``` 代码块内的 toggle_relay JSON，以及裸露的 toggle_relay JSON
-  const toggleRelayPattern = /\{\s*"action"\s*:\s*"toggle_relay"\s*,\s*"device"\s*:\s*(\d+)\s*,\s*"value"\s*:\s*(\d+)\s*\}/g;
-  let match: RegExpExecArray | null;
-  while ((match = toggleRelayPattern.exec(aiResponse)) !== null) {
-    const deviceId = parseInt(match[1]);
-    const value = parseInt(match[2]);
-    // 仅保留继电器设备 ID 范围内的动作（5-8）
-    if (deviceId >= 5 && deviceId <= 8) {
-      actions.push({
-        deviceId,
-        action: JSON.stringify({ value }),
-        success: true, // 乐观标记：指令已生成，执行结果未知，按"意图达成"学习
-        executionTime: 0
-      });
-    }
-  }
-
-  return actions;
-}
-
-/** 旧版 JSON 设备控制指令的 action 集合（新架构已改为原生 tool_call） */
-const LEGACY_DEVICE_ACTIONS = ['toggle_relay', 'set_led', 'control_camera', 'reset_camera'] as const;
-
-/**
- * 🔥 从 AI 回复文本中提取旧版 JSON 设备控制指令（```json {"action":"toggle_relay",...}``` 或裸露内联 JSON）。
- *
- * 用途：当模型未走原生 tool_call、而是模仿旧格式输出文本 JSON 时，
- * 服务端据此合成真实工具调用并执行，避免"只说不做"。
- * 返回的动作已按 name+参数去重。
- */
-function extractLegacyDeviceControlCalls(text: string): Array<{ name: string; arguments: Record<string, any> }> {
-  const calls: Array<{ name: string; arguments: Record<string, any> }> = [];
-  if (!text || !text.includes('"action"')) return calls;
-
-  const seen = new Set<string>();
-  const tryAdd = (raw: string) => {
-    let data: any;
-    try { data = JSON.parse(raw) } catch { return }
-    if (!data || typeof data !== 'object') return;
-    const action = data.action;
-    if (typeof action !== 'string' || !(LEGACY_DEVICE_ACTIONS as readonly string[]).includes(action)) return;
-
-    let args: Record<string, any> | null = null;
-    if (action === 'toggle_relay') {
-      const value = Number(data.value);
-      if (value !== 0 && value !== 1) return;
-      args = { value };
-      if (typeof data.device_id === 'number') args.device_id = data.device_id;
-      else if (typeof data.device === 'number' && data.device >= 5 && data.device <= 8) args.device = data.device;
-      else return; // 无有效设备标识，跳过
-    } else if (action === 'set_led') {
-      const { r, g, b } = data;
-      if ([r, g, b].some(v => typeof v !== 'number' || v < 0 || v > 255)) return;
-      args = { r, g, b };
-    } else if (action === 'control_camera') {
-      const direction = Number(data.direction);
-      if (![0, 1, 2].includes(direction)) return;
-      args = { direction };
-      if (typeof data.distance_mm === 'number' && data.distance_mm >= 0 && data.distance_mm <= 700) {
-        args.distance_mm = data.distance_mm;
-      }
-    } else if (action === 'reset_camera') {
-      args = {};
-    }
-    if (!args) return;
-
-    const key = `${action}:${JSON.stringify(args)}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    calls.push({ name: action, arguments: args });
-  };
-
-  // 1) ```json 代码块内的动作 JSON
-  const codeBlockRegex = /```(?:json)?\s*\n?([\s\S]*?)```/g;
-  let m: RegExpExecArray | null;
-  while ((m = codeBlockRegex.exec(text)) !== null) {
-    const block = m[1].trim();
-    if (block.startsWith('{')) tryAdd(block);
-  }
-
-  // 2) 裸露的内联动作 JSON（无代码块包裹）
-  const inlineRegex = /\{\s*"action"\s*:\s*"(?:toggle_relay|set_led|control_camera|reset_camera)"[^{}]*\}/g;
-  while ((m = inlineRegex.exec(text)) !== null) {
-    tryAdd(m[0]);
-  }
-
-  return calls;
-}
-
-/**
- * 🔥 清洗历史 assistant 消息中的旧版 JSON 设备控制指令。
- *
- * 旧架构让 AI 输出 ```json {"action":"toggle_relay",...}``` 代码块由前端解析执行，
- * 该链路已移除；若这些样例原样回喂，模型会 few-shot 模仿旧格式继续输出文本 JSON
- * 而不走原生 tool_call（表现为"只说不做"）。这里替换为中性描述以消除污染。
- */
-function sanitizeLegacyDeviceControlMessages(messages: any[]): any[] {
-  const actionAlt = [...LEGACY_DEVICE_ACTIONS, 'move_camera_and_look', 'take_camera_snapshot'].join('|');
-  const codeBlockRegex = new RegExp(
-    '```(?:json)?\\s*\\n?(\\{[\\s\\S]*?"action"\\s*:\\s*"(?:' + actionAlt + ')"[\\s\\S]*?\\})\\s*\\n?```',
-    'g'
-  );
-  const inlineRegex = new RegExp('\\{\\s*"action"\\s*:\\s*"(?:' + actionAlt + ')"[^{}]*\\}', 'g');
-
-  return messages.map((m: any) => {
-    if (m?.role !== 'assistant' || typeof m.content !== 'string' || !m.content.includes('"action"')) return m;
-    const content = m.content
-      .replace(codeBlockRegex, '[设备控制指令（历史记录，已通过工具调用执行）]')
-      .replace(inlineRegex, '[设备控制指令（历史记录）]');
-    return content === m.content ? m : { ...m, content };
-  });
-}
+// 响应过滤器与旧版设备指令清洗逻辑已抽至 lib/ai/agent-loop/response-filters.ts（可单测）
+import { filterBareTaskListJson, extractDeviceActionsFromResponse, extractLegacyDeviceControlCalls, sanitizeLegacyDeviceControlMessages } from '@/lib/ai/agent-loop/response-filters'
 
 export async function POST(req: Request) {
   // 这两个变量在 try 外声明，以便外层 catch 能访问并退还配额
@@ -376,6 +147,12 @@ export async function POST(req: Request) {
 
     // 流结束时结算积分并推送 credit_usage 事件（气泡下方显示消耗）
     // outputText：本分支累计的输出文本（上游未返回 usage 时本地估算）
+    //
+    // 🔥 估算关键：不 JSON.stringify 整个 messages 数组 —— 视觉巡检工具（take_camera_snapshot
+    // 等）会把 base64 图片塞进 tool 消息的 content 里，JSON 化后单张图就能膨胀成几兆字符，
+    // 按 estimateTokens 的 0.3/字符 算成数万 token，扣费失控（典型异常：13376.21）。
+    // 改为只提取 messages 中"语言文本"字段（content 字符串 / content[].type=='text'）拼接，
+    // 天然跳过 base64 image_url 等非语言结构。再叠加 estimateTokens 内部的 base64 剥离兜底。
     const emitCreditEvent = async (
       controller: ReadableStreamDefaultController<Uint8Array>,
       encoder: TextEncoder,
@@ -388,7 +165,27 @@ export async function POST(req: Request) {
         let estimated = false
         if (!usageTracker.hasReal) {
           estimated = true
-          inputTokens = estimateTokens(JSON.stringify(messages || []))
+          let inputText = ''
+          for (const m of (messages || []) as any[]) {
+            if (!m || typeof m !== 'object') continue
+            const c = m.content
+            if (typeof c === 'string') {
+              inputText += c + '\n'
+            } else if (Array.isArray(c)) {
+              for (const part of c) {
+                if (part && part.type === 'text' && typeof part.text === 'string') {
+                  inputText += part.text + '\n'
+                }
+              }
+            }
+            // assistant 的 tool_calls.arguments 也要计入（多轮结构化推理依赖）
+            if (Array.isArray(m.tool_calls)) {
+              for (const tc of m.tool_calls) {
+                if (tc?.function?.arguments) inputText += String(tc.function.arguments) + '\n'
+              }
+            }
+          }
+          inputTokens = estimateTokens(inputText)
           outputTokens = estimateTokens(outputText || '')
         }
         const result = await settleCredits(user.id as number, inputTokens, outputTokens, effectiveModel || 'auto', estimated, customModels)
@@ -398,14 +195,123 @@ export async function POST(req: Request) {
       }
     }
 
+    /**
+     * 🔥 记忆提取与持久化（在所有流式路径结束时调用，让"AI 记住你"对任何消息都生效）
+     *
+     * 之前只挂在 Multi-Round Agent Loop 路径，导致简单对话（无工具关键词/提及/图片）的
+     * 普通流式路径完全跳过记忆提取，用户感知不到"AI 记得我"。
+     */
+    const extractAndPersistMemory = async (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+      encoder: TextEncoder,
+      aiResponseText: string,
+      deviceStatus?: any,
+    ) => {
+      const savedMemories: Array<{ key: string; value: string }> = []
+      try {
+        // 提取最近 5 条用户消息（按时间升序）
+        const recentUserTexts = messages
+          .filter((m: any) => m.role === 'user')
+          .slice(-5)
+          .map((m: any) =>
+            typeof m.content === 'string'
+              ? m.content
+              : (Array.isArray(m.content) ? m.content.find((c: any) => c.type === 'text')?.text || '' : '')
+          )
+          .filter((t: string) => t && t.trim())
+
+        // 从 AI 回复解析设备动作（普通路径可能没有此上下文，容错处理）
+        let deviceActions: any[] = []
+        try {
+          deviceActions = extractDeviceActionsFromResponse(aiResponseText)
+        } catch { /* ignore */ }
+
+        // 环境数据
+        const environmentData: { temperature?: number; humidity?: number; timeOfDay?: number } = {
+          timeOfDay: new Date().getHours(),
+        }
+        if (deviceStatus && typeof deviceStatus === 'object') {
+          if (typeof deviceStatus.temperature === 'number') environmentData.temperature = deviceStatus.temperature
+          if (typeof deviceStatus.humidity === 'number') environmentData.humidity = deviceStatus.humidity
+        }
+
+        // 并行：LLM 提取 + 正则兜底 + 自动学习（设备模式）
+        await Promise.all([
+          (async () => {
+            try {
+              const extracted = await extractMemoriesFromConversation(recentUserTexts, aiResponseText)
+              if (extracted.memories.length > 0) {
+                const saved = await persistMemories(user.id as number, extracted)
+                await writeUserMemory(user.id as number, extracted.memories.map(m => ({ key: m.key, value: m.value })))
+                for (const m of extracted.memories) {
+                  if (m.confidence >= 0.6 && !savedMemories.some(s => s.key === m.key)) {
+                    savedMemories.push({ key: m.key, value: m.value })
+                  }
+                }
+                if (saved > 0) {
+                  console.log(`[MemoryExtraction] Learned ${saved} memory entries: ${extracted.summary}`)
+                }
+              }
+              // 兜底：正则提取姓名
+              const regexPrefs = extractPreferencesFromMessage(recentUserTexts.join('\n'), aiResponseText)
+              const namePref = regexPrefs.find(p => p.key === 'user_name')
+              if (namePref) {
+                await writeUserMemory(user.id as number, [{ key: 'user_name', value: namePref.value }])
+                if (!savedMemories.some(s => s.key === 'user_name')) {
+                  savedMemories.push({ key: 'user_name', value: namePref.value })
+                }
+                console.log(`[MemoryExtraction] Regex captured user_name: ${namePref.value}`)
+              }
+            } catch (e) {
+              console.error('[MemoryExtraction] Failed:', e)
+            }
+          })(),
+          // 自动学习设备模式（容错）
+          (async () => {
+            try {
+              await learnFromConversation({
+                userId: user.id as number,
+                userMessage: recentUserTexts.join('\n'),
+                aiResponse: aiResponseText,
+                deviceActions: deviceActions.length > 0 ? deviceActions : undefined,
+                environmentData
+              })
+            } catch (e) {
+              console.error('[AutoLearning] Failed:', e)
+            }
+          })()
+        ])
+
+        // 推送 memory_saved 事件给前端
+        if (savedMemories.length > 0) {
+          const memoriesWithLabel = savedMemories.map(m => ({ key: m.key, label: getMemoryKeyLabel(m.key), value: m.value }))
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'memory_saved', memories: memoriesWithLabel })}\n\n`))
+          console.log(`[MemoryExtraction] Pushed memory_saved event: ${savedMemories.map(m => m.key).join(', ')}`)
+        }
+      } catch (e) {
+        console.error('[MemoryExtraction] Top-level failed:', e)
+      }
+    }
+
     // 请求前配额检查
+    // 🔥 诊断日志：排查「额度耗尽仍能聊天」时，先确认检查是否被跳过（useSystemKey=false）
+    //    以及积分制实际算出多少剩余。定位完成后可保留（量很小）。
+    //    注：resolved 在此处被 TS 收窄为 never（上方 if/else 已穷尽分支），需断言取值。
+    const _resolvedProviderId = (resolved as { providerId?: string } | null)?.providerId ?? 'null'
+    console.log(
+      `[Quota] check: userId=${user.id} useSystemKey=${useSystemKey} ` +
+      `creditsEnabled=${creditsEnabled} userApiKey=${userApiKey ? 'PROVIDED' : 'NONE'} ` +
+      `resolvedProvider=${_resolvedProviderId}`
+    )
     if (useSystemKey) {
       if (creditsEnabled) {
         // 积分制：检查月度额度 + 充值余额（不预扣，流结束按实际结算）
         const denyReason = await checkCreditAllowance(user.id as number)
         if (denyReason) {
+          console.log(`[Quota] DENIED (credits): ${denyReason}`)
           return Response.json({ error: `${denyReason}。` }, { status: 403 })
         }
+        console.log(`[Quota] allowed (credits passed)`)
       } else {
         // 旧按次配额：原子预扣
         quotaReserved = await reserveAiUsage(user.id as number)
@@ -425,7 +331,13 @@ export async function POST(req: Request) {
             { status: 403 }
           )
         }
+        console.log(`[Quota] allowed (legacy quota reserved)`)
       }
+    } else {
+      console.warn(
+        `[Quota] SKIPPED: useSystemKey=false —— 本次请求不检查也不扣减平台额度 ` +
+        `(userApiKey=${userApiKey ? 'PROVIDED' : 'NONE'}, resolved=${_resolvedProviderId})`
+      )
     }
 
 
@@ -560,11 +472,27 @@ export async function POST(req: Request) {
         if (!cleanQuery) {
           cleanQuery = explicitCollectionRef || explicitItemRef || lastUserText
         }
-        const contexts = await getRelevantContext(user.id, cleanQuery, {
-          maxChunks: 4,
-          maxChunkLength: 600,
-          collectionId: effectiveCollectionId
-        })
+        // 🔥 首字延迟优化：知识检索（含 embedding 调用 / rerank）在主 LLM 之前同步执行，
+        // 一旦上游慢就会把首字延迟整体拖高。这里加一个硬上限保险丝：
+        // 超时就放弃知识库上下文，让主流程立刻继续，不陪着一起卡。
+        const KB_SEARCH_TIMEOUT_MS = 4000
+        const kbStart = Date.now()
+        const contexts = await Promise.race([
+          getRelevantContext(user.id, cleanQuery, {
+            maxChunks: 4,
+            maxChunkLength: 600,
+            collectionId: effectiveCollectionId
+          }),
+          new Promise<Array<any>>((resolve) =>
+            setTimeout(() => {
+              console.warn(`[Chat API] knowledge search exceeded ${KB_SEARCH_TIMEOUT_MS}ms, skipping context injection`)
+              resolve([])
+            }, KB_SEARCH_TIMEOUT_MS)
+          ),
+        ])
+        if (Date.now() - kbStart > 1500) {
+          console.warn(`[Chat API] knowledge search slow: ${Date.now() - kbStart}ms`)
+        }
         if (contexts.length > 0) {
           const ctxText = contexts.map((c, i) =>
             `[${i + 1}] 《${c.itemTitle}》 (相关度 ${(c.score * 100).toFixed(0)}%)\n${c.content}`
@@ -624,7 +552,7 @@ export async function POST(req: Request) {
 
     // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
     // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
-    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "湿度", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页", "历史", "趋势", "变化", "过去", "昨天", "最近", "一周", "几天", "几个小时", "土壤", "氮磷钾", "肥力", "检索", "查询", "查查", "说说", "告诉我", "学习", "研究", "诊断", "判断", "规范", "指南", "管理标准", "最新", "近期", "现在", "当前", "今天", "网上", "互联网", "资料", "信息", "调控", "参数", "巡检"]
+    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "湿度", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页", "历史", "趋势", "变化", "过去", "昨天", "最近", "一周", "几天", "几个小时", "土壤", "氮磷钾", "肥力", "检索", "查询", "查查", "说说", "告诉我", "学习", "研究", "诊断", "判断", "规范", "指南", "管理标准", "最新", "近期", "现在", "当前", "今天", "网上", "互联网", "资料", "信息", "调控", "参数", "巡检", "我叫", "我是", "你可以叫我", "喊我", "称呼我", "叫我", "记住", "记着", "别忘了", "别忘", "我改名", "你记错", "记错", "我姓", "我的名字"]
     const hasToolKeyword = toolKeywords.some(k => lastUserText.toLowerCase().includes(k))
     const hasToolMention = /@[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(lastUserText)
     const hasToolImage = Array.isArray(lastUserContent) && lastUserContent.some((c:any) => c.type === 'image_url')
@@ -862,39 +790,79 @@ export async function POST(req: Request) {
       contextInfo += `\n\n## 当前天气信息\n暂时无法获取天气数据。\n`
     }
 
-    // 注入当前定时任务列表
-    try {
-      const tasks = await getAllTasks()
-      const tasksContext = tasks.map((t: any) => ({
-        id: t.id,
-        title: t.title,
-        cron: t.cron_expression,
-        execute_at: t.execute_at ? new Date(t.execute_at).toLocaleString('zh-CN') : null,
-        action_type: t.action_type,
-        device_id: t.device_id,
-        active: t.is_active === 1
-      }))
+    // 🔥 首字延迟优化：定时任务列表（DB）与记忆增强（3 个 DB 查询，内部已并行）
+    // 两组操作互不依赖，原本串行 await 要叠加等待，改 Promise.all 一次跑完。
+    const _ctxStart = Date.now()
+    const [tasksSection, memoryPrompt] = await Promise.all([
+      // 注入当前定时任务列表
+      (async () => {
+        try {
+          const tasks = await getAllTasks()
+          const tasksContext = tasks.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            cron: t.cron_expression,
+            execute_at: t.execute_at ? new Date(t.execute_at).toLocaleString('zh-CN') : null,
+            action_type: t.action_type,
+            device_id: t.device_id,
+            active: t.is_active === 1
+          }))
+          return `\n\n## 当前系统中的定时任务（这是真实的数据库记录，以此为准）\n\`\`\`json\n${JSON.stringify(tasksContext, null, 2)}\n\`\`\`\n`
+        } catch (e) {
+          console.error("Failed to fetch tasks for context:", e)
+          return ''
+        }
+      })(),
+      // === 记忆增强：注入用户画像（md 文件为唯一真相源）===
+      (async () => {
+        try {
+          // 🔥 核心：直接读用户 md 记忆文件（data/user-memory/<userId>.md），
+          // 这是最可靠、最直接的跨会话记忆来源，不受 db 排序/截断影响
+          const memoryMd = await getUserMemoryForPrompt(user.id as number)
+          if (memoryMd) {
+            // md 文件里有记忆 → 直接注入，并明确要求 AI 用记住的信息（尤其姓名）自然称呼用户
+            enhancedSystemPrompt = `${enhancedSystemPrompt}
 
-      contextInfo += `\n\n## 当前系统中的定时任务（这是真实的数据库记录，以此为准）\n\`\`\`json\n${JSON.stringify(tasksContext, null, 2)}\n\`\`\`\n`
-    } catch (e) {
-      console.error("Failed to fetch tasks for context:", e)
-    }
+## 👤 用户记忆档案（AI 已记住的关于用户的信息，务必在回答时自然体现）
+${memoryMd}
 
-    // === 记忆增强：注入用户偏好和历史模式 ===
-    try {
-      enhancedSystemPrompt = await generateMemoryEnhancedPrompt(enhancedSystemPrompt, {
-        userId: user.id as number,
-        includePreferences: true,
-        includeDevicePatterns: true,
-        includeStrategies: true,
-        maxPreferences: 3,
-        maxPatterns: 2,
-        maxStrategies: 2
-      });
-      console.log('[Memory] Enhanced system prompt with user memory');
-    } catch (e) {
-      console.error('[Memory] Failed to enhance prompt with memory:', e);
-    }
+💡 重要：以上是你在历史对话中记住的用户信息。请自然地使用它们——
+- 若记住了用户称呼（如"小朱"），回复时偶尔自然地称呼用户（如"小朱，今天的温度…"），让用户感受到被记住
+- 若记住了大棚/品种等信息，可在相关话题中自然提及（如"你1号棚的红颜草莓…"）`
+          }
+
+          // 🔥 记忆工具指令（无条件注入）：引导 AI 主动调用 remember_user_info 等工具管理记忆
+          enhancedSystemPrompt = `${enhancedSystemPrompt}
+
+## 🧠 记忆管理工具（主动记住/更新/删除用户信息）
+你可以调用以下工具来管理关于当前用户的长期记忆（这些记忆会跨对话持久保留）：
+- remember_user_info(key, value)：当用户在对话中透露出稳定个人信息时调用。例如用户说"我叫小朱"→ remember_user_info(key="user_name", value="小朱")；"我种红颜草莓"→ remember_user_info(key="strawberry_variety", value="红颜")；"我在1号棚"→ remember_user_info(key="greenhouse_info", value="1号棚")。
+- 当用户在【纠正】之前记住的信息时，也用 remember_user_info 覆盖：如"你记错了，我叫小朱不叫小张"→ remember_user_info(key="user_name", value="小朱")（传纠正后的正确值即可，系统自动覆盖旧值）。
+- list_user_memory()：用户问"你记得我什么/我叫什么"时先查再答。
+- forget_user_info(key)：用户说"别记了/删掉/忘记我名字"时调用。
+
+注意：只记"稳定、跨对话有价值"的信息，不要记临时指令（如"帮我开风扇"）。`
+          // 仍用 db 记忆补充设备模式/成功策略（这些是动态统计，md 不存）
+          const p = await generateMemoryEnhancedPrompt(enhancedSystemPrompt, {
+            userId: user.id as number,
+            includePreferences: true,
+            includeDevicePatterns: true,
+            includeStrategies: true,
+            maxPreferences: 3,
+            maxPatterns: 2,
+            maxStrategies: 2
+          })
+          return p
+        } catch (e) {
+          console.error('[Memory] Failed to enhance prompt with memory:', e)
+          return enhancedSystemPrompt
+        }
+      })(),
+    ])
+    contextInfo += tasksSection
+    enhancedSystemPrompt = memoryPrompt
+    const _ctxMs = Date.now() - _ctxStart
+    if (_ctxMs > 500) console.warn(`[Chat API] tasks+memory context slow: ${_ctxMs}ms`)
 
     // 🔥 Token 优化：按需注入报告生成指令（仅在用户请求报告时加载完整模板）
     const reportKeywords = ['报告', '导出报告', '生成报告', '分析报告', 'report']
@@ -1555,7 +1523,17 @@ export async function POST(req: Request) {
             deviceData: deviceStatus,
             weatherData,
             mcpConfigs,
-            appUrl
+            appUrl,
+            // 对话式深度研究：deep_research 各阶段进度实时推到前端思维链
+            onProgress: (stage: string, detail?: string) => {
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `research-progress-${Date.now()}`, object: "chat.completion.chunk",
+                  created: Date.now(), model: effectiveModel,
+                  research_progress: { stage, detail }
+                })}\n\n`))
+              } catch { /* 流已关闭，忽略 */ }
+            }
           };
 
           console.log(`[Orchestrator] Initialized for user ${user.id}, session ${sessionId}`);
@@ -1625,6 +1603,9 @@ export async function POST(req: Request) {
               }
 
               console.log(`[Agent Loop] Calling LLM (streaming) with ${cleanMessages.length} messages...`)
+              // 🔥 首字延迟观测：记录本轮 LLM 请求发出时刻，首个 chunk 到达时打 TTFT 日志，
+              // 用来区分「服务端预处理慢」还是「模型本身首 token 慢」。
+              const _llmReqStart = Date.now()
               // LLM 调用超时保护：90s 无响应则中止（流式场景需较长阈值）
               const llmTimeoutController = new AbortController()
               const llmTimeoutId = setTimeout(() => llmTimeoutController.abort(), 90000)
@@ -1694,6 +1675,7 @@ export async function POST(req: Request) {
               let currentToolCalls: any[] = []
               let accumulatedContent = ""
               let agentRoundOutput = ""
+              let _ttftLogged = false
 
               while (true) {
                 // 超时保护：防止 LLM 返回 200 但 body 流卡住导致 Agent Loop 无限阻塞
@@ -1706,6 +1688,13 @@ export async function POST(req: Request) {
                 ])
                 const { done, value } = readResult
                 if (done) break
+
+                // 🔥 首字延迟观测：只打一次本轮 LLM 的首个响应耗时（TTFT）
+                if (!_ttftLogged) {
+                  _ttftLogged = true
+                  const _ttft = Date.now() - _llmReqStart
+                  console.log(`[Chat API] TTFT ${_ttft}ms (model=${effectiveModel}, iteration=${iteration})`)
+                }
                 
                 buffer += decoder.decode(value, { stream: true })
                 const lines = buffer.split("\n")
@@ -2088,7 +2077,17 @@ export async function POST(req: Request) {
                   // 🔥 多模态工具结果处理：摄像头截图等工具返回 _multimodal.images
                   // 将 tool 消息内容转为 OpenAI Vision 格式（content 数组含 text + image_url），
                   // 让模型在下一轮 Agent Loop 迭代中能"看到"图片并基于其内容推理。
-                  const toolData = result.success ? result.data : { error: result.error }
+                  // 🔥 Bug 修复：原写法 `result.success ? result.data : { error: result.error }`
+                  // 当工具 success=false 但没设 error 时（如锻造自测未达标存草稿），
+                  // 会变成 JSON.stringify({ error: undefined }) === "{}"，
+                  // 模型只收到空对象，看不到任何失败原因与业务卡片。
+                  // 现在：失败时保留 data（含 note / ui_card），并保证 error 一定有值。
+                  const toolData = result.success
+                    ? result.data
+                    : {
+                        ...(result.data ?? {}),
+                        error: result.error || result.data?.error || '工具执行失败（未提供错误信息）',
+                      }
                   const multimodal = result.success && isMultimodal(result.data)
                   const mmImages = multimodal ? result.data._multimodal.images : []
                   const mmSummary = multimodal ? result.data._multimodal.summary : ''
@@ -2098,7 +2097,7 @@ export async function POST(req: Request) {
                   const frontendResult: any = { ...toolData }
                   if (multimodal) {
                     delete frontendResult._multimodal
-                    frontendResult.images = mmImages.map(img => ({
+                    frontendResult.images = mmImages.map((img: any) => ({
                       url: `data:${img.mime_type};base64,${img.base64}`,
                       summary: mmSummary
                     }))
@@ -2322,7 +2321,13 @@ export async function POST(req: Request) {
                     for (const [toolCallId, result] of toolResults.entries()) {
                       const toolCall = syntheticToolCalls.find(tc => tc.id === toolCallId)
                       if (!toolCall) continue
-                      const toolData = result.success ? result.data : { error: result.error }
+                      // 同上：保留 data 并保证 error 非空，避免模型收到 "{}"
+                      const toolData = result.success
+                        ? result.data
+                        : {
+                            ...(result.data ?? {}),
+                            error: result.error || result.data?.error || '工具执行失败（未提供错误信息）',
+                          }
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                         id: `tool-result-${Date.now()}`,
                         object: 'chat.completion.chunk',
@@ -2579,6 +2584,8 @@ export async function POST(req: Request) {
             clearInterval(keepAlive)
             // 积分结算：按本轮真实 usage（或估算）扣积分并推送 credit_usage 事件
             await emitCreditEvent(controller, encoder, agentOutputText)
+            // 记忆提取：在 [DONE] 之前执行并推送 memory_saved 事件（前端收到 [DONE] 后仍会 continue 读取）
+            await extractAndPersistMemory(controller, encoder, agentOutputText, deviceStatus)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
             // 生成性能报告并记录
@@ -2589,42 +2596,7 @@ export async function POST(req: Request) {
               toolStats
             });
 
-            // === 自动学习：从对话中学习用户偏好和模式 ===
-            try {
-              const aiResponseText = fullMessages.filter(m => m.role === 'assistant').map(m => m.content).join('\n');
-              // 🔥 从 AI 回复中解析设备控制动作，让设备模式学习真正触发
-              const deviceActions = extractDeviceActionsFromResponse(aiResponseText);
-              // 🔥 从当前设备状态提取环境数据，让"环境响应模式"识别有真实依据
-              const environmentData: {
-                temperature?: number;
-                humidity?: number;
-                timeOfDay?: number;
-              } = {};
-              if (deviceStatus && typeof deviceStatus === 'object') {
-                if (typeof deviceStatus.temperature === 'number') {
-                  environmentData.temperature = deviceStatus.temperature;
-                }
-                if (typeof deviceStatus.humidity === 'number') {
-                  environmentData.humidity = deviceStatus.humidity;
-                }
-              }
-              environmentData.timeOfDay = new Date().getHours();
-
-              await learnFromConversation({
-                userId: user.id as number,
-                userMessage: lastUserText,
-                aiResponse: aiResponseText,
-                deviceActions: deviceActions.length > 0 ? deviceActions : undefined,
-                environmentData
-              });
-              if (deviceActions.length > 0) {
-                console.log(`[AutoLearning] Learned from conversation (${deviceActions.length} device actions)`);
-              } else {
-                console.log('[AutoLearning] Learned from conversation (preferences only)');
-              }
-            } catch (e) {
-              console.error('[AutoLearning] Failed to learn from conversation:', e);
-            }
+            // 记忆提取已在 [DONE] 之前通过 extractAndPersistMemory 完成
 
             // 清理编排器
             globalOrchestratorManager.unregister(sessionId);
@@ -2783,6 +2755,7 @@ export async function POST(req: Request) {
                 }
               }
               await emitCreditEvent(controller, encoder, acc)
+              await extractAndPersistMemory(controller, encoder, acc, deviceStatus)
               controller.enqueue(encoder.encode("data: [DONE]\n\n"))
               controller.close()
             } catch (e) { controller.error(e instanceof Error ? e : new Error(String(e))) }
@@ -2843,6 +2816,7 @@ export async function POST(req: Request) {
             // 积分结算（非 SSE 完整响应：usage 在顶层 JSON）
             trackUsage(data?.usage)
             await emitCreditEvent(controller, encoder, content)
+            await extractAndPersistMemory(controller, encoder, content, deviceStatus)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
           }
@@ -2953,6 +2927,7 @@ export async function POST(req: Request) {
               }
             }
             await emitCreditEvent(controller, encoder, acc)
+            await extractAndPersistMemory(controller, encoder, acc, deviceStatus)
             controller.enqueue(encoder.encode("data: [DONE]\n\n"))
             controller.close()
           } catch (error) { controller.error(error) }
@@ -3021,6 +2996,7 @@ export async function POST(req: Request) {
             }
             // 积分结算：直通转发分支（usage 已在行解析时追踪）
             await emitCreditEvent(controller, encoder, accumulatedContent)
+            await extractAndPersistMemory(controller, encoder, accumulatedContent, deviceStatus)
             controller.close()
           } catch (e) {
             // 流传输失败 → 退还预扣配额

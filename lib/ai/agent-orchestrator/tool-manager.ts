@@ -44,6 +44,14 @@ const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {
   move_camera_and_look: 120000, // 移动 + 截图组合
   // 任务管理（builtin-agent-tasks）
   update_task: 5000,            // 内存操作，应快速响应
+  // 深度研究（builtin-deep-research）：多轮 LLM + 搜索 + 抓正文，实测 1-3 分钟，给足 8 分钟
+  deep_research: 480000,
+  web_search: 30000,            // 单次联网检索应快速返回，卡住 30s 即视为失败
+  // 技能工坊（builtin-skill-forge）：分析→生成→彩排→评分多轮 LLM，最坏再跑 1 轮自动修订。
+  // 管线内部有 300s 总预算兜底（到点收敛输出草稿），外层给 7 分钟防止被默认 60s 打断。
+  // 注意：必须大于管线预算，否则预算还没兜住就被这里判超时。
+  create_skill_from_doc: 480000,
+  refine_skill: 480000,
 };
 
 /**
@@ -57,6 +65,13 @@ const NO_RETRY_TOOLS = new Set([
   'take_camera_snapshot', 'move_camera_and_look',
   // update_task 也禁止重试：状态变更已生效，重试会重复触发自动推进逻辑
   'update_task',
+  // deep_research 禁止重试：Promise.race 超时不会取消后台执行，
+  // 研究可能在超时后仍完成入库，重试会导致重复研究 + 重复入库
+  'deep_research',
+  // 技能工坊禁止重试：同理，Promise.race 超时不取消后台管线，
+  // 重试会导致整条锻造管线重跑（多次 LLM 调用 + 可能重复注册技能）
+  'create_skill_from_doc',
+  'refine_skill',
 ]);
 
 /**
@@ -107,21 +122,51 @@ export class ToolManager {
           agentContext
         );
 
-        // 记录成功
-        if (finalConfig.enableLogging) {
-          this.logExecution({
-            toolCall,
-            result,
-            attempt,
-            executionTime: Date.now() - startTime,
-            status: 'success',
-            timestamp: Date.now()
-          });
+        if (result.success) {
+          // 记录成功
+          if (finalConfig.enableLogging) {
+            this.logExecution({
+              toolCall,
+              result,
+              attempt,
+              executionTime: Date.now() - startTime,
+              status: 'success',
+              timestamp: Date.now()
+            });
+          }
+
+          console.log(`[ToolManager] Tool ${toolCall.name} executed successfully`);
+          return result;
         }
 
-        console.log(`[ToolManager] Tool ${toolCall.name} executed successfully`);
-        return result;
+        // 工具级失败：executeToolInternal 已把异常收敛成 success:false，
+        // 若不在此再判一次，重试机制就只对超时生效，对工具内部错误完全失效。
+        const toolError = new Error(result.error || 'Unknown tool error');
 
+        if (!this.shouldRetry(toolError, attempt, finalConfig.maxRetries, toolCall.name)) {
+          console.log(`[ToolManager] Not retrying ${toolCall.name}`);
+          if (finalConfig.enableLogging) {
+            this.logExecution({
+              toolCall,
+              result,
+              error: toolError,
+              attempt,
+              executionTime: Date.now() - startTime,
+              status: 'failed',
+              timestamp: Date.now()
+            });
+          }
+          return result;
+        }
+
+        lastError = toolError;
+
+        // 指数退避
+        if (attempt < finalConfig.maxRetries) {
+          const delay = finalConfig.retryDelay * Math.pow(2, attempt);
+          console.log(`[ToolManager] Retrying ${toolCall.name} after ${delay}ms`);
+          await this.sleep(delay);
+        }
       } catch (error) {
         lastError = error as Error;
         console.warn(`[ToolManager] Tool ${toolCall.name} failed on attempt ${attempt + 1}:`, error);
@@ -170,10 +215,17 @@ export class ToolManager {
     timeout: number,
     agentContext?: AgentToolContext
   ): Promise<ToolResult> {
-    return Promise.race([
-      this.executeToolInternal(toolCall, mcpConfigs, appUrl, agentContext),
-      this.createTimeoutPromise(timeout, toolCall.name)
-    ]);
+    const timer = this.createTimeoutController(timeout, toolCall.name);
+    try {
+      return await Promise.race([
+        this.executeToolInternal(toolCall, mcpConfigs, appUrl, agentContext),
+        timer.promise
+      ]);
+    } finally {
+      // 竞态结束后必须清理定时器：否则倒计时到点仍会 reject，
+      // 而此时已无人监听该 promise，产生 unhandled rejection（可直接打挂 Node 进程）
+      timer.cancel();
+    }
   }
 
   /**
@@ -214,14 +266,24 @@ export class ToolManager {
   }
 
   /**
-   * 创建超时 Promise
+   * 创建可取消的超时 Promise
+   *
+   * 返回 promise + cancel 句柄：调用方必须在竞态结束后 cancel，
+   * 否则定时器会持续持有闭包并可能在无人监听时 reject。
    */
-  private createTimeoutPromise(timeout: number, toolName: string): Promise<never> {
-    return new Promise((_, reject) => {
-      setTimeout(() => {
+  private createTimeoutController(timeout: number, toolName: string): { promise: Promise<never>; cancel: () => void } {
+    let handle: ReturnType<typeof setTimeout>;
+    const promise = new Promise<never>((_, reject) => {
+      handle = setTimeout(() => {
         reject(new Error(`Tool ${toolName} execution timeout after ${timeout}ms`));
       }, timeout);
     });
+    // 预先挂载空 catch：竞态胜出后本 promise 的 rejection 不会变成 unhandled rejection
+    promise.catch(() => {});
+    return {
+      promise,
+      cancel: () => { if (handle) clearTimeout(handle); }
+    };
   }
 
   /**
@@ -257,13 +319,16 @@ export class ToolManager {
     }
 
     // 参数错误、权限错误不重试
+    // 注意必须同时匹配中文：工具返回的错误消息以中文为主，
+    // 若只判英文关键词，中文参数错误会全部落到「默认重试一次」，白白多打一次调用。
     if (
       errorMessage.includes('invalid') ||
       errorMessage.includes('unauthorized') ||
       errorMessage.includes('forbidden') ||
       errorMessage.includes('400') ||
       errorMessage.includes('401') ||
-      errorMessage.includes('403')
+      errorMessage.includes('403') ||
+      /参数|无效|缺少|必须|不支持|未安装|未启用|未配置|未知|权限|未授权|格式错误/.test(errorMessage)
     ) {
       return false;
     }

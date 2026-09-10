@@ -1,77 +1,103 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { Nav } from "@/components/landing-art/hero"
-import { CinematicReveal } from "@/components/landing-art/cinematic-reveal"
+import { LandingThemeProvider } from "@/components/landing-v4/theme-provider"
+import {
+  HeroSkeleton,
+  BentoSkeleton,
+  ScenariosSkeleton,
+  ChatDemoSkeleton,
+  PlatformsSkeleton,
+  VoicesSkeleton,
+  PricingSkeleton,
+  DownloadCtaSkeleton,
+  FooterSkeleton,
+} from "@/components/landing-v4/skeletons"
+/* ============================================================
+   莓界 · 落地页 v4
+   完全按 Loomy 官网（loomy.xunfei.cn）的区块顺序与设计语言重做：
+     1 LandingNavbar      → 悬浮胶囊导航
+     2 HeroGradientBackground → 双光斑首屏 + 真实 App 窗口
+     3 CapabilityOverview → 卖点 bento（左侧两卡 + 右侧跨行卡 + 整行模型卡）
+     4 BusinessNeedsSection → 场景卡切换器 + 详情面板（左流程 / 右真组件预览台）
+     5 对话演示（Loomy 预览台语言包裹真实对话窗）
+     6 PlatformSection    → 绿底四卡（#7DE9AC / #E6FDEE）
+     7 UserVoicesSection  → 圆盘轨道口碑区（#EDFDFF）
+     8 定价区（沿用同一套令牌自建，Loomy 无此块）
+     9 DownloadCta + LandingFooter → 居中尾屏 + 五列页脚
+   首屏只加载 Nav + Hero，其余区块进视口再懒加载。
+   ============================================================ */
 
-// 首屏性能优化：视口以下的区块全部懒加载（ssr:false + 骨架屏），
-// 避免 antd 等重库（约 5MB JS）进入首屏初始包，大幅降低首屏加载/解析时间。
-// 首屏仅保留 Nav + CinematicReveal（开场），其余区块在 hydration 后按需加载。
-
-const sectionSkeleton = (
-  <div className="flex min-h-[60vh] items-center justify-center">
-    <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
-  </div>
-)
-
-// 落地页专用轻量光标 —— 仅在桌面端加载，不干扰默认交互
-const LandingCursor = dynamic(
-  () => import("@/components/landing-art/landing-cursor").then((m) => m.LandingCursor),
+/* 注意：next/dynamic 的 options 必须是内联对象字面量，
+   抽成共享常量（如 const lazy = {...}）会被编译器拒绝：
+   "next/dynamic options must be an object literal." */
+const LandingNav = dynamic(
+  () => import("@/components/landing-v4/nav").then((m) => m.LandingNav),
   { ssr: false }
 )
 
-// 序章（滚动叙事）
-const Manifesto = dynamic(
-  () => import("@/components/landing-art/manifesto").then((m) => m.Manifesto),
-  { ssr: false, loading: () => sectionSkeleton }
+const Hero = dynamic(
+  () => import("@/components/landing-v4/hero").then((m) => m.Hero),
+  { ssr: false, loading: () => <HeroSkeleton /> }
 )
 
-// 推理章节（含 antd 重型 AI 卡片 —— 初始包体积大头）
-const AIChapters = dynamic(
-  () => import("@/components/landing-art/ai-story").then((m) => m.AIChapters),
-  { ssr: false, loading: () => sectionSkeleton }
+const Bento = dynamic(
+  () => import("@/components/landing-v4/bento").then((m) => m.Bento),
+  { ssr: false, loading: () => <BentoSkeleton /> }
 )
 
-// 三重人格
-const Personas = dynamic(
-  () => import("@/components/landing-art/personas").then((m) => m.Personas),
-  { ssr: false, loading: () => sectionSkeleton }
+const Scenarios = dynamic(
+  () => import("@/components/landing-v4/scenario").then((m) => m.Scenarios),
+  { ssr: false, loading: () => <ScenariosSkeleton /> }
 )
 
-// 系统能力
-const Capabilities = dynamic(
-  () => import("@/components/landing-art/capabilities").then((m) => m.Capabilities),
-  { ssr: false, loading: () => sectionSkeleton }
+const ChatDemo = dynamic(
+  () => import("@/components/landing-v4/chat-demo").then((m) => m.ChatDemo),
+  { ssr: false, loading: () => <ChatDemoSkeleton /> }
 )
 
-// 数据指标
-const Metrics = dynamic(
-  () => import("@/components/landing-art/metrics").then((m) => m.Metrics),
-  { ssr: false, loading: () => sectionSkeleton }
+const Platforms = dynamic(
+  () => import("@/components/landing-v4/platforms").then((m) => m.Platforms),
+  { ssr: false, loading: () => <PlatformsSkeleton /> }
 )
 
-// Footer 滚动到时才加载 JS
-const Footer = dynamic(
-  () => import("@/components/landing-art/footer").then((m) => ({ default: m.Footer })),
-  { ssr: false }
+const Voices = dynamic(
+  () => import("@/components/landing-v4/voices").then((m) => m.Voices),
+  { ssr: false, loading: () => <VoicesSkeleton /> }
 )
 
-export default function ArtPage() {
+const Pricing = dynamic(
+  () => import("@/components/landing-v4/pricing").then((m) => m.Pricing),
+  { ssr: false, loading: () => <PricingSkeleton /> }
+)
+
+const DownloadCta = dynamic(
+  () => import("@/components/landing-v4/download-cta").then((m) => m.DownloadCta),
+  { ssr: false, loading: () => <DownloadCtaSkeleton /> }
+)
+
+const LandingFooter = dynamic(
+  () => import("@/components/landing-v4/download-cta").then((m) => m.LandingFooter),
+  { ssr: false, loading: () => <FooterSkeleton /> }
+)
+
+export default function HomePage() {
   return (
-    <main className="relative bg-[#08080A] text-white selection:bg-[#1677ff] selection:text-white font-sans overflow-x-clip">
-      <LandingCursor />
-      <Nav />
-      {/* 电影级编辑叙事流：
-          开场虹膜 → 序章 → 信仰 → 推理 → 三重人格 → 系统 → 数据 → 邀请 */}
-      <div className="relative z-10 flex flex-col">
-        <CinematicReveal />
-        <Manifesto />
-        <AIChapters />
-        <Personas />
-        <Capabilities />
-        <Metrics />
-        <Footer />
-      </div>
-    </main>
+    <LandingThemeProvider>
+      <main className="min-h-[100dvh] bg-white text-[#222222] antialiased selection:bg-[#7DE9AC]/40 dark:bg-[#0C110E] dark:text-[#F2F4F1]">
+        <style>{`html { scroll-behavior: smooth; }`}</style>
+
+        <LandingNav />
+        <Hero />
+        <Bento />
+        <Scenarios />
+        <ChatDemo />
+        <Platforms />
+        <Voices />
+        <Pricing />
+        <DownloadCta />
+        <LandingFooter />
+      </main>
+    </LandingThemeProvider>
   )
 }

@@ -13,6 +13,31 @@ import {
 } from '@/lib/db/agent-memory-service';
 import { DEVICE_IDS, DEVICE_NAMES } from '@/lib/constants';
 
+/**
+ * 记忆 key → 中文标签映射
+ * 把英文 preference_key 翻译成 AI 和用户都能读懂的中文标签
+ */
+const MEMORY_KEY_LABELS: Record<string, string> = {
+  user_name: '称呼',
+  greenhouse_info: '大棚/场地',
+  strawberry_variety: '草莓品种',
+  growth_stage: '生育期',
+  focus_area: '关注重点',
+  preferred_temperature: '偏好温度',
+  preferred_humidity: '偏好湿度',
+  preferred_light: '偏好光照',
+  preferred_watering_time: '习惯浇水时间',
+  preferred_watering_duration: '习惯浇水时长',
+  watering_habit: '浇水习惯',
+  preferred_strawberry_variety: '草莓品种',
+  notification_preference: '通知偏好',
+  response_detail_level: '回复详细度',
+  response_style: '回复风格',
+  automation_preference: '自动化倾向',
+  language_style: '语言风格',
+  preference: '其他偏好',
+};
+
 export interface MemoryEnhancedPromptOptions {
   userId: number;
   memoryManager?: MemoryManager;
@@ -41,34 +66,44 @@ export async function generateMemoryEnhancedPrompt(
     }
   }
 
+  // 🔥 首字延迟优化：偏好 / 设备模式 / 成功策略三个查询彼此无依赖，
+  // 原本串行 await 要付三次 DB 往返的叠加等待，改成一次并行拿全。
+  // 注意：只是「取数」并行，下面拼 sections 的顺序保持不变，输出内容与原来一致。
+  const [preferences, patterns, strategies] = await Promise.all([
+    options.includePreferences !== false
+      ? getUserPreferences(options.userId, options.maxPreferences || 5)
+      : Promise.resolve([] as Array<{ preference_key: string; preference_value: string; confidence: number }>),
+    options.includeDevicePatterns !== false
+      ? getDevicePatternsInternal(options.userId, undefined, options.maxPatterns || 3)
+      : Promise.resolve([] as Array<{ device_id: number; pattern_type: string; confidence: number; success_count: number; total_count: number }>),
+    options.includeStrategies !== false
+      ? getSuccessfulStrategiesInternal(options.userId, undefined, options.maxStrategies || 3)
+      : Promise.resolve([] as Array<{ goal: string; success_rate: number; avg_execution_time: number; use_count: number; steps: string }>),
+  ])
+
   // 2. 添加用户偏好（长期记忆）
   if (options.includePreferences !== false) {
-    const preferences = await getUserPreferences(
-      options.userId,
-      options.maxPreferences || 5
-    );
-    
     if (preferences.length > 0) {
-      sections.push('\n## 👤 用户偏好记忆');
-      sections.push('根据历史交互学习到的用户偏好：\n');
-      
+      const name = preferences.find(p => p.preference_key === 'user_name');
+      sections.push('\n## 👤 用户画像记忆');
+      sections.push('以下是 AI 在历史对话中记住的关于用户的关键信息，请在回答时自然引用，提供个性化服务：\n');
+
       preferences.forEach(pref => {
-        const confidence = (pref.confidence * 100).toFixed(0);
-        sections.push(`- ${pref.preference_key}: ${pref.preference_value} (置信度: ${confidence}%)`);
+        const label = MEMORY_KEY_LABELS[pref.preference_key] || pref.preference_key;
+        sections.push(`- ${label}：${pref.preference_value}`);
       });
-      
-      sections.push('\n💡 请在回答时考虑这些偏好，提供个性化的建议。');
+
+      if (name) {
+        // 记住用户姓名 → 明确要求 AI 用名字称呼，让"跨会话认出你"直接可见
+        sections.push(`\n💡 **你已记住用户叫「${name.preference_value}」**，回复时请自然地用这个名字称呼用户（如"小朱，今天的温度…"），让用户感受到被记住。不要每句都称呼，偶尔自然带出即可。`);
+      } else {
+        sections.push('\n💡 若用户问到相关话题，可自然地提及你已了解这些信息（如"你1号棚的红颜草莓…"），让用户感受到被记住。');
+      }
     }
   }
 
   // 3. 添加设备使用模式（长期记忆）
   if (options.includeDevicePatterns !== false) {
-    const patterns = await getDevicePatternsInternal(
-      options.userId,
-      undefined,
-      options.maxPatterns || 3
-    );
-    
     if (patterns.length > 0) {
       sections.push('\n## 🔧 设备使用模式');
       sections.push('识别到的设备使用模式：\n');
@@ -89,12 +124,6 @@ export async function generateMemoryEnhancedPrompt(
 
   // 4. 添加成功策略（长期记忆）
   if (options.includeStrategies !== false) {
-    const strategies = await getSuccessfulStrategiesInternal(
-      options.userId,
-      undefined,
-      options.maxStrategies || 3
-    );
-    
     if (strategies.length > 0) {
       sections.push('\n## 🎯 成功策略记忆');
       sections.push('历史上成功的操作策略：\n');
@@ -130,12 +159,19 @@ async function getUserPreferences(
 ): Promise<Array<{ preference_key: string; preference_value: string; confidence: number }>> {
   try {
     const allPrefs = await getAllUserPreferences(userId);
-    
+
     // 过滤高置信度的偏好（> 0.6）
-    return allPrefs
+    const highConf = allPrefs
       .filter(p => p.confidence > 0.6)
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, limit);
+      .sort((a, b) => b.confidence - a.confidence);
+
+    // 🔥 姓名（user_name）无条件置顶，且不占用 limit 配额 ——
+    // 跨会话"认出用户"是记忆系统最核心的价值，绝不能被排序/截断挤掉
+    const name = highConf.find(p => p.preference_key === 'user_name');
+    const rest = highConf.filter(p => p.preference_key !== 'user_name');
+
+    const picked = rest.slice(0, limit);
+    return name ? [name, ...picked] : picked;
   } catch (error) {
     console.error('[MemoryPromptEnhancer] Failed to get user preferences:', error);
     return [];
@@ -208,6 +244,52 @@ export function extractPreferencesFromMessage(
 ): Array<{ key: string; value: string; confidence: number }> {
   const preferences: Array<{ key: string; value: string; confidence: number }> = [];
   const msg = userMessage.toLowerCase();
+
+  // ─── 0. 用户姓名/称呼（最高优先级，跨会话身份识别的关键）───
+  // 先识别"纠错/更正"场景（用户明确否定旧名、给出新名），优先级最高
+  // 例："我叫小朱不叫小张" / "你记错了，我叫小朱" / "我改名了，现在叫老王" / "不是小张，是小朱"
+  const correctionPatterns: Array<{ regex: RegExp; conf: number }> = [
+    // "我叫X不叫Y" / "我叫X不是Y" / "我是X不是Y"
+    { regex: /(?:我叫|我是|我的名字(?:是|叫))\s*([^\s，。,.！？!?不]{1,8})\s*(?:不叫|不是|别叫|别再叫)\s*[^\s，。,.！？!?]{1,8}/i, conf: 0.98 },
+    // "你记错了，我叫X" / "记错了，是X" / "搞错了，我叫X"
+    { regex: /(?:记错|搞错|弄错|叫错|搞混)[^。！？!?\n]{0,10}(?:我叫|我是|我叫作|我改叫|改成|应该是|是)\s*([^\s，。,.！？!?]{1,8})/i, conf: 0.95 },
+    // "我改名了，叫X" / "我现在叫X"
+    { regex: /(?:现在叫|后来叫|其实我叫|真名叫|大名是|本名是|改叫|改名(?:了|啦|成)?(?:以后|之后)?(?:都|就)?(?:叫|是|改成|改叫))\s*([^\s，。,.！？!?]{1,8})/i, conf: 0.9 },
+    // "不是Y，是X"（否定在前）
+    { regex: /(?:不是|不叫|别叫)\s*[^\s，。,.！？!?]{1,8}\s*[，,、]?\s*(?:而是|是|叫)\s*([^\s，。,.！？!?]{1,8})/i, conf: 0.9 },
+  ];
+  let nameMatched = false;
+  for (const { regex, conf } of correctionPatterns) {
+    const m = userMessage.match(regex);
+    if (m && m[1]) {
+      const raw = m[1].trim();
+      if (!/^(种植户|新手|用户|管理员|人|一个|这个|谁|什么|对|没错|是的|嗯|哦)$/.test(raw)) {
+        preferences.push({ key: 'user_name', value: raw, confidence: conf });
+        nameMatched = true;
+      }
+      break; // 命中纠错模式即可
+    }
+  }
+
+  // 未命中纠错模式，再走普通姓名识别
+  // "我叫小朱" / "我是张三" / "你可以叫我老王" / "喊我阿强"
+  if (!nameMatched) {
+    const namePatterns: Array<{ regex: RegExp; conf: number }> = [
+      { regex: /(?:我叫|我是|我的名字(?:是|叫)|你可以叫我|喊我|称呼我)([^\s，。,.！？!?]{1,8})/i, conf: 0.95 },
+      { regex: /(?:我姓|我名)([^\s，。,.！？!?]{1,4})/i, conf: 0.9 },
+    ];
+    for (const { regex, conf } of namePatterns) {
+      const m = userMessage.match(regex);
+      if (m && m[1]) {
+        // 过滤掉明显不是名字的干扰词（如"我是种植户""我是新手"）
+        const raw = m[1].trim();
+        if (!/^(种植户|新手|用户|管理员|人|一个|这个|谁)$/.test(raw)) {
+          preferences.push({ key: 'user_name', value: raw, confidence: conf });
+        }
+        break; // 命中一个即可，避免重复
+      }
+    }
+  }
 
   // ─── 1. 显式偏好声明（高置信度）───
   // "我喜欢/偏好/习惯/一般都..." 后接具体内容

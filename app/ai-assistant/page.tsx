@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Image } from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex, Tag, Progress, Popover, Divider } from "antd"
+import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex, Progress, Popover, Divider, notification } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
 import { Conversations } from "@ant-design/x"
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
+import { deviceForgeStore, parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
 import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen, Lock, AlertTriangle, Crown, Wallet, Palette, HelpCircle, RefreshCw } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
@@ -98,6 +99,13 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { PageNavigation } from "@/components/page-navigation"
 // VoiceChatModal — 已改为 dynamic import
 import BerryOrb from "@/components/smoothui/berry-orb"
+import {
+  captureVideoFrame,
+  getPlayableUrl,
+  CameraCaptureError,
+  VISION_CAMERA_ELEMENT_ID,
+  type CaptureStage,
+} from "@/app/ai-assistant/_utils/camera-capture"
 import { MCPStatusIndicator } from "@/components/mcp/mcp-status-indicator"
 import { MCPToolDisplay } from "@/components/ai/mcp-tool-display"
 import { useAIFeatures } from "@/lib/hooks/use-ai-features"
@@ -111,6 +119,7 @@ import { parseScheduleTask, removeScheduleTaskTag } from '@/lib/ai/schedule-task
 import { SchedulerSidebarPanel } from "@/components/ai/scheduler-sidebar-panel"
 import { MySpaceSidebarPanel } from "@/components/ai/my-space-sidebar-panel"
 import { KnowledgeSidebarPanel } from "@/components/ai/knowledge-sidebar-panel"
+import { DeviceForgeSidebarPanel } from "@/components/ai/device-forge-sidebar-panel"
 import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 
 // BrowserActivity, WebPreview — 已改为 dynamic import
@@ -202,6 +211,28 @@ function detectFailedTag(content: string): string | null {
     if (!parsed) return tag
   }
   return null
+}
+
+/** 把后端工具内部 stage 标识翻译成用户可读的中文标题（用于 thought chain 展示） */
+function stageToLabel(stage: string | undefined): string {
+  if (!stage) return "处理中"
+  const map: Record<string, string> = {
+    analyze: "阅读文档，提取能力与字段",
+    generate: "生成技能内容",
+    validate: "校验技能结构",
+    "self-test": "自测：彩排 + 评分",
+    revise: "自动修订技能",
+    register: "注册并发布技能",
+    "plan": "规划研究步骤",
+    "search": "检索资料",
+    "scrape": "抓取网页",
+    "extract": "提炼要点",
+    "synthesize": "融合多源信息",
+    "ingest": "沉淀入库",
+    "decompose": "拆解问题",
+    "gap_search": "补搜缺失信息",
+  }
+  return map[stage] || stage
 }
 
 export default function AIAssistantPage() {
@@ -663,6 +694,8 @@ function AIAssistantContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
   const [showExhaustedDialog, setShowExhaustedDialog] = useState(false)
+  // 后端 403 返回的具体拒绝原因（如"积分余额不足（剩余 0.45…）"），弹窗内透出
+  const [quotaDenyMsg, setQuotaDenyMsg] = useState<string | null>(null)
   const [showUserPopover, setShowUserPopover] = useState(false)
   const [greeting, setGreeting] = useState("晚上好")
   
@@ -922,7 +955,7 @@ function AIAssistantContent() {
   const [visionInspectionUrl, setVisionInspectionUrl] = useState<string | null>(null) // AI 视觉巡检的摄像头 URL
   const [visionInspectionStatus, setVisionInspectionStatus] = useState<string>('') // 巡检状态文本
   const [visionCapturedImage, setVisionCapturedImage] = useState<string | null>(null) // 巡检截获的画面（用于 Agent 展示）
-  const [visionVideoElementId, setVisionVideoElementId] = useState<string>('studio-vision-camera') // 当前巡检使用的视频元素 ID
+  const [visionVideoElementId, setVisionVideoElementId] = useState<string>(VISION_CAMERA_ELEMENT_ID) // 当前巡检使用的视频元素 ID
 
   // 全局任务暂停状态 (Real Execution Pause)
   const [isTaskPaused, setIsTaskPaused] = useState(false)
@@ -962,16 +995,12 @@ function AIAssistantContent() {
                 tools.push({ name: 'mcp_brave_search', displayName: 'Brave 搜索', description: '联网搜索最新信息', icon: toolIcon, iconBg: toolIconBg })
             } else if (config.name === 'exa-search') {
                 tools.push({ name: 'mcp_exa_search', displayName: 'Exa 搜索', description: '深度语义搜索技术文章与论文', icon: toolIcon, iconBg: toolIconBg })
+            } else if (config.name === 'anysearch') {
+                tools.push({ name: 'mcp_anysearch_search', displayName: 'AnySearch 搜索', description: '实时网络搜索与垂直领域检索', icon: toolIcon, iconBg: toolIconBg })
+                tools.push({ name: 'mcp_anysearch_batch_search', displayName: 'AnySearch 批量搜索', description: '并行执行多个独立搜索查询', icon: toolIcon, iconBg: toolIconBg })
+                tools.push({ name: 'mcp_anysearch_extract', displayName: 'AnySearch 网页提取', description: '抓取网页全文并转为 Markdown', icon: toolIcon, iconBg: toolIconBg })
             } else if (config.name === 'firecrawl') {
                 tools.push({ name: 'mcp_firecrawl_scrape', displayName: '网页抓取', description: '抓取网页内容', icon: toolIcon, iconBg: toolIconBg })
-            } else if (config.name === 'soil-sensor') {
-                tools.push({ name: 'mcp_soil_sensor_query', displayName: '土壤传感器', description: '查询土壤墒情数据', icon: toolIcon, iconBg: toolIconBg })
-            } else if (config.name === 'crop-disease') {
-                tools.push({ name: 'mcp_crop_disease_diagnose', displayName: '病害诊断', description: '作物病虫害识别与防治', icon: toolIcon, iconBg: toolIconBg })
-            } else if (config.name === 'irrigation-system') {
-                tools.push({ name: 'mcp_irrigation_query', displayName: '灌溉系统', description: '智能灌溉控制与查询', icon: toolIcon, iconBg: toolIconBg })
-            } else if (config.name === 'farm-data') {
-                tools.push({ name: 'mcp_farm_data_query', displayName: '农场数据', description: '农场运营数据分析', icon: toolIcon, iconBg: toolIconBg })
             } else if (config.name === 'spectrum-stravision') {
                 tools.push({ name: 'get_channel', displayName: '光谱通道', description: '获取指定波长光谱值', icon: toolIcon, iconBg: toolIconBg })
                 tools.push({ name: 'get_all_spectrum', displayName: '全波段光谱', description: '获取所有18通道数据', icon: toolIcon, iconBg: toolIconBg })
@@ -1050,7 +1079,7 @@ function AIAssistantContent() {
   }, [])
   
   // Quota state
-  const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null)
+  const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number, reason?: string } | null>(null)
   // 积分视图（积分制度：token 计费 × 模型倍率 × 全局倍率）
   const [creditInfo, setCreditInfo] = useState<{
     membership?: string
@@ -1124,6 +1153,11 @@ function AIAssistantContent() {
     timeoutMs: number
     startedAt: number
   } | null>(null)
+
+  // 🔥 DEVICE_FORGE 卡片直推兜底：connect_device_from_doc 工具返回的 ui_card 先暂存，
+  // 流结束时若模型没有按 note 复述 <DEVICE_FORGE> 标签（偶发幻觉 → 卡片"出现又消失"），
+  // 则自动把卡片补进消息内容，保证可编辑接入表单一定渲染且随历史持久化。
+  const pendingForgeCardRef = useRef<{ card: Record<string, unknown>; sig: string } | null>(null)
 
   /**
    * 响应 CHECKPOINT / CLARIFY 表单提交
@@ -1536,6 +1570,150 @@ function AIAssistantContent() {
     // 5. 短暂显示通知
     showNotice("操作已强制终止", "AI 生成与设备控制已中断", "error")
   }
+
+  // -------------------------------------------------------------------------
+  // 视觉巡检共享逻辑
+  // -------------------------------------------------------------------------
+  // 原先 move_camera_and_look 与 take_camera_snapshot 各自复制了一整套
+  // 「取流地址 → 解析可播放地址 → 轮询抓帧」逻辑（含两份 70 行的 getPlayableUrl），
+  // 且抓帧用「20s 硬超时 + 6s 截图延迟」两个互不知情的定时器，
+  // 导致画面明明抓到了却报超时、超时了却照样截图。这里统一收敛为单一实现。
+
+  /** 清空视觉巡检相关状态（含播放器卸载） */
+  const resetVisionInspection = useCallback(() => {
+    setVisionInspectionUrl(null)
+    setVisionInspectionStatus('')
+    setVisionCapturedImage(null)
+    setInspectionCameraUrl(null)
+    setIsInspecting(false)
+  }, [])
+
+  /** 把截图以「用户可见的助手消息」插入对话流（仅展示，不触发 AI 新的一轮推理） */
+  const appendCameraSnapshotMessage = useCallback((cameraId: 'a' | 'b', dataUrl: string, query?: string) => {
+    setMessages((prev: Message[]) => {
+      const label = cameraId === 'b' ? 'B' : 'A'
+      const text = query
+        ? `针对「${query}」，这是从摄像头 ${label} 获取的实时截图：`
+        : `这是从摄像头 ${label} 获取的实时截图：`
+      const newMsgs = [...prev, {
+        role: "assistant",
+        content: [
+          { type: "text", text },
+          { type: "image_url", image_url: { url: dataUrl } },
+        ],
+      } as Message]
+      if (sessionId) {
+        fetch(`/api/sessions/${sessionId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: newMsgs }),
+        }).catch(console.error)
+      }
+      return newMsgs
+    })
+  }, [sessionId])
+
+  /**
+   * 视觉巡检通用流程：取流地址 → 挂载播放器 → 抓帧。
+   * 失败时内部已完成状态清理与错误提示，返回 null，调用方应 break。
+   */
+  const runVisionCapture = useCallback(async (
+    cameraId: 'a' | 'b',
+    options: { errorTitle: string; busyText: string }
+  ) => {
+    setVisionVideoElementId(VISION_CAMERA_ELEMENT_ID)
+    setVisionCapturedImage(null)
+    setVisionInspectionStatus('正在建立摄像头连接...')
+    showNotice("📷 视觉巡检", options.busyText, "loading")
+
+    // 1. 取摄像头地址
+    let cameraUrl = ''
+    try {
+      const camRes = await fetch('/api/ai/camera-capture')
+      if (camRes.ok) {
+        const camData = await camRes.json()
+        const cam = cameraId === 'b' ? camData.cameras?.b : camData.cameras?.a
+        if (cam?.available && cam?.url) cameraUrl = cam.url
+      }
+    } catch (e) {
+      console.error('[Vision] Failed to get camera URL:', e)
+    }
+
+    if (!cameraUrl) {
+      resetVisionInspection()
+      showNotice("❌ 视觉巡检失败", "摄像头未配置或不可用", "error")
+      return null
+    }
+
+    // 2. 解析为浏览器可播放地址并挂载播放器
+    const playableUrl = getPlayableUrl(cameraUrl)
+    console.log("[AI Vision] Playable URL resolved to:", playableUrl)
+    if (!playableUrl) {
+      resetVisionInspection()
+      showNotice("❌ 视觉巡检失败", "摄像头流地址无效，无法解析", "error")
+      return null
+    }
+    setVisionInspectionUrl(playableUrl)
+
+    // 3. 抓帧。抓帧工具每 250ms 回调一次进度，这里做文案去重避免高频 setState
+    const cameraLabel = cameraId === 'b' ? 'B' : 'A'
+    let lastProgress = ''
+    const onProgress = (stage: CaptureStage, detail?: string) => {
+      if (!detail) return
+      const msg = stage === 'retrying' ? detail : `${cameraLabel} 摄像头：${detail}`
+      if (msg === lastProgress) return
+      lastProgress = msg
+      setVisionInspectionStatus(msg)
+    }
+
+    try {
+      return await captureVideoFrame(VISION_CAMERA_ELEMENT_ID, {
+        onProgress,
+        // 用户点停止时立即放弃，不再空等满超时
+        shouldAbort: () => isStoppedRef.current,
+        retries: 1,
+      })
+    } catch (err) {
+      console.error('[Vision] Camera capture failed:', err)
+
+      // 用户主动停止：不再弹错误提示（handleStop 已统一提示）
+      if (err instanceof CameraCaptureError && err.code === 'ABORTED') {
+        resetVisionInspection()
+        return null
+      }
+
+      const message = err instanceof Error ? err.message : '未知错误'
+      resetVisionInspection()
+      showNotice(`❌ ${options.errorTitle}`, message, "error")
+      return null
+    }
+  }, [resetVisionInspection, showNotice])
+
+  /** 抓帧成功后的收尾：展示截图、插入对话流、延时收起 */
+  const finishVisionCapture = useCallback((
+    cameraId: 'a' | 'b',
+    dataUrl: string,
+    meta: { width: number; height: number; waitedMs: number },
+    query?: string
+  ) => {
+    setVisionCapturedImage(dataUrl)
+    // 立刻释放播放器，停止继续拉流占用带宽（组件会在有截图后自动切到静态图）
+    setVisionInspectionUrl(null)
+    // 「完成」是步骤推断的关键字，放在句首卡片才会正确显示为已完成
+    setVisionInspectionStatus(
+      `巡检完成，已捕获 ${cameraId.toUpperCase()} 摄像头画面（${meta.width}×${meta.height}，耗时 ${(meta.waitedMs / 1000).toFixed(1)}s）`
+    )
+    showNotice(
+      "✅ 视觉巡检",
+      `已捕获画面（耗时 ${(meta.waitedMs / 1000).toFixed(1)}s）`,
+      "success"
+    )
+
+    appendCameraSnapshotMessage(cameraId, dataUrl, query)
+
+    // 保留一段时间让用户看到截图，再收起巡检卡片
+    window.setTimeout(() => resetVisionInspection(), 6000)
+  }, [appendCameraSnapshotMessage, resetVisionInspection, showNotice])
 
   const executeCommands = async (commands: any[], originalContent?: string) => {
     if (!commands || commands.length === 0) {
@@ -1962,195 +2140,23 @@ function AIAssistantContent() {
             if (isStoppedRef.current) break
           }
 
-          // Step 2: 获取摄像头 URL
-          setVisionInspectionStatus("正在建立摄像头连接...");
-          showNotice("📷 视觉巡检", "正在连接摄像头...", "loading")
-          let cameraUrl = ''
-          try {
-            const camRes = await fetch('/api/ai/camera-capture')
-            if (camRes.ok) {
-              const camData = await camRes.json()
-              const cam = cameraId === 'b' ? camData.cameras?.b : camData.cameras?.a
-              if (cam?.available && cam?.url) {
-                cameraUrl = cam.url
-              }
-            }
-          } catch (e) {
-            console.error('Failed to get camera URL:', e)
-          }
-
-          if (!cameraUrl) {
-            setVisionInspectionUrl(null)
-            setVisionInspectionStatus('')
-            setVisionCapturedImage(null)
-            setIsInspecting(false)
-            showNotice("❌ 视觉巡检失败", "摄像头未配置或不可用", "error")
-            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
+          // Step 2: 取流地址 → 挂载播放器 → 抓帧（超时/重试/黑屏检测均在 captureVideoFrame 内处理）
+          const capture = await runVisionCapture(cameraId, {
+            errorTitle: "截图失败",
+            busyText: "正在连接摄像头...",
+          })
+          if (isStoppedRef.current) break
+          if (!capture) {
+            // 失败原因与状态清理已在 runVisionCapture 内完成
+            setInspectionStatus("视觉巡检失败")
             break
           }
 
-          // Step 3: 加载视频流并截图
-          setVisionInspectionStatus(`正在捕捉 ${cameraId === 'b' ? 'B' : 'A'} 摄像头实时画面...`);
-          showNotice("📷 视觉巡检", "正在加载摄像头画面，请稍候...", "loading")
-          
-          // 获取与 Monitor 页面一致的可播放 URL
-          const getPlayableUrl = (rawUrl: string) => {
-            const url = rawUrl.trim()
-            if (!url) return ""
+          // Step 3: 展示截图。
+          // 注意：截图只作用户可见的结果展示，不会再静默回流给 AI ——
+          // AI 侧的图像由后端 ffmpeg 抓帧通道（move_camera_and_look MCP 工具）在同一轮内提供。
+          finishVisionCapture(cameraId, capture.dataUrl, capture, query)
 
-            // 如果本来就是代理地址，直接返回
-            if (url.includes('/api/stream-proxy') || url.includes('/api/stream-rtmp')) return url;
-
-            // Handle RTMP protocol → route through FFmpeg proxy
-            if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
-              return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
-            }
-
-            if (/player\.xstrive\.com\/video\/live/i.test(url)) {
-              const safeDecode = (value: string) => {
-                try {
-                  return decodeURIComponent(value)
-                } catch {
-                  return value
-                }
-              }
-              const extractVideoUrlLoosely = (playerUrl: string) => {
-                const qIndex = playerUrl.indexOf("?")
-                if (qIndex < 0) return ""
-                const query = playerUrl.slice(qIndex + 1)
-                const lower = query.toLowerCase()
-                let start = lower.indexOf("videourl=")
-                while (start !== -1 && start > 0 && query[start - 1] !== "&") {
-                  start = lower.indexOf("videourl=", start + 1)
-                }
-                if (start === -1) return ""
-                const valueStart = start + "videourl=".length
-                const after = query.slice(valueStart)
-                const parts = after.split("&")
-                const stopKeys = new Set(["islive", "ismute", "aspect", "lang", "autoplay", "from", "player", "t", "ts"])
-                const videoParts: string[] = []
-                for (let i = 0; i < parts.length; i++) {
-                  const p = parts[i]
-                  const eq = p.indexOf("=")
-                  const key = eq >= 0 ? p.slice(0, eq).toLowerCase() : ""
-                  if (i > 0 && key && stopKeys.has(key)) break
-                  videoParts.push(p)
-                }
-                return videoParts.join("&")
-              }
-              try {
-                const u = new URL(url)
-                const videoUrl = u.searchParams.get("videoUrl") ?? ""
-                const loose = extractVideoUrlLoosely(url)
-                const picked = loose.length > videoUrl.length ? loose : videoUrl
-                if (!picked) return ""
-                
-                const decoded = safeDecode(picked)
-                // Wrap in proxy for cross-origin issues
-                return `/api/stream-proxy?url=${encodeURIComponent(decoded)}`
-              } catch {
-                const loose = extractVideoUrlLoosely(url)
-                if (!loose) return ""
-                const decoded = safeDecode(loose)
-                return `/api/stream-proxy?url=${encodeURIComponent(decoded)}`
-              }
-            }
-
-            try {
-              const u = new URL(url)
-              if (u.protocol === "http:" || u.protocol === "https:") {
-                return `/api/stream-proxy?url=${encodeURIComponent(url)}`
-              }
-            } catch {}
-
-            return url
-          }
-
-          const playableUrl = getPlayableUrl(cameraUrl)
-          console.log("[AI Vision] Playable URL resolved to:", playableUrl);
-          setVisionInspectionUrl(playableUrl)
-
-          let capturedImageBase64 = ''
-          try {
-            capturedImageBase64 = await new Promise<string>((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                reject(new Error('摄像头画面加载超时 (20s)，可能原因：网络延迟、摄像头正在初始化、或画面尚未加载完成'))
-              }, 20000)
-
-              const checkFrame = setInterval(() => {
-                const video = document.getElementById('studio-vision-camera') as HTMLVideoElement | null
-                if (video && video.readyState >= 3 && video.videoWidth > 0) {
-                  clearInterval(checkFrame)
-                  setVisionInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
-                  
-                  // Wait a bit longer to ensure video is clearly rendering
-                  setTimeout(() => {
-                    try {
-                      const canvas = document.createElement('canvas')
-                      canvas.width = video.videoWidth || 640
-                      canvas.height = video.videoHeight || 480
-                      const ctx = canvas.getContext('2d')
-                      if (ctx) {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-                        clearTimeout(timeout)
-                        resolve(dataUrl)
-                      } else {
-                        throw new Error('Canvas context 创建失败')
-                      }
-                    } catch (err: any) {
-                      clearTimeout(timeout)
-                      reject(err)
-                    }
-                  }, 6000) // 增加到 6 秒：给流媒体解码和关键帧渲染留足时间，避免截出黑屏
-                }
-              }, 500)
-            })
-          } catch (err: any) {
-            console.error('Camera capture failed:', err)
-            setVisionInspectionUrl(null)
-            setVisionInspectionStatus('')
-            setVisionCapturedImage(null)
-            setIsInspecting(false)
-            showNotice("❌ 截图失败", err?.message || '未知错误', "error")
-            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
-            break
-          } finally {
-            setInspectionCameraUrl(null)
-          }
-
-          if (!capturedImageBase64) {
-            setIsInspecting(false)
-            setVisionCapturedImage(null)
-            setVisionInspectionStatus('')
-            showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
-            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
-            break
-          }
-
-          // Step 4: 发送截图给 AI (VLM 多模态消息)
-          showNotice("🧠 视觉巡检", "正在让 AI 分析画面...", "loading")
-
-          // 🔥 架构变更（重要）：原逻辑通过 silent handleSend 把截图作为多模态消息
-          // 偷偷塞给 AI 让其分析画面，这是"静默消息回流"反模式的典型代表。
-          // 新架构下，AI 通过 move_camera_and_look / take_camera_snapshot 原生 MCP 工具
-          // 在 Agent Loop 内直接调用，后端用 ffmpeg 抓帧并把 image_url 回灌给 AI，
-          // AI 在同一轮请求内即可看到图片并继续推理。
-          // 此处仅保留 UI 端的截图展示（用户可见），不再向 AI 发送任何静默消息。
-          setVisionCapturedImage(capturedImageBase64)
-          setVisionInspectionStatus("画面已捕获（如需 AI 分析，请在对话中询问）")
-          setInspectionStatus("完成巡检截图。");
-          showNotice("✅ 视觉巡检", "画面已捕获（如需 AI 分析请直接在对话中询问）", "success")
-          // hasSentCustomFeedback 已废弃（不再有 silent feedback 机制需要去重）
-          
-          // 延迟清理视觉巡检状态，让用户看到分析阶段和已捕获的画面
-          setTimeout(() => {
-            setVisionInspectionUrl(null)
-            setVisionInspectionStatus('')
-            setVisionCapturedImage(null)
-            setIsInspecting(false)
-          }, 3000)
-          
           // 重要：完成视觉巡检后立即跳出当前指令执行循环，避免后续代码继续触发全局反馈循环
           break;
         } else if (cmd.action === "take_camera_snapshot") {
@@ -2177,181 +2183,19 @@ function AIAssistantContent() {
           setIsInspecting(true)
           setInspectionCamera(cameraId)
           setInspectionStatus("正在获取摄像头实时画面...")
-          setVisionInspectionStatus("正在获取摄像头实时画面...")
-          setVisionVideoElementId('hidden-ai-camera')
-          setVisionCapturedImage(null)
-          showNotice("📷 获取截图", "正在连接摄像头...", "loading")
 
-          let cameraUrl = ''
-          try {
-            const camRes = await fetch('/api/ai/camera-capture')
-            if (camRes.ok) {
-              const camData = await camRes.json()
-              const cam = cameraId === 'b' ? camData.cameras?.b : camData.cameras?.a
-              if (cam?.available && cam?.url) {
-                cameraUrl = cam.url
-              }
-            }
-          } catch (e) {
-            console.error('Failed to get camera URL:', e)
-          }
-
-          if (!cameraUrl) {
-            setIsInspecting(false);
-            showNotice("❌ 获取截图失败", "摄像头未配置或不可用", "error")
-            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
-            break
-          }
-
-          const getPlayableUrl = (rawUrl: string) => {
-            const url = rawUrl.trim()
-            if (!url) return ""
-            if (url.includes('/api/stream-proxy') || url.includes('/api/stream-rtmp')) return url;
-            // Handle RTMP protocol → route through FFmpeg proxy
-            if (url.startsWith("rtmp://") || url.startsWith("rtmps://")) {
-              return `/api/stream-rtmp?url=${encodeURIComponent(url)}`
-            }
-            if (/player\.xstrive\.com\/video\/live/i.test(url)) {
-              const safeDecode = (value: string) => { try { return decodeURIComponent(value) } catch { return value } }
-              const extractVideoUrlLoosely = (playerUrl: string) => {
-                const qIndex = playerUrl.indexOf("?")
-                if (qIndex < 0) return ""
-                const query = playerUrl.slice(qIndex + 1)
-                const lower = query.toLowerCase()
-                let start = lower.indexOf("videourl=")
-                while (start !== -1 && start > 0 && query[start - 1] !== "&") { start = lower.indexOf("videourl=", start + 1) }
-                if (start === -1) return ""
-                const valueStart = start + "videourl=".length
-                const after = query.slice(valueStart)
-                const parts = after.split("&")
-                const stopKeys = new Set(["islive", "ismute", "aspect", "lang", "autoplay", "from", "player", "t", "ts"])
-                const videoParts: string[] = []
-                for (let i = 0; i < parts.length; i++) {
-                  const p = parts[i]
-                  const eq = p.indexOf("=")
-                  const key = eq >= 0 ? p.slice(0, eq).toLowerCase() : ""
-                  if (i > 0 && key && stopKeys.has(key)) break
-                  videoParts.push(p)
-                }
-                return videoParts.join("&")
-              }
-              try {
-                const u = new URL(url)
-                const videoUrl = u.searchParams.get("videoUrl") ?? ""
-                const loose = extractVideoUrlLoosely(url)
-                const picked = loose.length > videoUrl.length ? loose : videoUrl
-                if (!picked) return ""
-                return `/api/stream-proxy?url=${encodeURIComponent(safeDecode(picked))}`
-              } catch {
-                const loose = extractVideoUrlLoosely(url)
-                if (!loose) return ""
-                return `/api/stream-proxy?url=${encodeURIComponent(safeDecode(loose))}`
-              }
-            }
-            try {
-              const u = new URL(url)
-              if (u.protocol === "http:" || u.protocol === "https:") {
-                return `/api/stream-proxy?url=${encodeURIComponent(url)}`
-              }
-            } catch {}
-            return url
-          }
-
-          const playableUrl = getPlayableUrl(cameraUrl)
-          setInspectionCameraUrl(playableUrl)
-          setVisionInspectionUrl(playableUrl)
-
-          let capturedImageBase64 = ''
-          try {
-            capturedImageBase64 = await new Promise<string>((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                reject(new Error('画面加载超时'))
-              }, 20000)
-
-              const checkFrame = setInterval(() => {
-                const video = document.getElementById('hidden-ai-camera') as HTMLVideoElement | null
-                if (video && video.readyState >= 3 && video.videoWidth > 0) {
-                  clearInterval(checkFrame)
-                  setInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
-                  setVisionInspectionStatus(`捕捉到 ${cameraId === 'b' ? 'B' : 'A'} 画面，正在优化成像...`);
-                  
-                  // Wait a bit longer to ensure video is clearly rendering
-                  setTimeout(() => {
-                    try {
-                      const canvas = document.createElement('canvas')
-                      canvas.width = video.videoWidth || 640
-                      canvas.height = video.videoHeight || 480
-                      const ctx = canvas.getContext('2d')
-                      if (ctx) {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-                        clearTimeout(timeout)
-                        resolve(dataUrl)
-                      } else {
-                        throw new Error('Canvas context 创建失败')
-                      }
-                    } catch (err: any) {
-                      clearTimeout(timeout)
-                      reject(err)
-                    }
-                  }, 6000) // 增加延迟，确保画面不再是黑屏闪烁
-                }
-              }, 500)
-            })
-          } catch (err: any) {
-            console.error('Camera capture failed:', err)
-            setIsInspecting(false)
-            setVisionInspectionUrl(null)
-            setVisionInspectionStatus('')
-            showNotice("❌ 截图失败", err?.message || '未知错误', "error")
-            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
-            break
-          } finally {
-            // 延迟一点关闭，避免 UI 突然消失造成闪烁
-            setTimeout(() => {
-               setInspectionCameraUrl(null)
-               setVisionInspectionUrl(null)
-               setIsInspecting(false);
-            }, 1000)
-          }
-
-          if (!capturedImageBase64) {
-            showNotice("❌ 截图为空", "未能获取到摄像头画面", "error")
-            // 🔥 架构变更：不再通过 silent message 告知 AI（showNotice 已向用户提示）
-            break
-          }
-
-          setInspectionStatus("完成截图。");
-          setVisionCapturedImage(capturedImageBase64)
-          setVisionInspectionStatus("截图完成，已获取画面")
-          showNotice("✅ 截图成功", "已获取摄像头画面", "success")
-
-          // 1. 先把图片像以前一样以 assistant 的身份直接显示在对话流里
-          setMessages(prev => {
-             const newMsgs = [...prev, { 
-                 role: "assistant", 
-                 content: [
-                     { type: "text", text: `这是从摄像头 ${cameraId === 'b' ? 'B' : 'A'} 获取的实时截图：` },
-                     { type: "image_url", image_url: { url: capturedImageBase64 } }
-                 ] 
-             } as Message]
-             if (sessionId) {
-                 fetch(`/api/sessions/${sessionId}`, {
-                     method: "PUT",
-                     headers: { "Content-Type": "application/json" },
-                     body: JSON.stringify({ messages: newMsgs })
-                 }).catch(console.error)
-             }
-             return newMsgs
+          const capture = await runVisionCapture(cameraId, {
+            errorTitle: "获取截图失败",
+            busyText: "正在连接摄像头...",
           })
+          if (isStoppedRef.current) break
+          if (!capture) {
+            setInspectionStatus("获取截图失败")
+            break
+          }
 
-          // 🔥 架构变更（重要）：原逻辑通过 silent handleSend 把截图作为多模态消息
-          // 偷偷塞给 AI 让其分析画面，这是"静默消息回流"反模式的典型代表。
-          // 新架构下，AI 通过 take_camera_snapshot / move_camera_and_look 原生 MCP 工具
-          // 在 Agent Loop 内直接调用，后端用 ffmpeg 抓帧并把 image_url 回灌给 AI，
-          // AI 在同一轮请求内即可看到图片并继续推理。
-          // 此处仅保留 UI 端的截图展示（用户可见），不再向 AI 发送任何静默消息。
-          // hasSentCustomFeedback 已废弃（不再有 silent feedback 机制需要去重）
+          // 截图只作用户可见展示，不再静默回流给 AI（AI 侧图像由后端 ffmpeg 抓帧通道提供）
+          finishVisionCapture(cameraId, capture.dataUrl, capture)
 
           break;
         } else if (cmd.action === "reset_camera") {
@@ -2888,10 +2732,22 @@ function AIAssistantContent() {
       if (!res.ok) {
         const errorText = await res.text()
         // 1) 配额耗尽/会员限制：弹升级提示
+        //    兼容两类上游返回：
+        //    - 中文平台：error 含 "额度"/"余额"/"升级"
+        //    - DashScope 等英文返回：{"error":"AI API Error: 403 - {\"error\":{...\"code\":\"insufficient_quota\"...}}"}
+        //      （error 是嵌套了 JSON 的字符串，需用正则整体检测）
         try {
           const errorData = JSON.parse(errorText)
-          if (res.status === 403 && errorData.error && (errorData.error.includes("额度") || errorData.error.includes("余额") || errorData.error.includes("升级"))) {
+          const errStr = typeof errorData.error === "string"
+            ? errorData.error
+            : (errorData.error?.message ? String(errorData.error.message) : "")
+          const quotaExhausted = res.status === 403 && (
+            (errStr && /额度|余额|升级/.test(errStr)) ||
+            /insufficient_quota|Free quota exhausted|add funds|use free tier|quota.{0,20}exhaust/i.test(errorText)
+          )
+          if (quotaExhausted) {
             if (errorData.quota) setQuotaInfo(errorData.quota)
+            setQuotaDenyMsg(errStr || null)
             setShowExhaustedDialog(true)
             setIsLoading(false)
             return
@@ -2922,6 +2778,8 @@ function AIAssistantContent() {
       if (!reader) throw new Error("No response body")
 
       assistantMsg = { role: "assistant", content: "" }
+      // 上一轮若因异常中断残留了未注入的 DEVICE_FORGE 卡片，本轮重新开始前清空
+      pendingForgeCardRef.current = null
       let reasoningText = ""
       let reasoningStart = -1
       const startTs = Date.now()
@@ -3123,9 +2981,57 @@ function AIAssistantContent() {
                 continue
               }
 
+              // 🍓 记忆保存事件：AI 记住了用户信息时，弹 antd 提示
+              if (data.type === 'memory_saved' && Array.isArray(data.memories) && data.memories.length > 0) {
+                if (streamSessionId === sessionId) {
+                  const memList = data.memories as Array<{ key: string; label: string; value: string }>
+                  const text = memList.map(m => `${m.label}「${m.value}」`).join('、')
+                  notification.open({
+                    key: `memory-saved-${Date.now()}`,
+                    message: (
+                      <span style={{ fontWeight: 600 }}>
+                        已记入记忆
+                      </span>
+                    ),
+                    description: text,
+                    icon: (
+                      <span style={{ color: '#1677ff' }}>
+                        <Sprout size={18} />
+                      </span>
+                    ),
+                    placement: 'bottomRight',
+                    duration: 4,
+                  })
+                }
+                continue
+              }
+
               // Handle tool results
               if (data.tool_result) {
                  setStudioData(prev => [...prev, data.tool_result])
+
+                 // 🔥 connect_device_from_doc：设备接入卡片「直推」——不再依赖模型复述 <DEVICE_FORGE> 标签。
+                 // 1) 立即把 ui_card 注册进全局 store 并打开右侧面板（生成完成瞬间用户就能看到/编辑表单）；
+                 // 2) 把 card 暂存到 pendingForgeCardRef，若流结束时模型没按 note 输出标签（偶发幻觉），
+                 //    由收尾逻辑自动把 <DEVICE_FORGE> 补进消息内容（见 handleSend 收尾段）。
+                 // session 签名与 DeviceForgeCard 组件保持同一算法，避免两侧互相重置编辑/装入状态。
+                 if (data.tool_result.name === 'connect_device_from_doc') {
+                   const uiCard = data.tool_result.result?.ui_card
+                   if (uiCard && typeof uiCard === 'object' && uiCard.status) {
+                     try {
+                       const forgeData = parseDeviceForgeCardData(JSON.stringify(uiCard))
+                       if (forgeData) {
+                         const sig = `${forgeData.status}:${forgeData.draft?.name || ''}:${forgeData.draft?.subscribe_topic || ''}:${forgeData.draft?.metrics?.length ?? -1}:${forgeData.subject || ''}`
+                         deviceForgeStore.registerCard(sig, forgeData)
+                         deviceForgeStore.setPanelOpen(true)
+                         pendingForgeCardRef.current = { card: uiCard, sig }
+                         console.log(`[Chat] connect_device_from_doc → DEVICE_FORGE card registered (status=${forgeData.status}, sig=${sig})`)
+                       }
+                     } catch (e) {
+                       console.warn('[Chat] Failed to register device forge card from tool result', e)
+                     }
+                   }
+                 }
 
                  // 🔥 update_task 工具结果：用返回的 task_list_tag 更新 latestTaskListContent
                  // 这样 DynamicTaskPlanner 卡片会立即刷新，无需 AI 重新输出 <TASK_LIST> 标签
@@ -3205,7 +3111,52 @@ function AIAssistantContent() {
                  continue
               }
 
+              // 处理深度研究阶段进度（对话式研究：拆解 → 检索 → 补搜 → 融合 → 入库，逐阶段汇报）
+              // 修复：之前 push 成 kind="narrative" 会被 AgentThoughtChain 吞掉（只进 pendingTexts，
+              //       要等下一个 task step 才会 flush；如果一直没有 task 就完全看不到），
+              //       改为 kind="task" 强制产出可见的 ThoughtChain item。
+              if (data.research_progress) {
+                const { stage, detail } = data.research_progress
+                const stageLabel = stageToLabel(stage)
+                // 🔥 性能修复：必须用「stage 稳定 id」复用同一条 step。
+                // 之前用 Date.now()+random，每条 progress 都 push 一个新 item——
+                // deep_research 一次能推几十条（每个子查询/每个网页一条），
+                // 于是几十个 ThoughtChain.Item（各带动画+折叠内容）被反复全量重建，
+                // 渲染成本 O(N²) 直接把回复拖慢。
+                // 现在：同一阶段的多条进度只更新 subnote，step 总数恒定在 stage 种类数。
+                const stageId = `research-stage-${stage || "unknown"}`
+                // 先把其它已推进过的阶段标记完成，保证只有一个 active
+                for (const s of currentAgentSteps) {
+                  if (
+                    s.kind === "task" &&
+                    s.status === "active" &&
+                    typeof s.id === "string" &&
+                    s.id.startsWith("research-stage-")
+                  ) {
+                    s.status = "completed"
+                  }
+                }
+                const existIdx = currentAgentSteps.findIndex(s => s.id === stageId)
+                if (existIdx === -1) {
+                  currentAgentSteps.push({
+                    id: stageId,
+                    kind: "task",
+                    status: "active",
+                    toolName: undefined,
+                    title: stageLabel,
+                    subnote: detail || stage,
+                    startedAt: Date.now(),
+                  })
+                } else {
+                  currentAgentSteps[existIdx].status = "active"
+                  currentAgentSteps[existIdx].subnote = detail || stage
+                }
+                setAgentSteps([...currentAgentSteps])
+                continue
+              }
+
               // Handle tool progress (parallel execution feedback)
+              // 同样改为 kind="task"，避免被吞
               if (data.tool_progress) {
                 const { completed, total, current } = data.tool_progress
                 // 🔥 Bug 修复：去重 id 必须和 push 时用的 id 一致，否则去重失效
@@ -3216,11 +3167,11 @@ function AIAssistantContent() {
                 if (existingIdx === -1) {
                   currentAgentSteps.push({
                     id: progressId,
-                    kind: "narrative",
+                    kind: "task",
                     status: "active",
-                    // 🔥 Bug 修复：后端发的 completed 已经是递增后的值（1-based），
-                    // 不需要再 +1，否则 4 个工具会显示成 2/4, 3/4, 4/4, 5/4
-                    text: `并行调用 ${completed}/${total}：${current ? `正在执行 ${current}` : '执行中...'}`,
+                    title: `并行调用 ${completed}/${total}`,
+                    subnote: current ? `正在执行 ${current}` : '执行中...',
+                    startedAt: Date.now(),
                   })
                   setAgentSteps([...currentAgentSteps])
                 }
@@ -3921,6 +3872,27 @@ function AIAssistantContent() {
         return
       }
 
+      // 🔥 深度思考归一化：把 content 里的 <REASONING> 块抽出为 reasoning 字段，并从正文剥离。
+      // 背景：assistantMsg.content 累积的是原始流（含 <REASONING>），且 assistantMsg 不带 reasoning；
+      // 流结束后多处用 `{ ...assistantMsg }` 回写消息 → reasoning 丢失（思考面板消失、思考文本裸露在回答里），
+      // 同时原始 REASONING 会随 content 一起落库。这里在回写/落库前统一修正。
+      if (enableReasoning && typeof assistantMsg.content === "string" && assistantMsg.content.includes("<REASONING>")) {
+        const reasoningBlocks: string[] = []
+        const strippedContent = assistantMsg.content.replace(
+          /<REASONING>([\s\S]*?)(?:<\/REASONING>|$)/g,
+          (_m, inner: string) => {
+            reasoningBlocks.push(inner)
+            return ""
+          }
+        )
+        assistantMsg.content = strippedContent.replace(/<\/?REASONING>/g, "").replace(/^\s*\n+/, "").trim()
+        const innerText = reasoningBlocks.join("\n\n").trim()
+        if (innerText) reasoningText = innerText
+      }
+      if (enableReasoning && reasoningText) {
+        assistantMsg.reasoning = { text: reasoningText, durationMs: Date.now() - startTs }
+      }
+
       // Read remaining buffer if any
       if (isTTSEnabled) {
          const getTTSableText = (text: string) => {
@@ -4286,6 +4258,40 @@ function AIAssistantContent() {
             return newMsgs
           })
         }
+      }
+
+      // 🔥 DEVICE_FORGE 收尾兜底：connect_device_from_doc 已产出 ui_card（已注册右面板），
+      // 但模型最终回复没有复述 <DEVICE_FORGE> 标签时（此前 bug：AI 只写了"在草稿表单里补全/点装入"
+      // 这类幻觉话术，标签根本没输出 → 对话内卡片"出现一秒就消失"甚至根本不渲染）。
+      // 这里把卡片补到消息末尾（与模型正常输出位置一致），随消息一起持久化，历史回放也能显示。
+      if (pendingForgeCardRef.current && typeof assistantMsg.content === 'string') {
+        const pending = pendingForgeCardRef.current
+        const contentStr = assistantMsg.content
+        const openIdx = contentStr.indexOf('<DEVICE_FORGE')
+        const hasCloseTag = /<\/\s*DEVICE_FORGE\s*>/.test(contentStr)
+        const tag = `<DEVICE_FORGE>${JSON.stringify(pending.card)}</DEVICE_FORGE>`
+        if (openIdx === -1) {
+          // 情况 A：完全没有标签 → 直接把完整卡片补到消息末尾
+          assistantMsg.content = contentStr
+            ? `${contentStr.replace(/\s+$/, '')}\n\n${tag}`
+            : tag
+          console.log('[Final DeviceForge] ✅ ui_card auto-injected as DEVICE_FORGE tag (model did not echo)')
+        } else if (!hasCloseTag) {
+          // 情况 B：模型开始复述但流被截断/忘记闭合 → 切掉残缺的开标签片段，替换为完整卡片
+          assistantMsg.content = `${contentStr.slice(0, openIdx).replace(/\s+$/, '')}\n\n${tag}`
+          console.log('[Final DeviceForge] ✅ Replaced dangling DEVICE_FORGE open tag with complete card')
+        } else {
+          // 情况 C：模型已正确输出完整标签 → 无需注入
+          console.log('[Final DeviceForge] Model already echoed complete DEVICE_FORGE tag, skip injection')
+        }
+        if (streamSessionId === sessionId) {
+          setMessages(prev => {
+            const newMsgs = [...prev]
+            newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+            return newMsgs
+          })
+        }
+        pendingForgeCardRef.current = null
       }
 
       if (ensuredSessionId) {
@@ -5615,6 +5621,14 @@ function AIAssistantContent() {
           }}
         />
 
+        {/* 设备接入实时面板 — DEVICE_FORGE 卡片出现时自动弹出，
+            展示 AI 生成设备接入配置的步骤/失败原因与可编辑表单 */}
+        <DeviceForgeSidebarPanel
+          darkMode={darkMode}
+          sidebarOpen={sidebarOpen}
+          onSendMessage={(text) => handleSend(text)}
+        />
+
         {/* 报告查看 Drawer — 点击"查看报告"按钮真正展示报告内容 */}
         <Drawer
           open={!!reportData}
@@ -5989,73 +6003,110 @@ function AIAssistantContent() {
         }}
       />
 
-      {/* 配额耗尽 / 升级提示弹窗（自动弹，简洁直接） */}
+      {/* 配额耗尽 / 升级提示弹窗（WorkBuddy 产品语言：扁平 · metric card · 深色主按钮） */}
       <Modal
         open={showExhaustedDialog}
         onCancel={() => setShowExhaustedDialog(false)}
         footer={null}
-        width={400}
+        width={380}
         centered
         title={null}
         closable={false}
-        styles={{ body: { padding: "24px 24px 20px" } }}
+        className="!rounded-2xl overflow-hidden [&_.ant-modal-content]:!rounded-2xl [&_.ant-modal-content]:overflow-hidden [&_.ant-modal-content]:!shadow-[0_16px_48px_rgba(15,23,42,0.14)]"
+        styles={{
+          body: { padding: "24px 24px 20px" },
+        }}
       >
-        <div className="flex flex-col items-center text-center">
-          <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mb-4">
+        {/* 头部：图标 chip + 标题 + 会员徽章（左对齐，产品卡片式） */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[10px] bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
             {quotaInfo?.reason === 'membership_required' ? (
-              <Lock className="w-[18px] h-[18px] text-amber-500" />
+              <Lock className="w-5 h-5 text-rose-500 dark:text-rose-400" />
             ) : (
-              <AlertTriangle className="w-[18px] h-[18px] text-amber-500" />
+              <Wallet className="w-5 h-5 text-rose-500 dark:text-rose-400" />
             )}
           </div>
-          <h3 className="text-[15px] font-semibold text-slate-900 dark:text-zinc-100 mb-2 tracking-tight">
-            {quotaInfo?.reason === 'membership_required' ? '需要升级会员' : '积分额度已用尽'}
-          </h3>
-          <p className="text-[12.5px] text-slate-500 dark:text-zinc-400 leading-relaxed mb-5 max-w-[280px]">
-            {quotaInfo?.reason === 'membership_required'
-              ? 'AI 功能仅限 Pro/Plus 会员使用，升级后可解锁全部能力。'
-              : quotaInfo?.reason === 'no_credits'
-                ? '本月积分已用完且充值余额为 0，请等待下月 1 号刷新或充值积分。'
-                : '当前条件下无法继续调用 AI，请充值积分或升级会员。'}
-          </p>
-
-          {/* 当前状态卡：会员 + 剩余积分 */}
-          <div className="w-full rounded-lg bg-slate-50 dark:bg-zinc-800/50 px-3.5 py-3 mb-5">
-            <div className="flex items-center justify-between text-[12.5px] mb-2">
-              <span className="text-slate-500 dark:text-zinc-400">当前会员</span>
-              <Tag
-                bordered={false}
-                color={creditInfo?.membership === 'plus' ? 'gold' : creditInfo?.membership === 'pro' ? 'blue' : 'default'}
-                className="!m-0 !text-[11px]"
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-[15px] font-semibold text-slate-900 dark:text-zinc-50 tracking-tight">
+              {quotaInfo?.reason === 'membership_required' ? '会员专属功能' : '积分不足'}
+            </h3>
+            {creditInfo?.membership === 'plus' || creditInfo?.membership === 'pro' ? (
+              <span
+                className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded-full text-[10px] font-semibold text-white ${
+                  creditInfo?.membership === 'plus' ? 'bg-amber-500' : 'bg-blue-500'
+                }`}
               >
-                {(creditInfo?.membership || user?.membership || 'FREE').toUpperCase()}
-              </Tag>
+                <Crown className="w-2.5 h-2.5" />
+                {creditInfo?.membership.toUpperCase()}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {/* 描述：一句讲清现状 + 出路 */}
+        <p className="text-[13px] text-slate-500 dark:text-zinc-400 leading-relaxed mt-3">
+          {quotaInfo?.reason === 'membership_required'
+            ? '当前账号暂未开通会员，升级 Pro / Plus 后即可继续使用 AI 功能。'
+            : '当前余额不足以发起新一轮对话，充值后立即恢复，或等待每月 1 日自动刷新。'}
+        </p>
+
+        {/* metric 双卡：label 在上、数字在下（tabular-nums 等宽数字） */}
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="rounded-lg bg-slate-50 dark:bg-zinc-800/70 px-3.5 py-3">
+            <div className="text-[12px] text-slate-500 dark:text-zinc-400">剩余积分</div>
+            <div className="text-[22px] leading-tight font-semibold text-slate-900 dark:text-zinc-50 mt-1 [font-variant-numeric:tabular-nums]">
+              {(creditInfo?.totalRemaining ?? 0).toFixed(2)}
             </div>
-            <div className="flex items-center justify-between text-[12.5px]">
-              <span className="text-slate-500 dark:text-zinc-400">积分剩余</span>
-              <span className="font-mono font-medium text-slate-900 dark:text-zinc-100">
-                {(creditInfo?.totalRemaining ?? 0).toFixed(1)} 积分
+          </div>
+          <div className="rounded-lg bg-slate-50 dark:bg-zinc-800/70 px-3.5 py-3">
+            <div className="text-[12px] text-slate-500 dark:text-zinc-400">本月用量</div>
+            <div className="text-[22px] leading-tight font-semibold text-slate-900 dark:text-zinc-50 mt-1 [font-variant-numeric:tabular-nums]">
+              {(creditInfo?.monthlyUsed ?? 0).toFixed(0)}
+              <span className="text-[13px] font-normal text-slate-400 dark:text-zinc-500">
+                {' / '}{(creditInfo?.monthlyQuota ?? 0).toFixed(0)}
               </span>
             </div>
+            <div className="h-[3px] w-full rounded-full bg-slate-200 dark:bg-zinc-700 mt-2 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-rose-500 dark:bg-rose-400"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    (creditInfo?.monthlyQuota ?? 0) > 0
+                      ? ((creditInfo?.monthlyUsed ?? 0) / creditInfo!.monthlyQuota) * 100
+                      : 0
+                  )}%`,
+                }}
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 w-full">
-            <AntButton block className="!h-9 !rounded-md" onClick={() => setShowExhaustedDialog(false)}>
-              我知道了
-            </AntButton>
-            <AntButton
-              type="primary"
-              block
-              className="!h-9 !rounded-md"
-              icon={<Crown className="w-[13px] h-[13px]" />}
-              onClick={() => {
-                setShowExhaustedDialog(false)
-                setShowCreditsDialog(true)
-              }}
-            >
-              充值 / 升级
-            </AntButton>
-          </div>
+        {/* 刷新提示 */}
+        <div className="flex items-center gap-1.5 mt-3 text-[12px] text-slate-400 dark:text-zinc-500">
+          <RefreshCw className="w-3 h-3" />
+          <span>积分每月 1 日自动刷新</span>
+        </div>
+
+        {/* 按钮：深色主按钮 + 描边次按钮（产品标准层级） */}
+        <div className="flex items-center gap-2 mt-5">
+          <AntButton
+            type="primary"
+            block
+            className="!h-10 !rounded-[10px] !border-none !text-white !text-[14px] !font-medium !bg-zinc-900 hover:!bg-zinc-800 dark:!bg-zinc-100 dark:!text-zinc-900 dark:hover:!bg-zinc-200 !shadow-none"
+            onClick={() => {
+              setShowExhaustedDialog(false)
+              router.push('/subscription')
+            }}
+          >
+            {quotaInfo?.reason === 'membership_required' ? '升级会员' : '充值积分'}
+          </AntButton>
+          <AntButton
+            className="!h-10 !rounded-[10px] !px-5 !text-[14px] !border-slate-200 dark:!border-zinc-700 !text-slate-600 dark:!text-zinc-300 !shadow-none"
+            onClick={() => setShowExhaustedDialog(false)}
+          >
+            我知道了
+          </AntButton>
         </div>
       </Modal>
 

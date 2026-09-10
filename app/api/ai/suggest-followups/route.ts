@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guardAiQuota } from '@/lib/api/ai-quota-guard'
 
 export const runtime = 'nodejs'
 
@@ -24,6 +25,10 @@ export async function POST(req: Request) {
     if (!lastAssistant && !lastUser) {
       return NextResponse.json({ error: 'Conversation context is required' }, { status: 400 })
     }
+
+    // 🔥 额度守卫：回退系统 key 时必须检查积分；用户自带 key 只要求登录
+    const guard = await guardAiQuota({ skipCreditCheck: !!userApiKey })
+    if (!guard.ok) return guard.response
 
     // 解析 API 配置：用户配置 > 系统环境变量
     const apiKey = (userApiKey || process.env.SYSTEM_OPENAI_API_KEY || '').trim()

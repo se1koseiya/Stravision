@@ -22,6 +22,13 @@ export async function POST(_req: NextRequest) {
     return Response.json({ error: "未登录" }, { status: 401 })
   }
 
+  // 🔥 额度守卫：报告生成调 LLM，必须检查积分
+  const { checkCreditAllowance } = await import('@/lib/db/credit-service')
+  const denyReason = await checkCreditAllowance(user.id as number)
+  if (denyReason) {
+    return Response.json({ error: `${denyReason}。` }, { status: 403 })
+  }
+
   try {
     // 1. 生成记忆画像 HTML 报告
     const report = await generateMemoryReport(user.id as number)
