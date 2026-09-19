@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, ArrowRight, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { RealtimeVoiceOrb, DeviceCommand } from "@/components/realtime-voice-orb"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
+import { IconArrowRight, IconCalendar, IconUser } from "@/components/icon";
 
 interface TopBannerProps {
   userName?: string
@@ -71,7 +71,7 @@ export function TopBanner({
            isElderFriendlyMode ? "h-14 text-lg" : "h-12"
          )}>
             查看任务
-            <ArrowRight className={cn(
+            <IconArrowRight className={cn(
               "ml-2 group-hover:translate-x-1 transition-transform",
               isElderFriendlyMode ? "w-5 h-5" : "w-4 h-4"
             )} />
@@ -82,7 +82,7 @@ export function TopBanner({
            "rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800 shrink-0 relative cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors hidden sm:flex",
            isElderFriendlyMode ? "w-14 h-14" : "w-12 h-12"
          )}>
-            <Calendar className={cn(
+            <IconCalendar className={cn(
               "text-slate-600 dark:text-slate-300",
               isElderFriendlyMode ? "w-6 h-6" : "w-5 h-5"
             )} />

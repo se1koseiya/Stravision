@@ -2,11 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  X, Check, Shield, Star, Globe, Download,
-  ExternalLink, Zip, Info, ShieldCheck,
-  Package, Layout, Cpu, Save, Key, Link as LinkIcon, Database
-} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +11,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { AIProvider } from "@/app/model-store/page"
+import { IconBox, IconCheck, IconClose, IconCpu, IconDatabaseNetwork, IconDownload, IconGlobe, IconInfo, IconKey, IconLayoutTwo, IconLink, IconLinkOut, IconSave, IconShield, IconStar, IconZip } from "@/components/icon";
 
 interface ModelDetailDialogProps {
   provider: AIProvider | null
@@ -180,7 +176,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
               onClick={handleClose}
               className="absolute top-6 right-6 z-50 size-10 rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-xl flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
             >
-              <X size={20} />
+              <IconClose size={20} />
             </button>
 
             <ScrollArea className="flex-1 overflow-x-hidden">
@@ -204,7 +200,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                             </Badge>
                             {provider.official && (
                               <Badge className="py-1 px-3" style={{ background: `${BERRY_THEME.primary}33`, color: '#bae0ff', borderColor: `${BERRY_THEME.primary}33` }}>
-                                <ShieldCheck className="size-3.5 mr-1.5" /> 官方推荐
+                                <IconShield className="size-3.5 mr-1.5" /> 官方推荐
                               </Badge>
                             )}
                          </div>
@@ -213,11 +209,11 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                          </h2>
                          <div className="flex items-center gap-6 text-zinc-500 dark:text-zinc-400 font-medium">
                             <div className="flex items-center gap-1.5">
-                               <Package className="size-4" />
+                               <IconBox className="size-4" />
                                <span className="text-sm">{provider.provider}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                               <Star className="size-4 text-amber-500 fill-amber-500" />
+                               <IconStar className="size-4 text-amber-500 fill-amber-500" />
                                <span className="text-sm">9.9 评分</span>
                             </div>
                          </div>
@@ -231,7 +227,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                    <div className="lg:col-span-2 space-y-12">
                       <section className="space-y-6">
                          <h3 className="text-2xl font-bold flex items-center gap-3">
-                            <Cpu className="size-6" style={{ color: BERRY_THEME.primary }} />
+                            <IconCpu className="size-6" style={{ color: BERRY_THEME.primary }} />
                             引擎简介
                          </h3>
                          <p className="text-xl leading-relaxed text-zinc-600 dark:text-zinc-400 font-medium">
@@ -243,14 +239,14 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                       <section className="space-y-6 p-10 border" style={{ borderRadius: BERRY_THEME.radius.lg, background: `${BERRY_THEME.primary}0A`, borderColor: `${BERRY_THEME.primary}26` }}>
                          <div className="flex items-center justify-between">
                             <h3 className="text-2xl font-bold flex items-center gap-3">
-                              <Shield className="size-6" style={{ color: BERRY_THEME.primary }} />
+                              <IconShield className="size-6" style={{ color: BERRY_THEME.primary }} />
                               环境配置
                             </h3>
                          </div>
 
                          {provider.id === 'system' ? (
                            <div className="p-6 flex items-start gap-4" style={{ background: `${BERRY_THEME.primary}1A`, color: BERRY_THEME.primaryText, borderRadius: BERRY_THEME.radius.md }}>
-                             <ShieldCheck className="size-8 shrink-0" />
+                             <IconShield className="size-8 shrink-0" />
                              <div className="space-y-1">
                                 <h4 className="font-bold text-lg">系统免密直连</h4>
                                 <p className="text-sm opacity-80 font-medium">您正在激活系统预留的通义千问官方API。该模式由平台统一提供支持，无需您手动填写鉴权密钥，立即保存即可无缝体验。</p>
@@ -261,7 +257,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                               {(provider.id !== 'ollama') && (
                                 <div className="space-y-2.5">
                                   <Label htmlFor="apiKey" className="text-sm font-bold opacity-60 flex items-center gap-2">
-                                     <Key size={16} /> API Key 鉴权密钥
+                                     <IconKey size={16} /> API Key 鉴权密钥
                                   </Label>
                                   <Input
                                     id="apiKey"
@@ -277,7 +273,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
 
                               <div className="space-y-2.5">
                                 <Label htmlFor="apiUrl" className="text-sm font-bold opacity-60 flex items-center gap-2">
-                                   <LinkIcon size={16} /> API 请求接入点 (Base URL)
+                                   <IconLink size={16} /> API 请求接入点 (Base URL)
                                 </Label>
                                 <Input
                                   id="apiUrl"
@@ -292,7 +288,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
 
                               <div className="space-y-2.5">
                                 <Label htmlFor="modelName" className="text-sm font-bold opacity-60 flex items-center gap-2">
-                                   <Database size={16} /> 模型识别码 (Model Name)
+                                   <IconDatabaseNetwork size={16} /> 模型识别码 (Model Name)
                                 </Label>
                                 <Input
                                   id="modelName"
@@ -318,7 +314,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                    <div className="space-y-8">
                       <div className="p-10 bg-white dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 space-y-6 shadow-sm" style={{ borderRadius: BERRY_THEME.radius.lg }}>
                          <h4 className="text-lg font-bold flex items-center gap-2">
-                            <Info className="size-4" style={{ color: BERRY_THEME.primary }} />
+                            <IconInfo className="size-4" style={{ color: BERRY_THEME.primary }} />
                             节点详情
                          </h4>
                          <div className="space-y-4">
@@ -341,7 +337,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
 
                       <div className="p-10 border space-y-4 shadow-sm" style={{ borderRadius: BERRY_THEME.radius.lg, background: `${BERRY_THEME.primary}0A`, borderColor: `${BERRY_THEME.primary}26` }}>
                           <div className="flex items-center gap-3" style={{ color: BERRY_THEME.primary }}>
-                             <Info size={20} />
+                             <IconInfo size={20} />
                              <h4 className="font-bold">平台保障</h4>
                           </div>
                           <p className="text-sm leading-relaxed italic font-medium" style={{ color: `${BERRY_THEME.primaryText}CC` }}>
@@ -368,7 +364,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                             </div>
                          ) : (
                             <div className="flex items-center gap-2">
-                               <Save size={26} />
+                               <IconSave size={26} />
                                <span>保存并激活</span>
                             </div>
                          )}

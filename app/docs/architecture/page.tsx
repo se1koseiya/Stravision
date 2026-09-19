@@ -5,8 +5,8 @@ import { LogicalArchitectureDiagram } from "@/components/docs/logical-architectu
 import { DatabaseArchitectureDiagram } from "@/components/docs/database-architecture-diagram"
 import { UserFlowDiagram } from "@/components/docs/user-flow-diagram"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { motion } from "framer-motion"
+import { IconArrowLeft } from "@/components/icon";
 
 const GridBackground = () => (
   <div className="fixed inset-0 z-0 pointer-events-none">
@@ -36,7 +36,7 @@ export default function ArchitecturePage() {
             href="/docs" 
             className="group flex items-center gap-2 text-zinc-500 hover:text-emerald-400 transition-colors text-sm font-mono uppercase tracking-widest"
           >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <IconArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             Back to Docs
           </Link>
           

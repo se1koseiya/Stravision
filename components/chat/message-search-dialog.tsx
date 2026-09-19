@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react"
 import { Modal, Input, Button, Empty } from "antd"
-import { Search, X } from "lucide-react"
 import type { ChatMessage } from "@/lib/chat/chat-types"
 import { formatChatTime } from "@/lib/chat/chat-types"
+import { IconClose, IconSearch } from "@/components/icon";
 
 interface MessageSearchDialogProps {
   open: boolean
@@ -71,7 +71,7 @@ export function MessageSearchDialog({
       width={720}
     >
       <div className="relative mt-2">
-        <Search
+        <IconSearch
           className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
           strokeWidth={ICON_STROKE}
         />
@@ -86,7 +86,7 @@ export function MessageSearchDialog({
               type="text"
               size="small"
               shape="circle"
-              icon={<X className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />}
+              icon={<IconClose className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />}
               onClick={() => setSearchQuery("")}
             />
           ) : null}

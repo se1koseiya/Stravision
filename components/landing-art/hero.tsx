@@ -8,7 +8,6 @@ import {
   useSpring,
 } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import BerryOrb from "@/components/smoothui/berry-orb";
 import {
   MagneticButton,
@@ -17,6 +16,7 @@ import {
   Eyebrow,
   EASE,
 } from "./ui-primitives";
+import { IconArrowRightUp } from "@/components/icon";
 
 /* ============================================================
    HERO —— 电影级编辑式开篇 (Cinematic Editorial Prologue)
@@ -177,7 +177,7 @@ export function Hero() {
                   className="group inline-flex items-center bg-white text-black px-8 py-4 text-[12px] tracking-[0.2em] uppercase transition-colors duration-300 hover:bg-[#1677ff] hover:text-white"
                 >
                   进入莓界
-                  <ArrowUpRight
+                  <IconArrowRightUp
                     className="w-4 h-4 ml-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                     strokeWidth={1.75}
                   />

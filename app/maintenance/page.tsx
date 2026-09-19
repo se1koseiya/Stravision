@@ -1,7 +1,7 @@
 import { getMaintenanceConfig } from "@/lib/db/maintenance-service"
-import { AlertTriangle, Wrench } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { IconCaution, IconTool } from "@/components/icon";
 
 export default async function MaintenancePage() {
   const config = await getMaintenanceConfig()
@@ -21,7 +21,7 @@ export default async function MaintenancePage() {
 
       <div className="relative z-10 max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
         <div className="mx-auto w-24 h-24 rounded-3xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center border border-amber-200 dark:border-amber-800 shadow-xl rotate-3 transition-transform hover:rotate-6">
-          <Wrench className="w-12 h-12 text-amber-600 dark:text-amber-500" />
+          <IconTool className="w-12 h-12 text-amber-600 dark:text-amber-500" />
         </div>
 
         <div className="space-y-4">

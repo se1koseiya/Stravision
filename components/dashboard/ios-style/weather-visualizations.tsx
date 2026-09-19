@@ -3,22 +3,63 @@
 import { useMemo } from "react"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import {
-  Sun, Cloud, CloudRain, CloudSnow, CloudLightning, CloudDrizzle,
-} from "lucide-react"
+  IconCloudy,
+  IconCloudyNight,
+  IconFog,
+  IconHeavyRain,
+  IconLightRain,
+  IconSnow,
+  IconSunny,
+  IconSun,
+  IconThunderstorm,
+} from "@/components/icon";
 
 const A = BERRY_THEME.apple
 
 // ─── Weather condition to icon + color mapping ───
+//
+// ⚠️ 历史 bug：这里每个分支都返回 IconCloudStorage（IconPark.CloudStorage，
+// 一个"云上硬盘"图标），所以任何天气渲染出来都是一朵带硬盘的云。
+// 现在改用 lucide 的真实天气图标族，并按「夜间 / 量级」细分。
 
-export function getWeatherConfig(condition: string) {
-  const c = condition.toLowerCase()
-  if (c.includes('thunder') || c.includes('雷')) return { icon: CloudLightning, color: '#6366f1', gradient: ['#667eea', '#764ba2'] }
-  if (c.includes('snow') || c.includes('雪')) return { icon: CloudSnow, color: '#7dd3fc', gradient: ['#a8edea', '#fed6e3'] }
-  if (c.includes('rain') || c.includes('drizzle') || c.includes('雨')) return { icon: CloudRain, color: '#60a5fa', gradient: ['#4facfe', '#00f2fe'] }
-  if (c.includes('drizzle') || c.includes('毛毛雨')) return { icon: CloudDrizzle, color: '#7dd3fc', gradient: ['#89f7fe', '#66a6ff'] }
-  if (c.includes('cloud') || c.includes('overcast') || c.includes('阴') || c.includes('多云')) return { icon: Cloud, color: '#94a3b8', gradient: ['#c9d6ff', '#e2e2e2'] }
-  if (c.includes('fog') || c.includes('mist') || c.includes('雾')) return { icon: Cloud, color: '#94a3b8', gradient: ['#d7dde8', '#e9e9e9'] }
-  return { icon: Sun, color: '#fbbf24', gradient: ['#f6d365', '#fda085'] }
+export function getWeatherConfig(condition: string, isNight = false) {
+  const c = (condition || '').toLowerCase()
+  // 雷暴
+  if (c.includes('thunder') || c.includes('storm') || c.includes('雷')) {
+    return { icon: IconThunderstorm, color: '#6366f1', gradient: ['#667eea', '#764ba2'] }
+  }
+  // 雪
+  if (c.includes('snow') || c.includes('sleet') || c.includes('blizzard') || c.includes('雪')) {
+    return { icon: IconSnow, color: '#7dd3fc', gradient: ['#a8edea', '#fed6e3'] }
+  }
+  // 雨：按量级区分暴雨 / 小到中雨
+  if (c.includes('heavy') || c.includes('暴雨') || c.includes('大雨') || c.includes('torrential')) {
+    return { icon: IconHeavyRain, color: '#3b82f6', gradient: ['#1e40af', '#3b82f6'] }
+  }
+  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower') || c.includes('雨')) {
+    return { icon: IconLightRain, color: '#60a5fa', gradient: ['#4facfe', '#00f2fe'] }
+  }
+  // 雾 / 霾 / 沙尘
+  if (c.includes('fog') || c.includes('mist') || c.includes('haze') || c.includes('雾') || c.includes('霾')) {
+    return { icon: IconFog, color: '#94a3b8', gradient: ['#d7dde8', '#e9e9e9'] }
+  }
+  // 阴天（全云，无太阳）
+  if (c.includes('overcast') || c.includes('阴')) {
+    return { icon: isNight ? IconCloudyNight : IconCloudy, color: '#94a3b8', gradient: ['#475569', '#64748b'] }
+  }
+  // 多云 / 局部多云
+  if (c.includes('cloud') || c.includes('partly') || c.includes('多云')) {
+    return { icon: isNight ? IconCloudyNight : IconCloudy, color: '#94a3b8', gradient: ['#c9d6ff', '#e2e2e2'] }
+  }
+  // 晴：夜间用月亮，白天用太阳
+  if (isNight) {
+    return { icon: IconCloudyNight, color: '#818cf8', gradient: ['#1e1b4b', '#312e81'] }
+  }
+  if (c.includes('clear') || c.includes('sun') || c.includes('晴')) {
+    return { icon: IconSunny, color: '#fbbf24', gradient: ['#f6d365', '#fda085'] }
+  }
+  // 未知：白天给太阳
+  return { icon: IconSun, color: '#fbbf24', gradient: ['#f6d365', '#fda085'] }
 }
 
 // ─── Wind Arrow — shows wind direction with rotation ───
@@ -221,6 +262,8 @@ export interface HourlyData {
   windSpeed: number
   windDir: number | string
   isNow?: boolean
+  /** 24 小时制的整点小时数（0-23）：用于判断该时段是否夜间，决定渲染太阳还是月亮 */
+  hour?: number
 }
 
 export function WidgetHourlyStrip({
@@ -243,7 +286,11 @@ export function WidgetHourlyStrip({
       className="hide-scrollbar"
     >
       {hours.map((h, i) => {
-        const cfg = getWeatherConfig(h.condition)
+        // 夜间（19:00–06:00）晴天渲染月亮而不是太阳
+        const isNight = h.hour !== undefined
+          ? (h.hour >= 19 || h.hour < 6)
+          : false
+        const cfg = getWeatherConfig(h.condition, isNight)
         const WeatherIcon = cfg.icon
         const isActive = h.isNow
         return (

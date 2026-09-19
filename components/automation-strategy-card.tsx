@@ -3,15 +3,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import React from "react"
 import { motion } from "framer-motion"
-import {
-  Save, Play, Loader2, ChevronDown, ChevronUp, Check, ExternalLink,
-  Zap, Brain, Cpu, Bell,
-} from "lucide-react"
 import { XCard, registerCatalog } from "@ant-design/x-card"
 import type { A2UICommand_v0_9, ActionPayload, Catalog } from "@ant-design/x-card"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { IconBrain, IconCheck, IconCpu, IconDown, IconLightning, IconLinkOut, IconLoading, IconPlay, IconRemind, IconSave, IconUp } from "@/components/icon";
 
 interface AutomationStrategyCardProps {
   strategy: { nodes: any[]; edges: any[] }
@@ -80,13 +77,13 @@ registerCatalog(catalog)
 // 类型映射
 // ---------------------------------------------------------------------------
 const NODE_TYPE_CONFIG: Record<string, { icon: any; label: string; color: string; bg: string; border: string }> = {
-  triggerNode: { icon: Bell,    label: "触发", color: PRIMARY, bg: `${PRIMARY}14`,  border: `${PRIMARY}40` },
-  logicNode:   { icon: Brain,   label: "判断", color: "#722ed1", bg: "#722ed114", border: "#722ed140" },
-  actionNode:  { icon: Cpu,     label: "动作", color: SUCCESS, bg: `${SUCCESS}14`, border: `${SUCCESS}40` },
+  triggerNode: { icon: IconRemind,    label: "触发", color: PRIMARY, bg: `${PRIMARY}14`,  border: `${PRIMARY}40` },
+  logicNode:   { icon: IconBrain,   label: "判断", color: "#722ed1", bg: "#722ed114", border: "#722ed140" },
+  actionNode:  { icon: IconCpu,     label: "动作", color: SUCCESS, bg: `${SUCCESS}14`, border: `${SUCCESS}40` },
 }
 
 function getNodeConfig(type: string) {
-  return NODE_TYPE_CONFIG[type] || { icon: Zap, label: "节点", color: "#6b7280", bg: "#9ca3af14", border: "#9ca3af40" }
+  return NODE_TYPE_CONFIG[type] || { icon: IconLightning, label: "节点", color: "#6b7280", bg: "#9ca3af14", border: "#9ca3af40" }
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +127,7 @@ function CardHeaderComponent({
           className="flex items-center justify-center shrink-0 w-7 h-7 rounded-md"
           style={{ background: PRIMARY_BG, border: `1px solid ${PRIMARY_BORDER}` }}
         >
-          <Zap size={14} style={{ color: PRIMARY }} />
+          <IconLightning size={14} style={{ color: PRIMARY }} />
         </span>
 
         {/* 标题与描述 */}
@@ -160,7 +157,7 @@ function CardHeaderComponent({
             onClick={onToggleCollapsed}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0"
           >
-            {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            {collapsed ? <IconDown size={14} /> : <IconUp size={14} />}
           </button>
         )}
       </div>
@@ -295,9 +292,9 @@ function DirectRenderFallback({
             className="flex-1 inline-flex items-center justify-center gap-1.5 h-7 rounded-md text-[12px] font-medium transition-colors"
             style={{ background: `${PRIMARY}14`, color: PRIMARY }}
           >
-            <Check size={12} />
+            <IconCheck size={12} />
             已保存 · 查看详情
-            <ExternalLink size={11} />
+            <IconLinkOut size={11} />
           </button>
         ) : (
           <button
@@ -306,7 +303,7 @@ function DirectRenderFallback({
             className="flex-1 inline-flex items-center justify-center gap-1.5 h-7 rounded-md text-[12px] font-medium text-white transition-colors disabled:opacity-50"
             style={{ background: PRIMARY }}
           >
-            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            {isSaving ? <IconLoading size={12} className="animate-spin" /> : <IconSave size={12} />}
             保存策略
           </button>
         )}
@@ -320,7 +317,7 @@ function DirectRenderFallback({
             border: "1px solid #d1d5db",
           }}
         >
-          {isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+          {isExecuting ? <IconLoading size={12} className="animate-spin" /> : <IconPlay size={12} />}
           测试运行
         </button>
       </div>

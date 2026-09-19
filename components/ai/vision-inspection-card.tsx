@@ -2,19 +2,9 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { App, Button, Card, Segmented, Space, Tag, Tooltip, Typography } from 'antd'
-import {
-  CameraOutlined,
-  VideoCameraOutlined,
-  LeftOutlined,
-  RightOutlined,
-  PauseOutlined,
-  ScanOutlined,
-  SendOutlined,
-  DeleteOutlined,
-  PoweroffOutlined,
-} from '@ant-design/icons'
 import dynamic from 'next/dynamic'
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCamera, IconDelete, IconLeft, IconPause, IconPower, IconRight, IconScan, IconSend } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -250,7 +240,7 @@ export function VisionInspectionCard({
       styles={{ body: { padding: 16 } }}
       title={
         <Space size={8} align="center">
-          <CameraOutlined style={{ color: BERRY_THEME.primary }} />
+          <IconCamera style={{ color: BERRY_THEME.primary }} />
           <Text strong>视觉巡检</Text>
           {isActive && (
             <Tag color="processing" style={{ marginInlineStart: 4 }}>
@@ -263,7 +253,7 @@ export function VisionInspectionCard({
         <Button
           type={isActive ? 'default' : 'primary'}
           danger={isActive}
-          icon={<PoweroffOutlined />}
+          icon={<IconPower />}
           onClick={toggleInspection}
           disabled={!currentCameraUrl && !isActive}
           size="small"
@@ -321,7 +311,7 @@ export function VisionInspectionCard({
                 color: 'rgba(255, 255, 255, 0.45)',
               }}
             >
-              <VideoCameraOutlined style={{ fontSize: 32 }} />
+              <IconCamera style={{ fontSize: 32 }} />
               <Text style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: 13 }}>
                 {!currentCameraUrl ? '摄像头未配置' : '点击「开始巡检」启动'}
               </Text>
@@ -343,7 +333,7 @@ export function VisionInspectionCard({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <Tooltip title="云台左移（按住）">
             <Button
-              icon={<LeftOutlined />}
+              icon={<IconLeft />}
               onMouseDown={() => handleMove('left')}
               onMouseUp={handleStopMove}
               onMouseLeave={handleStopMove}
@@ -355,14 +345,14 @@ export function VisionInspectionCard({
           </Tooltip>
           <Tooltip title="停止">
             <Button
-              icon={<PauseOutlined />}
+              icon={<IconPause />}
               onClick={handleStopMove}
               disabled={!movingDirection}
             />
           </Tooltip>
           <Tooltip title="云台右移（按住）">
             <Button
-              icon={<RightOutlined />}
+              icon={<IconRight />}
               onMouseDown={() => handleMove('right')}
               onMouseUp={handleStopMove}
               onMouseLeave={handleStopMove}
@@ -376,7 +366,7 @@ export function VisionInspectionCard({
           <span style={{ flex: 1 }} />
 
           <Button
-            icon={<ScanOutlined />}
+            icon={<IconScan />}
             onClick={handleCapture}
             loading={isCapturing}
             disabled={!isActive || isAnalyzing}
@@ -387,7 +377,7 @@ export function VisionInspectionCard({
           {capturedImage && (
             <Button
               type="primary"
-              icon={<SendOutlined />}
+              icon={<IconSend />}
               onClick={handleSendToAI}
               loading={isAnalyzing}
             >
@@ -397,7 +387,7 @@ export function VisionInspectionCard({
           {capturedImage && (
             <Tooltip title="清除截图">
               <Button
-                icon={<DeleteOutlined />}
+                icon={<IconDelete />}
                 onClick={handleClearCapture}
                 disabled={isAnalyzing}
               />

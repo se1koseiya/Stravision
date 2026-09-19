@@ -3,15 +3,16 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Image } from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useTheme } from "next-themes"
 import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer, Flex, Progress, Popover, Divider, notification } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
 import { Conversations } from "@ant-design/x"
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
 import { deviceForgeStore, parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, CalendarClock, ExternalLink, Maximize2, BookOpen, Lock, AlertTriangle, Crown, Wallet, Palette, HelpCircle, RefreshCw } from "lucide-react";
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
+import { IconArrowRightUp, IconAttention, IconBackgroundColor, IconBookOpen, IconBookshelf, IconBrain, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconCheckOne, IconCommentAdd, IconCommentDashed, IconCompass, IconCopy, IconCpu, IconCrown, IconDelete, IconDown, IconDownload, IconFileText, IconFolderOpen, IconFolderUpload, IconFullScreen, IconGlobe, IconGridFour, IconHelp, IconHome, IconInfo, IconLayoutTwo, IconLightning, IconLinkOut, IconList, IconListCheckbox, IconLoading, IconLock, IconMagicWand, IconMicrophone, IconMonitor, IconMoon, IconMore, IconPause, IconPencil, IconPhone, IconPicture, IconPin, IconPlay, IconPlusCross, IconPreviewOpen, IconRefresh, IconRight, IconRound, IconSearch, IconSeedling, IconSettingTwo, IconShare, IconSignal, IconSun, IconThunderbolt, IconTime, IconTool, IconUndo, IconUp, IconVoiceOff, IconVolumeMute, IconVolumeNotice, IconWallet } from "@/components/icon";
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
 const MessageWithReport = dynamic(() => import("@/components/ai/message-with-report").then(mod => ({ default: mod.MessageWithReport })), { ssr: false })
@@ -29,6 +30,9 @@ const BrowserActivity = dynamic(() => import("@/components/ai/browser-activity")
 import { Settings as SettingsIcon } from "@/components/animate-ui/icons/settings";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
+// 🚨 必须 import：本文件 4 处直接使用 IS_DESKTOP_APP（2894/6416/6441/6500），
+// 漏 import 编译不报错、运行时 ReferenceError 炸整页（2026-09-16 用户卡面板崩溃根因）
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode";
 import { X } from "@/components/animate-ui/icons/x";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { Search } from "@/components/animate-ui/icons/search";
@@ -82,6 +86,7 @@ import {
 } from "@/components/ui/assistant-ui"
 
 import { getVoiceSettings, AISettingsDialog } from "@/components/ai-settings-dialog"
+import type { SettingsSection } from "@/components/ai-settings-dialog"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
@@ -145,6 +150,7 @@ import { ChatSenderInput } from "@/app/ai-assistant/_components/chat-sender-inpu
 import { useTTSEngine } from "@/app/ai-assistant/_hooks/use-tts-engine"
 import { handleDownloadPDF, createSelectFilesHandler, createPasteHandler, handleSettingsSave as saveSettings, copyMessageText } from "@/app/ai-assistant/_utils/message-actions"
 import { type AIActionSummary } from "@/app/ai-assistant/_components/ai-action-summary"
+import { notifyDesktop, summarizeForNotification } from "@/lib/desktop-notify"
 
 /** 从消息列表中提取最后一条用户/助手消息，包装 SmartPrompts 避免每次重渲染重新计算。 */
 function SmartPromptsWrapper({
@@ -235,6 +241,27 @@ function stageToLabel(stage: string | undefined): string {
   return map[stage] || stage
 }
 
+/**
+ * 🔥 会话作用域快照（Session Scope）
+ * 用于「切换对话后任务继续在后台执行」：一条会话的流式生成状态不再寄存在页面级 state 上，
+ * 而是按会话归属保存在 sessionScopesRef 中；只有该会话仍是当前激活会话时才渲染到 UI。
+ */
+type SessionScope = {
+  key: string
+  /** 该会话是否有任务正在执行（会话列表圆点 + 切回时的 loading 恢复都依赖它） */
+  running: boolean
+  messages: Message[]
+  agentStatus: string
+  agentSteps: AgentStep[]
+  isLoading: boolean
+  aiActionSummary: AIActionSummary | null
+  latestTaskListContent: string
+  browsingUrl: string | null
+  currentBrowserUrl: string | null
+  browserScreenshot: string | null
+  studioData: any[]
+}
+
 export default function AIAssistantPage() {
   return (
     <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-[#1677ff]">Loading AI Assistant...</div>}>
@@ -263,6 +290,65 @@ function AIAssistantContent() {
   const [newMessageBoundary, setNewMessageBoundary] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
+
+  // ===== 🔥 会话作用域运行时（切换对话后任务继续在后台执行）=====
+  // activeSessionIdRef：实时记录当前激活会话（组件 state 在流式闭包里是旧快照，不可用）
+  const activeSessionIdRef = useRef<string>("")
+  // sessionScopesRef：各会话的流式状态快照，切走时任务写入此处、切回时从此恢复
+  const sessionScopesRef = useRef<Record<string, SessionScope>>({})
+  // 各会话独立的流控制句柄，支持"一个会话跑着、另一个会话继续发问"的并发场景
+  const streamControllersRef = useRef<Record<string, AbortController>>({})
+  const streamStopRefs = useRef<Record<string, { current: boolean }>>({})
+  // runningSessions：用于会话列表旁的"任务进行中"圆点
+  const [runningSessions, setRunningSessions] = useState<Record<string, boolean>>({})
+
+  /** 切换激活会话：同步 ref（供后台流判定前台/后台），再更新 state 触发消息加载 */
+  const switchActiveSession = useCallback((id: string) => {
+    const next = String(id)
+    const prev = activeSessionIdRef.current
+    // 🔒 离开临时对话 → 立刻丢弃它的内存快照（"临时"语义：切走即弃）
+    if (prev && prev !== next && prev.startsWith("__temp__")) {
+      delete sessionScopesRef.current[prev]
+    }
+    activeSessionIdRef.current = next
+    setSessionId(next)
+  }, [])
+
+  // ===== 🔒 临时对话（不落库、不进列表、仅在内存中存活）=====
+  // 语义：点「临时对话」开一个孤立会话，消息只留在内存；切走/新建即丢弃，
+  // 不写入 sessions 表，也不出现在侧栏列表里。
+  const TEMP_SESSION_PREFIX = "__temp__"
+  /** 当前激活的是否为临时会话 */
+  const isTempSession = (id: string | null | undefined) => !!id && String(id).startsWith(TEMP_SESSION_PREFIX)
+  /** 新建一个临时会话（不发请求、不落库） */
+  const createTempSession = useCallback(() => {
+    const id = `${TEMP_SESSION_PREFIX}${Date.now()}`
+    // 清掉上一个临时会话的内存快照，避免堆积
+    Object.keys(sessionScopesRef.current).forEach(k => {
+      if (k.startsWith(TEMP_SESSION_PREFIX) && k !== id) delete sessionScopesRef.current[k]
+    })
+    sessionScopesRef.current[id] = {
+      messages: [], agentStatus: "", agentSteps: [],
+      aiActionSummary: null, latestTaskListContent: "", running: false,
+    } as any
+    activeSessionIdRef.current = id
+    setSessionId(id)
+    setMessages([])
+    messagesRef.current = []
+    setInput("")
+    setNewMessageBoundary(0)
+    setAgentStatus("")
+    setAgentSteps([])
+    setAiActionSummary(null)
+    setLatestTaskListContent("")
+    setIsLoading(false)
+  }, [])
+
+  /** 当前是否处于临时对话（用于侧栏按钮高亮） */
+  const tempSessionActive = isTempSession(sessionId)
+
+  // 兜底同步：任何路径改动 sessionId 后，ref 都能跟上
+  useEffect(() => { activeSessionIdRef.current = sessionId }, [sessionId])
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
   const [enableSearch, setEnableSearch] = useState(false)
@@ -425,6 +511,19 @@ function AIAssistantContent() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("collapsed-groups") || "[]")) } catch { return new Set() }
   })
+  // ===== 侧栏分区折叠（2026-09-19 用户要求：工作台/对话分组/最近对话可折叠）=====
+  // key: workspace | groups | recent；持久化到 localStorage，展开为默认态
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("ai-sidebar-collapsed-sections") || "[]")) } catch { return new Set() }
+  })
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      try { localStorage.setItem("ai-sidebar-collapsed-sections", JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }, [])
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
   const [newGroupName, setNewGroupName] = useState("")
   const [showNewGroupInput, setShowNewGroupInput] = useState(false)
@@ -451,23 +550,23 @@ function AIAssistantContent() {
       } catch {}
     }
   })
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("darkMode") === "true"
-    }
-    return false
-  })
+  // ===== 主题统一走全局 next-themes（与其他页面同一主题系统，2026-09-20）=====
+  // resolvedTheme 驱动 antd algorithm / 内联色值；html.dark 类由 next-themes 统一管理
+  const { resolvedTheme, setTheme } = useTheme()
+  const darkMode = resolvedTheme === "dark"
 
-  // 同步 dark 类到 html 根节点以触发 tailwind 的 dark: 样式
+  // 一次性迁移：旧版页私有 localStorage["darkMode"]（boolean）→ next-themes["theme"]
+  // 仅在用户从未设置过全局主题时迁移深色偏好，避免覆盖「跟随系统」语义
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (darkMode) {
-        document.documentElement.classList.add("dark")
-      } else {
-        document.documentElement.classList.remove("dark")
+    try {
+      const legacy = localStorage.getItem("darkMode")
+      if (legacy === null) return
+      if (legacy === "true" && localStorage.getItem("theme") === null) {
+        setTheme("dark")
       }
-    }
-  }, [darkMode])
+      localStorage.removeItem("darkMode")
+    } catch { /* ignore */ }
+  }, [setTheme])
 
   // 分组操作函数
   const toggleGroupCollapse = (id: string) => {
@@ -497,8 +596,8 @@ function AIAssistantContent() {
 
   const handlePickSearchItem = (item: { id: string; title: string }) => {
     if (searchTab === "history") {
-      setSessionId(item.id)
-      loadSessionMessages(item.id as any)
+      // 🔥 切换会话不再中断正在执行的任务（后台继续跑，切回可见进度）
+      switchActiveSession(item.id)
     } else if (searchTab === "space") {
       const report = spaceReports.find(r => r.id === item.id)
       if (report?.html) {
@@ -587,11 +686,22 @@ function AIAssistantContent() {
   const renderConvItem = (s: any) => {
     const key = s.id
     const label = s.title
+    // 🔥 该会话是否有任务正在后台执行（含当前会话）→ 标题旁显示进行中圆点
+    const isRunning = !!runningSessions[key]
     return {
       key,
       label: (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", paddingRight: 2 }}>
-          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>{label}</span>
+          <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>{label}</span>
+            {isRunning && (
+              <span
+                className="conv-running-dot"
+                title="任务进行中"
+                aria-label="任务进行中"
+              />
+            )}
+          </span>
           {batchMode && (
             <input type="checkbox" checked={batchSelected.has(key)} onChange={() => toggleBatchSelect(key)}
               onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
@@ -601,21 +711,21 @@ function AIAssistantContent() {
           <Dropdown trigger={["click"]} placement="bottomRight"
             menu={{
               items: [
-                { key: "rename", icon: <Pencil size={13} />, label: "重命名" },
-                { key: "pin", icon: <Pin size={13} />, label: "置顶此对话" },
+                { key: "rename", icon: <IconPencil size={13} />, label: "重命名" },
+                { key: "pin", icon: <IconPin size={13} />, label: "置顶此对话" },
                 { type: "divider" },
-                { key: "share", icon: <Share size={13} />, label: "分享此对话" },
-                { key: "batch", icon: <List size={13} />, label: batchMode ? "退出批量管理" : "批量管理" },
+                { key: "share", icon: <IconShare size={13} />, label: "分享此对话" },
+                { key: "batch", icon: <IconList size={13} />, label: batchMode ? "退出批量管理" : "批量管理" },
                 { type: "divider" },
                 {
-                  key: "move", icon: <FolderInput size={13} />, label: "移动到分组",
+                  key: "move", icon: <IconFolderUpload size={13} />, label: "移动到分组",
                   children: [
                     ...groups.map(g => ({ key: `move-${g.id}`, label: g.name })),
                     { type: "divider" },
                     { key: "move-none", label: "移出分组（回到最近对话）" },
                   ],
                 },
-                { key: "export", icon: <Download size={13} />, label: "导出对话",
+                { key: "export", icon: <IconDownload size={13} />, label: "导出对话",
                   children: [
                     { key: "export-md", label: "导出为 Markdown" },
                     { key: "export-json", label: "导出为 JSON" },
@@ -623,7 +733,7 @@ function AIAssistantContent() {
                   ],
                 },
                 { type: "divider" },
-                { key: "delete", icon: <Trash2 size={13} />,
+                { key: "delete", icon: <IconDelete size={13} />,
                   label: <span style={{ color: "#ef4444" }}>删除此对话</span>, danger: true,
                 },
               ],
@@ -633,14 +743,14 @@ function AIAssistantContent() {
             <button onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
               className="conv-more-btn"
               style={{ display: "flex", alignItems: "center", justifyContent: "center",
-                width: 22, height: 22, borderRadius: 5, border: "none", background: "transparent",
+                width: 22, height: 22, borderRadius: 6, border: "none", background: "transparent",
                 cursor: "pointer", color: darkMode ? "#71717a" : "#c4c8cf", opacity: 0,
                 transition: "opacity 0.15s, background 0.15s", flexShrink: 0,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = darkMode ? "#27272a" : "#f0f0f0" }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = ""; e.currentTarget.style.background = "transparent" }}
             >
-              <MoreHorizontal size={14} />
+              <IconMore size={14} />
             </button>
           </Dropdown>
         </div>
@@ -652,7 +762,7 @@ function AIAssistantContent() {
   // 缓存渲染的会话项列表，避免在 AI 消息流式输出时频繁重建 DOM，解决侧边栏卡顿
   const recentSessionItems = React.useMemo(() => {
     return recentSessions.slice(0, 20).map((s: any) => renderConvItem(s))
-  }, [recentSessions, batchMode, batchSelected, groups])
+  }, [recentSessions, batchMode, batchSelected, groups, runningSessions])
 
   const groupedSessionItems = React.useMemo(() => {
     const itemsMap: Record<string, any[]> = {}
@@ -660,7 +770,7 @@ function AIAssistantContent() {
       itemsMap[groupId] = (sessionsByGroup[groupId] || []).slice(0, 20).map((s: any) => renderConvItem(s))
     })
     return itemsMap
-  }, [sessionsByGroup, batchMode, batchSelected, groups])
+  }, [sessionsByGroup, batchMode, batchSelected, groups, runningSessions])
 
   // TTS Engine (extracted hook)
   const isStoppedRef = useRef(false)
@@ -784,6 +894,14 @@ function AIAssistantContent() {
                 toast.info(`🔔 定时提醒：${task.title}`, {
                   duration: 10000
                 })
+                // 桌面端：窗口不在前台时 toast 是看不见的，补一条系统通知
+                notifyDesktop({
+                  title: "定时提醒",
+                  body: task.title,
+                  tag: `reminder:${task.id}`,
+                  level: "info",
+                  route: "/ai-assistant",
+                })
               }
             } else if (executeTime && now - executeTime >= 7 * 24 * 60 * 60 * 1000) {
               // 已经过期太久的任务（超过 7 天），才直接删除
@@ -851,6 +969,8 @@ function AIAssistantContent() {
 
   // Settings State
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // 🆕 打开设置弹窗时定位到哪个分区（桌面端「管理设置」直达「模型」）
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization")
   
   // Skill State
   const [mandatorySkillsEnabled, setMandatorySkillsEnabled] = useState(true)
@@ -1229,44 +1349,10 @@ function AIAssistantContent() {
   }
 
   // 加载会话消息
-  const loadSessionMessages = async (sessionId: number) => {
-    // 🔥 关键修复：切换会话时，中止正在进行的流式输出
-    if (abortControllerRef.current) {
-      console.log('[Session Switch] Aborting ongoing stream...')
-      abortControllerRef.current.abort("Session switched")
-      abortControllerRef.current = null
-    }
-    
-    // 重置加载状态
-    setIsLoading(false)
-    isStoppedRef.current = false
-    
-    // 清空当前消息，避免闪烁
-    setMessages([])
-    setLatestTaskListContent("")
-    // 🔥 重置新消息分隔线边界（加载完成后重新设置）
-    setNewMessageBoundary(0)
-    // 🔥 重置工具更新标记，新会话允许流式 TASK_LIST 写入
-    taskUpdatedByToolRef.current = false
-
-    try {
-      const res = await fetch(`/api/chat/sessions/${sessionId}/messages`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.messages && Array.isArray(data.messages)) {
-          setMessages(data.messages)
-          // 🔥 历史消息加载完成：以当前数量为边界，之后新增的消息视为"新消息"
-          setNewMessageBoundary(data.messages.length)
-        }
-      } else {
-        console.error('Failed to load session messages:', res.status)
-        showNotice("加载失败", "无法加载会话消息", "error")
-      }
-    } catch (error) {
-      console.error('Error loading session messages:', error)
-      showNotice("加载失败", "发生未知错误", "error")
-    }
-  }
+  // 🔥 已废弃：原实现在切换会话时 abort() 掉正在进行的流并清空消息，是「切走任务就断」的根因，
+  //    且其请求的 /api/chat/sessions/:id/messages 端点并不存在（永远 404）。
+  //    现在切换会话统一走 switchActiveSession → setSessionId → Load Messages effect：
+  //    有内存快照的会话直接用快照恢复（后台任务不中断），否则回源服务端拉历史。
 
   const handleOptimizePrompt = async () => {
     if (!input.trim()) return
@@ -1482,9 +1568,9 @@ function AIAssistantContent() {
             setSessions(data.sessions)
             const lastId = localStorage.getItem("ai-last-session-id")
             if (lastId && data.sessions.find((s: SessionMeta) => s.id === lastId)) {
-              setSessionId(lastId)
+              switchActiveSession(lastId)
             } else if (data.sessions.length > 0) {
-              setSessionId(data.sessions[0].id)
+              switchActiveSession(data.sessions[0].id)
             } else {
               createNewSession()
             }
@@ -1497,13 +1583,54 @@ function AIAssistantContent() {
   // Load Messages
   useEffect(() => {
     if (!sessionId) return
+    activeSessionIdRef.current = sessionId
+
+    // 🔒 临时会话：不写 last-session-id（下次打开应用不该恢复它），也不回源服务端
+    if (isTempSession(sessionId)) {
+      const live = sessionScopesRef.current[sessionId]
+      if (live) {
+        setMessages([...live.messages])
+        messagesRef.current = [...live.messages]
+      }
+      return
+    }
+
     localStorage.setItem("ai-last-session-id", sessionId)
+
+    // 🔥 关键修复：若该会话已有内存快照（任务正在后台执行，或刚执行完），
+    // 直接用快照恢复 —— 既不打断后台流，也能立刻看到实时进度/完整结果。
+    // 只有从未在本页运行过任务的会话才回源到服务端拉取历史。
+    const live = sessionScopesRef.current[sessionId]
+    if (live) {
+      setMessages([...live.messages])
+      messagesRef.current = [...live.messages]
+      setAgentStatus(live.agentStatus)
+      setAgentSteps([...live.agentSteps])
+      setAiActionSummary(live.aiActionSummary)
+      setLatestTaskListContent(live.latestTaskListContent)
+      setIsLoading(!!live.running)
+      try {
+        const draft = localStorage.getItem(`ai-input-draft-${sessionId}`)
+        if (typeof draft === "string") setInput(draft)
+      } catch { }
+      return
+    }
+
+    // 切换会话时重置上一会话残留的思考链 / 状态，避免串台
+    setAgentStatus("")
+    setAgentSteps([])
+    setAiActionSummary(null)
+    setLatestTaskListContent("")
+    setIsLoading(false)
+
       ; (async () => {
         try {
           const res = await fetch(`/api/sessions/${sessionId}`)
           if (res.ok) {
             const data = await res.json()
             const msgs = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+            // 若异步返回时用户已切到别的会话，丢弃这次结果（避免覆盖）
+            if (activeSessionIdRef.current !== sessionId) return
             setMessages(msgs.length > 0 ? msgs : [])
             // 🔥 历史消息加载完成：以当前数量为边界，之后新增的消息视为"新消息"
             setNewMessageBoundary(msgs.length)
@@ -1531,16 +1658,22 @@ function AIAssistantContent() {
   const feedbackTimeoutIdsRef = useRef<NodeJS.Timeout[]>([])
 
   const handleStop = () => {
-    // 1. 中止网络请求
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort("Task terminated by user")
-      abortControllerRef.current = null
+    const cid = activeSessionIdRef.current || sessionId
+
+    // 1. 只中止「当前会话」的流（其他会话的后台任务不受影响）
+    const ctrl = cid ? streamControllersRef.current[cid] : undefined
+    if (ctrl) {
+      try { ctrl.abort("Task terminated by user") } catch { }
+      delete streamControllersRef.current[cid]
     }
-    
+    if (abortControllerRef.current === ctrl) abortControllerRef.current = null
+
     // Stop TTS
     ttsStop()
 
-    // 2. 标记停止，阻止后续执行
+    // 2. 标记该会话停止，阻止其后续执行
+    const stopFlag = cid ? streamStopRefs.current[cid] : undefined
+    if (stopFlag) stopFlag.current = true
     isStoppedRef.current = true
 
     // 清除所有未执行的反馈回调
@@ -1554,7 +1687,14 @@ function AIAssistantContent() {
       waitingForUserInputRef.current = null
     }
 
-    // 3. 清除所有状态
+    // 3. 清除所有状态（同时同步会话快照，保证切走再切回状态一致）
+    const scope = cid ? sessionScopesRef.current[cid] : undefined
+    if (scope) { scope.running = false; scope.isLoading = false; scope.agentStatus = "" }
+    if (cid) {
+      const flag = streamStopRefs.current[cid]
+      if (flag) flag.current = true
+      setRunningSessions(prev => { const n = { ...prev }; delete n[cid]; return n })
+    }
     setIsLoading(false)
     setAgentStatus("")
     setIsExecutingControl(false)
@@ -1563,10 +1703,12 @@ function AIAssistantContent() {
 
     // 🔥 用户停止：把 AI 动作总结标记为 stopped
     setAiActionSummary((prev) => prev ? { ...prev, status: "stopped" } : null)
-    
-    // 4. 添加一条系统消息提示
-    setMessages(prev => [...prev, { role: "assistant", content: "🛑 已响应您的请求，立即停止所有操作 (Generation & Execution Terminated)。" }])
-    
+
+    // 4. 添加一条系统消息提示（同步写快照，切走后回来仍能看到）
+    const stopMsg: Message = { role: "assistant", content: "🛑 已响应您的请求，立即停止所有操作 (Generation & Execution Terminated)。" }
+    if (scope) scope.messages = [...scope.messages, stopMsg]
+    setMessages(prev => [...prev, stopMsg])
+
     // 5. 短暂显示通知
     showNotice("操作已强制终止", "AI 生成与设备控制已中断", "error")
   }
@@ -1602,7 +1744,7 @@ function AIAssistantContent() {
           { type: "image_url", image_url: { url: dataUrl } },
         ],
       } as Message]
-      if (sessionId) {
+      if (sessionId && !isTempSession(sessionId)) {
         fetch(`/api/sessions/${sessionId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -2396,6 +2538,63 @@ function AIAssistantContent() {
     isSilent: boolean = false,
     useSystemApi: boolean = false // 新参数：强制使用系统API（用于定时任务）
   ) => {
+    // =========================================================================
+    // 🔥 会话作用域绑定层（Session Scope Binding）
+    // 目标：用户切换对话时，本任务继续在后台完整执行；切回后无缝恢复实时进度。
+    // 做法：把「属于本会话的 UI 状态」写进会话作用域快照（sessionScopesRef），
+    //       仅当该会话仍是当前激活会话（前台）时才同步到 React state。
+    //       因此下方所有 __commitXxx(...) 调用都无需关心「用户是否已切走」。
+    // =========================================================================
+    let __scopeKey = ""                                  // 绑定到本任务的会话 id（确定后赋值）
+    let __scopeObj: SessionScope | null = null           // 本任务的会话快照
+    const __stopRef = { current: false }                 // 本任务专属的停止标志（替代页面级 isStoppedRef）
+    const __isFg = () => !!__scopeKey && activeSessionIdRef.current === __scopeKey
+    let __taskError = ""                                 // 本任务的失败原因（用于收尾时的桌面端通知）
+
+    /** 取（或惰性创建）本任务的会话快照 */
+    const __getScope = (): SessionScope => {
+      if (__scopeObj) return __scopeObj
+      __scopeObj = {
+        key: __scopeKey,
+        running: false,
+        messages: [...messagesRef.current],
+        agentStatus: "",
+        agentSteps: [],
+        isLoading: false,
+        aiActionSummary: null,
+        latestTaskListContent: "",
+        browsingUrl: null,
+        currentBrowserUrl: null,
+        browserScreenshot: null,
+        studioData: [],
+      }
+      return __scopeObj
+    }
+
+    /**
+     * 会话作用域 setter 工厂：写快照 → 仅前台时同步渲染。
+     * 说明：会话 id 尚未确定时（发送前几行）视为前台，行为与改造前一致。
+     */
+    const __scopedSetter = <T,>(field: keyof SessionScope, commit: (v: T) => void) =>
+      (v: React.SetStateAction<T>) => {
+        const s = __getScope()
+        const prev = s[field] as unknown as T
+        const next = (typeof v === "function" ? (v as (p: T) => T)(prev) : v) as T
+        ;(s as any)[field] = next
+        if (!__scopeKey || __isFg()) commit(next)
+      }
+
+    const __commitMessages = __scopedSetter<Message[]>("messages", setMessages)
+    const __commitAgentStatus = __scopedSetter<string>("agentStatus", setAgentStatus)
+    const __commitAgentSteps = __scopedSetter<AgentStep[]>("agentSteps", setAgentSteps)
+    const __commitIsLoading = __scopedSetter<boolean>("isLoading", setIsLoading)
+    const __commitAiActionSummary = __scopedSetter<AIActionSummary | null>("aiActionSummary", setAiActionSummary)
+    const __commitTaskListContent = __scopedSetter<string>("latestTaskListContent", setLatestTaskListContent)
+    const __commitBrowsingUrl = __scopedSetter<string | null>("browsingUrl", setBrowsingUrl)
+    const __commitCurrentBrowserUrl = __scopedSetter<string | null>("currentBrowserUrl", setCurrentBrowserUrl)
+    const __commitBrowserScreenshot = __scopedSetter<string | null>("browserScreenshot", setBrowserScreenshot)
+    const __commitStudioData = __scopedSetter<any[]>("studioData", setStudioData)
+
     // 过滤掉可能作为事件对象传入的 overrideText（如 onClick={handleSend}）
     if (overrideText && typeof overrideText === 'object' && !Array.isArray(overrideText)) {
       overrideText = undefined;
@@ -2405,7 +2604,7 @@ function AIAssistantContent() {
     ttsReset()
 
     // 重置停止状态
-    isStoppedRef.current = false
+    __stopRef.current = false
     
     // 如果是自动触发的调用（传入了 overrideText），则不需要用户输入
     // 这里不再强制将 overrideText 转换为 string，因为它可能是包含图片的数组
@@ -2439,16 +2638,16 @@ function AIAssistantContent() {
         return
     }
     
-    setIsLoading(true) // 立即锁定，防止重复发送导致“抽搐”
+    __commitIsLoading(true) // 立即锁定，防止重复发送导致“抽搐”
     
     // 模拟感知阶段（仅当是用户主动发送或Agent自动闭环时，且不是简单的反馈重试）
     // 模拟感知阶段（显示简洁的思考状态）
     if (!agentStatus && !isFeedback) {
-      setAgentStatus("莓小智正在深入思考...")
+      __commitAgentStatus("莓小智正在深入思考...")
       await new Promise(r => setTimeout(r, 600)) // 略微保留一点感知感
-      if (isStoppedRef.current) return
+      if (__stopRef.current) return
     } else if (isFeedback) {
-        setAgentStatus("正在根据反馈重新分析...")
+        __commitAgentStatus("正在根据反馈重新分析...")
     }
     
     const isSystemMode = !aiSettings?.apiKey && !aiSettings?.apiUrl;
@@ -2477,8 +2676,22 @@ function AIAssistantContent() {
       if (r.ok) {
         const s = await r.json()
         ensuredSessionId = s.id
-        setSessionId(s.id)
+        switchActiveSession(s.id)
         setSessions(prev => [s, ...prev])
+      }
+    }
+
+    // 🔥 绑定本任务的会话作用域：注册停止标志句柄，并在会话列表打上「任务进行中」圆点。
+    //    此后即使用户切走，本任务仍会把进度写进该快照并在跑完后落库。
+    {
+      __scopeKey = ensuredSessionId || sessionId
+      const sc = __getScope()
+      sc.key = __scopeKey
+      sc.running = true
+      if (__scopeKey) {
+        sessionScopesRef.current[__scopeKey] = sc
+        streamStopRefs.current[__scopeKey] = __stopRef
+        setRunningSessions(prev => (prev[__scopeKey] ? prev : { ...prev, [__scopeKey]: true }))
       }
     }
 
@@ -2510,14 +2723,14 @@ function AIAssistantContent() {
 
     // 🔥 用户主动发新消息时重置页面级 TASK_LIST（反馈消息不重置，保持任务规划连续性）
     if (!isFeedback && !isSilent) {
-      setLatestTaskListContent("")
+      __commitTaskListContent("")
       // 🔥 重置工具更新标记，新一轮对话允许流式 TASK_LIST 写入
       taskUpdatedByToolRef.current = false
     }
 
     // 使用 Ref 获取并立即更新最新的消息列表，彻底解决闭包导致的异步状态回滚问题
     const currentMessagesForApi = [...messagesRef.current, userMessage]
-    setMessages(currentMessagesForApi)
+    __commitMessages(currentMessagesForApi)
     messagesRef.current = currentMessagesForApi // 同步更新 Ref 为下一轮调用提供正确基准
     
     setAttachments([])
@@ -2526,12 +2739,13 @@ function AIAssistantContent() {
 
     try {
       // 每次新请求时清空工作室旧数据，并确保流结束时关闭浏览器
-      setBrowsingUrl(null)
-      setCurrentBrowserUrl(null)
-      setBrowserScreenshot(null)
-      setStudioData([])
+      __commitBrowsingUrl(null)
+      __commitCurrentBrowserUrl(null)
+      __commitBrowserScreenshot(null)
+      __commitStudioData([])
       
-      if (ensuredSessionId) {
+      // 🔒 临时会话：整块落库（PATCH 标题 + PUT 消息）跳过，消息只留在内存
+      if (ensuredSessionId && !isTempSession(ensuredSessionId)) {
         const current = sessions.find((s) => s.id === ensuredSessionId)
         if (current && current.title && current.title.startsWith("新会话")) {
           const cand = userMsg.slice(0, 24)
@@ -2578,6 +2792,7 @@ function AIAssistantContent() {
       // 创建 AbortController
       const controller = new AbortController()
       abortControllerRef.current = controller
+      if (__scopeKey) streamControllersRef.current[__scopeKey] = controller
 
       // 注入自动模式状态到 System Prompt
       let effectiveSystemPrompt = aiSettings?.systemPrompt || "";
@@ -2681,7 +2896,7 @@ function AIAssistantContent() {
           .join('\n').length
 
       if (overflowStringified.length > 50000 && nonMemoryMsgs.length > 5 && historyToSummarizeLength > 1000) {
-        setAgentStatus("对话记录过长，莓小智正在提炼并压缩记忆...")
+        __commitAgentStatus("对话记录过长，莓小智正在提炼并压缩记忆...")
         await new Promise(r => setTimeout(r, 800)) // 给用户一点看到提示的时间
       }
 
@@ -2745,11 +2960,13 @@ function AIAssistantContent() {
             (errStr && /额度|余额|升级/.test(errStr)) ||
             /insufficient_quota|Free quota exhausted|add funds|use free tier|quota.{0,20}exhaust/i.test(errorText)
           )
-          if (quotaExhausted) {
+          // 桌面端 BYOK：无平台积分/会员概念，不弹升级/充值弹窗，
+          // 让错误落入下方 throw 分支渲染到对话气泡（多半是用户自己的 Key 额度问题）
+          if (quotaExhausted && !IS_DESKTOP_APP) {
             if (errorData.quota) setQuotaInfo(errorData.quota)
             setQuotaDenyMsg(errStr || null)
             setShowExhaustedDialog(true)
-            setIsLoading(false)
+            __commitIsLoading(false)
             return
           }
           // 2) 其它非 2xx：直接展示后端 `error` 字段（格式与项目里其它 API 一致：
@@ -2783,7 +3000,7 @@ function AIAssistantContent() {
       let reasoningText = ""
       let reasoningStart = -1
       const startTs = Date.now()
-      setMessages(prev => [...prev, assistantMsg])
+      __commitMessages(prev => [...prev, assistantMsg])
 
       // 🔥 初始化 AI 动作统计：开始计时
       aiActionStatsRef.current = {
@@ -2793,7 +3010,7 @@ function AIAssistantContent() {
         lastTaskPlanProgress: undefined,
         lastTaskPlanCompleted: false,
       }
-      setAiActionSummary({
+      __commitAiActionSummary({
         status: "running",
         totalDurationMs: 0,
         toolCallCount: 0,
@@ -2874,28 +3091,27 @@ function AIAssistantContent() {
           startedAt: Date.now()
         }
       ]
-      setAgentSteps(currentAgentSteps)
+      __commitAgentSteps(currentAgentSteps)
 
       const decoder = new TextDecoder()
       let buffer = ""
       let ttsProcessedLength = 0
       let latestHistoryFromBackend: Message[] | null = null
-      
-      // 🔥 关键修复：保存当前会话ID，用于验证流式输出是否应该继续
-      const streamSessionId = ensuredSessionId
+      // 说明：原先这里用 `streamSessionId` + `streamSessionId !== sessionId` 守卫来"检测切换"，
+      // 但 sessionId 是本次调用的闭包快照，切走后判断永远为 false，守卫实际失效；
+      // 现在统一由上面的 __isFg()（读 activeSessionIdRef 实时值）在提交器内部判定前台/后台。
 
       while (true) {
-        // 🔥 关键修复：检查会话是否已切换
-        if (streamSessionId !== sessionId) {
-          console.log('[Stream Guard] Session switched, aborting stream update')
-          break
-        }
+        // 🔥 会话切换不再中断任务：SSE 流继续在后台完整消费，UI 更新由 __commitXxx
+        //    按「当前激活会话」分流；用户切回时从会话作用域快照无缝恢复实时进度。
+        //    （原实现在此处 break、并在上层 abort() 掉请求，会把正在跑的任务掐断，已移除）
+        //
 
         // 🔥 关键修复：检查用户是否请求停止，立即中断流式循环
-        if (isStoppedRef.current) {
+        if (__stopRef.current) {
           console.log('[Stream Guard] User requested stop, aborting stream loop')
-          setIsLoading(false)
-          setAgentStatus("")
+          __commitIsLoading(false)
+          __commitAgentStatus("")
           break
         }
 
@@ -2921,10 +3137,10 @@ function AIAssistantContent() {
           
           if (trimmedLine === "data: [DONE]") {
             // 流结束时，确保清理所有状态
-            setAgentStatus("")
-            setBrowsingUrl(null)
+            __commitAgentStatus("")
+            __commitBrowsingUrl(null)
             // 🔥 修复：立即清理 isLoading 状态，避免显示"思考中"
-            setIsLoading(false)
+            __commitIsLoading(false)
             // 🔥 清除残留的"已提交"loading 通知（流已结束，不再需要）
             setNotices(prev => prev.filter(n => n.variant !== 'loading'))
             continue
@@ -2941,36 +3157,36 @@ function AIAssistantContent() {
                  const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error)
                  assistantMsg.content = errorMsg
                  // 会话切换保护：避免把旧会话的错误写入新会话
-                 if (streamSessionId === sessionId) {
-                   setMessages(prev => {
+                 /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+                   __commitMessages(prev => {
                       const newMsgs = [...prev]
                       newMsgs[newMsgs.length - 1] = { ...assistantMsg }
                       return newMsgs
                    })
                  }
                  // 错误后必须清理加载状态并退出循环（后端可能不再发 [DONE]）
-                 setIsLoading(false)
-                 setAgentStatus("")
+                 __commitIsLoading(false)
+                 __commitAgentStatus("")
                  break
               }
 
               // 处理上下文更新事件 (持久化记忆压缩结果)
               if (data.type === 'context_update' && Array.isArray(data.messages)) {
                  // 会话切换保护
-                 if (streamSessionId !== sessionId) break
+                /* 后台会话也要接收 context_update：写入快照由 __commitMessages 处理 */
                  // 强制同步主消息列表，让历史消息被压缩后的摘要替代
                  latestHistoryFromBackend = data.messages
-                 setMessages(data.messages)
+                 __commitMessages(data.messages)
                  // 将当前正在生成的回复占位符重新追加回去
-                 setMessages(prev => [...prev, assistantMsg])
+                 __commitMessages(prev => [...prev, assistantMsg])
                  continue
               }
 
               // 积分消耗事件：回复完成后在气泡下方显示本次消耗
               if (data.type === 'credit_usage' && data.credit) {
                 assistantMsg.creditUsage = data.credit
-                if (streamSessionId === sessionId) {
-                  setMessages(prev => {
+                /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+                  __commitMessages(prev => {
                     const newMsgs = [...prev]
                     if (newMsgs.length > 0) {
                       newMsgs[newMsgs.length - 1] = { ...assistantMsg }
@@ -2983,7 +3199,7 @@ function AIAssistantContent() {
 
               // 🍓 记忆保存事件：AI 记住了用户信息时，弹 antd 提示
               if (data.type === 'memory_saved' && Array.isArray(data.memories) && data.memories.length > 0) {
-                if (streamSessionId === sessionId) {
+                /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
                   const memList = data.memories as Array<{ key: string; label: string; value: string }>
                   const text = memList.map(m => `${m.label}「${m.value}」`).join('、')
                   notification.open({
@@ -2996,7 +3212,7 @@ function AIAssistantContent() {
                     description: text,
                     icon: (
                       <span style={{ color: '#1677ff' }}>
-                        <Sprout size={18} />
+                        <IconSeedling size={18} />
                       </span>
                     ),
                     placement: 'bottomRight',
@@ -3008,7 +3224,7 @@ function AIAssistantContent() {
 
               // Handle tool results
               if (data.tool_result) {
-                 setStudioData(prev => [...prev, data.tool_result])
+                 __commitStudioData(prev => [...prev, data.tool_result])
 
                  // 🔥 connect_device_from_doc：设备接入卡片「直推」——不再依赖模型复述 <DEVICE_FORGE> 标签。
                  // 1) 立即把 ui_card 注册进全局 store 并打开右侧面板（生成完成瞬间用户就能看到/编辑表单）；
@@ -3039,7 +3255,7 @@ function AIAssistantContent() {
                    const result = data.tool_result.result
                    if (result?.success !== false && result?.task_list_tag) {
                      console.log('[Chat] update_task result received, refreshing task planner card')
-                     setLatestTaskListContent(result.task_list_tag)
+                     __commitTaskListContent(result.task_list_tag)
                      // 🔥 标记此轮已通过工具更新任务列表，防止后续流式输出的原始 TASK_LIST 覆盖
                      taskUpdatedByToolRef.current = true
                    }
@@ -3062,7 +3278,7 @@ function AIAssistantContent() {
 
                  if (data.tool_result.name === 'mcp_firecrawl_scrape' && data.tool_result.result?.url) {
                      const targetUrl = data.tool_result.result.url
-                     setBrowserScreenshot(`https://image.thum.io/get/width/800/crop/600/noanimate/${targetUrl}`)
+                     __commitBrowserScreenshot(`https://image.thum.io/get/width/800/crop/600/noanimate/${targetUrl}`)
                  }
 
                  // Update execution chain: mark corresponding action as completed, add observation
@@ -3106,7 +3322,7 @@ function AIAssistantContent() {
                      duration: 0
                    })
                  }
-                 setAgentSteps([...currentAgentSteps])
+                 __commitAgentSteps([...currentAgentSteps])
 
                  continue
               }
@@ -3151,7 +3367,7 @@ function AIAssistantContent() {
                   currentAgentSteps[existIdx].status = "active"
                   currentAgentSteps[existIdx].subnote = detail || stage
                 }
-                setAgentSteps([...currentAgentSteps])
+                __commitAgentSteps([...currentAgentSteps])
                 continue
               }
 
@@ -3173,7 +3389,7 @@ function AIAssistantContent() {
                     subnote: current ? `正在执行 ${current}` : '执行中...',
                     startedAt: Date.now(),
                   })
-                  setAgentSteps([...currentAgentSteps])
+                  __commitAgentSteps([...currentAgentSteps])
                 }
                 continue
               }
@@ -3192,7 +3408,7 @@ function AIAssistantContent() {
                   timeoutMs: timeout_ms || 5 * 60 * 1000,
                   startedAt: Date.now(),
                 }
-                setAgentStatus(`等待用户输入：${title}`)
+                __commitAgentStatus(`等待用户输入：${title}`)
                 continue
               }
 
@@ -3200,7 +3416,7 @@ function AIAssistantContent() {
               if (data.user_input_received) {
                 console.log(`[Chat] User input received, resuming Agent Loop: ${data.user_input_received.reply_preview}`)
                 waitingForUserInputRef.current = null
-                setAgentStatus("AI 思考中...")
+                __commitAgentStatus("AI 思考中...")
                 // 🔥 清除"已提交"loading 通知，AI 已开始继续处理
                 setNotices(prev => prev.filter(n => n.variant !== 'loading'))
                 continue
@@ -3224,7 +3440,7 @@ function AIAssistantContent() {
               // 后端发送 llm_error 后会尝试强制总结，这里只显示状态提示，不污染消息内容
               if (data.llm_error) {
                 const reason = data.llm_error.reason || 'LLM 调用失败'
-                setAgentStatus(`⚠️ ${reason}，正在尝试生成总结...`)
+                __commitAgentStatus(`⚠️ ${reason}，正在尝试生成总结...`)
                 currentAgentSteps.push({
                   id: nextStepId("llm-error"),
                   kind: "narrative",
@@ -3232,7 +3448,7 @@ function AIAssistantContent() {
                   text: `⚠️ ${reason}`,
                   duration: 0
                 })
-                setAgentSteps([...currentAgentSteps])
+                __commitAgentSteps([...currentAgentSteps])
                 continue
               }
 
@@ -3240,7 +3456,7 @@ function AIAssistantContent() {
               // 处理知识模块选取通知 (AI Skill Routing)
               if (data.skill_selection) {
                 const skillNames = data.skill_selection.map((s: any) => s.name).join(", ")
-                setAgentStatus(`智能识别意图，由 [${skillNames}] 模块提供支持...`)
+                __commitAgentStatus(`智能识别意图，由 [${skillNames}] 模块提供支持...`)
 
                 // ✅ TRAE 风格：把路由结果转为 narrative 段
                 const initialIdx = currentAgentSteps.findIndex(s => s.status === 'active' && s.kind === 'narrative')
@@ -3256,7 +3472,7 @@ function AIAssistantContent() {
                   text: `已路由到 ${skillNames}，匹配到 ${data.skill_selection.length} 个知识模块。`,
                   duration: 0
                 })
-                setAgentSteps([...currentAgentSteps])
+                __commitAgentSteps([...currentAgentSteps])
                 continue
               }
 
@@ -3266,7 +3482,7 @@ function AIAssistantContent() {
 
                 // 🔥 累计工具调用次数到 AI 动作总结
                 aiActionStatsRef.current.toolCallCount += data.tool_calls.length
-                setAiActionSummary((prev) =>
+                __commitAiActionSummary((prev) =>
                   prev
                     ? {
                         ...prev,
@@ -3275,7 +3491,7 @@ function AIAssistantContent() {
                       }
                     : prev
                 )
-                setAgentStatus(`第 ${round} 轮工具调用: ${toolNames}...`)
+                __commitAgentStatus(`第 ${round} 轮工具调用: ${toolNames}...`)
                 setStudioOpen(true) // 主动展开工作室侧边栏
 
                 // ✅ TRAE 风格：把每个 tool_call 转为粗体 task 段（带绿色对勾 / 旋转）
@@ -3313,7 +3529,7 @@ function AIAssistantContent() {
                     startedAt: Date.now()
                   })
                 }
-                setAgentSteps([...currentAgentSteps])
+                __commitAgentSteps([...currentAgentSteps])
 
                 // 检查是否有网页抓取工具，如果有则显示浏览器动效
                 // 支持 Firecrawl 和 Exa (虽然 Exa 通常不是直接抓取，但为了视觉反馈，也可以显示搜索状态)
@@ -3331,8 +3547,8 @@ function AIAssistantContent() {
                         
                         if (isScrapeTool && args.url) {
                             url = args.url
-                            setBrowsingUrl(url)
-                            setCurrentBrowserUrl(url) // 同步到工作室内部浏览器状态
+                            __commitBrowsingUrl(url)
+                            __commitCurrentBrowserUrl(url) // 同步到工作室内部浏览器状态
                             setStudioOpen(true) // 确保工作室打开
                         }
                         // 搜索工具不设置 browsingUrl，不显示网页预览
@@ -3349,8 +3565,8 @@ function AIAssistantContent() {
 
                 // ✅ Fix #3: 不再往 content 中注入 TASK_LIST / TOOL_USED 标签
                 // 执行链完全由 agentSteps 状态驱动，消息体保持纯净
-                if (streamSessionId === sessionId) {
-                  setMessages(prev => {
+                /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+                  __commitMessages(prev => {
                     const newMsgs = [...prev]
                     newMsgs[newMsgs.length - 1] = { ...assistantMsg }
                     return newMsgs
@@ -3364,7 +3580,7 @@ function AIAssistantContent() {
               if (typeof content === "string") {
                 // 当开始接收AI的文本回复时：清理 agentStatus，并在链上加 Final Answer 步骤
                 if (content.trim() && agentStatus) {
-                  setAgentStatus("")
+                  __commitAgentStatus("")
                   // ✅ 关闭所有仍处于 active 的步骤（如未被 skill_selection / tool_calls 关闭的 initial thinking）
                   for (const s of currentAgentSteps) {
                     if (s.status === "active") {
@@ -3386,7 +3602,7 @@ function AIAssistantContent() {
                       text: answerText,
                       startedAt: Date.now()
                     })
-                    setAgentSteps([...currentAgentSteps])
+                    __commitAgentSteps([...currentAgentSteps])
                   }
                 }
                 
@@ -3835,8 +4051,8 @@ function AIAssistantContent() {
 
                 // 🔥 用普通setState（不flushSync），让React自然批处理渲染
                 // XMarkdown的streaming={{hasNextChunk:true}}会自动处理增量动画
-                if (streamSessionId === sessionId) {
-                  setMessages(prev => {
+                /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+                  __commitMessages(prev => {
                     const newMsgs = [...prev]
                     newMsgs[newMsgs.length - 1] = {
                       role: "assistant",
@@ -3852,22 +4068,22 @@ function AIAssistantContent() {
                   // ⚠️ 但若 update_task 工具已更新过任务列表，则跳过覆盖（避免回退到 0 进度）
                   const tlMatchLive = (typeof display === "string" ? display : "").match(/<TASK_LIST>([\s\S]*?)<\/TASK_LIST>/)
                   if (tlMatchLive && !taskUpdatedByToolRef.current) {
-                    setLatestTaskListContent(tlMatchLive[0])
+                    __commitTaskListContent(tlMatchLive[0])
                   }
                 }
               }
             } catch (e) { 
                 console.error("Error parsing stream chunk", e)
                 // 🔥 修复：解析错误时也要清理状态
-                setIsLoading(false)
-                setAgentStatus("")
+                __commitIsLoading(false)
+                __commitAgentStatus("")
             }
           }
         }
       }
 
       // 🔥 关键修复：如果用户已请求停止，跳过所有后处理（保存消息、执行命令、解析任务等）
-      if (isStoppedRef.current) {
+      if (__stopRef.current) {
         console.log('[Stream Guard] Stopped by user, skipping all post-processing')
         return
       }
@@ -3929,13 +4145,13 @@ function AIAssistantContent() {
       if (answerIdx !== -1) {
         currentAgentSteps[answerIdx].status = 'completed'
         currentAgentSteps[answerIdx].duration = Date.now() - (currentAgentSteps[answerIdx].startedAt || startTs)
-        setAgentSteps([...currentAgentSteps])
+        __commitAgentSteps([...currentAgentSteps])
       }
 
       // 🔥 修复：流式输出结束后立即清理状态
       console.log('[Stream End] Cleaning up loading state')
-      setIsLoading(false)
-      setAgentStatus("")
+      __commitIsLoading(false)
+      __commitAgentStatus("")
 
       // 🔥 SSE 流结束时清理挂起等待状态
       // 正常情况下 user_input_received 或 user_input_timeout 事件会清空，
@@ -3982,7 +4198,7 @@ function AIAssistantContent() {
           }
         } catch {}
       }
-      setAiActionSummary({
+      __commitAiActionSummary({
         status: taskPlanCompleted ? "completed" : "completed",
         totalDurationMs: finalDurationMs,
         toolCallCount: aiActionStatsRef.current.toolCallCount,
@@ -3993,7 +4209,7 @@ function AIAssistantContent() {
       })
 
       // 确保流结束时关闭浏览器
-      setBrowsingUrl(null)
+      __commitBrowsingUrl(null)
       
       // ⚠️ 重要：先保存原始内容用于解析，因为后面会删除SCHEDULE_TASK标记
       const originalContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : ''
@@ -4036,8 +4252,8 @@ function AIAssistantContent() {
         
         // 更新消息显示
         // 🔥 关键修复：只有当前会话才更新消息
-        if (streamSessionId === sessionId) {
-          setMessages(prev => {
+        /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+          __commitMessages(prev => {
             const newMsgs = [...prev]
             newMsgs[newMsgs.length - 1] = { ...assistantMsg }
             return newMsgs
@@ -4106,8 +4322,8 @@ function AIAssistantContent() {
             console.log('[Final HTML Check] ✅ Wrapped HTML report:', reportTitle)
             
             // 更新消息显示
-            if (streamSessionId === sessionId) {
-              setMessages(prev => {
+            /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+              __commitMessages(prev => {
                 const newMsgs = [...prev]
                 newMsgs[newMsgs.length - 1] = { ...assistantMsg }
                 return newMsgs
@@ -4212,8 +4428,8 @@ function AIAssistantContent() {
         if (hasStrategy && finalContent2 !== assistantMsg.content) {
           assistantMsg.content = finalContent2
           // 更新消息显示
-          if (streamSessionId === sessionId) {
-            setMessages(prev => {
+          /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+            __commitMessages(prev => {
               const newMsgs = [...prev]
               newMsgs[newMsgs.length - 1] = { ...assistantMsg }
               return newMsgs
@@ -4251,8 +4467,8 @@ function AIAssistantContent() {
           }
         }
 
-        if (modified3 && streamSessionId === sessionId) {
-          setMessages(prev => {
+        if (modified3) { /* 会话隔离同上 */
+          __commitMessages(prev => {
             const newMsgs = [...prev]
             newMsgs[newMsgs.length - 1] = { ...assistantMsg }
             return newMsgs
@@ -4284,8 +4500,8 @@ function AIAssistantContent() {
           // 情况 C：模型已正确输出完整标签 → 无需注入
           console.log('[Final DeviceForge] Model already echoed complete DEVICE_FORGE tag, skip injection')
         }
-        if (streamSessionId === sessionId) {
-          setMessages(prev => {
+        /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+          __commitMessages(prev => {
             const newMsgs = [...prev]
             newMsgs[newMsgs.length - 1] = { ...assistantMsg }
             return newMsgs
@@ -4294,7 +4510,7 @@ function AIAssistantContent() {
         pendingForgeCardRef.current = null
       }
 
-      if (ensuredSessionId) {
+      if (ensuredSessionId && !isTempSession(ensuredSessionId)) {
         const lastMsg = {  
           ...assistantMsg, 
           reasoning: enableReasoning ? { text: reasoningText, durationMs: Date.now() - startTs } : undefined,
@@ -4335,12 +4551,13 @@ function AIAssistantContent() {
       const rawMsg: string = e?.message || ""
       const isGeneric = !rawMsg || rawMsg === "No response body"
       const errMsg = isGeneric ? "抱歉，发生了一些错误，请稍后再试。" : rawMsg
+      __taskError = errMsg
 
       // 429 速率限制：渲染为业务卡片（RateLimitErrorCard），而不是裸文本
       const isRateLimit = e?.isRateLimit === true || e?.status === 429
         || /HTTP 429|status["']?\s*:\s*"?429|速率限制|访问量过大|rate.?limit/i.test(rawMsg)
       if (isRateLimit) {
-        setMessages(prev => [...prev, {
+        __commitMessages(prev => [...prev, {
           role: "assistant",
           content: errMsg,
           errorType: "rate_limit",
@@ -4348,7 +4565,7 @@ function AIAssistantContent() {
           errorStatus: 429,
         }])
       } else {
-        setMessages(prev => [...prev, { role: "assistant", content: errMsg }])
+        __commitMessages(prev => [...prev, { role: "assistant", content: errMsg }])
       }
     } finally {
       // 🔥 架构变更后：AI 通过 Agent Loop 内的工具调用完成设备控制，前端不再有
@@ -4359,18 +4576,69 @@ function AIAssistantContent() {
       // 不影响 isLoading 生命周期，但避免在 ScheduleCard 渲染期间过早清理状态
       const hasScheduleTask = autoExecuteCommands && content.includes('"action": "schedule_task"');
 
-      setAgentStatus("")
+      __commitAgentStatus("")
       if (!hasScheduleTask) {
-        setIsLoading(false)
+        __commitIsLoading(false)
+      }
+
+      // 🔥 任务收尾：注销本会话的流控制句柄，并清掉会话列表上的「任务进行中」圆点。
+      //    注意：会话快照（sessionScopesRef）刻意保留 —— 用户切回该会话时可直接
+      //    从内存快照看到完整结果，不必等落库后再回源拉取。
+      if (__scopeKey) {
+        const sc = __getScope()
+        sc.running = false
+        delete streamControllersRef.current[__scopeKey]
+        delete streamStopRefs.current[__scopeKey]
+        setRunningSessions(prev => {
+          if (!prev[__scopeKey]) return prev
+          const next = { ...prev }
+          delete next[__scopeKey]
+          return next
+        })
       }
 
       // 额外延迟清理一次，确保彻底结束（防止竞态条件）
       setTimeout(() => {
-        if (!isStoppedRef.current && !hasScheduleTask) {
-          setAgentStatus("")
-          setIsLoading(false)
+        if (!__stopRef.current && !hasScheduleTask) {
+          __commitAgentStatus("")
+          __commitIsLoading(false)
         }
       }, 300)
+
+      // =====================================================================
+      // 桌面端原生通知：任务收尾提醒（见 lib/desktop-notify.ts）
+      //
+      // 三种时机共用这一处收口：
+      //   · AI 任务完成   —— 正常跑完
+      //   · 任务失败/出错 —— catch 里记了 __taskError
+      //   · 后台会话完成 —— 用户切到了别的会话，本任务在其后台跑完
+      //
+      // 弹不弹由 helper 决定：桌面端 + 用户开着通知开关 + （窗口不在前台
+      // 或者本任务属于非当前会话）三者同时满足才弹 —— 用户正盯着这个会话看时
+      // 再弹一条系统通知纯属打扰。
+      // isFeedback / isSilent 是内部子调用（工具回喂、静默补话），不打扰用户。
+      // =====================================================================
+      if (!isFeedback && !isSilent && !__stopRef.current) {
+        const __notifyBody = summarizeForNotification(
+          __taskError || (typeof assistantMsg.content === "string" ? assistantMsg.content : "")
+        )
+        const __scheduled = useSystemApi
+        notifyDesktop({
+          title: __taskError
+            ? (__scheduled ? "定时任务执行失败" : "AI 任务执行失败")
+            : (__scheduled ? "定时任务已完成" : "AI 任务已完成"),
+          body: __notifyBody || sessions.find((s) => s.id === __scopeKey)?.title || "点击查看结果",
+          tag: `ai-task:${__scopeKey || "default"}`,
+          level: __taskError ? "error" : "success",
+          // 深链到具体会话：点通知回来直接落在刚跑完任务的对话里，
+          // 而不是上次停留的会话（页面用 ?session= 消费）
+          route: __scopeKey
+            ? `/ai-assistant?session=${encodeURIComponent(__scopeKey)}`
+            : "/ai-assistant",
+          // 不在当前会话里跑完的，即使窗口就在前台也值得提醒（同 Slack 的频道提醒）
+          force: !__isFg(),
+        })
+      }
     }
   }
   
@@ -4396,12 +4664,14 @@ function AIAssistantContent() {
       }
       if (!lastUserText) return
 
-      // 移除最后那条"速率限制"错误卡片
+      // 移除最后那条"速率限制"错误卡片（同步内存快照，切走再切回不会回滚）
       setMessages(prev => {
         if (prev.length === 0) return prev
         const last = prev[prev.length - 1]
-        if (last?.errorType === "rate_limit") return prev.slice(0, -1)
-        return prev
+        const next = last?.errorType === "rate_limit" ? prev.slice(0, -1) : prev
+        const sc = sessionScopesRef.current[activeSessionIdRef.current]
+        if (sc && next !== prev) sc.messages = next
+        return next
       })
 
       // 重新发送（短暂延迟以让 messages 更新生效）
@@ -4424,7 +4694,7 @@ function AIAssistantContent() {
       })
       if (r.ok) {
         const s = await r.json()
-        setSessionId(s.id)
+        switchActiveSession(s.id)
         setSessions(prev => [s, ...prev])
         setMessages([])
         setInput("")
@@ -4438,10 +4708,15 @@ function AIAssistantContent() {
     e?.stopPropagation()
     try {
       await fetch(`/api/sessions/${id}`, { method: "DELETE" })
+      // 会话被删除：同时清掉它的内存快照与运行标记，避免残留
+      delete sessionScopesRef.current[id]
+      delete streamControllersRef.current[id]
+      delete streamStopRefs.current[id]
+      setRunningSessions(prev => { const n = { ...prev }; delete n[id]; return n })
       const nextSessions = sessions.filter(s => s.id !== id)
       setSessions(nextSessions)
       if (id === sessionId) {
-        if (nextSessions.length > 0) setSessionId(nextSessions[0].id)
+        if (nextSessions.length > 0) switchActiveSession(nextSessions[0].id)
         else createNewSession()
       }
     } catch { }
@@ -4573,15 +4848,9 @@ function AIAssistantContent() {
     })
   }
 
-  /** 深色模式切换 */
+  /** 深色模式切换（写全局 next-themes，其他页面同步跟随） */
   const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const next = !prev
-      localStorage.setItem("darkMode", String(next))
-      if (next) document.documentElement.classList.add("dark")
-      else document.documentElement.classList.remove("dark")
-      return next
-    })
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
   }
 
   /** 用户菜单点击 */
@@ -4780,6 +5049,22 @@ function AIAssistantContent() {
     }
   }, [searchParams])
 
+  // 会话深链：?session=<id> → 自动切到该会话。
+  // 主要服务桌面端"点通知直达对话"：主进程把窗口拉到前台后，
+  // 根布局的 DesktopNotificationBridge 用 router.push('/ai-assistant?session=<id>') 进来，
+  // 如果不带参数，用户会被留在上次的会话里，找不到刚跑完任务的那个。
+  useEffect(() => {
+    const target = searchParams.get("session")
+    if (!target) return
+    switchActiveSession(target)
+    // 用完即清，避免之后每次 searchParams 变化都把用户硬拽回这个会话
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete("session")
+      window.history.replaceState({}, "", url.toString())
+    } catch { }
+  }, [searchParams, switchActiveSession])
+
   // 语音对话消息处理
   const handleVoiceChatMessage = async (text: string): Promise<string> => {
     if (!aiSettings?.apiKey) {
@@ -4877,7 +5162,7 @@ function AIAssistantContent() {
         algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
           colorPrimary: "#1677ff",
-          borderRadius: 12,
+          borderRadius: 10,
         },
       }}
     >
@@ -4888,6 +5173,25 @@ function AIAssistantContent() {
         li[class*="item"]:hover .conv-more-btn {
           opacity: 1 !important;
         }
+        /* 2026-09-19 用户反馈「新对话这些字没跟新分组图标对齐」：
+           antd-x Conversations 的 ul.ant-conversations 自带 padding: 0 12px，
+           把整列右推 12px（实测 li 左缘 22px vs 功能项图标 18px）。
+           置 0 后 li 自身 padding-left 8px 恰好让文字落在 18px，与图标列对齐。 */
+        .sidebar-scroll .ant-conversations {
+          padding: 0 !important;
+        }
+        /* 2026-09-19 用户反馈「整个页面的图标都细」：
+           页面级统一图标描边。CSS stroke-width 优先级高于 SVG presentation
+           attribute（lucide 把 strokeWidth 写在 attribute 上），故可整体覆盖。
+           按渲染尺寸分层，保证"都细但不发虚"：
+           - ≥15px 图标 → 1.9（16px 下笔画 1.27px，介于用户认可的 1.24 与嫌粗的 1.33 之间）
+           - 13-14px 小图标 → 1.75（≈1.0px 笔画，维持原有的纤细观感）
+           - 12px 折叠箭头 → 2（12px 下仅 1px，本就是最细档，且过细会糊）
+           antd 自带图标（1em stroke 风格）同步被 1.9 兜底统一。 */
+        .ai-assistant-page svg { stroke-width: 1.9; }
+        .ai-assistant-page svg[width="13"],
+        .ai-assistant-page svg[width="14"] { stroke-width: 1.75; }
+        .ai-assistant-page svg[width="12"] { stroke-width: 2; }
       `}</style>
     <App>
     <>
@@ -4895,8 +5199,9 @@ function AIAssistantContent() {
     
     <div
       className={cn(
+        "ai-assistant-page",
         "fixed inset-0 w-full h-full overflow-hidden flex font-sans transition-colors duration-300",
-        darkMode ? "bg-zinc-900 text-zinc-100" : "bg-[#f7f8fa] text-zinc-900",
+        darkMode ? "bg-zinc-900 text-zinc-100" : "bg-[#f7f7f9] text-zinc-900",
         isExecutingControl && "ai-control-active",
         isElderFriendlyMode && "elder-friendly-text"
       )}
@@ -4912,7 +5217,7 @@ function AIAssistantContent() {
             style={{
               height: "48px",
               padding: "0 6px",
-              borderRadius: "24px",
+              borderRadius: 999,
               background: "rgba(255, 255, 255, 0.9)",
               backdropFilter: "blur(20px)",
               border: "1px solid rgba(0,0,0,0.05)",
@@ -4960,7 +5265,7 @@ function AIAssistantContent() {
 
       {/* Top Bar — light, side-by-side with sidebar */}
       <AntLayout style={{ flex: 1, background: "transparent" }}>
-        {/* Sidebar — 千问风格 */}
+        {/* Sidebar — 统一侧栏版式 */}
         <AntLayout.Sider
           width={260}
           collapsedWidth={0}
@@ -4968,7 +5273,13 @@ function AIAssistantContent() {
           trigger={null}
           collapsible
           style={{
-            background: "transparent",
+            /* 2026-09-19 抓千问 design token 对齐：
+               侧栏底色走 --ty-background-pc-sidebar #f7f7f9（中性灰，去蓝调），
+               与主区 #fff 形成克制的层级差；此前侧栏是 transparent，
+               靠整页 #f7f8fa 透出，底色偏蓝且与主区对比过重。
+               同日追加（用户反馈）：**不要边界线**——纯靠底色差分层级，
+               不用 --ty-line-border 描边。 */
+            background: darkMode ? "transparent" : "#f7f7f9",
             display: "flex",
             flexDirection: "column",
             height: "100vh",
@@ -4978,48 +5289,97 @@ function AIAssistantContent() {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            {/* ===== 顶部：标题（阿里妈妈数黑体）+ 搜索 + 折叠 ===== */}
-            <div style={{ display: "flex", alignItems: "center", padding: "18px 16px 14px" }}>
-              <span style={{ fontFamily: "AlimamaShuHeiTi, sans-serif", fontSize: 22, fontWeight: 700, color: darkMode ? "#e4e4e7" : "#111827" }}>莓小智</span>
+            {/* ===== 顶部：应用名 + 搜索 + 折叠 =====
+                2026-09-19 版式按行业通用对话产品整理；同日修正三处细节（用户截图反馈）：
+                - 两个按钮曾用 30/30 + gap 4，图标换到 17px 后按钮外沿顶到容器 padding
+                  边线上（行宽 232 = 内容刚好塞满），观感"没对齐"。改回 28/28 + gap 2，
+                  与顶栏、列表行统一为 28px 点击区规格。
+                - 搜索图标原用 framer-motion 版（viewBox 24 / strokeWidth 2 写死），
+                  与 lucide 版 PanelLeft 的矩形轮廓不是同一套线条基因（圆 vs 方），
+                  故统一改用 `IconSearch`（同样是 lucide，圆头圆角、受控 strokeWidth）。
+                - 行高锁定 28：原来受 18px 品牌字撑到约 31px，两个按钮垂直居中后
+                  上下留白不对称，视觉上"飘"。22px 行高盒让 28px 按钮精确居中对齐。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "16px 12px 12px 14px" }}>
+              <span style={{
+                fontFamily: "AlimamaShuHeiTi, sans-serif",
+                fontSize: 18, fontWeight: 700, lineHeight: "22px",
+                color: darkMode ? "#e4e4e7" : "#18181b",
+                whiteSpace: "nowrap",
+              }}>莓小智</span>
               <div style={{ flex: 1 }} />
               <button onClick={() => setSearchPanelOpen(true)}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 32, height: 32, borderRadius: 8, border: "none", background: "transparent",
-                  cursor: "pointer", color: darkMode ? "#a1a1aa" : "#6b7280" }}
+                  width: 28, height: 28, borderRadius: 8, border: "none", background: "transparent",
+                  cursor: "pointer", color: darkMode ? "#a1a1aa" : "#52525b" }}
+                className="hover:!bg-black/[0.05] dark:hover:!bg-white/[0.06]"
                 title="搜索"
               >
-                <Search size={17} />
+                <IconSearch size={16} strokeWidth={1.9} />
               </button>
-              <AntButton type="text" size="small" icon={<PanelLeftClose size={17} />} onClick={() => setSidebarOpen(false)}
-                style={{ color: darkMode ? "#a1a1aa" : "#6b7280", padding: 0, minWidth: 32, height: 32 }}
-              />
+              <button onClick={() => setSidebarOpen(false)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 28, height: 28, borderRadius: 8, border: "none", background: "transparent",
+                  cursor: "pointer", color: darkMode ? "#a1a1aa" : "#52525b" }}
+                className="hover:!bg-black/[0.05] dark:hover:!bg-white/[0.06]"
+                title="收起侧边栏"
+              >
+                <IconLayoutTwo size={16} strokeWidth={1.9} />
+              </button>
             </div>
 
-            {/* ===== 新建对话按钮 ===== */}
-            <div style={{ padding: "0 12px 10px" }}>
+            {/* ===== 新建对话主按钮行（白底描边主按钮 + 方形附按钮 同排）===== */}
+            <div style={{ display: "flex", gap: 8, padding: "0 12px 12px" }}>
               <button
-                onClick={createNewSession}
+                onClick={() => createNewSession()}
                 style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  width: "100%", height: 40, border: darkMode ? "1px solid #27272a" : "1px solid #e5e7eb",
-                  borderRadius: 10, background: darkMode ? "#27272a" : "#fff", cursor: "pointer", padding: "0 12px",
-                  fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151",
-                  transition: "all 0.15s",
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  height: 40, borderRadius: 10,
+                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e8e8ea",
+                  background: darkMode ? "#27272a" : "#fff",
+                  color: darkMode ? "#e4e4e7" : "#18181b",
+                  fontSize: 14, fontWeight: 500,
+                  cursor: "pointer", userSelect: "none",
+                  boxShadow: darkMode ? "none" : "0 1px 2px rgba(0,0,0,0.03)",
+                  transition: "background 0.15s, border-color 0.15s",
                 }}
-                onMouseEnter={(e) => { 
-                  e.currentTarget.style.borderColor = darkMode ? "#3f3f46" : "#d1d5db"; 
-                  e.currentTarget.style.boxShadow = darkMode ? "none" : "0 1px 3px rgba(0,0,0,0.04)" 
-                }}
-                onMouseLeave={(e) => { 
-                  e.currentTarget.style.borderColor = darkMode ? "#27272a" : "#e5e7eb"; 
-                  e.currentTarget.style.boxShadow = "none" 
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#3f3f46" : "#fafafa" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#fff" }}
               >
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <SquarePen size={15} strokeWidth={1.8} />
-                  新建对话
-                </span>
-                <MessageSquare size={15} style={{ color: darkMode ? "#71717a" : "#9ca3af" }} />
+                {/* 「气泡 + 右上角加号」= 新建对话（2026-09-19 用户截图反馈：
+                    原来是裸加号 IconPlusCross，与 Qwen 侧栏造型不符）。
+                    IconCommentAdd 的气泡 path 与右侧「临时对话」的 IconCommentDashed 同源，
+                    并排不会一粗一细；线宽走规范 16px → strokeWidth 2（=1.33px）。 */}
+                <IconCommentAdd size={16} strokeWidth={1.9} />
+                <span>新建对话</span>
+              </button>
+              {/* 临时对话（主按钮右侧的方按钮位）：
+                  开一个不落库、不进列表的孤立会话 —— 消息只留内存，切走即弃。 */}
+              <button
+                onClick={() => {
+                  if (isTempSession(sessionId)) {
+                    showNotice("临时对话", "当前已在临时对话中", "success")
+                    return
+                  }
+                  createTempSession()
+                }}
+                title="临时对话（不保存记录）"
+                style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e8e8ea",
+                  background: tempSessionActive
+                    ? (darkMode ? "#3f3f46" : "#f4f4f5")
+                    : (darkMode ? "#27272a" : "#fff"),
+                  color: tempSessionActive ? "#1677ff" : (darkMode ? "#a1a1aa" : "#52525b"),
+                  cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#3f3f46" : "#fafafa" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = tempSessionActive ? (darkMode ? "#3f3f46" : "#f4f4f5") : (darkMode ? "#27272a" : "#fff") }}
+              >
+                {/* 线宽与左侧「新建对话」统一为 2（16px → 1.33px）。
+                    原先 1.75 = 1.17px，两个按钮同排时细 12%，肉眼能看出不一致。 */}
+                <IconCommentDashed size={16} strokeWidth={1.9} />
               </button>
             </div>
 
@@ -5041,140 +5401,211 @@ function AIAssistantContent() {
                 .sidebar-scroll:hover, .sidebar-scroll:active { scrollbar-color: #d1d5db transparent; }
               `}</style>
 
-              {/* 探索入口 */}
-              <div>
+              {/* ===== 功能导航（图标 17px、行高 36px、间距疏朗）=====
+                  2026-09-19 用户要求：版式参考行业通用版式，但功能项保留本平台现有这组。
+                  2026-09-19 追加（抓千问官网 design token 对齐）：
+                  - 千问图标统一 strokeWidth 2（24 grid 基准），我们原为 1.75，
+                    在 17px 渲染下视觉细约 12.5%，用户反馈"稍微细那么一点" → 全侧栏统一抬到 2。
+                  - 文字主色由 #3f3f46 抬到千问 --ty-text-primary #0d0d0d（更黑更实）。
+                  - hover 底色由 #f4f4f5 调整为千问 --qwtp-hover-bg #0d0d0d08（更淡）。 */}
+              {[
+                {
+                  key: "explore",
+                  label: "探索",
+                  icon: <IconCompass size={16} strokeWidth={1.9} />,
+                  onClick: () => setExploreOpen(true),
+                },
+                {
+                  key: "space",
+                  label: "我的空间",
+                  icon: <IconFolderOpen size={16} strokeWidth={1.9} />,
+                  onClick: () => setMySpaceOpen(true),
+                  badge: spaceReports.length > 0 ? spaceReports.length : undefined,
+                },
+                {
+                  key: "scheduler",
+                  label: "定时任务",
+                  icon: <IconTime size={16} strokeWidth={1.9} />,
+                  onClick: () => setSchedulerPanelOpen(true),
+                },
+                {
+                  key: "knowledge",
+                  label: "知识库",
+                  icon: <IconBookOpen size={16} strokeWidth={1.9} />,
+                  onClick: () => setKnowledgeOpen(true),
+                },
+                {
+                  key: "settings",
+                  label: "更多",
+                  icon: <IconGridFour size={16} strokeWidth={1.9} />,
+                  onClick: () => setSettingsOpen(true),
+                },
+              ].map((item) => (
                 <div
-                  onClick={() => setExploreOpen(true)}
+                  key={item.key}
+                  onClick={item.onClick}
                   style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: "10px 4px 6px", cursor: "pointer", userSelect: "none",
-                    color: darkMode ? "#a1a1aa" : "#4b5563",
-                    transition: "color 0.15s",
+                    display: "flex", alignItems: "center", gap: 12,
+                    height: 36, padding: "0 8px",
+                    borderRadius: 8, cursor: "pointer", userSelect: "none",
+                    color: darkMode ? "#d4d4d8" : "#0d0d0d",
+                    transition: "background 0.15s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                 >
-                  <Compass size={15} strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>探索</span>
-                </div>
-              </div>
-
-              {/* 我的空间 - 点击右侧面板占满对话区 */}
-              <div>
-                <div
-                  onClick={() => setMySpaceOpen(true)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: "10px 4px 6px", cursor: "pointer", userSelect: "none",
-                    color: darkMode ? "#a1a1aa" : "#4b5563",
-                    transition: "color 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
-                >
-                  <FolderOpen size={15} strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>我的空间</span>
-                  {spaceReports.length > 0 && (
+                  <span style={{ display: "inline-flex", flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }}>{item.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 400 }}>{item.label}</span>
+                  {item.badge !== undefined && (
                     <span style={{
                       fontSize: 10,
                       color: darkMode ? "#a1a1aa" : "#9ca3af",
-                      background: darkMode ? "#27272a" : "#f3f4f6",
+                      background: darkMode ? "#27272a" : "#f4f4f5",
                       padding: "0 5px",
                       borderRadius: 8,
                       minWidth: 16,
                       textAlign: "center",
                       lineHeight: "16px",
                       height: 16,
-                    }}>{spaceReports.length}</span>
+                    }}>{item.badge}</span>
                   )}
                   {/* 新报告小红点：SSE 收到 new_report 时点亮，面板打开后清零 */}
-                  {mySpaceNewBadge > 0 && (
+                  {item.key === "space" && mySpaceNewBadge > 0 && (
                     <span
                       title={`${mySpaceNewBadge} 份新简报`}
                       style={{
                         width: 7, height: 7, borderRadius: 999, background: "#1677ff",
-                        boxShadow: "0 0 0 2px " + (darkMode ? "#0a0a0c" : "#f7f8fa"),
+                        boxShadow: "0 0 0 2px " + (darkMode ? "#0a0a0c" : "#f7f7f9"),
                         marginLeft: 2
                       }}
                     />
                   )}
                 </div>
+              ))}
+
+              {/* ===== 工作台分组（2026-09-19 新增）：真实路由跳转，去业务页当宿主，
+                    AI 助手在那里以 Copilot 抽屉 + 悬浮球形态常驻。
+                    2026-09-19 追加：分区标题可折叠（同日用户要求）===== */}
+              <div
+                onClick={() => toggleSection("workspace")}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 8px 6px", cursor: "pointer", userSelect: "none",
+                  borderRadius: 6, transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+              >
+                <span style={{ fontSize: 12.5, color: darkMode ? "#71717a" : "#999", fontWeight: 400 }}>工作台</span>
+                <IconDown size={12} strokeWidth={2} style={{
+                  color: darkMode ? "#71717a" : "#999",
+                  opacity: 0.7,
+                  transition: "transform 0.2s ease",
+                  transform: collapsedSections.has("workspace") ? "rotate(-90deg)" : "rotate(0deg)",
+                }} />
               </div>
 
-              {/* 定时任务入口 */}
-              <div>
+              {!collapsedSections.has("workspace") && [
+                {
+                  key: "ws-monitor",
+                  label: "实时监控",
+                  icon: <IconMonitor size={16} strokeWidth={1.9} />,
+                  href: "/monitor",
+                },
+                {
+                  key: "ws-dashboard",
+                  label: "数据看板",
+                  icon: <IconChartHistogram size={16} strokeWidth={1.9} />,
+                  href: "/dashboard",
+                },
+                {
+                  key: "ws-automation",
+                  label: "自动化",
+                  icon: <IconThunderbolt size={16} strokeWidth={1.9} />,
+                  href: "/automation",
+                },
+                {
+                  key: "ws-device",
+                  label: "设备控制",
+                  icon: <IconSettingTwo size={16} strokeWidth={1.9} />,
+                  href: "/device-control",
+                },
+              ].map((item) => (
                 <div
-                  onClick={() => setSchedulerPanelOpen(true)}
+                  key={item.key}
+                  onClick={() => router.push(item.href)}
                   style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: "8px 4px 6px", cursor: "pointer", userSelect: "none",
-                    color: darkMode ? "#a1a1aa" : "#4b5563",
-                    transition: "color 0.15s",
+                    display: "flex", alignItems: "center", gap: 12,
+                    height: 36, padding: "0 8px",
+                    borderRadius: 8, cursor: "pointer", userSelect: "none",
+                    color: darkMode ? "#d4d4d8" : "#0d0d0d",
+                    transition: "background 0.15s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                 >
-                  <CalendarClock size={15} strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>定时任务</span>
+                  <span style={{ display: "inline-flex", flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }}>{item.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 400 }}>{item.label}</span>
                 </div>
+              ))}
+
+              {/* ===== 对话分组（小标题可折叠 + 「新分组」独立整行）===== */}
+              <div
+                onClick={() => toggleSection("groups")}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 8px 6px", cursor: "pointer", userSelect: "none",
+                  borderRadius: 6, transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+              >
+                <span style={{ fontSize: 12.5, color: darkMode ? "#71717a" : "#999", fontWeight: 400 }}>对话分组</span>
+                <IconDown size={12} strokeWidth={2} style={{
+                  color: darkMode ? "#71717a" : "#999",
+                  opacity: 0.7,
+                  transition: "transform 0.2s ease",
+                  transform: collapsedSections.has("groups") ? "rotate(-90deg)" : "rotate(0deg)",
+                }} />
               </div>
 
-              {/* 知识库入口 */}
-              <div>
-                <div
-                  onClick={() => setKnowledgeOpen(true)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: "8px 4px 6px", cursor: "pointer", userSelect: "none",
-                    color: darkMode ? "#a1a1aa" : "#4b5563",
-                    transition: "color 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#1677ff" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#4b5563" }}
-                >
-                  <BookOpen size={15} strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151" }}>知识库</span>
-                </div>
-              </div>
-
-              {/* 对话分组标题（紧贴左侧，无 icon 占位） */}
-              <div style={{ padding: "12px 4px 4px" }}>
-                <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500 }}>对话分组</span>
-              </div>
-
-              {/* 新分组（独立行，与分组项同 icon x） */}
+              {!collapsedSections.has("groups") && (<>
+              {/* 新分组：独立整行，图标与分组项对齐 */}
               <div
                 onClick={() => setShowNewGroupInput(true)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 7,
-                  padding: "6px 4px", cursor: "pointer", userSelect: "none",
-                  color: darkMode ? "#a1a1aa" : "#6b7280",
-                  borderRadius: 6,
-                  transition: "background 0.15s, color 0.15s",
+                  display: "flex", alignItems: "center", gap: 12,
+                  height: 34, padding: "0 8px",
+                  borderRadius: 8, cursor: "pointer", userSelect: "none",
+                  color: darkMode ? "#d4d4d8" : "#0d0d0d",
+                  transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"; e.currentTarget.style.color = "#1677ff" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = darkMode ? "#a1a1aa" : "#6b7280" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
               >
-                <Plus size={14} strokeWidth={1.5} />
-                <span style={{ fontSize: 12 }}>新分组</span>
+                <span style={{ display: "inline-flex", flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }}>
+                  <Plus size={16} strokeWidth={1.9} />
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 400 }}>新分组</span>
               </div>
-                {showNewGroupInput && (
-                  <div style={{ display: "flex", gap: 4, marginTop: 4, padding: "0 4px" }}>
-                    <input autoFocus value={newGroupName}
-                      onChange={(e) => setNewGroupName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") addGroup(newGroupName); if (e.key === "Escape") { setShowNewGroupInput(false); setNewGroupName("") } }}
-                      onBlur={() => { if (newGroupName.trim()) addGroup(newGroupName); else setShowNewGroupInput(false) }}
-                      placeholder="输入分组名..."
-                      style={{
-                        flex: 1, height: 28, fontSize: 12,
-                        border: darkMode ? "1px solid #3f3f46" : "1px solid #d1d5db",
-                        borderRadius: 6, padding: "0 8px", outline: "none",
-                        background: darkMode ? "#27272a" : "#fff",
-                        color: darkMode ? "#e4e4e7" : "#374151"
-                      }}
-                    />
-                  </div>
-                )}
+
+              {showNewGroupInput && (
+                <div style={{ display: "flex", gap: 4, margin: "4px 0", padding: "0 8px" }}>
+                  <input autoFocus value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") addGroup(newGroupName); if (e.key === "Escape") { setShowNewGroupInput(false); setNewGroupName("") } }}
+                    onBlur={() => { if (newGroupName.trim()) addGroup(newGroupName); else setShowNewGroupInput(false) }}
+                    placeholder="输入分组名..."
+                    style={{
+                      flex: 1, height: 30, fontSize: 13,
+                      border: darkMode ? "1px solid #3f3f46" : "1px solid #e4e4e7",
+                      borderRadius: 8, padding: "0 10px", outline: "none",
+                      background: darkMode ? "#27272a" : "#fff",
+                      color: darkMode ? "#e4e4e7" : "#374151"
+                    }}
+                  />
+                </div>
+              )}
 
               {/* 自定义分组列表 */}
               {groups.map(g => {
@@ -5185,32 +5616,33 @@ function AIAssistantContent() {
                     onClick={() => { toggleGroupCollapse(g.id); setActiveGroupId(g.id) }}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between", gap: 7,
-                      padding: "6px 4px", cursor: "pointer", userSelect: "none",
-                      borderRadius: 6,
+                      height: 34, padding: "0 8px", cursor: "pointer", userSelect: "none",
+                      borderRadius: 8,
                       background: isActiveGroup
-                        ? (darkMode ? "rgba(99,102,241,0.12)" : "rgba(22,119,255,0.08)")
+                        ? (darkMode ? "#27272a" : "rgba(13,13,13,0.05)")
                         : "transparent",
-                      color: isActiveGroup
-                        ? "#1677ff"
-                        : (darkMode ? "#e4e4e7" : "#4b5563"),
-                      transition: "background 0.15s, color 0.15s",
+                      color: darkMode ? "#d4d4d8" : "#0d0d0d",
+                      transition: "background 0.15s",
                     }}
-                    onMouseEnter={(e) => { if (!isActiveGroup) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
+                    onMouseEnter={(e) => { if (!isActiveGroup) e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
                     onMouseLeave={(e) => { if (!isActiveGroup) e.currentTarget.style.background = "transparent" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                      <IconFolderOpen size={16} strokeWidth={1.9} style={{ flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }} />
+                      <span style={{
+                        fontSize: 14, fontWeight: 400,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>{g.name}</span>
                       {collapsedGroups.has(g.id) ? (
-                        <ChevronRight size={14} style={{ opacity: 0.7 }} />
+                        <IconRight size={12} strokeWidth={2} style={{ opacity: 0.45, flexShrink: 0 }} />
                       ) : (
-                        <ChevronDown size={14} style={{ opacity: 0.7 }} />
+                        <ChevronDown size={12} strokeWidth={2} style={{ opacity: 0.45, flexShrink: 0 }} />
                       )}
-                      <FolderOpen size={15} strokeWidth={1.5} />
-                      <span style={{ fontSize: 12, fontWeight: isActiveGroup ? 600 : 500 }}>{g.name}</span>
                     </div>
                     <Dropdown trigger={["click"]} placement="bottomLeft"
                       menu={{
                         items: [
-                          { key: "del-group", icon: <Trash2 size={12} />,
+                          { key: "del-group", icon: <IconDelete size={12} />,
                             label: <span style={{ color: "#ef4444" }}>删除分组</span> },
                         ],
                         onClick: () => deleteGroup(g.id),
@@ -5219,42 +5651,85 @@ function AIAssistantContent() {
                       <button onClick={(e) => e.stopPropagation()}
                         style={{ display: "flex", alignItems: "center", justifyContent: "center",
                           width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent",
-                          cursor: "pointer", color: isActiveGroup ? "#1677ff" : (darkMode ? "#71717a" : "#9ca3af"),
+                          cursor: "pointer", color: darkMode ? "#71717a" : "#9ca3af",
                           opacity: isActiveGroup ? 1 : 0,
-                          transition: "opacity 0.15s" }}
+                          transition: "opacity 0.15s", flexShrink: 0 }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
                         onMouseLeave={(e) => { if (!isActiveGroup) e.currentTarget.style.opacity = "0" }}
                       >
-                        <MoreHorizontal size={12} />
+                        <IconMore size={12} />
                       </button>
                     </Dropdown>
                   </div>
                   {!collapsedGroups.has(g.id) && (sessionsByGroup[g.id] || []).length > 0 && (
                     <Conversations
                       menuable
-                      onActiveChange={(key: string) => { setSessionId(String(key)); loadSessionMessages(String(key) as any) }}
+                      onActiveChange={(key: string) => { switchActiveSession(String(key)) }}
                       onDelete={(info: any) => deleteSession(String(info.key))}
                       items={groupedSessionItems[g.id] || []}
-                      styles={{ item: { borderRadius: 8, padding: "6px 10px 6px 32px", marginBottom: 1 } }}
+                      styles={{ item: { borderRadius: 8, padding: "7px 8px", marginBottom: 1 } }}
                     />
                   )}
                 </div>
                 )
               })}
+              </>)}
 
-              {/* 最近对话（未分组的）- 紧贴左侧 */}
-              <div style={{ padding: "10px 4px 4px" }}>
-                <span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500 }}>最近对话</span>
+              {/* 最近对话（小标题可折叠，列表项直接跟在下面） */}
+              <div
+                onClick={() => toggleSection("recent")}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 8px 6px", cursor: "pointer", userSelect: "none",
+                  borderRadius: 6, transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+              >
+                <span style={{ fontSize: 12.5, color: darkMode ? "#71717a" : "#999", fontWeight: 400 }}>最近对话</span>
+                <IconDown size={12} strokeWidth={2} style={{
+                  color: darkMode ? "#71717a" : "#999",
+                  opacity: 0.7,
+                  transition: "transform 0.2s ease",
+                  transform: collapsedSections.has("recent") ? "rotate(-90deg)" : "rotate(0deg)",
+                }} />
               </div>
+
+              {!collapsedSections.has("recent") && (<>
+              {/* 临时对话条目：仅在临时态出现，提示"这条不保存"并提供返回入口 */}
+              {tempSessionActive && (
+                <div
+                  onClick={() => { /* 已在临时态，无操作 */ }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    height: 34, padding: "0 8px", marginBottom: 2,
+                    borderRadius: 8, userSelect: "none",
+                    background: darkMode ? "#27272a" : "#f4f4f5",
+                    color: "#1677ff",
+                  }}
+                >
+                  <IconCommentDashed size={15} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 13.5, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    临时对话
+                  </span>
+                  <span style={{
+                    fontSize: 10, padding: "0 6px", height: 16, lineHeight: "16px",
+                    borderRadius: 8, flexShrink: 0,
+                    color: darkMode ? "#a1a1aa" : "#9ca3af",
+                    background: darkMode ? "#3f3f46" : "#e4e4e7",
+                  }}>不保存</span>
+                </div>
+              )}
 
               {/* 最近对话列表 */}
               <Conversations
                 menuable
-                onActiveChange={(key: string) => { setSessionId(String(key)); loadSessionMessages(String(key) as any) }}
+                onActiveChange={(key: string) => { switchActiveSession(String(key)) }}
                 onDelete={(info: any) => deleteSession(String(info.key))}
                 items={recentSessionItems}
-                styles={{ item: { borderRadius: 8, padding: "7px 10px 7px 32px", marginBottom: 1 } }}
+                styles={{ item: { borderRadius: 8, padding: "8px 8px", marginBottom: 2 } }}
               />
+              </>)}
 
               {/* 底部留白（探索入口已移至上方侧边栏） */}
 
@@ -5282,27 +5757,26 @@ function AIAssistantContent() {
             >
               <div
                 style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 14px", margin: "0 8px 10px",
-                  borderRadius: 10, cursor: "pointer",
-                  background: darkMode ? "#27272a" : "#f5f5f5",
+                  display: "flex", alignItems: "center", gap: 9,
+                  padding: "8px 10px", margin: "0 6px 8px",
+                  borderRadius: 9, cursor: "pointer",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#3f3f46" : "#e5e7eb" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f5f5f5" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f4f4f5" }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
               >
-                <AntAvatar size={32} src={user?.avatar_url} style={{ backgroundColor: darkMode ? "rgba(22,119,255,0.18)" : "#e6f4ff", color: "#1677ff", flexShrink: 0, fontSize: 14 }}>
+                <AntAvatar size={30} src={user?.avatar_url} style={{ backgroundColor: darkMode ? "rgba(22,119,255,0.18)" : "#e6f4ff", color: "#1677ff", flexShrink: 0, fontSize: 13, fontWeight: 600 }}>
                   {user?.username?.[0]?.toUpperCase() || "B"}
                 </AntAvatar>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#374151", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#27272a", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {user?.username || "管理员"}
                   </div>
-                  <div style={{ fontSize: 11, color: darkMode ? "#a1a1aa" : "#6b7280", marginTop: 2 }}>
+                  <div style={{ fontSize: 10.5, color: darkMode ? "#71717a" : "#a1a1aa", marginTop: 1, letterSpacing: 0.3 }}>
                     {(creditInfo?.membership || user?.membership || 'free').toUpperCase()}
                   </div>
                 </div>
-                <ChevronRight size={14} style={{ color: darkMode ? "#71717a" : "#9ca3af", flexShrink: 0 }} />
+                <IconRight size={13} style={{ color: darkMode ? "#52525b" : "#c4c4c8", flexShrink: 0 }} />
               </div>
             </Popover>
           </div>
@@ -5334,7 +5808,7 @@ function AIAssistantContent() {
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
             background: darkMode ? "#0a0a0c" : "#fff",
-            borderRadius: 12, overflow: "hidden",
+            borderRadius: 10, overflow: "hidden",
             minHeight: 0,
           }}>
             {/* Top bar */}
@@ -5343,24 +5817,24 @@ function AIAssistantContent() {
               darkMode ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
             )}>
               {!sidebarOpen && (
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}
+                <div className="flex items-center gap-0.5">
+                  <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(true)}
                     className={cn(
                       "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                       darkMode ? "text-zinc-300" : "text-zinc-600"
                     )}
                     title="展开侧边栏"
                   >
-                    <PanelLeftOpen size={17} />
+                    <IconLayoutTwo size={16} strokeWidth={1.9} />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={createNewSession}
+                  <Button variant="ghost" size="icon-sm" onClick={createNewSession}
                     className={cn(
                       "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                       darkMode ? "text-zinc-300" : "text-zinc-600"
                     )}
                     title="新建对话"
                   >
-                    <Plus size={17} />
+                    <Plus size={16} />
                   </Button>
                 </div>
               )}
@@ -5388,8 +5862,24 @@ function AIAssistantContent() {
                 <PredictiveInsightCard onTrigger={(prompt) => handleSend(prompt)} />
               </div>
               <div className="flex-1" />
+              {/* 🔗 返回工作台：莓小智此前没有任何跳转出口（用户只能手动改 URL），
+                  桌面端尤其致命 —— 任务跑完想回 monitor / dashboard 都没入口 */}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => router.push("/dashboard")}
+                className={cn(
+                  "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                  darkMode ? "text-zinc-300" : "text-zinc-600"
+                )}
+                title="返回工作台"
+              >
+                <IconHome size={16} />
+              </Button>
               {/* 🔔 AI 主动守护通知铃铛 */}
               <GuardianAlertBell />
+              {/* 👤 账户入口统一收口到侧栏底部用户卡（原顶栏 UserAvatarMenu 浮层信息过载，
+                  天气/长辈模式等与 AI 助手场景无关 —— 用户 2026-09-16 反馈过度设计，已移除） */}
             </div>
 
             {/* Chat area */}
@@ -5434,6 +5924,7 @@ function AIAssistantContent() {
                 aiActionSummary={aiActionSummary}
                 latestTaskListContent={latestTaskListContent}
                 newMessageBoundary={newMessageBoundary}
+                onDeleteMessage={(idx) => setMessages((prev) => prev.filter((_, i) => i !== idx))}
                 visionInspection={{
                   isActive: isInspecting,
                   status: visionInspectionStatus,
@@ -5639,7 +6130,7 @@ function AIAssistantContent() {
           closeIcon={<X size={14} strokeWidth={1.5} style={{ color: '#8c8c8c' }} />}
           title={
             <Flex align="center" gap={8}>
-              <FileText size={15} strokeWidth={1.75} style={{ color: '#1677ff' }} />
+              <IconFileText size={15} strokeWidth={1.75} style={{ color: '#1677ff' }} />
               <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.88)' }}>
                 {reportData?.title || "AI 智能生成报告"}
               </span>
@@ -5688,7 +6179,7 @@ function AIAssistantContent() {
                     <AntButton
                       type="text"
                       size="small"
-                      icon={<Download size={14} strokeWidth={1.5} />}
+                      icon={<IconDownload size={14} strokeWidth={1.5} />}
                       onClick={() => {
                         const blob = new Blob([reportData.html], { type: 'text/html;charset=utf-8' })
                         const url = URL.createObjectURL(blob)
@@ -5707,7 +6198,7 @@ function AIAssistantContent() {
                     <AntButton
                       type="text"
                       size="small"
-                      icon={<FileText size={14} strokeWidth={1.5} />}
+                      icon={<IconFileText size={14} strokeWidth={1.5} />}
                       onClick={async () => {
                         const toastId = toast.loading("正在生成 PDF...")
                         try {
@@ -5760,7 +6251,7 @@ function AIAssistantContent() {
                     <AntButton
                       type="text"
                       size="small"
-                      icon={<ExternalLink size={14} strokeWidth={1.5} />}
+                      icon={<IconLinkOut size={14} strokeWidth={1.5} />}
                       onClick={() => {
                         const w = window.open('', '_blank')
                         if (w) {
@@ -5776,7 +6267,7 @@ function AIAssistantContent() {
                 <AntButton
                   type="primary"
                   size="small"
-                  icon={<FolderInput size={13} strokeWidth={1.75} />}
+                  icon={<IconFolderUpload size={13} strokeWidth={1.75} />}
                   onClick={async () => {
                     const exists = spaceReports.some(
                       (r) => r.title === reportData.title && r.html === reportData.html
@@ -5987,6 +6478,7 @@ function AIAssistantContent() {
       <AISettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        initialSection={settingsSection}
         user={user}
         persona={selectedPersona}
         onPersonaChange={(id: string) => {
@@ -6021,9 +6513,9 @@ function AIAssistantContent() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-[10px] bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
             {quotaInfo?.reason === 'membership_required' ? (
-              <Lock className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+              <IconLock className="w-5 h-5 text-rose-500 dark:text-rose-400" />
             ) : (
-              <Wallet className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+              <IconWallet className="w-5 h-5 text-rose-500 dark:text-rose-400" />
             )}
           </div>
           <div className="flex items-center gap-2 min-w-0">
@@ -6036,7 +6528,7 @@ function AIAssistantContent() {
                   creditInfo?.membership === 'plus' ? 'bg-amber-500' : 'bg-blue-500'
                 }`}
               >
-                <Crown className="w-2.5 h-2.5" />
+                <IconCrown className="w-2.5 h-2.5" />
                 {creditInfo?.membership.toUpperCase()}
               </span>
             ) : null}
@@ -6084,7 +6576,7 @@ function AIAssistantContent() {
 
         {/* 刷新提示 */}
         <div className="flex items-center gap-1.5 mt-3 text-[12px] text-slate-400 dark:text-zinc-500">
-          <RefreshCw className="w-3 h-3" />
+          <IconRefresh className="w-3 h-3" />
           <span>积分每月 1 日自动刷新</span>
         </div>
 
@@ -6176,7 +6668,8 @@ function UserPanelContent({
         <AntButton type="text" size="small" icon={<X size={14} />} onClick={close} />
       </div>
 
-      {/* 体验版 / Pro / Plus + 升级按钮 */}
+      {/* 体验版 / Pro / Plus + 升级按钮（桌面端 BYOK：本地买断，无会员/积分概念） */}
+      {!IS_DESKTOP_APP && (
       <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span
           style={{
@@ -6191,15 +6684,17 @@ function UserPanelContent({
           <AntButton
             type="primary"
             size="small"
-            icon={<Crown size={12} />}
+            icon={<IconCrown size={12} />}
             onClick={() => { close(); router.push('/subscription') }}
           >
             升级
           </AntButton>
         )}
       </div>
+      )}
 
-      {/* 积分余额（厚实卡片：总额 / 本月剩余 / 充值余额 / 进度条） */}
+      {/* 积分余额（厚实卡片：总额 / 本月剩余 / 充值余额 / 进度条；桌面端 BYOK 不显示） */}
+      {!IS_DESKTOP_APP && (
       <div style={{ padding: '10px 12px' }}>
         <div
           onClick={() => { close(); router.push('/subscription') }}
@@ -6216,10 +6711,10 @@ function UserPanelContent({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Wallet size={14} style={{ color: tx }} />
+              <IconWallet size={14} style={{ color: tx }} />
               <span style={{ fontSize: 12.5, color: tx }}>积分余额</span>
             </div>
-            <ChevronRight size={12} style={{ color: tx }} />
+            <IconRight size={12} style={{ color: tx }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
             <span style={{
@@ -6246,18 +6741,29 @@ function UserPanelContent({
           </div>
         </div>
       </div>
+      )}
 
-      {/* 设置 / 外观 / 帮助与反馈 / 检查更新 */}
+      {/* 设置 / 管理设置 / 外观 / 帮助与反馈 / 检查更新 */}
       <div style={{ padding: '4px 6px' }}>
         <PanelRow
           darkMode={darkMode}
           icon={<SettingsIcon size={15} />}
           label="设置"
-          onClick={() => { close(); setSettingsOpen(true) }}
+          onClick={() => { close(); setSettingsSection("personalization"); setSettingsOpen(true) }}
         />
+        {/* 桌面端：管理设置 —— 打开同一套设置弹窗并直达「模型」分区
+            （服务商增删等完整运维仍在 /admin，从「模型」分区一键跳转） */}
+        {IS_DESKTOP_APP && (
+          <PanelRow
+            darkMode={darkMode}
+            icon={<IconTool size={15} />}
+            label="管理设置"
+            onClick={() => { close(); setSettingsSection("model"); setSettingsOpen(true) }}
+          />
+        )}
         <PanelRow
           darkMode={darkMode}
-          icon={<Palette size={15} />}
+          icon={<IconBackgroundColor size={15} />}
           label="外观"
           right={
             <Segmented
@@ -6276,15 +6782,48 @@ function UserPanelContent({
         />
         <PanelRow
           darkMode={darkMode}
-          icon={<HelpCircle size={15} />}
+          icon={<IconHelp size={15} />}
           label="帮助与反馈"
           onClick={() => { close(); router.push('/help') }}
         />
+        {/* 检查更新：桌面端真调主进程 electron-updater（2026-09-17 修复：此前是写死"已是最新版本"的假按钮，
+            有新版本也只会误报，用户无法主动触发检查）；Web 端无桌面桥，引导刷新即可 */}
         <PanelRow
           darkMode={darkMode}
-          icon={<RefreshCw size={15} />}
+          icon={<IconRefresh size={15} />}
           label="检查更新"
-          onClick={() => { close(); toast.info('已是最新版本') }}
+          onClick={() => {
+            close();
+            if (!IS_DESKTOP_APP) {
+              toast.info("在线更新为桌面端功能，网页版刷新页面即可获取最新版本");
+              return;
+            }
+            const tid = toast.loading("正在检查更新…");
+            window.stravisionDesktop
+              ?.checkForUpdate()
+              .then((r) => {
+                if (!r?.ok) {
+                  toast.error(`检查更新失败：${r?.error ?? "未知错误"}`, { id: tid });
+                  return;
+                }
+                if (r.ready) {
+                  // 新版本已下载完成（用户可能错过了弹框）→ 直接给"立即安装"
+                  toast.success(`新版本 v${r.latestVersion ?? ""} 已下载完成，可立即安装`, {
+                    id: tid,
+                    duration: 20000,
+                    action: { label: "立即重启安装", onClick: () => { void window.stravisionDesktop?.installUpdate() } },
+                  });
+                } else if (r.latestVersion && r.latestVersion !== r.currentVersion) {
+                  toast.success(`发现新版本 v${r.latestVersion}，正在后台下载，完成后会弹出安装提示`, { id: tid, duration: 10000 });
+                } else {
+                  toast.success(`已是最新版本（v${r.currentVersion ?? ""}）`, { id: tid });
+                }
+              })
+              .catch((e: unknown) => {
+                const msg = e instanceof Error ? e.message : String(e);
+                toast.error(`检查更新失败：${msg}`, { id: tid });
+              });
+          }}
         />
       </div>
 

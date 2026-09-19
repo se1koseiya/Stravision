@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Modal, Input, Button } from "antd"
-import { Search, X } from "lucide-react"
 import { toast } from "sonner"
 import { chatClient } from "@/lib/chat/chat-client"
+import { IconClose, IconSearch } from "@/components/icon";
 
 interface AddFriendDialogProps {
   open: boolean
@@ -70,7 +70,7 @@ export function AddFriendDialog({ open, onOpenChange, onSent }: AddFriendDialogP
           onClick={() => onOpenChange(false)}
           className="size-7 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.45)] hover:text-[rgba(0,0,0,0.75)] hover:bg-black/[0.04] transition-colors"
         >
-          <X size={18} strokeWidth={1.75} />
+          <IconClose size={18} strokeWidth={1.75} />
         </button>
       </div>
 
@@ -78,7 +78,7 @@ export function AddFriendDialog({ open, onOpenChange, onSent }: AddFriendDialogP
       <div className="px-6 pb-5">
         <Input
           size="large"
-          prefix={<Search size={16} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)] mr-1" />}
+          prefix={<IconSearch size={16} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)] mr-1" />}
           placeholder="输入手机号或账号"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}

@@ -1,0 +1,125 @@
+appId: site.stravision.desktop
+productName: Stravision
+copyright: Copyright © 2026 Stravision
+
+# ⚠️ 这份配置的 appDir 是 desktop/（由 scripts/desktop/pack.mjs 传 --projectDir desktop），
+# 所有相对路径都相对 desktop/ 解析。
+#
+# 为什么必须把 appDir 指到 desktop/，而不是仓库根：
+#   electron-builder 会按 appDir 的 package.json 收集"生产依赖"整棵树。
+#   若 appDir = 仓库根，它就要解析前端依赖树（three / antd / ... 九万多个文件），
+#   而 `files` 随后又把这些全部排除 —— 纯属白跑，且极易在收集阶段卡住/报错
+#   （实测报 `No JSON content found in output`）。
+#   desktop/package.json 只依赖 aedes / embedded-postgres / get-port，
+#   把这棵树当 appDir 才是打包该有的输入。
+#
+# 🚨 排除项必须写在**平台块**里（win/mac/linux 各自的 files），不能只写顶层 files：
+#   顶层 `files` 只会被 electron-builder 的 node_modules 拷贝助手读走（dump 出来的
+#   `builder-debug.yml` 里它出现在 nodeModuleFilePatterns，而不在
+#   firstOrDefaultFilePatterns）。app 文件遍历实际用的是平台块的 files ——
+#   实测只写顶层时，verify-*.mjs / .npmrc 这些东西照样进了 app.asar。
+
+directories:
+  output: ../release
+  buildResources: build
+
+# 🚨 必须配置 publish：electron-updater 运行期从 resources/app-update.yml 读更新源，
+#    而该文件只有配置了 publish 才会在打包时生成。4.2.0-4.2.3 缺失 → 客户端首查
+#    ENOENT 静默失败，在线更新从未生效（2026-09-16 修复）。只影响生成产物，不会自动发布。
+publish:
+  provider: generic
+  url: https://stravision.site/downloads/desktop/
+
+asarUnpack:
+  # embedded-postgres 运行期需要 spawn postgres / initdb 等可执行文件，
+  # asar 内的文件无法被 spawn，必须解包到 app.asar.unpacked
+  - "**/node_modules/@embedded-postgres/**"
+  - "**/node_modules/embedded-postgres/**"
+
+extraResources:
+  # Next standalone 完整运行时（已由 scripts/desktop/prepare-standalone.mjs 补齐
+  # public/.next/static/server/ws-server/.agents/data/docs）。
+  # 必须在 asar 之外：server.js 运行期动态读文件，asar 虚拟文件系统不可靠。
+  - from: ../.next/standalone
+    to: app-server
+    filter:
+      - "**/*"
+  # 🚨 必须单独再拷一次 node_modules：
+  #   electron-builder 的文件匹配器会**无条件排除"拷贝源根层"的 node_modules**
+  #   （app-builder-lib/out/util/filter.js → createFilter：`relative === "node_modules"` → false，
+  #    任何 filter 模式都覆盖不了）。而 Next standalone 的运行期依赖
+  #   （next / react / … 共 33 个包）正好就躺在这一层，漏掉它服务端起不来。
+  #   把它当成独立的拷贝源时，"根层"就变成了各包名，于是能正常拷进去。
+  - from: ../.next/standalone/node_modules
+    to: app-server/node_modules
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  files:
+    - "**/*"
+    - "!**/*.map"
+    - "!verify-*"
+    - "!build/**"
+    - "!package-lock.json"
+    - "!.npmrc"
+    - "!electron-builder.yml"
+    # 只保留 Windows 的内嵌 PostgreSQL 二进制（每平台包 ~40-60MB）
+    - "!**/node_modules/@embedded-postgres/darwin-*/**"
+    - "!**/node_modules/@embedded-postgres/linux-*/**"
+
+nsis:
+  oneClick: false
+  # 用户态安装到 %LOCALAPPDATA%\Programs：
+  # 若装到 Program Files（perMachine），app-server 目录不可写，
+  # 文档库/上传/AI 配置将无法落盘。
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Stravision
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.png
+  category: public.app-category.productivity
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  files:
+    - "**/*"
+    - "!**/*.map"
+    - "!verify-*"
+    - "!build/**"
+    - "!package-lock.json"
+    - "!.npmrc"
+    - "!electron-builder.yml"
+    - "!**/node_modules/@embedded-postgres/win32-*/**"
+    - "!**/node_modules/@embedded-postgres/linux-*/**"
+
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icon.png
+  category: Utility
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  files:
+    - "**/*"
+    - "!**/*.map"
+    - "!verify-*"
+    - "!build/**"
+    - "!package-lock.json"
+    - "!.npmrc"
+    - "!electron-builder.yml"
+    - "!**/node_modules/@embedded-postgres/win32-*/**"
+    - "!**/node_modules/@embedded-postgres/darwin-*/**"

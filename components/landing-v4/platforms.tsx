@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Clock } from "lucide-react";
 import { CONTAINER, PANEL_TITLE, SECTION_TITLE, fadeUp } from "./shared";
+import { IconArrowRightUp, IconTime } from "@/components/icon";
 
 /* ------------------------------------------------------------
    平台区 —— 对齐 loomy.xunfei.cn 的 `PlatformSection`（浅色实测值）
@@ -147,7 +147,7 @@ export function Platforms() {
                     className="mt-auto inline-flex min-h-[3.5rem] w-full cursor-default items-center justify-center gap-[0.65rem] rounded-full text-[1rem] font-bold"
                     style={{ background: "#FFFFFF", color: "#222222", opacity: 0.62 }}
                   >
-                    <Clock className="size-[1.15rem]" />
+                    <IconTime className="size-[1.15rem]" />
                     {p.cta}
                   </span>
                 ) : (
@@ -164,7 +164,7 @@ export function Platforms() {
                       e.currentTarget.style.color = "#222222";
                     }}
                   >
-                    <ArrowUpRight className="size-[1.15rem]" />
+                    <IconArrowRightUp className="size-[1.15rem]" />
                     {p.cta}
                   </Link>
                 )}

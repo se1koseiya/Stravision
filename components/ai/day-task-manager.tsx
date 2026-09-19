@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-import { Loader2, Plus, Trash2, Clock, Power, PlayCircle, AlertCircle, Sparkles, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { IconAttention, IconCheckOne, IconDelete, IconLoading, IconMagic, IconPlayOne, IconPlus, IconPower, IconTime } from "@/components/icon";
 
 interface ScheduledTask {
   id: number
@@ -362,7 +362,7 @@ export function DayTaskManager({ date }: { date: Date }) {
         <div>
           <h3 className="font-bold text-lg text-zinc-800 dark:text-zinc-100 flex items-center gap-2 tracking-tight">
             {format(date, "M月d日", { locale: zhCN })} 任务
-            {isGenerating && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
+            {isGenerating && <IconLoading className="h-4 w-4 animate-spin text-zinc-400" />}
           </h3>
           <p className="text-xs text-zinc-500 mt-1 font-medium">
             管理当天的自动控制任务
@@ -376,7 +376,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                 title="刷新任务"
                 className="h-8 w-8 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
             >
-                <Loader2 className={cn("h-4 w-4", loading && "animate-spin")} />
+                <IconLoading className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
             <Button 
                 size="sm" 
@@ -385,7 +385,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                 onClick={handleGenerateAI}
                 disabled={isGenerating || loading}
             >
-                {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                {isGenerating ? <IconLoading className="h-3 w-3 animate-spin" /> : <IconMagic className="h-3 w-3" />}
                 <span className="hidden xs:inline">AI 生成</span>
             </Button>
             <Button 
@@ -394,7 +394,7 @@ export function DayTaskManager({ date }: { date: Date }) {
               variant={isAdding ? "secondary" : "default"}
               className={cn("h-8 gap-1.5 rounded-full text-xs font-bold shadow-sm transition-all", isAdding ? "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300" : "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900")}
             >
-               {isAdding ? "取消" : <><Plus className="h-3.5 w-3.5" /> 添加</>}
+               {isAdding ? "取消" : <><IconPlus className="h-3.5 w-3.5" /> 添加</>}
             </Button>
         </div>
       </div>
@@ -436,7 +436,7 @@ export function DayTaskManager({ date }: { date: Date }) {
           </div>
 
           <Button className="w-full h-9 rounded-xl font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 shadow-md" onClick={handleCreate} disabled={submitting}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submitting && <IconLoading className="mr-2 h-4 w-4 animate-spin" />}
             确认添加
           </Button>
         </div>
@@ -445,12 +445,12 @@ export function DayTaskManager({ date }: { date: Date }) {
       <div className="space-y-3 min-h-[200px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-3">
-            <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
+            <IconLoading className="h-6 w-6 animate-spin text-zinc-300" />
             <span className="text-xs font-medium">加载任务中...</span>
           </div>
         ) : dayTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-zinc-400 border-2 border-dashed border-zinc-100 dark:border-zinc-800/50 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/20 gap-3">
-            <Clock className="h-10 w-10 opacity-10" />
+            <IconTime className="h-10 w-10 opacity-10" />
             <p className="text-sm font-semibold text-zinc-500">该日暂无计划任务</p>
             <p className="text-xs opacity-60">点击上方“添加”或使用“AI 生成”</p>
           </div>
@@ -471,7 +471,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                         ? isOn ? "bg-emerald-50 border-emerald-100 text-primary dark:bg-primary/10 dark:border-primary/20 dark:text-emerald-400" : "bg-rose-50 border-rose-100 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
                         : "bg-zinc-100 border-transparent text-zinc-400 dark:bg-zinc-800"
                   )}>
-                    <Power className="h-4 w-4" />
+                    <IconPower className="h-4 w-4" />
                   </div>
                   <div>
                     <div className="font-bold text-sm text-zinc-800 dark:text-zinc-100">{task.title}</div>
@@ -492,7 +492,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                   onClick={() => handleDelete(task.id)}
                   disabled={deletingId === task.id}
                 >
-                  {deletingId === task.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  {deletingId === task.id ? <IconLoading className="h-3.5 w-3.5 animate-spin" /> : <IconDelete className="h-3.5 w-3.5" />}
                 </Button>
               </div>
             )
@@ -505,7 +505,7 @@ export function DayTaskManager({ date }: { date: Date }) {
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
+                <IconMagic className="h-5 w-5 text-primary" />
                 AI 智能排程建议
             </DialogTitle>
             <DialogDescription>
@@ -633,7 +633,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                 disabled={isSavingAI || selectedPreviewTasks.length === 0}
                 className="bg-primary hover:bg-emerald-700 text-white"
             >
-                {isSavingAI && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSavingAI && <IconLoading className="mr-2 h-4 w-4 animate-spin" />}
                 确认添加 ({selectedPreviewTasks.length})
             </Button>
           </DialogFooter>

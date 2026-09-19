@@ -2,9 +2,9 @@
 
 import { Dropdown } from "antd"
 import type { MenuProps } from "antd"
-import { Copy, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { useMemo, type ReactNode } from "react"
+import { IconCopy, IconDelete } from "@/components/icon";
 
 const ICON_STROKE = 1.75
 
@@ -49,7 +49,7 @@ export function MessageContextMenu({
       {
         key: "copy",
         label: "复制",
-        icon: <Copy className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+        icon: <IconCopy className="h-4 w-4" strokeWidth={ICON_STROKE} />,
         onClick: handleCopy
       }
     ]
@@ -58,7 +58,7 @@ export function MessageContextMenu({
         key: "recall",
         label: "撤回消息",
         danger: true,
-        icon: <Trash2 className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+        icon: <IconDelete className="h-4 w-4" strokeWidth={ICON_STROKE} />,
         onClick: handleRecall
       })
     }

@@ -7,8 +7,8 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Loader2, Zap, Fan, Droplets, Lightbulb, Thermometer } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { IconCheckOne, IconCloseOne, IconFan, IconLight, IconLightning, IconLoading, IconThermometer, IconWater } from "@/components/icon";
 
 export interface DeviceCommand {
   deviceId: number;
@@ -42,15 +42,15 @@ function getDeviceIcon(deviceId: number, animated: boolean = false) {
   
   switch (deviceId) {
     case 5: // 水泵
-      return <Droplets className={`size-8 text-blue-500 ${iconClass}`} />;
+      return <IconWater className={`size-8 text-blue-500 ${iconClass}`} />;
     case 6: // 风扇
-      return <Fan className={`size-8 text-cyan-500 ${iconClass}`} />;
+      return <IconFan className={`size-8 text-cyan-500 ${iconClass}`} />;
     case 7: // 灯光
-      return <Lightbulb className={`size-8 text-yellow-500 ${iconClass}`} />;
+      return <IconLight className={`size-8 text-yellow-500 ${iconClass}`} />;
     case 8: // 加热
-      return <Thermometer className={`size-8 text-red-500 ${iconClass}`} />;
+      return <IconThermometer className={`size-8 text-red-500 ${iconClass}`} />;
     default:
-      return <Zap className={`size-8 text-purple-500 ${iconClass}`} />;
+      return <IconLightning className={`size-8 text-purple-500 ${iconClass}`} />;
   }
 }
 
@@ -107,7 +107,7 @@ function ConfirmationMessage({ result }: { result: DeviceResult }) {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
-          <CheckCircle2 className="size-5" />
+          <IconCheckOne className="size-5" />
           <span className="font-medium">操作成功</span>
         </div>
         
@@ -128,7 +128,7 @@ function ConfirmationMessage({ result }: { result: DeviceResult }) {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-          <XCircle className="size-5" />
+          <IconCloseOne className="size-5" />
           <span className="font-medium">操作失败</span>
         </div>
         
@@ -249,7 +249,7 @@ export function DeviceControlLoading({ deviceName }: { deviceName: string }) {
     >
       <div className="rounded-2xl p-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-2xl">
         <div className="flex items-center gap-3">
-          <Loader2 className="size-6 text-blue-500 animate-spin" />
+          <IconLoading className="size-6 text-blue-500 animate-spin" />
           <div>
             <p className="font-medium text-zinc-900 dark:text-white">
               正在控制 {deviceName}

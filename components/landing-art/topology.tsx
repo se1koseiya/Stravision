@@ -3,8 +3,8 @@
 import { motion, useScroll, useTransform } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight } from "lucide-react"
 import { useRef } from "react"
+import { IconArrowRightUp } from "@/components/icon";
 
 export function Topology() {
   const ref = useRef(null)
@@ -61,7 +61,7 @@ export function Topology() {
             </p>
 
             <Link href="/dashboard" className="px-6 py-3 bg-blue-500 text-white rounded-full text-sm font-semibold flex items-center gap-2 hover:bg-blue-600 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-              开启未来 <ArrowUpRight className="w-4 h-4" />
+              开启未来 <IconArrowRightUp className="w-4 h-4" />
             </Link>
           </div>
 

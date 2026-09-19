@@ -4,7 +4,7 @@ import { useRef, useState } from "react"
 import Image from "next/image"
 import { toPng } from "html-to-image"
 import { toast } from "sonner"
-import { Mic, Zap, Clock, Activity, Download, ChevronRight, Terminal } from "lucide-react"
+import { IconChartLine, IconDownload, IconLightning, IconMicrophone, IconRight, IconTerminal, IconTime } from "@/components/icon";
 
 // --- Visual Primitives ---
 
@@ -90,7 +90,7 @@ export default function VoiceAssistantAnnouncement() {
         disabled={isGenerating}
         className="fixed top-6 right-6 z-50 flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary text-black font-black italic tracking-tighter uppercase transform hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.6)] skew-x-[-10deg]"
       >
-        <Download className="w-5 h-5 skew-x-[10deg]" />
+        <IconDownload className="w-5 h-5 skew-x-[10deg]" />
         <span className="skew-x-[10deg]">{isGenerating ? "RENDERING..." : "GET POSTER"}</span>
       </button>
 
@@ -199,7 +199,7 @@ export default function VoiceAssistantAnnouncement() {
                <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-primary/10 to-transparent pointer-events-none" />
                <div className="flex justify-between items-start mb-4">
                  <div className="p-3 bg-primary/20 rounded-lg border border-primary/30 text-emerald-400">
-                   <Mic className="w-8 h-8" />
+                   <IconMicrophone className="w-8 h-8" />
                  </div>
                  <span className="text-5xl font-black text-white/5 font-mono">01</span>
                </div>
@@ -213,7 +213,7 @@ export default function VoiceAssistantAnnouncement() {
                <div className="bg-zinc-900/60 border border-primary/20 p-5 flex flex-col items-center text-center hover:bg-zinc-900/80 transition-colors group relative overflow-hidden">
                  <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-primary/30 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.2)] group-hover:scale-110 transition-transform">
-                    <Zap className="w-6 h-6 text-emerald-400" />
+                    <IconLightning className="w-6 h-6 text-emerald-400" />
                  </div>
                  <h3 className="font-bold text-white text-sm leading-tight">设备<br/>瞬时控制</h3>
                </div>
@@ -222,17 +222,17 @@ export default function VoiceAssistantAnnouncement() {
                <div className="bg-zinc-900/60 border border-primary/20 p-5 flex flex-col items-center text-center hover:bg-zinc-900/80 transition-colors group relative overflow-hidden">
                  <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 delay-75" />
                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-primary/30 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.2)] group-hover:scale-110 transition-transform">
-                    <Clock className="w-6 h-6 text-emerald-400" />
+                    <IconTime className="w-6 h-6 text-emerald-400" />
                  </div>
                  <h3 className="font-bold text-white text-sm leading-tight">智能<br/>任务编排</h3>
                </div>
             </div>
 
-            {/* Row 3: Terminal (Full Width) */}
+            {/* Row 3: IconTerminal (Full Width) */}
             <div className="bg-black border-l-2 border-primary/50 p-4 font-mono text-[10px] relative overflow-hidden">
                <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
                <div className="flex items-center gap-2 border-b border-primary/10 pb-2 mb-2 opacity-50">
-                 <Terminal className="w-3 h-3" />
+                 <IconTerminal className="w-3 h-3" />
                  <span>AI_REASONING_ENGINE.log</span>
                </div>
                <div className="space-y-1.5">
@@ -255,7 +255,7 @@ export default function VoiceAssistantAnnouncement() {
               <div className="flex flex-col items-center">
                 <p className="text-xs font-bold text-primary tracking-[0.3em] uppercase mb-1">01.16 13:00 AVAILABLE</p>
                 <div className="flex items-center gap-2 text-white font-black italic text-lg">
-                   OPEN <ChevronRight className="w-5 h-5 text-primary" /> AI ASSISTANT
+                   OPEN <IconRight className="w-5 h-5 text-primary" /> AI ASSISTANT
                 </div>
               </div>
            </div>

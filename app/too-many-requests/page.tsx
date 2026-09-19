@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowRight, Check, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Button } from "@/components/ui/button"
+import { IconArrowRight, IconCheck, IconLock } from "@/components/icon";
 
 // --- UTILS ---
 const randomRange = (min: number, max: number) => Math.random() * (max - min) + min
@@ -291,7 +291,7 @@ export default function TooManyRequestsPage() {
                                                     >
                                                         <div className="flex flex-col items-center gap-2">
                                                             <div className="w-12 h-12 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] bg-emerald-950/50">
-                                                                <Lock className="w-5 h-5 text-primary" />
+                                                                <IconLock className="w-5 h-5 text-primary" />
                                                             </div>
                                                             <span className="font-jinbuti text-primary tracking-widest text-sm font-bold shadow-black drop-shadow-md">SIGNAL LOCKED</span>
                                                         </div>
@@ -388,7 +388,7 @@ export default function TooManyRequestsPage() {
                                     <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 backdrop-blur-sm">
                                         <div className="flex items-center gap-3 mb-2">
                                             <div className="p-1 rounded-full bg-primary/20 text-primary">
-                                                <Check className="w-3 h-3" />
+                                                <IconCheck className="w-3 h-3" />
                                             </div>
                                             <span className="font-jinbuti text-sm font-bold text-emerald-400 tracking-wide">通道已恢复</span>
                                         </div>
@@ -402,7 +402,7 @@ export default function TooManyRequestsPage() {
                                         className="w-full h-14 bg-white hover:bg-zinc-200 text-black rounded-xl font-jinbuti font-bold tracking-wide flex items-center justify-between px-6 group"
                                     >
                                         <span>返回继续</span>
-                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                        <IconArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </Button>
                                 </motion.div>
                             ) : (
@@ -413,7 +413,7 @@ export default function TooManyRequestsPage() {
                                     exit={{ opacity: 0 }}
                                     className="p-5 rounded-xl border border-dashed border-red-500/20 bg-red-500/5 flex items-center gap-4 text-red-400/60"
                                 >
-                                    <Lock className="w-5 h-5" />
+                                    <IconLock className="w-5 h-5" />
                                     <span className="font-jinbuti text-xs tracking-wider">调节频率至目标值以解锁</span>
                                 </motion.div>
                             )}

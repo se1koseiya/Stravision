@@ -22,25 +22,8 @@ import {
   Avatar,
 } from "antd"
 import type { ColumnsType } from "antd/es/table"
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  SearchOutlined,
-  CloudUploadOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  FilePdfOutlined,
-  FilePptOutlined,
-  FileWordOutlined,
-  FileMarkdownOutlined,
-  FileZipOutlined,
-  Html5Outlined,
-  FileTextOutlined,
-  PaperClipOutlined,
-  DownloadOutlined,
-} from "@ant-design/icons"
 import { OnlyOfficeEditor } from "@/components/admin/onlyoffice-editor"
+import { IconDelete, IconDownload, IconEdit, IconFilePdf, IconFilePpt, IconFileText, IconFileWord, IconFileZip, IconHtmlFive, IconPaperclip, IconPlus, IconPreviewOpen, IconRefresh, IconSearch, IconUpload } from "@/components/icon";
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -93,14 +76,14 @@ const FILE_TYPE_MAP: Record<
   DocManifestEntry["fileType"],
   { label: string; icon: React.ReactNode }
 > = {
-  md: { label: "Markdown", icon: <FileMarkdownOutlined /> },
-  html: { label: "HTML", icon: <Html5Outlined /> },
-  pdf: { label: "PDF", icon: <FilePdfOutlined /> },
-  ppt: { label: "PPT", icon: <FilePptOutlined /> },
-  pptx: { label: "PPT", icon: <FilePptOutlined /> },
-  doc: { label: "Word", icon: <FileWordOutlined /> },
-  docx: { label: "Word", icon: <FileWordOutlined /> },
-  zip: { label: "ZIP 包", icon: <FileZipOutlined /> },
+  md: { label: "Markdown", icon: <IconFileText /> },
+  html: { label: "HTML", icon: <IconHtmlFive /> },
+  pdf: { label: "PDF", icon: <IconFilePdf /> },
+  ppt: { label: "PPT", icon: <IconFilePpt /> },
+  pptx: { label: "PPT", icon: <IconFilePpt /> },
+  doc: { label: "Word", icon: <IconFileWord /> },
+  docx: { label: "Word", icon: <IconFileWord /> },
+  zip: { label: "ZIP 包", icon: <IconFileZip /> },
 }
 
 const ICON_OPTIONS: Array<{
@@ -808,7 +791,7 @@ export function DocsManager() {
             <Button
               type="text"
               size="small"
-              icon={<EditOutlined />}
+              icon={<IconEdit />}
               onClick={() => handleOpenEdit(record)}
             />
           </Tooltip>
@@ -816,7 +799,7 @@ export function DocsManager() {
             <Button
               type="text"
               size="small"
-              icon={<EyeOutlined />}
+              icon={<IconPreviewOpen />}
               onClick={() => handlePreview(record)}
             />
           </Tooltip>
@@ -833,7 +816,7 @@ export function DocsManager() {
                 type="text"
                 size="small"
                 danger
-                icon={<DeleteOutlined />}
+                icon={<IconDelete />}
               />
             </Tooltip>
           </Popconfirm>
@@ -888,7 +871,7 @@ export function DocsManager() {
         >
           <Input
             placeholder="搜索标题 / 描述 / 标签 / slug..."
-            prefix={<SearchOutlined style={{ color: "#86909c" }} />}
+            prefix={<IconSearch style={{ color: "#86909c" }} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ maxWidth: 320, height: 32, borderRadius: 6 }}
@@ -897,14 +880,14 @@ export function DocsManager() {
         </div>
         <Space size={8}>
           <Button
-            icon={<ReloadOutlined />}
+            icon={<IconRefresh />}
             onClick={fetchDocs}
             size="middle"
           >
             刷新
           </Button>
           <Button
-            icon={<CloudUploadOutlined />}
+            icon={<IconUpload />}
             onClick={handleOpenUpload}
             size="middle"
           >
@@ -912,7 +895,7 @@ export function DocsManager() {
           </Button>
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<IconPlus />}
             onClick={handleOpenCreate}
             size="middle"
           >
@@ -1182,7 +1165,7 @@ export function DocsManager() {
             key="upload"
             type="primary"
             loading={uploading}
-            icon={<CloudUploadOutlined />}
+            icon={<IconUpload />}
             onClick={handleUploadSubmit}
           >
             上传
@@ -1220,7 +1203,7 @@ export function DocsManager() {
               fileList={[]}
               showUploadList={false}
             >
-              <Button icon={<CloudUploadOutlined />} disabled={uploading}>
+              <Button icon={<IconUpload />} disabled={uploading}>
                 选择文件
               </Button>
             </Upload>
@@ -1238,7 +1221,7 @@ export function DocsManager() {
                 }}
               >
                 <Space size={8}>
-                  <FileTextOutlined style={{ color: "#1677ff" }} />
+                  <IconFileText style={{ color: "#1677ff" }} />
                   <Text strong style={{ fontSize: 13 }}>
                     {uploadFile.name}
                   </Text>
@@ -1251,7 +1234,7 @@ export function DocsManager() {
                     type="text"
                     size="small"
                     danger
-                    icon={<DeleteOutlined />}
+                    icon={<IconDelete />}
                     onClick={() => {
                       setUploadFile(null)
                       setUploadProgress(0)
@@ -1429,7 +1412,7 @@ export function DocsManager() {
             ) && (
             <Button
               key="onlyoffice"
-              icon={<EditOutlined />}
+              icon={<IconEdit />}
               onClick={() => handleOpenOnlyOffice(editingDoc)}
             >
               用 OnlyOffice 编辑正文
@@ -1650,7 +1633,7 @@ export function DocsManager() {
               }}
             >
               <Space size={6}>
-                <PaperClipOutlined style={{ color: "#1677ff" }} />
+                <IconPaperclip style={{ color: "#1677ff" }} />
                 <Text strong style={{ fontSize: 13 }}>
                   附件
                 </Text>
@@ -1679,7 +1662,7 @@ export function DocsManager() {
               >
                 <Button
                   size="small"
-                  icon={<CloudUploadOutlined />}
+                  icon={<IconUpload />}
                   disabled={attachmentUploading}
                 >
                   上传附件
@@ -1768,7 +1751,7 @@ export function DocsManager() {
                           <Button
                             type="text"
                             size="small"
-                            icon={<DownloadOutlined />}
+                            icon={<IconDownload />}
                             href={att.fileUrl}
                             target="_blank"
                           />
@@ -1786,7 +1769,7 @@ export function DocsManager() {
                               type="text"
                               size="small"
                               danger
-                              icon={<DeleteOutlined />}
+                              icon={<IconDelete />}
                               loading={attachmentDeletingId === att.id}
                             />
                           </Tooltip>

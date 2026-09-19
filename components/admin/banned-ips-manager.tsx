@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Form, Typography, Card } from "antd"
-import { DeleteOutlined, StopOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { BannedIP } from "@/lib/db/security-service"
+import { IconDelete, IconPause } from "@/components/icon";
 
 export function BannedIPsManager() {
   const [ips, setIps] = useState<BannedIP[]>([])
@@ -118,7 +118,7 @@ export function BannedIPsManager() {
           type="text"
           danger
           size="small"
-          icon={<DeleteOutlined />}
+          icon={<IconDelete />}
           onClick={() => handleUnban(record.ip)}
           style={{ display: 'flex', alignItems: 'center' }}
         >
@@ -141,7 +141,7 @@ export function BannedIPsManager() {
       extra={
         <Button
           danger
-          icon={<StopOutlined />}
+          icon={<IconPause />}
           onClick={() => setModalOpen(true)}
         >
           Ban IP

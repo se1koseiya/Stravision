@@ -3,8 +3,8 @@
 import { motion, useScroll, useTransform, useMotionTemplate, useSpring } from "framer-motion"
 import { useRef } from "react"
 import { ExactDesignHome } from "@/components/ai/exact-design-home"
-import { Lock } from "lucide-react"
 import Image from "next/image"
+import { IconLock } from "@/components/icon";
 
 // --- THE FLOATING CARDS DATA (Light Premium Theme) ---
 const floatCards = [
@@ -52,7 +52,7 @@ function BrowserWindow({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="mx-auto flex items-center justify-center h-8 px-8 min-w-[200px] max-w-md bg-white/60 rounded-lg border border-black/5 shadow-sm">
-            <Lock className="w-3 h-3 text-zinc-400 mr-2" />
+            <IconLock className="w-3 h-3 text-zinc-400 mr-2" />
             <span className="text-[13px] font-medium text-zinc-500 font-mono tracking-tight">
               stravision.site/ai-assistant
             </span>

@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Clock, CheckCircle2, XCircle, Trash2, Bell, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clientScheduler, type ClientScheduledTask } from '@/lib/ai/client-scheduler'
 import { toast } from 'sonner'
+import { IconCalendar, IconCheckOne, IconCloseOne, IconDelete, IconRemind, IconTime } from "@/components/icon";
 
 export function ClientScheduledTasks() {
   const [tasks, setTasks] = useState<ClientScheduledTask[]>([])
@@ -73,13 +73,13 @@ export function ClientScheduledTasks() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock className="h-4 w-4 text-blue-500" />
+        return <IconTime className="h-4 w-4 text-blue-500" />
       case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        return <IconCheckOne className="h-4 w-4 text-green-500" />
       case 'cancelled':
-        return <XCircle className="h-4 w-4 text-muted-foreground" />
+        return <IconCloseOne className="h-4 w-4 text-muted-foreground" />
       default:
-        return <Clock className="h-4 w-4" />
+        return <IconTime className="h-4 w-4" />
     }
   }
 
@@ -105,7 +105,7 @@ export function ClientScheduledTasks() {
           className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4"
         >
           <div className="flex items-start gap-3">
-            <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <IconRemind className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
                 开启通知提醒
@@ -128,7 +128,7 @@ export function ClientScheduledTasks() {
       {pendingTasks.length > 0 && (
         <div>
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+            <IconTime className="h-4 w-4" />
             待执行任务 ({pendingTasks.length})
           </h3>
           <div className="space-y-2">
@@ -154,7 +154,7 @@ export function ClientScheduledTasks() {
                       </p>
                       <div className="flex items-center gap-3 text-xs">
                         <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
-                          <Calendar className="h-3 w-3" />
+                          <IconCalendar className="h-3 w-3" />
                           {formatTimeRemaining(task.scheduledTime)}
                         </span>
                         <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold">
@@ -167,7 +167,7 @@ export function ClientScheduledTasks() {
                       className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
                       title="取消任务"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <IconDelete className="h-4 w-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -181,7 +181,7 @@ export function ClientScheduledTasks() {
       {completedTasks.length > 0 && (
         <div>
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
+            <IconCheckOne className="h-4 w-4" />
             历史记录 ({completedTasks.length})
           </h3>
           <div className="space-y-2">
@@ -215,7 +215,7 @@ export function ClientScheduledTasks() {
       {/* 空状态 */}
       {tasks.length === 0 && (
         <div className="text-center p-8 text-zinc-500 dark:text-zinc-400">
-          <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <IconCalendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm">暂无定时任务</p>
           <p className="text-xs mt-1">
             对 AI 说"5分钟后提醒我..."即可创建定时任务

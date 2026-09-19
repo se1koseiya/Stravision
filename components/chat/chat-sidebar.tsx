@@ -2,20 +2,11 @@
 
 import { memo, useMemo, useState } from "react"
 import { Avatar, Badge, Button, Input, Tooltip } from "antd"
-import {
-  MessageCircle,
-  UserRound,
-  UserPlus,
-  Network,
-  LayoutGrid,
-  Search,
-  Plus,
-  Check
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ChatFriendRequest, ChatGroup, ChatMessage, ChatOrganization, ChatUser } from "@/lib/chat/chat-types"
 import { formatChatTime } from "@/lib/chat/chat-types"
 import { OrganizationTree } from "./organization-tree"
+import { IconAddUser, IconCheck, IconComments, IconGridFour, IconNetworkTree, IconPlus, IconSearch, IconUser } from "@/components/icon";
 
 interface ChatSidebarProps {
   searchQuery: string
@@ -131,7 +122,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
             badge={totalUnread > 0 ? totalUnread : undefined}
             label="消息"
           >
-            <MessageCircle size={22} strokeWidth={1.75} />
+            <IconComments size={22} strokeWidth={1.75} />
           </NavIconButton>
 
           <NavIconButton
@@ -142,14 +133,14 @@ function ChatSidebarInner(props: ChatSidebarProps) {
             }}
             label="通讯录"
           >
-            <UserRound size={22} strokeWidth={1.75} />
+            <IconUser size={22} strokeWidth={1.75} />
           </NavIconButton>
         </div>
 
         {/* 底部：应用/更多 */}
         <div className="mt-auto">
           <NavIconButton onClick={() => {}} label="应用">
-            <LayoutGrid size={22} strokeWidth={1.75} />
+            <IconGridFour size={22} strokeWidth={1.75} />
           </NavIconButton>
         </div>
       </div>
@@ -161,7 +152,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
           {/* 搜索框 */}
           <div className="shrink-0 px-3 pt-3 pb-2">
             <Input
-              prefix={<Search size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+              prefix={<IconSearch size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
               placeholder="搜索"
               size="middle"
               value={searchQuery}
@@ -190,7 +181,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
             {/* 搜索框 */}
             <div className="shrink-0 px-3 pt-3 pb-2">
               <Input
-                prefix={<Search size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+                prefix={<IconSearch size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
                 placeholder="搜索"
                 size="middle"
                 value={searchQuery}
@@ -208,7 +199,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   onSelectOrg?.(null)
                 }}
                 color="#1677ff"
-                icon={<UserRound size={18} strokeWidth={1.75} />}
+                icon={<IconUser size={18} strokeWidth={1.75} />}
                 label="联系人"
               />
               <SubMenuItem
@@ -218,7 +209,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   onSelectOrg?.(null)
                 }}
                 color="#52c41a"
-                icon={<UserPlus size={18} strokeWidth={1.75} />}
+                icon={<IconAddUser size={18} strokeWidth={1.75} />}
                 label="新朋友"
                 badge={requests.length || undefined}
               />
@@ -229,7 +220,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   onSelectOrg?.(null)
                 }}
                 color="#fa8c16"
-                icon={<MessageCircle size={18} strokeWidth={1.75} />}
+                icon={<IconComments size={18} strokeWidth={1.75} />}
                 label="群聊"
               />
               <SubMenuItem
@@ -239,7 +230,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   onSelectContact(null)
                 }}
                 color="#2f54eb"
-                icon={<Network size={18} strokeWidth={1.75} />}
+                icon={<IconNetworkTree size={18} strokeWidth={1.75} />}
                 label="组织架构"
               />
             </div>
@@ -611,7 +602,7 @@ function RequestsList({
             size="small"
             shape="circle"
             className="!bg-[#52c41a] !shadow-none"
-            icon={<Check size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconCheck size={14} strokeWidth={ICON_STROKE} />}
             onClick={() => onRespond(r.id, "accept")}
           />
         </div>
@@ -637,7 +628,7 @@ function GroupsList({
         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors"
       >
         <span className="size-9 rounded-full bg-[#f2f3f5] dark:bg-white/[0.06] flex items-center justify-center text-[rgba(0,0,0,0.45)]">
-          <Plus size={18} strokeWidth={ICON_STROKE} />
+          <IconPlus size={18} strokeWidth={ICON_STROKE} />
         </span>
         <span className="text-[14px] text-[rgba(0,0,0,0.7)] dark:text-slate-300">发起群聊</span>
       </button>

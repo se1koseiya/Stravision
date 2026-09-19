@@ -6,12 +6,12 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Card, Switch, Typography, Row, Col, Space, theme } from "antd"
-import { Loader2, Droplets, Fan, Zap, Lightbulb } from "lucide-react"
 import { BerryXCard } from "@/components/ui/berry-xcard"
 import { buildCommands } from "@/lib/a2ui/berry-protocol"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { DEVICE_IDS } from "@/lib/constants"
 import type { A2UICommand_v0_9, ActionPayload } from "@ant-design/x-card"
+import { IconFan, IconLight, IconLightning, IconLoading, IconWater } from "@/components/icon";
 
 const { Text, Title } = Typography
 
@@ -28,7 +28,7 @@ const DEVICES: DeviceMeta[] = [
   {
     id: DEVICE_IDS.PUMP,
     name: "灌溉水泵",
-    icon: Droplets,
+    icon: IconWater,
     color: "#3b82f6",
     relayKey: "relay5",
     action: "toggle-device-pump",
@@ -36,7 +36,7 @@ const DEVICES: DeviceMeta[] = [
   {
     id: DEVICE_IDS.FAN,
     name: "通风风扇",
-    icon: Fan,
+    icon: IconFan,
     color: "#06b6d4",
     relayKey: "relay6",
     action: "toggle-device-fan",
@@ -44,7 +44,7 @@ const DEVICES: DeviceMeta[] = [
   {
     id: DEVICE_IDS.RGB_LIGHT,
     name: "补光灯",
-    icon: Zap,
+    icon: IconLightning,
     color: "#a855f7",
     relayKey: "relay7",
     action: "toggle-device-grow-light",
@@ -52,7 +52,7 @@ const DEVICES: DeviceMeta[] = [
   {
     id: DEVICE_IDS.WHITE_LIGHT,
     name: "白光照明",
-    icon: Lightbulb,
+    icon: IconLight,
     color: "#f59e0b",
     relayKey: "relay8",
     action: "toggle-device-white-light",
@@ -169,7 +169,7 @@ export function ControlBentoGrid() {
               }}
             >
               {isLoading ? (
-                <Loader2
+                <IconLoading
                   size={16}
                   strokeWidth={2}
                   style={{ color: BERRY_THEME.primary }}
@@ -201,7 +201,7 @@ export function ControlBentoGrid() {
                     justifyContent: "center",
                   }}
                 >
-                  <Loader2
+                  <IconLoading
                     size={10}
                     style={{ color: BERRY_THEME.primary }}
                     className="animate-spin"

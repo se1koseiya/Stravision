@@ -1,30 +1,13 @@
 "use client"
 
 import type { ToolUIPart } from "ai"
-import {
-  CheckCircle2,
-  ChevronDown,
-  CircleDashed,
-  Wrench,
-  XCircle,
-  Clock,
-  TerminalSquare,
-  Zap,
-  Check,
-  Globe,
-  MapPin,
-  CloudLightning,
-  Search,
-  Fingerprint,
-  Cpu,
-  Database
-} from "lucide-react"
 import { ComponentProps, ReactNode, useState, useEffect } from "react"
 import { isValidElement } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { CodeBlock } from "@/components/ui/code-block"
+import { IconCheck, IconCheckOne, IconCloseOne, IconCpu, IconDatabaseNetwork, IconDown, IconFingerprint, IconGlobe, IconLightning, IconLocalPin, IconRoundCaliper, IconSearch, IconSunny, IconTerminal, IconTime, IconTool } from "@/components/icon";
 
 export type ToolProps = ComponentProps<typeof Collapsible>
 
@@ -49,14 +32,14 @@ export interface ToolHeaderProps {
 // Icon mapping based on tool meaning
 const getToolSpecificIcon = (title: string = "") => {
   const t = title.toLowerCase()
-  if (t.includes('weather') || t.includes('天气')) return <CloudLightning className="size-4" />
-  if (t.includes('route') || t.includes('路线') || t.includes('map') || t.includes('高德')) return <MapPin className="size-4" />
-  if (t.includes('search') || t.includes('搜索') || t.includes('brave') || t.includes('exa')) return <Search className="size-4" />
-  if (t.includes('scrape') || t.includes('抓取') || t.includes('web') || t.includes('网页')) return <Globe className="size-4" />
-  if (t.includes('device') || t.includes('设备') || t.includes('status')) return <Cpu className="size-4" />
-  if (t.includes('spectrum') || t.includes('光谱') || t.includes('channel')) return <Zap className="size-4" />
-  if (t.includes('data') || t.includes('sql') || t.includes('db') || t.includes('数据')) return <Database className="size-4" />
-  return <Wrench className="size-4" />
+  if (t.includes('weather') || t.includes('天气')) return <IconSunny className="size-4" />
+  if (t.includes('route') || t.includes('路线') || t.includes('map') || t.includes('高德')) return <IconLocalPin className="size-4" />
+  if (t.includes('search') || t.includes('搜索') || t.includes('brave') || t.includes('exa')) return <IconSearch className="size-4" />
+  if (t.includes('scrape') || t.includes('抓取') || t.includes('web') || t.includes('网页')) return <IconGlobe className="size-4" />
+  if (t.includes('device') || t.includes('设备') || t.includes('status')) return <IconCpu className="size-4" />
+  if (t.includes('spectrum') || t.includes('光谱') || t.includes('channel')) return <IconLightning className="size-4" />
+  if (t.includes('data') || t.includes('sql') || t.includes('db') || t.includes('数据')) return <IconDatabaseNetwork className="size-4" />
+  return <IconTool className="size-4" />
 }
 
 export const ToolHeader = ({ className, title, type, state, executionTime, ...props }: ToolHeaderProps) => {
@@ -107,7 +90,7 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
               <>
                 <span className="text-zinc-300 dark:text-zinc-700 mx-1">•</span>
                 <span className="flex items-center text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                  <Clock className="size-3 mr-1" />
+                  <IconTime className="size-3 mr-1" />
                   {executionTime}ms
                 </span>
               </>
@@ -120,15 +103,15 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
         {/* Status Indicator Icon */}
         <div className="mr-2">
            {isCompleted ? (
-             <CheckCircle2 className="size-4 text-primary" />
+             <IconCheckOne className="size-4 text-primary" />
            ) : isError ? (
-             <XCircle className="size-4 text-red-500" />
+             <IconCloseOne className="size-4 text-red-500" />
            ) : (
-             <CircleDashed className="size-4 text-blue-500 animate-spin" />
+             <IconRoundCaliper className="size-4 text-blue-500 animate-spin" />
            )}
         </div>
         <div className="flex size-6 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 group-data-[state=open]:rotate-180 transition-transform duration-300">
-           <ChevronDown className="size-3.5" />
+           <IconDown className="size-3.5" />
         </div>
       </div>
     </CollapsibleTrigger>
@@ -160,7 +143,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2.5", className)} {...props}>
     <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-      <Fingerprint className="size-3.5" />
+      <IconFingerprint className="size-3.5" />
       <h4 className="font-semibold text-xs uppercase tracking-wider">
         Input Parameters
       </h4>
@@ -200,7 +183,7 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
   return (
     <div className={cn("space-y-2.5", className)} {...props}>
       <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-        <TerminalSquare className="size-3.5" />
+        <IconTerminal className="size-3.5" />
         <h4 className="font-semibold text-xs uppercase tracking-wider">
           {errorText ? "Error Trace" : "Execution Result"}
         </h4>

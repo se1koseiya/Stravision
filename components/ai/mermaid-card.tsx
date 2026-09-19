@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from "react"
-import { AlertTriangle, Maximize2, Download, PenLine } from "lucide-react"
+import { IconCaution, IconDownload, IconEdit, IconFullScreen } from "@/components/icon";
 
 /**
  * MermaidCard — 渲染 AI 输出的 ```mermaid 代码块
@@ -117,7 +117,7 @@ export function MermaidCard({ code, darkMode, className }: MermaidCardProps) {
     return (
       <div className="my-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-3">
         <div className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 mb-1.5">
-          <AlertTriangle size={13} strokeWidth={1.75} />
+          <IconCaution size={13} strokeWidth={1.75} />
           <span>示意图语法有误，已显示原始代码</span>
         </div>
         <pre className="text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 overflow-x-auto whitespace-pre-wrap">{code}</pre>
@@ -145,7 +145,7 @@ export function MermaidCard({ code, darkMode, className }: MermaidCardProps) {
             title={look === "handDrawn" ? "当前：手绘风，点击切换为标准风格" : "当前：标准风格，点击切换为手绘风"}
             aria-label="切换示意图风格"
           >
-            <PenLine size={13} strokeWidth={1.75} />
+            <IconEdit size={13} strokeWidth={1.75} />
           </button>
           <button
             type="button"
@@ -153,7 +153,7 @@ export function MermaidCard({ code, darkMode, className }: MermaidCardProps) {
             className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             title="放大查看"
           >
-            <Maximize2 size={13} strokeWidth={1.75} />
+            <IconFullScreen size={13} strokeWidth={1.75} />
           </button>
           <button
             type="button"
@@ -162,7 +162,7 @@ export function MermaidCard({ code, darkMode, className }: MermaidCardProps) {
             className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors disabled:opacity-40"
             title="下载 SVG"
           >
-            <Download size={13} strokeWidth={1.75} />
+            <IconDownload size={13} strokeWidth={1.75} />
           </button>
         </div>
       </div>

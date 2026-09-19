@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Modal, Form, Input, Select, InputNumber, Segmented, Radio, message, theme } from "antd"
-import { ClockCircleOutlined, ThunderboltOutlined, BellOutlined, BulbOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
+import { IconLight, IconRemind, IconThunderbolt, IconTime } from "@/components/icon";
 
 const { TextArea } = Input
 
@@ -46,10 +46,10 @@ const DEVICE_OPTIONS = [
 ]
 
 const ACTION_OPTIONS = [
-  { label: "设备开关", value: "toggle_relay", icon: <ThunderboltOutlined /> },
-  { label: "智能分析", value: "agent_analysis", icon: <ClockCircleOutlined /> },
-  { label: "定时提醒", value: "user_reminder", icon: <BellOutlined /> },
-  { label: "调节灯光", value: "set_led", icon: <BulbOutlined /> },
+  { label: "设备开关", value: "toggle_relay", icon: <IconThunderbolt /> },
+  { label: "智能分析", value: "agent_analysis", icon: <IconTime /> },
+  { label: "定时提醒", value: "user_reminder", icon: <IconRemind /> },
+  { label: "调节灯光", value: "set_led", icon: <IconLight /> },
 ]
 
 const CRON_PRESETS = [

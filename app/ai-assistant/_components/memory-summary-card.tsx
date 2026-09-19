@@ -3,20 +3,9 @@
 import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, Tag, Space, Empty, theme as antdTheme } from "antd"
-import {
-  CompressOutlined,
-  ClockCircleOutlined,
-  AimOutlined,
-  CheckCircleOutlined,
-  ToolOutlined,
-  BulbOutlined,
-  ScheduleOutlined,
-  ThunderboltOutlined,
-  DownOutlined,
-  UpOutlined,
-} from "@ant-design/icons"
 import { cn } from "@/lib/utils"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconAiming, IconCheckOne, IconCompression, IconDown, IconLight, IconSchedule, IconThunderbolt, IconTime, IconTool, IconUp } from "@/components/icon";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -160,7 +149,7 @@ export function MemorySummaryCard({
         style={{
           background: BERRY_THEME.gradients.cardHero(BERRY_THEME.primary),
           borderColor: BERRY_THEME.primaryBorder,
-          borderRadius: 12,
+          borderRadius: 10,
         }}
         bodyStyle={{ padding: 14 }}
       >
@@ -177,7 +166,7 @@ export function MemorySummaryCard({
                 color: token.colorPrimary,
               }}
             >
-              <CompressOutlined style={{ fontSize: 14 }} />
+              <IconCompression style={{ fontSize: 14 }} />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
@@ -190,7 +179,7 @@ export function MemorySummaryCard({
               </div>
               {memory.timeframe && (
                 <div className="flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                  <ClockCircleOutlined style={{ fontSize: 10 }} />
+                  <IconTime style={{ fontSize: 10 }} />
                   <span>{memory.timeframe}</span>
                 </div>
               )}
@@ -201,7 +190,7 @@ export function MemorySummaryCard({
             className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             aria-label={expanded ? "收起" : "展开"}
           >
-            {expanded ? <UpOutlined style={{ fontSize: 11 }} /> : <DownOutlined style={{ fontSize: 11 }} />}
+            {expanded ? <IconUp style={{ fontSize: 11 }} /> : <IconDown style={{ fontSize: 11 }} />}
           </button>
         </div>
 
@@ -224,7 +213,7 @@ export function MemorySummaryCard({
                 }}
               >
                 <Space size={6} align="center" className="mb-1">
-                  <AimOutlined style={{ fontSize: 12, color: token.colorPrimary }} />
+                  <IconAiming style={{ fontSize: 12, color: token.colorPrimary }} />
                   <span className="text-xs font-semibold" style={{ color: token.colorPrimary }}>
                     用户意图
                   </span>
@@ -242,25 +231,25 @@ export function MemorySummaryCard({
             ) : (
               <>
                 <SummarySection
-                  icon={<CheckCircleOutlined />}
+                  icon={<IconCheckOne />}
                   title="核心事实"
                   items={memory.key_facts}
                   color={token.colorInfo}
                 />
                 <SummarySection
-                  icon={<ToolOutlined />}
+                  icon={<IconTool />}
                   title="已执行行动"
                   items={memory.actions_taken}
                   color={token.colorSuccess}
                 />
                 <SummarySection
-                  icon={<BulbOutlined />}
+                  icon={<IconLight />}
                   title="关键决策"
                   items={memory.decisions}
                   color="#a855f7"
                 />
                 <SummarySection
-                  icon={<ScheduleOutlined />}
+                  icon={<IconSchedule />}
                   title="待办事项"
                   items={memory.pending_tasks}
                   color={token.colorWarning}
@@ -278,7 +267,7 @@ export function MemorySummaryCard({
                 }}
               >
                 <Space size={6} align="center" className="mb-1">
-                  <ThunderboltOutlined style={{ fontSize: 11, color: token.colorPrimary }} />
+                  <IconThunderbolt style={{ fontSize: 11, color: token.colorPrimary }} />
                   <span className="text-[11px] font-semibold">当前状态</span>
                 </Space>
                 <div>{memory.current_state}</div>

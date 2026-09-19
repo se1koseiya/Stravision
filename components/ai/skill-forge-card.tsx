@@ -9,10 +9,7 @@
  */
 
 import React, { useState } from "react"
-import {
-  Sparkles, CheckCircle2, XCircle, AlertTriangle, Send,
-  Wrench, BookOpenCheck, Loader2, ChevronDown, ChevronUp
-} from "lucide-react"
+import { IconBookOne, IconCaution, IconCheckOne, IconCloseOne, IconDown, IconLoading, IconMagic, IconSend, IconTool, IconUp } from "@/components/icon";
 
 // ---------- 卡片数据（AI 在标签内输出的紧凑 JSON） ----------
 
@@ -55,20 +52,20 @@ function StatusBadge({ status, published }: { status: SkillForgeCardData["status
   if (status === "success") {
     return (
       <span className="flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-        <CheckCircle2 size={11} /> {published ? "已发布 · 全域可用" : "通过"}
+        <IconCheckOne size={11} /> {published ? "已发布 · 全域可用" : "通过"}
       </span>
     )
   }
   if (status === "draft") {
     return (
       <span className="flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-        <AlertTriangle size={11} /> 草稿 · 待修订
+        <IconCaution size={11} /> 草稿 · 待修订
       </span>
     )
   }
   return (
     <span className="flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-950/60 px-2 py-0.5 text-[11px] font-semibold text-red-600 dark:text-red-400">
-      <XCircle size={11} /> 锻造失败
+      <IconCloseOne size={11} /> 锻造失败
     </span>
   )
 }
@@ -118,7 +115,7 @@ export function SkillForgeCard({
       {/* ===== 头部 ===== */}
       <div className="flex items-center gap-3 border-b border-zinc-100 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 px-4 py-3 dark:border-zinc-800 dark:from-blue-950/40 dark:to-indigo-950/40">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-lg text-white shadow-sm">
-          {data.icon && data.status !== "failed" ? data.icon : <Sparkles size={18} />}
+          {data.icon && data.status !== "failed" ? data.icon : <IconMagic size={18} />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -151,7 +148,7 @@ export function SkillForgeCard({
       {(data.subject || (data.capabilities && data.capabilities.length > 0)) && (
         <div className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
           <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-            <BookOpenCheck size={11} /> 文档分析{data.subject ? `：${data.subject}` : ""}
+            <IconBookOne size={11} /> 文档分析{data.subject ? `：${data.subject}` : ""}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {data.capabilities?.map((c, i) => (
@@ -183,9 +180,9 @@ export function SkillForgeCard({
             <ScoreRing score={data.score} />
             <div className="flex-1">
               <div className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-800 dark:text-zinc-200">
-                <Wrench size={12} className="text-zinc-400" />
+                <IconTool size={12} className="text-zinc-400" />
                 自测复用{data.status === "success" ? "通过" : "未达标"}
-                {hasTests && (showTests ? <ChevronUp size={12} className="text-zinc-400" /> : <ChevronDown size={12} className="text-zinc-400" />)}
+                {hasTests && (showTests ? <IconUp size={12} className="text-zinc-400" /> : <IconDown size={12} className="text-zinc-400" />)}
               </div>
               <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
                 关键词路由 {matchPassed}/{data.matchTests?.length ?? 0} 通过 · AI 彩排 {rehearsalPassed}/{data.rehearsalTests?.length ?? 0} 忠实
@@ -199,8 +196,8 @@ export function SkillForgeCard({
                 <div key={`m${i}`} className="flex items-center justify-between rounded-lg bg-zinc-50 px-2.5 py-1.5 text-[11px] dark:bg-zinc-800/60">
                   <span className="text-zinc-600 dark:text-zinc-300">路由测试：&ldquo;{t.q}&rdquo;</span>
                   {t.ok
-                    ? <CheckCircle2 size={13} className="shrink-0 text-emerald-500" />
-                    : <XCircle size={13} className="shrink-0 text-red-500" />}
+                    ? <IconCheckOne size={13} className="shrink-0 text-emerald-500" />
+                    : <IconCloseOne size={13} className="shrink-0 text-red-500" />}
                 </div>
               ))}
               {data.rehearsalTests?.map((t, i) => (
@@ -208,8 +205,8 @@ export function SkillForgeCard({
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-zinc-600 dark:text-zinc-300">彩排：{t.q}</span>
                     {t.ok
-                      ? <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-emerald-500" />
-                      : <XCircle size={13} className="mt-0.5 shrink-0 text-red-500" />}
+                      ? <IconCheckOne size={13} className="mt-0.5 shrink-0 text-emerald-500" />
+                      : <IconCloseOne size={13} className="mt-0.5 shrink-0 text-red-500" />}
                   </div>
                   {t.why && <div className="mt-0.5 text-zinc-400 dark:text-zinc-500">{t.why}</div>}
                 </div>
@@ -252,7 +249,7 @@ export function SkillForgeCard({
                 disabled={!refineText.trim()}
                 className="flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                <Send size={12} /> 提交
+                <IconSend size={12} /> 提交
               </button>
             </div>
           ) : (
@@ -260,7 +257,7 @@ export function SkillForgeCard({
               onClick={() => setShowRefine(true)}
               className="flex items-center gap-1 text-[11px] text-zinc-400 transition-colors hover:text-blue-500"
             >
-              <Wrench size={11} /> 结果不满意？反馈让 AI 修订
+              <IconTool size={11} /> 结果不满意？反馈让 AI 修订
             </button>
           )}
         </div>
@@ -274,7 +271,7 @@ export function SkillForgeCardSkeleton({ stage }: { stage?: string }) {
   return (
     <div className="my-3 rounded-xl border border-[#1677ff30] bg-white p-4 dark:bg-zinc-900">
       <div className="flex items-center gap-2">
-        <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+        <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
         <span className="text-[13px] text-zinc-500 dark:text-zinc-400">
           {stage || "正在生成技能锻造报告卡片…"}
         </span>

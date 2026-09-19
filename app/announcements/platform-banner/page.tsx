@@ -4,7 +4,7 @@ import { useRef, useState } from "react"
 import Image from "next/image"
 import { toPng } from "html-to-image"
 import { toast } from "sonner"
-import { Download, Zap, TrendingUp, Layers } from "lucide-react"
+import { IconDownload, IconLayers, IconLightning, IconTrendingUp } from "@/components/icon";
 
 export default function PlatformBannerPage() {
   const bannerRef = useRef<HTMLDivElement>(null)
@@ -48,7 +48,7 @@ export default function PlatformBannerPage() {
         disabled={isGenerating}
         className="mb-12 flex items-center gap-2 px-8 py-3 bg-white text-black font-black italic uppercase tracking-wider hover:bg-emerald-400 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)] skew-x-[-10deg]"
       >
-        <Download className="w-5 h-5 skew-x-[10deg]" />
+        <IconDownload className="w-5 h-5 skew-x-[10deg]" />
         <span className="skew-x-[10deg]">{isGenerating ? "RENDERING..." : "EXPORT BANNER"}</span>
       </button>
 
@@ -153,7 +153,7 @@ export default function PlatformBannerPage() {
              {/* 3. Floating HUD Card (Foreground) */}
              <div className="absolute bottom-12 right-12 bg-black/80 backdrop-blur-xl border-l-4 border-primary p-4 z-30 shadow-2xl max-w-[200px]">
                <div className="flex items-center gap-2 mb-2">
-                 <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                 <IconLightning className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                  <span className="text-white font-bold text-sm italic">ENERGY SAVING</span>
                </div>
                <div className="text-3xl font-black text-white leading-none">

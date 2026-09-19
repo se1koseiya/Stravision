@@ -3,34 +3,23 @@
 import { useState, useEffect, useMemo } from "react"
 import { Input, Card, Tag, Button, Select, Typography, Spin } from "antd"
 import { toast } from "sonner"
-import {
-  SearchOutlined,
-  FilterOutlined,
-  FireOutlined,
-  GlobalOutlined,
-  ThunderboltOutlined,
-  CloudServerOutlined,
-  CheckCircleOutlined,
-  StarOutlined,
-  EyeOutlined,
-  RobotOutlined,
-} from "@ant-design/icons"
 import type { AIProvider, ProviderModel } from "./ai-providers-manager"
+import { IconCheckOne, IconCloudStorage, IconEarth, IconFilter, IconFire, IconPreviewOpen, IconRobot, IconSearch, IconStar, IconThunderbolt } from "@/components/icon";
 
 const { Text } = Typography
 
 // ====== 图标映射 ======
 
 const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
-  qwen: <FireOutlined />,
-  deepseek: <ThunderboltOutlined />,
-  openai: <CloudServerOutlined />,
-  xiaomi: <ThunderboltOutlined />,
-  sparkles: <FireOutlined />,
+  qwen: <IconFire />,
+  deepseek: <IconThunderbolt />,
+  openai: <IconCloudStorage />,
+  xiaomi: <IconThunderbolt />,
+  sparkles: <IconFire />,
 }
 
 function getModelIcon(icon?: string) {
-  return MODEL_ICON_MAP[icon || ""] || <CheckCircleOutlined />
+  return MODEL_ICON_MAP[icon || ""] || <IconCheckOne />
 }
 
 // ====== 模型卡片 ======
@@ -85,7 +74,7 @@ function ModelCard({
                 {model.name}
               </Text>
               {model.enabled ? (
-                <CheckCircleOutlined style={{ color: "#52C41A", fontSize: 14 }} />
+                <IconCheckOne style={{ color: "#52C41A", fontSize: 14 }} />
               ) : (
                 <div style={{
                   width: 14,
@@ -101,7 +90,7 @@ function ModelCard({
 
         {isDefaultProvider && (
           <Tag color="gold" style={{ fontSize: 10 }}>
-            <StarOutlined /> 默认源
+            <IconStar /> 默认源
           </Tag>
         )}
       </div>
@@ -117,12 +106,12 @@ function ModelCard({
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {model.supportsVision && (
           <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>
-            <EyeOutlined /> 视觉
+            <IconPreviewOpen /> 视觉
           </Tag>
         )}
         {model.supportsReasoning && (
           <Tag color="purple" style={{ fontSize: 10, margin: 0 }}>
-            <RobotOutlined /> 推理
+            <IconRobot /> 推理
           </Tag>
         )}
         <Tag style={{ fontSize: 10, margin: 0 }}>{providerName}</Tag>
@@ -245,11 +234,11 @@ export function ModelMarketplace() {
       {/* 统计卡片 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         {[
-          { label: "总模型", value: stats.total, icon: <RobotOutlined />, color: "#8F959E" },
-          { label: "已启用", value: stats.enabled, icon: <CheckCircleOutlined />, color: "#8F959E" },
-          { label: "视觉模型", value: stats.vision, icon: <EyeOutlined />, color: "#8F959E" },
-          { label: "推理模型", value: stats.reasoning, icon: <RobotOutlined />, color: "#8F959E" },
-          { label: "提供商", value: stats.providers, icon: <GlobalOutlined />, color: "#8F959E" },
+          { label: "总模型", value: stats.total, icon: <IconRobot />, color: "#8F959E" },
+          { label: "已启用", value: stats.enabled, icon: <IconCheckOne />, color: "#8F959E" },
+          { label: "视觉模型", value: stats.vision, icon: <IconPreviewOpen />, color: "#8F959E" },
+          { label: "推理模型", value: stats.reasoning, icon: <IconRobot />, color: "#8F959E" },
+          { label: "提供商", value: stats.providers, icon: <IconEarth />, color: "#8F959E" },
         ].map(s => (
           <Card key={s.label} style={{ padding: "12px 16px", border: "1px solid #EDEEEF" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -268,7 +257,7 @@ export function ModelMarketplace() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Input
             placeholder="搜索模型名称、ID、描述..."
-            prefix={<SearchOutlined style={{ color: "#8F959E" }} />}
+            prefix={<IconSearch style={{ color: "#8F959E" }} />}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ flex: 1, minWidth: 200 }}
@@ -333,7 +322,7 @@ export function ModelMarketplace() {
           padding: 64,
           textAlign: "center",
         }}>
-          <FilterOutlined style={{ fontSize: 40, color: "#EDEEEF", marginBottom: 16 }} />
+          <IconFilter style={{ fontSize: 40, color: "#EDEEEF", marginBottom: 16 }} />
           <p style={{ fontSize: 14, color: "#8F959E" }}>没有匹配的模型</p>
           <Button
             type="text"

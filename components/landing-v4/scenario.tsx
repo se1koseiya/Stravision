@@ -4,20 +4,9 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Activity,
-  ArrowRight,
-  BookMarked,
-  History,
-  Layers,
-  NotebookPen,
-  Radio,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-} from "lucide-react";
 import { CONTAINER, EYEBROW, L, L_MIX, PANEL_TITLE, SECTION_TITLE, SHADOW } from "./shared";
 import { DemoChatSkeleton } from "./skeletons";
+import { IconArrowRight, IconBookmark, IconChartLine, IconHistory, IconLayers, IconNotebook, IconRadio, IconRefresh, IconSearch, IconShield } from "@/components/icon";
 
 /* ------------------------------------------------------------
    场景区 —— 对齐 Loomy `BusinessNeedsSection`
@@ -46,7 +35,7 @@ const DeviceDemo = dynamic(
   { ssr: false, loading: () => <DemoChatSkeleton /> }
 );
 
-type Step = { icon: typeof Search; label: string; note: string };
+type Step = { icon: typeof IconSearch; label: string; note: string };
 
 type Scene = {
   key: string;
@@ -76,9 +65,9 @@ const SCENES: Scene[] = [
       </>
     ),
     steps: [
-      { icon: Search, label: "拆解子查询", note: "把一个含糊的问题拆成几个能检索的方向" },
-      { icon: Layers, label: "多轮检索补缺", note: "先并行检索，再做缺口分析补搜，直到没有盲区" },
-      { icon: BookMarked, label: "沉淀成知识条目", note: "融合成带引用的条目写进知识库，下次直接召回" },
+      { icon: IconSearch, label: "拆解子查询", note: "把一个含糊的问题拆成几个能检索的方向" },
+      { icon: IconLayers, label: "多轮检索补缺", note: "先并行检索，再做缺口分析补搜，直到没有盲区" },
+      { icon: IconBookmark, label: "沉淀成知识条目", note: "融合成带引用的条目写进知识库，下次直接召回" },
     ],
     preview: <DeepResearchDemo />,
     previewClass: "w-full",
@@ -97,9 +86,9 @@ const SCENES: Scene[] = [
       </>
     ),
     steps: [
-      { icon: NotebookPen, label: "提一句就记住", note: "棚号、品种、习惯，说一次就写进你的记忆档案" },
-      { icon: RefreshCw, label: "说错了能改", note: "同一项直接覆盖旧值，不会留下两套说法" },
-      { icon: History, label: "换台设备也认得", note: "新开对话、别的终端打开，照样知道你是谁" },
+      { icon: IconNotebook, label: "提一句就记住", note: "棚号、品种、习惯，说一次就写进你的记忆档案" },
+      { icon: IconRefresh, label: "说错了能改", note: "同一项直接覆盖旧值，不会留下两套说法" },
+      { icon: IconHistory, label: "换台设备也认得", note: "新开对话、别的终端打开，照样知道你是谁" },
     ],
     preview: <MemoryDemo />,
     previewClass: "w-full",
@@ -118,9 +107,9 @@ const SCENES: Scene[] = [
       </>
     ),
     steps: [
-      { icon: Activity, label: "先看清现场", note: "温湿度、CO₂ 实时读一遍，再决定动不动设备" },
-      { icon: Radio, label: "认准是哪台设备", note: "一堆继电器通道里精确定位，不误伤别的棚" },
-      { icon: ShieldCheck, label: "拿到回执才算数", note: "指令下发后等设备确认状态，动作全程留痕" },
+      { icon: IconChartLine, label: "先看清现场", note: "温湿度、CO₂ 实时读一遍，再决定动不动设备" },
+      { icon: IconRadio, label: "认准是哪台设备", note: "一堆继电器通道里精确定位，不误伤别的棚" },
+      { icon: IconShield, label: "拿到回执才算数", note: "指令下发后等设备确认状态，动作全程留痕" },
     ],
     preview: <DeviceDemo />,
     previewClass: "w-full",
@@ -164,7 +153,7 @@ function WorkflowList({ steps, activeIndex }: { steps: Step[]; activeIndex: numb
                 {s.note}
               </span>
             </span>
-            <ArrowRight
+            <IconArrowRight
               className="size-[1.375rem] transition-transform duration-500"
               style={{ color: L.accentStrong, transform: on ? "none" : "translate(-5.6px, 5.6px)" }}
             />
@@ -211,7 +200,7 @@ function SceneCard({ s, active, onClick }: { s: Scene; active: boolean; onClick:
             <span className="text-[1.5rem] font-bold leading-[1.3]" style={{ color: "#12291D" }}>
               {s.tab}
             </span>
-            <ArrowRight className="size-[1.15rem]" style={{ color: "#0B8A52" }} />
+            <IconArrowRight className="size-[1.15rem]" style={{ color: "#0B8A52" }} />
           </span>
           <span className="mt-2 text-[0.875rem] leading-[1.5]" style={{ color: "#3D5C4B" }}>
             {s.desc}

@@ -17,41 +17,18 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import {
-  Server,
-  Cloud,
-  Cpu,
-  MonitorPlay,
-  Bot,
-  Database,
-  Wifi,
-  Zap,
-  Video,
-  Activity,
-  Layers,
-  Thermometer,
-  User,
-  Download,
-  LayoutTemplate,
-  BrainCircuit,
-  MessageSquare,
-  Clock,
-  Settings,
-  ShieldAlert,
-  Mic,
-  ArrowRightLeft
-} from 'lucide-react';
 import { toPng } from 'html-to-image';
+import { IconBrain, IconChartLine, IconCloudStorage, IconComment, IconCpu, IconDatabaseNetwork, IconDownload, IconExchange, IconLayers, IconLayoutTwo, IconLightning, IconMicrophone, IconMonitor, IconRobot, IconServer, IconSetting, IconShield, IconThermometer, IconTime, IconUser, IconVideo, IconWifi } from "@/components/icon";
 
 const icons = {
-  User, Server, Cloud, Cpu, MonitorPlay, Bot, Database, Wifi, Zap, 
-  Video, Activity, Layers, Thermometer, MessageSquare, Clock, Settings, 
-  ShieldAlert, Mic, ArrowRightLeft
+  IconUser, IconServer, IconCloudStorage, IconCpu, IconMonitor, IconRobot, IconDatabaseNetwork, IconWifi, IconLightning, 
+  IconVideo, IconChartLine, IconLayers, IconThermometer, IconComment, IconTime, IconSetting, 
+  IconShield, IconMicrophone, ArrowRightLeft
 };
 
 // --- Custom Nodes ---
 const CustomNode = ({ data }: any) => {
-  const IconComponent = icons[data.icon as keyof typeof icons] || Layers;
+  const IconComponent = icons[data.icon as keyof typeof icons] || IconLayers;
 
   return (
     <div className={`group relative flex items-center gap-4 rounded-xl border bg-white/95 p-3 pr-5 shadow-sm backdrop-blur-xl transition-all hover:shadow-md min-w-[210px] ${data.highlight ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-slate-200'}`}>
@@ -274,14 +251,14 @@ function DiagramContent() {
         <Panel position="top-center" className="mt-5 z-50">
           <div className="flex items-center gap-3 bg-white/80 backdrop-blur-xl p-2 rounded-2xl shadow-lg border border-slate-200/50">
             <button onClick={() => switchTab('system')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'system' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
-              <LayoutTemplate size={18} /> 主系统架构
+              <IconLayoutTwo size={18} /> 主系统架构
             </button>
             <button onClick={() => switchTab('agent')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'agent' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
-              <BrainCircuit size={18} /> 莓小智 Agent 架构
+              <IconBrain size={18} /> 莓小智 Agent 架构
             </button>
             <div className="w-px h-8 bg-slate-200 mx-2"></div>
             <button onClick={handleExport} className="flex items-center justify-center gap-2 px-5 py-2.5 text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm ml-1 group">
-              <Download size={18} className="text-indigo-500 group-hover:-translate-y-0.5 transition-transform" />
+              <IconDownload size={18} className="text-indigo-500 group-hover:-translate-y-0.5 transition-transform" />
               <span className="font-medium text-[14px]">导出高清图</span>
             </button>
           </div>

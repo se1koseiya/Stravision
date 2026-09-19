@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Globe, ExternalLink, AlertCircle, ArrowLeftIcon, ArrowRightIcon, RefreshCcwIcon, Maximize2Icon } from "lucide-react"
 import { 
   WebPreview as ShadcnWebPreview, 
   WebPreviewNavigation, 
@@ -10,6 +9,7 @@ import {
   WebPreviewBody 
 } from "@/components/ai/web-preview"
 import { cn } from "@/lib/utils"
+import { IconArrowLeft, IconArrowRight, IconAttention, IconFullScreen, IconGlobe, IconLinkOut, IconRefresh } from "@/components/icon";
 
 interface WebPreviewProps {
   url: string
@@ -135,12 +135,12 @@ export function WebPreview({ url, className, showFallback = true }: WebPreviewPr
           {imageError ? (
             <>
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary flex items-center justify-center shadow-lg mb-4">
-                <Globe size={32} className="text-white" />
+                <IconGlobe size={32} className="text-white" />
               </div>
               <div className="text-center">
                 <h3 className="font-semibold text-base mb-2">{getDomain(url)}</h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3 flex items-center justify-center gap-2">
-                  <AlertCircle size={16} />
+                  <IconAttention size={16} />
                   预览服务暂时不可用
                 </p>
                 <a
@@ -149,7 +149,7 @@ export function WebPreview({ url, className, showFallback = true }: WebPreviewPr
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-xs text-primary dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
                 >
-                  <ExternalLink size={12} />
+                  <IconLinkOut size={12} />
                   在浏览器中打开
                 </a>
               </div>
@@ -157,7 +157,7 @@ export function WebPreview({ url, className, showFallback = true }: WebPreviewPr
           ) : (
             <>
               <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center mb-3 animate-pulse">
-                <Globe size={24} className="text-zinc-400" />
+                <IconGlobe size={24} className="text-zinc-400" />
               </div>
               <div className="text-sm text-zinc-500 dark:text-zinc-400">正在加载预览...</div>
               <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{getDomain(url)}</div>
@@ -176,7 +176,7 @@ export function WebPreview({ url, className, showFallback = true }: WebPreviewPr
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-black/80 hover:bg-black text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm transition-all hover:scale-105"
             >
-              <ExternalLink size={12} />
+              <IconLinkOut size={12} />
               打开
             </a>
           </div>

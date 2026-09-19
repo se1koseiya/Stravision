@@ -6,6 +6,7 @@ import { ElderFriendlyProvider } from "@/lib/contexts/elder-friendly-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PageTransition } from "@/components/page-transition";
 import { LazyProviders } from "@/components/lazy-providers";
+import { DesktopNotificationBridge } from "@/components/desktop/desktop-notification-bridge";
 import { headers } from "next/headers";
 import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-service";
 import NextTopLoader from "nextjs-toploader";
@@ -115,6 +116,8 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`antialiased font-jinbuti`}>
         <NextTopLoader color="var(--primary)" showSpinner={false} />
+        {/* 桌面端：点原生通知后把页面导航到通知携带的路由（浏览器部署下是空组件） */}
+        <DesktopNotificationBridge />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

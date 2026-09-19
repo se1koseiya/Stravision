@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Button, Input, Switch, Card, Select, Modal, Typography, Spin, Form } from "antd"
-import { PlusOutlined, DeleteOutlined, EditOutlined, ReloadOutlined, SaveOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
+import { IconDelete, IconEdit, IconPlus, IconRefresh, IconSave } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -205,21 +205,21 @@ export function AIModelsManager() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button
-            icon={<ReloadOutlined />}
+            icon={<IconRefresh />}
             onClick={fetchConfig}
           >
             重新加载
           </Button>
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<IconPlus />}
             onClick={handleAddModel}
           >
             添加模型
           </Button>
           <Button
             type="primary"
-            icon={saving ? <Spin size="small" /> : <SaveOutlined />}
+            icon={saving ? <Spin size="small" /> : <IconSave />}
             onClick={handleSave}
             disabled={saving}
           >
@@ -308,14 +308,14 @@ export function AIModelsManager() {
                         type="text"
                         size="small"
                         onClick={() => handleEditModel(model)}
-                        icon={<EditOutlined />}
+                        icon={<IconEdit />}
                       />
                       <Button
                         type="text"
                         size="small"
                         danger
                         onClick={() => handleDeleteModel(model.id)}
-                        icon={<DeleteOutlined />}
+                        icon={<IconDelete />}
                       />
                     </div>
                   </div>

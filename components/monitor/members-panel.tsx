@@ -13,8 +13,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Plus, UserPlus, Shield, ShieldCheck, User, X } from "lucide-react"
 import type { UserPublic, UserRole } from "@/lib/db/user-service"
+import { IconAddUser, IconClose, IconPlus, IconShield, IconUser } from "@/components/icon";
 
 interface MembersPanelProps {
   currentUser: UserPublic | null
@@ -27,10 +27,10 @@ const ROLE_LABELS: Record<UserRole, string> = {
   super_admin: "超级管理员"
 }
 
-const ROLE_ICONS: Record<UserRole, typeof User> = {
-  user: User,
-  admin: Shield,
-  super_admin: ShieldCheck
+const ROLE_ICONS: Record<UserRole, typeof IconUser> = {
+  user: IconUser,
+  admin: IconShield,
+  super_admin: IconShield
 }
 
 export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelProps) {
@@ -148,7 +148,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
               {remainingCount > 0 ? (
                 <span className="font-bold text-xs">+{remainingCount}</span>
               ) : (
-                <Plus className="w-4 h-4" />
+                <IconPlus className="w-4 h-4" />
               )}
             </Button>
           ) : remainingCount > 0 ? (
@@ -205,7 +205,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                           className="h-8 w-8 text-muted-foreground hover:text-red-500"
                           onClick={() => handleRemoveMember(member.id)}
                         >
-                          <X className="w-4 h-4" />
+                          <IconClose className="w-4 h-4" />
                         </Button>
                       )}
                     </div>
@@ -230,7 +230,7 @@ export function MembersPanel({ currentUser, initialMembers = [] }: MembersPanelP
                       disabled={addingMember}
                       className="shrink-0"
                     >
-                      <UserPlus className="w-4 h-4 mr-1" />
+                      <IconAddUser className="w-4 h-4 mr-1" />
                       添加
                     </Button>
                   </div>

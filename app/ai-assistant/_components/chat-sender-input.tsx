@@ -5,22 +5,11 @@ import { Sender, Suggestion, Attachments, type AttachmentsProps, type SenderProp
 import type { GetProp } from "antd"
 import { Button, Flex, Divider, Dropdown, Badge } from "antd"
 import type { MenuProps } from "antd"
-import {
-  PaperClipOutlined,
-  ApiOutlined,
-  AntDesignOutlined,
-  CloudUploadOutlined,
-  ProfileOutlined,
-  SafetyCertificateOutlined,
-} from "@ant-design/icons"
-import {
-  Brain, Globe, Zap, FileText, Activity, ShieldCheck, ShieldAlert, Shield,
-  Plus, ChevronDown, Check, ArrowRight, LayoutGrid, BookOpen, Library
-} from "lucide-react"
 import type { GetProp } from "antd/es/config-provider/context"
 import type { FlexProps } from "antd"
 import { toast } from "sonner"
 import type { ChatAttachment } from "@/app/ai-assistant/types"
+import { IconApi, IconArrowRight, IconBookOpen, IconBookshelf, IconBrain, IconCertificate, IconChartLine, IconCheck, IconDown, IconFileText, IconGlobe, IconGridFour, IconLightning, IconPaperclip, IconPlus, IconShield, IconUpload } from "@/components/icon";
 
 const Switch = Sender.Switch
 type SuggestionItems = Exclude<GetProp<typeof Suggestion, "items">, () => void>
@@ -33,19 +22,19 @@ const APPROVAL_MODES: { key: ApprovalMode; label: string; desc: string; icon: Re
     key: "request",
     label: "请求批准",
     desc: "执行设备控制、文件编辑等操作前始终确认",
-    icon: <ShieldAlert size={14} />,
+    icon: <IconShield size={14} />,
   },
   {
     key: "auto",
     label: "替我审批",
     desc: "仅对高风险操作（如删除文件、修改配置）请求确认",
-    icon: <Shield size={14} />,
+    icon: <IconShield size={14} />,
   },
   {
     key: "full",
     label: "完全访问权限",
     desc: "莓小智可自主执行所有工具操作，无需逐一确认",
-    icon: <ShieldCheck size={14} />,
+    icon: <IconShield size={14} />,
   },
 ]
 
@@ -71,6 +60,8 @@ export interface ChatSenderProps {
   darkMode?: boolean
   approvalMode?: ApprovalMode
   setApprovalMode?: (mode: ApprovalMode) => void
+  /** 输入框 footer 右侧插槽（发送按钮左侧）：动态模型选择器等（2026-09-19 工作台 Copilot 用） */
+  modelSelector?: React.ReactNode
 }
 
 export function ChatSenderInput({
@@ -93,6 +84,7 @@ export function ChatSenderInput({
   darkMode = false,
   approvalMode = "request",
   setApprovalMode,
+  modelSelector,
 }: ChatSenderProps) {
   const senderRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -148,7 +140,7 @@ export function ChatSenderInput({
     () =>
       availableTools.map((t) => ({
         key: t.name,
-        icon: <Zap size={14} />,
+        icon: <IconLightning size={14} />,
         label: t.displayName || t.name,
       })),
     [availableTools],
@@ -194,10 +186,10 @@ export function ChatSenderInput({
 
   const slashItems: SuggestionItems = useMemo(() => {
     const base: SuggestionItems = [
-      { label: "生成报告", value: "/report", icon: <FileText size={14} className="text-[#1677ff]" /> },
-      { label: "环境诊断", value: "/diagnose", icon: <Activity size={14} className="text-[#1677ff]" /> },
-      { label: "深度推理", value: "/reason", icon: <Brain size={14} className="text-[#1677ff]" /> },
-      { label: "全网检索", value: "/search", icon: <Globe size={14} className="text-[#1677ff]" /> },
+      { label: "生成报告", value: "/report", icon: <IconFileText size={14} className="text-[#1677ff]" /> },
+      { label: "环境诊断", value: "/diagnose", icon: <IconChartLine size={14} className="text-[#1677ff]" /> },
+      { label: "深度推理", value: "/reason", icon: <IconBrain size={14} className="text-[#1677ff]" /> },
+      { label: "全网检索", value: "/search", icon: <IconGlobe size={14} className="text-[#1677ff]" /> },
     ]
     if (kbCollections.length === 0) return base
     const kbItems: SuggestionItems = kbCollections.slice(0, 20).map(c => {
@@ -208,10 +200,10 @@ export function ChatSenderInput({
         label: `[${tag}] ${c.name}`,
         value: `/${c.name}`,
         icon: c.source === "personal"
-          ? <BookOpen size={14} className="text-emerald-600" />
+          ? <IconBookOpen size={14} className="text-emerald-600" />
           : c.official === 1
-            ? <ShieldCheck size={14} className="text-[#1677ff]" />
-            : <Library size={14} className="text-[#722ed1]" />
+            ? <IconShield size={14} className="text-[#1677ff]" />
+            : <IconBookshelf size={14} className="text-[#722ed1]" />
       }
     })
     return [...base, ...kbItems]
@@ -240,7 +232,7 @@ export function ChatSenderInput({
           }}
           beforeUpload={() => false}
           placeholder={{
-            icon: <CloudUploadOutlined style={{ fontSize: 24 }} />,
+            icon: <IconUpload style={{ fontSize: 24 }} />,
             title: "点击或拖拽文件上传",
             description: "支持图片、视频、音频、文档等文件格式",
           }}
@@ -327,7 +319,7 @@ export function ChatSenderInput({
                           color: darkMode ? "#a1a1aa" : "#6b7280",
                         }}
                       >
-                        <Plus size={16} />
+                        <IconPlus size={16} />
                       </button>
 
                       {/* + 展开面板 */}
@@ -340,7 +332,7 @@ export function ChatSenderInput({
                             left: -4,
                             zIndex: 1000,
                             width: 260,
-                            borderRadius: 14,
+                            borderRadius: 16,
                             padding: "10px 10px 6px",
                             background: darkMode ? "#27272a" : "#fff",
                             border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
@@ -368,7 +360,7 @@ export function ChatSenderInput({
                             onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? "#3f3f46" : "#f3f4f6"}
                             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                           >
-                            <PaperClipOutlined style={{ fontSize: 16 }} />
+                            <IconPaperclip style={{ fontSize: 16 }} />
                             添加照片和文件
                           </button>
 
@@ -383,7 +375,7 @@ export function ChatSenderInput({
                             <button
                               onClick={() => setEnablePlanning(!enablePlanning)}
                               style={{
-                                width: 34, height: 20, borderRadius: 20,
+                                width: 34, height: 20, borderRadius: 999,
                                 border: "none", cursor: "pointer",
                                 background: enablePlanning ? (darkMode ? "rgba(22,119,255,0.20)" : "rgba(22,119,255,0.18)") : (darkMode ? "#3f3f46" : "#d1d5db"),
                                 position: "relative", transition: "background 0.2s",
@@ -415,7 +407,7 @@ export function ChatSenderInput({
                                 setEnableSearch(!enableSearch)
                               }}
                               style={{
-                                width: 34, height: 20, borderRadius: 20,
+                                width: 34, height: 20, borderRadius: 999,
                                 border: "none", cursor: "pointer",
                                 background: enableSearch ? (darkMode ? "rgba(22,119,255,0.20)" : "rgba(22,119,255,0.18)") : (darkMode ? "#3f3f46" : "#d1d5db"),
                                 position: "relative", transition: "background 0.2s",
@@ -452,10 +444,10 @@ export function ChatSenderInput({
                                 onMouseLeave={(e) => !pluginSubOpen && (e.currentTarget.style.background = "transparent")}
                               >
                                 <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                                  <LayoutGrid size={16} />
+                                  <IconGridFour size={16} />
                                   插件
                                 </span>
-                                <ChevronDown size={13} style={{ opacity: 0.45, transition: "transform 0.2s", transform: pluginSubOpen ? "rotate(180deg)" : "none" }} />
+                                <IconDown size={13} style={{ opacity: 0.45, transition: "transform 0.2s", transform: pluginSubOpen ? "rotate(180deg)" : "none" }} />
                               </button>
 
                               {/* 插件子列表 — 向上弹出 */}
@@ -470,7 +462,7 @@ export function ChatSenderInput({
                                     width: 260,
                                     maxHeight: 320,
                                     overflowY: "auto",
-                                    borderRadius: 14,
+                                    borderRadius: 16,
                                     padding: "10px 8px 12px",
                                     background: darkMode ? "#27272a" : "#fff",
                                     border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
@@ -514,7 +506,7 @@ export function ChatSenderInput({
                                           src={tool.icon}
                                           alt={tool.displayName || tool.name}
                                           style={{
-                                            width: 28, height: 28, borderRadius: 7,
+                                            width: 28, height: 28, borderRadius: 8,
                                             objectFit: "cover",
                                             flexShrink: 0,
                                             background: tool.iconBg || (darkMode ? "#3f3f46" : "#f3f4f6"),
@@ -526,12 +518,12 @@ export function ChatSenderInput({
                                         />
                                       ) : (
                                         <div style={{
-                                          width: 28, height: 28, borderRadius: 7,
+                                          width: 28, height: 28, borderRadius: 8,
                                           display: "flex", alignItems: "center", justifyContent: "center",
                                           background: darkMode ? "#3f3f46" : "#f3f4f6",
                                           flexShrink: 0,
                                         }}>
-                                          <Zap size={13} style={{ color: "#1677ff" }} />
+                                          <IconLightning size={13} style={{ color: "#1677ff" }} />
                                         </div>
                                       )}
                                       <div style={{ minWidth: 0 }}>
@@ -602,7 +594,7 @@ export function ChatSenderInput({
                         if (!enableReasoning) e.currentTarget.style.background = "transparent"
                       }}
                     >
-                      <Brain size={14} strokeWidth={1.75} />
+                      <IconBrain size={14} strokeWidth={1.75} />
                       <span>思考</span>
                     </button>
 
@@ -637,7 +629,7 @@ export function ChatSenderInput({
                         if (!enableSearch) e.currentTarget.style.background = "transparent"
                       }}
                     >
-                      <Globe size={14} strokeWidth={1.75} />
+                      <IconGlobe size={14} strokeWidth={1.75} />
                       <span>研究</span>
                     </button>
 
@@ -655,9 +647,9 @@ export function ChatSenderInput({
                             fontSize: 13, whiteSpace: "nowrap", marginLeft: 2,
                           }}
                         >
-                          <ShieldAlert size={14} />
+                          <IconShield size={14} />
                           <span>{APPROVAL_MODES.find(m => m.key === approvalMode)?.label || "请求批准"}</span>
-                          <ChevronDown size={12} style={{ transition: "transform 0.2s", transform: approvalPanelOpen ? "rotate(180deg)" : "none" }} />
+                          <IconDown size={12} style={{ transition: "transform 0.2s", transform: approvalPanelOpen ? "rotate(180deg)" : "none" }} />
                         </button>
 
                         {/* 权限模式向上弹出面板 */}
@@ -670,7 +662,7 @@ export function ChatSenderInput({
                               left: -8,
                               zIndex: 1000,
                               width: 300,
-                              borderRadius: 14,
+                              borderRadius: 16,
                               padding: "12px 0 10px",
                               background: darkMode ? "#27272a" : "#fff",
                               border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
@@ -722,7 +714,7 @@ export function ChatSenderInput({
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                         <span style={{ fontWeight: 500, fontSize: 13.5 }}>{m.label}</span>
-                                        {isActive && <Check size={14} strokeWidth={2.5} />}
+                                        {isActive && <IconCheck size={14} strokeWidth={2.5} />}
                                       </div>
                                       <span style={{ fontSize: 11.5, opacity: 0.55, lineHeight: 1.45, marginTop: 2, display: "block" }}>
                                         {m.desc}
@@ -738,8 +730,9 @@ export function ChatSenderInput({
                     )}
                   </Flex>
 
-                  {/* 右侧：发送按钮 */}
+                  {/* 右侧：模型选择胶囊（可选）+ 发送按钮 */}
                   <Flex align="center" gap={10}>
+                    {modelSelector}
                     {actionNode}
                   </Flex>
                 </Flex>

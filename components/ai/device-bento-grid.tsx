@@ -4,20 +4,11 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { Card, Row, Col, Typography, Space, theme } from "antd"
-import {
-  Activity,
-  Thermometer,
-  Droplets,
-  Sun,
-  Wind,
-  Waves,
-  Zap,
-  Sprout,
-} from "lucide-react"
 import { BerryXCard } from "@/components/ui/berry-xcard"
 import { buildCommands } from "@/lib/a2ui/berry-protocol"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { A2UICommand_v0_9 } from "@ant-design/x-card"
+import { IconChartLine, IconLightning, IconSeedling, IconSun, IconThermometer, IconWater, IconWaves, IconWind } from "@/components/icon";
 
 const { Text, Title } = Typography
 
@@ -32,14 +23,14 @@ interface MetricMeta {
 }
 
 const METRICS: MetricMeta[] = [
-  { id: "m1", title: "空气温度", key: "temperature", unit: "°C", icon: Thermometer, color: "#f97316" },
-  { id: "m2", title: "空气湿度", key: "humidity", unit: "%", icon: Droplets, color: "#3b82f6" },
-  { id: "m3", title: "光照强度", key: "light", unit: "Lux", icon: Sun, color: "#f59e0b" },
-  { id: "m4", title: "CO2 浓度", key: "co2", unit: "ppm", icon: Wind, color: BERRY_THEME.primary },
-  { id: "m5", title: "土壤温度", key: "earth_temp", unit: "°C", icon: Thermometer, color: "#f43f5e" },
-  { id: "m6", title: "土壤水分", key: "earth_water", unit: "%", icon: Waves, color: "#06b6d4", precision: 1 },
-  { id: "m7", title: "土壤 EC", key: "earth_ec", unit: "μS/cm", icon: Zap, color: "#a855f7" },
-  { id: "m8", title: "综合肥力(N)", key: "earth_n", unit: "mg/kg", icon: Sprout, color: "#6366f1" },
+  { id: "m1", title: "空气温度", key: "temperature", unit: "°C", icon: IconThermometer, color: "#f97316" },
+  { id: "m2", title: "空气湿度", key: "humidity", unit: "%", icon: IconWater, color: "#3b82f6" },
+  { id: "m3", title: "光照强度", key: "light", unit: "Lux", icon: IconSun, color: "#f59e0b" },
+  { id: "m4", title: "CO2 浓度", key: "co2", unit: "ppm", icon: IconWind, color: BERRY_THEME.primary },
+  { id: "m5", title: "土壤温度", key: "earth_temp", unit: "°C", icon: IconThermometer, color: "#f43f5e" },
+  { id: "m6", title: "土壤水分", key: "earth_water", unit: "%", icon: IconWaves, color: "#06b6d4", precision: 1 },
+  { id: "m7", title: "土壤 EC", key: "earth_ec", unit: "μS/cm", icon: IconLightning, color: "#a855f7" },
+  { id: "m8", title: "综合肥力(N)", key: "earth_n", unit: "mg/kg", icon: IconSeedling, color: "#6366f1" },
 ]
 
 /**
@@ -164,7 +155,7 @@ export function DeviceBentoGrid() {
         }}
       >
         <Space size={6} align="center">
-          <Activity size={15} strokeWidth={2.25} style={{ color: BERRY_THEME.primary }} />
+          <IconChartLine size={15} strokeWidth={2.25} style={{ color: BERRY_THEME.primary }} />
           环境状态概览
         </Space>
       </Title>

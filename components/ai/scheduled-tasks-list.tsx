@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, Clock, MoreHorizontal, Pencil, Trash2, Play } from "lucide-react"
 import { Empty, theme, Switch, Dropdown, App } from "antd"
 import type { MenuProps } from "antd"
 import { ManualTaskCreateModal } from "@/components/ai/manual-task-create-modal"
 import { DEVICE_IDS } from "@/lib/constants"
+import { IconDelete, IconLoading, IconMore, IconPencil, IconPlay, IconTime } from "@/components/icon";
 
 export interface ScheduledTask {
   id: number
@@ -191,7 +191,7 @@ function ScheduleTaskCard({
       key: "run",
       label: (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Play size={14} />
+          <IconPlay size={14} />
           现在运行
         </span>
       ),
@@ -202,7 +202,7 @@ function ScheduleTaskCard({
       key: "edit",
       label: (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <Pencil size={14} />
+          <IconPencil size={14} />
           编辑
         </span>
       ),
@@ -213,7 +213,7 @@ function ScheduleTaskCard({
       key: "delete",
       label: (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: token.colorError }}>
-          <Trash2 size={14} />
+          <IconDelete size={14} />
           删除
         </span>
       ),
@@ -227,7 +227,7 @@ function ScheduleTaskCard({
         style={{
           background: token.colorBgContainer,
           border: `1px solid ${token.colorBorderSecondary}`,
-          borderRadius: 12,
+          borderRadius: 10,
           padding: "16px 18px",
           boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
           transition: "all 0.2s",
@@ -293,7 +293,7 @@ function ScheduleTaskCard({
               onMouseEnter={(e) => { e.currentTarget.style.background = token.colorFillTertiary }}
               onMouseLeave={(e) => { e.currentTarget.style.background = token.colorFillQuaternary }}
             >
-              <MoreHorizontal size={16} />
+              <IconMore size={16} />
             </button>
           </Dropdown>
         </div>
@@ -315,7 +315,7 @@ function ScheduleTaskCard({
           color: token.colorTextSecondary,
         }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-            <Clock size={13} style={{ color: token.colorTextTertiary, flexShrink: 0 }} />
+            <IconTime size={13} style={{ color: token.colorTextTertiary, flexShrink: 0 }} />
             <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {isCron
                 ? describeCron(task.cron_expression!)
@@ -400,7 +400,7 @@ export function ScheduledTasksList({ onTasksChange, tasks: externalTasks, loadin
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 32, color: token.colorTextSecondary }}>
-        <Loader2 size={16} style={{ marginRight: 8, animation: "spin 1s linear infinite" }} />
+        <IconLoading size={16} style={{ marginRight: 8, animation: "spin 1s linear infinite" }} />
         <span style={{ fontSize: 13 }}>加载任务列表...</span>
         <style>{`@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }`}</style>
       </div>

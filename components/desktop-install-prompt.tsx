@@ -1,14 +1,18 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Download, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
+import { IconClose, IconDownload } from "@/components/icon";
 
 export function DesktopInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showPrompt, setShowPrompt] = useState(false)
 
   useEffect(() => {
+    // 🚨 已经在桌面端里（内嵌 Next）绝不能再弹"安装桌面应用"（2026-09-17 用户反馈）
+    if (IS_DESKTOP_APP) return
+
     // Check if already installed
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
     if (isStandalone) return
@@ -83,7 +87,7 @@ export function DesktopInstallPrompt() {
               onClick={handleDismiss} 
               className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-               <X className="size-4" />
+               <IconClose className="size-4" />
             </Button>
           </div>
         </motion.div>

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Button, Typography, Spin, Card, Popconfirm } from "antd"
-import { LoadingOutlined, UploadOutlined, UndoOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
 import { ImageCropper } from "@/components/admin/image-cropper"
+import { IconLoading, IconUndo, IconUpload } from "@/components/icon";
 
 const { Text, Title } = Typography
 
@@ -108,7 +108,7 @@ export function BrandingSettings() {
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
-        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+        <Spin indicator={<IconLoading style={{ fontSize: 24 }} spin />} />
       </div>
     )
   }
@@ -191,7 +191,7 @@ export function BrandingSettings() {
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <Button
                 type="primary"
-                icon={<UploadOutlined />}
+                icon={<IconUpload />}
                 loading={saving}
                 onClick={() => setCropperOpen(true)}
               >
@@ -206,7 +206,7 @@ export function BrandingSettings() {
                   cancelText="取消"
                   onConfirm={handleReset}
                 >
-                  <Button icon={<UndoOutlined />} disabled={saving}>
+                  <Button icon={<IconUndo />} disabled={saving}>
                     恢复默认
                   </Button>
                 </Popconfirm>

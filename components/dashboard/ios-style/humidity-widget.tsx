@@ -1,6 +1,5 @@
 "use client"
 
-import { Droplets, Target, ThermometerSun } from "lucide-react"
 import { Flex } from "antd"
 import {
   IOSWidgetCard,
@@ -14,6 +13,7 @@ import {
 import { WidgetRingProgress, WidgetLineChart, WidgetBars } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconTarget, IconThermometer, IconWater } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.humidity
@@ -81,7 +81,7 @@ export function HumidityWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Droplets size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconWater size={12} strokeWidth={ICON_STROKE} />}
             label="湿度"
             color={status.color}
             right={<div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />}
@@ -101,8 +101,8 @@ export function HumidityWidget({
           </Flex>
           <WidgetMiniStats
             stats={[
-              { label: '露点', value: `${dp.toFixed(0)}°`, color: A.accents.blue, icon: <ThermometerSun size={9} strokeWidth={ICON_STROKE} /> },
-              { label: '目标', value: '45-55', color: A.accents.green, icon: <Target size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '露点', value: `${dp.toFixed(0)}°`, color: A.accents.blue, icon: <IconThermometer size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '目标', value: '45-55', color: A.accents.green, icon: <IconTarget size={9} strokeWidth={ICON_STROKE} /> },
               { label: '偏差', value: `${value >= 50 ? '-' : '+'}${Math.abs(value - 50).toFixed(0)}`, color: status.color },
             ]}
           />
@@ -118,7 +118,7 @@ export function HumidityWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Droplets size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconWater size={14} strokeWidth={ICON_STROKE} />}
             label="湿度"
             color={status.color}
             right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -153,8 +153,8 @@ export function HumidityWidget({
 
           <WidgetMiniStats
             stats={[
-              { label: '露点', value: `${dp.toFixed(0)}°C`, color: A.accents.blue, icon: <ThermometerSun size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '目标', value: '45-55%', color: A.accents.green, icon: <Target size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '露点', value: `${dp.toFixed(0)}°C`, color: A.accents.blue, icon: <IconThermometer size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '目标', value: '45-55%', color: A.accents.green, icon: <IconTarget size={10} strokeWidth={ICON_STROKE} /> },
               { label: '偏差', value: `${value >= 50 ? '-' : '+'}${Math.abs(value - 50).toFixed(0)}%`, color: status.color },
             ]}
             style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
@@ -170,7 +170,7 @@ export function HumidityWidget({
       className={className}
       header={
         <WidgetHeader
-          icon={<Droplets size={14} strokeWidth={ICON_STROKE} />}
+          icon={<IconWater size={14} strokeWidth={ICON_STROKE} />}
           label="湿度"
           color={status.color}
           right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -198,8 +198,8 @@ export function HumidityWidget({
         </Flex>
         <WidgetCompactFooter
           stats={[
-            { label: '露点', value: `${dp.toFixed(0)}°C`, color: A.accents.blue, icon: <ThermometerSun size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '目标', value: '45-55%', color: A.accents.green, icon: <Target size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '露点', value: `${dp.toFixed(0)}°C`, color: A.accents.blue, icon: <IconThermometer size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '目标', value: '45-55%', color: A.accents.green, icon: <IconTarget size={10} strokeWidth={ICON_STROKE} /> },
             { label: '偏差', value: `${value >= 50 ? '-' : '+'}${Math.abs(value - 50).toFixed(0)}%`, color: status.color },
           ]}
         />

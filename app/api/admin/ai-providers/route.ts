@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { getCurrentUser } from '@/lib/auth'
+import { IS_DESKTOP_APP } from '@/lib/desktop-mode'
 import {
   DEFAULT_KNOWLEDGE_CONFIG,
   type KnowledgeConfig
@@ -185,7 +186,15 @@ async function saveConfig(config: ProvidersConfig): Promise<void> {
 
 async function checkAdminAuth(request: NextRequest) {
   const user = await getCurrentUser(request)
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  if (!user) {
+    return null
+  }
+  // 🚨 桌面端放行：本地单用户形态，本机服务 + 本机配置文件，"平台角色"概念不适用。
+  //    IS_DESKTOP_APP 是构建期内联常量，Web 构建恒 false（下方角色校验照常生效）。
+  if (IS_DESKTOP_APP) {
+    return user
+  }
+  if (user.role !== 'admin' && user.role !== 'super_admin') {
     return null
   }
   return user

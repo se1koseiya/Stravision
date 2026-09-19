@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share, PlusSquare, X, MoreVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { IconClose, IconMore, IconPlusCross, IconShare } from "@/components/icon";
 
 export function MobilePwaPrompt() {
   const [showPrompt, setShowPrompt] = useState(false)
@@ -70,7 +70,7 @@ export function MobilePwaPrompt() {
                 onClick={handleDismiss}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <IconClose className="w-5 h-5 text-slate-400" />
               </button>
 
               <div className="flex flex-col items-center text-center space-y-4">
@@ -94,7 +94,7 @@ export function MobilePwaPrompt() {
                     <>
                       <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">1</span>
-                        <span>点击浏览器底部的 <Share className="w-4 h-4 inline mx-1 text-blue-500" /> 分享按钮</span>
+                        <span>点击浏览器底部的 <IconShare className="w-4 h-4 inline mx-1 text-blue-500" /> 分享按钮</span>
                       </div>
                       <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 ml-3" />
                       <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
@@ -111,7 +111,7 @@ export function MobilePwaPrompt() {
                     <>
                       <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">1</span>
-                        <span>点击浏览器右上角的 <MoreVertical className="w-4 h-4 inline mx-1 text-slate-500" /> 菜单按钮</span>
+                        <span>点击浏览器右上角的 <IconMore className="w-4 h-4 inline mx-1 text-slate-500" /> 菜单按钮</span>
                       </div>
                       <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 ml-3" />
                       <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">

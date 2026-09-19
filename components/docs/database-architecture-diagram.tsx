@@ -1,16 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { 
-  Database, Server, HardDrive, 
-  Clock, FileJson, Layers, 
-  ArrowRight,
-  RefreshCw,
-  Box,
-  Hexagon
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { IconArrowRight, IconBox, IconDatabaseNetwork, IconFileCode, IconHardDisk, IconHexagonOne, IconLayers, IconRefresh, IconServer, IconTime } from "@/components/icon";
 
 const IP_IMAGES = {
     main: "/ip/草莓头IP-舞蹈姿势.png"
@@ -82,14 +75,14 @@ export function DatabaseArchitectureDiagram() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
          <DBNode 
-            icon={<Database className="w-6 h-6" />}
+            icon={<IconDatabaseNetwork className="w-6 h-6" />}
             title="关系型数据库"
             type="PostgreSQL"
             desc="存储结构化业务数据，包括用户档案、设备元数据、权限配置及系统设置。是系统的单一事实来源 (SSOT)。"
          />
 
          <DBNode 
-            icon={<Clock className="w-6 h-6" />}
+            icon={<IconTime className="w-6 h-6" />}
             title="时序数据库"
             type="TimescaleDB"
             desc="高吞吐量存储传感器遥测数据。针对时间窗口查询、数据降采样和连续聚合进行了深度优化。"
@@ -97,21 +90,21 @@ export function DatabaseArchitectureDiagram() {
          />
 
          <DBNode 
-            icon={<Layers className="w-6 h-6" />}
+            icon={<IconLayers className="w-6 h-6" />}
             title="向量数据库"
             type="pgvector"
             desc="存储高维向量嵌入，支持 RAG（检索增强生成），赋能 AI 助手进行知识库检索和历史上下文关联。"
          />
 
          <DBNode 
-            icon={<RefreshCw className="w-6 h-6" />}
+            icon={<IconRefresh className="w-6 h-6" />}
             title="缓存层"
             type="Redis"
             desc="内存数据结构存储，用于会话管理、实时设备状态缓存以及 API 速率限制（Rate Limiting）。"
          />
 
          <DBNode 
-            icon={<HardDrive className="w-6 h-6" />}
+            icon={<IconHardDisk className="w-6 h-6" />}
             title="对象存储"
             type="MinIO / S3"
             desc="非结构化数据存储，用于托管摄像头快照、延时摄影视频、设备固件包以及用户头像资源。"
@@ -119,7 +112,7 @@ export function DatabaseArchitectureDiagram() {
          />
 
          <DBNode 
-            icon={<FileJson className="w-6 h-6" />}
+            icon={<IconFileCode className="w-6 h-6" />}
             title="日志与审计"
             type="Elasticsearch"
             desc="集中式日志存储，涵盖系统事件、API 访问日志及安全审计轨迹。支持全文检索与异常检测。"

@@ -5,45 +5,6 @@ import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
-import {
-  LightBulbIcon,
-  SpeakerWaveIcon,
-  PlusIcon,
-  Bars3Icon,
-  FireIcon,
-  BeakerIcon,
-  BoltIcon,
-  PlayIcon,
-  SpeakerXMarkIcon,
-  ArrowsPointingOutIcon,
-  SunIcon,
-  ArrowPathIcon,
-  CloudIcon,
-  VideoCameraIcon,
-  MicrophoneIcon
-} from "@heroicons/react/24/outline"
-import { 
-  Camera, 
-  Disc, 
-  Mic, 
-  Volume2, 
-  VolumeX, 
-  Maximize2, 
-  Minimize2, 
-  ZoomIn, 
-  ZoomOut, 
-  ChevronUp, 
-  ChevronDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  Circle,
-  Settings,
-  X,
-  Siren,
-  Lightbulb,
-  Bell,
-  Monitor
-} from "lucide-react"
 import type { UserPublic } from "@/lib/db/user-service"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
@@ -51,7 +12,7 @@ import { MobileBackground } from "@/components/mobile-background"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
-
+import { IconAlarmClock, IconCamera, IconCd, IconClose, IconCloudy, IconDown, IconFan, IconFire, IconFullScreen, IconFullScreenOne, IconHamburgerButton, IconLeft, IconLight, IconMedicineChest, IconMicrophone, IconMonitor, IconOffScreen, IconPlay, IconPlus, IconRemind, IconRight, IconRotate, IconRound, IconSetting, IconSun, IconThunderbolt, IconUp, IconVideocamera, IconVolumeMute, IconVolumeNotice, IconZoomIn, IconZoomOut } from "@/components/icon";
 // --- Components ---
 
 
@@ -77,7 +38,7 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
         )
       })}
       <button className="p-2 rounded-full bg-white/60 dark:bg-white/5 text-foreground/70">
-        <Bars3Icon className="size-5" />
+        <IconHamburgerButton className="size-5" />
       </button>
     </div>
   )
@@ -458,13 +419,13 @@ export default function MonitorIOSPage() {
                         onClick={() => setIsMuted(!isMuted)}
                         className="size-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/90 border border-white/10"
                     >
-                        {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                        {isMuted ? <IconVolumeMute className="size-4" /> : <IconVolumeNotice className="size-4" />}
                     </button>
                      <button 
                         onClick={handleFullscreenToggle}
                         className="size-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/90 border border-white/10"
                     >
-                        {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                        {isFullscreen ? <IconOffScreen className="size-4" /> : <IconFullScreen className="size-4" />}
                     </button>
                 </div>
             </div>
@@ -473,9 +434,9 @@ export default function MonitorIOSPage() {
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none flex items-end justify-between">
                 {/* Left: Zoom */}
                 <div className="flex items-center gap-2 pointer-events-auto bg-black/40 backdrop-blur-md rounded-full p-1 border border-white/10">
-                    <button onClick={() => handleZoom(-0.5)} className="p-1.5 text-white/80 hover:text-white"><ZoomOut className="size-4" /></button>
+                    <button onClick={() => handleZoom(-0.5)} className="p-1.5 text-white/80 hover:text-white"><IconZoomOut className="size-4" /></button>
                     <span className="text-xs font-mono text-white min-w-[20px] text-center">{zoomLevel}x</span>
-                    <button onClick={() => handleZoom(0.5)} className="p-1.5 text-white/80 hover:text-white"><ZoomIn className="size-4" /></button>
+                    <button onClick={() => handleZoom(0.5)} className="p-1.5 text-white/80 hover:text-white"><IconZoomIn className="size-4" /></button>
                 </div>
 
                 {/* Right: Actions */}
@@ -487,13 +448,13 @@ export default function MonitorIOSPage() {
                             showPTZ ? "bg-blue-600 border-blue-500 text-white" : "bg-white/10 backdrop-blur-md border-white/10 text-white hover:bg-white/20"
                         )}
                     >
-                        <Settings className="size-5" />
+                        <IconSetting className="size-5" />
                     </button>
                     <button 
                         onClick={handleSnapshot}
                         className="size-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-all border border-white/10 text-white"
                     >
-                        <Camera className="size-5" />
+                        <IconCamera className="size-5" />
                     </button>
                      <button 
                         onClick={handleRecord}
@@ -502,7 +463,7 @@ export default function MonitorIOSPage() {
                             isRecording ? "bg-red-500 border-red-400 text-white" : "bg-white/10 backdrop-blur-md border-white/10 text-white hover:bg-white/20"
                         )}
                     >
-                        <Disc className={cn("size-5", isRecording && "animate-spin")} />
+                        <IconCd className={cn("size-5", isRecording && "animate-spin")} />
                     </button>
                 </div>
             </div>
@@ -514,14 +475,14 @@ export default function MonitorIOSPage() {
                         onClick={() => setShowPTZ(false)}
                         className="absolute top-4 right-4 text-white/70 hover:text-white"
                     >
-                        <X className="size-6" />
+                        <IconClose className="size-6" />
                     </button>
                     
                     <div className="relative size-48 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                        <button onClick={() => handlePTZ("up")} className="absolute top-2 left-1/2 -translate-x-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><ChevronUp className="size-8" /></button>
-                        <button onClick={() => handlePTZ("down")} className="absolute bottom-2 left-1/2 -translate-x-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><ChevronDown className="size-8" /></button>
-                        <button onClick={() => handlePTZ("left")} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><ChevronLeft className="size-8" /></button>
-                        <button onClick={() => handlePTZ("right")} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><ChevronRight className="size-8" /></button>
+                        <button onClick={() => handlePTZ("up")} className="absolute top-2 left-1/2 -translate-x-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><IconUp className="size-8" /></button>
+                        <button onClick={() => handlePTZ("down")} className="absolute bottom-2 left-1/2 -translate-x-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><IconDown className="size-8" /></button>
+                        <button onClick={() => handlePTZ("left")} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><IconLeft className="size-8" /></button>
+                        <button onClick={() => handlePTZ("right")} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full"><IconRight className="size-8" /></button>
                         <button onClick={() => handlePTZ("reset")} className="size-16 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/10 flex items-center justify-center">
                             <div className="text-xs font-bold">RESET</div>
                         </button>
@@ -534,15 +495,15 @@ export default function MonitorIOSPage() {
         {/* Quick Actions Bar (New) */}
         <div ref={quickActionsRef} className="px-4 mb-4 flex gap-3 overflow-x-auto scrollbar-hide">
              <button onClick={() => toast.info("警报已触发")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
-                <Siren className="size-4 text-red-500" />
+                <IconAlarmClock className="size-4 text-red-500" />
                 <span className="text-xs font-medium">一键警报</span>
              </button>
              <button onClick={() => toast.info("补光灯已开启")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
-                <Lightbulb className="size-4 text-amber-500" />
+                <IconLight className="size-4 text-amber-500" />
                 <span className="text-xs font-medium">开启补光</span>
              </button>
               <button onClick={() => toast.info("麦克风已开启")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
-                <Mic className="size-4 text-blue-500" />
+                <IconMicrophone className="size-4 text-blue-500" />
                 <span className="text-xs font-medium">双向通话</span>
              </button>
         </div>
@@ -568,18 +529,18 @@ export default function MonitorIOSPage() {
             <DeviceCard
               title="水泵"
               subtitle={deviceData?.relay5 === 1 ? "运行中" : "已停止"}
-              icon={BeakerIcon}
+              icon={IconMedicineChest}
               isOn={deviceData?.relay5 === 1}
               onToggle={() => handleRelayToggle(5)}
               room="种植区"
               disabled={controlStatus.loading || !connectionStatus.connected}
             />
 
-            {/* Relay 6: Fan */}
+            {/* Relay 6: IconFan */}
             <DeviceCard
               title="风扇"
               subtitle={deviceData?.relay6 === 1 ? "运行中" : "已停止"}
-              icon={ArrowPathIcon}
+              icon={IconRotate}
               isOn={deviceData?.relay6 === 1}
               onToggle={() => handleRelayToggle(6)}
               room="种植区"
@@ -590,7 +551,7 @@ export default function MonitorIOSPage() {
             <DeviceCard
               title="补光灯"
               subtitle={deviceData?.relay7 === 1 ? "ON" : "OFF"}
-              icon={BoltIcon}
+              icon={IconThunderbolt}
               isOn={deviceData?.relay7 === 1}
               onToggle={() => handleRelayToggle(7)}
               room="种植区"
@@ -601,7 +562,7 @@ export default function MonitorIOSPage() {
             <DeviceCard
               title="光照植物补光灯"
               subtitle={deviceData?.relay8 === 1 ? "ON" : "OFF"}
-              icon={SunIcon}
+              icon={IconSun}
               isOn={deviceData?.relay8 === 1}
               onToggle={() => handleRelayToggle(8)}
               room="控制室"

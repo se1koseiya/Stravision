@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  Server, Shield, Zap, MessageSquare, Cloud, 
-  Terminal, ChevronRight, Copy, Check, Lock, 
-  Activity, Radio, Database, Globe, Clock
-} from "lucide-react"
+import { IconChartLine, IconCheck, IconCloudStorage, IconComment, IconCopy, IconDatabaseNetwork, IconGlobe, IconLightning, IconLock, IconRadio, IconRight, IconServer, IconShield, IconTerminal, IconTime } from "@/components/icon";
 
 // --- Types ---
 
@@ -33,7 +29,7 @@ const apiData: ApiGroup[] = [
   {
     id: "admin",
     name: "Admin System",
-    icon: <Lock className="w-4 h-4" />,
+    icon: <IconLock className="w-4 h-4" />,
     endpoints: [
       {
         method: "GET",
@@ -79,7 +75,7 @@ const apiData: ApiGroup[] = [
   {
     id: "auth",
     name: "Authentication",
-    icon: <Shield className="w-4 h-4" />,
+    icon: <IconShield className="w-4 h-4" />,
     endpoints: [
       {
         method: "POST",
@@ -125,7 +121,7 @@ const apiData: ApiGroup[] = [
   {
     id: "ai",
     name: "AI & Control",
-    icon: <Zap className="w-4 h-4" />,
+    icon: <IconLightning className="w-4 h-4" />,
     endpoints: [
       {
         method: "POST",
@@ -161,7 +157,7 @@ const apiData: ApiGroup[] = [
   {
     id: "chat",
     name: "Chat System",
-    icon: <MessageSquare className="w-4 h-4" />,
+    icon: <IconComment className="w-4 h-4" />,
     endpoints: [
       {
         method: "POST",
@@ -184,7 +180,7 @@ const apiData: ApiGroup[] = [
   {
     id: "iot",
     name: "IoT & Data",
-    icon: <Radio className="w-4 h-4" />,
+    icon: <IconRadio className="w-4 h-4" />,
     endpoints: [
       {
         method: "GET",
@@ -298,7 +294,7 @@ const apiData: ApiGroup[] = [
   {
     id: "agri",
     name: "Smart Agriculture",
-    icon: <Cloud className="w-4 h-4" />,
+    icon: <IconCloudStorage className="w-4 h-4" />,
     endpoints: [
       {
         method: "GET",
@@ -335,7 +331,7 @@ const apiData: ApiGroup[] = [
   {
     id: "scheduler",
     name: "Task Scheduler",
-    icon: <Clock className="w-4 h-4" />,
+    icon: <IconTime className="w-4 h-4" />,
     endpoints: [
       {
         method: "GET",
@@ -368,7 +364,7 @@ const apiData: ApiGroup[] = [
   {
     id: "system",
     name: "System & Utils",
-    icon: <Server className="w-4 h-4" />,
+    icon: <IconServer className="w-4 h-4" />,
     endpoints: [
       {
         method: "GET",
@@ -428,7 +424,7 @@ function CodeBlock({ code, label }: { code: string | object, label?: string }) {
       <div className="relative bg-[#0a0a0a] border border-white/10 rounded-lg overflow-hidden">
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={copy} className="p-1.5 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors">
-            {copied ? <Check className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
+            {copied ? <IconCheck className="w-3 h-3 text-primary" /> : <IconCopy className="w-3 h-3" />}
           </button>
         </div>
         <pre className="p-4 text-xs font-mono text-gray-300 overflow-x-auto custom-scrollbar">
@@ -465,7 +461,7 @@ export default function ApiDocsPage() {
         <div className="w-64 flex-shrink-0 border-r border-white/10 bg-[#020202]/50 backdrop-blur-xl flex flex-col">
           <div className="p-6 border-b border-white/10">
             <h1 className="text-xl font-bold font-jinbuti tracking-wide flex items-center gap-2">
-              <Terminal className="w-5 h-5 text-primary" />
+              <IconTerminal className="w-5 h-5 text-primary" />
               API DOCS
             </h1>
             <p className="text-[10px] text-muted-foreground mt-1 font-mono">v4.0.2 // SYSTEM_ONLINE</p>
@@ -511,12 +507,12 @@ export default function ApiDocsPage() {
           <div className="sticky top-0 z-20 bg-[#050505]/80 backdrop-blur-md border-b border-white/10 px-8 py-4 flex items-center justify-between">
              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                <span>Docs</span>
-               <ChevronRight className="w-4 h-4" />
+               <IconRight className="w-4 h-4" />
                <span className="text-white">{selectedEndpoint.title}</span>
              </div>
              <div className="flex gap-2">
                <div className="px-3 py-1 bg-emerald-900/20 border border-primary/20 rounded-full text-primary text-xs font-mono flex items-center gap-2">
-                 <Activity className="w-3 h-3" />
+                 <IconChartLine className="w-3 h-3" />
                  Stable
                </div>
              </div>
@@ -537,7 +533,7 @@ export default function ApiDocsPage() {
                   <h2 className="text-3xl font-bold text-white tracking-tight">{selectedEndpoint.title}</h2>
                 </div>
                 <div className="flex items-center gap-2 font-mono text-sm bg-white/5 border border-white/10 rounded-lg p-3 w-full">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <IconGlobe className="w-4 h-4 text-muted-foreground" />
                   <span className="text-primary">{process.env.NEXT_PUBLIC_APP_URL || 'https://stravision.cheesestrawberry.top'}</span>
                   <span className="text-gray-300">{selectedEndpoint.path}</span>
                 </div>
@@ -550,7 +546,7 @@ export default function ApiDocsPage() {
               {selectedEndpoint.params && (
                 <div className="mb-8">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-primary" />
+                    <IconTerminal className="w-4 h-4 text-primary" />
                     Query Parameters
                   </h3>
                   <div className="border border-white/10 rounded-lg overflow-hidden">
@@ -588,7 +584,7 @@ export default function ApiDocsPage() {
               {selectedEndpoint.body && (
                 <div className="mb-8">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Database className="w-4 h-4 text-blue-500" />
+                    <IconDatabaseNetwork className="w-4 h-4 text-blue-500" />
                     Request Body
                   </h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -616,7 +612,7 @@ export default function ApiDocsPage() {
               {/* Response */}
               <div className="mb-8">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-green-500" />
+                  <IconChartLine className="w-4 h-4 text-green-500" />
                   Response
                 </h3>
                 <div className="border border-primary/20 bg-primary/5 rounded-lg p-4">

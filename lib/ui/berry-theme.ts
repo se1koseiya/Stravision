@@ -48,28 +48,30 @@ export const BERRY_THEME = {
   },
 
   // ===== Apple Material 设计系统（iOS 级别细腻度）=====
+  // ⚠️ 深色模式：中性色/阴影均为 CSS 变量（定义于 app/globals.css 的 :root 与 .dark），
+  // 内联 style 引用即可自动适配深浅两态；accents/widgetColors 为主题无关的饱和色，保持原值。
   apple: {
     // 背景 — iOS systemGroupedBackground
-    canvas: '#F2F2F7',
-    canvasGradient: 'linear-gradient(180deg, #ECECEF 0%, #F2F2F7 30%, #F5F5F7 100%)',
+    canvas: 'var(--berry-canvas)',
+    canvasGradient: 'var(--berry-canvas-gradient)',
 
-    // 卡片表面 — 纯白带微妙暖调
-    surface: '#FFFFFF',
+    // 卡片表面
+    surface: 'var(--berry-surface)',
     surfaceTinted: (hex: string) => hex,  // helper: 传入 accent hex
 
-    // 文字 — iOS label 色阶（带暖调，非纯灰）
-    label: '#1C1C1E',           // primary (iOS label)
-    labelSecondary: '#3C3C43',  // ~72% opacity (iOS secondaryLabel)
-    labelTertiary: '#8E8E93',   // iOS tertiaryLabel
-    labelQuaternary: '#AEAEB2', // iOS quaternaryLabel
+    // 文字 — iOS label 色阶
+    label: 'var(--berry-label)',                     // primary (iOS label)
+    labelSecondary: 'var(--berry-label-secondary)',  // iOS secondaryLabel
+    labelTertiary: 'var(--berry-label-tertiary)',    // iOS tertiaryLabel
+    labelQuaternary: 'var(--berry-label-quaternary)',// iOS quaternaryLabel
 
     // 分隔线 — iOS separator (半透明，非纯灰)
-    separator: 'rgba(60, 60, 67, 0.08)',
-    separatorOpaque: 'rgba(60, 60, 67, 0.12)',
+    separator: 'var(--berry-separator)',
+    separatorOpaque: 'var(--berry-separator-opaque)',
 
     // 仪表轨道 — 可见但柔和（非 hairline）
-    track: 'rgba(60, 60, 67, 0.08)',
-    trackStrong: 'rgba(60, 60, 67, 0.12)',
+    track: 'var(--berry-track)',
+    trackStrong: 'var(--berry-track-strong)',
 
     // iOS 系统色 — 鲜活但克制
     accents: {
@@ -111,18 +113,18 @@ export const BERRY_THEME = {
       pill: 100,
     },
 
-    // 阴影 — 多层叠加，真实深度感
+    // 阴影 — 多层叠加，真实深度感（深浅两态经 CSS 变量切换）
     shadow: {
       // 卡片静止态：环境光 + 方向光
-      card: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px -4px rgba(0,0,0,0.06), 0 12px 32px -8px rgba(0,0,0,0.05)',
+      card: 'var(--berry-shadow-card)',
       // 卡片悬浮态：更强的方向光 + 扩散
-      cardHover: '0 2px 6px rgba(0,0,0,0.06), 0 12px 28px -6px rgba(0,0,0,0.10), 0 24px 48px -12px rgba(0,0,0,0.08)',
+      cardHover: 'var(--berry-shadow-card-hover)',
       // 内部元素
-      inner: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px -2px rgba(0,0,0,0.04)',
+      inner: 'var(--berry-shadow-inner)',
     },
 
     // 内高光 — 模拟材质顶部光线反射
-    innerHighlight: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+    innerHighlight: 'var(--berry-inner-highlight)',
 
     // SF Pro 风格字体
     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif',
@@ -161,11 +163,11 @@ export const BERRY_THEME = {
     xl: 28,
   },
 
-  // ===== 统一阴影 — Apple 多层叠加 =====
+  // ===== 统一阴影 — Apple 多层叠加（CSS 变量，深浅两态自动切换）=====
   shadow: {
-    sm: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px -2px rgba(0,0,0,0.04)',
-    md: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px -4px rgba(0,0,0,0.06), 0 12px 32px -8px rgba(0,0,0,0.05)',
-    lg: '0 2px 6px rgba(0,0,0,0.06), 0 12px 28px -6px rgba(0,0,0,0.10), 0 24px 48px -12px rgba(0,0,0,0.08)',
+    sm: 'var(--berry-shadow-sm)',
+    md: 'var(--berry-shadow-md)',
+    lg: 'var(--berry-shadow-lg)',
   },
 } as const
 

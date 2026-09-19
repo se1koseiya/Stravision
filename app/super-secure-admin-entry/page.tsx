@@ -7,8 +7,8 @@ import CapWidget from "@/components/ui/cap-widget";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ShieldAlert, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { IconLock, IconShield } from "@/components/icon";
 
 
 
@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
         <CardHeader className="space-y-1 text-center border-b border-red-900/30 pb-6">
           <div className="flex justify-center mb-4">
             <div className="p-3 rounded-full bg-red-950/30 border border-red-900/50">
-              <ShieldAlert className="h-8 w-8 text-red-600" />
+              <IconShield className="h-8 w-8 text-red-600" />
             </div>
           </div>
           <CardTitle className="text-xl font-mono tracking-widest text-red-600 uppercase">
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
                   required
                   autoComplete="off"
                 />
-                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-red-900" />
+                <IconLock className="absolute left-3 top-2.5 h-4 w-4 text-red-900" />
               </div>
             </div>
             <div className="space-y-2">

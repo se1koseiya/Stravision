@@ -5,21 +5,8 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-import {
-   Mail,
-   Settings as SettingsIcon,
-   LogOut,
-   Bell,
-   ArrowRight,
-   ShieldCheck,
-   Zap,
-   Leaf,
-   Activity,
-   Cpu,
-   Smartphone,
-   AlertTriangle
-} from "lucide-react"
 import { motion } from "framer-motion"
+import { IconArrowRight, IconCaution, IconChartLine, IconCpu, IconCrown, IconLeaf, IconLightning, IconLogout, IconMagic, IconMail, IconPhone, IconRemind, IconSetting, IconShield } from "@/components/icon";
 
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,14 +18,13 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { clearAlertExpirations, getIgnoredAlerts } from "@/components/environment-alert"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Crown } from "lucide-react"
 
 // Membership Badge Component
 function MembershipBadge({ membership }: { membership?: string }) {
    if (membership === 'plus') {
       return (
          <Badge className="bg-gradient-to-r from-violet-600 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-500/20 px-3 py-1 flex items-center gap-1">
-            <Crown className="w-3.5 h-3.5 fill-current" />
+            <IconCrown className="w-3.5 h-3.5 fill-current" />
             PLUS 会员
          </Badge>
       )
@@ -46,7 +32,7 @@ function MembershipBadge({ membership }: { membership?: string }) {
    if (membership === 'pro') {
       return (
          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 border-0 text-white shadow-lg shadow-orange-500/20 px-3 py-1 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 fill-current" />
+            <IconMagic className="w-3.5 h-3.5 fill-current" />
             PRO 会员
          </Badge>
       )
@@ -174,7 +160,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-6">
                <button className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                  <Bell className="size-5" />
+                  <IconRemind className="size-5" />
                </button>
                <UserAvatarMenu user={user} />
             </div>
@@ -230,7 +216,7 @@ export default function ProfilePage() {
                      <div className="flex flex-col items-end">
                         <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">安全等级</span>
                         <div className="flex items-center gap-2">
-                           <ShieldCheck className="size-5 text-zinc-900 dark:text-white" />
+                           <IconShield className="size-5 text-zinc-900 dark:text-white" />
                            <span className="text-xl font-medium">极佳</span>
                         </div>
                      </div>
@@ -287,7 +273,7 @@ export default function ProfilePage() {
                               onClick={handleLogout}
                            >
                               <span>退出登录</span>
-                              <LogOut className="size-4" />
+                              <IconLogout className="size-4" />
                            </Button>
                         </div>
                      </div>
@@ -333,7 +319,7 @@ export default function ProfilePage() {
                                     <div className="space-y-6 border-l border-zinc-100 dark:border-zinc-800 pl-0 md:pl-12">
                                        <div className="flex items-start gap-4">
                                           <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
-                                             <Sparkles className="size-6 text-zinc-900 dark:text-white" />
+                                             <IconMagic className="size-6 text-zinc-900 dark:text-white" />
                                           </div>
                                           <div>
                                              <h5 className="font-bold mb-1">AI 智能助手</h5>
@@ -342,7 +328,7 @@ export default function ProfilePage() {
                                        </div>
                                        <div className="flex items-start gap-4">
                                           <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
-                                             <Activity className="size-6 text-zinc-900 dark:text-white" />
+                                             <IconChartLine className="size-6 text-zinc-900 dark:text-white" />
                                           </div>
                                           <div>
                                              <h5 className="font-bold mb-1">深度数据分析</h5>
@@ -351,7 +337,7 @@ export default function ProfilePage() {
                                        </div>
                                        <div className="flex items-start gap-4">
                                           <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
-                                             <ShieldCheck className="size-6 text-zinc-900 dark:text-white" />
+                                             <IconShield className="size-6 text-zinc-900 dark:text-white" />
                                           </div>
                                           <div>
                                              <h5 className="font-bold mb-1">全天候托管</h5>
@@ -368,10 +354,10 @@ export default function ProfilePage() {
                               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-8">快速访问</h3>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800">
                                  {[
-                                    { icon: Leaf, label: "农作物监测" },
-                                    { icon: Cpu, label: "设备控制" },
-                                    { icon: Activity, label: "数据报表" },
-                                    { icon: Zap, label: "AI 助手" }
+                                    { icon: IconLeaf, label: "农作物监测" },
+                                    { icon: IconCpu, label: "设备控制" },
+                                    { icon: IconChartLine, label: "数据报表" },
+                                    { icon: IconLightning, label: "AI 助手" }
                                  ].map((item, i) => (
                                     <button key={i} className="group bg-white dark:bg-black p-8 flex flex-col items-center justify-center gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                                        <item.icon className="size-8 text-zinc-900 dark:text-white opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
@@ -418,14 +404,14 @@ export default function ProfilePage() {
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               {devices.length === 0 ? (
                                  <div className="col-span-full py-20 text-center border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/20">
-                                    <Smartphone className="size-12 mx-auto mb-4 opacity-20" />
+                                    <IconPhone className="size-12 mx-auto mb-4 opacity-20" />
                                     <p className="text-zinc-500">暂无连接设备。</p>
                                  </div>
                               ) : (
                                  devices.map((device, i) => (
                                     <div key={i} className="group relative p-8 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
                                        <div className="flex justify-between items-start mb-6">
-                                          <Cpu className="size-8 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
+                                          <IconCpu className="size-8 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
                                           <div className="flex items-center gap-2">
                                              <div className="size-1.5 rounded-full bg-primary animate-pulse" />
                                              <span className="text-xs font-bold uppercase tracking-wider text-primary dark:text-emerald-400">运行中</span>
@@ -434,7 +420,7 @@ export default function ProfilePage() {
                                        <h3 className="text-xl font-bold mb-2">{device.name}</h3>
                                        <p className="font-mono text-xs text-zinc-400">{device.id}</p>
                                        <div className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
-                                          <ArrowRight className="size-6" />
+                                          <IconArrowRight className="size-6" />
                                        </div>
                                     </div>
                                  ))

@@ -1,7 +1,15 @@
 import { queryOne, execute, initDB } from "./database"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 
 // 确保 DB 已初始化（在调用此服务前，上层逻辑通常已经调用了 initDB，但为了安全起见，这里可以检查）
 // 但由于 initDB 是异步的，而 db 变量是同步导出的，所以这里假设上层已经 await initDB()
+
+// 🚨 桌面端（BYOK）豁免总说明（2026-09-14 用户实测 403 后定稿）：
+// 桌面端 = 本地运行 + 用户自带 Key（设置向导写入本地 providers 配置），
+// 平台配额/会员/积分体系整体不适用。IS_DESKTOP_APP 是构建期内联常量，
+// 桌面构建恒 true、Web 构建恒 false，Web 端计费行为不受任何影响。
+// 校验调用方：chat / automation / daily-insight / generate-schedule /
+// guardian-alerts / memory-report / prompt-demo / voice-deduct / user-settings。
 
 export interface UserAiQuota {
   daily_limit: number
@@ -17,6 +25,8 @@ export interface UserAiQuota {
  * @returns boolean 是否扣费成功（失败表示配额不足）
  */
 export async function reserveAiUsage(userId: number): Promise<boolean> {
+  // 桌面端不预扣（本地 BYOK 无配额概念，预扣会把本地普通用户拦在会员墙外）
+  if (IS_DESKTOP_APP) return true
   await initDB()
   const today = new Date().toISOString().split('T')[0]
 
@@ -61,6 +71,8 @@ export async function reserveAiUsage(userId: number): Promise<boolean> {
  * 退还预扣减的配额（请求失败时调用）
  */
 export async function refundAiUsage(userId: number): Promise<void> {
+  // 桌面端从未预扣，无需退还
+  if (IS_DESKTOP_APP) return
   await initDB()
   const today = new Date().toISOString().split('T')[0]
   // 优先退还每日额度，若今日已扣则减 1（不低于 0）
@@ -87,6 +99,10 @@ export async function refundAiUsage(userId: number): Promise<void> {
  * 会自动处理日限额重置逻辑
  */
 export async function getUserAiQuota(userId: number): Promise<UserAiQuota> {
+  // 桌面端：无配额概念，返回"无限制"（quotaInfo 消费方按 can_use 渲染）
+  if (IS_DESKTOP_APP) {
+    return { daily_limit: 999999, daily_usage: 0, balance: 0, can_use: true }
+  }
   await initDB()
   const user = await queryOne<any>(
     `SELECT daily_ai_limit, daily_ai_usage, last_ai_usage_date, ai_balance, membership
@@ -141,6 +157,8 @@ export async function getUserAiQuota(userId: number): Promise<UserAiQuota> {
  * @returns boolean 是否扣费成功
  */
 export async function incrementAiUsage(userId: number): Promise<boolean> {
+  // 桌面端不扣平台配额
+  if (IS_DESKTOP_APP) return true
   await initDB()
   const user = await queryOne<any>(
     `SELECT daily_ai_limit, daily_ai_usage, last_ai_usage_date, ai_balance, membership

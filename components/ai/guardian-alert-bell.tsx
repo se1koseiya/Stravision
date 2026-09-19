@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { Badge, Dropdown } from "antd"
-import { Bell, Check, X, WifiOff, Database, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
+import { IconCheck, IconCheckOne, IconClose, IconCloseWifi, IconDatabaseNetwork, IconRemind } from "@/components/icon";
 
 /**
  * 环境告警铃铛
@@ -57,6 +58,10 @@ interface GuardianAlertBellProps {
 }
 
 export function GuardianAlertBell({ className, compact = true }: GuardianAlertBellProps) {
+  // 深色模式下 hover/open 底色要用低透明白，否则 rgba(0,0,0,.05) 在深底上等于"没反应"
+  const { resolvedTheme } = useTheme()
+  const darkHost = resolvedTheme === "dark"
+
   const [alerts, setAlerts] = useState<GuardianAlert[]>([])
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatusInfo | null>(null)
   const [loading, setLoading] = useState(false)
@@ -125,11 +130,11 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
         ) : alerts.length === 0 ? (
           <div className="py-10 flex flex-col items-center gap-2">
             {deviceStatus?.status === 'offline' ? (
-              <WifiOff className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
+              <IconCloseWifi className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
             ) : deviceStatus?.status === 'no_data' ? (
-              <Database className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
+              <IconDatabaseNetwork className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
+              <IconCheckOne className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
             )}
             <p className="text-[12px] text-gray-400 dark:text-zinc-500">
               {deviceStatus?.status === 'offline'
@@ -166,14 +171,14 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
                       onClick={() => markRead(a.id)}
                       className="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-gray-200/70 dark:hover:bg-zinc-700/70 transition-colors"
                     >
-                      <Check className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <IconCheck className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
                     <button
                       title="忽略"
                       onClick={() => dismiss(a.id)}
                       className="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-gray-200/70 dark:hover:bg-zinc-700/70 transition-colors"
                     >
-                      <X className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <IconClose className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
                   </span>
                 </div>
@@ -222,12 +227,19 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
     >
       <button
         onClick={() => { if (!open) fetchAlerts() }}
-        className={cn('inline-flex items-center justify-center rounded-md border-none cursor-pointer', className)}
+        className={cn(
+          // 28px 点击区 + 8px 圆角：与顶栏「返回工作台」、侧栏头部两个图标按钮完全同规格。
+          // 此前用 `padding: 4` 包裹图标 —— padding-box 而非固定盒，视觉小一圈，
+          // 且 hover 底色的圆角/面积都与其他按钮不一致（用户 2026-09-19 截图反馈）。
+          'inline-flex items-center justify-center size-7 rounded-lg border-none cursor-pointer',
+          'transition-colors duration-150',
+          className
+        )}
         title="环境告警"
         aria-label="环境告警"
         style={{
-          background: open ? 'rgba(0,0,0,0.05)' : 'transparent',
-          padding: compact ? 4 : '4px 10px',
+          background: open ? (darkHost ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') : 'transparent',
+          padding: compact ? 0 : '0 10px',
           gap: 6,
         }}
       >
@@ -238,7 +250,9 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
           color={criticalCount > 0 ? '#ef4444' : '#a1a1aa'}
           offset={[2, -2]}
         >
-          <Bell size={16} strokeWidth={1.75} className="text-gray-500 dark:text-zinc-400" />
+          {/* strokeWidth 必须与顶栏 house/plus 一致：项目规范是 16px 用 2（=1.33px 视觉线宽）。
+              原来写 1.75 → 1.17px，比 house 细了 12%，并排看"一粗一细"。 */}
+          <IconRemind size={16} strokeWidth={2} className="text-gray-500 dark:text-zinc-400" />
         </Badge>
         {!compact && <span className="text-[12px]">告警</span>}
       </button>

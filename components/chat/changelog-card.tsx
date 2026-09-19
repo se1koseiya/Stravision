@@ -3,9 +3,9 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Rocket, Sparkles, Bug, Megaphone, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { IconAnnouncement, IconArrowRight, IconBug, IconMagic, IconRocket } from "@/components/icon";
 
 interface ChangelogData {
   version: string
@@ -47,7 +47,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
           </span>
         </div>
         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-start gap-2 leading-tight">
-          <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <IconAnnouncement className="h-4 w-4 text-primary shrink-0 mt-0.5" />
           {data.title || "系统更新公告"}
         </h3>
       </div>
@@ -69,7 +69,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
         {data.features && data.features.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-blue-600 dark:text-blue-400">
-              <Rocket className="h-3 w-3" />
+              <IconRocket className="h-3 w-3" />
               新功能
             </h4>
             <ul className="space-y-2 pl-1">
@@ -86,7 +86,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
         {data.improvements && data.improvements.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-amber-600 dark:text-amber-400">
-              <Sparkles className="h-3 w-3" />
+              <IconMagic className="h-3 w-3" />
               优化改进
             </h4>
             <ul className="space-y-2 pl-1">
@@ -103,7 +103,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
         {data.fixes && data.fixes.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-red-600 dark:text-red-400">
-              <Bug className="h-3 w-3" />
+              <IconBug className="h-3 w-3" />
               问题修复
             </h4>
             <ul className="space-y-2 pl-1">
@@ -122,7 +122,7 @@ export function ChangelogCard({ content }: ChangelogCardProps) {
             <Button asChild className="w-full bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium rounded-lg shadow-none group">
               <Link href={data.action.url}>
                 {data.action.label || "查看详情"}
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <IconArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
           </div>

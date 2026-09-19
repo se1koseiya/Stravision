@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Sparkles } from 'lucide-react'
 import { RealtimeVoiceOrb } from '@/components/realtime-voice-orb'
 import { AnimatePresence, motion } from 'framer-motion'
+import { IconMagic } from "@/components/icon";
 
 interface GreetingOrbProps {
   username?: string

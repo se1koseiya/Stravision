@@ -1,15 +1,8 @@
 "use client"
 
 import { Tooltip } from "antd"
-import {
-  CursorArrowRaysIcon,
-  HandRaisedIcon,
-  ChatBubbleLeftRightIcon,
-  ArrowUturnLeftIcon,
-  ArrowUturnRightIcon,
-} from "@heroicons/react/24/outline"
 import { cn } from "@/lib/utils"
-
+import { IconAiming, IconComment, IconHandUp, IconRedo, IconUndo } from "@/components/icon";
 export type CanvasTool = "select" | "hand" | "comment"
 
 interface CanvasLeftToolbarProps {
@@ -72,7 +65,7 @@ export function CanvasLeftToolbar({
         active={tool === "select"}
         onClick={() => onToolChange("select")}
       >
-        <CursorArrowRaysIcon className="h-[18px] w-[18px]" />
+        <IconAiming className="h-[18px] w-[18px]" />
       </ToolButton>
 
       <ToolButton
@@ -80,11 +73,11 @@ export function CanvasLeftToolbar({
         active={tool === "hand"}
         onClick={() => onToolChange("hand")}
       >
-        <HandRaisedIcon className="h-[18px] w-[18px]" />
+        <IconHandUp className="h-[18px] w-[18px]" />
       </ToolButton>
 
       <ToolButton tip="便签" active={tool === "comment"} onClick={() => onToolChange("comment")}>
-        <ChatBubbleLeftRightIcon className="h-[18px] w-[18px]" />
+        <IconComment className="h-[18px] w-[18px]" />
       </ToolButton>
 
       <div className="mt-auto flex flex-col gap-1">
@@ -94,7 +87,7 @@ export function CanvasLeftToolbar({
           active={false}
           onClick={onUndo}
         >
-          <ArrowUturnLeftIcon
+          <IconUndo
             className={cn("h-[18px] w-[18px]", !canUndo && "opacity-40")}
           />
         </ToolButton>
@@ -103,7 +96,7 @@ export function CanvasLeftToolbar({
           active={false}
           onClick={onRedo}
         >
-          <ArrowUturnRightIcon
+          <IconRedo
             className={cn("h-[18px] w-[18px]", !canRedo && "opacity-40")}
           />
         </ToolButton>

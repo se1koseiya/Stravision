@@ -15,8 +15,8 @@ import {
   Tag as AntTag,
   Typography,
 } from "antd";
-import { EditOutlined, HistoryOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
+import { IconDelete, IconEdit, IconHistory, IconPlus } from "@/components/icon";
 
 const { Text } = Typography;
 
@@ -209,12 +209,12 @@ export function ChangelogManager() {
     <Card
       title={
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <HistoryOutlined style={{ color: "#009456" }} />
+          <IconHistory style={{ color: "#009456" }} />
           更新日志管理
         </span>
       }
       extra={
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+        <Button type="primary" icon={<IconPlus />} onClick={openCreate}>
           新建版本
         </Button>
       }
@@ -264,7 +264,7 @@ export function ChangelogManager() {
                   <Button size="small" type="text" onClick={() => togglePublished(entry)}>
                     {entry.published ? "下架" : "发布"}
                   </Button>
-                  <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(entry)}>
+                  <Button size="small" type="text" icon={<IconEdit />} onClick={() => openEdit(entry)}>
                     编辑
                   </Button>
                   <Popconfirm
@@ -275,7 +275,7 @@ export function ChangelogManager() {
                     okButtonProps={{ danger: true }}
                     onConfirm={() => handleDelete(entry.id)}
                   >
-                    <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+                    <Button size="small" type="text" danger icon={<IconDelete />} />
                   </Popconfirm>
                 </Space>
               </div>
@@ -351,7 +351,7 @@ export function ChangelogManager() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>更新条目 *</Text>
-              <Button size="small" type="text" icon={<PlusOutlined />} onClick={addItem}>
+              <Button size="small" type="text" icon={<IconPlus />} onClick={addItem}>
                 加一条
               </Button>
             </div>
@@ -377,7 +377,7 @@ export function ChangelogManager() {
                     size="small"
                     type="text"
                     danger
-                    icon={<DeleteOutlined />}
+                    icon={<IconDelete />}
                     onClick={() => removeItem(index)}
                   />
                 </div>

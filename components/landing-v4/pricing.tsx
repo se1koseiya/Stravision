@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Check } from "lucide-react";
 import { CONTAINER, L, L_MIX, SECTION_TITLE, SHADOW, fadeUp } from "./shared";
+import { IconArrowRightUp, IconCheck } from "@/components/icon";
 
 /* ------------------------------------------------------------
    定价区 —— 沿用 Loomy 的卡片语言（细边框 + 28px 圆角 + 胶囊按钮）
@@ -126,7 +126,7 @@ export function Pricing() {
                       className="flex items-start gap-2.5 text-[0.8125rem] leading-[1.6]"
                       style={{ color: L.desc }}
                     >
-                      <Check className="mt-0.5 size-4 shrink-0" strokeWidth={3} style={{ color: L.greenInk }} />
+                      <IconCheck className="mt-0.5 size-4 shrink-0" strokeWidth={3} style={{ color: L.greenInk }} />
                       {f}
                     </li>
                   ))}
@@ -145,7 +145,7 @@ export function Pricing() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="" className="size-6 rounded-md" />
             查看完整套餐
-            <ArrowUpRight className="size-[1.15rem]" />
+            <IconArrowRightUp className="size-[1.15rem]" />
           </Link>
         </motion.div>
       </div>

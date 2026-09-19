@@ -3,9 +3,9 @@
 import { motion, useScroll, useTransform } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight } from "lucide-react"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax } from '@lobehub/icons'
 import { useRef } from "react"
+import { IconArrowRightUp } from "@/components/icon";
 
 export function Logic() {
   const ref = useRef(null)
@@ -77,7 +77,7 @@ export function Logic() {
           {/* Button */}
           <div className="flex justify-center relative z-10 mt-auto mb-16">
             <Link href="/ai-assistant" className="px-5 py-2 bg-blue-500 text-white rounded-full text-xs font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.5)] hover:bg-blue-600 transition-colors">
-              了解详情 <ArrowUpRight className="w-3 h-3" />
+              了解详情 <IconArrowRightUp className="w-3 h-3" />
             </Link>
           </div>
 

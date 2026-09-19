@@ -23,12 +23,12 @@ import { useTheme } from "next-themes";
 import { Bubble } from "@ant-design/x";
 import type { BubbleListProps } from "@ant-design/x";
 import XMarkdown from "@ant-design/x-markdown";
-import { CheckCircle2 } from "lucide-react";
 import BerryOrb from "@/components/smoothui/berry-orb";
 import {
   AgentThoughtChain,
   type AgentStep,
 } from "@/app/ai-assistant/_components/agent-thought-chain";
+import { IconCheckOne } from "@/components/icon";
 
 /* ---- 流式光标（与 ai-assistant 的 StreamingTail 一致） ---- */
 
@@ -279,7 +279,7 @@ export function DemoChat({
 
         {done && trailing ? (
           <div className="mt-3 flex items-center justify-end gap-1.5 px-1 text-[10.5px] text-slate-400 dark:text-[#79817B]">
-            <CheckCircle2 className="size-3 text-emerald-500" />
+            <IconCheckOne className="size-3 text-emerald-500" />
             {trailing}
           </div>
         ) : null}

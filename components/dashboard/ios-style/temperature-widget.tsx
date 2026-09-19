@@ -1,6 +1,5 @@
 "use client"
 
-import { Thermometer, TrendingUp, TrendingDown } from "lucide-react"
 import { Flex } from "antd"
 import {
   IOSWidgetCard,
@@ -14,6 +13,7 @@ import {
 import { WidgetRingProgress, WidgetLineChart, WidgetBars } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconThermometer, IconTrendingDown, IconTrendingUp } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.temperature
@@ -85,7 +85,7 @@ export function TemperatureWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Thermometer size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconThermometer size={12} strokeWidth={ICON_STROKE} />}
             label="温度"
             color={status.color}
             right={
@@ -125,7 +125,7 @@ export function TemperatureWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Thermometer size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconThermometer size={14} strokeWidth={ICON_STROKE} />}
             label="温度"
             color={status.color}
             right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -161,8 +161,8 @@ export function TemperatureWidget({
           <WidgetMiniStats
             stats={[
               { label: '体感', value: `${feelsLike(value).toFixed(0)}°`, color: A.label },
-              { label: '最高', value: `${high(value).toFixed(0)}°`, color: A.accents.red, icon: <TrendingUp size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '最低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue, icon: <TrendingDown size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '最高', value: `${high(value).toFixed(0)}°`, color: A.accents.red, icon: <IconTrendingUp size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '最低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue, icon: <IconTrendingDown size={10} strokeWidth={ICON_STROKE} /> },
             ]}
             style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
           />
@@ -178,7 +178,7 @@ export function TemperatureWidget({
       className={className}
       header={
         <WidgetHeader
-          icon={<Thermometer size={14} strokeWidth={ICON_STROKE} />}
+          icon={<IconThermometer size={14} strokeWidth={ICON_STROKE} />}
           label="温度"
           color={status.color}
           right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -207,8 +207,8 @@ export function TemperatureWidget({
         <WidgetCompactFooter
           stats={[
             { label: '体感', value: `${feelsLike(value).toFixed(0)}°`, color: A.label },
-            { label: '最高', value: `${high(value).toFixed(0)}°`, color: A.accents.red, icon: <TrendingUp size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '最低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue, icon: <TrendingDown size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '最高', value: `${high(value).toFixed(0)}°`, color: A.accents.red, icon: <IconTrendingUp size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '最低', value: `${low(value).toFixed(0)}°`, color: A.accents.blue, icon: <IconTrendingDown size={10} strokeWidth={ICON_STROKE} /> },
           ]}
         />
       </Flex>

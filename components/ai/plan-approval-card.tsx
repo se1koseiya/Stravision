@@ -2,20 +2,8 @@
 
 import React, { useState } from "react"
 import { Card, Button, Typography, Flex, Tag, Input, InputNumber } from "antd"
-import {
-  ClipboardList,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Wrench,
-  Pencil,
-  Plus,
-  Trash2,
-  ArrowUp,
-  ArrowDown,
-  Eye,
-} from "lucide-react"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconArrowDown, IconArrowUp, IconCheckOne, IconCloseOne, IconDelete, IconListCheckbox, IconLoading, IconPencil, IconPlus, IconPreviewOpen, IconTool } from "@/components/icon";
 
 const { Text, Paragraph } = Typography
 const { TextArea } = Input
@@ -145,7 +133,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
       {/* 头部：图标 + 标题 + 状态徽章 + 编辑切换 */}
       <Flex align="center" justify="space-between" style={{ marginBottom: 8 }}>
         <Flex align="center" gap={6} style={{ minWidth: 0, flex: 1 }}>
-          <ClipboardList size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.primary} style={{ flexShrink: 0 }} />
+          <IconListCheckbox size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.primary} style={{ flexShrink: 0 }} />
           {editing ? (
             <Input
               value={draft.title}
@@ -167,7 +155,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
               size="small"
               type="text"
               onClick={() => setEditing(!editing)}
-              icon={editing ? <Eye size={13} strokeWidth={ICON_STROKE} /> : <Pencil size={13} strokeWidth={ICON_STROKE} />}
+              icon={editing ? <IconPreviewOpen size={13} strokeWidth={ICON_STROKE} /> : <IconPencil size={13} strokeWidth={ICON_STROKE} />}
               style={{ fontSize: 12, color: editing ? BERRY_THEME.primary : "#8c8c8c", height: 24, padding: "0 6px" }}
             >
               {editing ? "预览" : "编辑"}
@@ -175,19 +163,19 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
           )}
           {status === "approved" && (
             <Tag color="success" style={{ margin: 0, fontSize: 11 }}>
-              <CheckCircle2 size={11} strokeWidth={ICON_STROKE} style={{ marginRight: 2, verticalAlign: "-1px" }} />
+              <IconCheckOne size={11} strokeWidth={ICON_STROKE} style={{ marginRight: 2, verticalAlign: "-1px" }} />
               已批准
             </Tag>
           )}
           {status === "rejected" && (
             <Tag color="error" style={{ margin: 0, fontSize: 11 }}>
-              <XCircle size={11} strokeWidth={ICON_STROKE} style={{ marginRight: 2, verticalAlign: "-1px" }} />
+              <IconCloseOne size={11} strokeWidth={ICON_STROKE} style={{ marginRight: 2, verticalAlign: "-1px" }} />
               已拒绝
             </Tag>
           )}
           {status === "pending" && (
             <Tag color="processing" style={{ margin: 0, fontSize: 11 }}>
-              <Loader2 size={11} strokeWidth={ICON_STROKE} style={{ marginRight: 2, verticalAlign: "-1px" }} className="animate-spin" />
+              <IconLoading size={11} strokeWidth={ICON_STROKE} style={{ marginRight: 2, verticalAlign: "-1px" }} className="animate-spin" />
               待审批
             </Tag>
           )}
@@ -241,7 +229,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                   flexShrink: 0,
                   width: 18,
                   height: 18,
-                  borderRadius: 9,
+                  borderRadius: 8,
                   background: BERRY_THEME.primary,
                   color: "#fff",
                   fontSize: 10,
@@ -269,7 +257,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                       onChange={(e) => updateStep(idx, { tool: e.target.value })}
                       placeholder="工具名（可选，如 toggle_relay）"
                       size="small"
-                      prefix={<Wrench size={11} strokeWidth={ICON_STROKE} color="#bfbfbf" />}
+                      prefix={<IconTool size={11} strokeWidth={ICON_STROKE} color="#bfbfbf" />}
                       style={{ fontSize: 11, color: "#8c8c8c", flex: 1 }}
                     />
                     {/* 上移/下移/删除 */}
@@ -278,7 +266,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                       type="text"
                       disabled={idx === 0}
                       onClick={() => moveStep(idx, "up")}
-                      icon={<ArrowUp size={12} strokeWidth={ICON_STROKE} />}
+                      icon={<IconArrowUp size={12} strokeWidth={ICON_STROKE} />}
                       style={{ width: 24, height: 24, padding: 0, color: "#8c8c8c" }}
                     />
                     <Button
@@ -286,14 +274,14 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                       type="text"
                       disabled={idx === stepsToShow.length - 1}
                       onClick={() => moveStep(idx, "down")}
-                      icon={<ArrowDown size={12} strokeWidth={ICON_STROKE} />}
+                      icon={<IconArrowDown size={12} strokeWidth={ICON_STROKE} />}
                       style={{ width: 24, height: 24, padding: 0, color: "#8c8c8c" }}
                     />
                     <Button
                       size="small"
                       type="text"
                       onClick={() => removeStep(idx)}
-                      icon={<Trash2 size={12} strokeWidth={ICON_STROKE} />}
+                      icon={<IconDelete size={12} strokeWidth={ICON_STROKE} />}
                       style={{ width: 24, height: 24, padding: 0, color: "#ff4d4f" }}
                     />
                   </Flex>
@@ -314,7 +302,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                   </Text>
                   {step.tool && (
                     <Flex align="center" gap={3}>
-                      <Wrench size={10} strokeWidth={ICON_STROKE} color="#bfbfbf" />
+                      <IconTool size={10} strokeWidth={ICON_STROKE} color="#bfbfbf" />
                       <Text style={{ fontSize: 11, color: "#bfbfbf" }}>{step.tool}</Text>
                     </Flex>
                   )}
@@ -330,7 +318,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
             type="dashed"
             block
             onClick={addStep}
-            icon={<Plus size={13} strokeWidth={ICON_STROKE} />}
+            icon={<IconPlus size={13} strokeWidth={ICON_STROKE} />}
             style={{
               height: 32,
               fontSize: 12.5,

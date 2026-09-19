@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button, Input, Card, Typography, Space } from "antd"
 import { toast } from "sonner"
-import { SafetyCertificateOutlined, SaveOutlined, ReloadOutlined } from "@ant-design/icons"
+import { IconCertificate, IconRefresh, IconSave } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -77,14 +77,14 @@ export function RateLimitSettings() {
       style={{ border: "1px solid #EDEEEF" }}
       title={
         <Space>
-          <SafetyCertificateOutlined style={{ color: "#1677ff" }} />
+          <IconCertificate style={{ color: "#1677ff" }} />
           <span>Auto-Ban Thresholds</span>
         </Space>
       }
       extra={
         <Button
           type="text"
-          icon={<ReloadOutlined />}
+          icon={<IconRefresh />}
           onClick={fetchConfig}
         />
       }
@@ -152,7 +152,7 @@ export function RateLimitSettings() {
               type="primary"
               htmlType="submit"
               disabled={saving}
-              icon={<SaveOutlined />}
+              icon={<IconSave />}
             >
               {saving ? "Saving..." : "Save Configuration"}
             </Button>

@@ -19,27 +19,9 @@ import {
   Segmented,
   message,
 } from "antd"
-import {
-  SoundOutlined,
-  AudioOutlined,
-  ExperimentOutlined,
-  PlayCircleOutlined,
-  StopOutlined,
-  ReloadOutlined,
-  SaveOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
-  ThunderboltOutlined,
-  PlusOutlined,
-  MinusCircleOutlined,
-  SettingOutlined,
-  KeyOutlined,
-  LockOutlined,
-  EyeInvisibleOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons"
 import { toast } from "sonner"
 import { convertBlobToWav } from "@/lib/voice/voice-utils"
+import { IconCheckOne, IconCloseOne, IconDelete, IconExperiment, IconKey, IconLock, IconMicrophone, IconMinus, IconPause, IconPlayOne, IconPlus, IconPreviewClose, IconRefresh, IconSave, IconSetting, IconThunderbolt, IconVolumeNotice } from "@/components/icon";
 
 const { Text, Title, Paragraph } = Typography
 
@@ -628,14 +610,14 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <KeyOutlined style={{ color: "#1677ff" }} />
+            <IconKey style={{ color: "#1677ff" }} />
             <span>API Key 安全设置</span>
-            <Tag icon={<LockOutlined />} color="green">AES-256-GCM 加密</Tag>
+            <Tag icon={<IconLock />} color="green">AES-256-GCM 加密</Tag>
           </Space>
         }
         extra={
           <Text type="secondary" style={{ fontSize: 12 }}>
-            <LockOutlined /> 独立存储 · 不回显明文
+            <IconLock /> 独立存储 · 不回显明文
           </Text>
         }
       >
@@ -657,15 +639,15 @@ export function VoiceTestPage() {
         <Row gutter={24}>
           {/* TTS API Key */}
           <Col span={12}>
-            <Card type="inner" title={<Space><SoundOutlined /> TTS API Key</Space>} size="small">
+            <Card type="inner" title={<Space><IconVolumeNotice /> TTS API Key</Space>} size="small">
               <div style={{ marginBottom: 12 }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>当前状态：</Text>
                 {ttsKeyStatus.configured ? (
-                  <Tag icon={<CheckCircleFilled />} color="success">
+                  <Tag icon={<IconCheckOne />} color="success">
                     已配置 · {ttsKeyStatus.masked}
                   </Tag>
                 ) : (
-                  <Tag icon={<CloseCircleFilled />} color="default">
+                  <Tag icon={<IconCloseOne />} color="default">
                     未配置（使用共享 Key）
                   </Tag>
                 )}
@@ -674,13 +656,13 @@ export function VoiceTestPage() {
                 placeholder="输入 TTS API Key（明文，保存后加密）"
                 value={ttsKeyInput}
                 onChange={(e) => setTtsKeyInput(e.target.value)}
-                prefix={<KeyOutlined style={{ color: "#999" }} />}
-                iconRender={(visible) => (visible ? <EyeInvisibleOutlined /> : <LockOutlined />)}
+                prefix={<IconKey style={{ color: "#999" }} />}
+                iconRender={(visible) => (visible ? <IconPreviewClose /> : <IconLock />)}
               />
               <Space style={{ marginTop: 8 }}>
                 <Button
                   type="primary"
-                  icon={<SaveOutlined />}
+                  icon={<IconSave />}
                   loading={savingTtsKey}
                   onClick={saveTtsKey}
                   disabled={!ttsKeyInput.trim()}
@@ -696,7 +678,7 @@ export function VoiceTestPage() {
                     okText="确定"
                     cancelText="取消"
                   >
-                    <Button danger icon={<DeleteOutlined />} size="small">清除</Button>
+                    <Button danger icon={<IconDelete />} size="small">清除</Button>
                   </Popconfirm>
                 )}
               </Space>
@@ -705,15 +687,15 @@ export function VoiceTestPage() {
 
           {/* ASR API Key */}
           <Col span={12}>
-            <Card type="inner" title={<Space><AudioOutlined /> ASR API Key</Space>} size="small">
+            <Card type="inner" title={<Space><IconMicrophone /> ASR API Key</Space>} size="small">
               <div style={{ marginBottom: 12 }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>当前状态：</Text>
                 {asrKeyStatus.configured ? (
-                  <Tag icon={<CheckCircleFilled />} color="success">
+                  <Tag icon={<IconCheckOne />} color="success">
                     已配置 · {asrKeyStatus.masked}
                   </Tag>
                 ) : (
-                  <Tag icon={<CloseCircleFilled />} color="default">
+                  <Tag icon={<IconCloseOne />} color="default">
                     未配置（使用共享 Key）
                   </Tag>
                 )}
@@ -722,13 +704,13 @@ export function VoiceTestPage() {
                 placeholder="输入 ASR API Key（明文，保存后加密）"
                 value={asrKeyInput}
                 onChange={(e) => setAsrKeyInput(e.target.value)}
-                prefix={<KeyOutlined style={{ color: "#999" }} />}
-                iconRender={(visible) => (visible ? <EyeInvisibleOutlined /> : <LockOutlined />)}
+                prefix={<IconKey style={{ color: "#999" }} />}
+                iconRender={(visible) => (visible ? <IconPreviewClose /> : <IconLock />)}
               />
               <Space style={{ marginTop: 8 }}>
                 <Button
                   type="primary"
-                  icon={<SaveOutlined />}
+                  icon={<IconSave />}
                   loading={savingAsrKey}
                   onClick={saveAsrKey}
                   disabled={!asrKeyInput.trim()}
@@ -744,7 +726,7 @@ export function VoiceTestPage() {
                     okText="确定"
                     cancelText="取消"
                   >
-                    <Button danger icon={<DeleteOutlined />} size="small">清除</Button>
+                    <Button danger icon={<IconDelete />} size="small">清除</Button>
                   </Popconfirm>
                 )}
               </Space>
@@ -754,7 +736,7 @@ export function VoiceTestPage() {
 
         <Divider style={{ margin: "16px 0 8px" }} />
         <Text type="secondary" style={{ fontSize: 11 }}>
-          <LockOutlined /> 安全说明：API Key 在服务器端使用 AES-256-GCM 算法加密存储，
+          <IconLock /> 安全说明：API Key 在服务器端使用 AES-256-GCM 算法加密存储，
           加密密钥由环境变量 VOICE_KEY_ENCRYPTION_SECRET 派生。生产环境请务必设置该环境变量。
         </Text>
       </Card>
@@ -764,12 +746,12 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <ExperimentOutlined style={{ color: "#1677ff" }} />
+            <IconExperiment style={{ color: "#1677ff" }} />
             <span>语音助手测试台</span>
           </Space>
         }
         extra={
-          <Button icon={<ReloadOutlined />} onClick={fetchConfig} size="small">刷新配置</Button>
+          <Button icon={<IconRefresh />} onClick={fetchConfig} size="small">刷新配置</Button>
         }
       >
         <Row gutter={16} align="middle">
@@ -791,7 +773,7 @@ export function VoiceTestPage() {
         </Row>
         <Divider style={{ margin: "12px 0" }} />
         <Space wrap>
-          <Tag icon={config.apiKeyConfigured ? <CheckCircleFilled /> : <CloseCircleFilled />} color={config.apiKeyConfigured ? "success" : "error"}>
+          <Tag icon={config.apiKeyConfigured ? <IconCheckOne /> : <IconCloseOne />} color={config.apiKeyConfigured ? "success" : "error"}>
             API Key {config.apiKeyConfigured ? "已就绪" : "未配置"}
           </Tag>
           {config.providerName && <Tag color="blue">来源: {config.providerName}</Tag>}
@@ -806,14 +788,14 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <SettingOutlined style={{ color: "#1677ff" }} />
+            <IconSetting style={{ color: "#1677ff" }} />
             <span>TTS 朗读音色 API 设置</span>
           </Space>
         }
         extra={
           <Button
             type="primary"
-            icon={<SaveOutlined />}
+            icon={<IconSave />}
             loading={savingSettings}
             onClick={saveTtsAsrSettings}
             size="small"
@@ -918,7 +900,7 @@ export function VoiceTestPage() {
           <div style={{ marginTop: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <Text strong>可选音色列表</Text>
-              <Button size="small" icon={<PlusOutlined />} onClick={addVoice}>添加音色</Button>
+              <Button size="small" icon={<IconPlus />} onClick={addVoice}>添加音色</Button>
             </div>
             {config.tts.voices.map((v, i) => (
               <Space key={i} style={{ display: "flex", marginBottom: 8 }} align="center">
@@ -937,7 +919,7 @@ export function VoiceTestPage() {
                 <Button
                   type="text"
                   danger
-                  icon={<MinusCircleOutlined />}
+                  icon={<IconMinus />}
                   onClick={() => removeVoice(i)}
                   disabled={config.tts.voices.length <= 1}
                 />
@@ -961,7 +943,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <SoundOutlined style={{ color: "#1677ff" }} />
+            <IconVolumeNotice style={{ color: "#1677ff" }} />
             <span>TTS 合成测试</span>
           </Space>
         }
@@ -989,7 +971,7 @@ export function VoiceTestPage() {
             </div>
             <Button
               type="primary"
-              icon={<PlayCircleOutlined />}
+              icon={<IconPlayOne />}
               loading={ttsLoading}
               onClick={testTts}
               size="large"
@@ -1022,14 +1004,14 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <SettingOutlined style={{ color: "#1677ff" }} />
+            <IconSetting style={{ color: "#1677ff" }} />
             <span>ASR 语音识别 API 设置</span>
           </Space>
         }
         extra={
           <Button
             type="primary"
-            icon={<SaveOutlined />}
+            icon={<IconSave />}
             loading={savingSettings}
             onClick={saveTtsAsrSettings}
             size="small"
@@ -1200,7 +1182,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <AudioOutlined style={{ color: "#1677ff" }} />
+            <IconMicrophone style={{ color: "#1677ff" }} />
             <span>ASR 语音识别测试</span>
           </Space>
         }
@@ -1214,7 +1196,7 @@ export function VoiceTestPage() {
               <Button
                 type="primary"
                 danger
-                icon={<AudioOutlined />}
+                icon={<IconMicrophone />}
                 onClick={startAsrRecording}
                 disabled={asrLoading}
                 size="large"
@@ -1224,7 +1206,7 @@ export function VoiceTestPage() {
             ) : (
               <Button
                 type="primary"
-                icon={<StopOutlined />}
+                icon={<IconPause />}
                 onClick={stopAsrRecording}
                 size="large"
               >
@@ -1240,7 +1222,7 @@ export function VoiceTestPage() {
               message="正在录音..."
               description="请对着麦克风说话，说完后点击「停止录音」"
               showIcon
-              icon={<AudioOutlined style={{ color: "#ff4d4f" }} />}
+              icon={<IconMicrophone style={{ color: "#ff4d4f" }} />}
             />
           )}
 
@@ -1266,14 +1248,14 @@ export function VoiceTestPage() {
           style={{ border: "1px solid #EDEEEF" }}
           title={
             <Space>
-              <ThunderboltOutlined style={{ color: "#722ed1" }} />
+              <IconThunderbolt style={{ color: "#722ed1" }} />
               <span>Omni 一体化架构 API 设置</span>
               <Tag color="purple">WebSocket 实时流式</Tag>
             </Space>
           }
           extra={
             <Button
-              icon={<SaveOutlined />}
+              icon={<IconSave />}
               onClick={saveTtsAsrSettings}
               loading={savingSettings}
               size="small"
@@ -1343,18 +1325,18 @@ export function VoiceTestPage() {
           {/* Omni API Key 管理 */}
           <div style={{ marginBottom: 8 }}>
             <Space>
-              <KeyOutlined style={{ color: "#722ed1" }} />
+              <IconKey style={{ color: "#722ed1" }} />
               <Text strong>Omni 独立 API Key</Text>
             </Space>
           </div>
           <div style={{ marginBottom: 12 }}>
             <Text type="secondary" style={{ fontSize: 12 }}>当前状态：</Text>
             {omniKeyStatus.configured ? (
-              <Tag icon={<CheckCircleFilled />} color="success">
+              <Tag icon={<IconCheckOne />} color="success">
                 已配置 · {omniKeyStatus.masked}
               </Tag>
             ) : (
-              <Tag icon={<CloseCircleFilled />} color="default">
+              <Tag icon={<IconCloseOne />} color="default">
                 未配置（使用共享 Key 或环境变量）
               </Tag>
             )}
@@ -1363,13 +1345,13 @@ export function VoiceTestPage() {
             placeholder="输入 Omni API Key（明文，保存后 AES-256-GCM 加密存储）"
             value={omniKeyInput}
             onChange={(e) => setOmniKeyInput(e.target.value)}
-            prefix={<KeyOutlined style={{ color: "#999" }} />}
-            iconRender={(visible) => (visible ? <EyeInvisibleOutlined /> : <LockOutlined />)}
+            prefix={<IconKey style={{ color: "#999" }} />}
+            iconRender={(visible) => (visible ? <IconPreviewClose /> : <IconLock />)}
           />
           <Space style={{ marginTop: 8 }}>
             <Button
               type="primary"
-              icon={<SaveOutlined />}
+              icon={<IconSave />}
               loading={savingOmniKey}
               onClick={saveOmniKey}
               disabled={!omniKeyInput.trim()}
@@ -1385,7 +1367,7 @@ export function VoiceTestPage() {
                 okText="确定"
                 cancelText="取消"
               >
-                <Button danger icon={<DeleteOutlined />} size="small">清除</Button>
+                <Button danger icon={<IconDelete />} size="small">清除</Button>
               </Popconfirm>
             )}
           </Space>

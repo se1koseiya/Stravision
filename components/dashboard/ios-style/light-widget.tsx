@@ -1,6 +1,5 @@
 "use client"
 
-import { Sun, Sunrise, Sunset, Zap, Clock } from "lucide-react"
 import { Flex } from "antd"
 import {
   IOSWidgetCard,
@@ -14,6 +13,7 @@ import {
 import { WidgetRingProgress, WidgetLineChart, WidgetBars, WidgetGaugeStrip } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconLightning, IconSun, IconSunrise, IconSunset, IconTime } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.light
@@ -90,7 +90,7 @@ export function LightWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Sun size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconSun size={12} strokeWidth={ICON_STROKE} />}
             label="光照"
             color={status.color}
             right={<div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />}
@@ -111,9 +111,9 @@ export function LightWidget({
           <WidgetGaugeStrip value={value} min={0} max={80000} color={status.color} segments={10} height={5} />
           <WidgetMiniStats
             stats={[
-              { label: '峰值', value: '50k', color: A.accents.orange, icon: <Zap size={9} strokeWidth={ICON_STROKE} /> },
-              { label: 'DLI', value: `${dli(value)}`, color: A.accents.yellow, icon: <Sun size={9} strokeWidth={ICON_STROKE} /> },
-              { label: '时长', value: '8.2h', color: A.labelSecondary, icon: <Clock size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '峰值', value: '50k', color: A.accents.orange, icon: <IconLightning size={9} strokeWidth={ICON_STROKE} /> },
+              { label: 'DLI', value: `${dli(value)}`, color: A.accents.yellow, icon: <IconSun size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '时长', value: '8.2h', color: A.labelSecondary, icon: <IconTime size={9} strokeWidth={ICON_STROKE} /> },
             ]}
           />
         </Flex>
@@ -128,7 +128,7 @@ export function LightWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Sun size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconSun size={14} strokeWidth={ICON_STROKE} />}
             label="光照强度"
             color={status.color}
             right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -163,9 +163,9 @@ export function LightWidget({
 
           <WidgetMiniStats
             stats={[
-              { label: '日出', value: '06:12', color: A.accents.orange, icon: <Sunrise size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '日落', value: '19:45', color: A.accents.indigo, icon: <Sunset size={10} strokeWidth={ICON_STROKE} /> },
-              { label: 'DLI', value: `${dli(value)} mol/m²`, color: status.color, icon: <Zap size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '日出', value: '06:12', color: A.accents.orange, icon: <IconSunrise size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '日落', value: '19:45', color: A.accents.indigo, icon: <IconSunset size={10} strokeWidth={ICON_STROKE} /> },
+              { label: 'DLI', value: `${dli(value)} mol/m²`, color: status.color, icon: <IconLightning size={10} strokeWidth={ICON_STROKE} /> },
             ]}
             style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
           />
@@ -180,7 +180,7 @@ export function LightWidget({
       className={className}
       header={
         <WidgetHeader
-          icon={<Sun size={14} strokeWidth={ICON_STROKE} />}
+          icon={<IconSun size={14} strokeWidth={ICON_STROKE} />}
           label="光照"
           color={status.color}
           right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -208,9 +208,9 @@ export function LightWidget({
         </Flex>
         <WidgetCompactFooter
           stats={[
-            { label: '日出', value: '06:12', color: A.accents.orange, icon: <Sunrise size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '日落', value: '19:45', color: A.accents.indigo, icon: <Sunset size={10} strokeWidth={ICON_STROKE} /> },
-            { label: 'DLI', value: `${dli(value)}`, color: status.color, icon: <Zap size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '日出', value: '06:12', color: A.accents.orange, icon: <IconSunrise size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '日落', value: '19:45', color: A.accents.indigo, icon: <IconSunset size={10} strokeWidth={ICON_STROKE} /> },
+            { label: 'DLI', value: `${dli(value)}`, color: status.color, icon: <IconLightning size={10} strokeWidth={ICON_STROKE} /> },
           ]}
         />
       </Flex>

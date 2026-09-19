@@ -3,9 +3,9 @@
 
 import { useState, useRef } from "react"
 import { Card, Input, Button, Typography } from "antd"
-import { UploadOutlined, RocketOutlined, PlusOutlined, DeleteOutlined, LoadingOutlined, EditOutlined, SaveOutlined, ReloadOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
 import Image from "next/image"
+import { IconDelete, IconEdit, IconLoading, IconPlus, IconRefresh, IconRocket, IconSave, IconUpload } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -167,7 +167,7 @@ export function ChangelogSender() {
         <Button 
           type="text" 
           size="small" 
-          icon={<PlusOutlined />} 
+          icon={<IconPlus />} 
           onClick={() => addItem(setter, list)}
           style={{ width: 24, height: 24 }}
         />
@@ -184,7 +184,7 @@ export function ChangelogSender() {
             <Button 
               type="text" 
               size="small"
-              icon={<DeleteOutlined />}
+              icon={<IconDelete />}
               onClick={() => removeItem(setter, list, index)}
               danger
             />
@@ -203,7 +203,7 @@ export function ChangelogSender() {
     <Card 
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <RocketOutlined style={{ color: '#1677ff' }} />
+          <IconRocket style={{ color: '#1677ff' }} />
           发布更新日志
         </span>
       }
@@ -257,10 +257,10 @@ export function ChangelogSender() {
                   }}
                 >
                   {uploading ? (
-                    <LoadingOutlined style={{ fontSize: 24, color: '#8F959E' }} />
+                    <IconLoading style={{ fontSize: 24, color: '#8F959E' }} />
                   ) : (
                     <>
-                      <UploadOutlined style={{ fontSize: 24, color: '#8F959E', marginBottom: 8 }} />
+                      <IconUpload style={{ fontSize: 24, color: '#8F959E', marginBottom: 8 }} />
                       <span style={{ fontSize: 12, color: '#8F959E' }}>点击上传封面图片 (Max 5MB)</span>
                     </>
                   )}
@@ -277,9 +277,9 @@ export function ChangelogSender() {
         </div>
 
         <div style={{ paddingTop: 8 }}>
-            {renderList("新功能 (Features)", <RocketOutlined style={{ color: '#1677ff' }} />, features, setFeatures, "新增了...")}
-            {renderList("优化改进 (Improvements)", <EditOutlined style={{ color: '#FA8C16' }} />, improvements, setImprovements, "优化了...")}
-            {renderList("问题修复 (Fixes)", <ReloadOutlined style={{ color: '#F5222D' }} />, fixes, setFixes, "修复了...")}
+            {renderList("新功能 (Features)", <IconRocket style={{ color: '#1677ff' }} />, features, setFeatures, "新增了...")}
+            {renderList("优化改进 (Improvements)", <IconEdit style={{ color: '#FA8C16' }} />, improvements, setImprovements, "优化了...")}
+            {renderList("问题修复 (Fixes)", <IconRefresh style={{ color: '#F5222D' }} />, fixes, setFixes, "修复了...")}
         </div>
 
         <div style={{ paddingTop: 16, borderTop: '1px dashed #EDEEEF' }}>

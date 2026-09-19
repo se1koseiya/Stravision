@@ -2,19 +2,6 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Mic,
-  Volume2,
-  Loader2,
-  Lightbulb,
-  Fan,
-  Droplets,
-  Video,
-  Calendar,
-  ArrowRight,
-  Zap,
-  Navigation,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import BerryOrb from "@/components/smoothui/berry-orb";
 import { detectOrbExpression, type OrbExpression } from "@/lib/ai/orb-expression";
@@ -34,6 +21,7 @@ import {
   PAGE_NAMES,
   extractCommands,
 } from "@/lib/voice/voice-utils";
+import { IconArrowRight, IconCalendar, IconFan, IconLight, IconLightning, IconLoading, IconMicrophone, IconNavigation, IconVideo, IconVolumeNotice, IconWater } from "@/components/icon";
 
 // 类型再导出，保持现有 import 兼容（FloatingXiaozhi / top-banner 等依赖）
 export type {
@@ -77,12 +65,12 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     const isOn = command.value === 1;
     const Icon =
       command.device === 5
-        ? Droplets
+        ? IconWater
         : command.device === 6
-        ? Fan
+        ? IconFan
         : command.device === 7 || command.device === 8
-        ? Lightbulb
-        : Zap;
+        ? IconLight
+        : IconLightning;
 
     const iconBg = isUser
       ? isOn ? "bg-green-400/20 text-green-300" : "bg-white/10 text-white/60"
@@ -110,7 +98,7 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <Lightbulb size={18} strokeWidth={1.75} />
+          <IconLight size={18} strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>RGB氛围灯</div>
@@ -134,7 +122,7 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <Video size={18} strokeWidth={1.75} />
+          <IconVideo size={18} strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>摄像头云台</div>
@@ -149,7 +137,7 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <Calendar size={18} strokeWidth={1.75} />
+          <IconCalendar size={18} strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>定时任务已创建</div>
@@ -166,13 +154,13 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <Navigation size={18} strokeWidth={1.75} />
+          <IconNavigation size={18} strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>页面跳转</div>
           <div className={cn("text-[11px] truncate", subColor)}>前往 {pageName}</div>
         </div>
-        <ArrowRight size={15} className={cn("mr-1 shrink-0", arrowColor)} />
+        <IconArrowRight size={15} className={cn("mr-1 shrink-0", arrowColor)} />
       </div>
     );
   }
@@ -353,15 +341,15 @@ export function RealtimeVoiceOrb({
           <AnimatePresence mode="wait">
             {status === "connecting" ? (
               <motion.div key="connecting" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
-                <Loader2 className="w-8 h-8 text-white/80 animate-spin" />
+                <IconLoading className="w-8 h-8 text-white/80 animate-spin" />
               </motion.div>
             ) : status === "speaking" ? (
               <motion.div key="speaking" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
-                <Volume2 className="w-8 h-8 text-white/80" />
+                <IconVolumeNotice className="w-8 h-8 text-white/80" />
               </motion.div>
             ) : isActive ? (
               <motion.div key="active" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
-                <Mic className="w-8 h-8 text-white/80" />
+                <IconMicrophone className="w-8 h-8 text-white/80" />
               </motion.div>
             ) : null}
           </AnimatePresence>

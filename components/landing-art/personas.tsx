@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sprout, GraduationCap, Cog } from "lucide-react";
+import { IconDegreeHat, IconSeedling, IconSetting } from "@/components/icon";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -35,7 +35,7 @@ const PERSONAS: Persona[] = [
     no: "01",
     name: "草莓种植专家",
     tagline: "农艺师视角 · 数据驱动 · 深度专业",
-    icon: Sprout,
+    icon: IconSeedling,
     structure: ["专业判断", "数据依据", "操作方案", "风险预判"],
     response: (
       <div className="space-y-5 text-[15px] leading-[1.75]">
@@ -67,7 +67,7 @@ const PERSONAS: Persona[] = [
     no: "02",
     name: "新手友好向导",
     tagline: "通俗易懂 · 循序渐进 · 手把手教",
-    icon: GraduationCap,
+    icon: IconDegreeHat,
     structure: ["情况说明", "建议这样做", "怎么判断成功", "新手常见误区"],
     response: (
       <div className="space-y-5 text-[15px] leading-[1.8]">
@@ -96,7 +96,7 @@ const PERSONAS: Persona[] = [
     no: "03",
     name: "智慧农业工程师",
     tagline: "系统视角 · 设备联动 · 自动化优先",
-    icon: Cog,
+    icon: IconSetting,
     structure: ["系统状态", "根因分析", "自动化方案", "执行链路"],
     response: (
       <div className="space-y-5 text-[15px] leading-[1.75]">

@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Search, ShieldCheck, Check, X, Sparkles, Bot, Cpu, Globe, Box, Laptop, Settings, Plus, Tag as TagIcon, BookOpen
-} from "lucide-react"
 import { Qwen, DeepSeek, Moonshot, Zhipu, OpenAI, Anthropic, Google, Meta } from '@lobehub/icons'
 import { Button } from "@/components/ui/button"
 import { Empty, Spin } from "antd"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ModelDetailDialog } from "@/components/model-store/model-detail-dialog"
+import { IconBookOpen, IconBox, IconCheck, IconClose, IconCpu, IconGlobe, IconLaptop, IconMagic, IconPlus, IconRobot, IconSearch, IconSetting, IconShield, IconTag } from "@/components/icon";
 
 export interface AIProvider {
   id: string;
@@ -33,7 +31,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "由通义千问驱动的系统级预置引擎。每日自动分配免费额度，对新手极为友好，无需配置环境即可进行农业问答与视觉分析。",
     category: "大语言模型",
     official: true,
-    icon: Sparkles,
+    icon: IconMagic,
     lobehubIcon: Qwen,
     defaultUrl: "",
     defaultModel: ""
@@ -45,7 +43,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "针对国内开发者的极速基座。需自备百炼平台API Key，完整支持 Qwen-Max, Qwen-VL 等地表最强开源系模型能力及其商业版。",
     category: "大语言模型",
     official: true,
-    icon: Sparkles,
+    icon: IconMagic,
     lobehubIcon: Qwen,
     defaultUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     defaultModel: "qwen-plus"
@@ -57,7 +55,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "引发大规模破圈效应的超高性价比模型。内置划时代的 DeepSeek V3 和 R1 推理模型，数学、代码、逻辑推理领域表现卓越。",
     category: "推理模型",
     official: true,
-    icon: Cpu,
+    icon: IconCpu,
     lobehubIcon: DeepSeek,
     defaultUrl: "https://api.deepseek.com/v1",
     defaultModel: "deepseek-chat"
@@ -69,7 +67,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "体验当今 AI 最强战力。兼容全球领先的 GPT-4o, o1-preview, o3-mini 等旗舰大模型，全场景智能任务完美收官体验。",
     category: "大语言模型",
     official: true,
-    icon: Globe,
+    icon: IconGlobe,
     lobehubIcon: OpenAI,
     defaultUrl: "https://api.openai.com/v1",
     defaultModel: "gpt-4o-mini"
@@ -81,7 +79,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "以 Claude-3.5-Sonnet 著称的强大阵营模型。长文本指令遵循度业界第一，写代码、创作及逻辑推理首选引擎。",
     category: "大语言模型",
     official: true,
-    icon: Box,
+    icon: IconBox,
     lobehubIcon: Anthropic,
     defaultUrl: "https://api.anthropic.com/v1",
     defaultModel: "claude-3-5-sonnet-20240620"
@@ -93,7 +91,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "原生构建的多模态吞金兽。支持多达 2M token的离谱超长上下文，可原生处理大量视频、截图以及海量农业传感器日志。",
     category: "多模态",
     official: true,
-    icon: Globe,
+    icon: IconGlobe,
     lobehubIcon: Google,
     defaultUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     defaultModel: "gemini-1.5-pro"
@@ -105,7 +103,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "月之暗面专攻的超长文本解析利器。如果你需要模型一口气阅读 200 万字的作物品种繁育技术报告，选它准没错。",
     category: "大语言模型",
     official: true,
-    icon: Bot,
+    icon: IconRobot,
     lobehubIcon: Moonshot,
     defaultUrl: "https://api.moonshot.cn/v1",
     defaultModel: "moonshot-v1-8k"
@@ -117,7 +115,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "国内学术界的开源瑰宝。GLM-5 系列模型在中文语义理解及工具调用能力 (Function Calling) 上表现极其精调而稳健。",
     category: "大语言模型",
     official: true,
-    icon: Box,
+    icon: IconBox,
     lobehubIcon: Zhipu,
     defaultUrl: "https://open.bigmodel.cn/api/paas/v4",
     defaultModel: "glm-4"
@@ -129,7 +127,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "企业隐私数据的终极庇护所。调用本机或局域网中运行的开源模型(如 Llama-3, Qwen3.6)，数据完全不出网，纯粹安全。",
     category: "本地部署",
     official: true,
-    icon: Laptop,
+    icon: IconLaptop,
     lobehubIcon: Meta,
     defaultUrl: "http://localhost:11434/v1",
     defaultModel: "llama3"
@@ -141,7 +139,7 @@ export const AI_PROVIDERS: AIProvider[] = [
     description: "为 OneAPI 或其他兼容 OpenAI 标准 `v1/chat/completions` 的中转代理准备的高自由度接入方案。全参数可调。",
     category: "大语言模型",
     official: false,
-    icon: Settings,
+    icon: IconSetting,
     defaultUrl: "",
     defaultModel: ""
   }
@@ -293,7 +291,7 @@ const ModelDetailView = ({
           style={{ borderRadius: 8 }}
           title="关闭"
         >
-          <X size={16} />
+          <IconClose size={16} />
         </button>
 
         <div className="flex-1 overflow-y-auto">
@@ -320,9 +318,9 @@ const ModelDetailView = ({
                 style={{ borderRadius: 8 }}
               >
                 {isActive ? (
-                  <><Check size={13} />已启用</>
+                  <><IconCheck size={13} />已启用</>
                 ) : (
-                  <><Plus size={13} strokeWidth={2.5} />配置模型</>
+                  <><IconPlus size={13} strokeWidth={2.5} />配置模型</>
                 )}
               </Button>
             </div>
@@ -330,7 +328,7 @@ const ModelDetailView = ({
             {/* 推荐 Prompt */}
             <div className="mt-5">
               <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles size={12} className="text-gray-400" />
+                <IconMagic size={12} className="text-gray-400" />
                 <span className="text-[12.5px] font-semibold text-gray-700">推荐 Prompt</span>
               </div>
               <textarea
@@ -345,7 +343,7 @@ const ModelDetailView = ({
             {/* 接入信息 */}
             <div className="mt-5">
               <div className="flex items-center gap-1.5 mb-2">
-                <BookOpen size={12} className="text-gray-400" />
+                <IconBookOpen size={12} className="text-gray-400" />
                 <span className="text-[12.5px] font-semibold text-gray-700">接入信息</span>
               </div>
               <pre
@@ -359,7 +357,7 @@ const ModelDetailView = ({
             {/* 核心能力 */}
             <div className="mt-5">
               <div className="flex items-center gap-1.5 mb-2">
-                <Cpu size={12} className="text-gray-400" />
+                <IconCpu size={12} className="text-gray-400" />
                 <span className="text-[12.5px] font-semibold text-gray-700">核心能力</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -374,7 +372,7 @@ const ModelDetailView = ({
                     className="flex items-center gap-2 px-2.5 py-1.5 border border-gray-200"
                     style={{ borderRadius: 6 }}
                   >
-                    <Check size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
+                    <IconCheck size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
                     <span className="text-[12px] text-gray-700">{feature}</span>
                   </div>
                 ))}
@@ -384,17 +382,17 @@ const ModelDetailView = ({
             {/* 元信息 */}
             <div className="mt-4 flex items-center gap-3 text-[11.5px] text-gray-400 flex-wrap">
               <span className="flex items-center gap-1">
-                <Globe size={11} />{provider.provider}
+                <IconGlobe size={11} />{provider.provider}
               </span>
               <span className="w-px h-3 bg-gray-200" />
               <span className="flex items-center gap-1">
-                <TagIcon size={11} />{provider.category}
+                <IconTag size={11} />{provider.category}
               </span>
               {provider.official && (
                 <>
                   <span className="w-px h-3 bg-gray-200" />
                   <span className="flex items-center gap-1">
-                    <ShieldCheck size={11} />官方推荐
+                    <IconShield size={11} />官方推荐
                   </span>
                 </>
               )}
@@ -434,7 +432,7 @@ const ModelCard = ({
               {provider.name}
             </h3>
             {provider.official && (
-              <ShieldCheck size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+              <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
             )}
           </div>
           <span className="text-[11px] text-gray-400 mt-0.5 inline-block">· {provider.category}</span>
@@ -445,12 +443,12 @@ const ModelCard = ({
       </p>
       <div className="mt-auto flex items-center justify-between pt-1">
         <span className="text-[11.5px] text-gray-400 flex items-center gap-1">
-          <Globe size={11} />
+          <IconGlobe size={11} />
           {provider.provider}
         </span>
         {isActive ? (
           <span className="text-[11px] text-blue-600 flex items-center gap-1 font-medium">
-            <Check size={11} strokeWidth={3} />
+            <IconCheck size={11} strokeWidth={3} />
             使用中
           </span>
         ) : (
@@ -460,7 +458,7 @@ const ModelCard = ({
             style={{ borderRadius: 6 }}
             title="配置"
           >
-            <Plus size={13} strokeWidth={2.5} />
+            <IconPlus size={13} strokeWidth={2.5} />
           </button>
         )}
       </div>
@@ -642,7 +640,7 @@ export function ModelStoreContent({ searchQuery = "" }: { searchQuery?: string }
           ))}
         </div>
         <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
           <input
             type="text"
             placeholder="搜索模型"

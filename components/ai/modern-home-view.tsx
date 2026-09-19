@@ -2,13 +2,10 @@
 
 import React from "react"
 import { motion } from "framer-motion"
-import { 
-  Thermometer, Droplets, Wind, Sun, Sprout, 
-  TrendingUp, Sparkles, MessageSquare, User
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import BerryOrb from "@/components/smoothui/berry-orb"
 import type { UserPublic } from "@/lib/db/user-service"
+import { IconComment, IconMagic, IconSeedling, IconSun, IconThermometer, IconTrendingUp, IconUser, IconWater, IconWind } from "@/components/icon";
 
 interface ModernHomeViewProps {
   user: UserPublic | null
@@ -40,42 +37,42 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
   // 环境监测数据
   const environmentData = [
     { 
-      icon: Thermometer, 
+      icon: IconThermometer, 
       label: "环境温度", 
       value: deviceData?.temperature?.toFixed(1) || "19.2", 
       unit: "℃", 
       color: "text-blue-400" 
     },
     { 
-      icon: Droplets, 
+      icon: IconWater, 
       label: "空气湿度", 
       value: deviceData?.humidity?.toFixed(0) || "64", 
       unit: "%", 
       color: "text-cyan-400" 
     },
     { 
-      icon: Droplets, 
+      icon: IconWater, 
       label: "CO₂浓度", 
       value: deviceData?.co2?.toString() || "620", 
       unit: "ppm", 
       color: "text-green-400" 
     },
     { 
-      icon: Sun, 
+      icon: IconSun, 
       label: "光照强度", 
       value: deviceData?.light?.toString() || "850", 
       unit: "lux", 
       color: "text-yellow-400" 
     },
     { 
-      icon: Thermometer, 
+      icon: IconThermometer, 
       label: "土壤温度", 
       value: "18.6", 
       unit: "℃", 
       color: "text-orange-400" 
     },
     { 
-      icon: Wind, 
+      icon: IconWind, 
       label: "空气流速", 
       value: "45", 
       unit: "%", 
@@ -86,21 +83,21 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
   // 智能建议
   const suggestions = [
     {
-      icon: Sprout,
+      icon: IconSeedling,
       title: "灌溉优化建议",
       description: "土壤湿度偏低，建议在 16:00 启动滴灌",
       status: "待执行",
       time: "10:30"
     },
     {
-      icon: Sun,
+      icon: IconSun,
       title: "光照调整提醒",
       description: "晴天高温，建议关闭 1000lux 补光灯",
       status: "待确认",
       time: "09:18"
     },
     {
-      icon: TrendingUp,
+      icon: IconTrendingUp,
       title: "温控降温建议",
       description: "温度持续上升，建议开启降温系统",
       status: "进行中",
@@ -110,10 +107,10 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
 
   // 快捷功能
   const quickActions = [
-    { icon: Sparkles, title: "深度诊断", subtitle: "多维度环境智能分析" },
-    { icon: TrendingUp, title: "优化方案", subtitle: "基于数据生成优化方案" },
-    { icon: MessageSquare, title: "趋势分析", subtitle: "环境趋势分析与预测" },
-    { icon: User, title: "多Agent协作", subtitle: "多智能体协同分析决策" },
+    { icon: IconMagic, title: "深度诊断", subtitle: "多维度环境智能分析" },
+    { icon: IconTrendingUp, title: "优化方案", subtitle: "基于数据生成优化方案" },
+    { icon: IconComment, title: "趋势分析", subtitle: "环境趋势分析与预测" },
+    { icon: IconUser, title: "多Agent协作", subtitle: "多智能体协同分析决策" },
   ]
 
   return (
@@ -146,7 +143,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
           className="inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-2xl cursor-pointer hover:border-emerald-500/40 transition-all group"
         >
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-emerald-400" />
+            <IconMagic className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="text-left">
             <div className="text-sm font-bold text-white flex items-center gap-2">
@@ -188,7 +185,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
                 <div className={cn("w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center", item.color)}>
                   <item.icon className="w-4 h-4" />
                 </div>
-                <TrendingUp className="w-3 h-3 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <IconTrendingUp className="w-3 h-3 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="text-2xl font-bold mb-1">
                 {item.value}

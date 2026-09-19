@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { Wind, Droplets, Thermometer, Eye, Gauge, Navigation, MapPin } from "lucide-react"
 import { Flex } from "antd"
 import { IOSWidgetCard } from "./ios-widget-card"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
@@ -16,6 +15,7 @@ import {
 } from "./weather-visualizations"
 import { WeatherEffects } from "./weather-effects"
 import { useWeatherVideo, WeatherVideoBackground } from "./weather-video"
+import { IconDashboard, IconLocalPin, IconNavigation, IconPreviewOpen, IconThermometer, IconWater, IconWind } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.weather
@@ -67,6 +67,7 @@ function generateHourlyData(temp: number, condition: string, windSpeed: number, 
       windSpeed: windSpeed * (0.7 + Math.random() * 0.6),
       windDir: windDir,
       isNow: i === 0,
+      hour: hourNum,
     })
   }
   return hours
@@ -91,7 +92,10 @@ export function WeatherWidget({
   onLongPress,
 }: WeatherWidgetProps) {
   const { isElderFriendlyMode } = useElderFriendly()
-  const config = getWeatherConfig(condition)
+  // 当前时刻是否夜间（19:00–06:00）→ 主图标渲染月亮
+  const currentHour = new Date().getHours()
+  const isNight = currentHour >= 19 || currentHour < 6
+  const config = getWeatherConfig(condition, isNight)
   const WeatherIcon = config.icon
   const isSmall = size === 'small'
   const isLarge = size === 'large'
@@ -188,7 +192,7 @@ export function WeatherWidget({
               borderRadius: 8,
               background: 'rgba(255,255,255,0.12)',
             }}>
-              <Droplets size={9} strokeWidth={2} color="rgba(255,255,255,0.7)" />
+              <IconWater size={9} strokeWidth={2} color="rgba(255,255,255,0.7)" />
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.85)', fontVariantNumeric: 'tabular-nums' }}>{humidity}%</span>
             </div>
             <div style={{
@@ -201,7 +205,7 @@ export function WeatherWidget({
               borderRadius: 8,
               background: 'rgba(255,255,255,0.12)',
             }}>
-              <Thermometer size={9} strokeWidth={2} color="rgba(255,255,255,0.7)" />
+              <IconThermometer size={9} strokeWidth={2} color="rgba(255,255,255,0.7)" />
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.85)', fontVariantNumeric: 'tabular-nums' }}>{fl}°</span>
             </div>
           </Flex>
@@ -233,7 +237,7 @@ export function WeatherWidget({
             </Flex>
             {location && (
               <Flex align="center" gap={3}>
-                <MapPin size={10} strokeWidth={2} color="rgba(255,255,255,0.5)" />
+                <IconLocalPin size={10} strokeWidth={2} color="rgba(255,255,255,0.5)" />
                 <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)' }}>{location}</span>
               </Flex>
             )}
@@ -263,19 +267,19 @@ export function WeatherWidget({
           {/* Bottom: stat chips */}
           <Flex gap={6}>
             <GlassStatChip
-              icon={<Droplets size={13} strokeWidth={ICON_STROKE} />}
+              icon={<IconWater size={13} strokeWidth={ICON_STROKE} />}
               label="湿度"
               value={humidity}
               unit="%"
             />
             <GlassStatChip
-              icon={<Wind size={13} strokeWidth={ICON_STROKE} />}
+              icon={<IconWind size={13} strokeWidth={ICON_STROKE} />}
               label="风速"
               value={windSpeed.toFixed(1)}
               unit="m/s"
             />
             <GlassStatChip
-              icon={<Gauge size={13} strokeWidth={ICON_STROKE} />}
+              icon={<IconDashboard size={13} strokeWidth={ICON_STROKE} />}
               label="气压"
               value={Math.round(pressure)}
               unit="hPa"
@@ -310,7 +314,7 @@ export function WeatherWidget({
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1 }}>{condition}</span>
                 {location && (
                   <Flex align="center" gap={3}>
-                    <MapPin size={9} strokeWidth={2} color="rgba(255,255,255,0.5)" />
+                    <IconLocalPin size={9} strokeWidth={2} color="rgba(255,255,255,0.5)" />
                     <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>{location}</span>
                   </Flex>
                 )}
@@ -335,12 +339,12 @@ export function WeatherWidget({
             </Flex>
             <Flex align="center" gap={12} style={{ marginTop: 4 }}>
               <Flex align="center" gap={3}>
-                <Thermometer size={11} strokeWidth={2} color="rgba(255,255,255,0.6)" />
+                <IconThermometer size={11} strokeWidth={2} color="rgba(255,255,255,0.6)" />
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>体感</span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontVariantNumeric: 'tabular-nums' }}>{fl}°</span>
               </Flex>
               <Flex align="center" gap={3}>
-                <Navigation size={10} strokeWidth={2} color="rgba(255,255,255,0.6)" />
+                <IconNavigation size={10} strokeWidth={2} color="rgba(255,255,255,0.6)" />
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontVariantNumeric: 'tabular-nums' }}>{windSpeed.toFixed(1)} m/s</span>
               </Flex>
             </Flex>
@@ -371,25 +375,25 @@ export function WeatherWidget({
         {/* Bottom stat chips */}
         <Flex gap={5}>
           <GlassStatChip
-            icon={<Droplets size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconWater size={12} strokeWidth={ICON_STROKE} />}
             label="湿度"
             value={humidity}
             unit="%"
           />
           <GlassStatChip
-            icon={<Wind size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconWind size={12} strokeWidth={ICON_STROKE} />}
             label="风速"
             value={windSpeed.toFixed(1)}
             unit="m/s"
           />
           <GlassStatChip
-            icon={<Eye size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconPreviewOpen size={12} strokeWidth={ICON_STROKE} />}
             label="能见度"
             value={visibility}
             unit="km"
           />
           <GlassStatChip
-            icon={<Gauge size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconDashboard size={12} strokeWidth={ICON_STROKE} />}
             label="气压"
             value={Math.round(pressure)}
             unit="hPa"

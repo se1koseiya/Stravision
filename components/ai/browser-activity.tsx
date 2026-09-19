@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Globe, Lock, RotateCw, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { WebPreview } from "@/components/ui/web-preview"
+import { IconGlobe, IconLoading, IconLock, IconRedo } from "@/components/icon";
 
 interface BrowserActivityProps {
   url: string
@@ -42,7 +42,7 @@ export function BrowserActivity({ url, isOpen, onClose }: BrowserActivityProps) 
                     </div>
                 </div>
                 <div className="flex items-center gap-1 text-[10px] font-medium text-zinc-400">
-                    <Globe size={10} />
+                    <IconGlobe size={10} />
                     <span>AI Browsing Session</span>
                 </div>
             </div>
@@ -50,16 +50,16 @@ export function BrowserActivity({ url, isOpen, onClose }: BrowserActivityProps) 
             {/* Address Bar */}
             <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 py-1.5 shadow-sm">
               <div className="flex gap-1 text-zinc-400">
-                 <Lock size={12} className="text-primary" />
+                 <IconLock size={12} className="text-primary" />
               </div>
               <div className="flex-1 text-xs truncate font-mono text-zinc-600 dark:text-zinc-300 selection:bg-blue-100">
                 {displayUrl}
               </div>
               <div className="flex items-center gap-1">
                  {isLoading ? (
-                    <Loader2 size={12} className="animate-spin text-blue-500" />
+                    <IconLoading size={12} className="animate-spin text-blue-500" />
                  ) : (
-                    <RotateCw 
+                    <IconRedo 
                         size={12} 
                         className="text-zinc-400 hover:text-zinc-600 cursor-pointer" 
                         onClick={() => setIsLoading(true)}

@@ -3,7 +3,7 @@
 import { DeviceControlIOSMock } from "./device-control-ios-mock"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useRef } from "react"
-import { Smartphone, Wifi, ShieldCheck } from "lucide-react"
+import { IconPhone, IconShield, IconWifi } from "@/components/icon";
 
 export function AnytimeControlSection() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -62,7 +62,7 @@ export function AnytimeControlSection() {
           className="order-1 lg:order-2 space-y-8"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">
-            <Smartphone className="w-4 h-4" />
+            <IconPhone className="w-4 h-4" />
             <span>随时随地</span>
           </div>
           
@@ -80,12 +80,12 @@ export function AnytimeControlSection() {
 
           <div className="grid grid-cols-2 gap-4">
              <div className="p-4 rounded-2xl bg-background/50 border border-gray-800">
-                <ShieldCheck className="w-8 h-8 text-blue-400 mb-2" />
+                <IconShield className="w-8 h-8 text-blue-400 mb-2" />
                 <h3 className="font-semibold text-white">安全加密</h3>
                 <p className="text-sm text-muted-foreground">银行级数据传输加密</p>
              </div>
              <div className="p-4 rounded-2xl bg-background/50 border border-gray-800">
-                <Wifi className="w-8 h-8 text-green-400 mb-2" />
+                <IconWifi className="w-8 h-8 text-green-400 mb-2" />
                 <h3 className="font-semibold text-white">极速连接</h3>
                 <p className="text-sm text-muted-foreground">全球节点加速网络</p>
              </div>

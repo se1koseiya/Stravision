@@ -1,7 +1,7 @@
 "use client"
 
-import { Compass } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconCompass } from "@/components/icon";
 
 /**
  * 可解释 AI 决策卡片
@@ -60,7 +60,7 @@ export function DecisionCard({ data, className }: DecisionCardProps) {
     )}>
       {/* 头部 */}
       <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800">
-        <Compass size={14} className="text-zinc-500 shrink-0" strokeWidth={1.75} />
+        <IconCompass size={14} className="text-zinc-500 shrink-0" strokeWidth={1.75} />
         <span className="text-xs font-medium">AI 决策依据</span>
         <span className={cn("text-[10px] px-1.5 py-0.5 rounded border", typeMeta.color)}>
           {typeMeta.label}

@@ -3,25 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  ArrowLeft,
-  Zap,
-  Users as UsersIcon,
-  Receipt,
-  Key,
-  UserCog,
-  Ticket,
-  Crown,
-  Info,
-  Sparkles,
-  Coins,
-  ChevronRight,
-  Loader2,
-  CalendarClock,
-  ShieldCheck,
-  Check,
-} from "lucide-react"
 import { toast } from "sonner"
+import { IconArrowLeft, IconBill, IconCalendar, IconCheck, IconCrown, IconCurrency, IconInfo, IconKey, IconLightning, IconLoading, IconMagic, IconPeoples, IconRight, IconSettingTwo, IconShield, IconTicket } from "@/components/icon";
 
 import type { UserPublic } from "@/lib/db/user-service"
 import { ForceLightTheme } from "@/components/landing-v4/force-light"
@@ -226,11 +209,11 @@ export default function SubscriptionPage() {
 
   const navItems = useMemo(
     () => [
-      { key: "plan" as const, icon: Zap, label: "套餐与用量", hint: "" },
-      { key: "members" as const, icon: UsersIcon, label: "成员计划", hint: "即将上线" },
-      { key: "billing" as const, icon: Receipt, label: "账单与发票", hint: "即将上线" },
-      { key: "api" as const, icon: Key, label: "API 管理", hint: "即将上线" },
-      { key: "account" as const, icon: UserCog, label: "账号设置", hint: "" },
+      { key: "plan" as const, icon: IconLightning, label: "套餐与用量", hint: "" },
+      { key: "members" as const, icon: IconPeoples, label: "成员计划", hint: "即将上线" },
+      { key: "billing" as const, icon: IconBill, label: "账单与发票", hint: "即将上线" },
+      { key: "api" as const, icon: IconKey, label: "API 管理", hint: "即将上线" },
+      { key: "account" as const, icon: IconSettingTwo, label: "账号设置", hint: "" },
     ],
     []
   )
@@ -274,7 +257,7 @@ export default function SubscriptionPage() {
               className="group inline-flex h-9 items-center gap-1.5 rounded-full border bg-white/70 px-3.5 text-[13px] font-medium text-[#696969] transition-colors hover:text-[#222222] active:scale-95"
               style={{ borderColor: L.line }}
             >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              <IconArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
               返回
             </button>
             <div className="h-5 w-px" style={{ background: L.line }} />
@@ -386,7 +369,7 @@ export default function SubscriptionPage() {
                             {item.label}
                           </span>
                           {isActive ? (
-                            <Check className="h-3.5 w-3.5 text-[#009456]" />
+                            <IconCheck className="h-3.5 w-3.5 text-[#009456]" />
                           ) : (
                             item.hint && (
                               <span className="text-[10px] text-[#A9A9A9]">{item.hint}</span>
@@ -506,8 +489,8 @@ function PlanHero({
             className="inline-flex items-center gap-1.5 rounded-full border border-black/5 px-2.5 py-1 text-[11px] font-semibold text-[#222222]"
             style={{ background: meta.badgeBg }}
           >
-            {tier === "plus" && <Crown className="h-3 w-3" />}
-            {tier === "pro" && <Sparkles className="h-3 w-3" />}
+            {tier === "plus" && <IconCrown className="h-3 w-3" />}
+            {tier === "pro" && <IconMagic className="h-3 w-3" />}
             {meta.label}
           </span>
 
@@ -523,7 +506,7 @@ function PlanHero({
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#0A0A0A] px-5 text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.97]"
                 style={{ boxShadow: SHADOW.dark }}
               >
-                <Crown className="h-4 w-4" />
+                <IconCrown className="h-4 w-4" />
                 {tier === "free" ? "升级 Pro" : "升级 Plus"}
               </button>
             )}
@@ -532,7 +515,7 @@ function PlanHero({
               className="inline-flex h-10 items-center gap-1.5 rounded-full border bg-white px-5 text-[13px] font-semibold text-[#222222] transition-colors hover:border-black/20 active:scale-[0.97]"
               style={{ borderColor: L.line }}
             >
-              <Ticket className="h-4 w-4" />
+              <IconTicket className="h-4 w-4" />
               使用兑换卡
             </button>
           </div>
@@ -579,7 +562,7 @@ function PlanHero({
             className="inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-3 py-1.5 text-[11px] text-[#696969]"
             style={{ borderColor: "rgba(34,34,34,0.08)" }}
           >
-            <CalendarClock className="h-3.5 w-3.5" />
+            <IconCalendar className="h-3.5 w-3.5" />
             权益于 {cycleEnd} 刷新
           </div>
         </div>
@@ -638,7 +621,7 @@ function BalanceCard({ balance, onTopUp }: { balance: number; onTopUp: () => voi
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DEFAE8]">
-            <Coins className="h-4 w-4 text-[#009456]" />
+            <IconCurrency className="h-4 w-4 text-[#009456]" />
           </div>
           <h3 className="text-[14px] font-semibold">充值积分余额</h3>
         </div>
@@ -648,7 +631,7 @@ function BalanceCard({ balance, onTopUp }: { balance: number; onTopUp: () => voi
           style={{ borderColor: L.line }}
         >
           充值
-          <ChevronRight className="h-3.5 w-3.5" />
+          <IconRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -691,12 +674,12 @@ function AddonCard({ tier, onUpgrade }: { tier: string; onUpgrade: () => void })
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DEFAE8]">
-            <Sparkles className="h-4 w-4 text-[#009456]" />
+            <IconMagic className="h-4 w-4 text-[#009456]" />
           </div>
           <h3 className="text-[14px] font-semibold">加量包</h3>
         </div>
         <div className="group/tip relative">
-          <Info className="h-4 w-4 cursor-help text-[#A9A9A9]" />
+          <IconInfo className="h-4 w-4 cursor-help text-[#A9A9A9]" />
           <span
             className="pointer-events-none absolute right-0 top-6 z-20 w-56 rounded-lg border bg-white p-2.5 text-[11px] leading-relaxed text-[#383838] opacity-0 shadow-xl transition-opacity group-hover/tip:opacity-100"
             style={{ borderColor: L.line }}
@@ -716,7 +699,7 @@ function AddonCard({ tier, onUpgrade }: { tier: string; onUpgrade: () => void })
             className="mt-3.5 inline-flex h-8 items-center gap-1 rounded-full bg-[#0A0A0A] px-3.5 text-[12px] font-semibold text-white transition-all hover:opacity-90 active:scale-95"
           >
             去升级
-            <ChevronRight className="h-3.5 w-3.5" />
+            <IconRight className="h-3.5 w-3.5" />
           </button>
         </div>
       ) : (
@@ -731,7 +714,7 @@ function AddonCard({ tier, onUpgrade }: { tier: string; onUpgrade: () => void })
             style={{ borderColor: L.line }}
           >
             查看全部
-            <ChevronRight className="h-3.5 w-3.5" />
+            <IconRight className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
@@ -764,7 +747,7 @@ function ComingSoon({ title }: { title: string }) {
         className="mt-5 inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-[11px] font-medium text-[#696969]"
         style={{ borderColor: L.line }}
       >
-        <ShieldCheck className="h-3.5 w-3.5 text-[#009456]" />
+        <IconShield className="h-3.5 w-3.5 text-[#009456]" />
         上线后会第一时间通知你
       </span>
     </section>
@@ -854,7 +837,7 @@ function RedeemModal({
             <div className="relative">
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DEFAE8]">
-                  <Ticket className="h-4 w-4 text-[#009456]" />
+                  <IconTicket className="h-4 w-4 text-[#009456]" />
                 </div>
                 <h2 className="text-[17px] font-bold tracking-tight">使用兑换卡</h2>
               </div>
@@ -886,7 +869,7 @@ function RedeemModal({
                   disabled={loading || !code.trim()}
                   className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#0A0A0A] text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {loading && <IconLoading className="h-4 w-4 animate-spin" />}
                   {loading ? "兑换中" : "立即兑换"}
                 </button>
               </div>

@@ -17,11 +17,11 @@ import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { App as AntApp } from "antd"
-import { Activity as ActivityIcon, Mail, Bell, RefreshCw } from "lucide-react"
 import ActivityFeed from "@/components/kb/activity-feed"
 import InvitationList from "@/components/kb/invitation-list"
 import type { UserPublic } from "@/lib/db/user-service"
 import { cn } from "@/lib/utils"
+import { IconChartLine, IconMail, IconRefresh, IconRemind } from "@/components/icon";
 
 interface ActivityPageClientProps {
   user: UserPublic
@@ -70,7 +70,7 @@ export default function ActivityPageClient({ user }: ActivityPageClientProps) {
             className="size-9 text-zinc-500 hover:text-[#1677ff]"
             title="通知"
           >
-            <Bell className="size-4" />
+            <IconRemind className="size-4" />
           </Button>
           <UserAvatarMenu user={user} />
         </div>
@@ -97,13 +97,13 @@ export default function ActivityPageClient({ user }: ActivityPageClientProps) {
 
             <div className="flex items-center gap-4 md:gap-6 pb-1">
               <StatCard
-                icon={<ActivityIcon size={16} className="text-[#1677ff]" />}
+                icon={<IconChartLine size={16} className="text-[#1677ff]" />}
                 label="可见活动"
                 value={activityCount}
               />
               <Divider />
               <StatCard
-                icon={<Mail size={16} className="text-[#fa8c16]" />}
+                icon={<IconMail size={16} className="text-[#fa8c16]" />}
                 label="待处理邀请"
                 value={pendingCount}
               />

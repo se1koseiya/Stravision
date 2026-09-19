@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { ChevronDown, ChevronUp, X } from "lucide-react"
 import { Button, Card, Tag, Tooltip, theme } from "antd"
+import { IconClose, IconDown, IconUp } from "@/components/icon";
 
 export interface MemoryItem {
   key: string
@@ -129,13 +129,13 @@ export function MemoryProfileBar({ items, defaultExpanded = false }: MemoryProfi
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
           {hasMore && (expanded
-            ? <ChevronUp size={11} style={{ color: token.colorTextTertiary }} />
-            : <ChevronDown size={11} style={{ color: token.colorTextTertiary }} />)}
+            ? <IconUp size={11} style={{ color: token.colorTextTertiary }} />
+            : <IconDown size={11} style={{ color: token.colorTextTertiary }} />)}
           <Button
             type="text"
             size="small"
             aria-label="关闭"
-            icon={<X size={12} />}
+            icon={<IconClose size={12} />}
             onClick={(e) => { e.stopPropagation(); setDismissed(true) }}
             style={{ color: token.colorTextQuaternary, minWidth: 20, height: 20, padding: 0 }}
           />

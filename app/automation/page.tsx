@@ -8,36 +8,22 @@ import type { UserPublic } from "@/lib/db/user-service";
 import { AutomationRule } from "@/lib/db/automation-service";
 import { PageHeader } from "@/components/page-header";
 import { PageHeaderRight } from "@/components/page-header-right";
+import { CopilotSidebar } from "@/components/ai/copilot/copilot-sidebar";
 import { toast } from "sonner";
+import { IconAiming, IconApplicationOne, IconArrowRight, IconCamera, IconDashboard, IconDelete, IconMore, IconPlayOne, IconPlus, IconRemind, IconRobot, IconSearch, IconThunderbolt, IconTime } from "@/components/icon";
 
 // antd 组件（飞书式整体排版）
 import { Button, Segmented, Input, Dropdown, Empty, Spin, Divider } from "antd";
-import {
-  PlusOutlined,
-  ThunderboltOutlined,
-  MoreOutlined,
-  DeleteOutlined,
-  PlayCircleOutlined,
-  SearchOutlined,
-  ArrowRightOutlined,
-  CameraOutlined,
-  FieldTimeOutlined,
-  AimOutlined,
-  AppstoreOutlined,
-  RobotOutlined,
-  DashboardOutlined,
-  BellOutlined,
-} from "@ant-design/icons";
 
 // 触发器/节点类型 → 图标
 const typeIcon: Record<string, React.ReactNode> = {
-  vlm: <CameraOutlined />,
-  sensor: <AimOutlined />,
-  schedule: <FieldTimeOutlined />,
-  logic: <AppstoreOutlined />,
-  ai: <RobotOutlined />,
-  action: <DashboardOutlined />,
-  default: <ThunderboltOutlined />,
+  vlm: <IconCamera />,
+  sensor: <IconAiming />,
+  schedule: <IconTime />,
+  logic: <IconApplicationOne />,
+  ai: <IconRobot />,
+  action: <IconDashboard />,
+  default: <IconThunderbolt />,
 };
 
 export default function AutomationPage() {
@@ -179,7 +165,7 @@ export default function AutomationPage() {
           <PageHeaderRight>
             <div className="hidden md:block">
               <Input
-                prefix={<SearchOutlined className="text-slate-400" />}
+                prefix={<IconSearch className="text-slate-400" />}
                 placeholder="搜索策略..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -197,7 +183,7 @@ export default function AutomationPage() {
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#1677ff]/10 text-[#1677ff]">
-                  <ThunderboltOutlined />
+                  <IconThunderbolt />
                 </span>
                 自动化策略
               </h1>
@@ -206,7 +192,7 @@ export default function AutomationPage() {
               </p>
             </div>
             <Link href="/automation/editor">
-              <Button type="primary" icon={<PlusOutlined />} className="!h-9 !px-5">
+              <Button type="primary" icon={<IconPlus />} className="!h-9 !px-5">
                 新建策略
               </Button>
             </Link>
@@ -225,7 +211,7 @@ export default function AutomationPage() {
               className="!rounded-md"
             />
             <Input
-              prefix={<SearchOutlined className="text-slate-400" />}
+              prefix={<IconSearch className="text-slate-400" />}
               placeholder="搜索策略名称或描述..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -302,12 +288,12 @@ export default function AutomationPage() {
                           items: [
                             {
                               key: "run",
-                              icon: <PlayCircleOutlined />,
+                              icon: <IconPlayOne />,
                               label: "立即运行",
                               disabled: runningId === rule.id,
                             },
                             { type: "divider" },
-                            { key: "delete", icon: <DeleteOutlined />, label: "删除规则", danger: true },
+                            { key: "delete", icon: <IconDelete />, label: "删除规则", danger: true },
                           ],
                           onClick: ({ key }) => {
                             if (key === "run") handleRunRule(rule);
@@ -318,7 +304,7 @@ export default function AutomationPage() {
                         <Button
                           type="text"
                           size="small"
-                          icon={<MoreOutlined />}
+                          icon={<IconMore />}
                           className="!text-slate-400 !-mr-1"
                         />
                       </Dropdown>
@@ -359,7 +345,7 @@ export default function AutomationPage() {
                           block
                           className="!rounded-md !text-slate-600 dark:!text-slate-300"
                         >
-                          编辑策略 <ArrowRightOutlined className="opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                          编辑策略 <IconArrowRight className="opacity-50 group-hover:translate-x-0.5 transition-transform" />
                         </Button>
                       </Link>
                     </div>
@@ -380,7 +366,7 @@ export default function AutomationPage() {
               >
                 {!searchQuery && (
                   <Link href="/automation/editor">
-                    <Button type="primary" icon={<PlusOutlined />}>创建新规则</Button>
+                    <Button type="primary" icon={<IconPlus />}>创建新规则</Button>
                   </Link>
                 )}
               </Empty>
@@ -388,6 +374,31 @@ export default function AutomationPage() {
           )}
         </div>
       </div>
+
+      {/* ===== AI 助手侧栏（复用 ai-assistant 的对话组件，欢迎词按页面区分）===== */}
+      <CopilotSidebar
+        pageKey="automation"
+        context={() => {
+          const lines: string[] = ["页面：自动化规则（/automation）"]
+          lines.push(`规则总数：${rules.length}`)
+          const active = rules.filter((r) => r.is_active).length
+          lines.push(`启用中：${active} 条；已停用：${rules.length - active} 条`)
+          if (rules.length) {
+            lines.push(
+              "规则清单：\n" +
+                rules
+                  .slice(0, 12)
+                  .map(
+                    (r) =>
+                      `- ${r.name}｜触发源 ${r.trigger_type}｜${r.is_active ? "启用" : "停用"}｜累计执行 ${r.execution_count} 次`
+                  )
+                  .join("\n")
+            )
+          }
+          if (searchQuery) lines.push(`用户正在搜索：${searchQuery}`)
+          return lines.join("\n")
+        }}
+      />
     </div>
   );
 }

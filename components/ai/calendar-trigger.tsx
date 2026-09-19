@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { Calendar as CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
+import { IconCalendar } from "@/components/icon";
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,7 @@ export function CalendarTrigger({ className }: { className?: string }) {
             className
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+          <IconCalendar className="mr-2 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
           <span className="hidden sm:inline-block font-medium text-zinc-700 dark:text-zinc-300">
             {date ? format(date, "M月d日", { locale: zhCN }) : "选择日期"}
           </span>
@@ -65,7 +65,7 @@ export function CalendarTrigger({ className }: { className?: string }) {
                  <DayTaskManager date={date} />
                ) : (
                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2 p-8">
-                   <CalendarIcon className="h-10 w-10 opacity-20" />
+                   <IconCalendar className="h-10 w-10 opacity-20" />
                    <p className="text-sm font-medium">请先选择一个日期</p>
                    <p className="text-xs opacity-70">查看当天的详细任务安排</p>
                  </div>

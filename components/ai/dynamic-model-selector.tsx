@@ -3,16 +3,10 @@
 import { useEffect, useState } from "react"
 import { useAIModels, type AIProvider } from "@/lib/hooks/use-ai-models"
 import { Qwen, DeepSeek, Moonshot, Zhipu, Minimax, OpenAI, Claude, Gemini, Grok, Mistral, Glama, Gemma, Hunyuan, Doubao, Spark } from "@lobehub/icons"
-import { Sparkles } from "lucide-react"
 import { Dropdown, Button, Switch, Divider, Modal, Form, Input, Tag, Tooltip } from "antd"
-import {
-  DownOutlined,
-  CheckOutlined,
-  EditOutlined,
-  RobotOutlined,
-  CloseOutlined,
-} from "@ant-design/icons"
 import { cn } from "@/lib/utils"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
+import { IconCheck, IconClose, IconDown, IconEdit, IconMagic, IconRobot } from "@/components/icon";
 
 interface DynamicModelSelectorProps {
   value: string
@@ -54,8 +48,8 @@ const getModelIcon = (iconType: string, size: number = 16) => {
     case "hunyuan": return brandIcon(Hunyuan, size)
     case "doubao": return brandIcon(Doubao, size)
     case "spark": return brandIcon(Spark, size)
-    case "sparkles": return <Sparkles size={size * 0.7} className="text-blue-500" />
-    default: return <RobotOutlined style={{ fontSize: size * 0.8, color: "#8F959E" }} />
+    case "sparkles": return <IconMagic size={size * 0.7} className="text-blue-500" />
+    default: return <IconRobot style={{ fontSize: size * 0.8, color: "#8F959E" }} />
   }
 }
 
@@ -175,10 +169,13 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
             ))}
           </span>
         )}
-        <span className="flex-shrink-0 text-[12px] tabular-nums text-gray-400 dark:text-zinc-500">
-          {rate.toFixed(2)}x
-        </span>
-        {selected && <CheckOutlined className="flex-shrink-0 !text-[12px] !text-[#1677ff]" />}
+        {/* 积分倍率角标（桌面端 BYOK 无积分概念，不显示） */}
+        {!IS_DESKTOP_APP && (
+          <span className="flex-shrink-0 text-[12px] tabular-nums text-gray-400 dark:text-zinc-500">
+            {rate.toFixed(2)}x
+          </span>
+        )}
+        {selected && <IconCheck className="flex-shrink-0 !text-[12px] !text-[#1677ff]" />}
       </div>
     )
   }
@@ -195,7 +192,7 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
         )}
       >
         <span className="flex-shrink-0 w-4 inline-flex justify-center text-gray-400">
-          <RobotOutlined style={{ fontSize: 13 }} />
+          <IconRobot style={{ fontSize: 13 }} />
         </span>
         <span className={cn(
           "flex-1 text-[13px] truncate",
@@ -206,13 +203,13 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
         <span className="flex-shrink-0 text-[12px] tabular-nums text-gray-400 dark:text-zinc-500">
           {effectiveRate(c.rateMultiplier ?? 1).toFixed(2)}x
         </span>
-        {selected && <CheckOutlined className="flex-shrink-0 !text-[12px] !text-[#1677ff]" />}
+        {selected && <IconCheck className="flex-shrink-0 !text-[12px] !text-[#1677ff]" />}
         <span
           role="button"
           onClick={(e) => { e.stopPropagation(); setEditingCustom(c); setModalOpen(true) }}
           className="flex-shrink-0 p-0.5 rounded hover:bg-gray-200/70 dark:hover:bg-zinc-700/70 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <EditOutlined style={{ fontSize: 11 }} />
+          <IconEdit style={{ fontSize: 11 }} />
         </span>
       </div>
     )
@@ -228,7 +225,7 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
       <Divider className="!my-1" />
 
       {/* Auto */}
-      {renderRow("auto", <Sparkles className="w-3.5 h-3.5 text-blue-500" />, "Auto", effectiveRate(0.6))}
+      {renderRow("auto", <IconMagic className="w-3.5 h-3.5 text-blue-500" />, "Auto", effectiveRate(0.6))}
 
       {/* 模型列表 */}
       {(visibleModels.length > 0 || customModels.length > 0) && (
@@ -260,7 +257,7 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
         onClick={() => { setEditingCustom(null); setModalOpen(true) }}
         className="flex items-center gap-2 px-2.5 py-[7px] rounded-md cursor-pointer text-[13px] text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
       >
-        <EditOutlined className="!text-[13px]" />
+        <IconEdit className="!text-[13px]" />
         <span>配置自定义模型</span>
       </div>
     </div>
@@ -285,10 +282,10 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
               <span className="inline-flex">{getModelIcon(currentIconType, 15)}</span>
             )}
             {(!currentIconType || currentIconType === "sparkles") && (
-              <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+              <IconMagic className="w-3.5 h-3.5 text-blue-500" />
             )}
             <span className="font-medium">{currentDisplayName}</span>
-            <DownOutlined className="!text-[9px] !text-gray-400" />
+            <IconDown className="!text-[9px] !text-gray-400" />
           </span>
         </Button>
       </Dropdown>
@@ -303,7 +300,7 @@ export function DynamicModelSelector({ value, onValueChange }: DynamicModelSelec
         title={
           <span className="!text-[15px] !font-medium">配置自定义模型</span>
         }
-        closeIcon={<CloseOutlined className="!text-[12px] !text-gray-400" />}
+        closeIcon={<IconClose className="!text-[12px] !text-gray-400" />}
       >
         <CustomModelForm
           initial={editingCustom}
@@ -384,7 +381,8 @@ function CustomModelForm({
       >
         <Input.Password placeholder="sk-..." className="!h-8 !text-[13px] !font-mono" />
       </Form.Item>
-      <div className="grid grid-cols-2 gap-3">
+      {/* 积分倍率（桌面端 BYOK 无积分概念，隐藏该字段；未提交时上游按默认 1 计） */}
+      <div className={IS_DESKTOP_APP ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
         <Form.Item
           name="modelId"
           label={<span className="!text-[13px] !text-gray-600">模型 ID</span>}
@@ -392,16 +390,18 @@ function CustomModelForm({
         >
           <Input placeholder="kimi-k2-0711-preview" className="!h-8 !text-[13px] !font-mono" />
         </Form.Item>
-        <Form.Item
-          name="rateMultiplier"
-          label={
-            <Tooltip title="该模型回复按 token 消耗积分的相对倍数（不填默认 1）">
-              <span className="!text-[13px] !text-gray-600">积分倍率（可选）</span>
-            </Tooltip>
-          }
-        >
-          <Input type="number" step={0.1} min={0.1} placeholder="默认 1" className="!h-8 !text-[13px]" />
-        </Form.Item>
+        {!IS_DESKTOP_APP && (
+          <Form.Item
+            name="rateMultiplier"
+            label={
+              <Tooltip title="该模型回复按 token 消耗积分的相对倍数（不填默认 1）">
+                <span className="!text-[13px] !text-gray-600">积分倍率（可选）</span>
+              </Tooltip>
+            }
+          >
+            <Input type="number" step={0.1} min={0.1} placeholder="默认 1" className="!h-8 !text-[13px]" />
+          </Form.Item>
+        )}
       </div>
       <div className="flex items-center justify-between mt-1">
         <div>

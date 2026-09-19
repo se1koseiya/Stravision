@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Sparkles, Crown, Zap, Check, ChevronRight } from "lucide-react"
 import { Typography, Flex, Progress, Button } from "antd"
 import Link from "next/link"
 import { IOSWidgetCard } from "./ios-style/ios-widget-card"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCheck, IconCrown, IconLightning, IconMagic, IconRight } from "@/components/icon";
 
 const { Text } = Typography
 const ICON_STROKE = 1.75
 const E = BERRY_THEME.editorial
+const A = BERRY_THEME.apple
 
 interface QuotaInfo {
   daily_limit: number
@@ -67,7 +68,7 @@ export function MembershipCard({
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
     >
-      <div className="h-full w-full animate-pulse" style={{ background: E.surfaceAlt, borderRadius: 8 }} />
+      <div className="h-full w-full animate-pulse" style={{ background: A.track, borderRadius: 8 }} />
     </IOSWidgetCard>
   )
 
@@ -78,15 +79,15 @@ export function MembershipCard({
   const isSmall = size === 'small'
 
   const config = isPlus
-    ? { icon: Crown, color: '#9333ea', title: 'PLUS 会员', label: 'PLUS' }
+    ? { icon: IconCrown, color: '#9333ea', title: 'PLUS 会员', label: 'PLUS' }
     : isPro
-      ? { icon: Sparkles, color: '#d97706', title: 'PRO 会员', label: 'PRO' }
-      : { icon: Zap, color: '#8c8c8c', title: '免费计划', label: '基础' }
+      ? { icon: IconMagic, color: '#d97706', title: 'PRO 会员', label: 'PRO' }
+      : { icon: IconLightning, color: '#8c8c8c', title: '免费计划', label: '基础' }
 
   const Icon = config.icon
 
   const Caption = ({ text, color }: { text: string; color?: string }) => (
-    <span style={{ ...E.type.caption, color: color || E.inkTertiary, fontSize: isSmall ? 9 : 10 }}>{text}</span>
+    <span style={{ ...E.type.caption, color: color || A.labelTertiary, fontSize: isSmall ? 9 : 10 }}>{text}</span>
   )
 
   const Header = !isSmall ? (
@@ -94,9 +95,9 @@ export function MembershipCard({
       <Caption text="MEMBERSHIP" />
       <Link
         href="/profile"
-        style={{ fontSize: 10, color: E.inkTertiary, display: 'flex', alignItems: 'center', gap: 2, pointerEvents: 'auto', zIndex: 50, position: 'relative', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
+        style={{ fontSize: 10, color: A.labelTertiary, display: 'flex', alignItems: 'center', gap: 2, pointerEvents: 'auto', zIndex: 50, position: 'relative', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
       >
-        详情 <ChevronRight size={12} strokeWidth={ICON_STROKE} color={E.inkTertiary} />
+        详情 <IconRight size={12} strokeWidth={ICON_STROKE} color={A.labelTertiary} />
       </Link>
     </Flex>
   ) : null
@@ -117,8 +118,8 @@ export function MembershipCard({
         <Flex vertical justify="space-between" style={{ height: '100%' }}>
           <Icon size={20} strokeWidth={1.5} color={config.color} style={{ opacity: 0.6 }} />
           <Flex vertical gap={2}>
-            <span style={{ fontSize: 22, fontWeight: 200, color: E.ink, lineHeight: 0.9, letterSpacing: '-0.02em' }}>{config.label}</span>
-            <span style={{ ...E.type.caption, color: E.inkTertiary, fontSize: 9 }}>
+            <span style={{ fontSize: 22, fontWeight: 200, color: A.label, lineHeight: 0.9, letterSpacing: '-0.02em' }}>{config.label}</span>
+            <span style={{ ...E.type.caption, color: A.labelTertiary, fontSize: 9 }}>
               {isPlus ? '无限制' : `${quota?.daily_usage || 0}/${quota?.daily_limit || 0}`} AI/天
             </span>
           </Flex>
@@ -131,7 +132,7 @@ export function MembershipCard({
           <Flex vertical gap={6}>
             <Flex align="baseline" justify="space-between">
               <Caption text="每日 AI 额度" />
-              <span style={{ fontSize: isSmall ? 24 : 28, fontWeight: 200, color: E.ink, lineHeight: 1, letterSpacing: '-0.02em' }}>
+              <span style={{ fontSize: isSmall ? 24 : 28, fontWeight: 200, color: A.label, lineHeight: 1, letterSpacing: '-0.02em' }}>
                 {isPlus ? '∞' : `${quota?.daily_usage || 0} / ${quota?.daily_limit || 0}`}
               </span>
             </Flex>
@@ -148,18 +149,18 @@ export function MembershipCard({
             )}
           </Flex>
 
-          <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: `1px solid ${E.line}` }}>
+          <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: `1px solid ${A.separator}` }}>
             {isFree ? (
               <Flex vertical gap={8}>
                 <Flex align="center" gap={6}>
-                  <Check size={12} strokeWidth={ICON_STROKE} color={config.color} />
-                  <span style={{ fontSize: 12, color: E.inkSecondary }}>基础监测</span>
+                  <IconCheck size={12} strokeWidth={ICON_STROKE} color={config.color} />
+                  <span style={{ fontSize: 12, color: A.labelSecondary }}>基础监测</span>
                 </Flex>
                 <Button
                   type="primary"
                   size="small"
                   block
-                  icon={<Sparkles size={12} strokeWidth={ICON_STROKE} />}
+                  icon={<IconMagic size={12} strokeWidth={ICON_STROKE} />}
                 >
                   升级
                 </Button>
@@ -167,12 +168,12 @@ export function MembershipCard({
             ) : (
               <Flex vertical gap={6}>
                 <Flex align="center" gap={6}>
-                  <Check size={12} strokeWidth={ICON_STROKE} color={config.color} />
-                  <span style={{ fontSize: 12, color: E.inkSecondary }}>{isPlus ? '无限制 AI' : '70次 AI/天'}</span>
+                  <IconCheck size={12} strokeWidth={ICON_STROKE} color={config.color} />
+                  <span style={{ fontSize: 12, color: A.labelSecondary }}>{isPlus ? '无限制 AI' : '70次 AI/天'}</span>
                 </Flex>
                 <Flex align="center" gap={6}>
-                  <Check size={12} strokeWidth={ICON_STROKE} color={config.color} />
-                  <span style={{ fontSize: 12, color: E.inkSecondary }}>{isPlus ? '全天候自动' : '数据分析'}</span>
+                  <IconCheck size={12} strokeWidth={ICON_STROKE} color={config.color} />
+                  <span style={{ fontSize: 12, color: A.labelSecondary }}>{isPlus ? '全天候自动' : '数据分析'}</span>
                 </Flex>
               </Flex>
             )}

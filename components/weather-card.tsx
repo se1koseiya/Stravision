@@ -14,20 +14,9 @@ import {
   Tooltip,
   Progress,
 } from "antd"
-import {
-  CloudOutlined,
-  SunOutlined,
-  ThunderboltOutlined,
-  MedicineBoxOutlined,
-  ExperimentOutlined,
-  FireOutlined,
-  InfoCircleOutlined,
-  CalendarOutlined,
-  EnvironmentOutlined,
-  LoadingOutlined,
-} from "@ant-design/icons"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { usePlantGrowth } from "@/lib/hooks/use-plant-growth"
+import { IconCalendar, IconCloudy, IconExperiment, IconFire, IconFog, IconInfo, IconLightRain, IconLoading, IconMapDraw, IconMedicineChest, IconSnow, IconSun, IconThunderbolt } from "@/components/icon";
 
 const { Text, Title, Paragraph } = Typography
 
@@ -100,11 +89,11 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
     const weatherType = type || (weatherData?.current ? getWeatherType(weatherData.current.condition.code) : "cloudy")
 
     const configs = {
-      sunny: { icon: <SunOutlined />, color: "#faad14", bg: "#fff7e6" },
-      cloudy: { icon: <CloudOutlined />, color: "#8c8c8c", bg: "#fafafa" },
-      rainy: { icon: <CloudOutlined />, color: "#1677ff", bg: "#e6f7ff" },
-      snowy: { icon: <CloudOutlined />, color: "#69b1ff", bg: "#f0f5ff" },
-      foggy: { icon: <CloudOutlined />, color: "#bfbfbf", bg: "#f5f5f5" },
+      sunny: { icon: <IconSun />, color: "#faad14", bg: "#fff7e6" },
+      cloudy: { icon: <IconCloudy />, color: "#8c8c8c", bg: "#fafafa" },
+      rainy: { icon: <IconLightRain />, color: "#1677ff", bg: "#e6f7ff" },
+      snowy: { icon: <IconSnow />, color: "#69b1ff", bg: "#f0f5ff" },
+      foggy: { icon: <IconFog />, color: "#bfbfbf", bg: "#f5f5f5" },
     }
 
     return configs[weatherType]
@@ -148,7 +137,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <Spin indicator={<LoadingOutlined style={{ fontSize: isLarge ? 32 : 16 }} />} />
+          <Spin indicator={<IconLoading style={{ fontSize: isLarge ? 32 : 16 }} />} />
         </div>
       )
     }
@@ -179,7 +168,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
     <Card
       title={
         <Space size="small">
-          <EnvironmentOutlined />
+          <IconMapDraw />
           <Text strong>环境监测</Text>
         </Space>
       }
@@ -198,7 +187,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
             <Title level={5} style={{ margin: 0 }}>
               当前地区
               <Tooltip title="点击更新定位">
-                <InfoCircleOutlined
+                <IconInfo
                   style={{
                     fontSize: TOKENS.fontSize.sm,
                     color: THEME.textSecondary,
@@ -208,7 +197,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               </Tooltip>
             </Title>
             <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>
-              <CalendarOutlined style={{ marginRight: TOKENS.spacing.xs }} />
+              <IconCalendar style={{ marginRight: TOKENS.spacing.xs }} />
               {weekday}, {dateStr}
             </Text>
           </Space>
@@ -267,7 +256,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               value={weatherData?.current?.humidity ?? '--'}
               suffix="%"
               valueStyle={{ fontSize: TOKENS.fontSize.lg }}
-              prefix={<MedicineBoxOutlined style={{ color: THEME.primary }} />}
+              prefix={<IconMedicineChest style={{ color: THEME.primary }} />}
             />
           </Col>
           <Col span={12}>
@@ -276,7 +265,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               value={weatherData?.current?.wind_kph ? Math.round(weatherData.current.wind_kph) : '--'}
               suffix="km/h"
               valueStyle={{ fontSize: TOKENS.fontSize.lg }}
-              prefix={<ThunderboltOutlined style={{ color: THEME.primary }} />}
+              prefix={<IconThunderbolt style={{ color: THEME.primary }} />}
             />
           </Col>
           <Col span={12}>
@@ -285,7 +274,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               value={weatherData?.current?.pressure_mb ? Math.round(weatherData.current.pressure_mb / 10) : '--'}
               suffix="hPa"
               valueStyle={{ fontSize: TOKENS.fontSize.lg }}
-              prefix={<ExperimentOutlined style={{ color: THEME.primary }} />}
+              prefix={<IconExperiment style={{ color: THEME.primary }} />}
             />
           </Col>
           <Col span={12}>
@@ -293,7 +282,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               title={<Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>风向</Text>}
               value={weatherData?.current?.wind_dir || '--'}
               valueStyle={{ fontSize: TOKENS.fontSize.base }}
-              prefix={<ThunderboltOutlined style={{ color: THEME.primary }} />}
+              prefix={<IconThunderbolt style={{ color: THEME.primary }} />}
             />
           </Col>
         </Row>
@@ -330,7 +319,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
             marginBottom: TOKENS.spacing.md,
             color: THEME.textPrimary,
           }}>
-            <ThunderboltOutlined style={{ marginRight: TOKENS.spacing.xs, color: THEME.primary }} />
+            <IconThunderbolt style={{ marginRight: TOKENS.spacing.xs, color: THEME.primary }} />
             大棚环境参数
           </Text>
 
@@ -346,7 +335,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                 <Statistic
                   title={
                     <Space size={4}>
-                      <FireOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.error }} />
+                      <IconFire style={{ fontSize: TOKENS.fontSize.xs, color: THEME.error }} />
                       <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>室内温度</Text>
                     </Space>
                   }
@@ -370,7 +359,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               }}>
                 <Space direction="vertical" size={TOKENS.spacing.xs} style={{ width: '100%' }}>
                   <Space size={4}>
-                    <MedicineBoxOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.primary }} />
+                    <IconMedicineChest style={{ fontSize: TOKENS.fontSize.xs, color: THEME.primary }} />
                     <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>室内湿度</Text>
                   </Space>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: TOKENS.spacing.xs }}>
@@ -406,7 +395,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                 <Statistic
                   title={
                     <Space size={4}>
-                      <ExperimentOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.primary }} />
+                      <IconExperiment style={{ fontSize: TOKENS.fontSize.xs, color: THEME.primary }} />
                       <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>CO₂浓度</Text>
                     </Space>
                   }
@@ -427,7 +416,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                 <Statistic
                   title={
                     <Space size={4}>
-                      <SunOutlined style={{ fontSize: TOKENS.fontSize.xs, color: THEME.warning }} />
+                      <IconSun style={{ fontSize: TOKENS.fontSize.xs, color: THEME.warning }} />
                       <Text type="secondary" style={{ fontSize: TOKENS.fontSize.xs }}>光照强度</Text>
                     </Space>
                   }
@@ -450,7 +439,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
             marginBottom: TOKENS.spacing.md,
             color: THEME.textPrimary,
           }}>
-            <ExperimentOutlined style={{ marginRight: TOKENS.spacing.xs, color: THEME.success }} />
+            <IconExperiment style={{ marginRight: TOKENS.spacing.xs, color: THEME.success }} />
             土壤监测
           </Text>
 

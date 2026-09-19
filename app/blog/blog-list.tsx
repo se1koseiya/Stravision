@@ -2,20 +2,11 @@
 
 import { memo, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Search,
-  ChevronRight,
-  Clock,
-  BookOpen,
-  FileText,
-  Layers,
-  ArrowRight,
-  Plus,
-} from "lucide-react";
 import type { ManualCategory } from "@/lib/blog/manuals-shared";
 import { CATEGORY_LABELS } from "@/lib/blog/manuals-shared";
 import type { ManualMeta } from "@/lib/blog/manuals-shared";
 import "./blog.css";
+import { IconArrowRight, IconBookOpen, IconFileText, IconLayers, IconPlus, IconRight, IconSearch, IconTime } from "@/components/icon";
 
 // ===== 左侧分类 =====
 interface SidebarItem {
@@ -215,7 +206,7 @@ function BlogListImpl({ manuals }: BlogListProps) {
                   </span>
                 </div>
                 <div className="berry-doc-search">
-                  <Search
+                  <IconSearch
                     className="berry-doc-search-icon"
                     strokeWidth={1.75}
                   />
@@ -232,7 +223,7 @@ function BlogListImpl({ manuals }: BlogListProps) {
               <div className="berry-doc-list">
                 {filtered.length === 0 ? (
                   <div className="berry-doc-empty">
-                    <Search
+                    <IconSearch
                       strokeWidth={1.5}
                       className="berry-doc-empty-icon"
                     />
@@ -275,7 +266,7 @@ function BlogListImpl({ manuals }: BlogListProps) {
                             <>
                               <span className="berry-doc-list-item-meta-sep" />
                               <span>
-                                <Clock strokeWidth={1.75} />
+                                <IconTime strokeWidth={1.75} />
                                 {m.updatedAt}
                               </span>
                             </>
@@ -284,7 +275,7 @@ function BlogListImpl({ manuals }: BlogListProps) {
                             <>
                               <span className="berry-doc-list-item-meta-sep" />
                               <span>
-                                <Layers strokeWidth={1.75} />
+                                <IconLayers strokeWidth={1.75} />
                                 {m.chapterCount} 章
                               </span>
                             </>
@@ -293,14 +284,14 @@ function BlogListImpl({ manuals }: BlogListProps) {
                             <>
                               <span className="berry-doc-list-item-meta-sep" />
                               <span>
-                                <BookOpen strokeWidth={1.75} />
+                                <IconBookOpen strokeWidth={1.75} />
                                 {m.readingTimeMin} 分钟
                               </span>
                             </>
                           )}
                         </div>
                       </div>
-                      <ChevronRight
+                      <IconRight
                         strokeWidth={1.75}
                         className="berry-doc-list-item-arrow"
                       />
@@ -312,7 +303,7 @@ function BlogListImpl({ manuals }: BlogListProps) {
               {/* 空状态时显示「去后台添加」入口 */}
               {manuals.length === 0 && (
                 <div className="berry-doc-empty-state">
-                  <FileText
+                  <IconFileText
                     strokeWidth={1.5}
                     className="berry-doc-empty-state-icon"
                   />
@@ -323,9 +314,9 @@ function BlogListImpl({ manuals }: BlogListProps) {
                     前往管理中心上传或创建第一份文档
                   </div>
                   <Link href="/admin" className="berry-doc-empty-state-btn">
-                    <Plus strokeWidth={1.75} />
+                    <IconPlus strokeWidth={1.75} />
                     前往管理中心
-                    <ArrowRight strokeWidth={1.75} />
+                    <IconArrowRight strokeWidth={1.75} />
                   </Link>
                 </div>
               )}

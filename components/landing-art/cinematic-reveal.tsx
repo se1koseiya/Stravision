@@ -9,8 +9,8 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { MagneticButton } from "./ui-primitives";
+import { IconArrowRightUp } from "@/components/icon";
 
 /* ============================================================
    CINEMATIC REVEAL —— 获奖级滚动叙事开篇
@@ -325,7 +325,7 @@ export function CinematicReveal() {
               className="group inline-flex items-center bg-white text-black px-9 py-4 text-[12px] tracking-[0.2em] uppercase transition-colors duration-300 hover:bg-[#1677ff] hover:text-white"
             >
               进入莓界
-              <ArrowUpRight
+              <IconArrowRightUp
                 className="w-4 h-4 ml-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                 strokeWidth={1.75}
               />

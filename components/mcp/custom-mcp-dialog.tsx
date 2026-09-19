@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, X, HelpCircle } from "lucide-react"
 import { toast } from "sonner"
+import { IconClose, IconHelp, IconPlus } from "@/components/icon";
 
 interface CustomMCPDialogProps {
   open: boolean
@@ -259,7 +259,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
           <div className="space-y-4">
             <h3 className="font-semibold text-sm flex items-center gap-2 text-white/60">
               安装命令
-              <HelpCircle className="size-4 text-white/40" />
+              <IconHelp className="size-4 text-white/40" />
             </h3>
 
             <div className="grid grid-cols-3 gap-4">
@@ -312,7 +312,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                 className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-primary"
               />
               <Button type="button" onClick={handleAddFeature} size="icon" className="bg-primary hover:bg-primary text-white">
-                <Plus className="size-4" />
+                <IconPlus className="size-4" />
               </Button>
             </div>
 
@@ -325,7 +325,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                       onClick={() => handleRemoveFeature(index)}
                       className="ml-1 hover:text-red-400 text-white/60"
                     >
-                      <X className="size-3" />
+                      <IconClose className="size-3" />
                     </button>
                   </Badge>
                 ))}
@@ -352,7 +352,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                   className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:ring-emerald-500/50 focus-visible:border-primary"
                 />
                 <Button type="button" onClick={handleAddEnvVar} size="icon" className="bg-primary hover:bg-primary text-white shrink-0">
-                  <Plus className="size-4" />
+                  <IconPlus className="size-4" />
                 </Button>
               </div>
             </div>
@@ -369,7 +369,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                       onClick={() => handleRemoveEnvVar(key)}
                       className="text-white/40 hover:text-red-400"
                     >
-                      <X className="size-4" />
+                      <IconClose className="size-4" />
                     </button>
                   </div>
                 ))}

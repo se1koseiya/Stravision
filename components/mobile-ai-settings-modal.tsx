@@ -5,12 +5,12 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Key, Link as LinkIcon, Box, MessageSquareText, CheckCircle2, ShieldCheck, Globe, Laptop } from "lucide-react";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { X } from "@/components/animate-ui/icons/x";
 import { Bot } from "@/components/animate-ui/icons/bot";
 import { Sparkles } from "@/components/animate-ui/icons/sparkles";
 import { cn } from "@/lib/utils"
+import { IconBox, IconCheckOne, IconComment, IconGlobe, IconKey, IconLaptop, IconLink, IconShield } from "@/components/icon";
 
 interface AISettings {
   apiKey: string
@@ -189,15 +189,15 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {[
-                  { id: "system", name: "系统预设", icon: ShieldCheck, url: "", desc: "阿里云百炼提供基础AI能力，无需手动配置" },
+                  { id: "system", name: "系统预设", icon: IconShield, url: "", desc: "阿里云百炼提供基础AI能力，无需手动配置" },
                   { id: "dashscope", name: "阿里云", icon: Sparkles, url: "https://dashscope.aliyuncs.com/compatible-mode/v1", desc: "填入自定义阿里云百炼 Key" },
                   { id: "deepseek", name: "DeepSeek", icon: Bot, url: "https://api.deepseek.com/v1", desc: "深度求索 V3/R1" },
-                  { id: "openai", name: "OpenAI", icon: Globe, url: "https://api.openai.com/v1", desc: "GPT 格式通用接口" },
-                  { id: "anthropic", name: "Anthropic", icon: Box, url: "https://api.anthropic.com/v1", desc: "Claude 系列模型" },
-                  { id: "google", name: "Google", icon: Globe, url: "https://generativelanguage.googleapis.com/v1beta/openai", desc: "Gemini 系列模型" },
+                  { id: "openai", name: "OpenAI", icon: IconGlobe, url: "https://api.openai.com/v1", desc: "GPT 格式通用接口" },
+                  { id: "anthropic", name: "Anthropic", icon: IconBox, url: "https://api.anthropic.com/v1", desc: "Claude 系列模型" },
+                  { id: "google", name: "Google", icon: IconGlobe, url: "https://generativelanguage.googleapis.com/v1beta/openai", desc: "Gemini 系列模型" },
                   { id: "moonshot", name: "Kimi", icon: Bot, url: "https://api.moonshot.cn/v1", desc: "月之暗面长文本模型" },
-                  { id: "zhipu", name: "智谱清言", icon: Box, url: "https://open.bigmodel.cn/api/paas/v4", desc: "GLM 系列大规模预训练模型" },
-                  { id: "ollama", name: "Ollama", icon: Laptop, url: "http://localhost:11434/v1", desc: "本地终端部署离线运行" },
+                  { id: "zhipu", name: "智谱清言", icon: IconBox, url: "https://open.bigmodel.cn/api/paas/v4", desc: "GLM 系列大规模预训练模型" },
+                  { id: "ollama", name: "Ollama", icon: IconLaptop, url: "http://localhost:11434/v1", desc: "本地终端部署离线运行" },
                   { id: "custom", name: "自定义", icon: Settings, url: "", desc: "兼容 OpenAI 标准的接口URL" }
                 ].map(p => {
                   const Icon = p.icon;
@@ -250,7 +250,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                <div className="bg-emerald-50 dark:bg-primary/10 rounded-xl p-4 border border-emerald-100 dark:border-primary/20">
                   <div className="flex items-center gap-3">
                      <div className="p-2 bg-emerald-100 dark:bg-primary/20 rounded-full text-primary dark:text-emerald-400">
-                        <ShieldCheck size={20} />
+                        <IconShield size={20} />
                      </div>
                      <div>
                         <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-100">已开启系统托管模式</h4>
@@ -263,7 +263,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               <div className="space-y-2">
                 <Label htmlFor="model" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">模型名称</Label>
                 <div className="relative group">
-                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
+                  <IconBox className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="model" 
                     placeholder={
@@ -286,7 +286,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               <div className="space-y-2">
                 <Label htmlFor="apiKey" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">API Key</Label>
                 <div className="relative group">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
+                  <IconKey className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="apiKey" 
                     type="password" 
@@ -301,7 +301,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
               <div className="space-y-2">
                 <Label htmlFor="apiUrl" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">API 接入点</Label>
                 <div className="relative group">
-                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
+                  <IconLink className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Input 
                     id="apiUrl" 
                     placeholder="https://..." 
@@ -317,7 +317,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
             <div className="space-y-2">
                 <Label htmlFor="systemPrompt" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">系统提示词</Label>
                 <div className="relative group">
-                  <MessageSquareText className="absolute left-3 top-4 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
+                  <IconComment className="absolute left-3 top-4 size-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                   <Textarea 
                     id="systemPrompt" 
                     placeholder="定义 AI 助手的角色和行为..." 
@@ -343,7 +343,7 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                 onClick={handleSave} 
                 className="flex-[2] h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 font-medium text-base"
               >
-                <CheckCircle2 size={18} className="mr-2" />
+                <IconCheckOne size={18} className="mr-2" />
                 保存配置
               </Button>
             </div>

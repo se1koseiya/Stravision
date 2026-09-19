@@ -17,10 +17,10 @@ import {
   Col,
   InputNumber
 } from "antd"
-import { UploadOutlined, PlusOutlined } from "@ant-design/icons"
 import type { UploadProps } from "antd"
 import { UserPublic } from "@/lib/db/user-service"
 import { toast } from "sonner"
+import { IconPlus, IconUpload } from "@/components/icon";
 
 interface UserDialogProps {
   open: boolean
@@ -209,7 +209,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
           <Space.Compact style={{ width: "100%" }}>
             <Input placeholder="头像 URL" />
             <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />}>上传</Button>
+              <Button icon={<IconUpload />}>上传</Button>
             </Upload>
           </Space.Compact>
         </Form.Item>

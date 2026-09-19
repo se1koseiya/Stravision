@@ -2,22 +2,9 @@
 
 import { memo } from "react"
 import { Avatar, Button, Dropdown, Divider, Tooltip } from "antd"
-import {
-  MoreHorizontal,
-  ChevronDown,
-  MessageCircle,
-  Search,
-  BellOff,
-  Trash2,
-  Shield,
-  UserX,
-  Crown,
-  LogOut,
-  Volume2,
-  VolumeX
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ChatGroup, ChatGroupMember, ChatTarget, ChatUser } from "@/lib/chat/chat-types"
+import { IconCloseRemind, IconComments, IconCrown, IconDelete, IconDown, IconLogout, IconMore, IconPeopleDelete, IconSearch, IconShield, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 interface ChatInfoPanelProps {
   target: ChatTarget | null
@@ -82,21 +69,21 @@ function ChatInfoPanelInner({
   // 三点菜单
   const moreMenuItems = isDirect && friend
     ? [
-        { key: "search", label: "查找聊天记录", icon: <Search size={14} strokeWidth={ICON_STROKE} /> },
-        { key: "mute", label: "消息免打扰", icon: <BellOff size={14} strokeWidth={ICON_STROKE} /> },
+        { key: "search", label: "查找聊天记录", icon: <IconSearch size={14} strokeWidth={ICON_STROKE} /> },
+        { key: "mute", label: "消息免打扰", icon: <IconCloseRemind size={14} strokeWidth={ICON_STROKE} /> },
         friend.is_blocked
-          ? { key: "unblock", label: "解除拉黑", icon: <Shield size={14} strokeWidth={ICON_STROKE} />, onClick: () => onToggleBlock(friend.id, false) }
-          : { key: "block", label: "拉黑好友", icon: <UserX size={14} strokeWidth={ICON_STROKE} />, onClick: () => onToggleBlock(friend.id, true) },
+          ? { key: "unblock", label: "解除拉黑", icon: <IconShield size={14} strokeWidth={ICON_STROKE} />, onClick: () => onToggleBlock(friend.id, false) }
+          : { key: "block", label: "拉黑好友", icon: <IconPeopleDelete size={14} strokeWidth={ICON_STROKE} />, onClick: () => onToggleBlock(friend.id, true) },
         { type: "divider" as const },
-        { key: "clear", label: "清空聊天记录", icon: <Trash2 size={14} strokeWidth={ICON_STROKE} />, danger: true, onClick: onClearHistory }
+        { key: "clear", label: "清空聊天记录", icon: <IconDelete size={14} strokeWidth={ICON_STROKE} />, danger: true, onClick: onClearHistory }
       ]
     : group
       ? [
-          { key: "search", label: "查找聊天记录", icon: <Search size={14} strokeWidth={ICON_STROKE} /> },
-          { key: "mute", label: "消息免打扰", icon: <BellOff size={14} strokeWidth={ICON_STROKE} /> },
+          { key: "search", label: "查找聊天记录", icon: <IconSearch size={14} strokeWidth={ICON_STROKE} /> },
+          { key: "mute", label: "消息免打扰", icon: <IconCloseRemind size={14} strokeWidth={ICON_STROKE} /> },
           { type: "divider" as const },
-          { key: "clear", label: "清空聊天记录", icon: <Trash2 size={14} strokeWidth={ICON_STROKE} />, danger: true, onClick: onClearHistory },
-          { key: "leave", label: "退出群聊", icon: <LogOut size={14} strokeWidth={ICON_STROKE} />, danger: true, onClick: () => onLeaveGroup(group.id) }
+          { key: "clear", label: "清空聊天记录", icon: <IconDelete size={14} strokeWidth={ICON_STROKE} />, danger: true, onClick: onClearHistory },
+          { key: "leave", label: "退出群聊", icon: <IconLogout size={14} strokeWidth={ICON_STROKE} />, danger: true, onClick: () => onLeaveGroup(group.id) }
         ]
       : []
 
@@ -118,7 +105,7 @@ function ChatInfoPanelInner({
                   >
                     {displayName?.[0]?.toUpperCase()}
                   </Avatar>
-                  <ChevronDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)]" />
+                  <IconDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)]" />
                 </button>
               </Dropdown>
             )}
@@ -133,7 +120,7 @@ function ChatInfoPanelInner({
                   >
                     {displayName?.[0]?.toUpperCase()}
                   </Avatar>
-                  <ChevronDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)]" />
+                  <IconDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)]" />
                 </button>
               </Dropdown>
             )}
@@ -147,7 +134,7 @@ function ChatInfoPanelInner({
         <div className={cn("flex justify-end px-4 pb-1", onClose ? "pt-3" : "pt-5")}>
           <Tooltip title="更多">
             <button className="size-9 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.5)] hover:text-[rgba(0,0,0,0.8)] hover:bg-black/[0.04] transition-colors">
-              <MoreHorizontal size={20} strokeWidth={ICON_STROKE} />
+              <IconMore size={20} strokeWidth={ICON_STROKE} />
             </button>
           </Tooltip>
         </div>
@@ -203,7 +190,7 @@ function ChatInfoPanelInner({
               size="large"
               className="!h-11 !w-[220px] !rounded-lg !font-medium !border-0 !shadow-sm"
               style={{ background: "linear-gradient(135deg, #1677ff 0%, #4cabff 100%)" }}
-              icon={<MessageCircle size={16} strokeWidth={ICON_STROKE} />}
+              icon={<IconComments size={16} strokeWidth={ICON_STROKE} />}
               onClick={() => {
                 onSwitchToChat(friend)
                 onClose?.()
@@ -271,7 +258,7 @@ function GroupMembersPanel({
               </Avatar>
               <span className="flex-1 text-[14px] text-[rgba(0,0,0,0.88)] truncate" style={{ fontWeight: 400 }}>
                 {m.user.username}
-                {m.role === "owner" && <Crown size={12} className="inline ml-1 text-[#fa8c16]" />}
+                {m.role === "owner" && <IconCrown size={12} className="inline ml-1 text-[#fa8c16]" />}
               </span>
               <div className="flex gap-0.5 opacity-0 group-hover/member:opacity-100 transition-opacity">
                 {canAct && (
@@ -284,8 +271,8 @@ function GroupMembersPanel({
                         )}
                       >
                         {m.is_muted
-                          ? <VolumeX size={14} strokeWidth={ICON_STROKE} />
-                          : <Volume2 size={14} strokeWidth={ICON_STROKE} />}
+                          ? <IconVolumeMute size={14} strokeWidth={ICON_STROKE} />
+                          : <IconVolumeNotice size={14} strokeWidth={ICON_STROKE} />}
                       </button>
                     </Tooltip>
                     <Tooltip title="移出群组">
@@ -293,7 +280,7 @@ function GroupMembersPanel({
                         onClick={() => onKickMember(group.id, m.user_id)}
                         className="size-7 rounded-full flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-red-500 hover:bg-black/[0.06]"
                       >
-                        <LogOut size={14} strokeWidth={ICON_STROKE} />
+                        <IconLogout size={14} strokeWidth={ICON_STROKE} />
                       </button>
                     </Tooltip>
                   </>

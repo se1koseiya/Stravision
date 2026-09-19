@@ -3,22 +3,8 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { motion, LayoutGroup, AnimatePresence } from "framer-motion"
-import {
-  HomeIcon,
-  Squares2X2Icon,
-  UserIcon,
-  SparklesIcon,
-  ChatBubbleLeftRightIcon
-} from "@heroicons/react/24/outline"
-import {
-  HomeIcon as HomeIconSolid,
-  Squares2X2Icon as Squares2X2IconSolid,
-  UserIcon as UserIconSolid,
-  SparklesIcon as SparklesIconSolid,
-  ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid
-} from "@heroicons/react/24/solid"
 import { cn } from "@/lib/utils"
-
+import { IconComment, IconGridFour, IconHome, IconMagic, IconUser } from "@/components/icon";
 interface NavItem {
   href: string
   label: string
@@ -28,11 +14,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/home", label: "首页", icon: HomeIcon, iconSolid: HomeIconSolid, id: "nav-home" },
-  { href: "/dashboard-ios", label: "看板", icon: Squares2X2Icon, iconSolid: Squares2X2IconSolid, id: "nav-dashboard-ios" },
-  { href: "/ai-assistant-ios", label: "AI", icon: SparklesIcon, iconSolid: SparklesIconSolid, id: "nav-ai-assistant-ios" },
-  { href: "/chat", label: "消息", icon: ChatBubbleLeftRightIcon, iconSolid: ChatBubbleLeftRightIconSolid, id: "nav-chat" },
-  { href: "/profile-ios", label: "我的", icon: UserIcon, iconSolid: UserIconSolid, id: "nav-profile-ios" },
+  { href: "/home", label: "首页", icon: IconHome, iconSolid: IconHome, id: "nav-home" },
+  { href: "/dashboard-ios", label: "看板", icon: IconGridFour, iconSolid: IconGridFour, id: "nav-dashboard-ios" },
+  { href: "/ai-assistant-ios", label: "AI", icon: IconMagic, iconSolid: IconMagic, id: "nav-ai-assistant-ios" },
+  { href: "/chat", label: "消息", icon: IconComment, iconSolid: IconComment, id: "nav-chat" },
+  { href: "/profile-ios", label: "我的", icon: IconUser, iconSolid: IconUser, id: "nav-profile-ios" },
 ]
 
 export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "sticky" }) {

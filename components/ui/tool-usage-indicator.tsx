@@ -1,17 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
-import { 
-  WrenchScrewdriverIcon, 
-  MagnifyingGlassIcon,
-  CloudIcon,
-  MapIcon,
-  DocumentTextIcon,
-  BeakerIcon,
-  CpuChipIcon
-} from '@heroicons/react/24/solid'
-
+import { IconCloudy, IconCpu, IconDown, IconFileText, IconMapDraw, IconMedicineChest, IconRight, IconSearch, IconTool } from "@/components/icon";
 interface ToolUsageIndicatorProps {
   toolName: string
   toolDescription?: string
@@ -23,24 +13,24 @@ interface ToolUsageIndicatorProps {
 
 const getToolIcon = (toolName: string) => {
   if (toolName.includes('spectrum') || toolName.includes('channel')) {
-    return <BeakerIcon className="w-4 h-4" />
+    return <IconMedicineChest className="w-4 h-4" />
   }
   if (toolName.includes('weather')) {
-    return <CloudIcon className="w-4 h-4" />
+    return <IconCloudy className="w-4 h-4" />
   }
   if (toolName.includes('search') || toolName.includes('exa') || toolName.includes('brave')) {
-    return <MagnifyingGlassIcon className="w-4 h-4" />
+    return <IconSearch className="w-4 h-4" />
   }
   if (toolName.includes('route') || toolName.includes('map')) {
-    return <MapIcon className="w-4 h-4" />
+    return <IconMapDraw className="w-4 h-4" />
   }
   if (toolName.includes('scrape') || toolName.includes('firecrawl')) {
-    return <DocumentTextIcon className="w-4 h-4" />
+    return <IconFileText className="w-4 h-4" />
   }
   if (toolName.includes('mcp') || toolName.includes('tool')) {
-    return <CpuChipIcon className="w-4 h-4" />
+    return <IconCpu className="w-4 h-4" />
   }
-  return <WrenchScrewdriverIcon className="w-4 h-4" />
+  return <IconTool className="w-4 h-4" />
 }
 
 const getToolDisplayName = (toolName: string) => {
@@ -157,9 +147,9 @@ export default function ToolUsageIndicator({
         {details && (
           <button className={`p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${styles.icon}`}>
             {isExpanded ? (
-              <ChevronDownIcon className="w-4 h-4" />
+              <IconDown className="w-4 h-4" />
             ) : (
-              <ChevronRightIcon className="w-4 h-4" />
+              <IconRight className="w-4 h-4" />
             )}
           </button>
         )}

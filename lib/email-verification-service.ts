@@ -2,7 +2,42 @@ import { Resend } from 'resend';
 import { initDB, execute, queryOne } from './db/database';
 import { getVerificationEmailText, buildBrandedCodeEmailHtml } from './email-templates';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * Resend 客户端按需初始化。
+ *
+ * 🚨 不能在模块顶层写 `const resend = new Resend(process.env.RESEND_API_KEY)`：
+ * Resend 在 key 缺失时会在**构造函数里直接抛错**（实测
+ * `Missing API key. Pass it to the constructor \`new Resend("re_123")\``），
+ * 而本模块被 /api/auth/{send-verification,verify-email,forgot-password,reset-password}
+ * 等路由 import —— 顶层抛错会让**整条路由在加载阶段就 500 并返回 HTML**，
+ * 前端 `res.json()` 解析失败，最终只显示一句毫无信息量的「网络错误」，
+ * 完全看不出是邮件服务没配。桌面端（无 RESEND_API_KEY）必然踩到，Web 端漏配 key 也会。
+ *
+ * 改为惰性初始化后，路由能正常加载并返回**可读的 JSON 错误**。
+ */
+let resendClient: Resend | null = null;
+let resendInitError: string | null = null;
+
+/** 取 Resend 客户端；未配置返回 null，并把原因记在 resendInitError */
+function getResend(): Resend | null {
+  if (resendClient) return resendClient;
+  if (resendInitError) return null;
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    resendInitError = '未配置 RESEND_API_KEY，无法发送邮件（桌面端本地模式没有发信服务）';
+    console.warn('[email] ' + resendInitError);
+    return null;
+  }
+  try {
+    resendClient = new Resend(apiKey);
+    return resendClient;
+  } catch (err) {
+    resendInitError = err instanceof Error ? err.message : String(err);
+    console.error('[email] Resend 初始化失败:', resendInitError);
+    return null;
+  }
+}
 
 // 确保数据库已初始化的 Promise
 let dbInitPromise: Promise<void> | null = null;
@@ -25,6 +60,10 @@ function generateVerificationCode(): string {
  * 发送验证码邮件
  */
 export async function sendVerificationEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  // 先确认邮件通道可用，再落库验证码 —— 否则会留下一条谁也收不到的验证码
+  const resend = getResend();
+  if (!resend) return { success: false, error: resendInitError || '邮件服务未配置' };
+
   try {
     await ensureDB();
     
@@ -169,6 +208,9 @@ export async function verifyResetCode(email: string, code: string): Promise<{ va
  * 发送密码重置邮件
  */
 export async function sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  const resend = getResend();
+  if (!resend) return { success: false, error: resendInitError || '邮件服务未配置' };
+
   try {
     await ensureDB();
     

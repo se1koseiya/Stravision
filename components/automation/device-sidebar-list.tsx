@@ -5,8 +5,8 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { Wind, Droplets, Sun, Lightbulb, Thermometer, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconChartLine, IconLight, IconSun, IconThermometer, IconWater, IconWind } from "@/components/icon";
 
 export function DeviceSidebarList() {
   const { deviceData } = useDeviceData()
@@ -15,7 +15,7 @@ export function DeviceSidebarList() {
     {
       id: "fan",
       name: "通风风扇",
-      icon: Wind,
+      icon: IconWind,
       color: "text-blue-500",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
       isActive: deviceData?.relay6 === 1,
@@ -24,7 +24,7 @@ export function DeviceSidebarList() {
     {
       id: "pump",
       name: "灌溉水泵",
-      icon: Droplets,
+      icon: IconWater,
       color: "text-cyan-500",
       bgColor: "bg-cyan-50 dark:bg-cyan-900/20",
       isActive: deviceData?.relay5 === 1,
@@ -33,7 +33,7 @@ export function DeviceSidebarList() {
     {
       id: "light",
       name: "补光灯",
-      icon: Sun,
+      icon: IconSun,
       color: "text-orange-500",
       bgColor: "bg-orange-50 dark:bg-orange-900/20",
       isActive: deviceData?.relay7 === 1,
@@ -42,7 +42,7 @@ export function DeviceSidebarList() {
     {
       id: "white-light",
       name: "白光照明",
-      icon: Lightbulb,
+      icon: IconLight,
       color: "text-yellow-500",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
       isActive: deviceData?.relay8 === 1,
@@ -54,25 +54,25 @@ export function DeviceSidebarList() {
     {
       name: "空气温度",
       value: deviceData ? `${deviceData.temperature}°C` : "--",
-      icon: Thermometer,
+      icon: IconThermometer,
       color: "text-red-500"
     },
     {
       name: "空气湿度",
       value: deviceData ? `${deviceData.humidity}%` : "--",
-      icon: Droplets,
+      icon: IconWater,
       color: "text-blue-500"
     },
     {
       name: "CO2 浓度",
       value: deviceData ? `${deviceData.co2} ppm` : "--",
-      icon: Wind,
+      icon: IconWind,
       color: "text-green-500"
     },
     {
       name: "光照强度",
       value: deviceData ? `${deviceData.light} Lux` : "--",
-      icon: Sun,
+      icon: IconSun,
       color: "text-orange-500"
     }
   ]
@@ -127,7 +127,7 @@ export function DeviceSidebarList() {
       </div>
       
       <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 text-xs text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
-        <Activity className="w-4 h-4 mb-2" />
+        <IconChartLine className="w-4 h-4 mb-2" />
         提示：此面板仅展示实时状态，如需控制设备请使用 Automation Action 节点。
       </div>
     </div>

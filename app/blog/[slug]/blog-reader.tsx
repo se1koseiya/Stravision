@@ -5,19 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  ArrowLeft,
-  ChevronUp,
-  List as ListIcon,
-  X,
-  Clock,
-  Layers,
-  Hash,
-  Download,
-  FileText,
-  ExternalLink,
-  Paperclip,
-} from "lucide-react";
 import type {
   ManualContent,
   ManualTocItem,
@@ -26,6 +13,7 @@ import type {
 import { CATEGORY_LABELS, slugify } from "@/lib/blog/manuals-shared";
 import "../blog.css";
 import { OnlyOfficeViewer } from "@/components/blog/onlyoffice-viewer";
+import { IconArrowLeft, IconClose, IconDownload, IconFileText, IconHashtagKey, IconLayers, IconLinkOut, IconList, IconPaperclip, IconTime, IconUp } from "@/components/icon";
 
 interface BlogReaderProps {
   manual: ManualContent;
@@ -125,7 +113,7 @@ function BlogAttachments({ items }: { items: AttachmentMeta[] }) {
           marginBottom: 12,
         }}
       >
-        <Paperclip
+        <IconPaperclip
           className="w-4 h-4"
           style={{ color: "var(--primary-6)", strokeWidth: 1.75 }}
         />
@@ -231,7 +219,7 @@ function BlogAttachments({ items }: { items: AttachmentMeta[] }) {
                     </span>
                   </span>
                 </span>
-                <Download
+                <IconDownload
                   className="w-4 h-4"
                   style={{
                     color: "var(--primary-6)",
@@ -429,7 +417,7 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
             onClick={() => router.push("/blog")}
             className="text-[13px] text-[var(--text-3)] hover:text-[var(--primary-6)] transition-colors flex items-center gap-1.5"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <IconArrowLeft className="w-3.5 h-3.5" />
             文档库
           </button>
           <button
@@ -437,7 +425,7 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
             className="berry-mobile-toc-btn w-8 h-8 rounded items-center justify-center text-[var(--text-3)] hover:bg-[var(--bg-2)]"
             aria-label="目录"
           >
-            <ListIcon className="w-4 h-4" />
+            <IconList className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -503,15 +491,15 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
               <span className="berry-article-author-sep" />
               <div className="berry-article-author-stats">
                 <span className="berry-article-meta-item">
-                  <Layers />
+                  <IconLayers />
                   {manual.chapterCount} 章
                 </span>
                 <span className="berry-article-meta-item">
-                  <Clock />
+                  <IconTime />
                   {manual.readingTimeMin} 分钟
                 </span>
                 <span className="berry-article-meta-item">
-                  <Hash />
+                  <IconHashtagKey />
                   {manual.wordCount.toLocaleString()} 字
                 </span>
                 {manual.updatedAt && (
@@ -545,7 +533,7 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
                       rel="noopener noreferrer"
                       style={{ marginLeft: 12, color: "var(--primary-6)" }}
                     >
-                      <Download style={{ width: 12, height: 12, display: "inline", marginRight: 4 }} />
+                      <IconDownload style={{ width: 12, height: 12, display: "inline", marginRight: 4 }} />
                       下载原文件
                     </a>
                   )}
@@ -570,14 +558,14 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
                 onClick={handleBackToTop}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-[12px] text-[var(--text-3)] border border-[var(--border-1)] rounded hover:border-[var(--primary-6)] hover:text-[var(--primary-6)] transition-colors"
               >
-                <ChevronUp className="w-3 h-3" />
+                <IconUp className="w-3 h-3" />
                 顶部
               </button>
               <Link
                 href="/blog"
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-[12px] text-[var(--text-3)] border border-[var(--border-1)] rounded hover:border-[var(--primary-6)] hover:text-[var(--primary-6)] transition-colors"
               >
-                <ArrowLeft className="w-3 h-3" />
+                <IconArrowLeft className="w-3 h-3" />
                 返回
               </Link>
             </div>
@@ -599,7 +587,7 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
                 onClick={() => setMobileTocOpen(false)}
                 className="berry-drawer-close"
               >
-                <X className="w-4 h-4" />
+                <IconClose className="w-4 h-4" />
               </button>
             </div>
             <div className="berry-drawer-body">
@@ -627,7 +615,7 @@ function BlogReaderImpl({ manual }: BlogReaderProps) {
         data-visible={showBackToTop}
         aria-label="回到顶部"
       >
-        <ChevronUp />
+        <IconUp />
       </button>
     </div>
   );

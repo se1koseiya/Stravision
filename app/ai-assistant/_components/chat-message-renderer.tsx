@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
-import { ArrowUpRight, Activity, ChevronDown, ChevronUp, ChevronRight, Loader2, AlertTriangle } from "lucide-react"
-import { FileTextOutlined, ArrowRightOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Bubble, Think, Sources, CodeHighlighter, Mermaid } from "@ant-design/x"
 import XMarkdown, { type ComponentProps } from "@ant-design/x-markdown"
@@ -19,6 +17,7 @@ import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { A2UICommand_v0_9, ActionPayload } from "@ant-design/x-card"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
+import { IconArrowRight, IconArrowRightUp, IconCaution, IconChartLine, IconDown, IconFileText, IconLoading, IconRight, IconUp } from "@/components/icon";
 
 const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
   ssr: false,
@@ -97,7 +96,7 @@ function ReportCompleteCard({ title, html, onOpen }: { title: string; html: stri
                 background: BERRY_THEME.primary, flexShrink: 0,
               }}
             >
-              <FileTextOutlined style={{ color: '#fff', fontSize: 20 }} />
+              <IconFileText style={{ color: '#fff', fontSize: 20 }} />
             </Flex>
             <Flex vertical gap={2} style={{ minWidth: 0, flex: 1 }}>
               <Text strong style={{ fontSize: 14, lineHeight: 1.4 }} ellipsis>
@@ -111,7 +110,7 @@ function ReportCompleteCard({ title, html, onOpen }: { title: string; html: stri
           <Button
             type="primary"
             size="small"
-            icon={<ArrowRightOutlined />}
+            icon={<IconArrowRight />}
             onClick={(e) => { e.stopPropagation(); onOpen() }}
           >
             查看报告
@@ -234,7 +233,7 @@ class MermaidErrorBoundary extends React.Component<
       return (
         <div className="my-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-3">
           <div className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 mb-1.5">
-            <AlertTriangle size={13} strokeWidth={1.75} />
+            <IconCaution size={13} strokeWidth={1.75} />
             <span>示意图语法有误，已显示原始代码</span>
           </div>
           <pre className="text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 overflow-x-auto whitespace-pre-wrap">{this.props.fallbackCode}</pre>
@@ -305,7 +304,7 @@ const EnhancedCodeBlock = React.memo((props: ComponentProps) => {
             className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md hover:scale-105 transition-transform"
             style={{ fontWeight: 400 }}
           >
-            <ChevronDown size={12} strokeWidth={1.75} /> 展开代码 · {lineCount} 行
+            <IconDown size={12} strokeWidth={1.75} /> 展开代码 · {lineCount} 行
           </button>
         </>
       )}
@@ -316,7 +315,7 @@ const EnhancedCodeBlock = React.memo((props: ComponentProps) => {
           className="mt-2 flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
           style={{ fontWeight: 400 }}
         >
-          <ChevronUp size={12} strokeWidth={1.75} /> 收起
+          <IconUp size={12} strokeWidth={1.75} /> 收起
         </button>
       )}
     </div>
@@ -425,8 +424,8 @@ function DeepThinking({
         {duration && isDone && (
           <span className="text-zinc-300 dark:text-zinc-600">· {duration}</span>
         )}
-        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
-        <ChevronRight
+        {isStreaming && <IconLoading size={10} className="animate-spin ml-0.5" />}
+        <IconRight
           size={12}
           className={cn(
             "shrink-0 text-zinc-400 group-hover/think:text-zinc-600 transition-transform duration-200",
@@ -1349,7 +1348,7 @@ function renderTaggedContent(
         if (part.match(/^<\s*CONTEXT_COMPRESSED/))
           return (
             <div key={index} className="my-2 flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500">
-              <Activity size={12} className="text-emerald-500" />
+              <IconChartLine size={12} className="text-emerald-500" />
               <span>较早的对话历史已自动提炼并压缩</span>
             </div>
           )
@@ -1387,7 +1386,7 @@ function renderTaggedContent(
             return (
               <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
                   <span className="text-[13px] text-gray-500">正在生成澄清表单…</span>
                 </div>
               </div>
@@ -1398,7 +1397,7 @@ function renderTaggedContent(
           return (
             <div key={index} className="my-4 rounded-lg border border-[#fa8c1630] bg-[#fffbe6] p-3 text-[12px] text-[#8c8c8c]">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={13} className="text-[#fa8c16] shrink-0" />
+                <IconCaution size={13} className="text-[#fa8c16] shrink-0" />
                 <span>澄清表单解析失败，请重新提问以生成表单。</span>
               </div>
             </div>
@@ -1423,7 +1422,7 @@ function renderTaggedContent(
             return (
               <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
                   <span className="text-[13px] text-gray-500">正在生成决策卡片…</span>
                 </div>
               </div>
@@ -1463,7 +1462,7 @@ function renderTaggedContent(
             return (
               <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
                   <span className="text-[13px] text-gray-500">正在生成执行计划…</span>
                 </div>
               </div>
@@ -1473,7 +1472,7 @@ function renderTaggedContent(
           return (
             <div key={index} className="my-4 rounded-lg border border-[#fa8c1630] bg-[#fffbe6] p-3 text-[12px] text-[#8c8c8c]">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={13} className="text-[#fa8c16] shrink-0" />
+                <IconCaution size={13} className="text-[#fa8c16] shrink-0" />
                 <span>执行计划解析失败，请重新提问以生成计划。</span>
               </div>
             </div>
@@ -1536,7 +1535,7 @@ function renderTaggedContent(
           return (
             <div key={index} className="my-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 italic">
               <div className="flex items-center gap-2 mb-1 text-xs font-bold uppercase tracking-wide">
-                <Activity size={12} /> 历史记忆摘要
+                <IconChartLine size={12} /> 历史记忆摘要
               </div>
               {part.replace(/^<\s*PAST_MEMORY\s*>/, "").replace(/<\/\s*PAST_MEMORY\s*>/, "").trim()}
             </div>
@@ -1555,7 +1554,7 @@ function renderTaggedContent(
               return (
                 <div key={index} className="my-4 rounded-lg border border-[#1677ff30] bg-white p-4">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                    <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
                     <span className="text-[13px] text-gray-500">正在生成确认表单…</span>
                   </div>
                 </div>
@@ -1565,7 +1564,7 @@ function renderTaggedContent(
             return (
               <div key={index} className="my-4 rounded-lg border border-[#fa8c1630] bg-[#fffbe6] p-3 text-[12px] text-[#8c8c8c]">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle size={13} className="text-[#fa8c16] shrink-0" />
+                  <IconCaution size={13} className="text-[#fa8c16] shrink-0" />
                   <span>确认表单解析失败，请重新提问以生成表单。</span>
                 </div>
               </div>
@@ -1667,7 +1666,7 @@ function renderTaggedContent(
             const Skeleton = () => (
               <div key={index} className="my-3 rounded-lg border border-[#1677ff30] bg-white dark:bg-zinc-900 p-4">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+                  <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
                   <span className="text-[13px] text-gray-500 dark:text-gray-400">
                     {desc ? `正在生成策略：${desc}` : "正在生成自动化策略…"}
                   </span>
@@ -2152,7 +2151,7 @@ function FallbackInfoCheckpoint({
   return (
     <div className="my-3 rounded-lg border border-[#d9d9d9] bg-white px-3.5 py-3 space-y-2.5">
       <div className="flex items-center gap-1.5 text-[12.5px] text-[#262626]" style={{ fontWeight: 500 }}>
-        <AlertTriangle size={13} className="text-[#fa8c16]" />
+        <IconCaution size={13} className="text-[#fa8c16]" />
         <span>信息采集 · 文本补充</span>
       </div>
       <div className="text-[12px] text-[#8c8c8c]" style={{ fontWeight: 400 }}>

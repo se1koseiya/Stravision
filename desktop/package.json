@@ -1,0 +1,21 @@
+{
+  "name": "stravision-desktop-runtime",
+  "version": "4.2.6",
+  "private": true,
+  "description": "Stravision 桌面端主进程运行期依赖。独立于前端依赖树，避免 electron-builder 把整个前端 node_modules 打进 asar。",
+  "author": "Stravision",
+  "main": "main.js",
+  "dependencies": {
+    "aedes": "^1.1.2",
+    "electron-updater": "^6.8.9",
+    "embedded-postgres": "18.4.0-beta.17",
+    "get-port": "^7.2.0"
+  },
+  "optionalDependencies": {
+    "@embedded-postgres/darwin-arm64": "18.4.0-beta.17",
+    "@embedded-postgres/darwin-x64": "18.4.0-beta.17",
+    "@embedded-postgres/linux-arm64": "18.4.0-beta.17",
+    "@embedded-postgres/linux-x64": "18.4.0-beta.17",
+    "@embedded-postgres/windows-x64": "18.4.0-beta.17"
+  }
+}

@@ -8,26 +8,8 @@ import zhCN from "antd/locale/zh_CN";
 import { Bubble, Conversations, Prompts, Sender, ThoughtChain } from "@ant-design/x";
 import type { BubbleListProps } from "@ant-design/x";
 import XMarkdown from "@ant-design/x-markdown";
-import {
-  Compass,
-  FolderOpen,
-  Mic,
-  ListTodo,
-  SquarePen,
-  Sparkles,
-  CalendarClock,
-  LineChart,
-  Camera,
-  Brain,
-  Cpu,
-  CheckCircle2,
-  Database,
-  Activity,
-  FileSearch,
-  Route,
-  PanelLeft,
-} from "lucide-react";
 import BerryOrb from "@/components/smoothui/berry-orb";
+import { IconBrain, IconCalendar, IconCamera, IconChartLine, IconCheckOne, IconCompass, IconCpu, IconDatabaseNetwork, IconEdit, IconFileSearch, IconFolderOpen, IconLayoutTwo, IconListCheckbox, IconMagic, IconMicrophone, IconRouter } from "@/components/icon";
 
 /* ------------------------------------------------------------
    莙小智 · 原生 ai-assistant 对话复刻（落地页 Hero 用）
@@ -205,19 +187,19 @@ function MessageBody({ m }: { m: ChatMsg }) {
 /* ---- 演示剧本 ---- */
 
 const A1_CHAIN: ChainStep[] = [
-  { icon: <Database className="size-3.5" />, title: "查询实时传感器", description: "3 号棚湿度 78%，连续 40 分钟越限" },
-  { icon: <Activity className="size-3.5" />, title: "调取近 24h 湿度曲线", description: "夜间 3 次越限，白天均值 61%" },
-  { icon: <Brain className="size-3.5" />, title: "评估灰霉病风险", description: "持续高湿 + 22°C 区间，中高风险" },
-  { icon: <Route className="size-3.5" />, title: "生成处置方案", description: "轴流风机 R6 · 通风 20 分钟" },
+  { icon: <IconDatabaseNetwork className="size-3.5" />, title: "查询实时传感器", description: "3 号棚湿度 78%，连续 40 分钟越限" },
+  { icon: <IconChartLine className="size-3.5" />, title: "调取近 24h 湿度曲线", description: "夜间 3 次越限，白天均值 61%" },
+  { icon: <IconBrain className="size-3.5" />, title: "评估灰霉病风险", description: "持续高湿 + 22°C 区间，中高风险" },
+  { icon: <IconRouter className="size-3.5" />, title: "生成处置方案", description: "轴流风机 R6 · 通风 20 分钟" },
 ]
 
 const A1_CONTENT =
   "刚帮你把情况查清楚了：**3 号棚湿度 78%**，已经连续 40 分钟超过 72% 的安全线，结合近 24 小时夜间 3 次越限的记录，灰霉病风险已经到中高区间，不建议再等。\n\n<MONITOR></MONITOR>\n\n建议现在通风 **20 分钟**，把湿度压回 70% 以下。要我直接开风机吗？也可以顺手设一条「高温高湿自动通风」规则，以后就不用问了。"
 
 const AUTOMATION_CHAIN: ChainStep[] = [
-  { icon: <FileSearch className="size-3.5" />, title: "解析规则意图", description: "触发条件 + 执行动作 + 收尾逻辑" },
-  { icon: <CheckCircle2 className="size-3.5" />, title: "检查设备冲突", description: "3 号棚无进行中的任务，R6 空闲" },
-  { icon: <Cpu className="size-3.5" />, title: "生成自动化策略", description: "3 节点链路 · 湿度联动收尾" },
+  { icon: <IconFileSearch className="size-3.5" />, title: "解析规则意图", description: "触发条件 + 执行动作 + 收尾逻辑" },
+  { icon: <IconCheckOne className="size-3.5" />, title: "检查设备冲突", description: "3 号棚无进行中的任务，R6 空闲" },
+  { icon: <IconCpu className="size-3.5" />, title: "生成自动化策略", description: "3 节点链路 · 湿度联动收尾" },
 ]
 
 const AUTOMATION_CONTENT = `好的，规则已经生成并即时生效，执行链路如下：
@@ -227,9 +209,9 @@ const AUTOMATION_CONTENT = `好的，规则已经生成并即时生效，执行�
 以后每次触发都会自动留痕，你在「定时任务」里随时可以暂停或改参数。`
 
 const GROWTH_CHAIN: ChainStep[] = [
-  { icon: <Database className="size-3.5" />, title: "调取本茬生长档案", description: "累计积温 412°C·d · 现蕾率 86%" },
-  { icon: <Activity className="size-3.5" />, title: "对比上一茬同期", description: "单果重领先，节奏提前 4 天" },
-  { icon: <LineChart className="size-3.5" />, title: "生成趋势分析", description: "按当前节奏推算头茬采收窗口" },
+  { icon: <IconDatabaseNetwork className="size-3.5" />, title: "调取本茬生长档案", description: "累计积温 412°C·d · 现蕾率 86%" },
+  { icon: <IconChartLine className="size-3.5" />, title: "对比上一茬同期", description: "单果重领先，节奏提前 4 天" },
+  { icon: <IconChartLine className="size-3.5" />, title: "生成趋势分析", description: "按当前节奏推算头茬采收窗口" },
 ]
 
 const GROWTH_CONTENT = `把本茬和上一茬同期的单果重曲线放在一起看，结论很清晰：
@@ -241,9 +223,9 @@ const GROWTH_CONTENT = `把本茬和上一茬同期的单果重曲线放在一�
 - 按当前积温速度推算，头茬采收窗口在 **10 月中旬**，比上一茬提前一周左右`
 
 const REPORT_CHAIN: ChainStep[] = [
-  { icon: <Database className="size-3.5" />, title: "汇总传感器日数据", description: "3 座大棚 · 2,880 条读数" },
-  { icon: <Camera className="size-3.5" />, title: "摄像头巡检 12 点位", description: "果面、叶面 AI 视觉比对完成" },
-  { icon: <FileSearch className="size-3.5" />, title: "生成巡检日报", description: "异常项自动标注 + 处置建议" },
+  { icon: <IconDatabaseNetwork className="size-3.5" />, title: "汇总传感器日数据", description: "3 座大棚 · 2,880 条读数" },
+  { icon: <IconCamera className="size-3.5" />, title: "摄像头巡检 12 点位", description: "果面、叶面 AI 视觉比对完成" },
+  { icon: <IconFileSearch className="size-3.5" />, title: "生成巡检日报", description: "异常项自动标注 + 处置建议" },
 ]
 
 const REPORT_CONTENT = `今日巡检完成，3 座大棚整体平稳，重点关注 3 号棚：
@@ -276,9 +258,9 @@ const INITIAL_MSGS: ChatMsg[] = [
 ];
 
 const PROMPTS = [
-  { key: "report", icon: <CalendarClock className="size-3.5" />, label: "生成今日巡检日报" },
-  { key: "automation", icon: <Sparkles className="size-3.5" />, label: "温度超 28°C 自动通风" },
-  { key: "growth", icon: <LineChart className="size-3.5" />, label: "这一茬长势怎么样？" },
+  { key: "report", icon: <IconCalendar className="size-3.5" />, label: "生成今日巡检日报" },
+  { key: "automation", icon: <IconMagic className="size-3.5" />, label: "温度超 28°C 自动通风" },
+  { key: "growth", icon: <IconChartLine className="size-3.5" />, label: "这一茬长势怎么样？" },
 ];
 
 const PROMPT_REPLIES: Record<string, { chain: ChainStep[]; content: string }> = {
@@ -295,9 +277,9 @@ const CONVERSATION_ITEMS = [
 ];
 
 const MENU_ITEMS = [
-  { key: "explore", icon: <Compass className="size-3.5" />, label: "探索" },
-  { key: "kb", icon: <FolderOpen className="size-3.5" />, label: "知识库" },
-  { key: "cron", icon: <ListTodo className="size-3.5" />, label: "定时任务" },
+  { key: "explore", icon: <IconCompass className="size-3.5" />, label: "探索" },
+  { key: "kb", icon: <IconFolderOpen className="size-3.5" />, label: "知识库" },
+  { key: "cron", icon: <IconListCheckbox className="size-3.5" />, label: "定时任务" },
 ];
 
 // 模块级随机：每次页面加载从默认头像库取一张作为演示用户头像
@@ -499,7 +481,7 @@ export function HeroChat() {
           <span className="size-2.5 rounded-full bg-[#FF5F57]" />
           <span className="size-2.5 rounded-full bg-[#FEBC2E]" />
           <span className="size-2.5 rounded-full bg-[#28C840]" />
-          <PanelLeft className="ml-3 size-3.5 text-slate-300" />
+          <IconLayoutTwo className="ml-3 size-3.5 text-slate-300" />
         </div>
 
         <div className="flex h-[560px] lg:h-[620px]">
@@ -509,10 +491,10 @@ export function HeroChat() {
               <Typography.Text strong style={{ fontSize: 16 }}>
                 莓小智
               </Typography.Text>
-              <Button type="text" size="small" icon={<SquarePen className="size-3" />} aria-label="新建对话" />
+              <Button type="text" size="small" icon={<IconEdit className="size-3" />} aria-label="新建对话" />
             </div>
 
-            <Button block icon={<SquarePen className="size-3.5" />}>
+            <Button block icon={<IconEdit className="size-3.5" />}>
               新建对话
             </Button>
 
@@ -575,7 +557,7 @@ export function HeroChat() {
                     自动 · 联网 · 知识库
                   </Typography.Text>
                   <span className="ml-auto flex items-center">
-                    <Mic className="size-4 cursor-pointer text-slate-300 transition-colors hover:text-slate-500 dark:text-[#4B4F4C] dark:hover:text-[#79817B]" />
+                    <IconMicrophone className="size-4 cursor-pointer text-slate-300 transition-colors hover:text-slate-500 dark:text-[#4B4F4C] dark:hover:text-[#79817B]" />
                   </span>
                 </div>
               )}

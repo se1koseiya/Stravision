@@ -12,16 +12,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Avatar, Button, Empty, Spin, Tag, Tabs, message as antdMessage } from "antd"
-import {
-  CheckOutlined,
-  CloseOutlined,
-  InboxOutlined,
-  MailOutlined,
-  ClockCircleOutlined,
-  RightOutlined,
-  BookOutlined
-} from "@ant-design/icons"
 import type { CSSProperties } from "react"
+import { IconBook, IconCheck, IconClose, IconInbox, IconMail, IconRight, IconTime } from "@/components/icon";
 
 interface Invitation {
   id: number
@@ -299,7 +291,7 @@ export default function InvitationList({
                 gap: 4
               }}
             >
-              <BookOutlined style={{ fontSize: 12, color: COLOR.primary }} />
+              <IconBook style={{ fontSize: 12, color: COLOR.primary }} />
               <span
                 style={{
                   fontSize: 13,
@@ -345,7 +337,7 @@ export default function InvitationList({
                   gap: 4
                 }}
               >
-                <ClockCircleOutlined style={{ fontSize: 11 }} />
+                <IconTime style={{ fontSize: 11 }} />
                 {timeAgo(inv.created_at)}
               </span>
               {inv.expires_at != null && isPending && !isExpired && (
@@ -408,7 +400,7 @@ export default function InvitationList({
                 <Button
                   type="primary"
                   size="small"
-                  icon={<CheckOutlined />}
+                  icon={<IconCheck />}
                   loading={responding.has(inv.id)}
                   onClick={() => handleAccept(inv.id)}
                   style={{ borderRadius: 6, height: 28, fontSize: 13, fontWeight: 500, padding: "0 14px" }}
@@ -417,7 +409,7 @@ export default function InvitationList({
                 </Button>
                 <Button
                   size="small"
-                  icon={<CloseOutlined />}
+                  icon={<IconClose />}
                   disabled={responding.has(inv.id)}
                   onClick={() => handleReject(inv.id)}
                   style={{ borderRadius: 6, height: 28, fontSize: 13, padding: "0 14px" }}
@@ -437,7 +429,7 @@ export default function InvitationList({
                       color: COLOR.primary
                     }}
                   >
-                    查看知识库 <RightOutlined style={{ fontSize: 11 }} />
+                    查看知识库 <IconRight style={{ fontSize: 11 }} />
                   </Button>
                 )}
               </div>
@@ -453,7 +445,7 @@ export default function InvitationList({
                   gap: 4
                 }}
               >
-                <ClockCircleOutlined style={{ fontSize: 11 }} />
+                <IconTime style={{ fontSize: 11 }} />
                 邀请已过期
               </div>
             )}
@@ -463,7 +455,7 @@ export default function InvitationList({
                 <Button
                   type="default"
                   size="small"
-                  icon={<BookOutlined />}
+                  icon={<IconBook />}
                   onClick={() => onOpenCollection(inv.collection_id)}
                   style={{ borderRadius: 6, height: 28, fontSize: 13, padding: "0 12px" }}
                 >
@@ -526,7 +518,7 @@ export default function InvitationList({
                     gap: 6
                   }}
                 >
-                  <InboxOutlined style={{ fontSize: 12 }} />
+                  <IconInbox style={{ fontSize: 12 }} />
                   <span>待处理</span>
                   {pending.length > 0 && (
                     <span
@@ -562,7 +554,7 @@ export default function InvitationList({
                     gap: 6
                   }}
                 >
-                  <MailOutlined style={{ fontSize: 12 }} />
+                  <IconMail style={{ fontSize: 12 }} />
                   <span>历史</span>
                 </span>
               ),

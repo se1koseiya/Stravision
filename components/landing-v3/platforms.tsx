@@ -3,15 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Avatar, Button, Card, Col, Flex, Row, Tag, Typography } from "antd";
-import {
-  DesktopOutlined,
-  MobileOutlined,
-  AudioOutlined,
-  DownloadOutlined,
-  GlobalOutlined,
-  RightOutlined,
-  PlayCircleFilled,
-} from "@ant-design/icons";
+import { IconDownload, IconEarth, IconMicrophone, IconMonitor, IconPhone, IconPlayOne, IconRight } from "@/components/icon";
 
 const { Title, Text } = Typography;
 
@@ -29,34 +21,34 @@ const fadeUp = (delay = 0) => ({
 
 const PLATFORMS = [
   {
-    icon: DesktopOutlined,
+    icon: IconMonitor,
     blob: "#B9F0D6",
     title: "网页控制台",
     sub: "全功能的核心场景",
     desc: "数字孪生、设备控制、自动化规则一网打尽。打开浏览器即可使用，无需安装任何客户端。",
     cta: "进入控制台",
     href: "/dashboard",
-    ctaIcon: GlobalOutlined,
+    ctaIcon: IconEarth,
   },
   {
-    icon: MobileOutlined,
+    icon: IconPhone,
     blob: "#CDE3FB",
     title: "移动端应用",
     sub: "随身携带的大棚",
     desc: "随时掌握环境进度。当智能体到达决策节点或出现告警时，你会收到推送通知，通勤路上也能推进农事。",
     cta: "下载移动应用",
     href: "/profile",
-    ctaIcon: DownloadOutlined,
+    ctaIcon: IconDownload,
   },
   {
-    icon: AudioOutlined,
+    icon: IconMicrophone,
     blob: "#F6D8E8",
     title: "语音助理",
     sub: "动口不动手的农事",
     desc: "在大棚里腾不出手？直接开口就行——查温度、开水泵、问病情，莓界实时响应你的每一句话。",
     cta: "体验语音助理",
     href: "/ai-assistant",
-    ctaIcon: AudioOutlined,
+    ctaIcon: IconMicrophone,
   },
 ];
 
@@ -240,7 +232,7 @@ export function Platforms() {
                         justify="center"
                         className="ml-auto size-6 rounded-full bg-emerald-600"
                       >
-                        <RightOutlined className="text-[10px] text-white" />
+                        <IconRight className="text-[10px] text-white" />
                       </Flex>
                     </Flex>
                     {/* 播放按钮 */}
@@ -249,7 +241,7 @@ export function Platforms() {
                       aria-label="播放演示"
                     >
                       <span className="flex size-14 items-center justify-center rounded-full bg-slate-900/80 backdrop-blur transition-all group-hover:scale-110 group-hover:bg-slate-900">
-                        <PlayCircleFilled className="!text-[22px] text-white" />
+                        <IconPlayOne className="!text-[22px] text-white" />
                       </span>
                     </button>
                   </div>

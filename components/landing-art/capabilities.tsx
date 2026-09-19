@@ -2,17 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import {
-  Shield,
-  GitBranch,
-  ArrowRight,
-  CheckCircle2,
-  AlertTriangle,
-  Layers,
-  Bell,
-  Activity,
-  Clock,
-} from "lucide-react";
+import { IconArrowRight, IconCaution, IconChartLine, IconCheckOne, IconGithub, IconLayers, IconRemind, IconShield, IconTime } from "@/components/icon";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -35,10 +25,10 @@ const SKILLS = [
 ];
 
 const CHECKPOINTS = [
-  { icon: GitBranch, title: "关键决策点", desc: "多个可行方案且无明确优先级时" },
-  { icon: AlertTriangle, title: "不可逆操作", desc: "持续灌溉 &gt;5min、滑台 &gt;100mm、阈值变更" },
-  { icon: Layers, title: "复杂度阈值", desc: "子任务 ≥3 且跨系统、多设备联动" },
-  { icon: CheckCircle2, title: "信息不足", desc: "缺少时长 / 目标值 / 设备等参数" },
+  { icon: IconGithub, title: "关键决策点", desc: "多个可行方案且无明确优先级时" },
+  { icon: IconCaution, title: "不可逆操作", desc: "持续灌溉 &gt;5min、滑台 &gt;100mm、阈值变更" },
+  { icon: IconLayers, title: "复杂度阈值", desc: "子任务 ≥3 且跨系统、多设备联动" },
+  { icon: IconCheckOne, title: "信息不足", desc: "缺少时长 / 目标值 / 设备等参数" },
 ];
 
 const PERMISSIONS = [
@@ -157,7 +147,7 @@ function SkillRouting() {
                   <span className="font-mono text-[11px] tracking-[0.15em] text-[#0A0A0B]/35 uppercase">
                     {s.cat}
                   </span>
-                  <ArrowRight
+                  <IconArrowRight
                     className="w-4 h-4 text-[#0A0A0B]/20 -translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-hover:text-[#1677ff]"
                     strokeWidth={1.75}
                   />
@@ -230,7 +220,7 @@ function ProactiveGuardian() {
                     transition={{ duration: 0.5, delay: i * 0.08 }}
                     className="flex items-center gap-4 px-5 py-3.5"
                   >
-                    <Activity className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={1.75} />
+                    <IconChartLine className="w-3.5 h-3.5 text-white/30 shrink-0" strokeWidth={1.75} />
                     <span className="font-mono text-[12px] text-white/55 w-24 shrink-0">{r.label}</span>
                     {/* 数值条 */}
                     <div className="flex-1 relative h-1.5 bg-white/5">
@@ -275,13 +265,13 @@ function ProactiveGuardian() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-[#1677ff]" strokeWidth={1.75} />
+                    <IconRemind className="w-4 h-4 text-[#1677ff]" strokeWidth={1.75} />
                     <span className="font-mono text-[11px] tracking-[0.2em] text-[#1677ff] uppercase">
                       AI 主动告警
                     </span>
                   </div>
                   <span className="flex items-center gap-1.5 font-mono text-[10px] text-white/40">
-                    <Clock className="w-3 h-3" strokeWidth={1.75} />
+                    <IconTime className="w-3 h-3" strokeWidth={1.75} />
                     03:42
                   </span>
                 </div>
@@ -294,7 +284,7 @@ function ProactiveGuardian() {
                   </span>
                   <span className="inline-flex items-center gap-1 font-mono text-[11px] text-[#1677ff]">
                     等待确认
-                    <ArrowRight className="w-3 h-3" strokeWidth={1.75} />
+                    <IconArrowRight className="w-3 h-3" strokeWidth={1.75} />
                   </span>
                 </div>
               </motion.div>
@@ -345,7 +335,7 @@ function ProactiveGuardian() {
               transition={{ duration: 0.7, delay: 0.3 }}
               className="mt-8 inline-flex items-center gap-2 border border-white/15 px-4 py-2 font-mono text-[12px] text-white/60"
             >
-              <Bell className="w-4 h-4" strokeWidth={1.75} />
+              <IconRemind className="w-4 h-4" strokeWidth={1.75} />
               watch &amp; alert
             </motion.div>
           </div>
@@ -368,7 +358,7 @@ function Safety() {
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 font-mono text-[12px] tracking-[0.3em] text-[#1677ff] uppercase mb-6"
           >
-            <Shield className="w-4 h-4" strokeWidth={1.75} />
+            <IconShield className="w-4 h-4" strokeWidth={1.75} />
             03 · 安全与信任
           </motion.span>
           <motion.h2

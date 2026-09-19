@@ -2,13 +2,10 @@
 
 import React, { useEffect, useRef, useSyncExternalStore } from "react"
 import {
-  CheckCircle2, AlertTriangle, ChevronDown, Loader2, Cpu, PlugZap,
-  Send, Trash2, Plus, ExternalLink, Pencil,
-} from "lucide-react"
-import {
   Alert, Button, Card, Flex, Input, InputNumber, Select, Skeleton, Space, Spin, Steps, Tag, Typography, theme,
 } from "antd"
 import { deviceForgeStore, type DeviceForgeCardData, type DeviceForgeSnapshot, type ForgeDraftForm, type ForgeDraftMetric } from "@/lib/state/device-forge-store"
+import { IconCaution, IconCheckOne, IconConnect, IconCpu, IconDelete, IconDown, IconLinkOut, IconLoading, IconPencil, IconPlus, IconSend } from "@/components/icon";
 export { parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
 
 /**
@@ -57,9 +54,9 @@ export function ForgeStepsTimeline({ steps }: { steps: DeviceForgeSnapshot['step
     const isRun = s.state === 'running'
     const status = isFail ? 'error' as const : (isRun ? 'process' as const : 'finish' as const)
     const icon = isRun
-      ? <Loader2 size={14} className="animate-spin" style={{ color: token.colorPrimary }} />
+      ? <IconLoading size={14} className="animate-spin" style={{ color: token.colorPrimary }} />
       : isWarn
-        ? <AlertTriangle size={14} style={{ color: token.colorWarning }} />
+        ? <IconCaution size={14} style={{ color: token.colorWarning }} />
         : undefined
     return {
       key: s.id,
@@ -187,7 +184,7 @@ export function ForgeFormFields({
         <div style={{ borderTop: `1px dashed ${token.colorSplit}`, paddingTop: 14 }}>
           <Flex align="center" justify="space-between" style={{ marginBottom: 12 }}>
             <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 500 }}>数据点映射（metrics → 报文字段）</Typography.Text>
-            <Button type="link" size="small" icon={<Plus size={13} />} style={{ padding: 0, height: 'auto', fontSize: 12.5 }}
+            <Button type="link" size="small" icon={<IconPlus size={13} />} style={{ padding: 0, height: 'auto', fontSize: 12.5 }}
               onClick={() => onPatch({ ...form, metrics: [...(form.metrics || []), { key: '', label: '', unit: '', mqtt_field: '' }] })}>
               添加数据点
             </Button>
@@ -199,7 +196,7 @@ export function ForgeFormFields({
                 <Input style={{ width: '26%' }} value={m.label} placeholder="中文名" onChange={e => patchMetric(i, 'label', e.target.value)} />
                 <Input style={{ width: '16%' }} value={m.unit} placeholder="单位" onChange={e => patchMetric(i, 'unit', e.target.value)} />
                 <Input style={{ width: '30%' }} value={m.mqtt_field} placeholder="报文字段 data.t" onChange={e => patchMetric(i, 'mqtt_field', e.target.value)} />
-                <Button type="text" danger icon={<Trash2 size={14} />} aria-label="删除数据点" onClick={() => onPatch({ ...form, metrics: (form.metrics || []).filter((_, j) => j !== i) })} />
+                <Button type="text" danger icon={<IconDelete size={14} />} aria-label="删除数据点" onClick={() => onPatch({ ...form, metrics: (form.metrics || []).filter((_, j) => j !== i) })} />
               </Space.Compact>
             ))}
             {(form.metrics || []).length === 0 && (
@@ -212,7 +209,7 @@ export function ForgeFormFields({
       {/* 高级 config */}
       <details style={{ borderTop: `1px dashed ${token.colorSplit}`, paddingTop: 10 }}>
         <summary style={{ cursor: 'pointer', userSelect: 'none', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 6, color: token.colorTextTertiary, fontSize: 12, fontWeight: 500 }}>
-          <ChevronDown size={12} />
+          <IconDown size={12} />
           其他参数（config JSON，可选）
         </summary>
         <div style={{ marginTop: 12 }}>
@@ -351,7 +348,7 @@ export function DeviceForgeCard({
         styles={{ body: { padding: '16px 20px' } }}
         title={
           <Flex align="center" gap={8}>
-            <Cpu size={15} style={{ color: token.colorTextTertiary }} />
+            <IconCpu size={15} style={{ color: token.colorTextTertiary }} />
             <Typography.Text strong style={{ fontSize: 13.5 }}>设备接入</Typography.Text>
           </Flex>
         }
@@ -375,7 +372,7 @@ export function DeviceForgeCard({
       styles={{ body: { padding: '16px 20px 18px' } }}
       title={
         <Flex align="center" gap={10}>
-          <Cpu size={15} style={{ color: token.colorPrimary, flexShrink: 0 }} />
+          <IconCpu size={15} style={{ color: token.colorPrimary, flexShrink: 0 }} />
           <TitleText>{data.subject ? `接入设备 · ${data.subject}` : '设备接入'}</TitleText>
           <Tag color="blue" style={{ marginInlineEnd: 0, flexShrink: 0, fontSize: 11, lineHeight: '18px', paddingInline: 8 }}>
             {TYPE_LABELS[data.draft.type] || data.draft.type}
@@ -384,7 +381,7 @@ export function DeviceForgeCard({
       }
       extra={
         installed ? (
-          <Tag color="success" icon={<CheckCircle2 size={12} />} style={{ marginInlineEnd: 0 }}>已装入平台</Tag>
+          <Tag color="success" icon={<IconCheckOne size={12} />} style={{ marginInlineEnd: 0 }}>已装入平台</Tag>
         ) : (
           <Tag color={hasIssues ? 'error' : 'warning'} style={{ marginInlineEnd: 0 }}>{hasIssues ? '存在未达标项' : '草稿待确认'}</Tag>
         )
@@ -402,7 +399,7 @@ export function DeviceForgeCard({
 
         {/* 可编辑接入配置表单 */}
         <Flex vertical gap={8}>
-          <SectionCaption icon={<Pencil size={12} />}>接入配置（可直接修改）</SectionCaption>
+          <SectionCaption icon={<IconPencil size={12} />}>接入配置（可直接修改）</SectionCaption>
           <div style={{ borderRadius: 10, border: `1px solid ${token.colorSplit}`, padding: '16px', background: token.colorBgContainer }}>
             <ForgeFormFields form={form} onPatch={f => deviceForgeStore.patchForm(f)} />
           </div>
@@ -412,7 +409,7 @@ export function DeviceForgeCard({
         <Flex gap={10} wrap="wrap" align="center" style={{ paddingTop: 2 }}>
           <Button
             type="primary"
-            icon={installed ? <CheckCircle2 size={14} /> : <PlugZap size={14} />}
+            icon={installed ? <IconCheckOne size={14} /> : <IconConnect size={14} />}
             loading={installing}
             disabled={!!installed}
             onClick={() => handleInstall(form)}
@@ -421,12 +418,12 @@ export function DeviceForgeCard({
             {installed ? '已装入莓小智' : installing ? '正在写入…' : '装入莓小智'}
           </Button>
           {onSendMessage && data.usageDoc && !installing && (
-            <Button icon={<Send size={14} />} onClick={handlePublishSkill}>发布到技能工坊</Button>
+            <Button icon={<IconSend size={14} />} onClick={handlePublishSkill}>发布到技能工坊</Button>
           )}
           {!installed && onSendMessage && (
             <Button
               type="link"
-              icon={<ExternalLink size={13} />}
+              icon={<IconLinkOut size={13} />}
               style={{ marginLeft: 'auto', fontSize: 12.5, color: token.colorTextTertiary }}
               onClick={() => deviceForgeStore.setPanelOpen(true)}
             >

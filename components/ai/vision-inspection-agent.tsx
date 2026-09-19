@@ -2,12 +2,8 @@
 
 import React, { memo, useMemo } from "react"
 import { Card, Progress, Steps, Tag, Typography } from "antd"
-import {
-  CameraOutlined,
-  CheckCircleOutlined,
-  LoadingOutlined,
-} from "@ant-design/icons"
 import dynamic from "next/dynamic"
+import { IconCamera, IconCheckOne, IconLoading } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -130,7 +126,7 @@ function VisionInspectionAgentImpl({
       style={{ maxWidth: 640, margin: "12px auto" }}
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <CameraOutlined style={{ color: "#1677ff" }} />
+          <IconCamera style={{ color: "#1677ff" }} />
           <Text strong>视觉巡检</Text>
           {isActive && !isDone && (
             <Tag color="processing" style={{ marginInlineStart: 4 }}>
@@ -223,9 +219,9 @@ function VisionInspectionAgentImpl({
               description: isCurrent && status ? status : s.description,
               icon:
                 isCurrent && !isDone ? (
-                  <LoadingOutlined />
+                  <IconLoading />
                 ) : isFinished || isDone ? (
-                  <CheckCircleOutlined />
+                  <IconCheckOne />
                 ) : undefined,
             }
           })}
@@ -255,7 +251,7 @@ function VisionInspectionAgentImpl({
                     : "#1677ff",
               }}
             >
-              {isDone ? <CheckCircleOutlined style={{ marginInlineEnd: 6 }} /> : <LoadingOutlined style={{ marginInlineEnd: 6 }} />}
+              {isDone ? <IconCheckOne style={{ marginInlineEnd: 6 }} /> : <IconLoading style={{ marginInlineEnd: 6 }} />}
               {status}
             </Text>
           </div>

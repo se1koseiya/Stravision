@@ -3,8 +3,8 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Github, Twitter, Mail, Plus } from "lucide-react";
 import { MagneticButton, Marquee, EASE } from "./ui-primitives";
+import { IconArrowRightUp, IconGithub, IconMail, IconPlus, IconTwitter } from "@/components/icon";
 
 /* ============================================================
    FOOTER —— 大胆收尾 CTA + 极简编辑式页脚 · 重新设计
@@ -28,9 +28,9 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { icon: Github, href: "https://github.com", label: "GitHub" },
-    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-    { icon: Mail, href: "mailto:contact@stravision.site", label: "Email" },
+    { icon: IconGithub, href: "https://github.com", label: "GitHub" },
+    { icon: IconTwitter, href: "https://twitter.com", label: "Twitter" },
+    { icon: IconMail, href: "mailto:contact@stravision.site", label: "Email" },
   ];
 
   const quickLinks = [
@@ -144,7 +144,7 @@ export function Footer() {
             className="group inline-flex items-center bg-white text-black px-8 py-4 text-[14px] tracking-[0.18em] uppercase transition-colors duration-300 hover:bg-[#1677ff] hover:text-white"
           >
             进入莓界
-            <ArrowUpRight
+            <IconArrowRightUp
               className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
               strokeWidth={1.75}
             />
@@ -204,7 +204,7 @@ export function Footer() {
                   data-cursor="hover"
                   className="group flex items-center gap-2 text-[14px] text-white/60 hover:text-white transition-colors w-fit"
                 >
-                  <ArrowUpRight
+                  <IconArrowRightUp
                     className="w-3 h-3 text-white/20 opacity-0 -translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"
                     strokeWidth={1.75}
                   />
@@ -271,7 +271,7 @@ function FooterTerm({ children }: { children: React.ReactNode }) {
 function FooterSep() {
   return (
     <span className="inline-flex items-center px-8">
-      <Plus className="w-6 h-6 text-[#1677ff]/40" strokeWidth={1.5} />
+      <IconPlus className="w-6 h-6 text-[#1677ff]/40" strokeWidth={1.5} />
     </span>
   );
 }

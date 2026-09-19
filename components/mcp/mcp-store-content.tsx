@@ -2,11 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Search, ShieldCheck, User, Check,
-  X, Terminal, Copy, Tag as TagIcon,
-  BookOpen, Plus, Sparkles, Server, Zap
-} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Empty, Spin } from "antd"
@@ -14,6 +9,7 @@ import { toast } from "sonner"
 import type { MCPServer } from "@/lib/data/mcp-servers"
 import { cn } from "@/lib/utils"
 import { CustomMCPDialog } from "@/components/mcp/custom-mcp-dialog"
+import { IconBookOpen, IconCheck, IconClose, IconCopy, IconLightning, IconMagic, IconPlus, IconSearch, IconServer, IconShield, IconTag, IconTerminal, IconUser } from "@/components/icon";
 
 // ================================================================
 //  装饰插图（匹配参考图：曲线 + 圆 + </> + * + 点）
@@ -243,7 +239,7 @@ const ServerDetailView = ({
           style={{ borderRadius: 8 }}
           title="关闭"
         >
-          <X size={16} />
+          <IconClose size={16} />
         </button>
 
         <ScrollArea className="flex-1">
@@ -270,9 +266,9 @@ const ServerDetailView = ({
                 style={{ borderRadius: 8 }}
               >
                 {isInstalled ? (
-                  <><Check size={13} />已添加</>
+                  <><IconCheck size={13} />已添加</>
                 ) : (
-                  <><Plus size={13} strokeWidth={2.5} />添加插件</>
+                  <><IconPlus size={13} strokeWidth={2.5} />添加插件</>
                 )}
               </Button>
             </div>
@@ -281,7 +277,7 @@ const ServerDetailView = ({
             <div className="mt-5">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-gray-400" />
+                  <IconMagic size={12} className="text-gray-400" />
                   <span className="text-[12.5px] font-semibold text-gray-700">推荐 Prompt</span>
                 </div>
                 <button
@@ -290,7 +286,7 @@ const ServerDetailView = ({
                   style={{ borderRadius: 6 }}
                   title="复制"
                 >
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
                 </button>
               </div>
               <textarea
@@ -306,7 +302,7 @@ const ServerDetailView = ({
             {/* 启动命令 */}
             <div className="mt-5">
               <div className="flex items-center gap-1.5 mb-2">
-                <Terminal size={12} className="text-gray-400" />
+                <IconTerminal size={12} className="text-gray-400" />
                 <span className="text-[12.5px] font-semibold text-gray-700">启动命令</span>
               </div>
               <pre
@@ -321,7 +317,7 @@ const ServerDetailView = ({
             {server.features && server.features.length > 0 && (
               <div className="mt-5">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Zap size={12} className="text-gray-400" />
+                  <IconLightning size={12} className="text-gray-400" />
                   <span className="text-[12.5px] font-semibold text-gray-700">核心功能</span>
                   <span className="text-[11px] text-gray-400">({server.features.length})</span>
                 </div>
@@ -332,7 +328,7 @@ const ServerDetailView = ({
                       className="flex items-center gap-2 px-2.5 py-1.5 border border-gray-200"
                       style={{ borderRadius: 6 }}
                     >
-                      <Check size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
+                      <IconCheck size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
                       <span className="text-[12px] text-gray-700">{feature}</span>
                     </div>
                   ))}
@@ -343,23 +339,23 @@ const ServerDetailView = ({
             {/* 元信息：提供者 / 分类 / 协议 */}
             <div className="mt-4 flex items-center gap-3 text-[11.5px] text-gray-400 flex-wrap">
               <span className="flex items-center gap-1">
-                <Server size={11} />{server.provider || "第三方"}
+                <IconServer size={11} />{server.provider || "第三方"}
               </span>
               <span className="w-px h-3 bg-gray-200" />
               <span className="flex items-center gap-1">
-                <TagIcon size={11} />{server.category}
+                <IconTag size={11} />{server.category}
               </span>
               {isOfficial && (
                 <>
                   <span className="w-px h-3 bg-gray-200" />
                   <span className="flex items-center gap-1">
-                    <ShieldCheck size={11} />官方认证
+                    <IconShield size={11} />官方认证
                   </span>
                 </>
               )}
               <span className="w-px h-3 bg-gray-200" />
               <span className="flex items-center gap-1">
-                <BookOpen size={11} />MCP 协议
+                <IconBookOpen size={11} />MCP 协议
               </span>
             </div>
           </div>
@@ -398,7 +394,7 @@ const ServerCard = ({
               {server.displayName}
             </h3>
             {isOfficial && (
-              <ShieldCheck size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+              <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
             )}
           </div>
           {server.category && (
@@ -411,12 +407,12 @@ const ServerCard = ({
       </p>
       <div className="mt-auto flex items-center justify-between pt-1">
         <span className="text-[11.5px] text-gray-400 flex items-center gap-1">
-          <Server size={11} />
+          <IconServer size={11} />
           {server.provider || "第三方"}
         </span>
         {installed ? (
           <span className="text-[11px] text-gray-400 flex items-center gap-1">
-            <Check size={11} strokeWidth={3} />
+            <IconCheck size={11} strokeWidth={3} />
             已添加
           </span>
         ) : (
@@ -426,7 +422,7 @@ const ServerCard = ({
             style={{ borderRadius: 6 }}
             title="添加至会话"
           >
-            <Plus size={13} strokeWidth={2.5} />
+            <IconPlus size={13} strokeWidth={2.5} />
           </button>
         )}
       </div>
@@ -599,7 +595,7 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
           ))}
         </div>
         <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
           <input
             type="text"
             placeholder="搜索插件"

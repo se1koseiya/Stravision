@@ -18,38 +18,10 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { motion } from 'framer-motion'
-import { 
-  Monitor, 
-  Smartphone, 
-  Tablet,
-  Server, 
-  Database, 
-  BrainCircuit, 
-  Cpu,
-  Wifi,
-  Cloud,
-  Shield,
-  Zap,
-  Radio,
-  Layers,
-  Globe,
-  MessageSquare,
-  Video,
-  Thermometer,
-  Droplets,
-  Sun,
-  Sprout,
-  ArrowRightLeft,
-  ExternalLink,
-  Lock,
-  Unlock,
-  Activity,
-  Bot,
-  Sparkles,
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { IconBrain, IconChartLine, IconCloudStorage, IconComment, IconCpu, IconDatabaseNetwork, IconExchange, IconGlobe, IconIpad, IconLayers, IconLightning, IconLinkOut, IconLock, IconMagic, IconMonitor, IconPhone, IconRadio, IconRobot, IconSeedling, IconServer, IconShield, IconSun, IconThermometer, IconUnlock, IconVideo, IconWater, IconWifi } from "@/components/icon";
 
 type LayerType = 'frontend' | 'gateway' | 'backend' | 'data' | 'external' | 'device'
 
@@ -221,7 +193,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: 'Web 应用端',
       description: 'Next.js 15 响应式界面',
-      icon: <Monitor />,
+      icon: <IconMonitor />,
       layer: 'frontend',
       tech: ['React 19', 'Tailwind', 'Motion'],
       status: 'active',
@@ -236,7 +208,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '移动客户端',
       description: 'PWA 与 原生移动应用',
-      icon: <Smartphone />,
+      icon: <IconPhone />,
       layer: 'frontend',
       tech: ['PWA', 'React Native'],
       status: 'active',
@@ -251,7 +223,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '管理控制台',
       description: '系统管理与监控中心',
-      icon: <Tablet />,
+      icon: <IconIpad />,
       layer: 'frontend',
       tech: ['Admin UI', '数据大屏'],
       status: 'active',
@@ -275,7 +247,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: 'API 网关',
       description: '流量路由与鉴权',
-      icon: <Globe />,
+      icon: <IconGlobe />,
       layer: 'gateway',
       tech: ['Next.js API', '中间件'],
       status: 'active',
@@ -290,7 +262,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '身份认证服务',
       description: 'RBAC 与 多方授权',
-      icon: <Shield />,
+      icon: <IconShield />,
       layer: 'gateway',
       tech: ['JWT', 'OAuth2', 'Clerk'],
       status: 'active',
@@ -305,7 +277,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: 'MQTT 代理',
       description: '超低延迟 IoT 消息总线',
-      icon: <Radio />,
+      icon: <IconRadio />,
       layer: 'gateway',
       tech: ['EMQX', 'WebSocket'],
       status: 'active',
@@ -329,7 +301,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: 'AI 决策引擎',
       description: 'RAG 与 自主 Agent 调度',
-      icon: <BrainCircuit />,
+      icon: <IconBrain />,
       layer: 'backend',
       tech: ['Qwen 2.5', '多模态模型', 'MCP'],
       status: 'active',
@@ -344,7 +316,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '设备管理服务',
       description: '生命周期与状态管理',
-      icon: <Cpu />,
+      icon: <IconCpu />,
       layer: 'backend',
       tech: ['Node.js', 'PostgreSQL'],
       status: 'active',
@@ -359,7 +331,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '自动化执行引擎',
       description: '定时任务与事件联动',
-      icon: <Zap />,
+      icon: <IconLightning />,
       layer: 'backend',
       tech: ['Temporal', '逻辑引擎'],
       status: 'active',
@@ -383,7 +355,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '关系型数据库',
       description: '持久化业务逻辑存储',
-      icon: <Database />,
+      icon: <IconDatabaseNetwork />,
       layer: 'data',
       tech: ['PostgreSQL', 'Prisma'],
       status: 'active',
@@ -398,7 +370,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '高速缓存层',
       description: '高性能会话数据缓存',
-      icon: <Zap />,
+      icon: <IconLightning />,
       layer: 'data',
       tech: ['Redis'],
       status: 'active',
@@ -413,7 +385,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '时序数据库',
       description: '环境传感器历史记录',
-      icon: <Activity />,
+      icon: <IconChartLine />,
       layer: 'data',
       tech: ['Timescale'],
       status: 'active',
@@ -437,7 +409,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: 'LLM 模型池',
       description: '大语言模型 API 接入',
-      icon: <Sparkles />,
+      icon: <IconMagic />,
       layer: 'external',
       tech: ['Gemini', '通义千问'],
       status: 'active',
@@ -461,7 +433,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '智能传感器集',
       description: '高精度环境数据遥测',
-      icon: <Thermometer />,
+      icon: <IconThermometer />,
       layer: 'device',
       tech: ['LoRaWAN', 'ESP32'],
       status: 'active',
@@ -476,7 +448,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '视觉采集终端',
       description: 'AI 视觉识别与流传输',
-      icon: <Video />,
+      icon: <IconVideo />,
       layer: 'device',
       tech: ['RTSP', 'NVR'],
       status: 'active',
@@ -491,7 +463,7 @@ const initialNodes: Node<SystemNodeData>[] = [
     data: {
       label: '控制执行器',
       description: '远程硬件开关与调控',
-      icon: <Cpu />,
+      icon: <IconCpu />,
       layer: 'device',
       tech: ['WebSocket', '继电器'],
       status: 'active',
@@ -586,7 +558,7 @@ function SystemArchitectureDiagramInner() {
           onClick={handleFitView}
           className="bg-black/40 border-white/10 text-white/50 hover:bg-black hover:text-white rounded-none backdrop-blur-xl font-mono text-[10px] tracking-widest uppercase transition-all"
         >
-          <Layers className="w-3 h-3 mr-2" />
+          <IconLayers className="w-3 h-3 mr-2" />
           全景视图
         </Button>
       </div>

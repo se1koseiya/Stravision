@@ -2,20 +2,9 @@
 
 import { Panel, useReactFlow } from "@xyflow/react"
 import { Tooltip, Dropdown } from "antd"
-import {
-  MinusIcon,
-  PlusIcon,
-  ArrowsPointingOutIcon,
-  ArrowUturnLeftIcon,
-  ArrowUturnRightIcon,
-  SunIcon,
-  MoonIcon,
-  ShareIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
-
+import { IconDelete, IconFullScreenOne, IconMinus, IconMoon, IconPlus, IconRedo, IconShare, IconSun, IconUndo } from "@/components/icon";
 interface CanvasBottomToolbarProps {
   onUndo: () => void
   onRedo: () => void
@@ -89,7 +78,7 @@ export function CanvasBottomToolbar({
               : "text-slate-300 cursor-not-allowed"
           )}
         >
-          <TrashIcon className="h-4 w-4" />
+          <IconDelete className="h-4 w-4" />
           {selectedCount > 0 && (
             <span className="tabular-nums text-[11px]">{selectedCount}</span>
           )}
@@ -99,14 +88,14 @@ export function CanvasBottomToolbar({
 
         {/* 分享 / 导出 */}
         <IconBtn tip="分享 / 导出" onClick={() => alert("导出功能待接入")}>
-          <ShareIcon className="h-4 w-4" />
+          <IconShare className="h-4 w-4" />
         </IconBtn>
 
         <div className="mx-0.5 h-5 w-px bg-slate-200" />
 
         {/* 缩放 */}
         <IconBtn tip="缩小" onClick={() => zoomOut({ duration: 150 })}>
-          <MinusIcon className="h-4 w-4" />
+          <IconMinus className="h-4 w-4" />
         </IconBtn>
 
         <Dropdown
@@ -135,11 +124,11 @@ export function CanvasBottomToolbar({
         </Dropdown>
 
         <IconBtn tip="放大" onClick={() => zoomIn({ duration: 150 })}>
-          <PlusIcon className="h-4 w-4" />
+          <IconPlus className="h-4 w-4" />
         </IconBtn>
 
         <IconBtn tip="适配画布" onClick={() => fitView({ duration: 200, padding: 0.18 })}>
-          <ArrowsPointingOutIcon className="h-4 w-4" />
+          <IconFullScreenOne className="h-4 w-4" />
         </IconBtn>
 
         <div className="mx-0.5 h-5 w-px bg-slate-200" />
@@ -149,17 +138,17 @@ export function CanvasBottomToolbar({
           tip="切换深色 / 浅色"
           onClick={() => setTheme(isDark ? "light" : "dark")}
         >
-          {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+          {isDark ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
         </IconBtn>
 
         <div className="mx-0.5 h-5 w-px bg-slate-200" />
 
         {/* 撤销 / 重做 */}
         <IconBtn tip="撤销 (⌘Z)" onClick={onUndo} disabled={!canUndo}>
-          <ArrowUturnLeftIcon className="h-4 w-4" />
+          <IconUndo className="h-4 w-4" />
         </IconBtn>
         <IconBtn tip="重做 (⌘⇧Z)" onClick={onRedo} disabled={!canRedo}>
-          <ArrowUturnRightIcon className="h-4 w-4" />
+          <IconRedo className="h-4 w-4" />
         </IconBtn>
       </div>
     </Panel>

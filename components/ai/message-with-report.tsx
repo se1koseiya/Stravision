@@ -3,13 +3,12 @@
 import React, { useMemo } from "react"
 import { ReportRenderer } from "./report-renderer"
 import ReactMarkdown from "react-markdown"
-import { Loader2, Sprout, Cpu, Brain, FileText, CheckCircle2 } from "lucide-react"
-import { CloseOutlined } from "@ant-design/icons"
 import { Card, Progress, Tag, Space, Flex, Typography, Button } from "antd"
 import { BerryXCard } from "@/components/ui/berry-xcard"
 import { buildCommands } from "@/lib/a2ui/berry-protocol"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { ActionPayload, A2UICommand_v0_9 } from "@ant-design/x-card"
+import { IconBrain, IconCheckOne, IconClose, IconCpu, IconFileText, IconLoading, IconSeedling } from "@/components/icon";
 
 const { Text, Title } = Typography
 
@@ -28,10 +27,10 @@ interface PremiumReportLoaderProps {
 
 // ===== 4 步进度定义 =====
 const STEPS = [
-  { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout, key: "capture" },
-  { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu, key: "metric" },
-  { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain, key: "diagnosis" },
-  { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText, key: "render" },
+  { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: IconSeedling, key: "capture" },
+  { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: IconCpu, key: "metric" },
+  { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: IconBrain, key: "diagnosis" },
+  { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: IconFileText, key: "render" },
 ] as const
 
 /**
@@ -158,14 +157,14 @@ function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", i
               background: BERRY_THEME.primary,
             }}
           >
-            <FileText style={{ color: '#fff', fontSize: 18 }} />
+            <IconFileText style={{ color: '#fff', fontSize: 18 }} />
           </Flex>
           <Flex vertical gap={2}>
             <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
               正在生成：{reportTitle}
             </Title>
             <Space size={6} align="center">
-              {!isComplete && <Loader2 style={{ color: BERRY_THEME.primary, fontSize: 12 }} spin />}
+              {!isComplete && <IconLoading style={{ color: BERRY_THEME.primary, fontSize: 12 }} spin />}
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {activeStatusText}
               </Text>
@@ -234,7 +233,7 @@ function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", i
                   boxShadow: isActive ? `0 2px 6px ${BERRY_THEME.primary}40` : 'none',
                 }}
               >
-                {isDone ? <CheckCircle2 style={{ fontSize: 14 }} /> : <Icon style={{ fontSize: 14 }} />}
+                {isDone ? <IconCheckOne style={{ fontSize: 14 }} /> : <Icon style={{ fontSize: 14 }} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Flex align="center" justify="space-between" gap={4}>
@@ -265,7 +264,7 @@ function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", i
           <Button
             size="small"
             type="text"
-            icon={<CloseOutlined />}
+            icon={<IconClose />}
             onClick={onCancel}
             style={{ color: 'rgba(0,0,0,0.45)' }}
           >

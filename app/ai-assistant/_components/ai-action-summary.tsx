@@ -2,14 +2,8 @@
 
 import React from "react"
 import { motion } from "framer-motion"
-import {
-  CheckCircle2,
-  StopCircle,
-  AlertCircle,
-  Loader2,
-  ArrowUpRight,
-} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconArrowRightUp, IconAttention, IconCheckOne, IconLoading, IconPause } from "@/components/icon";
 
 // ---------------------------------------------------------------------------
 // 数据模型
@@ -50,28 +44,28 @@ export function AIActionSummaryCard({ summary, className }: AIActionSummaryCardP
   // 状态头部
   const statusConfig = {
     running: {
-      icon: Loader2,
+      icon: IconLoading,
       iconClass: "text-[#1677ff] animate-spin",
       label: "任务执行中",
       labelClass: "text-[#1677ff]",
       barClass: "bg-[#1677ff]",
     },
     completed: {
-      icon: CheckCircle2,
+      icon: IconCheckOne,
       iconClass: "text-[#52c41a]",
       label: taskPlanProgress ? `任务完成 · ${taskPlanProgress}` : "任务完成",
       labelClass: "text-[#52c41a]",
       barClass: "bg-[#52c41a]",
     },
     stopped: {
-      icon: StopCircle,
+      icon: IconPause,
       iconClass: "text-[#8c8c8c]",
       label: "任务已停止",
       labelClass: "text-[#595959]",
       barClass: "bg-[#d9d9d9]",
     },
     error: {
-      icon: AlertCircle,
+      icon: IconAttention,
       iconClass: "text-[#ff4d4f]",
       label: "任务出错",
       labelClass: "text-[#ff4d4f]",
@@ -115,7 +109,7 @@ export function AIActionSummaryCard({ summary, className }: AIActionSummaryCardP
             aria-label="在工作室中打开"
             title="在工作室中查看"
           >
-            <ArrowUpRight size={13} />
+            <IconArrowRightUp size={13} />
           </button>
         )}
       </div>

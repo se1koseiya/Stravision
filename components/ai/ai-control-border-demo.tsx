@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { AIControlBorderEffect } from './ai-control-border-effect'
 import { Button } from '@/components/ui/button'
-import { Play, Square } from 'lucide-react'
+import { IconPlay, IconSquare } from "@/components/icon";
 
 export function AIControlBorderDemo() {
   const [isActive, setIsActive] = useState(false)
@@ -49,7 +49,7 @@ export function AIControlBorderDemo() {
                 className="flex-1 h-12"
                 variant={isActive ? "secondary" : "default"}
               >
-                <Play className="mr-2 h-4 w-4" />
+                <IconPlay className="mr-2 h-4 w-4" />
                 开始执行
               </Button>
               <Button
@@ -58,7 +58,7 @@ export function AIControlBorderDemo() {
                 className="flex-1 h-12"
                 variant={!isActive ? "secondary" : "destructive"}
               >
-                <Square className="mr-2 h-4 w-4" />
+                <IconSquare className="mr-2 h-4 w-4" />
                 停止执行
               </Button>
             </div>

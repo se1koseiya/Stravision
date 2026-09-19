@@ -3,14 +3,13 @@
 import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
 import { Conversations, Prompts, Bubble, Sender, Attachments, Think, ThoughtChain, Actions } from "@ant-design/x"
 import type { PromptsProps } from "@ant-design/x"
-import { BulbOutlined, InfoCircleOutlined, RocketOutlined, SmileOutlined, PlusOutlined, SettingOutlined, MenuOutlined, UserOutlined, HistoryOutlined, DeleteOutlined, EditOutlined, ShareAltOutlined, CheckOutlined, OpenAIOutlined, SyncOutlined, WarningOutlined, FileTextOutlined, ThunderboltOutlined, CrownOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons'
 import zhCN from "antd/locale/zh_CN"
 import type { UserPublic } from "@/lib/db/user-service"
-import { Mic, MicOff, RotateCcw, Copy, Trash, SquarePen, Library, CircleHelp, PanelLeftClose, PanelLeftOpen, CheckCircle2, AlertCircle, Loader2, Globe, ImageIcon, FileText, Sun, Activity, Sprout, Zap, ArrowUpRight, Wand2, Download, Phone, Play, Pause, Volume2, VolumeX, Camera, Signal, Cpu, Home, Brain, House, Compass, MessageSquare, ChevronUp, ChevronRight, Circle, Clock, Info, MoreHorizontal, Pencil, Pin, Share, List, FolderInput, Trash2, FolderOpen, Moon, Eye, Send, Settings, Plus, ArrowRight, ArrowUp, TrendingUp, BarChart3, Sparkles, Smile, ExternalLink, Crown, ArrowDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import dynamic from "next/dynamic"
 import ReactMarkdown from "react-markdown"
@@ -47,6 +46,7 @@ import { sanitizeHtml } from "@/lib/security/sanitize-html"
 import XMarkdown from "@ant-design/x-markdown"
 import { toast } from "sonner"
 import BerryOrb from "@/components/smoothui/berry-orb"
+import { IconArrowDown, IconArrowRight, IconArrowRightUp, IconArrowUp, IconAttention, IconBookshelf, IconBrain, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconCheck, IconCheckOne, IconComment, IconCompass, IconCopy, IconCpu, IconCrown, IconDelete, IconDownload, IconEdit, IconEmotionHappy, IconFileText, IconFolderOpen, IconFolderUpload, IconGlobe, IconHamburgerButton, IconHelp, IconHistory, IconHome, IconInfo, IconLayoutTwo, IconLight, IconLightning, IconLinkOut, IconList, IconLoading, IconMagic, IconMagicWand, IconMicrophone, IconMoon, IconMore, IconPause, IconPencil, IconPhone, IconPicture, IconPin, IconPlay, IconPlus, IconPreviewOpen, IconRefresh, IconRight, IconRocket, IconRound, IconSearch, IconSeedling, IconSend, IconSetting, IconShare, IconSignal, IconSun, IconThunderbolt, IconTime, IconTrendingUp, IconUndo, IconUp, IconUser, IconVoiceOff, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 // 参考来源展示组件（符合Ant Design X设计规范）
 function CitationSources({
@@ -80,12 +80,12 @@ function CitationSources({
         )}
       >
         <div className="flex items-center gap-2">
-          <Library size={14} className="text-emerald-500" />
+          <IconBookshelf size={14} className="text-emerald-500" />
           <span className="text-xs font-medium opacity-70">参考来源</span>
           <span className="text-xs opacity-50">{citations.length}个</span>
         </div>
         <motion.div animate={{ rotate: expanded ? 180 : 0 }}>
-          <ChevronUp size={14} className="opacity-50" />
+          <IconUp size={14} className="opacity-50" />
         </motion.div>
       </button>
       
@@ -188,7 +188,7 @@ function NewMessageDivider() {
         className="flex items-center gap-1 text-[11px] select-none"
         style={{ color: "#1677ff", fontWeight: 400 }}
       >
-        <ArrowDown size={12} strokeWidth={1.75} />
+        <IconArrowDown size={12} strokeWidth={1.75} />
         <span>新消息</span>
       </div>
       <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
@@ -278,8 +278,8 @@ function MobileDeepThinking({
         {duration && isDone && (
           <span className="text-zinc-300 dark:text-zinc-600">· {duration}</span>
         )}
-        {isStreaming && <Loader2 size={10} className="animate-spin ml-0.5" />}
-        <ChevronRight
+        {isStreaming && <IconLoading size={10} className="animate-spin ml-0.5" />}
+        <IconRight
           size={12}
           className={cn(
             "shrink-0 text-zinc-400 group-hover/think:text-zinc-600 transition-transform duration-200",
@@ -437,13 +437,13 @@ function ChatBubbleList({
           }}
         />
         {index === messages.length - 1 && onRegenerate && (
-          <Actions.Item label="重新生成" icon={<RotateCcw size={14} />} onClick={onRegenerate} />
+          <Actions.Item label="重新生成" icon={<IconUndo size={14} />} onClick={onRegenerate} />
         )}
         {onQuoteMessage && (
-          <Actions.Item label="引用" icon={<SquarePen size={14} />} onClick={() => onQuoteMessage(content)} />
+          <Actions.Item label="引用" icon={<IconEdit size={14} />} onClick={() => onQuoteMessage(content)} />
         )}
         {onDeleteMessage && (
-          <Actions.Item label="删除" icon={<Trash2 size={14} />} danger onClick={() => onDeleteMessage(index)} />
+          <Actions.Item label="删除" icon={<IconDelete size={14} />} danger onClick={() => onDeleteMessage(index)} />
         )}
       </div>
     </div>
@@ -607,7 +607,7 @@ function ChatSenderInput({
               darkMode ? "hover:bg-zinc-700" : "hover:bg-gray-100"
             )}
           >
-            <PlusOutlined style={{ fontSize: 16 }} />
+            <IconPlus style={{ fontSize: 16 }} />
             <span className="text-sm font-medium">添加照片和文件</span>
           </button>
 
@@ -645,7 +645,7 @@ function ChatSenderInput({
       <div className="flex items-center gap-2 px-4 pt-2 flex-wrap">
         {setEnableReasoning && (
           <Sender.Switch
-            icon={<ThunderboltOutlined />}
+            icon={<IconThunderbolt />}
             checkedChildren="深度推理：开"
             unCheckedChildren="深度推理"
             value={enableReasoning}
@@ -654,7 +654,7 @@ function ChatSenderInput({
         )}
         {setEnableSearch && (
           <Sender.Switch
-            icon={<SearchOutlined />}
+            icon={<IconSearch />}
             checkedChildren="全网搜索：开"
             unCheckedChildren="全网搜索"
             value={enableSearch}
@@ -673,7 +673,7 @@ function ChatSenderInput({
                 onClick={() => onRemoveAttachment(index)}
                 className="absolute top-1 right-1 size-4 rounded-full bg-red-500 text-white flex items-center justify-center"
               >
-                <Trash2 size={10} />
+                <IconDelete size={10} />
               </button>
             </div>
           ))}
@@ -685,7 +685,7 @@ function ChatSenderInput({
         {/* + 按钮 */}
         <AntButton 
           type="text" 
-          icon={<PlusOutlined />} 
+          icon={<IconPlus />} 
           onClick={() => setPlusMenuOpen(!plusMenuOpen)}
           size="middle"
           className={cn(
@@ -710,7 +710,7 @@ function ChatSenderInput({
         {/* 发送按钮 */}
         <AntButton 
           type="primary" 
-          icon={<Send size={16} />}
+          icon={<IconSend size={16} />}
           loading={isLoading}
           onClick={() => onSend(input)}
           disabled={!input.trim() && attachments.length === 0}
@@ -747,9 +747,9 @@ function MateChatHome({
   onSendMessage: (msg: string) => void
 }) {
   const quickActions = [
-    { label: '种植诊断', description: '草莓叶片发黄、果实异常？帮我看看', action: '我的草莓叶片边缘发黄，可能是什么原因？该如何处理？', icon: <BulbOutlined style={{ color: '#FFD700' }} />, color: '#FFD700' },
-    { label: '环境调控', description: '温湿度、光照、土壤数据一键分析', action: '帮我分析当前大棚的温湿度和光照数据，给出环境调控建议', icon: <InfoCircleOutlined style={{ color: '#1890FF' }} />, color: '#1890FF' },
-    { label: '病虫害防治', description: '识别病虫害并推荐绿色防控方案', action: '最近发现草莓植株上有白色粉末，是什么病害？如何绿色防治？', icon: <RocketOutlined style={{ color: '#722ED1' }} />, color: '#722ED1' },
+    { label: '种植诊断', description: '草莓叶片发黄、果实异常？帮我看看', action: '我的草莓叶片边缘发黄，可能是什么原因？该如何处理？', icon: <IconLight style={{ color: '#FFD700' }} />, color: '#FFD700' },
+    { label: '环境调控', description: '温湿度、光照、土壤数据一键分析', action: '帮我分析当前大棚的温湿度和光照数据，给出环境调控建议', icon: <IconInfo style={{ color: '#1890FF' }} />, color: '#1890FF' },
+    { label: '病虫害防治', description: '识别病虫害并推荐绿色防控方案', action: '最近发现草莓植株上有白色粉末，是什么病害？如何绿色防治？', icon: <IconRocket style={{ color: '#722ED1' }} />, color: '#722ED1' },
   ]
 
   return (
@@ -847,12 +847,21 @@ function AIAssistantIOSContent() {
   })
   
   // UI State
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("darkMode") === "true"
-    }
-    return false
-  })
+  // ===== 主题统一走全局 next-themes（与其他页面同一主题系统，2026-09-20）=====
+  const { resolvedTheme, setTheme } = useTheme()
+  const darkMode = resolvedTheme === "dark"
+
+  // 一次性迁移：旧版页私有 localStorage["darkMode"]（boolean）→ next-themes["theme"]
+  useEffect(() => {
+    try {
+      const legacy = localStorage.getItem("darkMode")
+      if (legacy === null) return
+      if (legacy === "true" && localStorage.getItem("theme") === null) {
+        setTheme("dark")
+      }
+      localStorage.removeItem("darkMode")
+    } catch { /* ignore */ }
+  }, [setTheme])
 
   // 报告查看器状态
   const [reportViewer, setReportViewer] = useState<{ title: string; html: string } | null>(null)
@@ -1057,17 +1066,7 @@ function AIAssistantIOSContent() {
     }
   }, [messages, isLoading])
 
-  // Sync dark mode
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (darkMode) {
-        document.documentElement.classList.add("dark")
-      } else {
-        document.documentElement.classList.remove("dark")
-      }
-      localStorage.setItem("darkMode", darkMode.toString())
-    }
-  }, [darkMode])
+  // 主题的 html.dark 类由 next-themes 统一管理，页面不再手动同步
 
   // Sync approval mode
   useEffect(() => {
@@ -1421,7 +1420,7 @@ function AIAssistantIOSContent() {
   // 会话操作菜单配置（参考 Conversations 文档 menu 属性）
   const conversationMenu = (conversation: any) => ({
     items: [
-      { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true },
+      { key: 'delete', icon: <IconDelete />, label: '删除', danger: true },
     ],
     onClick: ({ key }: { key: string }) => {
       if (key === 'delete') {
@@ -1506,7 +1505,7 @@ function AIAssistantIOSContent() {
                     )}
                   </div>
                 </div>
-                <ChevronRight size={16} className={cn("shrink-0", darkMode ? "text-zinc-600" : "text-zinc-400")} />
+                <IconRight size={16} className={cn("shrink-0", darkMode ? "text-zinc-600" : "text-zinc-400")} />
               </div>
 
               {/* Divider */}
@@ -1521,7 +1520,7 @@ function AIAssistantIOSContent() {
                     darkMode && "active:bg-zinc-700/50 hover:bg-zinc-700/30"
                   )}
                 >
-                  <FileText size={18} className={cn(darkMode ? "text-zinc-400" : "text-zinc-500")} />
+                  <IconFileText size={18} className={cn(darkMode ? "text-zinc-400" : "text-zinc-500")} />
                   <span className={cn("text-[11px]", darkMode ? "text-zinc-300" : "text-zinc-600")}>报告</span>
                 </button>
                 <div className={cn("w-px my-1.5", darkMode ? "bg-zinc-700" : "bg-zinc-100")} />
@@ -1532,7 +1531,7 @@ function AIAssistantIOSContent() {
                     darkMode && "active:bg-zinc-700/50 hover:bg-zinc-700/30"
                   )}
                 >
-                  <Activity size={18} className={cn(darkMode ? "text-zinc-400" : "text-zinc-500")} />
+                  <IconChartLine size={18} className={cn(darkMode ? "text-zinc-400" : "text-zinc-500")} />
                   <span className={cn("text-[11px]", darkMode ? "text-zinc-300" : "text-zinc-600")}>操作记录</span>
                 </button>
                 <div className={cn("w-px my-1.5", darkMode ? "bg-zinc-700" : "bg-zinc-100")} />
@@ -1543,7 +1542,7 @@ function AIAssistantIOSContent() {
                     darkMode ? "hover:bg-zinc-700/30 active:bg-zinc-700/50" : "hover:bg-zinc-50"
                   )}
                 >
-                  <Crown size={18} className="text-emerald-600" />
+                  <IconCrown size={18} className="text-emerald-600" />
                   <span className={cn("text-[11px]", darkMode ? "text-emerald-400" : "text-emerald-600")}>升级订阅</span>
                 </button>
               </div>
@@ -1607,7 +1606,7 @@ function AIAssistantIOSContent() {
               <div className="flex items-center gap-1 min-w-0 flex-1">
                 <AntButton 
                   type="text" 
-                  icon={<MenuOutlined />} 
+                  icon={<IconHamburgerButton />} 
                   onClick={() => setDrawerOpen(true)}
                   size="large"
                 />
@@ -1619,15 +1618,15 @@ function AIAssistantIOSContent() {
               <div className="flex items-center gap-1 shrink-0">
                 <AntButton
                   type="text"
-                  icon={<SquarePen size={18} />}
+                  icon={<IconEdit size={18} />}
                   onClick={() => createNewSession()}
                   size="large"
                   title="新对话"
                 />
                 <AntButton
                   type="text"
-                  icon={darkMode ? <Sun size={20} /> : <Moon size={20} />}
-                  onClick={() => setDarkMode(!darkMode)}
+                  icon={darkMode ? <IconSun size={20} /> : <IconMoon size={20} />}
+                  onClick={() => setTheme(darkMode ? "light" : "dark")}
                   size="large"
                 />
               </div>
@@ -1693,10 +1692,10 @@ function AIAssistantIOSContent() {
                     description: { fontSize: 12 },
                   }}
                   items={[
-                    { key: "1", icon: <BulbOutlined style={{ color: '#FFD700' }} />, description: "对上面的内容做进一步分析" },
-                    { key: "2", icon: <InfoCircleOutlined style={{ color: '#1890FF' }} />, description: "当前环境适合采取什么设备操作" },
-                    { key: "3", icon: <RocketOutlined style={{ color: '#722ED1' }} />, description: "将分析结果生成可视化报告" },
-                    { key: "4", icon: <SmileOutlined style={{ color: '#52C41A' }} />, description: "用几句话概括重点内容" },
+                    { key: "1", icon: <IconLight style={{ color: '#FFD700' }} />, description: "对上面的内容做进一步分析" },
+                    { key: "2", icon: <IconInfo style={{ color: '#1890FF' }} />, description: "当前环境适合采取什么设备操作" },
+                    { key: "3", icon: <IconRocket style={{ color: '#722ED1' }} />, description: "将分析结果生成可视化报告" },
+                    { key: "4", icon: <IconEmotionHappy style={{ color: '#52C41A' }} />, description: "用几句话概括重点内容" },
                   ]}
                   onItemClick={(info) => {
                     handleSend(info.data.description || "")
@@ -1735,7 +1734,7 @@ function AIAssistantIOSContent() {
           <Drawer
             title={
               <div className="flex items-center gap-2 min-w-0">
-                <FileText size={16} className="text-emerald-500 shrink-0" />
+                <IconFileText size={16} className="text-emerald-500 shrink-0" />
                 <span className="truncate text-sm font-medium">{reportViewer?.title || "报告"}</span>
               </div>
             }
@@ -1753,7 +1752,7 @@ function AIAssistantIOSContent() {
                 <AntButton
                   type="text"
                   size="small"
-                  icon={<Download size={15} />}
+                  icon={<IconDownload size={15} />}
                   onClick={() => {
                     if (!reportViewer) return
                     const blob = new Blob([reportViewer.html], { type: "text/html;charset=utf-8" })
@@ -1771,7 +1770,7 @@ function AIAssistantIOSContent() {
                 <AntButton
                   type="text"
                   size="small"
-                  icon={<ExternalLink size={15} />}
+                  icon={<IconLinkOut size={15} />}
                   onClick={() => {
                     if (!reportViewer) return
                     const newWindow = window.open("", "_blank")
@@ -1809,7 +1808,7 @@ function AIAssistantIOSContent() {
           >
             {spaceReports.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <FileText size={40} className={cn("mb-3", darkMode ? "text-zinc-700" : "text-zinc-300")} />
+                <IconFileText size={40} className={cn("mb-3", darkMode ? "text-zinc-700" : "text-zinc-300")} />
                 <p className={cn("text-sm", darkMode ? "text-zinc-500" : "text-zinc-400")}>
                   暂无报告<br />让莓小智为你生成一份分析报告吧
                 </p>
@@ -1828,7 +1827,7 @@ function AIAssistantIOSContent() {
                       "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
                       "bg-emerald-500/10"
                     )}>
-                      <FileText size={16} className="text-emerald-500" />
+                      <IconFileText size={16} className="text-emerald-500" />
                     </div>
                     <button
                       className="min-w-0 flex-1 text-left"
@@ -1851,7 +1850,7 @@ function AIAssistantIOSContent() {
                         darkMode ? "hover:bg-zinc-700 text-zinc-500" : "hover:bg-zinc-200 text-zinc-400"
                       )}
                     >
-                      <Trash2 size={14} />
+                      <IconDelete size={14} />
                     </button>
                   </div>
                 ))}
@@ -1874,7 +1873,7 @@ function AIAssistantIOSContent() {
           >
             {notices.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <Activity size={40} className={cn("mb-3", darkMode ? "text-zinc-700" : "text-zinc-300")} />
+                <IconChartLine size={40} className={cn("mb-3", darkMode ? "text-zinc-700" : "text-zinc-300")} />
                 <p className={cn("text-sm", darkMode ? "text-zinc-500" : "text-zinc-400")}>
                   暂无操作记录<br />本次会话的工具调用将显示在这里
                 </p>
@@ -1895,9 +1894,9 @@ function AIAssistantIOSContent() {
                       n.variant === 'success' ? "bg-emerald-500/10" :
                       "bg-blue-500/10"
                     )}>
-                      {n.variant === 'error' ? <AlertCircle size={16} className="text-red-500" /> :
-                       n.variant === 'success' ? <CheckCircle2 size={16} className="text-emerald-500" /> :
-                       <Loader2 size={16} className="text-blue-500 animate-spin" />}
+                      {n.variant === 'error' ? <IconAttention size={16} className="text-red-500" /> :
+                       n.variant === 'success' ? <IconCheckOne size={16} className="text-emerald-500" /> :
+                       <IconLoading size={16} className="text-blue-500 animate-spin" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className={cn("text-sm font-medium", darkMode ? "text-zinc-100" : "text-zinc-900")}>
@@ -1934,13 +1933,13 @@ function AIAssistantIOSContent() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      {n.variant === "loading" && <Loader2 className="size-4 animate-spin" />}
-                      {n.variant === "success" && <CheckCircle2 className="size-4" />}
-                      {n.variant === "error" && <AlertCircle className="size-4" />}
+                      {n.variant === "loading" && <IconLoading className="size-4 animate-spin" />}
+                      {n.variant === "success" && <IconCheckOne className="size-4" />}
+                      {n.variant === "error" && <IconAttention className="size-4" />}
                       <span className="font-medium text-sm">{n.title}</span>
                     </div>
                     <button onClick={() => closeNotice(n.id)} className="text-white/80 hover:text-white">
-                      <Trash2 size={14} />
+                      <IconDelete size={14} />
                     </button>
                   </div>
                   {n.description && (

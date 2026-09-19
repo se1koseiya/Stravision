@@ -2,20 +2,6 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react"
 import { App, Avatar, Button, Input, Tooltip } from "antd"
-import {
-  Building2,
-  Users as UsersIcon,
-  Shield,
-  ShieldCheck,
-  Crown,
-  UserPlus,
-  Trash2,
-  RefreshCw,
-  Mail,
-  Network,
-  X,
-  MessageCircle
-} from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { chatClient } from "@/lib/chat/chat-client"
@@ -25,6 +11,7 @@ import type {
   ChatUser
 } from "@/lib/chat/chat-types"
 import { formatChatTime } from "@/lib/chat/chat-types"
+import { IconAddUser, IconBuildingFour, IconClose, IconComments, IconCrown, IconDelete, IconMail, IconNetworkTree, IconPeoples, IconRefresh, IconShield } from "@/components/icon";
 
 interface OrganizationDetailPanelProps {
   org: ChatOrganization | null
@@ -45,7 +32,7 @@ function RoleBadge({ role }: { role: string }) {
   if (role === "owner") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-[#1677ff]" style={{ fontWeight: 500 }}>
-        <Crown size={11} strokeWidth={1.75} />
+        <IconCrown size={11} strokeWidth={1.75} />
         {label}
       </span>
     )
@@ -53,14 +40,14 @@ function RoleBadge({ role }: { role: string }) {
   if (role === "admin") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-[#1677ff]" style={{ fontWeight: 500 }}>
-        <ShieldCheck size={11} strokeWidth={1.75} />
+        <IconShield size={11} strokeWidth={1.75} />
         {label}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 text-[11px] text-[rgba(0,0,0,0.45)]">
-      <Shield size={11} strokeWidth={1.75} />
+      <IconShield size={11} strokeWidth={1.75} />
       {label}
     </span>
   )
@@ -200,7 +187,7 @@ function OrganizationDetailPanelInner({
             onClick={onClose}
             className="size-7 flex items-center justify-center rounded-full hover:bg-black/[0.04] text-[rgba(0,0,0,0.45)]"
           >
-            <X size={16} strokeWidth={1.75} />
+            <IconClose size={16} strokeWidth={1.75} />
           </button>
         )}
       </div>
@@ -211,7 +198,7 @@ function OrganizationDetailPanelInner({
           {/* 头部：头像 + 名称 + 统计 */}
           <div className="flex items-start gap-5 pt-2 pb-6">
             <div className="size-[72px] rounded-2xl bg-[#f0f5ff] flex items-center justify-center text-[#2f54eb] shrink-0 ring-1 ring-black/[0.04]">
-              <Building2 size={32} strokeWidth={1.75} />
+              <IconBuildingFour size={32} strokeWidth={1.75} />
             </div>
             <div className="flex-1 min-w-0 pt-1">
               <h2 className="text-[20px] text-[rgba(0,0,0,0.88)] leading-tight truncate" style={{ fontWeight: 500 }}>
@@ -219,12 +206,12 @@ function OrganizationDetailPanelInner({
               </h2>
               <p className="mt-1.5 text-[13px] text-[rgba(0,0,0,0.4)] flex items-center gap-3">
                 <span className="flex items-center gap-1">
-                  <UsersIcon size={12} strokeWidth={1.75} />
+                  <IconPeoples size={12} strokeWidth={1.75} />
                   {members.length} 位成员
                 </span>
                 {org.child_count ? (
                   <span className="flex items-center gap-1">
-                    <Network size={12} strokeWidth={1.75} />
+                    <IconNetworkTree size={12} strokeWidth={1.75} />
                     {org.child_count} 个子组织
                   </span>
                 ) : null}
@@ -249,7 +236,7 @@ function OrganizationDetailPanelInner({
             <div className="pb-6 flex gap-2">
               <Button
                 className="!rounded-lg !shadow-none !h-9"
-                icon={<RefreshCw size={14} strokeWidth={1.75} className={syncing ? "animate-spin" : ""} />}
+                icon={<IconRefresh size={14} strokeWidth={1.75} className={syncing ? "animate-spin" : ""} />}
                 loading={syncing}
                 onClick={handleSync}
               >
@@ -262,7 +249,7 @@ function OrganizationDetailPanelInner({
           {isAdmin && (
             <div className="pb-6">
               <div className="flex items-center gap-2 mb-2">
-                <Mail size={13} strokeWidth={1.75} className="text-[rgba(0,0,0,0.45)]" />
+                <IconMail size={13} strokeWidth={1.75} className="text-[rgba(0,0,0,0.45)]" />
                 <span className="text-[13px] text-[rgba(0,0,0,0.65)]" style={{ fontWeight: 500 }}>
                   邀请成员
                 </span>
@@ -273,7 +260,7 @@ function OrganizationDetailPanelInner({
               <div className="flex gap-2">
                 <Input
                   placeholder="输入邮箱地址"
-                  prefix={<Mail size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+                  prefix={<IconMail size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   onPressEnter={handleInvite}
@@ -283,7 +270,7 @@ function OrganizationDetailPanelInner({
                   type="primary"
                   className="!rounded-lg !shadow-none"
                   loading={inviting}
-                  icon={<UserPlus size={14} strokeWidth={1.75} />}
+                  icon={<IconAddUser size={14} strokeWidth={1.75} />}
                   onClick={handleInvite}
                 >
                   邀请
@@ -309,7 +296,7 @@ function OrganizationDetailPanelInner({
               </div>
             ) : members.length === 0 ? (
               <div className="py-8 flex flex-col items-center text-[12px] text-[rgba(0,0,0,0.35)]">
-                <Network size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
+                <IconNetworkTree size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
                 <span>暂无成员</span>
                 {isAdmin && (
                   <span className="text-[11px] text-[rgba(0,0,0,0.3)] mt-1">
@@ -377,7 +364,7 @@ function OrganizationDetailPanelInner({
                               }}
                               className="size-7 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.45)] hover:text-[#1677ff] hover:bg-[#e6f4ff] transition-colors"
                             >
-                              <MessageCircle size={14} strokeWidth={1.75} />
+                              <IconComments size={14} strokeWidth={1.75} />
                             </button>
                           </Tooltip>
                         )}
@@ -391,7 +378,7 @@ function OrganizationDetailPanelInner({
                               disabled={removingId === m.user_id}
                               className="size-7 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.45)] hover:text-[#ff4d4f] hover:bg-[#fff1f0] opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                             >
-                              <Trash2 size={13} strokeWidth={1.75} />
+                              <IconDelete size={13} strokeWidth={1.75} />
                             </button>
                           </Tooltip>
                         )}

@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Play, Code, RotateCcw, Monitor, Smartphone, Tablet } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconCode, IconIpad, IconMonitor, IconPhone, IconPlay, IconUndo } from "@/components/icon";
 
 interface HTMLPreviewCardProps {
   code: string
@@ -78,7 +78,7 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
               </>
             ) : (
               <>
-                <Code size={12} className="text-zinc-400" />
+                <IconCode size={12} className="text-zinc-400" />
                 源代码内容
               </>
             )}
@@ -92,17 +92,17 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
                 onClick={() => setViewMode('desktop')}
                 className={cn("p-1 rounded-md transition-all", viewMode === 'desktop' ? "bg-white dark:bg-zinc-700 text-primary shadow-sm" : "text-zinc-500")}
                 title="桌面视图"
-              ><Monitor size={14} /></button>
+              ><IconMonitor size={14} /></button>
               <button 
                 onClick={() => setViewMode('tablet')}
                 className={cn("p-1 rounded-md transition-all", viewMode === 'tablet' ? "bg-white dark:bg-zinc-700 text-primary shadow-sm" : "text-zinc-500")}
                 title="平板视图"
-              ><Tablet size={14} /></button>
+              ><IconIpad size={14} /></button>
               <button 
                 onClick={() => setViewMode('mobile')}
                 className={cn("p-1 rounded-md transition-all", viewMode === 'mobile' ? "bg-white dark:bg-zinc-700 text-primary shadow-sm" : "text-zinc-500")}
                 title="手机视图"
-              ><Smartphone size={14} /></button>
+              ><IconPhone size={14} /></button>
             </div>
           )}
 
@@ -115,7 +115,7 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
                 : "bg-primary dark:bg-primary text-white hover:bg-emerald-700 dark:hover:bg-emerald-400"
             )}
           >
-            {isPreview ? <Code size={14} /> : <Play size={14} />}
+            {isPreview ? <IconCode size={14} /> : <IconPlay size={14} />}
             {isPreview ? '返回代码' : '渲染运行'}
           </button>
           
@@ -125,7 +125,7 @@ export function HTMLPreviewCard({ code, language = 'html' }: HTMLPreviewCardProp
               className="p-2 text-zinc-500 hover:text-primary hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
               title="刷新预览"
             >
-              <RotateCcw size={14} />
+              <IconUndo size={14} />
             </button>
           )}
         </div>

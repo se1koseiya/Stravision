@@ -1,6 +1,5 @@
 "use client"
 
-import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react"
 import { Flex } from "antd"
 import {
   IOSWidgetCard,
@@ -13,6 +12,7 @@ import {
 import { WidgetRingProgress, WidgetLineChart, WidgetBars, WidgetGaugeStrip } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconAttention, IconCaution, IconCheckOne } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const ICON_STROKE = 1.75
@@ -65,10 +65,10 @@ function getConfig(type: 'N' | 'P' | 'K') {
 }
 
 function getLevel(numValue: number, low: number, ideal: number, high: number) {
-  if (numValue < low) return { label: '偏低', color: A.accents.orange, icon: AlertTriangle }
-  if (numValue > high) return { label: '偏高', color: A.accents.red, icon: AlertCircle }
-  if (numValue >= ideal * 0.8 && numValue <= ideal * 1.2) return { label: '适宜', color: A.accents.green, icon: CheckCircle2 }
-  return { label: '正常', color: A.accents.teal, icon: CheckCircle2 }
+  if (numValue < low) return { label: '偏低', color: A.accents.orange, icon: IconCaution }
+  if (numValue > high) return { label: '偏高', color: A.accents.red, icon: IconAttention }
+  if (numValue >= ideal * 0.8 && numValue <= ideal * 1.2) return { label: '适宜', color: A.accents.green, icon: IconCheckOne }
+  return { label: '正常', color: A.accents.teal, icon: IconCheckOne }
 }
 
 function valueToRing(value: number, max: number) {
@@ -209,9 +209,9 @@ export function NutrientWidget({
 
           <WidgetMiniStats
             stats={[
-              { label: '理想值', value: `${config.ideal}`, color: A.accents.green, icon: <CheckCircle2 size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '偏低线', value: `<${config.low}`, color: A.accents.orange, icon: <AlertTriangle size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '偏高线', value: `>${config.high}`, color: A.accents.red, icon: <AlertCircle size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '理想值', value: `${config.ideal}`, color: A.accents.green, icon: <IconCheckOne size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '偏低线', value: `<${config.low}`, color: A.accents.orange, icon: <IconCaution size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '偏高线', value: `>${config.high}`, color: A.accents.red, icon: <IconAttention size={10} strokeWidth={ICON_STROKE} /> },
             ]}
             style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
           />
@@ -260,9 +260,9 @@ export function NutrientWidget({
         </Flex>
         <WidgetCompactFooter
           stats={[
-            { label: '理想', value: `${config.ideal}`, color: A.accents.green, icon: <CheckCircle2 size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '低线', value: `<${config.low}`, color: A.accents.orange, icon: <AlertTriangle size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '高线', value: `>${config.high}`, color: A.accents.red, icon: <AlertCircle size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '理想', value: `${config.ideal}`, color: A.accents.green, icon: <IconCheckOne size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '低线', value: `<${config.low}`, color: A.accents.orange, icon: <IconCaution size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '高线', value: `>${config.high}`, color: A.accents.red, icon: <IconAttention size={10} strokeWidth={ICON_STROKE} /> },
           ]}
         />
       </Flex>

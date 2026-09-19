@@ -35,6 +35,23 @@ const DEFAULT_CONFIG: Partial<MQTTConfig> = {
 }
 
 /**
+ * 解析 MQTT_USE_SSL。
+ *
+ * 🚨 这里曾经写作 `process.env.MQTT_USE_SSL === 'true' || DEFAULT_CONFIG.useSSL`，
+ * 而 DEFAULT_CONFIG.useSSL 是 true —— 于是 `false || true` 恒为 true，
+ * **`MQTT_USE_SSL=false` 根本表达不出来**：只能打开 TLS，不能关闭。
+ * 桌面端因此拿 mqtts:// 去连内置的**明文** broker，持续 ECONNRESET
+ * （"Client network socket disconnected before secure TLS connection was established"），
+ * 健康检查里 mqtt 永远是 down，设备链路整条不可用。
+ *
+ * 正确语义：环境变量显式给了就以它为准，没给才回落默认值。
+ */
+function parseUseSSL(raw: string | undefined): boolean {
+  if (raw === undefined || raw === '') return Boolean(DEFAULT_CONFIG.useSSL)
+  return raw === 'true'
+}
+
+/**
  * Get MQTT Configuration from Environment Variables
  * 
  * Reads configuration from process.env and applies defaults where needed.
@@ -50,7 +67,7 @@ export function getMQTTConfig(): MQTTConfig {
     password: process.env.MQTT_PASSWORD || '',
     subscribeTopic: process.env.MQTT_SUBSCRIBE_TOPIC || DEFAULT_CONFIG.subscribeTopic!,
     publishTopic: process.env.MQTT_PUBLISH_TOPIC || DEFAULT_CONFIG.publishTopic!,
-    useSSL: process.env.MQTT_USE_SSL === 'true' || DEFAULT_CONFIG.useSSL!,
+    useSSL: parseUseSSL(process.env.MQTT_USE_SSL),
     keepalive: parseInt(process.env.MQTT_KEEPALIVE || String(DEFAULT_CONFIG.keepalive), 10),
     reconnectPeriod: parseInt(process.env.MQTT_RECONNECT_PERIOD || String(DEFAULT_CONFIG.reconnectPeriod), 10)
   }

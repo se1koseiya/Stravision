@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { CheckIcon, ExternalLinkIcon } from "lucide-react"
 import {
   AnimatePresence,
   motion,
@@ -26,7 +25,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Progress } from "@/components/ui/progress"
+import { Progress } from "@/components/ui/progress"
+import { IconCheck, IconLinkOut } from "@/components/icon";
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = React.useState<boolean | null>(null)
@@ -194,7 +194,7 @@ function StepTab({ step, isActive, onClick, isCompleted }: StepTabProps) {
       {isCompleted && (
         <motion.div {...fadeInScale} className="absolute right-2 top-2">
           <div className="rounded-full bg-primary p-1">
-            <CheckIcon className="w-2 h-2 text-primary-foreground" />
+            <IconCheck className="w-2 h-2 text-primary-foreground" />
           </div>
         </motion.div>
       )}
@@ -266,7 +266,7 @@ function StepContent({
           <a href={action.href} target="_blank" rel="noopener noreferrer">
             <span className="flex items-center gap-2">
               {action.label}
-              <ExternalLinkIcon className="w-4 h-4" />
+              <IconLinkOut className="w-4 h-4" />
             </span>
           </a>
         </Button>
@@ -603,7 +603,7 @@ export function IntroDisclosure({
                         className="flex items-center justify-center gap-2"
                       >
                         {steps[currentStep]?.action?.label}
-                        <ExternalLinkIcon className="h-4 w-4" />
+                        <IconLinkOut className="h-4 w-4" />
                       </a>
                     ) : (
                       <button onClick={steps[currentStep]?.action?.onClick}>

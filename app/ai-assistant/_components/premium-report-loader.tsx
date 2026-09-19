@@ -11,24 +11,21 @@
  */
 
 import { useMemo } from "react"
-import {
-  FileText, Sprout, Cpu, Brain, CheckCircle2, Loader2,
-} from "lucide-react"
-import { CloseOutlined } from "@ant-design/icons"
 import { Card, Progress, Tag, Flex, Space, Typography, Button, Row, Col, Avatar } from "antd"
 import { BerryXCard } from "@/components/ui/berry-xcard"
 import { buildCommands } from "@/lib/a2ui/berry-protocol"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { A2UICommand_v0_9, ActionPayload } from "@ant-design/x-card"
+import { IconBrain, IconCheckOne, IconClose, IconCpu, IconFileText, IconLoading, IconSeedling } from "@/components/icon";
 
 const { Text, Title } = Typography
 
 // ===== 4 步进度定义 =====
 const STEPS = [
-  { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: Sprout, key: "capture" },
-  { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: Cpu, key: "metric" },
-  { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: Brain, key: "diagnosis" },
-  { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: FileText, key: "render" },
+  { label: "数据捕获", desc: "验证并拉取温室 IoT 终端环境数据", icon: IconSeedling, key: "capture" },
+  { label: "指标分析", desc: "提取空气与土壤传感器核心指标", icon: IconCpu, key: "metric" },
+  { label: "大模诊断", desc: "基于草莓专家知识库开展智能诊断", icon: IconBrain, key: "diagnosis" },
+  { label: "视觉编排", desc: "渲染响应式大厂UI卡片与交互图表", icon: IconFileText, key: "render" },
 ] as const
 
 export function PremiumReportLoader({
@@ -145,10 +142,10 @@ export function PremiumReportLoader({
             <Avatar
               size={48}
               shape="square"
-              icon={<FileText style={{ fontSize: 22 }} />}
+              icon={<IconFileText style={{ fontSize: 22 }} />}
               style={{
                 background: `linear-gradient(135deg, ${BERRY_THEME.primary} 0%, ${BERRY_THEME.primaryHover} 100%)`,
-                borderRadius: 12,
+                borderRadius: 10,
                 flexShrink: 0,
               }}
             />
@@ -164,7 +161,7 @@ export function PremiumReportLoader({
               </Title>
               <Space size={6} align="center" style={{ minWidth: 0 }}>
                 {!isComplete && (
-                  <Loader2
+                  <IconLoading
                     style={{ color: BERRY_THEME.primary, fontSize: 13 }}
                     className="animate-spin"
                   />
@@ -216,7 +213,7 @@ export function PremiumReportLoader({
                     height: '100%',
                     minHeight: 96,
                     padding: '12px 12px 10px',
-                    borderRadius: 12,
+                    borderRadius: 10,
                     background: isActive
                       ? `linear-gradient(135deg, ${BERRY_THEME.primary}18 0%, ${BERRY_THEME.primary}06 100%)`
                       : isDone
@@ -254,7 +251,7 @@ export function PremiumReportLoader({
                   <Flex align="center" justify="space-between" gap={8}>
                     <div
                       style={{
-                        width: 30, height: 30, borderRadius: 9,
+                        width: 30, height: 30, borderRadius: 999,
                         background: isActive
                           ? BERRY_THEME.primary
                           : isDone
@@ -268,7 +265,7 @@ export function PremiumReportLoader({
                       }}
                     >
                       {isDone
-                        ? <CheckCircle2 style={{ fontSize: 16 }} />
+                        ? <IconCheckOne style={{ fontSize: 16 }} />
                         : <Icon style={{ fontSize: 15 }} />
                       }
                     </div>
@@ -321,7 +318,7 @@ export function PremiumReportLoader({
             <Button
               size="small"
               type="text"
-              icon={<CloseOutlined />}
+              icon={<IconClose />}
               onClick={onCancel}
               style={{ color: 'rgba(0,0,0,0.45)' }}
             >

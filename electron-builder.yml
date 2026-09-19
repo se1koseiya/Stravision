@@ -1,0 +1,90 @@
+appId: site.stravision.desktop
+productName: Stravision
+copyright: Copyright © 2026 Stravision
+
+directories:
+  output: release
+  buildResources: desktop/build
+
+# 在线更新（electron-updater generic provider）：
+# 打包期会生成 release/latest.yml；把 latest.yml + 安装包 exe + blockmap
+# 三个文件上传到服务器 downloads 目录即可让已装用户自动更新（见 docs/DESKTOP.md）
+publish:
+  - provider: generic
+    url: https://stravision.site/downloads/desktop/
+    channel: latest
+
+# 只打包主进程代码与其独立依赖树（desktop/node_modules）。
+# 前端依赖树（three/antd/... 体量巨大）与桌面壳无关，显式排除。
+# 服务端产物走 extraResources —— 必须在 asar 之外：
+# Next standalone 的 server.js 运行期动态读取大量文件，
+# asar 虚拟文件系统对 fork + 动态 require + fs 读写不可靠。
+files:
+  - desktop/**/*
+  - package.json
+  - "!**/*.map"
+  - "!**/{.eslintrc,.eslintrc.js,.editorconfig,.prettierrc,.prettierrc.js}"
+  - "!**/{test,tests,__tests__,docs,example,examples}/**"
+  - "!node_modules/**"
+  # 开发期用的验证脚本与构建资源不需要进应用包
+  # （buildResources 是打包期从源目录读取的，不依赖它出现在 asar 里）
+  - "!desktop/verify-*"
+  - "!desktop/build/**"
+  - "!desktop/package-lock.json"
+
+# package.json 不写入 main 字段（避免影响 Next/webpack 行为），
+# 打包时由 electron-builder 注入入口
+extraMetadata:
+  main: desktop/main.js
+
+asarUnpack:
+  # embedded-postgres 运行期需要 spawn postgres / initdb 等可执行文件，
+  # asar 内的文件无法被 spawn，必须解包到 app.asar.unpacked
+  - "**/node_modules/@embedded-postgres/**"
+  - "**/node_modules/embedded-postgres/**"
+
+extraResources:
+  # Next standalone 完整运行时（已由 scripts/desktop/prepare-standalone.mjs 补齐
+  # public/.next/static/server/ws-server/.agents/data/docs）
+  - from: .next/standalone
+    to: app-server
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: desktop/build/icon.png
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  # 用户态安装到 %LOCALAPPDATA%\Programs：
+  # 若装到 Program Files（perMachine），app-server 目录不可写，
+  # 文档库/上传/AI 配置将无法落盘。
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Stravision
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: desktop/build/icon.png
+  category: public.app-category.productivity
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: desktop/build/icon.png
+  category: Utility
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}

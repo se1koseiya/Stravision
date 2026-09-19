@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button, Drawer, Flex, Typography } from "antd";
-import { MenuOutlined, DownOutlined, RightOutlined } from "@ant-design/icons";
+import { IconDown, IconHamburgerButton, IconRight } from "@/components/icon";
 
 const { Text } = Typography;
 
@@ -61,7 +61,7 @@ export function LandingNav() {
                   style={{ height: 40, fontSize: 14 }}
                 >
                   {l.label}
-                  {l.hasChevron && <DownOutlined className="ml-1.5 text-[11px] text-slate-400" />}
+                  {l.hasChevron && <IconDown className="ml-1.5 text-[11px] text-slate-400" />}
                 </Button>
               </Link>
             ))}
@@ -104,7 +104,7 @@ export function LandingNav() {
               style={{ background: "#0f172a", color: "#ffffff", fontWeight: 600, height: 40, paddingInline: 20, fontSize: 14 }}
             >
               进入控制台
-              <RightOutlined className="text-[11px]" />
+              <IconRight className="text-[11px]" />
             </Button>
           </Link>
         </Flex>
@@ -113,7 +113,7 @@ export function LandingNav() {
         <Button
           type="text"
           shape="circle"
-          icon={<MenuOutlined />}
+          icon={<IconHamburgerButton />}
           onClick={() => setOpen(true)}
           aria-label="菜单"
           className="md:!hidden"

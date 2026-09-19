@@ -4,12 +4,9 @@ import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { XCard, registerCatalog } from '@ant-design/x-card'
 import type { A2UICommand_v0_9, ActionPayload, Catalog } from '@ant-design/x-card'
-import {
-  Sparkles, Zap, Brain, Calendar, FileText, Search, Camera,
-  Activity, BarChart3, MessageSquare, ArrowRight, X
-} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BERRY_THEME } from '@/lib/ui/berry-theme'
+import { IconArrowRight, IconBrain, IconCalendar, IconCamera, IconChartHistogram, IconChartLine, IconClose, IconComment, IconFileText, IconLightning, IconMagic, IconSearch } from "@/components/icon";
 
 // ====== 能力数据定义 ======
 
@@ -74,16 +71,16 @@ const CAPABILITIES: Capability[] = [
 
 function IconRenderer({ name, size = 24 }: { name: string; size?: number }) {
   switch (name) {
-    case 'Zap': return <Zap size={size} />
-    case 'Activity': return <Activity size={size} />
-    case 'BarChart3': return <BarChart3 size={size} />
-    case 'Camera': return <Camera size={size} />
-    case 'Calendar': return <Calendar size={size} />
-    case 'FileText': return <FileText size={size} />
-    case 'Search': return <Search size={size} />
-    case 'Brain': return <Brain size={size} />
-    case 'MessageSquare': return <MessageSquare size={size} />
-    default: return <Sparkles size={size} />
+    case 'Zap': return <IconLightning size={size} />
+    case 'Activity': return <IconChartLine size={size} />
+    case 'BarChart3': return <IconChartHistogram size={size} />
+    case 'Camera': return <IconCamera size={size} />
+    case 'Calendar': return <IconCalendar size={size} />
+    case 'FileText': return <IconFileText size={size} />
+    case 'Search': return <IconSearch size={size} />
+    case 'Brain': return <IconBrain size={size} />
+    case 'MessageSquare': return <IconComment size={size} />
+    default: return <IconMagic size={size} />
   }
 }
 
@@ -155,7 +152,7 @@ function CapabilityItemComponent({
         </div>
         <h4 className="font-bold text-zinc-900 dark:text-white mb-1.5 text-base">{title}</h4>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 mb-3">{description}</p>
-        <div className="flex items-center justify-end"><ArrowRight size={16} className="text-zinc-300 group-hover:translate-x-1 transition-transform duration-200" /></div>
+        <div className="flex items-center justify-end"><IconArrowRight size={16} className="text-zinc-300 group-hover:translate-x-1 transition-transform duration-200" /></div>
       </div>
     </motion.button>
   )
@@ -185,15 +182,15 @@ function ExamplePanelComponent({
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{description}</p>
               </div>
             </div>
-            {onClose && (<button onClick={onClose} className="shrink-0 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={16} className="text-zinc-400" /></button>)}
+            {onClose && (<button onClick={onClose} className="shrink-0 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"><IconClose size={16} className="text-zinc-400" /></button>)}
           </div>
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 mb-3"><Sparkles size={14} className="text-emerald-500" /><span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">试试这些示例</span></div>
+            <div className="flex items-center gap-1.5 mb-3"><IconMagic size={14} className="text-emerald-500" /><span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">试试这些示例</span></div>
             {(examples || []).map((example, i) => (
               <button key={i} onClick={() => onSelectExample?.(example)} className="w-full group flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 transition-all text-left">
                 <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: `${color || '#1677ff'}15`, color: color || '#1677ff' }}>{i + 1}</span>
                 <span className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white truncate">{example}</span>
-                <ArrowRight size={14} className="shrink-0 text-zinc-300 group-hover:translate-x-0.5 group-hover:text-emerald-500 transition-all" />
+                <IconArrowRight size={14} className="shrink-0 text-zinc-300 group-hover:translate-x-0.5 group-hover:text-emerald-500 transition-all" />
               </button>
             ))}
           </div>
@@ -257,7 +254,7 @@ function DirectRenderFallback({
               <h4 className="font-bold text-zinc-900 dark:text-white mb-1.5 text-base">{cap.title}</h4>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 mb-3">{cap.description}</p>
               <div className="flex items-center justify-end">
-                <ArrowRight size={16} className={`transition-transform duration-200 ${activeCapabilityId === cap.id ? 'rotate-90 text-emerald-500' : 'text-zinc-300 group-hover:translate-x-1'}`} />
+                <IconArrowRight size={16} className={`transition-transform duration-200 ${activeCapabilityId === cap.id ? 'rotate-90 text-emerald-500' : 'text-zinc-300 group-hover:translate-x-1'}`} />
               </div>
             </div>
           </motion.button>

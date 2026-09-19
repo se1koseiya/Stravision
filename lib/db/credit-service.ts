@@ -1,5 +1,6 @@
 import { queryOne, execute, initDB } from "./database"
 import { readProvidersConfig } from "@/lib/ai/provider-resolver"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 
 /**
  * AI 助手积分制度（按 token 计费，倍率由 admin 在每个模型管理里单独配）
@@ -259,6 +260,9 @@ export const MIN_CREDITS_TO_START = 2
  * @returns null = 允许；string = 拒绝原因（友好提示）
  */
 export async function checkCreditAllowance(userId: number): Promise<string | null> {
+  // 🚨 桌面端（BYOK）豁免：本地运行 + 用户自带 Key，无平台积分/会员校验
+  //    （2026-09-14 用户实测：桌面端发消息被 403 membership_required 拦截）
+  if (IS_DESKTOP_APP) return null
   const status = await getUserCreditStatus(userId)
   // 🔥 诊断日志：排查「积分耗尽仍能聊天」时，直接看后端算出的真实数字
   console.log(
@@ -288,6 +292,10 @@ export async function settleCredits(
   estimated = false,
   customModels?: Array<{ id: string; rateMultiplier?: number }>,
 ): Promise<CreditUsageResult> {
+  // 桌面端不结算平台积分（未检查也未扣减），返回零消耗占位
+  if (IS_DESKTOP_APP) {
+    return { credits: 0, inputTokens, outputTokens, modelRate: 1, estimated }
+  }
   const { modelRate, config } = await getModelRate(modelId, customModels)
   const credits = calculateCredits(inputTokens, outputTokens, modelRate, config)
 

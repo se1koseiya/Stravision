@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconLoading, IconTrendingUp } from "@/components/icon";
 
 interface PredictiveInsightTriggerProps {
   /** 点击触发回调（由父组件接入 handleSend，走主对话路线） */
@@ -50,9 +50,9 @@ export function PredictiveInsightCard({ onTrigger, className }: PredictiveInsigh
       title="基于 7 天历史数据进行 AI 趋势预测"
     >
       {loading ? (
-        <Loader2 size={14} strokeWidth={2} className="animate-spin text-gray-500" />
+        <IconLoading size={14} strokeWidth={2} className="animate-spin text-gray-500" />
       ) : (
-        <TrendingUp size={14} strokeWidth={2} className="text-gray-500" />
+        <IconTrendingUp size={14} strokeWidth={2} className="text-gray-500" />
       )}
       <span className="text-gray-700 dark:text-zinc-200 font-medium">
         {loading ? '分析中' : '趋势预测'}

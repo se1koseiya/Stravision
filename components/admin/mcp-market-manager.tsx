@@ -4,20 +4,8 @@ import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Tag, Space, Typography, Card } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { toast } from "sonner"
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  SearchOutlined,
-  GlobalOutlined,
-  LockOutlined,
-  CheckCircleOutlined,
-  LayoutOutlined,
-  FireOutlined,
-  PictureOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons"
 import { ImageCropper } from "./image-cropper"
+import { IconCheckOne, IconDelete, IconEarth, IconEdit, IconFire, IconLayoutTwo, IconLock, IconPicture, IconPlus, IconRefresh, IconSearch } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -186,7 +174,7 @@ export function MCPMarketManager() {
       render: (displayName: string, record) => (
         <Space>
           <Text>{displayName}</Text>
-          {record.official && <CheckCircleOutlined style={{ color: "#1677ff" }} />}
+          {record.official && <IconCheckOne style={{ color: "#1677ff" }} />}
         </Space>
       ),
     },
@@ -215,7 +203,7 @@ export function MCPMarketManager() {
         <Space>
           <Button
             type="text"
-            icon={<EditOutlined />}
+            icon={<IconEdit />}
             onClick={() => {
               setEditingServer(record)
               setModalOpen(true)
@@ -224,7 +212,7 @@ export function MCPMarketManager() {
           <Button
             type="text"
             danger
-            icon={<DeleteOutlined />}
+            icon={<IconDelete />}
             onClick={() => handleDelete(record.id)}
           />
         </Space>
@@ -238,14 +226,14 @@ export function MCPMarketManager() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <Input
           placeholder="Search MCP servers..."
-          prefix={<SearchOutlined style={{ color: "#8F959E" }} />}
+          prefix={<IconSearch style={{ color: "#8F959E" }} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ maxWidth: 320 }}
         />
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<IconPlus />}
           onClick={() => {
             setEditingServer({
               id: "",
@@ -324,7 +312,7 @@ export function MCPMarketManager() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
-                <LayoutOutlined /> 图标 URL / Emoji
+                <IconLayoutTwo /> 图标 URL / Emoji
               </Text>
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{
@@ -346,7 +334,7 @@ export function MCPMarketManager() {
                       <span style={{ fontSize: 24 }}>{editingServer.icon}</span>
                     )
                   )}
-                  {!editingServer?.icon && <PlusOutlined style={{ color: "#8F959E" }} />}
+                  {!editingServer?.icon && <IconPlus style={{ color: "#8F959E" }} />}
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   <Input
@@ -358,7 +346,7 @@ export function MCPMarketManager() {
                   <Button
                     variant="outlined"
                     size="small"
-                    icon={<PictureOutlined />}
+                    icon={<IconPicture />}
                     onClick={() => { setCropperTarget("icon"); setCropperOpen(true); }}
                   >
                     上传并裁剪图标
@@ -368,7 +356,7 @@ export function MCPMarketManager() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
-                <FireOutlined /> 封面大图 URL (详情页/精选卡片)
+                <IconFire /> 封面大图 URL (详情页/精选卡片)
               </Text>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Input
@@ -398,7 +386,7 @@ export function MCPMarketManager() {
                   <Button
                     variant="outlined"
                     size="small"
-                    icon={<PictureOutlined />}
+                    icon={<IconPicture />}
                     onClick={() => { setCropperTarget("cover"); setCropperOpen(true); }}
                   >
                     上传封面
@@ -438,7 +426,7 @@ export function MCPMarketManager() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Text strong style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <FireOutlined style={{ color: "#1677ff" }} />
+              <IconFire style={{ color: "#1677ff" }} />
               推荐 Prompt
               <span style={{ fontSize: 10, color: "#8F959E", fontWeight: 400 }}>（插件详情页打开时自动加载）</span>
             </Text>

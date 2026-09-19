@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Mic, MicOff, Volume2, VolumeX, X, Loader2, Phone, PhoneOff } from "lucide-react"
 import { useSpeechRecognition } from "@/lib/hooks/use-speech-recognition"
 import { useSpeechSynthesis } from "@/lib/hooks/use-speech-synthesis"
 import { cn } from "@/lib/utils"
+import { IconClose, IconLoading, IconMicrophone, IconPhone, IconPhoneOff, IconVoiceOff, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 interface VoiceChatModalProps {
   open: boolean
@@ -205,7 +205,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
           onClick={handleClose}
           className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
         >
-          <X size={20} />
+          <IconClose size={20} />
         </button>
 
         {/* Content */}
@@ -271,17 +271,17 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
               )}
             >
               {isProcessing ? (
-                <Loader2 size={40} className="text-white animate-spin" />
+                <IconLoading size={40} className="text-white animate-spin" />
               ) : isActive ? (
                 isListening ? (
-                  <Mic size={40} className="text-white" />
+                  <IconMicrophone size={40} className="text-white" />
                 ) : isSpeaking ? (
-                  <Volume2 size={40} className="text-white animate-pulse" />
+                  <IconVolumeNotice size={40} className="text-white animate-pulse" />
                 ) : (
-                  <PhoneOff size={40} className="text-white" />
+                  <IconPhoneOff size={40} className="text-white" />
                 )
               ) : (
-                <Phone size={40} className="text-white" />
+                <IconPhone size={40} className="text-white" />
               )}
             </button>
           </div>
@@ -338,7 +338,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
                 )}
                 title={isMuted ? "取消静音" : "静音 AI 语音"}
               >
-                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                {isMuted ? <IconVolumeMute size={20} /> : <IconVolumeNotice size={20} />}
               </button>
             </div>
           )}

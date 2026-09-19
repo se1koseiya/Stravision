@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react"
 import { Card, Button, Typography, Flex, Form, InputNumber, Input, Select, Switch, Tag } from "antd"
-import { HelpCircle, CheckCircle2 } from "lucide-react"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { CheckpointParamField } from "@/components/ai/checkpoint-confirm"
+import { IconCheckOne, IconHelp } from "@/components/icon";
 
 const { Text, Paragraph } = Typography
 
@@ -152,9 +152,9 @@ export function ClarifyCard({ data, onReply }: ClarifyCardProps) {
       {/* 头部：图标 + 标题 */}
       <Flex align="center" gap={6} style={{ marginBottom: 8 }}>
         {isResolved ? (
-          <CheckCircle2 size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
+          <IconCheckOne size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
         ) : (
-          <HelpCircle size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.primary} />
+          <IconHelp size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.primary} />
         )}
         <Text strong style={{ fontSize: 14, color: "#262626" }}>
           {data.title || "需要更多信息"}
@@ -207,7 +207,7 @@ export function ClarifyCard({ data, onReply }: ClarifyCardProps) {
                     {opt.label}
                   </Text>
                   {isSelected && (
-                    <CheckCircle2 size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.primary} />
+                    <IconCheckOne size={14} strokeWidth={ICON_STROKE} color={BERRY_THEME.primary} />
                   )}
                 </Flex>
               </Button>
@@ -270,7 +270,7 @@ export function ClarifyCard({ data, onReply }: ClarifyCardProps) {
       {isResolved && resolvedText && (
         <div style={{ marginTop: 4 }}>
           <Flex align="center" gap={6} style={{ marginBottom: 8 }}>
-            <CheckCircle2 size={12} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
+            <IconCheckOne size={12} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
             <Text style={{ fontSize: 12, color: "#8c8c8c", fontWeight: 400 }}>
               已提交，AI 正在继续处理
             </Text>

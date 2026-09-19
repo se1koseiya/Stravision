@@ -22,11 +22,20 @@
  *   new WebsocketProvider(`ws://${host}:${YJS_WS_PORT}`, `kb-doc-${itemId}`, yDoc)
  */
 
-require("dotenv").config()
+// dotenv 为可选依赖：容器与桌面端均由外部注入环境变量（.env 文件可能不存在）。
+// 若此处不加容错，缺少 dotenv 时会直接抛错导致服务无法启动。
+try {
+  require("dotenv").config()
+} catch {
+  // 依赖 process.env
+}
 
 const { WebSocketServer } = require("ws")
 const Y = require("yjs")
-const { setupWSConnection } = require("y-websocket/bin/utils")
+// 同步协议层在本仓库内实现：y-websocket 3.x 已删除 bin/utils，
+// 且本服务需要"预载 DB 状态"的生命周期，不能交给上游按 docName 自管空文档。
+// 详见 ws-server/lib/yjs-sync.js 顶部说明。
+const yjsSync = require("./lib/yjs-sync")
 const { Pool } = require("pg")
 
 const PORT = Number(process.env.YJS_WS_PORT || 1234)
@@ -90,17 +99,29 @@ function extractItemId(docName) {
   return m ? Number(m[1]) : 0
 }
 
-// ====== Yjs persistence callback ======
-function persistence(docName, yDoc) {
-  // 当 y-websocket 内部需要持久化时调用：把当前 state vector + update 写入数据库
-  const state = Y.encodeStateAsUpdate(yDoc)
-  return saveDocStateToDb(docName, Buffer.from(state), null)
+// ====== 连接管理 ======
+/**
+ * 建一份文档并预载数据库里的状态。
+ *
+ * ⚠️ 并发保护：两个客户端几乎同时连接同一文档时，若各自都 miss 缓存再各自
+ * new Y.Doc()，就会得到**两份互不相干的文档**（表现为"两边都连上了但内容永远
+ * 不同步"）。所以这里用 pending 表把同一 docName 的首次构造收敛成一个 Promise。
+ */
+const pending = new Map()
+
+function ensureDoc(docName) {
+  const cached = docs.get(docName)
+  if (cached) return Promise.resolve(cached)
+
+  const inFlight = pending.get(docName)
+  if (inFlight) return inFlight
+
+  const task = createDoc(docName).finally(() => pending.delete(docName))
+  pending.set(docName, task)
+  return task
 }
 
-// ====== 连接管理 ======
-async function ensureDoc(docName) {
-  let entry = docs.get(docName)
-  if (entry) return entry
+async function createDoc(docName) {
   const yDoc = new Y.Doc()
   // 从数据库加载初始状态
   const existing = await loadDocStateFromDb(docName)
@@ -111,7 +132,17 @@ async function ensureDoc(docName) {
       console.error(`[yjs-server] applyUpdate(${docName}) error:`, e.message)
     }
   }
-  entry = { yDoc, conns: new Map(), lastFlush: Date.now(), snapshotTimer: null }
+  const entry = {
+    yDoc,
+    conns: new Map(),
+    lastFlush: Date.now(),
+    snapshotTimer: null,
+    // 内容变更时刷新"最后活跃时间"，供 flush 策略使用
+    onChange: () => {
+      entry.lastFlush = Date.now()
+    },
+  }
+  yjsSync.initDoc(entry)
   docs.set(docName, entry)
   return entry
 }
@@ -132,16 +163,27 @@ async function handleConnection(conn, req) {
     }
   }
 
-  const entry = await ensureDoc(docName)
-  // y-websocket 内部会处理 update / awareness 同步
-  setupWSConnection(conn, entry.yDoc, {
-    // 自定义 callback：当文档变更时定期持久化
-    onChange: () => {
-      entry.lastFlush = Date.now()
-    }
-  })
+  // 🚨 先挂上消息缓冲：entry 要等一次数据库查询才建好，而客户端在 WebSocket
+  // 握手完成的那一刻就发出 syncStep1 了。ws 的 'message' 没有监听器时**直接丢弃**
+  // （不缓存），这条消息一旦失落，服务端就不会回 syncStep2，客户端
+  // provider.synced 永远为 false —— 但增量更新又能互传，是"看着能用其实没握手"的假象。
+  // 详见 ws-server/lib/yjs-sync.js 的 createPendingBuffer 说明。
+  const pending = yjsSync.createPendingBuffer(conn)
 
+  const entry = await ensureDoc(docName)
+
+  // 查询期间客户端可能已经断开：此时再 setup 会留下永远不触发的 close 监听，
+  // 该连接就永久留在 entry.conns 里（文档再也不会被淘汰）。
+  if (conn.readyState !== 1 /* OPEN */) {
+    pending.flush()
+    return
+  }
+
+  // 注册连接后再接管协议：这样握手期间的广播也能覆盖到它
   entry.conns.set(conn, { userId: null, joinedAt: Date.now() })
+  // 协议层负责 sync（syncStep1/2 + update）与 awareness 的收发与广播；
+  // 缓冲到的消息在这里重放，补上握手丢失的那条 syncStep1
+  yjsSync.setupConnection(entry, conn, { pending: pending.flush() })
 
   // 启动 snapshot 定时器（每个文档一个）
   if (!entry.snapshotTimer) {
@@ -157,6 +199,8 @@ async function handleConnection(conn, req) {
 
   conn.on("close", () => {
     entry.conns.delete(conn)
+    // 摘除该连接产生的 awareness 状态（光标/选区），否则会在其他人屏幕上永远残留
+    yjsSync.detachConnection(entry, conn)
     // 5 秒后若再无连接，flush 并清理
     setTimeout(() => {
       if (entry.conns.size === 0) {
@@ -170,6 +214,8 @@ async function handleConnection(conn, req) {
           clearInterval(entry.snapshotTimer)
           entry.snapshotTimer = null
         }
+        // 淘汰前解绑监听，否则文档与定时器会被闭包留在内存里
+        yjsSync.destroyDoc(entry)
         docs.delete(docName)
       }
     }, FLUSH_INTERVAL_MS)

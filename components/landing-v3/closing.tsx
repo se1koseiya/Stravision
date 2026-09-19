@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Check } from "lucide-react";
 import { Col, Row, Typography } from "antd";
 import { L, L_MIX, SHADOW } from "@/components/landing-v4/shared";
+import { IconArrowRightUp, IconCheck } from "@/components/icon";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -163,7 +163,7 @@ export function Faq() {
                       className="flex items-start gap-2.5 text-[13px]"
                       style={{ color: L.muted }}
                     >
-                      <Check
+                      <IconCheck
                         className="mt-0.5 size-4 shrink-0"
                         strokeWidth={3}
                         style={{ color: GREEN_INK }}
@@ -186,7 +186,7 @@ export function Faq() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="" className="size-6 rounded-md" />
             查看完整套餐
-            <ArrowUpRight className="size-4" />
+            <IconArrowRightUp className="size-4" />
           </Link>
         </motion.div>
       </div>
@@ -280,7 +280,7 @@ export function Closing() {
                   style={{ background: L.neutral950, color: L.surface }}
                 >
                   进入控制台
-                  <ArrowUpRight className="size-4" />
+                  <IconArrowRightUp className="size-4" />
                 </Link>
                 <Link
                   href="/subscription"

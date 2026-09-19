@@ -12,10 +12,10 @@
    lib/mcp/builtin-deep-research.ts 的入库提示来写。
    ------------------------------------------------------------ */
 
-import { ArrowDownToLine } from "lucide-react";
 import { Sources } from "@ant-design/x";
 import type { AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain";
 import { DemoChat, DemoChip } from "./demo-chat/shell";
+import { IconDownload } from "@/components/icon";
 
 /* ---- 演示问题与答复 ---- */
 
@@ -148,7 +148,7 @@ export function DeepResearchDemo() {
               expandIconPosition="end"
             />
           </div>
-          <DemoChip icon={<ArrowDownToLine className="size-3" />}>
+          <DemoChip icon={<IconDownload className="size-3" />}>
             已存入知识库「AI研究」· 12 个分块
           </DemoChip>
         </>

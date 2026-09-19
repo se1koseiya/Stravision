@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Home, AlertTriangle, Terminal, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconArrowLeft, IconCaution, IconChartLine, IconHome, IconTerminal } from "@/components/icon";
 
 // Animation variants similar to profile page
 const fadeInUp = {
@@ -45,7 +45,7 @@ export default function NotFound() {
       {/* Top Status Bar */}
       <nav className="w-full h-20 px-8 md:px-12 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-900 bg-[#FAFAFA]/80 dark:bg-[#050505]/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-3 opacity-60">
-           <Activity className="w-4 h-4 text-zinc-500" />
+           <IconChartLine className="w-4 h-4 text-zinc-500" />
            <span className="text-xs font-mono tracking-widest uppercase">System Status: Error</span>
         </div>
         <div className="hidden md:flex items-center gap-6 text-xs font-mono text-zinc-400">
@@ -92,7 +92,7 @@ export default function NotFound() {
                    onClick={() => router.push('/')}
                    className="h-12 px-8 rounded-none border border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all text-sm font-medium tracking-wide uppercase"
                 >
-                   <Home className="w-4 h-4 mr-2" />
+                   <IconHome className="w-4 h-4 mr-2" />
                    Return Home
                 </Button>
 
@@ -101,7 +101,7 @@ export default function NotFound() {
                    onClick={() => router.back()}
                    className="h-12 px-8 rounded-none border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all text-sm font-medium tracking-wide uppercase"
                 >
-                   <ArrowLeft className="w-4 h-4 mr-2" />
+                   <IconArrowLeft className="w-4 h-4 mr-2" />
                    Back Previous
                 </Button>
              </div>
@@ -122,7 +122,7 @@ export default function NotFound() {
             </div>
          </div>
          <div className="flex items-center gap-2 opacity-50">
-             <Terminal className="w-4 h-4" />
+             <IconTerminal className="w-4 h-4" />
              <span>root@stravision:~$ _</span>
          </div>
       </footer>

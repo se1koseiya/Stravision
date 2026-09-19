@@ -2,24 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import { ConfigProvider, theme } from "antd"
-import {
-  Plus,
-  ArrowUp,
-  ChevronDown,
-  ShieldAlert,
-  Shield,
-  ShieldCheck,
-  Check,
-  Brain,
-  Globe,
-  Mic,
-  ScanSearch,
-  Bug,
-  LineChart,
-  Sprout,
-  MoreHorizontal,
-} from "lucide-react"
 import dynamic from "next/dynamic"
+import { IconArrowUpSolid, IconBrain, IconBug, IconChartLine, IconCheck, IconDown, IconGlobe, IconMore, IconPlus, IconScanCode, IconSeedling, IconShieldCheck } from "@/components/icon";
 
 const BerryOrb = dynamic(() => import("@/components/smoothui/berry-orb"), { ssr: false })
 
@@ -39,13 +23,14 @@ interface MateChatHomeProps {
   setEnableSearch?: (v: boolean) => void
   /** 当前是否具备联网搜索工具 */
   hasSearchTool?: boolean
+  /** 来源页专属欢迎词（工作台悬浮球 ?from= 带入）；不传用默认招呼语 */
 }
 
 // 权限模式配置 — 与 chat-sender-input 统一
 const APPROVAL_MODES = [
-  { key: "request" as const, icon: <ShieldAlert size={14} />, label: "请求批准", desc: "执行设备控制、文件编辑等操作前始终确认" },
-  { key: "auto" as const, icon: <Shield size={14} />, label: "替我审批", desc: "仅对高风险操作（如删除文件、修改配置）请求确认" },
-  { key: "full" as const, icon: <ShieldCheck size={14} />, label: "完全访问权限", desc: "莓小智可自主执行所有工具操作，无需逐一确认" },
+  { key: "request" as const, icon: <IconShieldCheck size={14} />, label: "请求批准", desc: "执行设备控制、文件编辑等操作前始终确认" },
+  { key: "auto" as const, icon: <IconShieldCheck size={14} />, label: "替我审批", desc: "仅对高风险操作（如删除文件、修改配置）请求确认" },
+  { key: "full" as const, icon: <IconShieldCheck size={14} />, label: "完全访问权限", desc: "莓小智可自主执行所有工具操作，无需逐一确认" },
 ]
 
 // 快捷指令 — 围绕莓小智的种植管理核心能力
@@ -53,7 +38,7 @@ const QUICK_ACTIONS: { key: string; label: string; prompt: string; icon: React.R
   {
     key: "inspect",
     label: "巡检分析",
-    icon: <ScanSearch size={14} />,
+    icon: <IconScanCode size={14} />,
     prompt: `请基于设备上传的巡检数据，对当前草莓大棚执行一次完整巡检分析，按以下结构输出：
 
 1. 【核心指标速览】当前温度、湿度、CO₂、光照、土壤含水率、NDVI 健康指数，对比标准范围（白天 20-25℃ / 夜间 10-15℃ / 湿度 60-80% / CO₂ 800-1200ppm / 光照 30000-50000lux / NDVI 0.6-0.8），用 ✅/⚠️/❌ 标注每一项。
@@ -67,7 +52,7 @@ const QUICK_ACTIONS: { key: string; label: string; prompt: string; icon: React.R
   {
     key: "disease",
     label: "病虫害识别",
-    icon: <Bug size={14} />,
+    icon: <IconBug size={14} />,
     prompt: `请以草莓病虫害专家身份协助识别当前问题。请按以下流程处理：
 
 【第一步：信息采集】请先问我（必要时主动获取）以下信息——
@@ -91,7 +76,7 @@ const QUICK_ACTIONS: { key: string; label: string; prompt: string; icon: React.R
   {
     key: "env",
     label: "环境监测",
-    icon: <LineChart size={14} />,
+    icon: <IconChartLine size={14} />,
     prompt: `请汇总当前草莓大棚环境监测数据，并生成可直接交给种植户的简报：
 
 【实时数据】
@@ -114,7 +99,7 @@ const QUICK_ACTIONS: { key: string; label: string; prompt: string; icon: React.R
   {
     key: "strategy",
     label: "种植策略",
-    icon: <Sprout size={14} />,
+    icon: <IconSeedling size={14} />,
     prompt: `请以莓小智种植策略师身份，基于当前环境与生育期，给出接下来 7 天的精准调控策略：
 
 【先确认生育期】——如果我还告诉你品种（红颜 / 甜查理 / 章姬 / 圣诞红等），请自行结合品种特性。
@@ -141,7 +126,7 @@ const QUICK_ACTIONS: { key: string; label: string; prompt: string; icon: React.R
   {
     key: "more",
     label: "更多",
-    icon: <MoreHorizontal size={14} />,
+    icon: <IconMore size={14} />,
     prompt: "",
   },
 ]
@@ -354,16 +339,29 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
             </div>
           </div>
 
-          {/* 输入容器 — 极简胶囊：左侧 mic/plus，右侧 思考/发送 */}
+          {/* 输入容器 — 圆角卡片：左侧 +/思考/研究/权限，右侧实心发送按钮 */}
           <div
             style={{
-              borderRadius: 22,
-              padding: "12px 14px",
+              borderRadius: 16,
+              padding: "12px 14px 10px",
               background: darkMode ? "#16161a" : "#ffffff",
-              border: darkMode ? "1px solid #3A3A3D" : "1px solid #e5e7eb",
+              border: darkMode ? "1px solid #3A3A3D" : "1px solid #d9dde3",
               boxShadow: darkMode
                 ? "0 1px 0 rgba(255,255,255,0.04) inset"
-                : "0 1px 2px rgba(15,23,42,0.04)",
+                : "0 1px 2px rgba(15,23,42,0.03)",
+              transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+            }}
+            onFocusCapture={(e) => {
+              e.currentTarget.style.borderColor = darkMode ? "#52525B" : "#bfc6d0"
+              e.currentTarget.style.boxShadow = darkMode
+                ? "0 0 0 3px rgba(255,255,255,0.04)"
+                : "0 0 0 3px rgba(15,23,42,0.035)"
+            }}
+            onBlurCapture={(e) => {
+              e.currentTarget.style.borderColor = darkMode ? "#3A3A3D" : "#d9dde3"
+              e.currentTarget.style.boxShadow = darkMode
+                ? "0 1px 0 rgba(255,255,255,0.04) inset"
+                : "0 1px 2px rgba(15,23,42,0.03)"
             }}
           >
             {/* 文本输入区 */}
@@ -373,7 +371,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
               value={displayValue}
               onChange={(e) => { handleChange(e.target.value); adjustHeight() }}
               onKeyDown={handleKeyDown}
-              placeholder="和我聊聊吧"
+              placeholder="输入 / 获取建议，或发送消息开始对话"
               rows={1}
               style={{
                 width: "100%",
@@ -388,40 +386,24 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                 minHeight: 28,
                 maxHeight: 120,
                 overflowY: "auto",
-                padding: "6px 6px 4px",
+                padding: "4px 4px 2px",
               }}
             />
 
-            {/* Footer 行：左侧 mic+plus，右侧 思考/研究/权限 + 发送 */}
+            {/* Footer 行：左侧 +/思考/研究/权限，右侧发送 */}
             <div style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginTop: 4,
+              marginTop: 6,
             }}>
-              {/* 左侧图标按钮组 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <button
-                  title="语音输入"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 32, height: 32, borderRadius: 10,
-                    border: "none", background: "transparent",
-                    cursor: "pointer",
-                    color: darkMode ? "#a1a1aa" : "#6b7280",
-                    flexShrink: 0,
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-                >
-                  <Mic size={16} />
-                </button>
+              {/* 左侧功能按钮组 */}
+              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                 <button
                   title="更多选项"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 32, height: 32, borderRadius: 10,
+                    width: 30, height: 30, borderRadius: 8,
                     border: "none", background: "transparent",
                     cursor: "pointer",
                     color: darkMode ? "#a1a1aa" : "#6b7280",
@@ -431,25 +413,23 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                   onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                 >
-                  <Plus size={16} />
+                  <IconPlus size={16} />
                 </button>
-              </div>
 
-              {/* 右侧：思考/研究/权限 + 发送 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 {/* 思考（深度思考） */}
                 {setEnableReasoning && (
                   <button
                     onClick={() => setEnableReasoning(!enableReasoning)}
                     title="深度思考：让模型进行更深入的推理"
-                    className="inline-flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5"
                     style={{
+                      marginLeft: 2,
                       padding: "5px 10px",
-                      borderRadius: 10,
+                      borderRadius: 8,
                       border: "none",
                       cursor: "pointer",
                       fontSize: 13,
-                      fontWeight: 500,
+                      fontWeight: 400,
                       whiteSpace: "nowrap",
                       background: enableReasoning
                         ? (darkMode ? "rgba(22,119,255,0.18)" : "rgba(22,119,255,0.10)")
@@ -459,10 +439,15 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                         : (darkMode ? "#a1a1aa" : "#6b7280"),
                       transition: "all 0.2s",
                     }}
+                    onMouseEnter={(e) => {
+                      if (!enableReasoning) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!enableReasoning) e.currentTarget.style.background = "transparent"
+                    }}
                   >
-                    <Brain size={14} strokeWidth={1.75} />
+                    <IconBrain size={14} strokeWidth={1.75} />
                     <span>思考</span>
-                    <ChevronDown size={12} />
                   </button>
                 )}
 
@@ -474,14 +459,14 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                       setEnableSearch(!enableSearch)
                     }}
                     title="联网搜索：让模型检索最新信息"
-                    className="inline-flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5"
                     style={{
                       padding: "5px 10px",
-                      borderRadius: 10,
+                      borderRadius: 8,
                       border: "none",
                       cursor: "pointer",
                       fontSize: 13,
-                      fontWeight: 500,
+                      fontWeight: 400,
                       whiteSpace: "nowrap",
                       background: enableSearch
                         ? (darkMode ? "rgba(22,119,255,0.18)" : "rgba(22,119,255,0.10)")
@@ -491,12 +476,21 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                         : (darkMode ? "#a1a1aa" : "#6b7280"),
                       transition: "all 0.2s",
                     }}
+                    onMouseEnter={(e) => {
+                      if (!enableSearch) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!enableSearch) e.currentTarget.style.background = "transparent"
+                    }}
                   >
-                    <Globe size={14} strokeWidth={1.75} />
+                    <IconGlobe size={14} strokeWidth={1.75} />
                     <span>研究</span>
                   </button>
                 )}
+              </div>
 
+              {/* 右侧：权限模式 + 发送 */}
+              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                 {/* 权限模式入口（点击展开面板） */}
                 {setApprovalMode && (
                   <div style={{ position: "relative" }}>
@@ -506,22 +500,23 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 4,
-                        padding: "5px 8px 5px 10px",
-                        borderRadius: 10,
+                        gap: 5,
+                        padding: "5px 10px",
+                        borderRadius: 8,
                         border: "none",
                         background: "transparent",
                         cursor: "pointer",
                         color: darkMode ? "#a1a1aa" : "#6b7280",
                         fontSize: 13,
                         whiteSpace: "nowrap",
+                        transition: "background 0.15s",
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                     >
-                      {currentMode.icon}
-                      <ChevronDown size={12} style={{
-                        transition: "transform 0.2s ease",
-                        transform: approvalOpen ? "rotate(180deg)" : "rotate(0deg)",
-                      }} />
+                      <IconShieldCheck size={14} />
+                      <span>{currentMode.label}</span>
+                      <IconMore size={12} style={{ opacity: 0.7 }} />
                     </button>
                     {approvalOpen && (
                       <div
@@ -533,7 +528,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                           right: 0,
                           zIndex: 1000,
                           width: 320,
-                          borderRadius: 14,
+                          borderRadius: 16,
                           padding: "16px 12px 10px",
                           background: darkMode ? "#27272a" : "#fff",
                           border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
@@ -587,7 +582,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                               }}
                             >
                               <span style={{ marginTop: 1.5, flexShrink: 0, color: darkMode ? "#a1a1aa" : "#6b7280" }}>
-                                {React.cloneElement(mode.icon as React.ReactElement, { size: 17 })}
+                                {React.cloneElement(mode.icon as React.ReactElement<any>, { size: 17 })}
                               </span>
                               <div style={{ flex: 1, textAlign: "left" }}>
                                 <div style={{
@@ -611,7 +606,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                                 opacity: isActive ? 1 : 0,
                               }}>
                                 {isActive && (
-                                  <Check size={16} style={{
+                                  <IconCheck size={16} style={{
                                     color: darkMode ? "#e4e4e7" : "#374151",
                                   }} />
                                 )}
@@ -624,7 +619,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                   </div>
                 )}
 
-                {/* 发送按钮 */}
+                {/* 发送按钮 — 蓝色实心圆形 */}
                 <button
                   onClick={handleSend}
                   disabled={!displayValue.trim() || isLoading}
@@ -633,18 +628,17 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                     display: "flex", alignItems: "center", justifyContent: "center",
                     width: 32, height: 32, borderRadius: "50%",
                     border: "none",
-                    marginLeft: 4,
+                    marginLeft: 6,
+                    flexShrink: 0,
                     background: displayValue.trim()
-                      ? (darkMode ? "#e4e4e7" : "#27272a")
-                      : (darkMode ? "#2a2a2d" : "#e5e7eb"),
+                      ? "#1677ff"
+                      : (darkMode ? "rgba(22,119,255,0.28)" : "#bfd7ff"),
                     cursor: displayValue.trim() ? "pointer" : "not-allowed",
-                    color: displayValue.trim()
-                      ? (darkMode ? "#09090b" : "#fff")
-                      : (darkMode ? "#52525b" : "#9ca3af"),
+                    color: displayValue.trim() ? "#fff" : "rgba(255,255,255,0.85)",
                     transition: "all 0.2s",
                   }}
                 >
-                  <ArrowUp size={15} />
+                  <IconArrowUpSolid size={16} strokeWidth={2.25} />
                 </button>
               </div>
             </div>
@@ -690,7 +684,7 @@ border: darkMode ? "1px solid #3A3A3D" : "1px solid #e5e7eb",
                 >
                   <span style={{ display: "inline-flex", opacity: 0.85 }}>{action.icon}</span>
                   <span>{action.label}</span>
-                  {hasDropdown && <ChevronDown size={12} style={{ opacity: 0.7 }} />}
+                  {hasDropdown && <IconDown size={12} style={{ opacity: 0.7 }} />}
                 </button>
               )
             })}

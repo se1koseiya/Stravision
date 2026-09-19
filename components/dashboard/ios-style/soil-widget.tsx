@@ -1,6 +1,5 @@
 "use client"
 
-import { Droplets, Leaf, Target, Sprout, Thermometer } from "lucide-react"
 import { Flex } from "antd"
 import {
   IOSWidgetCard,
@@ -13,6 +12,7 @@ import {
 import { WidgetRingProgress, WidgetDualBars, WidgetLineChart, WidgetBars } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconLeaf, IconSeedling, IconTarget, IconThermometer, IconWater } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.soil
@@ -76,7 +76,7 @@ export function SoilWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Leaf size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconLeaf size={12} strokeWidth={ICON_STROKE} />}
             label="土壤"
             color={status.color}
             right={<div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />}
@@ -105,7 +105,7 @@ export function SoilWidget({
           />
           <WidgetMiniStats
             stats={[
-              { label: '肥', value: `${fertility.toFixed(0)}%`, color: A.accents.green, icon: <Sprout size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '肥', value: `${fertility.toFixed(0)}%`, color: A.accents.green, icon: <IconSeedling size={9} strokeWidth={ICON_STROKE} /> },
               { label: '状态', value: status.label, color: status.color },
               { label: 'EC', value: '1.8', color: A.labelSecondary },
             ]}
@@ -122,7 +122,7 @@ export function SoilWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Leaf size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconLeaf size={14} strokeWidth={ICON_STROKE} />}
             label="土壤监测"
             color={status.color}
             right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -164,9 +164,9 @@ export function SoilWidget({
 
           <WidgetMiniStats
             stats={[
-              { label: '理想水分', value: '50-70%', color: A.accents.blue, icon: <Droplets size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '理想肥力', value: '≥60%', color: A.accents.green, icon: <Target size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '综合', value: status.label, color: status.color, icon: <Sprout size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '理想水分', value: '50-70%', color: A.accents.blue, icon: <IconWater size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '理想肥力', value: '≥60%', color: A.accents.green, icon: <IconTarget size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '综合', value: status.label, color: status.color, icon: <IconSeedling size={10} strokeWidth={ICON_STROKE} /> },
             ]}
             style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
           />
@@ -182,7 +182,7 @@ export function SoilWidget({
       className={className}
       header={
         <WidgetHeader
-          icon={<Leaf size={14} strokeWidth={ICON_STROKE} />}
+          icon={<IconLeaf size={14} strokeWidth={ICON_STROKE} />}
           label="土壤"
           color={status.color}
           right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -212,9 +212,9 @@ export function SoilWidget({
         </Flex>
         <WidgetCompactFooter
           stats={[
-            { label: '肥力', value: `${fertility.toFixed(0)}%`, color: A.accents.green, icon: <Sprout size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '理想', value: '50-70%', color: A.accents.blue, icon: <Target size={10} strokeWidth={ICON_STROKE} /> },
-            { label: 'EC值', value: '1.8 mS', color: A.labelSecondary, icon: <Thermometer size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '肥力', value: `${fertility.toFixed(0)}%`, color: A.accents.green, icon: <IconSeedling size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '理想', value: '50-70%', color: A.accents.blue, icon: <IconTarget size={10} strokeWidth={ICON_STROKE} /> },
+            { label: 'EC值', value: '1.8 mS', color: A.labelSecondary, icon: <IconThermometer size={10} strokeWidth={ICON_STROKE} /> },
           ]}
         />
       </Flex>

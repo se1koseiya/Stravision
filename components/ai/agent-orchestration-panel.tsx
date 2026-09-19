@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Zap, CheckCircle, Bot, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { IconBrain, IconCheckOne, IconDown, IconLightning, IconLoading, IconRobot, IconUp } from "@/components/icon";
 
 interface AgentStep {
   id: string;
@@ -23,25 +23,25 @@ interface AgentOrchestrationPanelProps {
 
 const AGENT_CONFIG = {
   planner: {
-    icon: Brain,
+    icon: IconBrain,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
     label: '规划',
   },
   executor: {
-    icon: Zap,
+    icon: IconLightning,
     color: 'text-green-500',
     bgColor: 'bg-green-500/10',
     label: '执行',
   },
   validator: {
-    icon: CheckCircle,
+    icon: IconCheckOne,
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     label: '验证',
   },
   coordinator: {
-    icon: Bot,
+    icon: IconRobot,
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
     label: '协调',
@@ -87,7 +87,7 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
       >
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bot className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+            <IconRobot className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
             {isActive && (
               <motion.div
                 className="absolute -inset-1 bg-blue-500/20 rounded-full"
@@ -109,14 +109,14 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
         <div className="flex items-center gap-3">
           {isActive && (
             <Badge variant="secondary" className="text-xs">
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              <IconLoading className="h-3 w-3 mr-1 animate-spin" />
               处理中
             </Badge>
           )}
           {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-zinc-400" />
+            <IconUp className="h-4 w-4 text-zinc-400" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-zinc-400" />
+            <IconDown className="h-4 w-4 text-zinc-400" />
           )}
         </div>
       </button>
@@ -168,11 +168,11 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
                       config.bgColor
                     )}>
                       {isActive ? (
-                        <Loader2 className={cn("h-4 w-4 animate-spin", config.color)} />
+                        <IconLoading className={cn("h-4 w-4 animate-spin", config.color)} />
                       ) : isCompleted ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <IconCheckOne className="h-4 w-4 text-green-500" />
                       ) : isFailed ? (
-                        <CheckCircle className="h-4 w-4 text-red-500" />
+                        <IconCheckOne className="h-4 w-4 text-red-500" />
                       ) : (
                         <Icon className={cn("h-4 w-4", config.color)} />
                       )}

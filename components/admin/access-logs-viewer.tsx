@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Card, Table, Button } from "antd"
-import { ReloadOutlined } from "@ant-design/icons"
 import { AccessLog } from "@/lib/db/security-service"
 import { format } from "date-fns"
+import { IconRefresh } from "@/components/icon";
 
 export function AccessLogsViewer() {
   const [logs, setLogs] = useState<AccessLog[]>([])
@@ -102,7 +102,7 @@ export function AccessLogsViewer() {
       title="Recent Access Logs"
       extra={
         <Button
-          icon={<ReloadOutlined spin={loading} />}
+          icon={<IconRefresh spin={loading} />}
           onClick={fetchLogs}
           loading={loading}
         >

@@ -4,35 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from "framer-motion";
-import { 
-  Zap, 
-  Shield, 
-  Layout, 
-  Sparkles, 
-  ArrowRight, 
-  Camera, 
-  Droplets, 
-  Mic,
-  Volume2,
-  Box,
-  Monitor,
-  Activity,
-  ChevronRight,
-  Fan,
-  Lightbulb,
-  Sun,
-  MousePointer2,
-  Lock,
-  Search,
-  Thermometer,
-  Cloud,
-  Leaf,
-  Wind
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import BerryOrb from "@/components/smoothui/berry-orb";
 import dynamic from "next/dynamic";
+import { IconArrowRight, IconBox, IconCamera, IconChartLine, IconClickTap, IconCloudStorage, IconFan, IconLayoutTwo, IconLeaf, IconLight, IconLightning, IconLock, IconMagic, IconMicrophone, IconMonitor, IconRight, IconSearch, IconShield, IconSun, IconThermometer, IconVolumeNotice, IconWater, IconWind } from "@/components/icon";
 
 // Dynamically import project components to reuse them
 const GreenhouseModel = dynamic(
@@ -175,14 +151,14 @@ export default function LandingPage() {
                     whileHover={{ scale: 1.1, rotate: -3 }} 
                     className="size-20 rounded-[2rem] bg-black text-white flex flex-col items-center justify-center cursor-pointer shadow-[8px_8px_0px_rgba(16,185,129,1)]"
                   >
-                    <Box className="size-8" />
+                    <IconBox className="size-8" />
                     <span className="text-[10px] font-black mt-1">TWIN</span>
                   </motion.div>
                   <motion.div 
                     whileHover={{ scale: 1.1, rotate: 3 }} 
                     className="size-20 rounded-[2rem] bg-slate-100 flex flex-col items-center justify-center border-4 border-black cursor-pointer shadow-[8px_8px_0px_rgba(33,150,243,1)]"
                   >
-                    <Zap className="size-8 text-primary" />
+                    <IconLightning className="size-8 text-primary" />
                     <span className="text-[10px] font-black mt-1 text-black">AUTO</span>
                   </motion.div>
                </div>
@@ -191,7 +167,7 @@ export default function LandingPage() {
                     className="absolute inset-x-0 bottom-0 top-0 bg-primary rounded-full blur-2xl opacity-10 group-hover/btn:opacity-40 transition-opacity"
                  />
                  <Button className="relative h-24 w-24 rounded-full bg-black text-white hover:bg-primary transition-all border-4 border-black hover:scale-110 active:scale-90">
-                   <ArrowRight className="size-10" />
+                   <IconArrowRight className="size-10" />
                  </Button>
                </Link>
             </div>
@@ -219,12 +195,12 @@ export default function LandingPage() {
                    <AnimatePresence mode="wait">
                      {assistantStatus === 'listening' && (
                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="p-8 bg-white rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)]">
-                         <Mic className="size-16 text-primary animate-pulse" />
+                         <IconMicrophone className="size-16 text-primary animate-pulse" />
                        </motion.div>
                      )}
                      {assistantStatus === 'speaking' && (
                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="p-8 bg-primary rounded-[2rem] border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] text-black">
-                         <Volume2 className="size-16" />
+                         <IconVolumeNotice className="size-16" />
                        </motion.div>
                      )}
                    </AnimatePresence>
@@ -256,7 +232,7 @@ export default function LandingPage() {
              <div className="flex justify-between items-center mb-10">
                 <div className="flex gap-4 items-center">
                    <div className="size-16 rounded-[1.5rem] border-4 border-black bg-white flex items-center justify-center text-black shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-                      <Box className="size-8" />
+                      <IconBox className="size-8" />
                    </div>
                    <div className="flex flex-col">
                       <span className="text-xs font-black text-black/30 uppercase tracking-[0.2em]">CORE SYSTEM</span>
@@ -265,14 +241,14 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center gap-4">
                    <div className="flex items-center gap-2 bg-primary/10 border-2 border-primary/20 px-4 py-1.5 rounded-full">
-                      <Activity className="size-4 text-primary animate-pulse" />
+                      <IconChartLine className="size-4 text-primary animate-pulse" />
                       <span className="text-[11px] font-black text-primary uppercase tracking-widest">LIVE DATA FEED</span>
                    </div>
                    <motion.div 
                      whileHover={{ x: 6 }}
                      className="size-14 rounded-full border-4 border-black bg-white flex items-center justify-center text-black cursor-pointer hover:bg-black hover:text-white transition-all shadow-[6px_6px_0px_rgba(0,0,0,1)] active:shadow-none translate-y-[-3px]"
                    >
-                      <ChevronRight className="size-8" />
+                      <IconRight className="size-8" />
                    </motion.div>
                 </div>
              </div>
@@ -283,7 +259,7 @@ export default function LandingPage() {
                 <div className="absolute top-8 left-8 p-6 bg-white border-4 border-black rounded-[2.5rem] shadow-[10px_10px_0px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-left duration-1000">
                    <div className="flex items-center gap-4">
                       <div className="size-12 rounded-2xl bg-primary flex items-center justify-center text-black border-2 border-black">
-                         <Activity className="size-7" />
+                         <IconChartLine className="size-7" />
                       </div>
                       <div className="flex flex-col">
                          <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Global Control</span>
@@ -314,14 +290,14 @@ export default function LandingPage() {
              <div className="w-full">
                 <div className="flex justify-between items-start mb-16">
                    <span className="text-[11px] font-black text-black uppercase tracking-[0.2em] flex items-center gap-2">
-                     <Lock className="size-4" /> SECURE HUB
+                     <IconLock className="size-4" /> SECURE HUB
                    </span>
                    <motion.div 
                      animate={{ rotate: 360 }} 
                      transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
                      className="size-12 rounded-full border-4 border-black bg-primary shadow-[6px_6px_0px_rgba(0,0,0,1)] flex items-center justify-center"
                    >
-                      <Zap className="size-6 text-black" />
+                      <IconLightning className="size-6 text-black" />
                    </motion.div>
                 </div>
                 
@@ -331,10 +307,10 @@ export default function LandingPage() {
                 
                 <div className="grid grid-cols-2 gap-5 w-full">
                    {[
-                     { key: 'pump', label: "水泵", icon: Droplets, color: "bg-emerald-400" },
-                     { key: 'fan', label: "通风", icon: Fan, color: "bg-blue-400" },
-                     { key: 'light', label: "补光", icon: Lightbulb, color: "bg-amber-400" },
-                     { key: 'sun', label: "卷帘", icon: Sun, color: "bg-orange-400" },
+                     { key: 'pump', label: "水泵", icon: IconWater, color: "bg-emerald-400" },
+                     { key: 'fan', label: "通风", icon: IconFan, color: "bg-blue-400" },
+                     { key: 'light', label: "补光", icon: IconLight, color: "bg-amber-400" },
+                     { key: 'sun', label: "卷帘", icon: IconSun, color: "bg-orange-400" },
                    ].map((item) => (
                      <motion.div 
                       key={item.key} 
@@ -368,7 +344,7 @@ export default function LandingPage() {
                    <p className="text-2xl font-black text-black leading-tight uppercase italic">
                       Efficiency <br /> 
                       <span className="text-5xl tracking-tighter text-primary">+85%</span>
-                      <Sparkles className="inline-block size-8 text-black ml-2 animate-bounce" />
+                      <IconMagic className="inline-block size-8 text-black ml-2 animate-bounce" />
                    </p>
                 </div>
              </div>
@@ -398,23 +374,23 @@ export default function LandingPage() {
                      whileTap={{ scale: 0.9 }}
                      className="size-20 rounded-[1.8rem] bg-black flex items-center justify-center text-white cursor-pointer shadow-[8px_8px_0px_rgba(16,185,129,1)] hover:scale-105 transition-transform"
                    >
-                      <Search className="size-10" />
+                      <IconSearch className="size-10" />
                    </motion.div>
                    <motion.div 
                      whileTap={{ scale: 0.9 }}
                      className="size-20 rounded-[1.8rem] bg-white border-4 border-black flex items-center justify-center text-black cursor-pointer shadow-[8px_8px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform"
                    >
-                      <Wind className="size-10" />
+                      <IconWind className="size-10" />
                    </motion.div>
                 </div>
              </div>
 
              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
                 {[
-                  { label: "TEMPERATURE", val: "24.5°C", icon: Thermometer, change: "+1.2", h: [40, 60, 50, 80, 70, 90, 85], color: "text-red-500" },
-                  { label: "HUMIDITY", val: "62%", icon: Droplets, change: "-0.5", h: [70, 65, 75, 60, 55, 72, 68], color: "text-blue-500" },
-                  { label: "CO2 LEVEL", val: "420ppm", icon: Cloud, change: "SECURE", h: [50, 52, 55, 51, 50, 52, 53], color: "text-purple-500" },
-                  { label: "FERTILITY", val: "94%", icon: Leaf, change: "+2.1", h: [90, 95, 100, 98, 105, 107, 104], color: "text-primary" },
+                  { label: "TEMPERATURE", val: "24.5°C", icon: IconThermometer, change: "+1.2", h: [40, 60, 50, 80, 70, 90, 85], color: "text-red-500" },
+                  { label: "HUMIDITY", val: "62%", icon: IconWater, change: "-0.5", h: [70, 65, 75, 60, 55, 72, 68], color: "text-blue-500" },
+                  { label: "CO2 LEVEL", val: "420ppm", icon: IconCloudStorage, change: "SECURE", h: [50, 52, 55, 51, 50, 52, 53], color: "text-purple-500" },
+                  { label: "FERTILITY", val: "94%", icon: IconLeaf, change: "+2.1", h: [90, 95, 100, 98, 105, 107, 104], color: "text-primary" },
                 ].map((stat, i) => (
                   <motion.div 
                     key={i} 

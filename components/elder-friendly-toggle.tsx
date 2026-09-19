@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
+import { IconPreviewClose, IconPreviewOpen } from "@/components/icon";
 
 interface ElderFriendlyToggleProps {
   showBadge?: boolean
@@ -23,7 +23,7 @@ export function ElderFriendlyToggle({
     <div className={cn("flex items-center gap-3", className)}>
       {showBadge && isElderFriendlyMode && (
         <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30">
-          <Eye className="size-3 mr-1" />
+          <IconPreviewOpen className="size-3 mr-1" />
           长辈友好模式
         </Badge>
       )}
@@ -41,7 +41,7 @@ export function ElderFriendlyToggle({
           )}
           title={isElderFriendlyMode ? "关闭长辈友好模式" : "开启长辈友好模式"}
         >
-          {isElderFriendlyMode ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
+          {isElderFriendlyMode ? <IconPreviewOpen className="size-5" /> : <IconPreviewClose className="size-5" />}
         </Button>
       )}
     </div>

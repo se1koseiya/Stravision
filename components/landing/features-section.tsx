@@ -1,8 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Activity, Cpu, Brain, Server, ShieldCheck } from "lucide-react";
 import { Layers } from "@/components/animate-ui/icons/layers";
+import { IconBrain, IconChartLine, IconCpu, IconServer, IconShield } from "@/components/icon";
 
 const features = [
   {
@@ -18,35 +18,35 @@ const features = [
     label: "Monitoring",
     title: "全栈环境监测",
     description: "覆盖空气、土壤、光照的全维度数据采集",
-    icon: Activity,
+    icon: IconChartLine,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
   },
   {
     label: "Automation",
     title: "智能决策引擎",
     description: "动态环境调控算法，自动管理水肥光气，实现全天候无人化精准种植",
-    icon: Cpu,
+    icon: IconCpu,
     className: "col-span-1 md:col-span-2 lg:col-span-2",
   },
   {
     label: "AI Assistant",
     title: "农业大模型专家",
     description: "基于 RAG 技术的智能顾问，提供实时的病害诊断与种植指导",
-    icon: Brain,
+    icon: IconBrain,
     className: "col-span-1 md:col-span-2 lg:col-span-2",
   },
   {
     label: "Edge Computing",
     title: "边缘计算节点",
     description: "本地实时推理，断网亦可稳定运行",
-    icon: Server,
+    icon: IconServer,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
   },
   {
     label: "Security",
     title: "企业级安全",
     description: "数据加密传输与存储，保障资产安全",
-    icon: ShieldCheck,
+    icon: IconShield,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
   },
 ]

@@ -2,8 +2,8 @@
 
 import { memo, useRef, useState, useCallback, useEffect } from "react"
 import { Tooltip } from "antd"
-import { Smile, Paperclip, Scissors, Phone, Video, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconClose, IconEmotionHappy, IconPaperclip, IconPhone, IconScissors, IconVideo } from "@/components/icon";
 
 export interface SendMessageFn {
   (params: { text?: string; file?: File; replyTo?: number }): void
@@ -279,23 +279,23 @@ function ChatInputBarInner({
             btnRef={emojiBtnRef}
             onClick={() => setEmojiOpen(prev => !prev)}
           >
-            <Smile size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
+            <IconEmotionHappy size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ToolIconButton>
           <ToolIconButton title="发送文件/图片" onClick={() => fileInputRef.current?.click()}>
-            <Paperclip size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
+            <IconPaperclip size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ToolIconButton>
           <ToolIconButton title="截图" onClick={handleScreenshot} loading={capturing}>
-            <Scissors size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
+            <IconScissors size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ToolIconButton>
         </div>
 
         {/* 右工具：电话 / 视频 */}
         <div className="flex items-center gap-4">
           <ToolIconButton title="语音通话">
-            <Phone size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
+            <IconPhone size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ToolIconButton>
           <ToolIconButton title="视频通话">
-            <Video size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
+            <IconVideo size={TOOL_ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ToolIconButton>
         </div>
 
@@ -320,7 +320,7 @@ function ChatInputBarInner({
               onClick={onCancelRecording}
               className="ml-auto size-7 flex items-center justify-center rounded-full hover:bg-black/[0.06] text-[rgba(0,0,0,0.45)]"
             >
-              <X size={16} />
+              <IconClose size={16} />
             </button>
             <button
               onClick={toggleRecording}

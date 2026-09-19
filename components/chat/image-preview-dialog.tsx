@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { Modal, Button, Tooltip } from "antd"
-import { X, Download, ZoomIn, ZoomOut } from "lucide-react"
 import { motion } from "framer-motion"
+import { IconClose, IconDownload, IconZoomIn, IconZoomOut } from "@/components/icon";
 
 interface ImagePreviewDialogProps {
   open: boolean
@@ -57,7 +57,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
               type="text"
               shape="circle"
               className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
-              icon={<ZoomOut className="h-5 w-5" strokeWidth={ICON_STROKE} />}
+              icon={<IconZoomOut className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleZoomOut}
             />
           </Tooltip>
@@ -66,7 +66,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
               type="text"
               shape="circle"
               className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
-              icon={<ZoomIn className="h-5 w-5" strokeWidth={ICON_STROKE} />}
+              icon={<IconZoomIn className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleZoomIn}
             />
           </Tooltip>
@@ -75,7 +75,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
               type="text"
               shape="circle"
               className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
-              icon={<Download className="h-5 w-5" strokeWidth={ICON_STROKE} />}
+              icon={<IconDownload className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleDownload}
             />
           </Tooltip>
@@ -84,7 +84,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
               type="text"
               shape="circle"
               className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
-              icon={<X className="h-5 w-5" strokeWidth={ICON_STROKE} />}
+              icon={<IconClose className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={() => onOpenChange(false)}
             />
           </Tooltip>

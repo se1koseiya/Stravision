@@ -4,20 +4,8 @@ import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Tag, Space, Typography, Card } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { toast } from "sonner"
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  SearchOutlined,
-  GlobalOutlined,
-  LockOutlined,
-  LinkOutlined,
-  PictureOutlined,
-  LayoutOutlined,
-  FireOutlined,
-  CodeOutlined,
-} from "@ant-design/icons"
 import { ImageCropper } from "./image-cropper"
+import { IconCode, IconDelete, IconEarth, IconEdit, IconFire, IconLayoutTwo, IconLink, IconLock, IconPicture, IconPlus, IconSearch } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -197,11 +185,11 @@ export function SkillManager() {
       render: (is_published: number, record) =>
         is_published ? (
           <Tag color="green">
-            <GlobalOutlined style={{ marginRight: 4 }} /> Published
+            <IconEarth style={{ marginRight: 4 }} /> Published
           </Tag>
         ) : (
           <Tag color="default">
-            <LockOutlined style={{ marginRight: 4 }} /> Draft
+            <IconLock style={{ marginRight: 4 }} /> Draft
           </Tag>
         ),
     },
@@ -213,7 +201,7 @@ export function SkillManager() {
         <Space>
           <Button
             type="text"
-            icon={<EditOutlined />}
+            icon={<IconEdit />}
             onClick={() => {
               setEditingSkill(record)
               setModalOpen(true)
@@ -222,7 +210,7 @@ export function SkillManager() {
           <Button
             type="text"
             danger
-            icon={<DeleteOutlined />}
+            icon={<IconDelete />}
             onClick={() => handleDelete(record.skill_id)}
             disabled={record.is_builtin === 1}
           />
@@ -237,14 +225,14 @@ export function SkillManager() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <Input
           placeholder="Search skills..."
-          prefix={<SearchOutlined style={{ color: "#8F959E" }} />}
+          prefix={<IconSearch style={{ color: "#8F959E" }} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ maxWidth: 320 }}
         />
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<IconPlus />}
           onClick={() => {
             setEditingSkill({
               skill_id: "",
@@ -325,7 +313,7 @@ export function SkillManager() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
-                <LayoutOutlined /> 图标 URL / Emoji
+                <IconLayoutTwo /> 图标 URL / Emoji
               </Text>
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{
@@ -347,7 +335,7 @@ export function SkillManager() {
                       <span style={{ fontSize: 24 }}>{editingSkill.icon}</span>
                     )
                   )}
-                  {!editingSkill?.icon && <PlusOutlined style={{ color: "#8F959E" }} />}
+                  {!editingSkill?.icon && <IconPlus style={{ color: "#8F959E" }} />}
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   <Input
@@ -359,7 +347,7 @@ export function SkillManager() {
                   <Button
                     variant="outlined"
                     size="small"
-                    icon={<PictureOutlined />}
+                    icon={<IconPicture />}
                     onClick={() => { setCropperTarget("icon"); setCropperOpen(true); }}
                   >
                     上传并裁剪图标
@@ -369,7 +357,7 @@ export function SkillManager() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Text strong style={{ opacity: 0.6, display: "flex", alignItems: "center", gap: 8 }}>
-                <FireOutlined /> 封面大图 URL (精选/详情页)
+                <IconFire /> 封面大图 URL (精选/详情页)
               </Text>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Input
@@ -399,7 +387,7 @@ export function SkillManager() {
                   <Button
                     variant="outlined"
                     size="small"
-                    icon={<PictureOutlined />}
+                    icon={<IconPicture />}
                     onClick={() => { setCropperTarget("cover"); setCropperOpen(true); }}
                   >
                     上传封面
@@ -486,7 +474,7 @@ export function SkillManager() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Text strong style={{ color: "#1F2329", display: "flex", alignItems: "center", gap: 8 }}>
-              <CodeOutlined /> System Prompt (Core Instructions)
+              <IconCode /> System Prompt (Core Instructions)
             </Text>
             <Input.TextArea
               placeholder="# Skill Instruction..."

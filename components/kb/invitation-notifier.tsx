@@ -11,9 +11,9 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { Badge, Popover, ConfigProvider } from "antd"
-import { BellOutlined, CloseOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
 import InvitationList from "./invitation-list"
+import { IconClose, IconRemind } from "@/components/icon";
 
 interface IncomingInvitation {
   id: number
@@ -142,7 +142,7 @@ export function InvitationNotifier() {
             </span>
           )}
         </div>
-        <CloseOutlined
+        <IconClose
           onClick={() => setOpen(false)}
           style={{
             fontSize: 12,
@@ -259,7 +259,7 @@ export function InvitationNotifier() {
               e.currentTarget.style.background = "transparent"
             }}
           >
-            <BellOutlined style={{ fontSize: 16 }} />
+            <IconRemind style={{ fontSize: 16 }} />
           </button>
         </Badge>
       </Popover>

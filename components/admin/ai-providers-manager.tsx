@@ -5,11 +5,7 @@ import type { FormInstance } from 'antd'
 import { Button, Input, InputNumber, Switch, Card, Select, Tag, Tabs, Modal, Form, Typography, Space, Badge as AntdBadge } from 'antd'
 import type { SizeType } from 'antd/es/config-provider/SizeContext'
 import { toast } from "sonner"
-import {
-  Loader2, Plus, Trash2, Pencil, Check, X, Eye, EyeOff,
-  Server, Zap, Globe, Key, Star, ArrowUpDown,
-  Sparkles, Brain, Camera, Cpu, Bot, CircleDot, BookOpen, Coins
-} from "lucide-react"
+import { IconBookOpen, IconBrain, IconCamera, IconCheck, IconClose, IconCpu, IconCurrency, IconDelete, IconDot, IconGlobe, IconKey, IconLightning, IconLoading, IconMagic, IconPencil, IconPlus, IconPreviewClose, IconPreviewOpen, IconRobot, IconServer, IconSort, IconStar } from "@/components/icon";
 // 模型品牌图标（@lobehub/icons：Qwen/DeepSeek/Kimi/智谱/MiniMax/OpenAI/Claude/Gemini/Grok 等）
 import {
   Qwen, DeepSeek, Moonshot, Zhipu, Minimax, OpenAI,
@@ -50,10 +46,10 @@ export interface AIProvider {
 // ====== 图标映射 ======
 
 const PROVIDER_TYPE_ICONS: Record<string, React.ReactNode> = {
-  openai: <Bot size={16} />,
-  dashscope: <Sparkles size={16} />,
-  custom: <Globe size={16} />,
-  glm: <Brain size={16} />,
+  openai: <IconRobot size={16} />,
+  dashscope: <IconMagic size={16} />,
+  custom: <IconGlobe size={16} />,
+  glm: <IconBrain size={16} />,
 }
 
 // 品牌图标渲染（自动回退 .Color 变体；lobehub 组件可能只有彩色或只有单色）
@@ -86,7 +82,7 @@ const MODEL_ICON_MAP: Record<string, React.ReactNode> = {
   hunyuan: brandIcon(Hunyuan, 14),
   doubao: brandIcon(Doubao, 14),
   spark: brandIcon(Spark, 14),
-  sparkles: <Sparkles size={14} />,
+  sparkles: <IconMagic size={14} />,
 }
 
 const MODEL_ICON_NAMES: Record<string, string> = {
@@ -98,7 +94,7 @@ const MODEL_ICON_NAMES: Record<string, string> = {
 }
 
 function getModelIcon(icon?: string) {
-  return MODEL_ICON_MAP[icon || ''] || <CircleDot size={14} />
+  return MODEL_ICON_MAP[icon || ''] || <IconDot size={14} />
 }
 
 // 飞书极简：统一蓝色系，不再按 provider 类型分色
@@ -187,7 +183,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         justifyContent: 'center',
         marginBottom: '24px',
       }}>
-        <Server size={28} style={{ color: '#8F959E' }} />
+        <IconServer size={28} style={{ color: '#8F959E' }} />
       </div>
       <h3 style={{
         fontSize: '18px',
@@ -205,7 +201,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       }}>
         添加 OpenAI、DashScope、小米 MIMO 等 AI 服务商，为模型池提供多样化的 API 接入能力。
       </p>
-      <Button type="primary" icon={<Plus size={16} />} onClick={onAdd}>
+      <Button type="primary" icon={<IconPlus size={16} />} onClick={onAdd}>
         添加提供商
       </Button>
     </div>
@@ -256,7 +252,7 @@ function ProviderCard({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <Typography.Text strong style={{ fontSize: '16px' }}>{provider.name}</Typography.Text>
               {provider.isDefault && (
-                <Tag color="gold" icon={<Star size={12} />} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Tag color="gold" icon={<IconStar size={12} />} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   默认
                 </Tag>
               )}
@@ -277,8 +273,8 @@ function ProviderCard({
       }
       extra={
         <Space size={4}>
-          <Button type="text" size="small" icon={<Pencil size={14} />} onClick={onEdit} />
-          <Button type="text" size="small" danger icon={<Trash2 size={14} />} onClick={onDelete} />
+          <Button type="text" size="small" icon={<IconPencil size={14} />} onClick={onEdit} />
+          <Button type="text" size="small" danger icon={<IconDelete size={14} />} onClick={onDelete} />
         </Space>
       }
     >
@@ -294,7 +290,7 @@ function ProviderCard({
         borderRadius: '6px',
         marginBottom: '16px',
       }}>
-        <Key size={14} style={{ color: '#8F959E', flexShrink: 0 }} />
+        <IconKey size={14} style={{ color: '#8F959E', flexShrink: 0 }} />
         <span style={{ color: '#646A73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {provider.apiKey || '(未设置)'}
         </span>
@@ -306,9 +302,9 @@ function ProviderCard({
           <Tag key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
             {getModelIcon(m.icon)}
             {m.name}
-            {m.supportsVision && <Camera size={12} style={{ color: '#646A73' }} />}
-            {m.supportsReasoning && <Brain size={12} style={{ color: '#646A73' }} />}
-            {m.supportsEmbedding && <BookOpen size={12} style={{ color: '#646A73' }} />}
+            {m.supportsVision && <IconCamera size={12} style={{ color: '#646A73' }} />}
+            {m.supportsReasoning && <IconBrain size={12} style={{ color: '#646A73' }} />}
+            {m.supportsEmbedding && <IconBookOpen size={12} style={{ color: '#646A73' }} />}
           </Tag>
         ))}
         <Tag style={{ fontSize: '12px', color: '#8F959E' }}>
@@ -337,7 +333,7 @@ function ProviderCard({
           </div>
         </div>
         {!provider.isDefault ? (
-          <Button type="text" size="small" icon={<Star size={12} />} onClick={onToggleDefault} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Button type="text" size="small" icon={<IconStar size={12} />} onClick={onToggleDefault} style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             设为默认
           </Button>
         ) : (
@@ -468,7 +464,7 @@ function ProviderDialog({
   const modalFooter = (
     <Space>
       <Button onClick={onClose}>取消</Button>
-      <Button type="primary" onClick={handleSave} loading={saving} icon={saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}>
+      <Button type="primary" onClick={handleSave} loading={saving} icon={saving ? <IconLoading size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}>
         {isEdit ? '保存修改' : '添加提供商'}
       </Button>
     </Space>
@@ -564,7 +560,7 @@ function ProviderDialog({
               <Input.Password
                 placeholder="sk-..."
                 style={{ fontFamily: 'monospace', fontSize: '14px' }}
-                iconRender={(visible) => visible ? <EyeOff size={16} /> : <Eye size={16} />}
+                iconRender={(visible) => visible ? <IconPreviewClose size={16} /> : <IconPreviewOpen size={16} />}
               />
             </Form.Item>
           </div>
@@ -591,7 +587,7 @@ function ProviderDialog({
           <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #EDEEEF' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <Typography.Text strong>模型列表 ({formState.models.length})</Typography.Text>
-              <Button variant="outlined" size="small" icon={<Plus size={12} />} onClick={addModel} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Button variant="outlined" size="small" icon={<IconPlus size={12} />} onClick={addModel} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 添加模型
               </Button>
             </div>
@@ -682,7 +678,7 @@ function ProviderDialog({
                     type="text"
                     size="small"
                     danger
-                    icon={<X size={12} />}
+                    icon={<IconClose size={12} />}
                     onClick={() => removeModel(idx)}
                     style={{ display: 'flex', alignItems: 'center' }}
                   />
@@ -1035,7 +1031,7 @@ export function AIProvidersManager() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
-        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#8F959E' }} />
+        <IconLoading size={32} style={{ animation: 'spin 1s linear infinite', color: '#8F959E' }} />
       </div>
     )
   }
@@ -1052,7 +1048,7 @@ export function AIProvidersManager() {
             管理 AI 服务商接入，共 {providers.length} 个提供商 · {totalModels} 个可用模型
           </p>
         </div>
-        <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditing(null); setDialogOpen(true) }}>
+        <Button type="primary" icon={<IconPlus size={16} />} onClick={() => { setEditing(null); setDialogOpen(true) }}>
           添加提供商
         </Button>
       </div>
@@ -1074,7 +1070,7 @@ export function AIProvidersManager() {
             color: '#1677ff',
             flexShrink: 0,
           }}>
-            <Sparkles size={16} />
+            <IconMagic size={16} />
           </div>
           <div style={{ flex: 1, minWidth: '0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
@@ -1117,7 +1113,7 @@ export function AIProvidersManager() {
                 type="primary"
                 onClick={handleSaveDefaultModel}
                 disabled={savingDefault || defaultModelDraft === (defaultModelId ?? '') || availableDefaultModels.length === 0}
-                icon={savingDefault ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                icon={savingDefault ? <IconLoading size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
               >
                 保存
               </Button>
@@ -1141,7 +1137,7 @@ export function AIProvidersManager() {
             color: '#1677ff',
             flexShrink: 0,
           }}>
-            <BookOpen size={16} />
+            <IconBookOpen size={16} />
           </div>
           <div style={{ flex: 1, minWidth: '0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
@@ -1212,7 +1208,7 @@ export function AIProvidersManager() {
                 type="primary"
                 onClick={handleSaveEmbedding}
                 disabled={savingEmbedding || !embProviderDraft || !embModelDraft}
-                icon={savingEmbedding ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                icon={savingEmbedding ? <IconLoading size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
               >
                 保存
               </Button>
@@ -1220,7 +1216,7 @@ export function AIProvidersManager() {
                 size="small"
                 onClick={handleTestEmbedding}
                 loading={testingEmbedding}
-                icon={<Sparkles size={14} />}
+                icon={<IconMagic size={14} />}
               >
                 测试 Embedding
               </Button>
@@ -1268,7 +1264,7 @@ export function AIProvidersManager() {
             width: '36px', height: '36px', borderRadius: '8px', flexShrink: 0,
             background: '#FFF7E6', display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <Globe size={18} color="#D46B08" />
+            <IconGlobe size={18} color="#D46B08" />
           </div>
           <div style={{ flex: 1, minWidth: '0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
@@ -1371,7 +1367,7 @@ export function AIProvidersManager() {
                     !wsProviderDraft &&
                     !((wsProtocolDraft === 'exa') && (wsExaKeyDraft.trim() || webSearchConfig?.apiKey || webSearchConfig?.exaApiKey)))
                 }
-                icon={savingWebSearch ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                icon={savingWebSearch ? <IconLoading size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
               >
                 保存
               </Button>
@@ -1403,13 +1399,13 @@ export function AIProvidersManager() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             backgroundColor: '#F2F3F5', color: '#1677ff', flexShrink: 0,
           }}>
-            <Coins size={16} />
+            <IconCurrency size={16} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
               <Typography.Text strong>AI 助手积分制度</Typography.Text>
               <div style={{ flex: 1 }} />
-              <Button size="small" type="primary" onClick={handleSaveCredit} loading={savingCredit} icon={!savingCredit ? <Check size={14} /> : null}>
+              <Button size="small" type="primary" onClick={handleSaveCredit} loading={savingCredit} icon={!savingCredit ? <IconCheck size={14} /> : null}>
                 保存
               </Button>
             </div>
@@ -1754,7 +1750,7 @@ function KnowledgeConfigCard() {
           color: "#1677ff",
           flexShrink: 0,
         }}>
-          <BookOpen size={16} />
+          <IconBookOpen size={16} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
@@ -1769,7 +1765,7 @@ function KnowledgeConfigCard() {
             <Button size="small" onClick={handleReset} disabled={saving || !defaults}>
               恢复默认
             </Button>
-            <Button size="small" type="primary" onClick={handleSave} loading={saving} icon={!saving ? <Check size={14} /> : null}>
+            <Button size="small" type="primary" onClick={handleSave} loading={saving} icon={!saving ? <IconCheck size={14} /> : null}>
               保存
             </Button>
           </div>

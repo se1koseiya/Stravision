@@ -5,18 +5,8 @@ import { Avatar, ConfigProvider, theme } from "antd"
 import zhCN from "antd/locale/zh_CN"
 import { Conversations } from "@ant-design/x"
 import { useTheme } from "next-themes"
-import {
-  BookOpen,
-  CalendarClock,
-  ChevronRight,
-  Compass,
-  FolderOpen,
-  MessageSquare,
-  PanelLeftClose,
-  Search,
-  SquarePen,
-} from "lucide-react"
 import { MateChatHome } from "@/components/ai/matechat-home"
+import { IconBookOpen, IconCalendar, IconComment, IconCompass, IconEdit, IconFolderOpen, IconLayoutTwo, IconRight, IconSearch } from "@/components/icon";
 
 /* ------------------------------------------------------------
    首屏应用窗口 —— 直接拼装 ai-assistant 的真实界面：
@@ -27,10 +17,10 @@ import { MateChatHome } from "@/components/ai/matechat-home"
    ------------------------------------------------------------ */
 
 const NAV_ITEMS = [
-  { icon: Compass, label: "探索", badge: null as number | null },
-  { icon: FolderOpen, label: "我的空间", badge: 6 },
-  { icon: CalendarClock, label: "定时任务", badge: null },
-  { icon: BookOpen, label: "知识库", badge: null },
+  { icon: IconCompass, label: "探索", badge: null as number | null },
+  { icon: IconFolderOpen, label: "我的空间", badge: 6 },
+  { icon: IconCalendar, label: "定时任务", badge: null },
+  { icon: IconBookOpen, label: "知识库", badge: null },
 ]
 
 const RECENT_ITEMS = [
@@ -79,20 +69,20 @@ export function AppWindow({ className }: { className?: string }) {
                 <span className="text-[22px] font-bold tracking-tight text-zinc-900 dark:text-[#E4EEE9]">莓小智</span>
                 <div className="flex-1" />
                 <span className="flex size-8 items-center justify-center rounded-lg text-zinc-500 dark:text-[#9BA39E]">
-                  <Search className="size-4" />
+                  <IconSearch className="size-4" />
                 </span>
                 <span className="flex size-8 items-center justify-center rounded-lg text-zinc-500 dark:text-[#9BA39E]">
-                  <PanelLeftClose className="size-4" />
+                  <IconLayoutTwo className="size-4" />
                 </span>
               </div>
 
               <div className="px-3 pb-2.5">
                 <div className="flex h-10 w-full items-center justify-between rounded-[10px] border border-black/[0.08] bg-white px-3 text-[13px] font-medium text-zinc-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/[0.16] dark:bg-[#1E2220] dark:text-[#D6DAD6] dark:shadow-none">
                   <span className="flex items-center gap-1.5">
-                    <SquarePen className="size-[15px]" strokeWidth={1.8} />
+                    <IconEdit className="size-[15px]" strokeWidth={1.8} />
                     新建对话
                   </span>
-                  <MessageSquare className="size-[15px] text-zinc-400 dark:text-[#9BA39E]" />
+                  <IconComment className="size-[15px] text-zinc-400 dark:text-[#9BA39E]" />
                 </div>
               </div>
 
@@ -136,7 +126,7 @@ export function AppWindow({ className }: { className?: string }) {
                   </div>
                   <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-[#9BA39E]">PRO</div>
                 </div>
-                <ChevronRight className="size-3.5 shrink-0 text-zinc-400 dark:text-[#9BA39E]" />
+                <IconRight className="size-3.5 shrink-0 text-zinc-400 dark:text-[#9BA39E]" />
               </div>
             </aside>
 

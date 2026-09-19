@@ -10,23 +10,12 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import {
-  LightBulbIcon,
-  SunIcon,
-  BeakerIcon,
-  CloudIcon,
-  FireIcon,
-  PlusIcon,
-  Bars3Icon,
-  ArrowPathIcon,
-  BoltIcon
-} from "@heroicons/react/24/outline"
 import type { UserPublic } from "@/lib/db/user-service"
 import { MobileBackground } from "@/components/mobile-background"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { motion } from "framer-motion"
 import { WeatherCard } from "@/components/weather-card"
-
+import { IconCloudy, IconFire, IconHamburgerButton, IconLight, IconMedicineChest, IconPlus, IconRotate, IconSun, IconThunderbolt } from "@/components/icon";
 // --- Components ---
 
 function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: string) => void }) {
@@ -50,7 +39,7 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
         )
       })}
       <button className="p-2 rounded-full bg-white/40 dark:bg-black/20 text-foreground/70">
-        <Bars3Icon className="size-5" />
+        <IconHamburgerButton className="size-5" />
       </button>
     </div>
   )
@@ -186,7 +175,7 @@ export default function DeviceControlIOSPage() {
           <div className="flex justify-between items-center px-2">
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1 text-foreground">
-                <FireIcon className="size-5 text-blue-500" />
+                <IconFire className="size-5 text-blue-500" />
                 <span className="text-2xl font-bold">{weatherData?.current?.temp_c ? Math.round(weatherData.current.temp_c) : 24}°C</span>
               </div>
               <span className="text-xs text-slate-400 mt-1">{weatherData?.location?.name || '上城区'}</span>
@@ -196,7 +185,7 @@ export default function DeviceControlIOSPage() {
 
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1 text-foreground">
-                <BeakerIcon className="size-5 text-blue-500" />
+                <IconMedicineChest className="size-5 text-blue-500" />
                 <span className="text-2xl font-bold">{weatherData?.current?.humidity || 67}%</span>
               </div>
               <span className="text-xs text-slate-400 mt-1">湿度</span>
@@ -206,7 +195,7 @@ export default function DeviceControlIOSPage() {
 
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1 text-foreground">
-                <BoltIcon className="size-5 text-blue-500" />
+                <IconThunderbolt className="size-5 text-blue-500" />
                 <span className="text-2xl font-bold">良好</span>
               </div>
               <span className="text-xs text-slate-400 mt-1">PM2.5</span>
@@ -225,7 +214,7 @@ export default function DeviceControlIOSPage() {
             <DeviceCard
               title="水泵"
               subtitle={deviceData?.relay5 === 1 ? "运行中" : "已停止"}
-              icon={BeakerIcon}
+              icon={IconMedicineChest}
               isOn={deviceData?.relay5 === 1}
               onToggle={() => handleRelayToggle(5)}
               room="种植区"
@@ -236,7 +225,7 @@ export default function DeviceControlIOSPage() {
             <DeviceCard
               title="风扇"
               subtitle={deviceData?.relay6 === 1 ? "运行中" : "已停止"}
-              icon={ArrowPathIcon}
+              icon={IconRotate}
               isOn={deviceData?.relay6 === 1}
               onToggle={() => handleRelayToggle(6)}
               room="种植区"
@@ -247,7 +236,7 @@ export default function DeviceControlIOSPage() {
             <DeviceCard
               title="植物全光谱补光灯"
               subtitle={deviceData?.relay7 === 1 ? "ON" : "OFF"}
-              icon={BoltIcon}
+              icon={IconThunderbolt}
               isOn={deviceData?.relay7 === 1}
               onToggle={() => handleRelayToggle(7)}
               room="种植区"
@@ -258,7 +247,7 @@ export default function DeviceControlIOSPage() {
             <DeviceCard
               title="光照植物补光灯"
               subtitle={deviceData?.relay8 === 1 ? "ON" : "OFF"}
-              icon={SunIcon}
+              icon={IconSun}
               isOn={deviceData?.relay8 === 1}
               onToggle={() => handleRelayToggle(8)}
               room="控制室"
@@ -270,7 +259,7 @@ export default function DeviceControlIOSPage() {
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                    <LightBulbIcon className="size-6" />
+                    <IconLight className="size-6" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-foreground"> 植物全光谱补光灯 </h3>
@@ -298,7 +287,7 @@ export default function DeviceControlIOSPage() {
             <DeviceCard
               title="温湿度"
               subtitle="传感器"
-              icon={FireIcon}
+              icon={IconFire}
               isOn={true}
               room="种植区"
               disabled={true}
@@ -307,7 +296,7 @@ export default function DeviceControlIOSPage() {
             <DeviceCard
               title="CO₂"
               subtitle="传感器"
-              icon={CloudIcon}
+              icon={IconCloudy}
               isOn={true}
               room="种植区"
               disabled={true}

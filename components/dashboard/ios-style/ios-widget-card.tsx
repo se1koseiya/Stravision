@@ -2,10 +2,10 @@
 
 import { cn } from "@/lib/utils"
 import { ReactNode, useState, useRef } from "react"
-import { Minus } from "lucide-react"
 import { Flex } from "antd"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconMinus } from "@/components/icon";
 
 const ICON_STROKE = 1.75
 const A = BERRY_THEME.apple
@@ -89,9 +89,9 @@ export function IOSWidgetCard({
       )}
       style={{
         borderRadius: 18,
-        background: '#FFFFFF',
+        background: A.surface,
         boxShadow: baseShadow + tintGlow,
-        border: `1px solid rgba(0,0,0,0.04)`,
+        border: `1px solid var(--berry-card-border)`,
       }}
       onMouseEnter={() => !isEditing && setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); handleTouchEnd(); }}
@@ -130,7 +130,7 @@ export function IOSWidgetCard({
           onTouchStart={(e) => { e.stopPropagation(); }}
           onPointerDown={(e) => { e.stopPropagation(); }}
         >
-          <Minus className="size-3.5 text-white" strokeWidth={2.5} />
+          <IconMinus className="size-3.5 text-white" strokeWidth={2.5} />
         </div>
       )}
 

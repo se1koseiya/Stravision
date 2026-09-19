@@ -4,13 +4,14 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { AuthCardShell } from "@/components/auth/auth-card-shell"
 import CapWidget from "@/components/ui/cap-widget"
 import { isCapRequiredClient } from "@/lib/cap-client"
+import { DESKTOP_CAPABILITIES } from "@/lib/desktop-mode"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import {
   Dialog,
@@ -20,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { IconLoading } from "@/components/icon";
 
 /* 登录卡片顶部美术资源（public/web/login/） */
 const LOGIN_ART = "/web/login/memory.png"
@@ -206,198 +208,153 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-white font-sans">
-      {/* 背景光斑：左下柠檬黄 + 右上薄荷绿（对齐 Loomy 登录页） */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(42% 44% at 4% 96%, rgba(255,248,94,0.35) 0%, transparent 70%), radial-gradient(46% 48% at 97% 6%, rgba(117,255,159,0.30) 0%, transparent 70%)",
-        }}
-      />
-
-      {/* 左上品牌 */}
-      <Link
-        href="/"
-        className="absolute left-6 top-6 z-20 flex items-center gap-2.5"
-        aria-label="莓界 Berry Realm 首页"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="" className="size-8 rounded-[10px] object-cover" />
-        <span className="text-[17px] font-extrabold tracking-tight text-[#222]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
-          莓界
-        </span>
-      </Link>
-
-      {/* 居中登录卡 */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[400px] overflow-hidden rounded-[20px] bg-white shadow-[0_24px_70px_-24px_rgba(15,23,42,0.28)] ring-1 ring-black/[0.04]"
-        >
-          {/* 顶部美术：海报轮换 + 白色曲线收边（对齐 Loomy 卡片插画语言） */}
-          <div className="relative h-44 overflow-hidden bg-[#F3FAF5]">
-            <Image
-              src={LOGIN_ART}
-              alt="莓小智"
-              fill
-              sizes="400px"
-              className="object-cover"
-              style={{ objectPosition: "center 22%" }}
-              priority
-            />
-            <div
-              aria-hidden
-              className="absolute inset-x-[-10%] bottom-[-34px] h-[68px] rounded-[100%] bg-white"
-            />
-          </div>
-
-          <div className="px-7 pb-7 pt-4">
-            <h1 className="text-[22px] font-bold leading-tight text-[#1a1a1a]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
-              欢迎登录
-            </h1>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-[#999]">
-              欢迎使用莓界，登录您的莓园管控中心
-            </p>
-
-            <div className="mt-6 space-y-3">
-              <Input
-                id="email"
-                type="email"
-                placeholder="账户邮箱"
-                className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <div className="relative">
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="密码"
-                  className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F] pr-16"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-                />
-                <Link
-                  href="/forgot-password"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#999] transition-colors hover:text-[#009456]"
-                >
-                  忘记密码？
-                </Link>
-              </div>
-            </div>
-
-            {/* Cap Widget —— CAP 启用即始终显示（不再依赖邮箱/密码已填），验证完成后收起 */}
-            <AnimatePresence>
-              {capRequired && !captchaCompleted && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                  animate={{ height: "auto", opacity: 1, marginTop: 12 }}
-                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="overflow-hidden"
-                >
-                  <div className="py-1">
-                    <CapWidget
-                      onSuccess={(token) => {
-                        setCaptchaCompleted(true)
-                        setCapToken(token)
-                      }}
-                      onError={() => {
-                        setCaptchaCompleted(false)
-                        setCapToken("")
-                      }}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <Button
-              className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[15px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
-              onClick={onSubmit}
-              disabled={loading}
+    <AuthCardShell
+      title="欢迎登录"
+      subtitle="欢迎使用莓界，登录您的莓园管控中心"
+      artSrc={LOGIN_ART}
+      artAlt="莓小智"
+      artPosition="center 22%"
+    >
+      <div className="mt-6 space-y-3">
+        <Input
+          id="email"
+          type="email"
+          placeholder="账户邮箱"
+          className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F]"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <div className="relative">
+          <Input
+            id="password"
+            type="password"
+            placeholder="密码"
+            className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F] pr-16"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+          />
+          {/* 桌面端无发信服务，隐藏邮件找回入口（改由本地管理员重置） */}
+          {DESKTOP_CAPABILITIES.emailRecovery && (
+            <Link
+              href="/forgot-password"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#999] transition-colors hover:text-[#009456]"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span>验证中...</span>
-                </>
-              ) : (
-                "登 录"
-              )}
-            </Button>
-
-            {/* 协议勾选（对齐 Loomy 登录卡） */}
-            <label className="mt-4 flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-[#999]">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] transition-colors checked:border-[#009456] checked:bg-[#009456] bg-no-repeat bg-center"
-                style={
-                  agreed
-                    ? { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.7 5.3a1 1 0 0 1 0 1.4l-4.5 4.5a1 1 0 0 1-1.4 0L4.3 8.7a1 1 0 0 1 1.4-1.4l1.8 1.8 3.8-3.8a1 1 0 0 1 1.4 0z'/%3E%3C/svg%3E\")" }
-                    : undefined
-                }
-              />
-              <span>
-                阅读并同意
-                <Link href="/terms" className="mx-0.5 text-[#009456] hover:underline">《用户协议》</Link>
-                <Link href="/privacy" className="mx-0.5 text-[#009456] hover:underline">《隐私政策》</Link>
-                ，未注册的账户登录后将自动注册
-              </span>
-            </label>
-
-            {error && (
-              <div className="mt-3 flex items-center justify-center gap-2 rounded-[10px] border border-red-100 bg-red-50 p-2.5 text-[11px] font-medium text-red-600">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
-                {error}
-              </div>
-            )}
-
-            <div className="flex items-center justify-center gap-4 py-4">
-              <div className="h-px flex-1 bg-[#eeeeee]" />
-              <span className="text-[10px] font-medium uppercase tracking-widest text-[#bbb]">或使用</span>
-              <div className="h-px flex-1 bg-[#eeeeee]" />
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
-                onClick={() => window.location.href = "/api/auth/alipay/login"}
-              >
-                <Image src="/alipay.svg" alt="Alipay" width={16} height={16} className="mr-1.5 h-4 w-4 opacity-80" />
-                <span className="text-xs font-medium">支付宝</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
-                onClick={() => window.location.href = "/api/auth/qq/login"}
-              >
-                <svg className="mr-1.5 h-4 w-4 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M824.8 613.2c-16-51.4-34.4-94.6-62.7-165.3C766.5 262.2 689.3 112 511.5 112 331.7 112 256.2 265.2 261 447.9c-28.4 70.8-46.7 113.7-62.7 165.3-34 109.5-23 154.8-14.6 155.8 18 2.2 70.1-82.4 70.1-82.4 0 49 25.2 112.9 79.8 159-26.4 8.1-85.7 29.9-71.6 53.8 11.4 19.3 196.2 12.3 249.5 6.3 53.3 6 238.1 13 249.5-6.3 14.1-23.8-45.2-45.7-71.6-53.8 54.6-46.2 79.8-110.1 79.8-159 0 0 52.1 84.6 70.1 82.4 8.5-1.1 19.5-46.4-14.5-155.8z" fill="currentColor" />
-                </svg>
-                <span className="text-xs font-medium">QQ</span>
-              </Button>
-            </div>
-
-            <p className="pt-4 text-center text-xs font-medium text-[#999]">
-              还没有账户？{" "}
-              <Link href="/register" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#009456]">
-                立即注册
-              </Link>
-            </p>
-          </div>
-        </motion.div>
+              忘记密码？
+            </Link>
+          )}
+        </div>
       </div>
 
-      {/* Warning / Verification Dialog */}
+      {/* Cap Widget —— CAP 启用即始终显示（不再依赖邮箱/密码已填），验证完成后收起 */}
+      <AnimatePresence>
+        {capRequired && !captchaCompleted && (
+          <motion.div
+            initial={{ height: 0, opacity: 0, marginTop: 0 }}
+            animate={{ height: "auto", opacity: 1, marginTop: 12 }}
+            exit={{ height: 0, opacity: 0, marginTop: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="py-1">
+              <CapWidget
+                onSuccess={(token) => {
+                  setCaptchaCompleted(true)
+                  setCapToken(token)
+                }}
+                onError={() => {
+                  setCaptchaCompleted(false)
+                  setCapToken("")
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Button
+        className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[15px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
+        onClick={onSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <IconLoading className="mr-2 h-4 w-4 animate-spin" />
+            <span>验证中...</span>
+          </>
+        ) : (
+          "登 录"
+        )}
+      </Button>
+
+      {/* 协议勾选（对齐 Loomy 登录卡） */}
+      <label className="mt-4 flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-[#999]">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] transition-colors checked:border-[#009456] checked:bg-[#009456] bg-no-repeat bg-center"
+          style={
+            agreed
+              ? { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.7 5.3a1 1 0 0 1 0 1.4l-4.5 4.5a1 1 0 0 1-1.4 0L4.3 8.7a1 1 0 0 1 1.4-1.4l1.8 1.8 3.8-3.8a1 1 0 0 1 1.4 0z'/%3E%3C/svg%3E\")" }
+              : undefined
+          }
+        />
+        <span>
+          阅读并同意
+          <Link href="/terms" className="mx-0.5 text-[#009456] hover:underline">《用户协议》</Link>
+          <Link href="/privacy" className="mx-0.5 text-[#009456] hover:underline">《隐私政策》</Link>
+          ，未注册的账户登录后将自动注册
+        </span>
+      </label>
+
+      {error && (
+        <div className="mt-3 flex items-center justify-center gap-2 rounded-[10px] border border-red-100 bg-red-50 p-2.5 text-[11px] font-medium text-red-600">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+          {error}
+        </div>
+      )}
+
+      {/* 第三方 OAuth 依赖公网回调地址与外部授权服务，桌面端离线不可用 */}
+      {DESKTOP_CAPABILITIES.oauthLogin && (
+        <>
+          <div className="flex items-center justify-center gap-4 py-4">
+            <div className="h-px flex-1 bg-[#eeeeee]" />
+            <span className="text-[10px] font-medium uppercase tracking-widest text-[#bbb]">或使用</span>
+            <div className="h-px flex-1 bg-[#eeeeee]" />
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+              onClick={() => window.location.href = "/api/auth/alipay/login"}
+            >
+              <Image src="/alipay.svg" alt="Alipay" width={16} height={16} className="mr-1.5 h-4 w-4 opacity-80" />
+              <span className="text-xs font-medium">支付宝</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+              onClick={() => window.location.href = "/api/auth/qq/login"}
+            >
+              <svg className="mr-1.5 h-4 w-4 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+                <path d="M824.8 613.2c-16-51.4-34.4-94.6-62.7-165.3C766.5 262.2 689.3 112 511.5 112 331.7 112 256.2 265.2 261 447.9c-28.4 70.8-46.7 113.7-62.7 165.3-34 109.5-23 154.8-14.6 155.8 18 2.2 70.1-82.4 70.1-82.4 0 49 25.2 112.9 79.8 159-26.4 8.1-85.7 29.9-71.6 53.8 11.4 19.3 196.2 12.3 249.5 6.3 53.3 6 238.1 13 249.5-6.3 14.1-23.8-45.2-45.7-71.6-53.8 54.6-46.2 79.8-110.1 79.8-159 0 0 52.1 84.6 70.1 82.4 8.5-1.1 19.5-46.4-14.5-155.8z" fill="currentColor" />
+              </svg>
+              <span className="text-xs font-medium">QQ</span>
+            </Button>
+          </div>
+        </>
+      )}
+
+      <p className="pt-4 text-center text-xs font-medium text-[#999]">
+        还没有账户？{" "}
+        <Link href="/register" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#009456]">
+          立即注册
+        </Link>
+      </p>
+
+      {/* Warning / Verification Dialog（Radix portal，渲染在 body 层，嵌套位置不影响呈现） */}
       <Dialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
         <DialogContent className="sm:max-w-md bg-white border-[#e5e5e0] text-[#1a1a1a] shadow-2xl rounded-2xl">
           <DialogHeader>
@@ -442,7 +399,7 @@ export default function LoginPage() {
                     disabled={sendingCode || countdown > 0}
                   >
                     {sendingCode ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <IconLoading className="w-3 h-3 animate-spin" />
                     ) : countdown > 0 ? (
                       `${countdown}s`
                     ) : (
@@ -461,7 +418,7 @@ export default function LoginPage() {
                 onClick={handleProceed}
                 className="bg-amber-600 hover:bg-amber-500 text-white w-full sm:w-auto rounded-full px-6"
               >
-              继续登录
+                继续登录
               </Button>
             ) : (
               <Button
@@ -471,7 +428,7 @@ export default function LoginPage() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <IconLoading className="w-4 h-4 mr-2 animate-spin" />
                     验证并登录
                   </>
                 ) : "验证并登录"}
@@ -480,6 +437,6 @@ export default function LoginPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AuthCardShell>
   )
 }

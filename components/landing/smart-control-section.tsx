@@ -2,7 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion"
 import { useRef } from "react"
-import { Cpu, Wind, Droplets, Sun, CheckCircle2 } from "lucide-react"
+import { IconCheckOne, IconCpu, IconSun, IconWater, IconWind } from "@/components/icon";
 
 export function SmartControlSection() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -46,7 +46,7 @@ export function SmartControlSection() {
               "节能优化运行模式"
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <IconCheckOne className="w-5 h-5 text-green-500" />
                 <span className="text-gray-300">{item}</span>
               </div>
             ))}
@@ -74,9 +74,9 @@ export function SmartControlSection() {
             {/* Metrics Simulation */}
             <div className="space-y-6">
               {[
-                { label: "温度 (Temperature)", icon: Wind, color: "text-blue-400", bg: "bg-blue-500" },
-                { label: "湿度 (Humidity)", icon: Droplets, color: "text-cyan-400", bg: "bg-cyan-500" },
-                { label: "光照 (Light)", icon: Sun, color: "text-yellow-400", bg: "bg-yellow-500" },
+                { label: "温度 (Temperature)", icon: IconWind, color: "text-blue-400", bg: "bg-blue-500" },
+                { label: "湿度 (Humidity)", icon: IconWater, color: "text-cyan-400", bg: "bg-cyan-500" },
+                { label: "光照 (Light)", icon: IconSun, color: "text-yellow-400", bg: "bg-yellow-500" },
               ].map((metric, i) => (
                 <div key={i} className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -107,7 +107,7 @@ export function SmartControlSection() {
             <div className="mt-8 flex justify-center">
               <div className="relative">
                  <div className="absolute inset-0 bg-purple-500/30 blur-xl rounded-full" />
-                 <Cpu className="w-16 h-16 text-purple-400 relative z-10 animate-pulse" />
+                 <IconCpu className="w-16 h-16 text-purple-400 relative z-10 animate-pulse" />
               </div>
             </div>
           </motion.div>

@@ -8,8 +8,6 @@ import { MobileBackground } from "@/components/mobile-background"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
 import type { UserPublic } from "@/lib/db/user-service"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
-import { FireIcon, BeakerIcon, BoltIcon, SunIcon, CloudIcon, Bars3Icon } from "@heroicons/react/24/outline"
-import { CloudRain, Activity, Sprout, Fan, Droplets, Lightbulb, Sun, Lock, Unlock, PlayCircle, Video, Settings, X, Save, ZoomIn, ZoomOut, Maximize2, Minimize2 } from "lucide-react"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -23,7 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-
+import { IconChartLine, IconCloudy, IconFan, IconFire, IconFullScreenOne, IconHamburgerButton, IconLight, IconLock, IconMedicineChest, IconOffScreenOne, IconSave, IconSeedling, IconSettingOne, IconSun, IconThunderbolt, IconUnlock, IconVideoOne, IconWater, IconZoomIn, IconZoomOut } from "@/components/icon";
 // Constants from monitor page
 const AVAILABLE_DEVICES = [
   { id: "relay5", name: "水泵/灌溉", relay: 5 as const, icon: "Droplets", color: { bg: "#E0F2F1", fg: "#009688", gradFrom: "#A7F3D0", gradTo: "#10B981" } },
@@ -32,11 +30,11 @@ const AVAILABLE_DEVICES = [
   { id: "relay8", name: "光照植物补光灯", relay: 8 as const, icon: "Sun", color: { bg: "#F3E8FF", fg: "#8B5CF6", gradFrom: "#DDD6FE", gradTo: "#8B5CF6" } },
 ]
 
-const ICON_MAP: Record<string, typeof Droplets> = {
-  Droplets,
-  Fan,
-  Lightbulb,
-  Sun,
+const ICON_MAP: Record<string, typeof IconWater> = {
+  "Droplets": IconWater,
+  "Fan": IconFan,
+  "Lightbulb": IconLight,
+  "Sun": IconSun,
 }
 
 interface EnvironmentControl {
@@ -71,20 +69,20 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
         )
       })}
       <button className="p-2.5 rounded-full bg-white/55 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 text-slate-500 dark:text-slate-400 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
-        <Bars3Icon className="size-5" />
+        <IconHamburgerButton className="size-5" />
       </button>
     </div>
   )
 }
 
-function StatCard({ icon: Icon, label, value, unit, color, bg }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | number; unit?: string; color: string; bg: string }) {
+function StatCard({ icon: Icon, label, value, unit, color, bg }: { icon: React.ComponentType<{ className?: string; size?: number | string }>; label: string; value: string | number; unit?: string; color: string; bg: string }) {
   return (
     <div className="group relative rounded-[2rem] p-5 shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] flex flex-col justify-between h-[120px] transition-all duration-300 bg-white/55 dark:bg-white/5 backdrop-blur-2xl border border-white/60 dark:border-white/10 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       <div className="flex items-start justify-between relative z-10">
         <div className={cn("size-10 rounded-2xl flex items-center justify-center transition-colors", bg)}>
-          <Icon className={cn("size-5", color)} />
+          <Icon size={20} className={color} />
         </div>
         <span className="text-xs text-slate-500 dark:text-slate-400 font-bold tracking-wide">{label}</span>
       </div>
@@ -432,7 +430,7 @@ export default function DashboardIOSPage() {
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 text-slate-900 dark:text-white">
                   <div className="p-2 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-500">
-                     <FireIcon className="size-5" />
+                     <IconFire className="size-5" />
                   </div>
                   <span className="text-2xl font-bold font-jinbuti">{weatherData?.current?.temp_c ? Math.round(weatherData.current.temp_c) : 24}°</span>
                 </div>
@@ -442,7 +440,7 @@ export default function DashboardIOSPage() {
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 text-slate-900 dark:text-white">
                    <div className="p-2 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-500">
-                      <BeakerIcon className="size-5" />
+                      <IconMedicineChest className="size-5" />
                    </div>
                   <span className="text-2xl font-bold font-jinbuti">{weatherData?.current?.humidity || 67}%</span>
                 </div>
@@ -452,7 +450,7 @@ export default function DashboardIOSPage() {
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 text-slate-900 dark:text-white">
                    <div className="p-2 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-500">
-                      <BoltIcon className="size-5" />
+                      <IconThunderbolt className="size-5" />
                    </div>
                   <span className="text-lg font-bold">优</span>
                 </div>
@@ -497,7 +495,7 @@ export default function DashboardIOSPage() {
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                   <div className="text-center space-y-4">
                       <div className="w-16 h-16 mx-auto rounded-full bg-zinc-800/50 flex items-center justify-center border border-white/5">
-                        <Video className="w-8 h-8 text-zinc-600" />
+                        <IconVideoOne size={32} className="text-zinc-600" />
                       </div>
                       <p className="text-zinc-400 text-sm font-medium">无信号</p>
                   </div>
@@ -521,14 +519,14 @@ export default function DashboardIOSPage() {
                 onClick={() => selectedCamera && handleOpenSettings(selectedCamera)}
                 className="size-9 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/50 transition-colors shadow-sm"
               >
-                <Settings className="size-4" />
+                <IconSettingOne size={16} />
               </button>
               
               <button 
                 onClick={handleFullscreenToggle}
                 className="size-9 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/50 transition-colors shadow-sm"
               >
-                {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                {isFullscreen ? <IconOffScreenOne size={16} /> : <IconFullScreenOne size={16} />}
               </button>
               
               <div className="flex flex-col gap-1 bg-black/30 backdrop-blur-md border border-white/10 rounded-full p-1 shadow-sm mt-2">
@@ -537,7 +535,7 @@ export default function DashboardIOSPage() {
                   disabled={zoomLevel >= 3}
                   className="size-8 rounded-full flex items-center justify-center text-white/90 hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ZoomIn className="size-4" />
+                  <IconZoomIn size={16} />
                 </button>
                 <div className="h-px w-4 bg-white/10 mx-auto" />
                 <button 
@@ -545,7 +543,7 @@ export default function DashboardIOSPage() {
                   disabled={zoomLevel <= 1}
                   className="size-8 rounded-full flex items-center justify-center text-white/90 hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ZoomOut className="size-4" />
+                  <IconZoomOut size={16} />
                 </button>
               </div>
             </div>
@@ -587,7 +585,7 @@ export default function DashboardIOSPage() {
                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">设备控制</h3>
                <div ref={controlsScrollRef} className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 scrollbar-hide">
                   {environmentControls.map((ctrl) => {
-                    const Icon = ICON_MAP[ctrl.icon] || Droplets
+                    const Icon = ICON_MAP[ctrl.icon] || IconWater
                     const on = isRelayOn(ctrl.relay)
                     const isLocked = lockedControls[ctrl.relay]
                     
@@ -617,7 +615,7 @@ export default function DashboardIOSPage() {
                                 isLocked ? "text-primary bg-emerald-100 dark:bg-primary/20" : "text-slate-300 dark:text-slate-600"
                               )}
                             >
-                               {isLocked ? <Lock className="size-3" /> : <Unlock className="size-3" />}
+                               {isLocked ? <IconLock size={12} /> : <IconUnlock size={12} />}
                             </button>
                          </div>
                          <div>
@@ -633,7 +631,7 @@ export default function DashboardIOSPage() {
                   
                   {/* Add Button */}
                   <div className="shrink-0 w-[60px] flex items-center justify-center rounded-[1.5rem] bg-white/30 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10">
-                     <Settings className="size-6 text-slate-400" />
+                     <IconSettingOne size={24} className="text-slate-400" />
                   </div>
                </div>
             </div>
@@ -643,20 +641,20 @@ export default function DashboardIOSPage() {
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">环境数据</h3>
             <div className="grid grid-cols-2 gap-4">
-              <StatCard icon={FireIcon} label="温度" value={deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'} unit="°C" color="text-orange-500" bg="bg-orange-50 dark:bg-orange-500/10" />
-              <StatCard icon={BeakerIcon} label="湿度" value={deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'} unit="%" color="text-blue-500" bg="bg-blue-50 dark:bg-blue-500/10" />
-              <StatCard icon={SunIcon} label="光照" value={deviceData ? deviceData.light : '--'} unit="lux" color="text-yellow-500" bg="bg-yellow-50 dark:bg-yellow-500/10" />
-              <StatCard icon={CloudIcon} label="CO₂" value={deviceData ? deviceData.co2 : '--'} unit="ppm" color="text-teal-500" bg="bg-teal-50 dark:bg-teal-500/10" />
-              <StatCard icon={BoltIcon} label="土壤电导" value={deviceData ? deviceData.earth_ec : '--'} unit="μS/cm" color="text-purple-500" bg="bg-purple-50 dark:bg-purple-500/10" />
-              <StatCard icon={BeakerIcon} label="土壤水分" value={deviceData ? deviceData.earth_water.toFixed(1) : '--'} unit="%" color="text-green-500" bg="bg-green-50 dark:bg-green-500/10" />
-              <StatCard icon={FireIcon} label="土壤温度" value={deviceData ? deviceData.earth_temp.toFixed(1) : '--'} unit="°C" color="text-rose-500" bg="bg-rose-50 dark:bg-rose-500/10" />
+              <StatCard icon={IconFire} label="温度" value={deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'} unit="°C" color="text-orange-500" bg="bg-orange-50 dark:bg-orange-500/10" />
+              <StatCard icon={IconMedicineChest} label="湿度" value={deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'} unit="%" color="text-blue-500" bg="bg-blue-50 dark:bg-blue-500/10" />
+              <StatCard icon={IconSun} label="光照" value={deviceData ? deviceData.light : '--'} unit="lux" color="text-yellow-500" bg="bg-yellow-50 dark:bg-yellow-500/10" />
+              <StatCard icon={IconCloudy} label="CO₂" value={deviceData ? deviceData.co2 : '--'} unit="ppm" color="text-teal-500" bg="bg-teal-50 dark:bg-teal-500/10" />
+              <StatCard icon={IconThunderbolt} label="土壤电导" value={deviceData ? deviceData.earth_ec : '--'} unit="μS/cm" color="text-purple-500" bg="bg-purple-50 dark:bg-purple-500/10" />
+              <StatCard icon={IconMedicineChest} label="土壤水分" value={deviceData ? deviceData.earth_water.toFixed(1) : '--'} unit="%" color="text-green-500" bg="bg-green-50 dark:bg-green-500/10" />
+              <StatCard icon={IconFire} label="土壤温度" value={deviceData ? deviceData.earth_temp.toFixed(1) : '--'} unit="°C" color="text-rose-500" bg="bg-rose-50 dark:bg-rose-500/10" />
               
-              <StatCard icon={Sprout} label="氮含量 (N)" value={deviceData ? deviceData.earth_n : '--'} unit="mg/kg" color="text-purple-500" bg="bg-purple-50 dark:bg-purple-500/10" />
-              <StatCard icon={Sprout} label="磷含量 (P)" value={deviceData ? deviceData.earth_p : '--'} unit="mg/kg" color="text-pink-500" bg="bg-pink-50 dark:bg-pink-500/10" />
-              <StatCard icon={Sprout} label="钾含量 (K)" value={deviceData ? deviceData.earth_k : '--'} unit="mg/kg" color="text-amber-500" bg="bg-amber-50 dark:bg-amber-500/10" />
+              <StatCard icon={IconSeedling} label="氮含量 (N)" value={deviceData ? deviceData.earth_n : '--'} unit="mg/kg" color="text-purple-500" bg="bg-purple-50 dark:bg-purple-500/10" />
+              <StatCard icon={IconSeedling} label="磷含量 (P)" value={deviceData ? deviceData.earth_p : '--'} unit="mg/kg" color="text-pink-500" bg="bg-pink-50 dark:bg-pink-500/10" />
+              <StatCard icon={IconSeedling} label="钾含量 (K)" value={deviceData ? deviceData.earth_k : '--'} unit="mg/kg" color="text-amber-500" bg="bg-amber-50 dark:bg-amber-500/10" />
               
               <StatCard 
-                icon={Activity} 
+                icon={IconChartLine} 
                 label="光谱峰值" 
                 value={deviceData ? `${maxChannel.label}` : '--'} 
                 unit={deviceData ? `${spectralValue.toFixed(0)}` : ''} 
@@ -665,7 +663,7 @@ export default function DashboardIOSPage() {
               />
               
               <StatCard 
-                icon={CloudRain} 
+                icon={IconWater} 
                 label="今日降雨" 
                 value={todayPrecip.toFixed(1)} 
                 unit="mm" 
@@ -726,7 +724,7 @@ export default function DashboardIOSPage() {
               onClick={handleSaveSettings} 
               className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/20 text-base font-bold transition-all active:scale-95"
             >
-              <Save className="w-5 h-5 mr-2" />
+              <IconSave size={20} className="mr-2" />
               保存配置
             </Button>
             <Button 

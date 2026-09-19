@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from "react"
 import { Button, Switch, Input, Typography, Spin, Card } from "antd"
-import { LoadingOutlined, WarningOutlined, CheckCircleOutlined } from "@ant-design/icons"
 import { toast } from "sonner"
+import { IconCaution, IconCheckOne, IconLoading } from "@/components/icon";
 
 const { Text, Title } = Typography
 
@@ -67,7 +67,7 @@ export function MaintenanceSettings() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+        <Spin indicator={<IconLoading style={{ fontSize: 24 }} spin />} />
       </div>
     )
   }
@@ -160,7 +160,7 @@ export function MaintenanceSettings() {
             onClick={handleSave} 
             loading={saving}
             style={config.enabled ? { background: '#FA8C16', borderColor: '#FA8C16' } : {}}
-            icon={config.enabled ? <WarningOutlined /> : <CheckCircleOutlined />}
+            icon={config.enabled ? <IconCaution /> : <IconCheckOne />}
           >
             {config.enabled ? "保存并开启维护" : "保存设置"}
           </Button>

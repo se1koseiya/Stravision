@@ -1,8 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconLeft, IconRight } from "@/components/icon";
 
 interface SlideProps {
   children: React.ReactNode
@@ -164,7 +164,7 @@ export function Slide({
                       className="p-1 text-zinc-500 hover:text-white transition-colors disabled:opacity-10"
                       disabled={!onPrev}
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <IconLeft className="w-5 h-5" />
                     </button>
                     
                     {(current && total) && (
@@ -180,7 +180,7 @@ export function Slide({
                       className="p-1 text-zinc-500 hover:text-white transition-colors disabled:opacity-10"
                       disabled={!onNext}
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <IconRight className="w-5 h-5" />
                     </button>
                   </div>
                 )}

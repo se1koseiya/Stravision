@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useSpeechSynthesis } from '@/lib/hooks/use-speech-synthesis'
 import { toast } from 'sonner'
-import { Sparkles } from 'lucide-react'
 import React from 'react'
+import { IconMagic } from "@/components/icon";
 
 interface UseDailyGreetingOptions {
   username?: string
@@ -46,7 +46,7 @@ export function useDailyGreeting({ username, enabled = true }: UseDailyGreetingO
             
             // Show a toast as well
             toast(greetingText, {
-              icon: React.createElement(Sparkles, { className: "w-4 h-4 text-emerald-500" }),
+              icon: React.createElement(IconMagic, { className: "w-4 h-4 text-emerald-500" }),
               duration: 4000,
             })
           }, 1500)

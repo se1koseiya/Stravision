@@ -2,24 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { 
-  Terminal, Cpu, Globe, Zap, Shield, Users, 
-  Layout, Database, Wifi, Brain, Mic, Layers, 
-  BarChart, Smartphone, Cloud, Code, CheckCircle, 
-  Rocket, Leaf, Award, Server, List, Lock, 
-  UserCheck, Box, Sparkles, Monitor, Bell, 
-  Target, TrendingUp, Search, Share2, Key, 
-  Radio, Settings, AlertTriangle, Play, Pause, 
-  PieChart, DollarSign, Activity, GitBranch, 
-  GitCommit, GitMerge, Container, HardDrive, 
-  RefreshCw, Sun, Wind, Droplets, Thermometer, 
-  Camera, MessageSquare, Briefcase, Globe2, 
-  Sprout, ArrowRight, Star, Scan, Maximize, 
-  Network
-} from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { StoryBackground } from "./Background"
+import { IconArrowRight, IconBox, IconBrain, IconBriefcase, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconChartPie, IconCheckCorrect, IconCheckOne, IconCloudStorage, IconCode, IconComment, IconCpu, IconDatabaseNetwork, IconDollar, IconEarth, IconFullScreen, IconGithub, IconGithubOne, IconGlobe, IconHardDisk, IconKey, IconLayers, IconLayoutTwo, IconLeaf, IconLightning, IconList, IconLock, IconMagic, IconMerge, IconMicrophone, IconMonitor, IconNetworkTree, IconPause, IconPeoples, IconPhone, IconPlay, IconRadio, IconRefresh, IconRemind, IconRocket, IconScan, IconSearch, IconSeedling, IconServer, IconSetting, IconShare, IconShield, IconStar, IconSun, IconTag, IconTarget, IconTerminal, IconThermometer, IconTrendingUp, IconTrophy, IconWater, IconWifi, IconWind } from "@/components/icon";
 
 // --- Typography Components (Updated for Premium Look) ---
 
@@ -191,7 +177,7 @@ export const ConceptSlide = () => (
     <StoryBackground mode="hope" />
     <div className="relative z-10 max-w-4xl flex flex-col items-center">
        <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mb-12 shadow-[0_0_60px_rgba(16,185,129,0.3)]">
-          <Sparkles className="w-10 h-10 text-white" />
+          <IconMagic className="w-10 h-10 text-white" />
        </div>
        <h2 className="text-7xl font-medium text-white mb-8">
           数字工匠精神
@@ -220,7 +206,7 @@ export const SolutionMapSlide = () => (
        <BentoCard className="col-span-4 flex flex-col justify-between group hover:bg-zinc-900/60 transition-colors">
           <div>
             <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center mb-6">
-              <Wifi className="w-6 h-6 text-orange-400" />
+              <IconWifi className="w-6 h-6 text-orange-400" />
             </div>
             <h3 className="text-2xl font-medium text-white mb-2">感知 Sensing</h3>
             <p className="text-zinc-500">IoT 硬件互联与数据采集</p>
@@ -244,7 +230,7 @@ export const SolutionMapSlide = () => (
        <BentoCard className="col-span-4 flex flex-col justify-between group hover:bg-zinc-900/60 transition-colors">
           <div>
             <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6">
-              <Zap className="w-6 h-6 text-purple-400" />
+              <IconLightning className="w-6 h-6 text-purple-400" />
             </div>
             <h3 className="text-2xl font-medium text-white mb-2">行动 Acting</h3>
             <p className="text-zinc-500">自动化控制与执行</p>
@@ -342,14 +328,14 @@ export const ControlLayerSlide = () => (
            
            <div className="flex gap-4">
               <div className="flex-1 bg-zinc-900/50 border border-white/10 p-6 rounded-2xl flex items-center gap-4">
-                 <Wind className="text-blue-500 w-8 h-8" />
+                 <IconWind className="text-blue-500 w-8 h-8" />
                  <div>
                    <div className="text-white font-medium">智能通风</div>
                    <div className="text-zinc-500 text-xs">Auto Ventilation</div>
                  </div>
               </div>
               <div className="flex-1 bg-zinc-900/50 border border-white/10 p-6 rounded-2xl flex items-center gap-4">
-                 <Droplets className="text-cyan-500 w-8 h-8" />
+                 <IconWater className="text-cyan-500 w-8 h-8" />
                  <div>
                    <div className="text-white font-medium">精准灌溉</div>
                    <div className="text-zinc-500 text-xs">Smart Irrigation</div>
@@ -380,7 +366,7 @@ export const EdgeComputingSlide = () => (
      <div className="relative w-[600px] h-[400px] z-10 flex items-center justify-center">
         {/* Central Hub Visualization */}
         <div className="w-64 h-64 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center relative shadow-2xl z-20">
-           <Server className="w-24 h-24 text-purple-500" />
+           <IconServer className="w-24 h-24 text-purple-500" />
            {/* Status Light */}
            <div className="absolute top-6 right-6 w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]" />
         </div>
@@ -437,7 +423,7 @@ export const AIModelSlide = () => (
            </div>
            <div className="flex gap-2">
               <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center">
-                 <Scan className="text-white/50 w-6 h-6" />
+                 <IconScan className="text-white/50 w-6 h-6" />
               </div>
            </div>
         </div>
@@ -582,10 +568,10 @@ export const MobileAppSlide = () => (
            </p>
            <div className="flex gap-6 pt-4">
               <div className="flex items-center gap-3 text-zinc-300">
-                 <Bell className="text-zinc-500" /> 实时告警推送
+                 <IconRemind className="text-zinc-500" /> 实时告警推送
               </div>
               <div className="flex items-center gap-3 text-zinc-300">
-                 <Activity className="text-zinc-500" /> 远程设备控制
+                 <IconChartLine className="text-zinc-500" /> 远程设备控制
               </div>
            </div>
         </div>
@@ -621,7 +607,7 @@ export const VisualMonitorSlide = () => (
      
      <div className="relative w-[900px] h-[500px] rounded-2xl border border-white/10 bg-zinc-900/50 backdrop-blur overflow-hidden shadow-2xl z-10">
         <div className="absolute inset-0 flex items-center justify-center">
-           <Box className="w-32 h-32 text-primary/20 animate-spin-slow" />
+           <IconBox className="w-32 h-32 text-primary/20 animate-spin-slow" />
            <div className="absolute text-primary font-mono text-xs tracking-widest mt-40">RENDERING...</div>
         </div>
         
@@ -647,14 +633,14 @@ export const TechStackSlide = () => (
 
      <div className="grid grid-cols-4 gap-8 max-w-5xl w-full z-10">
         {[
-           { icon: Layout, title: "Next.js 14", sub: "Frontend" },
-           { icon: Server, title: "FastAPI", sub: "Backend" },
-           { icon: Database, title: "PostgreSQL", sub: "Database" },
-           { icon: Cpu, title: "ESP32", sub: "Embedded" },
-           { icon: Container, title: "Docker", sub: "DevOps" },
-           { icon: Brain, title: "PyTorch", sub: "AI Model" },
-           { icon: Activity, title: "MQTT", sub: "Protocol" },
-           { icon: Shield, title: "OAuth2", sub: "Security" },
+           { icon: IconLayoutTwo, title: "Next.js 14", sub: "Frontend" },
+           { icon: IconServer, title: "FastAPI", sub: "Backend" },
+           { icon: IconDatabaseNetwork, title: "PostgreSQL", sub: "Database" },
+           { icon: IconCpu, title: "ESP32", sub: "Embedded" },
+           { icon: IconBox, title: "Docker", sub: "DevOps" },
+           { icon: IconBrain, title: "PyTorch", sub: "AI Model" },
+           { icon: IconChartLine, title: "MQTT", sub: "Protocol" },
+           { icon: IconShield, title: "OAuth2", sub: "Security" },
         ].map((item, i) => (
            <BentoCard key={i} className="flex flex-col items-center text-center py-8 hover:bg-white/5 transition-colors cursor-default">
               <item.icon className="w-10 h-10 text-zinc-400 mb-4" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { getCurrentUser } from '@/lib/auth'
+import { IS_DESKTOP_APP } from '@/lib/desktop-mode'
 import { readProvidersConfig, resolveDefaultModelId } from '@/lib/ai/provider-resolver'
 import type { ProvidersConfig } from '@/app/api/admin/ai-providers/route'
 
@@ -24,13 +25,21 @@ async function writeFullConfig(config: ProvidersConfig): Promise<void> {
   await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8')
 }
 
+// 桌面端放行：本地单用户形态，无平台角色概念（IS_DESKTOP_APP 构建期内联，Web 构建恒 false）
+async function authorized(request: NextRequest) {
+  const user = await getCurrentUser(request)
+  if (!user) return null
+  if (IS_DESKTOP_APP) return user
+  return user.role === 'admin' || user.role === 'super_admin' ? user : null
+}
+
 /**
  * GET /api/admin/ai-providers/default-model
  * 读取 admin 配置的默认模型 ID（自动回退到第一个 enabled 模型）
  */
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser(request)
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  const user = await authorized(request)
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -51,8 +60,8 @@ export async function GET(request: NextRequest) {
  * - 验证 modelId 必须是某个 enabled provider 下的 enabled model
  */
 export async function PUT(request: NextRequest) {
-  const user = await getCurrentUser(request)
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  const user = await authorized(request)
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

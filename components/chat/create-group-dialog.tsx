@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Modal, Input, Button, Avatar } from "antd"
-import { Users, Search, Check, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { chatClient } from "@/lib/chat/chat-client"
 import type { ChatUser } from "@/lib/chat/chat-types"
+import { IconAddUser, IconCheck, IconPeoples, IconSearch } from "@/components/icon";
 
 interface CreateGroupDialogProps {
   open: boolean
@@ -84,7 +84,7 @@ export function CreateGroupDialog({ open, onOpenChange, friends, onCreated }: Cr
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3">
           <span className="size-10 rounded-xl bg-[#fff7e6] dark:bg-[#fa8c161a] flex items-center justify-center shrink-0">
-            <Users size={20} strokeWidth={1.75} className="text-[#fa8c16]" />
+            <IconPeoples size={20} strokeWidth={1.75} className="text-[#fa8c16]" />
           </span>
           <div className="min-w-0">
             <h3 className="text-[16px] text-[rgba(0,0,0,0.88)] dark:text-white" style={{ fontWeight: 500 }}>
@@ -134,7 +134,7 @@ export function CreateGroupDialog({ open, onOpenChange, friends, onCreated }: Cr
           size="middle"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          prefix={<Search size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+          prefix={<IconSearch size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
           allowClear
           className="!rounded-lg mb-2"
         />
@@ -146,7 +146,7 @@ export function CreateGroupDialog({ open, onOpenChange, friends, onCreated }: Cr
         >
           {friends.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-[12px] text-[rgba(0,0,0,0.35)] dark:text-slate-500">
-              <UserPlus size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
+              <IconAddUser size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
               <span>暂无好友可添加</span>
             </div>
           ) : filteredFriends.length === 0 ? (
@@ -175,7 +175,7 @@ export function CreateGroupDialog({ open, onOpenChange, friends, onCreated }: Cr
                           : "bg-white dark:bg-transparent border-black/[0.15] dark:border-white/[0.2]"
                       )}
                     >
-                      {checked && <Check size={11} strokeWidth={2.5} className="text-white" />}
+                      {checked && <IconCheck size={11} strokeWidth={2.5} className="text-white" />}
                     </span>
                     <Avatar
                       size={28}

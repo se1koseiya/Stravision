@@ -3,14 +3,13 @@
 import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AnimatePresence } from "framer-motion"
 import { Bubble, Actions } from "@ant-design/x"
-import type { ActionsFeedbackProps, ActionsItemProps } from "@ant-design/x"
+import type { ActionsFeedbackProps, ActionsProps } from "@ant-design/x"
 import type { BubbleListProps } from "@ant-design/x"
-import { Pagination, message } from "antd"
-import { CheckOutlined, ShareAltOutlined } from "@ant-design/icons"
-import { Zap, X, CheckCircle2, ClipboardList, Wrench, XCircle, AlertCircle, ArrowDown, Loader2 } from "lucide-react"
+import { Modal, message } from "antd"
 import XMarkdown from "@ant-design/x-markdown"
 import BerryOrb from "@/components/smoothui/berry-orb"
 import { detectOrbExpression, type OrbExpression } from "@/lib/ai/orb-expression"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import type { Message } from "@/app/ai-assistant/types"
 import { ChatMessageRenderer } from "@/app/ai-assistant/_components/chat-message-renderer"
 import { AgentThoughtChain } from "@/app/ai-assistant/_components/agent-thought-chain"
@@ -27,6 +26,11 @@ import {
   extractPreview,
   type MessageNavItem,
 } from "@/app/ai-assistant/_components/message-nav-dots"
+import {
+  IconArrowDown, IconAttention, IconCheck, IconCheckOne, IconClose, IconCloseOne,
+  IconCopy, IconDelete, IconEdit, IconLightning, IconListCheckbox, IconLoading,
+  IconMore, IconRefresh, IconShare, IconTool, IconVolumeNotice,
+} from "@/components/icon";
 
 // ---------------------------------------------------------------------------
 // Per-bubble actions component (own state for feedback/pagination/share/audio)
@@ -65,75 +69,117 @@ function formatTime(ts: number) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
-function BubbleActions({ content, onSpeak }: { content: string; onSpeak?: (text: string) => void }) {
-  const [curPage, setCurPage] = useState(1)
+/**
+ * 气泡动作行（2026-09-19 对齐 antd X 官方 Actions 范式：items + subItems + danger）
+ *  - 顶层：重试 / 编辑 / 复制 / 点赞点踩 / 更多
+ *  - 更多：朗读 / 分享 / 删除（danger，二次确认）
+ */
+function BubbleActions({
+  content,
+  onSpeak,
+  onDelete,
+  onRetry,
+  onEdit,
+}: {
+  content: string
+  onSpeak?: (text: string) => void
+  onDelete?: () => void
+  onRetry?: () => void
+  onEdit?: (text: string) => void
+}) {
   const [feedbackStatus, setFeedbackStatus] = useState<ActionsFeedbackProps["value"]>("default")
-  const [shareStatus, setShareStatus] = useState<ActionsItemProps["status"]>("default")
-  const [audioStatus, setAudioStatus] = useState<ActionsItemProps["status"]>("default")
+  const [copied, setCopied] = useState(false)
 
-  const toggleShare = () => {
-    setShareStatus((prev) => (prev === "default" ? "running" : "default"))
+  const writeClipboard = (text: string, okMsg: string) => {
+    const done = () => {
+      setCopied(true)
+      message.success(okMsg)
+      setTimeout(() => setCopied(false), 1600)
+    }
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => message.error("复制失败"))
+    } else {
+      message.error("当前环境不支持复制")
+    }
   }
 
-  return (
-    <Actions
-      items={[
-        {
-          key: "pagination",
-          actionRender: () => (
-            <Pagination simple current={curPage} onChange={setCurPage} total={5} pageSize={1} />
-          ),
-        },
-        {
-          key: "feedback",
-          actionRender: () => (
-            <Actions.Feedback
-              value={feedbackStatus}
-              styles={{ liked: { color: "#f759ab" } }}
-              onChange={(val) => {
-                setFeedbackStatus(val)
-                message.success(`反馈: ${val}`)
-              }}
-            />
-          ),
-        },
-        {
-          key: "copy",
-          label: "copy",
-          actionRender: () => <Actions.Copy text={content} />,
-        },
-        {
-          key: "audio",
-          label: "audio",
-          actionRender: () => (
-            <Actions.Audio
-              onClick={() => {
-                if (onSpeak) {
-                  setAudioStatus("running")
-                  onSpeak(content)
-                  setTimeout(() => setAudioStatus("default"), 2000)
-                }
-              }}
-              status={audioStatus}
-            />
-          ),
-        },
-        {
-          key: "share",
-          label: "share",
-          actionRender: () => (
-            <Actions.Item
-              onClick={toggleShare}
-              label={shareStatus}
-              status={shareStatus}
-              defaultIcon={<ShareAltOutlined />}
-              runningIcon={<CheckOutlined />}
-            />
-          ),
-        },
-      ]}
-    />
-  )
+  const confirmDelete = () => {
+    Modal.confirm({
+      title: "确定删除这条消息？",
+      content: "删除后无法恢复，对话上下文也会一起丢掉。",
+      okText: "删除",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: () => {
+        onDelete?.()
+        message.success("已删除")
+      },
+    })
+  }
+
+  const moreSubItems: ActionsProps["items"][number]["subItems"] = [
+    {
+      key: "audio",
+      label: "朗读",
+      icon: <IconVolumeNotice size={14} />,
+      onItemClick: () => {
+        if (!onSpeak) {
+          message.info("当前未开启语音播报")
+          return
+        }
+        onSpeak(content)
+      },
+    },
+    {
+      key: "share",
+      label: "分享",
+      icon: <IconShare size={14} />,
+      onItemClick: () => writeClipboard(content, "内容已复制，可粘贴分享"),
+    },
+    // 父组件没接删除回调时不显示该项（避免出现点了没反应的假按钮）
+    ...(onDelete
+      ? [
+          {
+            key: "delete",
+            label: "删除",
+            icon: <IconDelete size={14} />,
+            danger: true,
+            onItemClick: confirmDelete,
+          },
+        ]
+      : []),
+  ]
+
+  const items: ActionsProps["items"] = [
+    ...(onRetry
+      ? [{ key: "retry", label: "重试", icon: <IconRefresh size={14} />, onItemClick: () => onRetry() }]
+      : []),
+    ...(onEdit
+      ? [{ key: "edit", label: "编辑", icon: <IconEdit size={14} />, onItemClick: () => onEdit(content) }]
+      : []),
+    {
+      key: "copy",
+      label: "复制",
+      icon: copied ? <IconCheck size={14} /> : <IconCopy size={14} />,
+      onItemClick: () => writeClipboard(content, "已复制"),
+    },
+    {
+      key: "feedback",
+      actionRender: () => (
+        <Actions.Feedback
+          value={feedbackStatus}
+          styles={{ liked: { color: "#f759ab" } }}
+          onChange={(val) => {
+            setFeedbackStatus(val)
+            message.success(`反馈: ${val}`)
+          }}
+        />
+      ),
+    },
+    { key: "more", icon: <IconMore size={14} />, subItems: moreSubItems },
+  ]
+
+  return <Actions items={items} />
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +202,7 @@ function ToolSkillTag({ toolName }: { toolName: string }) {
 
   return (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium mb-2">
-      <Zap size={12} />
+      <IconLightning size={12} />
       <span>{displayName}</span>
     </div>
   )
@@ -229,7 +275,7 @@ function CheckpointReceiptCard({ content }: { content: string }) {
   return (
     <div className="text-[13px] leading-relaxed min-w-[200px]">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <CheckCircle2 size={13} strokeWidth={1.75} className="text-[#1677ff] shrink-0" />
+        <IconCheckOne size={13} strokeWidth={1.75} className="text-[#1677ff] shrink-0" />
         <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
           {RECEIPT_STATUS[receipt.type] || "已确认"}
         </span>
@@ -338,9 +384,9 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
       {/* 状态条 */}
       <div className="flex items-center gap-1.5 mb-2">
         {isApproved ? (
-          <CheckCircle2 size={13} strokeWidth={ICON_STROKE} className="text-[#1677ff] shrink-0" />
+          <IconCheckOne size={13} strokeWidth={ICON_STROKE} className="text-[#1677ff] shrink-0" />
         ) : (
-          <XCircle size={13} strokeWidth={ICON_STROKE} className="text-[#ff4d4f] shrink-0" />
+          <IconCloseOne size={13} strokeWidth={ICON_STROKE} className="text-[#ff4d4f] shrink-0" />
         )}
         <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
           {isApproved ? "已批准计划" : "已拒绝计划"}
@@ -349,7 +395,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
 
       {/* 标题 */}
       <div className="flex items-start gap-1.5 mb-2">
-        <ClipboardList size={13} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-[2px]" />
+        <IconListCheckbox size={13} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-[2px]" />
         <div className="text-[13.5px] text-zinc-800 dark:text-zinc-100 break-words" style={{ fontWeight: 500 }}>
           {receipt.title}
         </div>
@@ -390,7 +436,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
                     </div>
                     {step.tool && (
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Wrench size={9.5} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
+                        <IconTool size={9.5} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
                         <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500">{step.tool}</span>
                       </div>
                     )}
@@ -401,7 +447,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
           )}
           {receipt.modified && (
             <div className="mt-2.5 pl-[19px] flex items-start gap-1.5">
-              <AlertCircle size={11} strokeWidth={ICON_STROKE} className="text-[#fa8c16] shrink-0 mt-[2px]" />
+              <IconAttention size={11} strokeWidth={ICON_STROKE} className="text-[#fa8c16] shrink-0 mt-[2px]" />
               <span className="text-[11px] text-[#fa8c16] leading-[1.5]">
                 计划已修改，将按修改后执行
               </span>
@@ -430,7 +476,7 @@ function NewMessageDivider() {
         className="flex items-center gap-1 text-[11px] select-none"
         style={{ color: "#1677ff", fontWeight: 400 }}
       >
-        <ArrowDown size={12} strokeWidth={1.75} />
+        <IconArrowDown size={12} strokeWidth={1.75} />
         <span>新消息</span>
       </div>
       <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
@@ -468,6 +514,11 @@ export interface ChatBubbleListProps {
    * 会在首条新消息上方渲染"新消息"分隔线。0 或 undefined 时不显示。
    */
   newMessageBoundary?: number
+  /**
+   * 🔥 删除单条消息回调（参数是 messages 原始数组下标）。
+   * 气泡动作行「更多 → 删除」触发，二次确认后才调用。不传则不显示删除项。
+   */
+  onDeleteMessage?: (index: number) => void
 }
 
 export function ChatBubbleList({
@@ -484,6 +535,7 @@ export function ChatBubbleList({
   aiActionSummary,
   latestTaskListContent = "",
   newMessageBoundary = 0,
+  onDeleteMessage,
 }: ChatBubbleListProps) {
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -544,26 +596,27 @@ export function ChatBubbleList({
   const isMemorySummary = (m: Message) =>
     m.role === "assistant" && typeof m.content === "string" && m.content.includes("<PAST_MEMORY>")
 
-  const items: BubbleListProps["items"] = filteredMessages
-    .filter((m) => !isMemorySummary(m))
-    .map((msg, i) => {
-      const isLast = i === filteredMessages.length - 1
+  // 🔥 保留原始数组下标：删除消息要按原始 messages 索引操作（必须在 isMemorySummary 之后）
+  const indexedFiltered = messages
+    .map((msg, origIdx) => ({ msg, origIdx }))
+    .filter(({ msg }) => !msg.isSilent && !isMemorySummary(msg))
+
+  const items: BubbleListProps["items"] = indexedFiltered
+    .map(({ msg, origIdx }, i) => {
+      const isLast = i === indexedFiltered.length - 1
       return {
         key: `${msg.role}-${i}`,
         role: (msg.role === "user" ? "user" : "ai") as string,
         content: typeof msg.content === "string" ? msg.content : "",
         // 关闭 Ant Design X 的默认三点 loading，改为下方 contentRender 中的自定义指示器
         loading: false,
-        extraInfo: { message: msg, index: i, isLast },
+        extraInfo: { message: msg, index: i, origIdx, isLast },
       }
     })
 
   // 🔥 新消息分隔线：计算过滤后数组中的分割点
   // newMessageBoundary 是 messages 原始数组中的 index，需要映射到过滤后的位置。
   // 过滤后顺序保持不变（只追加不插入），所以首个 origIdx >= boundary 的位置即为分割点。
-  const indexedFiltered = messages
-    .map((msg, origIdx) => ({ msg, origIdx }))
-    .filter(({ msg }) => !msg.isSilent && !isMemorySummary(msg))
   const hasBoundary = newMessageBoundary > 0
   const splitIdx = hasBoundary
     ? indexedFiltered.findIndex(({ origIdx }) => origIdx >= newMessageBoundary)
@@ -581,11 +634,22 @@ export function ChatBubbleList({
       avatar: <BerryOrb size="36px" theme={darkMode ? 'dark' : 'light'} isActive={isLoading} expression={orbExpression} />,
       // 🔥 气泡时间：hover 整条 AI 气泡时才显示
       header: <BubbleTime darkMode={!!darkMode} />,
-      footer: (content: unknown) => {
+      footer: (content: unknown, info: any) => {
         const text = typeof content === "string" ? content : ""
+        const idx = (info?.extraInfo?.index as number | undefined) ?? -1
+        const origIdx = info?.extraInfo?.origIdx as number | undefined
+        // 重试 = 重发本条 AI 消息之前最近的一条用户消息
+        let retryText = ""
+        for (let k = idx - 1; k >= 0; k--) {
+          const m = indexedFiltered[k]?.msg
+          if (m?.role === "user") {
+            retryText = typeof m.content === "string" ? m.content : ""
+            break
+          }
+        }
         // 🔥 整合：AI 动作总结 + 操作按钮 同行显示（TRAE 风格：单行紧凑）
         // - 左侧：任务完成状态 + 耗时 + 工具调用次数
-        // - 右侧：点赞/点踩/复制/语音
+        // - 右侧：重试/编辑/复制/点赞点踩/更多
         // 优化：当 thought chain 可见时，"任务执行中"胶囊与 chain 顶部状态条重复，
         // 只保留 chain 入口；仅当 chain 不可见时回退到胶囊。
         return (
@@ -593,7 +657,13 @@ export function ChatBubbleList({
             {aiActionSummary && !chainVisibleRef.current ? (
               <AIActionSummaryCard summary={aiActionSummary} className="!mt-0 flex-1 min-w-0" />
             ) : null}
-            <BubbleActions content={text} onSpeak={onTtsSpeak} />
+            <BubbleActions
+              content={text}
+              onSpeak={onTtsSpeak}
+              onDelete={onDeleteMessage && origIdx != null ? () => onDeleteMessage(origIdx) : undefined}
+              onEdit={rendererPropsRef.current.onSetInput ? (t) => rendererPropsRef.current.onSetInput?.(t) : undefined}
+              onRetry={retryText ? () => rendererPropsRef.current.onSendMessage?.(retryText) : undefined}
+            />
           </div>
         )
       },
@@ -627,7 +697,7 @@ export function ChatBubbleList({
               {!hasChainSteps && <WorkingIndicator darkMode={!!darkMode} />}
               {agentStatus && (
                 <div className="flex items-center gap-1.5 text-[12.5px] text-slate-500 dark:text-zinc-400 mt-1.5 px-0.5">
-                  <Loader2 size={12} className="animate-spin shrink-0 text-[#1677ff]" />
+                  <IconLoading size={12} className="animate-spin shrink-0 text-[#1677ff]" />
                   <span className="truncate">{agentStatus}</span>
                 </div>
               )}
@@ -713,8 +783,9 @@ export function ChatBubbleList({
                 ))}
               </div>
             )}
-            {/* 积分消耗：流式中显示实时估算（~ 前缀），回复完成后用服务端真实值 */}
+            {/* 积分消耗：流式中显示实时估算（~ 前缀），回复完成后用服务端真实值（桌面端 BYOK 无积分概念） */}
             {(() => {
+              if (IS_DESKTOP_APP) return null
               const realCredits = msg.creditUsage?.credits
               const liveCredits = msg.liveCredits
               const display = isStreamingThis
@@ -729,7 +800,7 @@ export function ChatBubbleList({
                   className="mt-1.5 flex items-center justify-end gap-1 text-[10.5px] text-slate-300 dark:text-slate-600 select-none"
                   title={tip}
                 >
-                  <Zap className="w-3 h-3" />
+                  <IconLightning className="w-3 h-3" />
                   <span>消耗 {display} 积分</span>
                 </div>
               )
@@ -780,7 +851,7 @@ export function ChatBubbleList({
               <div id={anchorId} data-msg-anchor={anchorId}>
                 <div className="text-[13px] leading-relaxed min-w-[120px]">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <CheckCircle2 size={13} strokeWidth={1.75} className="text-[#1677ff] shrink-0" />
+                    <IconCheckOne size={13} strokeWidth={1.75} className="text-[#1677ff] shrink-0" />
                     <span className="text-[11px] text-zinc-500 dark:text-zinc-400">澄清回复</span>
                   </div>
                   {params.length > 0 ? (

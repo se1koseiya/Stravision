@@ -1,17 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { 
-  Thermometer, Droplets, Sun, Sprout, 
-  Wifi, Cloud, 
-  Server, Database, BrainCircuit, Cpu, 
-  Monitor, Smartphone,
-  Zap,
-  Radio,
-  Share2
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { IconBrain, IconCloudStorage, IconCpu, IconDatabaseNetwork, IconLightning, IconMonitor, IconPhone, IconRadio, IconSeedling, IconServer, IconShare, IconSun, IconThermometer, IconWater, IconWifi } from "@/components/icon";
 
 // --- CONSTANTS ---
 const IP_IMAGES = {
@@ -207,10 +199,10 @@ export function ArchitectureDiagram() {
             image={IP_IMAGES.perception}
             description="环境传感器集群与视觉感知终端，实时采集大棚内的全维度生长数据。"
             specs={[
-                { icon: <Thermometer size={14} />, label: "环境", value: "Temp/Hum" },
-                { icon: <Sun size={14} />, label: "光照", value: "PAR/Lux" },
-                { icon: <Sprout size={14} />, label: "土壤", value: "NPK/PH" },
-                { icon: <Zap size={14} />, label: "能耗", value: "Power" },
+                { icon: <IconThermometer size={14} />, label: "环境", value: "Temp/Hum" },
+                { icon: <IconSun size={14} />, label: "光照", value: "PAR/Lux" },
+                { icon: <IconSeedling size={14} />, label: "土壤", value: "NPK/PH" },
+                { icon: <IconLightning size={14} />, label: "能耗", value: "Power" },
             ]}
         />
 
@@ -224,10 +216,10 @@ export function ArchitectureDiagram() {
             image={IP_IMAGES.transmission}
             description="基于 MQTT 5.0 的双向通信链路，确保指令下发与数据上报的毫秒级同步。"
             specs={[
-                { icon: <Wifi size={14} />, label: "无线", value: "5G/WiFi" },
-                { icon: <Radio size={14} />, label: "LoRa", value: "Long Range" },
-                { icon: <Share2 size={14} />, label: "协议", value: "MQTT" },
-                { icon: <Cloud size={14} />, label: "网关", value: "Edge" },
+                { icon: <IconWifi size={14} />, label: "无线", value: "5G/WiFi" },
+                { icon: <IconRadio size={14} />, label: "LoRa", value: "Long Range" },
+                { icon: <IconShare size={14} />, label: "协议", value: "MQTT" },
+                { icon: <IconCloudStorage size={14} />, label: "网关", value: "Edge" },
             ]}
         />
 
@@ -241,10 +233,10 @@ export function ArchitectureDiagram() {
             image={IP_IMAGES.platform}
             description="云端 AI 大脑与数据中台。负责数据清洗、存储、视觉分析与控制决策下发。"
             specs={[
-                { icon: <Server size={14} />, label: "服务", value: "K8s Cluster" },
-                { icon: <BrainCircuit size={14} />, label: "AI", value: "Qwen-VL" },
-                { icon: <Database size={14} />, label: "存储", value: "TimeScale" },
-                { icon: <Cpu size={14} />, label: "计算", value: "Edge AI" },
+                { icon: <IconServer size={14} />, label: "服务", value: "K8s Cluster" },
+                { icon: <IconBrain size={14} />, label: "AI", value: "Qwen-VL" },
+                { icon: <IconDatabaseNetwork size={14} />, label: "存储", value: "TimeScale" },
+                { icon: <IconCpu size={14} />, label: "计算", value: "Edge AI" },
             ]}
         />
 
@@ -258,10 +250,10 @@ export function ArchitectureDiagram() {
             image={IP_IMAGES.application}
             description="多端协同的交互界面。提供数据可视化看板、远程控制台与智能问答助手。"
             specs={[
-                { icon: <Monitor size={14} />, label: "PC", value: "Dashboard" },
-                { icon: <Smartphone size={14} />, label: "Mobile", value: "App" },
-                { icon: <Zap size={14} />, label: "Control", value: "Real-time" },
-                { icon: <Share2 size={14} />, label: "API", value: "REST/GQL" },
+                { icon: <IconMonitor size={14} />, label: "PC", value: "Dashboard" },
+                { icon: <IconPhone size={14} />, label: "Mobile", value: "App" },
+                { icon: <IconLightning size={14} />, label: "Control", value: "Real-time" },
+                { icon: <IconShare size={14} />, label: "API", value: "REST/GQL" },
             ]}
         />
 

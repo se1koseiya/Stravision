@@ -1,12 +1,12 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Cpu, Loader2, PlugZap, Send, CheckCircle2, Pencil } from "lucide-react"
 import {
   Alert, Button, Drawer, Empty, Flex, Tag, Typography, theme,
 } from "antd"
 import { deviceForgeStore, type DeviceForgeCardData } from "@/lib/state/device-forge-store"
 import { useDeviceForgeSnapshot, ForgeFormFields, ForgeStepsTimeline, useDeviceForgeActions } from "@/components/ai/device-forge-card"
+import { IconCheckOne, IconConnect, IconCpu, IconLoading, IconPencil, IconSend } from "@/components/icon";
 
 /**
  * DeviceForgeSidebarPanel — AI 助手页右侧「设备接入面板」（antd Drawer 实现）
@@ -39,7 +39,7 @@ function ForgeStatusHeader({ card }: { card: DeviceForgeCardData }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <Cpu size={17} />
+        <IconCpu size={17} />
       </div>
       <Flex vertical style={{ minWidth: 0, flex: 1 }} gap={2}>
         <Typography.Text strong ellipsis style={{ fontSize: 14, lineHeight: '20px' }}>
@@ -93,9 +93,9 @@ export function DeviceForgeSidebarPanel({ onSendMessage }: DeviceForgeSidebarPan
       mask={false}
       title={
         <Flex align="center" gap={10}>
-          <Cpu size={15} style={{ color: token.colorPrimary }} />
+          <IconCpu size={15} style={{ color: token.colorPrimary }} />
           <Typography.Text strong style={{ fontSize: 14 }}>设备接入面板</Typography.Text>
-          {loading && <Loader2 size={13} className="animate-spin" style={{ color: token.colorPrimary }} />}
+          {loading && <IconLoading size={13} className="animate-spin" style={{ color: token.colorPrimary }} />}
         </Flex>
       }
       styles={{ body: { padding: '16px 18px 24px' } }}
@@ -126,7 +126,7 @@ export function DeviceForgeSidebarPanel({ onSendMessage }: DeviceForgeSidebarPan
 
           <Flex vertical gap={8}>
             <Flex align="center" gap={6} style={{ fontSize: 12, color: token.colorTextTertiary, fontWeight: 600 }}>
-              <Pencil size={12} />
+              <IconPencil size={12} />
               <span>接入配置（与对话卡片同步修改）</span>
             </Flex>
             {form && (
@@ -141,7 +141,7 @@ export function DeviceForgeSidebarPanel({ onSendMessage }: DeviceForgeSidebarPan
             <Flex gap={10} wrap="wrap">
               <Button
                 type="primary"
-                icon={done ? <CheckCircle2 size={14} /> : <PlugZap size={14} />}
+                icon={done ? <IconCheckOne size={14} /> : <IconConnect size={14} />}
                 loading={loading}
                 disabled={done}
                 onClick={() => actions.handleInstall(form)}
@@ -151,7 +151,7 @@ export function DeviceForgeSidebarPanel({ onSendMessage }: DeviceForgeSidebarPan
               </Button>
               {card.usageDoc && !loading && onSendMessage && (
                 <Button
-                  icon={<Send size={14} />}
+                  icon={<IconSend size={14} />}
                   onClick={() => {
                     const ok = actions.handlePublishSkill()
                     if (ok) deviceForgeStore.setPanelOpen(false)

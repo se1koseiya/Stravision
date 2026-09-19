@@ -3,11 +3,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, ChevronUp, Check, Loader2, Circle, Clock3 } from "lucide-react"
 import { XCard, registerCatalog } from "@ant-design/x-card"
 import type { A2UICommand_v0_9, ActionPayload, Catalog } from "@ant-design/x-card"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { formatTime } from "@/app/ai-assistant/_utils/helpers"
+import { IconCheck, IconDown, IconLoading, IconRound, IconTime, IconUp } from "@/components/icon";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -153,14 +153,14 @@ function TaskNodeComponent({
       className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full text-white"
       style={{ background: "#52c41a" }}
     >
-      <Check size={10} strokeWidth={3} />
+      <IconCheck size={10} strokeWidth={3} />
     </span>
   ) : isInProgress ? (
     <span
       className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
       style={{ background: PRIMARY }}
     >
-      <Loader2 size={10} className="animate-spin text-white" />
+      <IconLoading size={10} className="animate-spin text-white" />
     </span>
   ) : isFailed ? (
     <span
@@ -174,7 +174,7 @@ function TaskNodeComponent({
       className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
       style={{ background: "transparent", border: "1.5px solid #d1d5db" }}
     >
-      <Circle size={6} className="text-gray-400" />
+      <IconRound size={6} className="text-gray-400" />
     </span>
   )
 
@@ -228,11 +228,11 @@ function TaskNodeComponent({
                   className="flex items-center gap-1.5 text-[12px] leading-relaxed"
                 >
                   {subCompleted ? (
-                    <Check size={10} className="text-green-500 shrink-0" strokeWidth={2.5} />
+                    <IconCheck size={10} className="text-green-500 shrink-0" strokeWidth={2.5} />
                   ) : subInProgress ? (
-                    <Loader2 size={10} className="text-blue-500 animate-spin shrink-0" />
+                    <IconLoading size={10} className="text-blue-500 animate-spin shrink-0" />
                   ) : (
-                    <Clock3 size={10} className="text-gray-300 shrink-0" />
+                    <IconTime size={10} className="text-gray-300 shrink-0" />
                   )}
                   <span
                     className={
@@ -346,7 +346,7 @@ function CardHeaderComponent({
       {/* 折叠/展开箭头 */}
       {collapsible && (
         <span className="ml-auto text-gray-400 shrink-0">
-          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          {collapsed ? <IconDown size={14} /> : <IconUp size={14} />}
         </span>
       )}
     </button>

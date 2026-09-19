@@ -19,10 +19,10 @@
                 线上不传参时行为不变）
    ------------------------------------------------------------ */
 
-import { NotebookPen } from "lucide-react";
 import type { AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain";
 import { MemoryProfileBar } from "@/components/ai/memory-profile-bar";
 import { DemoChat, DemoChip } from "./demo-chat/shell";
+import { IconNotebook } from "@/components/icon";
 
 const QUESTION = "我叫小朱，1 号棚种的是红颜，帮我盯着点灰霉病";
 
@@ -103,7 +103,7 @@ export function MemoryDemo() {
         <>
           {/* 产品里真实的记忆感知条 */}
           <MemoryProfileBar items={MEMORY_ITEMS} defaultExpanded />
-          <DemoChip icon={<NotebookPen className="size-3" />}>
+          <DemoChip icon={<IconNotebook className="size-3" />}>
             已写入记忆档案 · 跨设备同步
           </DemoChip>
         </>

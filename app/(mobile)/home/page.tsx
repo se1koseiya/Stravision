@@ -12,29 +12,10 @@ import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { MobileBackground } from "@/components/mobile-background"
 import { toast } from "sonner"
-import { 
-  Bell, 
-  LayoutDashboard,
-  Thermometer,
-  Power,
-  ChevronRight,
-  Zap,
-  Activity,
-  Cpu,
-  Sprout,
-  Fan,
-  Sun,
-  Sparkles,
-  CheckCircle2,
-  Search,
-  Lightbulb,
-  CloudFog,
-  Wind,
-  Droplets
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { UserPublic } from "@/lib/db/user-service"
 import { GreetingOrb } from "@/components/greeting-orb"
+import { IconChartLine, IconCheckOne, IconCloudStorage, IconCpu, IconDashboard, IconFan, IconLight, IconLightning, IconMagic, IconPower, IconRemind, IconRight, IconSearch, IconSeedling, IconSun, IconThermometer, IconWater, IconWind } from "@/components/icon";
 
 // --- 3D Components ---
 
@@ -131,19 +112,19 @@ function WeatherCard() {
              {/* Grid Stats */}
              <div className="grid grid-cols-3 gap-2">
                 <WeatherStat 
-                   icon={CloudFog} 
+                   icon={IconCloudStorage} 
                    label="湿度" 
                    value={`${weatherData.current.humidity}%`} 
                    delay={0.1}
                 />
                 <WeatherStat 
-                   icon={Wind} 
+                   icon={IconWind} 
                    label="风速" 
                    value={`${weatherData.current.wind_kph}km/h`} 
                    delay={0.2}
                 />
                 <WeatherStat 
-                   icon={Sun} 
+                   icon={IconSun} 
                    label="UV指数" 
                    value={weatherData.current.uv} 
                    delay={0.3}
@@ -278,7 +259,7 @@ function LShapedStats({
             {/* Environment Score */}
             <div className="flex-1 p-5 flex flex-col justify-between">
                <div className="size-11 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 shadow-[0_8px_16px_rgba(30,41,59,0.35)] flex items-center justify-center text-white ring-[3px] ring-white/40">
-                  <Activity className="size-6" />
+                  <IconChartLine className="size-6" />
                </div>
                
                <div className="mt-4">
@@ -288,7 +269,7 @@ function LShapedStats({
                   <div className="relative mt-2 flex items-baseline gap-0.5 text-slate-700 dark:text-slate-300 font-bold">
                      <span className="text-5xl font-jinbuti tracking-tighter drop-shadow-sm bg-gradient-to-br from-slate-800 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">{score}</span>
                      <span className="text-sm font-medium text-slate-400 mb-1.5">分</span>
-                     <ChevronRight className="size-4 text-slate-400 ml-0.5 mb-2" />
+                     <IconRight className="size-4 text-slate-400 ml-0.5 mb-2" />
                   </div>
                </div>
             </div>
@@ -299,7 +280,7 @@ function LShapedStats({
             {/* Temperature */}
             <div className="h-[35%] flex flex-col justify-center items-center p-2">
                <div className="size-9 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1.5 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <Thermometer className="size-5" />
+                  <IconThermometer className="size-5" />
                </div>
                <div className="text-[11px] text-slate-400 font-medium">空气温度</div>
                <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
@@ -314,7 +295,7 @@ function LShapedStats({
             {/* Humidity */}
             <div className="flex-1 border-l border-white/40 dark:border-white/5 flex flex-col justify-center items-center p-2">
                <div className="size-8 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <Droplets className="size-4" />
+                  <IconWater className="size-4" />
                </div>
                <div className="text-[10px] text-slate-400 font-medium scale-90">相对湿度</div>
                <div className="flex items-baseline justify-center gap-0.5">
@@ -326,7 +307,7 @@ function LShapedStats({
             {/* Soil Moisture */}
             <div className="flex-1 border-l border-white/40 dark:border-white/5 flex flex-col justify-center items-center p-2 bg-slate-50/50 dark:bg-white/5">
                <div className="size-8 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <Sprout className="size-4" />
+                  <IconSeedling className="size-4" />
                </div>
                <div className="text-[10px] text-slate-400 font-medium scale-90">土壤水分</div>
                <div className="flex items-baseline justify-center gap-0.5">
@@ -338,7 +319,7 @@ function LShapedStats({
              {/* CO2 */}
              <div className="flex-1 border-l border-white/40 dark:border-white/5 flex flex-col justify-center items-center p-2">
                <div className="size-8 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <CloudFog className="size-4" />
+                  <IconCloudStorage className="size-4" />
                </div>
                <div className="text-[10px] text-slate-400 font-medium scale-90">CO₂浓度</div>
                <div className="flex items-baseline justify-center gap-0.5">
@@ -404,7 +385,7 @@ function StatusCard({
             "flex items-center gap-1 mt-4 text-sm font-bold",
             highlight ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400"
           )}>
-            {action} <ChevronRight className="size-4" />
+            {action} <IconRight className="size-4" />
           </div>
         )}
       </div>
@@ -498,7 +479,7 @@ function DeviceCard({
             disabled && "cursor-not-allowed opacity-50"
           )}
         >
-          <Power className="size-5" />
+          <IconPower className="size-5" />
         </button>
       </div>
 
@@ -638,7 +619,7 @@ const AI_STATES_BASE = {
     bgPulse: "bg-orange-500",
     shadow: "shadow-[0_0_8px_rgba(249,115,22,0.6)]",
     action: "一键优化",
-    actionIcon: Zap
+    actionIcon: IconLightning
   },
   healthy: {
     image: "/ip/智慧农业3D图标-作物检测-细线版.png",
@@ -647,7 +628,7 @@ const AI_STATES_BASE = {
     bgPulse: "bg-green-500",
     shadow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]",
     action: "查看报告",
-    actionIcon: CheckCircle2
+    actionIcon: IconCheckOne
   },
   analyzing: {
     image: "/ip/智慧农业3D图标-无人机巡检-细线版.png",
@@ -656,7 +637,7 @@ const AI_STATES_BASE = {
     bgPulse: "bg-blue-500",
     shadow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]",
     action: "取消分析",
-    actionIcon: Search
+    actionIcon: IconSearch
   }
 }
 
@@ -887,7 +868,7 @@ export default function HomePage() {
             <span className="text-xs font-bold text-slate-600 dark:text-slate-300">在线</span>
          </div>
          <button className="relative p-2.5 rounded-full bg-white/55 dark:bg-white/5 backdrop-blur-2xl border border-white/60 dark:border-white/10 hover:bg-white/70 dark:hover:bg-white/10 transition-colors shadow-[0_12px_36px_rgba(15,23,42,0.10)]">
-            <Bell className="size-6 text-slate-700 dark:text-slate-300" />
+            <IconRemind className="size-6 text-slate-700 dark:text-slate-300" />
             <span className="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border-2 border-white dark:border-[#1e293b]" />
          </button>
         </div>
@@ -1037,7 +1018,7 @@ export default function HomePage() {
                         {aiStatus === 'analyzing' ? (
                            <div className="size-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
                         ) : (
-                           <Sparkles className="size-3.5 fill-current" />
+                           <IconMagic className="size-3.5 fill-current" />
                         )}
                         <span>{aiStatus === 'analyzing' ? "正在分析全域数据..." : "开始智能分析"}</span>
                      </motion.button>
@@ -1109,7 +1090,7 @@ export default function HomePage() {
       {/* Tab Navigation */}
       <div className="px-6 mb-10 flex items-center justify-between relative z-10">
         <div className="text-2xl font-bold text-slate-900 dark:text-white mr-6 flex items-center gap-2">
-          <LayoutDashboard className="size-7 text-blue-500" />
+          <IconDashboard className="size-7 text-blue-500" />
           区域
         </div>
         <div className="flex-1 overflow-x-auto scrollbar-hide flex items-center gap-3 py-2">
@@ -1125,7 +1106,7 @@ export default function HomePage() {
         <DeviceCard 
           title="智能补光" 
           subtitle="自动光谱调节" 
-          icon={Sun}
+          icon={IconSun}
           isOn={!!deviceData?.relay7}
           accentColor="orange"
           status={deviceData?.relay7 ? "运行中" : "已关闭"}
@@ -1135,7 +1116,7 @@ export default function HomePage() {
         <DeviceCard 
           title="排风系统" 
           subtitle="强力换气模式" 
-          icon={Fan}
+          icon={IconFan}
           isOn={!!deviceData?.relay6}
           accentColor="blue"
           onToggle={() => handleDeviceToggle(6, deviceData?.relay6)}
@@ -1144,7 +1125,7 @@ export default function HomePage() {
         <DeviceCard 
           title="光照植物补光灯控制" 
           subtitle="照明系统" 
-          icon={Lightbulb}
+          icon={IconLight}
           isOn={!!deviceData?.relay8}
           status={deviceData?.relay8 ? "已开启" : "已关闭"}
           onToggle={() => handleDeviceToggle(8, deviceData?.relay8)}
@@ -1153,7 +1134,7 @@ export default function HomePage() {
         <DeviceCard 
           title="水泵灌溉" 
           subtitle="精准灌溉" 
-          icon={Droplets}
+          icon={IconWater}
           isOn={!!deviceData?.relay5}
           accentColor="green"
           onToggle={() => handleDeviceToggle(5, deviceData?.relay5)}
@@ -1167,7 +1148,7 @@ export default function HomePage() {
            <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                  <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                    <Lightbulb className="size-6" />
+                    <IconLight className="size-6" />
                  </div>
                  <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">补光灯调色</h3>

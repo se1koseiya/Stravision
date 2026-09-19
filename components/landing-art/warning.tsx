@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform, AnimatePresence, useSpring } from "fra
 import Image from "next/image"
 import { useRef, useState } from "react"
 import BerryOrb from "@/components/smoothui/berry-orb"
-import { ChevronRight, Cpu } from "lucide-react"
+import { IconCpu, IconRight } from "@/components/icon";
 
 export function Warning() {
   const ref = useRef(null)
@@ -261,7 +261,7 @@ export function Warning() {
                     {/* Architectural Visualization - No more generic cards */}
                     <div className="flex-1 bg-gray-50/50 rounded-[2.5rem] p-10 border border-gray-100 relative group overflow-hidden">
                       <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Cpu size={120} strokeWidth={1} />
+                        <IconCpu size={120} strokeWidth={1} />
                       </div>
 
                       {activeTab === 0 && (

@@ -79,3 +79,14 @@ tmp/
 _tmp_*
 _l1.json
 _l2.json
+
+# 桌面端（Electron）
+# desktop/node_modules 由 npm 安装（与前端 pnpm 依赖树隔离，见 desktop/package.json 说明）
+desktop/node_modules/
+desktop/.verify-pgdata/
+desktop-build.log
+# electron-builder 产物
+/release/
+
+# 打包用的常驻缓存：已解压的 Electron 运行时（scripts/desktop/electron-dist.mjs）
+/.cache/

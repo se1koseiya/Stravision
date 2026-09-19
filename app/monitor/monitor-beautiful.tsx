@@ -2,79 +2,41 @@
 import { Button } from "@/components/ui/button"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
+import { CopilotSidebar } from "@/components/ai/copilot/copilot-sidebar"
 import Image from "next/image"
-import {
-  Fan,
-  Droplets,
-  MoreHorizontal,
-  Video,
-  Box,
-  Lock,
-  Unlock,
-  ChevronRight,
-  PlayCircle,
-  Settings,
-  X,
-  Plus,
-  Signal,
-  Lightbulb,
-  Sun,
-  CloudSun,
-  ExternalLink,
-  Siren,
-  Bell,
-  Monitor,
-  ZoomOut,
-  ZoomIn,
-  Camera,
-  Disc,
-  Mic,
-  ChevronUp,
-  ChevronDown,
-  ChevronLeft,
-  Circle,
-  VolumeX,
-  Volume2,
-  Minimize2,
-  Maximize2,
-  Thermometer,
-  Wind,
-  Activity,
-  Gauge,
-  Cpu
-} from "lucide-react"
+import { IconAlarmClock, IconBox, IconCamera, IconCd, IconChartLine, IconClose, IconCloudStorage, IconCpu, IconDashboard, IconDown, IconFan, IconFullScreen, IconLeft, IconLight, IconLinkOut, IconLoading, IconLock, IconMicrophone, IconMonitor, IconMoon, IconMore, IconOffScreen, IconPlayOne, IconPlus, IconRemind, IconRight, IconRound, IconSetting, IconSignal, IconSun, IconThermometer, IconUnlock, IconUp, IconVideo, IconVolumeMute, IconVolumeNotice, IconWater, IconWind, IconZoomIn, IconZoomOut } from "@/components/icon";
 
 // 传感器指标图标映射（按 metric key 匹配）
-const SENSOR_METRIC_ICON_MAP: Record<string, typeof Droplets> = {
-  temperature: Thermometer,
-  humidity: Droplets,
-  light: Sun,
-  co2: Wind,
-  earth_temp: Thermometer,
-  earth_water: Droplets,
-  earth_ec: Activity,
-  earth_n: Gauge,
-  earth_p: Gauge,
-  earth_k: Gauge,
-  soil_moisture: Droplets,
-  soil_temp: Thermometer,
-  ph: Activity,
-  ec: Activity,
-  pressure: Gauge,
-  wind_speed: Wind,
-  default: Activity,
+const SENSOR_METRIC_ICON_MAP: Record<string, typeof IconWater> = {
+  temperature: IconThermometer,
+  humidity: IconWater,
+  light: IconSun,
+  co2: IconWind,
+  earth_temp: IconThermometer,
+  earth_water: IconWater,
+  earth_ec: IconChartLine,
+  earth_n: IconDashboard,
+  earth_p: IconDashboard,
+  earth_k: IconDashboard,
+  soil_moisture: IconWater,
+  soil_temp: IconThermometer,
+  ph: IconChartLine,
+  ec: IconChartLine,
+  pressure: IconDashboard,
+  wind_speed: IconWind,
+  default: IconChartLine,
 }
 
 // 设备图标映射（设备注册表 icon 字段 → 组件）
-const DEVICE_ICON_MAP: Record<string, typeof Droplets> = {
-  Thermometer, Droplets, Fan, Lightbulb, Sun, CloudSun, Video, Camera, Activity, Cpu, Wind, Signal, Gauge, default: Cpu,
+const DEVICE_ICON_MAP: Record<string, typeof IconWater> = {
+  IconThermometer, IconWater, IconFan, IconLight, IconSun, IconCloudStorage, IconVideo, IconCamera, IconChartLine, IconCpu, IconWind, IconSignal, IconDashboard, default: IconCpu,
 }
 
-function getSensorMetricIcon(key: string): typeof Droplets {
+function getSensorMetricIcon(key: string): typeof IconWater {
   return SENSOR_METRIC_ICON_MAP[key] || SENSOR_METRIC_ICON_MAP.default
 }
 
-function getDeviceIcon(iconName: string): typeof Droplets {
+function getDeviceIcon(iconName: string): typeof IconWater {
   return DEVICE_ICON_MAP[iconName] || DEVICE_ICON_MAP.default
 }
 import { useDeviceData } from "@/lib/hooks/use-device-data"
@@ -85,11 +47,9 @@ import type { UserPublic } from "@/lib/db/user-service"
 import { cn } from "@/lib/utils"
 import { MembersPanel } from "@/components/monitor/members-panel"
 import { ActivityPanel } from "@/components/monitor/activity-panel"
-import { MoonIcon, SunIcon } from "@heroicons/react/24/outline"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
 
 const GreenhouseModel = dynamic(
   () => import("@/components/monitor/greenhouse-model").then((mod) => mod.GreenhouseModel),
@@ -120,11 +80,11 @@ const AVAILABLE_DEVICES = [
   { id: "relay8", name: "光照植物补光灯", relay: 8 as const, icon: "Sun", color: { bg: "#F3E8FF", fg: "#8B5CF6", gradFrom: "#DDD6FE", gradTo: "#8B5CF6" } },
 ]
 
-const ICON_MAP: Record<string, typeof Droplets> = {
-  Droplets,
-  Fan,
-  Lightbulb,
-  Sun,
+const ICON_MAP: Record<string, typeof IconWater> = {
+  "Droplets": IconWater,
+  "Fan": IconFan,
+  "Lightbulb": IconLight,
+  "Sun": IconSun,
 }
 
 interface EnvironmentControl {
@@ -139,7 +99,6 @@ interface EnvironmentControl {
 import { useDailyGreeting } from "@/lib/hooks/use-daily-greeting"
 import { RealtimeVoiceOrb } from "@/components/realtime-voice-orb"
 import { DailyBriefingIsland } from "@/components/daily-briefing-island"
-
 export default function MonitorPage() {
   // Layout adjustments for monitor page
   const router = useRouter()
@@ -618,7 +577,7 @@ export default function MonitorPage() {
               监控设备 <span className="text-muted-foreground text-sm font-normal">{cameras.length}</span>
             </h2>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-              <MoreHorizontal className="h-5 w-5" />
+              <IconMore className="h-5 w-5" />
             </Button>
           </div>
           <div className="space-y-4">
@@ -632,7 +591,7 @@ export default function MonitorPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex gap-4">
                     <div className="h-12 w-12 rounded-2xl bg-white/80 border border-black/5 flex items-center justify-center text-slate-800 transition-transform group-hover:scale-110 dark:bg-white/5 dark:border-white/10 dark:text-slate-100 group-hover:text-primary">
-                      {cam.on ? <PlayCircle className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+                      {cam.on ? <IconPlayOne className="h-6 w-6" /> : <IconVideo className="h-6 w-6" />}
                     </div>
                     <div>
                       <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{cam.name}</h3>
@@ -663,12 +622,12 @@ export default function MonitorPage() {
               className="h-8 w-8 text-muted-foreground hover:text-primary"
               onClick={() => setDeviceDialogOpen(true)}
             >
-              <Settings className="h-5 w-5" />
+              <IconSetting className="h-5 w-5" />
             </Button>
           </div>
           <div className="space-y-4">
             {environmentControls.map((ctrl) => {
-              const Icon = ICON_MAP[ctrl.icon] || Droplets
+              const Icon = ICON_MAP[ctrl.icon] || IconWater
               const on = isRelayOn(ctrl.relay as 5 | 6 | 7 | 8)
               const isLocked = lockedControls[ctrl.relay]
               return (
@@ -696,7 +655,7 @@ export default function MonitorPage() {
                           <div>
                             <div className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
                               {ctrl.name}
-                              {isLocked && <Lock className="h-3 w-3 text-slate-400" />}
+                              {isLocked && <IconLock className="h-3 w-3 text-slate-400" />}
                             </div>
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{on ? "Active" : "Offline"}</div>
                           </div>
@@ -711,7 +670,7 @@ export default function MonitorPage() {
                               )}
                               onClick={(e) => toggleLock(ctrl.relay, e)}
                             >
-                              {isLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                              {isLocked ? <IconLock className="h-3 w-3" /> : <IconUnlock className="h-3 w-3" />}
                             </Button>
                             <Button
                               size="icon"
@@ -722,7 +681,7 @@ export default function MonitorPage() {
                                 router.push('/device-control')
                               }}
                             >
-                              <ChevronRight className="h-3 w-3" />
+                              <IconRight className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -762,7 +721,7 @@ export default function MonitorPage() {
                 className="h-8 w-8 text-muted-foreground hover:text-primary"
                 onClick={() => router.push('/device-control')}
               >
-                <ChevronRight className="h-5 w-5" />
+                <IconRight className="h-5 w-5" />
               </Button>
             </div>
             <div className="space-y-4">
@@ -1002,7 +961,7 @@ export default function MonitorPage() {
 
               {/* 3D Rotate Button */}
               <Button size="icon" className="h-12 w-12 rounded-2xl bg-white/75 backdrop-blur-xl border border-white/70 text-slate-800 shadow-lg hover:bg-white dark:bg-slate-900/45 dark:border-white/10 dark:text-slate-100 dark:hover:bg-slate-900/70">
-                 <Box className="h-6 w-6" />
+                 <IconBox className="h-6 w-6" />
               </Button>
            </div>
         </div>
@@ -1027,11 +986,11 @@ export default function MonitorPage() {
           >
             {/* Background Icons */}
             <div className="absolute inset-0 flex items-center justify-between px-2.5 pointer-events-none">
-              <SunIcon className={cn(
+              <IconSun className={cn(
                 "size-4 transition-all duration-500",
                 resolvedTheme === "dark" ? "text-slate-500 opacity-60" : "text-amber-400 opacity-0 scale-75"
               )} />
-              <MoonIcon className={cn(
+              <IconMoon className={cn(
                 "size-4 transition-all duration-500",
                 resolvedTheme === "dark" ? "text-slate-400 opacity-0 scale-75" : "text-slate-400 opacity-60"
               )} />
@@ -1049,13 +1008,13 @@ export default function MonitorPage() {
                 "transition-all duration-500",
                 resolvedTheme === "dark" ? "rotate-0 scale-100" : "rotate-90 scale-0 absolute"
               )}>
-                <MoonIcon className="size-4 text-slate-200" />
+                <IconMoon className="size-4 text-slate-200" />
               </div>
               <div className={cn(
                 "transition-all duration-500",
                 resolvedTheme === "dark" ? "-rotate-90 scale-0 absolute" : "rotate-0 scale-100"
               )}>
-                <SunIcon className="size-4 text-amber-500" />
+                <IconSun className="size-4 text-amber-500" />
               </div>
             </div>
           </div>
@@ -1097,7 +1056,7 @@ export default function MonitorPage() {
                   <p className="text-sm text-slate-400">暂无设备</p>
                 ) : (
                   environmentControls.map((ctrl) => {
-                    const Icon = ICON_MAP[ctrl.icon] || Droplets
+                    const Icon = ICON_MAP[ctrl.icon] || IconWater
                     return (
                       <div key={ctrl.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                         <div className="flex items-center gap-3">
@@ -1118,7 +1077,7 @@ export default function MonitorPage() {
                           className="h-8 w-8 text-slate-400 hover:text-red-500"
                           onClick={() => handleRemoveDevice(ctrl.id)}
                         >
-                          <X className="w-4 h-4" />
+                          <IconClose className="w-4 h-4" />
                         </Button>
                       </div>
                     )
@@ -1132,7 +1091,7 @@ export default function MonitorPage() {
               <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">可添加的设备</h4>
               <div className="space-y-2">
                 {AVAILABLE_DEVICES.filter(d => !environmentControls.find(c => c.id === d.id)).map((device) => {
-                  const Icon = ICON_MAP[device.icon] || Droplets
+                  const Icon = ICON_MAP[device.icon] || IconWater
                   return (
                     <div key={device.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                       <div className="flex items-center gap-3">
@@ -1153,7 +1112,7 @@ export default function MonitorPage() {
                         className="h-8 w-8 text-slate-400 hover:text-primary"
                         onClick={() => handleAddDevice(device)}
                       >
-                        <Plus className="w-4 h-4" />
+                        <IconPlus className="w-4 h-4" />
                       </Button>
                     </div>
                   )
@@ -1195,7 +1154,7 @@ export default function MonitorPage() {
                   <div className="w-full h-full flex items-center justify-center bg-zinc-900">
                     <div className="text-center space-y-4">
                       <div className="w-20 h-20 mx-auto rounded-full bg-zinc-800/50 flex items-center justify-center border border-white/5">
-                        <Signal className="w-8 h-8 text-zinc-600 animate-pulse" />
+                        <IconSignal className="w-8 h-8 text-zinc-600 animate-pulse" />
                       </div>
                       <p className="text-zinc-400 font-medium">无视频信号</p>
                     </div>
@@ -1224,7 +1183,7 @@ export default function MonitorPage() {
                  {/* Right: Time & Weather */}
                  <div className="flex items-center gap-3 pointer-events-auto">
                     <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-2 text-white">
-                       <CloudSun className="w-4 h-4 text-amber-400" />
+                       <IconCloudStorage className="w-4 h-4 text-amber-400" />
                        <span className="text-xs font-mono">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                     </div>
                     {cameraExternalPlayerUrl && (
@@ -1235,7 +1194,7 @@ export default function MonitorPage() {
                         className="h-8 w-8 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white backdrop-blur-md"
                       >
                         <a href={cameraExternalPlayerUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink className="w-4 h-4" />
+                          <IconLinkOut className="w-4 h-4" />
                         </a>
                       </Button>
                     )}
@@ -1245,7 +1204,7 @@ export default function MonitorPage() {
                       className="h-8 w-8 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white backdrop-blur-md"
                       onClick={() => setCameraSettingsOpen(true)}
                     >
-                       <Settings className="w-4 h-4" />
+                       <IconSetting className="w-4 h-4" />
                     </Button>
                     <Button 
                       size="icon" 
@@ -1253,7 +1212,7 @@ export default function MonitorPage() {
                       className="h-8 w-8 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white backdrop-blur-md"
                       onClick={() => setCameraModalOpen(false)}
                     >
-                       <X className="w-4 h-4" />
+                       <IconClose className="w-4 h-4" />
                     </Button>
                  </div>
               </div>
@@ -1262,16 +1221,16 @@ export default function MonitorPage() {
               <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 pointer-events-none">
                  <div className="flex flex-col gap-3 pointer-events-auto">
                     <Button size="icon" onClick={() => toast.info("警报已触发")} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       <Siren className="w-5 h-5" />
+                       <IconAlarmClock className="w-5 h-5" />
                     </Button>
                     <Button size="icon" onClick={() => toast.info("补光灯已开启")} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       <Lightbulb className="w-5 h-5" />
+                       <IconLight className="w-5 h-5" />
                     </Button>
                     <Button size="icon" onClick={() => toast.info("通知推送已开启")} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       <Bell className="w-5 h-5" />
+                       <IconRemind className="w-5 h-5" />
                     </Button>
                      <Button size="icon" onClick={() => toast.info("进入监控巡航模式")} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       <Monitor className="w-5 h-5" />
+                       <IconMonitor className="w-5 h-5" />
                     </Button>
                  </div>
               </div>
@@ -1280,11 +1239,11 @@ export default function MonitorPage() {
               <div className="absolute left-6 bottom-6 z-20 pointer-events-auto">
                  <div className="flex items-center gap-1 p-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <Button size="icon" variant="ghost" onClick={() => handleZoom(-0.5)} className="h-8 w-8 rounded-full text-white hover:bg-white/20">
-                       <ZoomOut className="w-4 h-4" />
+                       <IconZoomOut className="w-4 h-4" />
                     </Button>
                     <span className="text-xs font-bold text-white px-2 w-8 text-center">{zoomLevel}X</span>
                     <Button size="icon" variant="ghost" onClick={() => handleZoom(0.5)} className="h-8 w-8 rounded-full text-white hover:bg-white/20">
-                       <ZoomIn className="w-4 h-4" />
+                       <IconZoomIn className="w-4 h-4" />
                     </Button>
                  </div>
               </div>
@@ -1294,13 +1253,13 @@ export default function MonitorPage() {
                  {/* Media Controls */}
                  <div className="flex flex-col gap-3 pointer-events-auto">
                     <Button size="icon" onClick={handleSnapshot} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       <Camera className="w-5 h-5" />
+                       <IconCamera className="w-5 h-5" />
                     </Button>
                     <Button size="icon" onClick={handleRecord} className={cn("h-12 w-12 rounded-full backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all", isRecording ? "bg-red-500/50 border-red-500" : "bg-black/30")}>
-                       <Disc className={cn("w-5 h-5", isRecording && "animate-spin")} />
+                       <IconCd className={cn("w-5 h-5", isRecording && "animate-spin")} />
                     </Button>
                     <Button size="icon" onClick={() => toast.info("麦克风已开启")} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       <Mic className="w-5 h-5" />
+                       <IconMicrophone className="w-5 h-5" />
                     </Button>
                  </div>
                  
@@ -1308,30 +1267,30 @@ export default function MonitorPage() {
                  <div className="relative w-48 h-48 rounded-full bg-black/20 backdrop-blur-sm border border-white/5 flex items-center justify-center pointer-events-auto">
                     {/* Direction Buttons */}
                     <Button variant="ghost" size="icon" onClick={() => handlePTZ("up")} className="absolute top-2 left-1/2 -translate-x-1/2 h-10 w-10 rounded-full text-white/70 hover:text-white hover:bg-white/10">
-                       <ChevronUp className="w-6 h-6" />
+                       <IconUp className="w-6 h-6" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handlePTZ("down")} className="absolute bottom-2 left-1/2 -translate-x-1/2 h-10 w-10 rounded-full text-white/70 hover:text-white hover:bg-white/10">
-                       <ChevronDown className="w-6 h-6" />
+                       <IconDown className="w-6 h-6" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handlePTZ("left")} className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full text-white/70 hover:text-white hover:bg-white/10">
-                       <ChevronLeft className="w-6 h-6" />
+                       <IconLeft className="w-6 h-6" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handlePTZ("right")} className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full text-white/70 hover:text-white hover:bg-white/10">
-                       <ChevronRight className="w-6 h-6" />
+                       <IconRight className="w-6 h-6" />
                     </Button>
                     {/* Center Button */}
                     <Button variant="ghost" size="icon" onClick={() => handlePTZ("reset")} className="h-16 w-16 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/10">
-                       <Circle className="w-6 h-6 fill-current" />
+                       <IconRound className="w-6 h-6 fill-current" />
                     </Button>
                  </div>
 
                  {/* Bottom Actions */}
                  <div className="flex flex-col gap-3 pointer-events-auto">
                     <Button size="icon" onClick={() => setIsMuted(!isMuted)} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                       {isMuted ? <IconVolumeMute className="w-5 h-5" /> : <IconVolumeNotice className="w-5 h-5" />}
                     </Button>
                     <Button size="icon" onClick={handleFullscreenToggle} className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all">
-                       {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                       {isFullscreen ? <IconOffScreen className="w-5 h-5" /> : <IconFullScreen className="w-5 h-5" />}
                     </Button>
                  </div>
               </div>
@@ -1355,6 +1314,34 @@ export default function MonitorPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ===== AI 助手侧栏（复用 ai-assistant 的对话组件，欢迎词按页面区分）===== */}
+      <CopilotSidebar
+        pageKey="monitor"
+        deviceData={(deviceData ?? null) as unknown as Record<string, unknown> | null}
+        context={() => {
+          const lines: string[] = ["页面：实时监控（/monitor）"]
+          if (deviceData) {
+            const t = Number(deviceData.temperature)
+            const h = Number(deviceData.humidity)
+            if (Number.isFinite(t)) lines.push(`当前温度：${t.toFixed(1)}℃`)
+            if (Number.isFinite(h)) lines.push(`当前湿度：${h.toFixed(1)}%`)
+            const relays: string[] = []
+            for (let i = 1; i <= 4; i++) {
+              const key = `relay${i}` as keyof typeof deviceData
+              if (deviceData[key] === 1) relays.push(`继电器${i}`)
+            }
+            if (relays.length) lines.push(`已开启设备：${relays.join("、")}`)
+          } else {
+            lines.push("设备数据：暂未上报")
+          }
+          if (selectedCamera) lines.push(`用户刚才正在查看摄像头：${selectedCamera.name}`)
+          if (environmentControls.length) {
+            lines.push(`可控项：${environmentControls.map((c) => c.name).join("、")}`)
+          }
+          return lines.join("\n")
+        }}
+      />
     </div>
   )
 }

@@ -42,7 +42,7 @@ export function WidgetRingProgress({
           cy={center}
           r={radius}
           fill="none"
-          stroke={trackColor}
+          style={{ stroke: trackColor }}
           strokeWidth={strokeWidth}
         />
         <circle
@@ -50,12 +50,11 @@ export function WidgetRingProgress({
           cy={center}
           r={radius}
           fill="none"
-          stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+          style={{ transition: 'stroke-dashoffset 0.6s ease', stroke: color }}
         />
       </svg>
       {(label || sublabel) && (
@@ -171,7 +170,7 @@ export function WidgetRadialGauge({
         <path
           d={describeArc(startAngle, endAngle)}
           fill="none"
-          stroke={A.track}
+          style={{ stroke: A.track }}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -189,10 +188,9 @@ export function WidgetRadialGauge({
         <path
           d={describeArc(startAngle, currentAngle)}
           fill="none"
-          stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          style={{ transition: 'all 0.6s ease' }}
+          style={{ transition: 'all 0.6s ease', stroke: color }}
         />
         {/* Ticks */}
         {ticks.map((t, i) => (
@@ -202,9 +200,9 @@ export function WidgetRadialGauge({
             y1={t.y1}
             x2={t.x2}
             y2={t.y2}
-            stroke={t.major ? A.labelQuaternary : A.trackStrong}
             strokeWidth={t.major ? 1.5 : 1}
             strokeLinecap="round"
+            style={{ stroke: t.major ? A.labelQuaternary : A.trackStrong }}
           />
         ))}
         {/* Needle */}
@@ -325,8 +323,8 @@ export function WidgetLineChart({
               y1={padding.top + innerH * ratio}
               x2={W - padding.right}
               y2={padding.top + innerH * ratio}
-              stroke="rgba(0,0,0,0.05)"
               strokeWidth={0.3}
+              style={{ stroke: 'var(--berry-grid-line)' }}
             />
           ))}
         </>

@@ -2,12 +2,11 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { Tooltip, message, Spin } from "antd"
-import { MessageOutlined, PlusOutlined } from "@ant-design/icons"
-import { X, PanelLeftOpen, Plus } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { ScheduledTasksList, type ScheduledTask } from "@/components/ai/scheduled-tasks-list"
 import { ManualTaskCreateModal } from "@/components/ai/manual-task-create-modal"
+import { IconClose, IconComment, IconLayoutTwo, IconPlus } from "@/components/icon";
 
 interface SchedulerSidebarPanelProps {
   open: boolean
@@ -104,7 +103,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
               isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
               closing && "pointer-events-none"
             )}
-            style={{ borderRadius: 12 }}
+            style={{ borderRadius: 10 }}
           >
             {/* Header - 简洁版：标题+副标题+右上角创建按钮 */}
             <div
@@ -127,7 +126,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                             : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                         )}
                       >
-                        <PanelLeftOpen size={17} />
+                        <IconLayoutTwo size={17} />
                       </button>
                     </Tooltip>
                   )}
@@ -142,7 +141,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                             : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                         )}
                       >
-                        <Plus size={17} />
+                        <IconPlus size={17} />
                       </button>
                     </Tooltip>
                   )}
@@ -181,7 +180,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                           : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                       )}
                     >
-                      <X size={17} />
+                      <IconClose size={17} />
                     </button>
                   </Tooltip>
 
@@ -230,7 +229,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                                 : "text-gray-700 hover:bg-gray-50"
                             )}
                           >
-                            <PlusOutlined />
+                            <IconPlus />
                             <span>手动添加</span>
                           </button>
                           <button
@@ -246,7 +245,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                                 : "text-gray-700 hover:bg-gray-50 border-gray-100"
                             )}
                           >
-                            <MessageOutlined />
+                            <IconComment />
                             <span>通过会话创建</span>
                           </button>
                         </motion.div>

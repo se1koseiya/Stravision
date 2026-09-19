@@ -2,9 +2,9 @@
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { AlertTriangle, RefreshCw, Copy, Check, ChevronDown, ChevronUp } from "lucide-react"
 import { Card, Button, Typography, Tooltip } from "antd"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCaution, IconCheck, IconCopy, IconDown, IconRefresh, IconUp } from "@/components/icon";
 
 const { Text, Paragraph } = Typography
 
@@ -102,7 +102,7 @@ export function RateLimitErrorCard({
               marginBottom: 8,
             }}
           >
-            <AlertTriangle
+            <IconCaution
               size={16}
               color={BERRY_THEME.status.error}
               strokeWidth={1.75}
@@ -191,7 +191,7 @@ export function RateLimitErrorCard({
               textAlign: 'left',
             }}
           >
-            {rawOpen ? <ChevronUp size={12} strokeWidth={1.75} /> : <ChevronDown size={12} strokeWidth={1.75} />}
+            {rawOpen ? <IconUp size={12} strokeWidth={1.75} /> : <IconDown size={12} strokeWidth={1.75} />}
             <span>查看原始错误信息</span>
           </button>
           {rawOpen && (
@@ -235,7 +235,7 @@ export function RateLimitErrorCard({
             <Button
               size="small"
               type="text"
-              icon={copied ? <Check size={13} /> : <Copy size={13} />}
+              icon={copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
               onClick={handleCopy}
               style={{
                 color: 'rgba(0, 0, 0, 0.55)',
@@ -251,7 +251,7 @@ export function RateLimitErrorCard({
             <Button
               size="small"
               type="primary"
-              icon={<RefreshCw size={13} />}
+              icon={<IconRefresh size={13} />}
               onClick={onRetry}
               style={{
                 background: BERRY_THEME.primary,

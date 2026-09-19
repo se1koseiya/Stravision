@@ -1,15 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { 
-  Users, Smartphone, Globe, 
-  ShieldCheck, Zap, Brain, LayoutGrid, 
-  MessageSquare, FileText, Settings, 
-  Bell, Lock, Activity, Layers,
-  ArrowDown, Code, Database, Server
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { IconArrowDown, IconBrain, IconChartLine, IconCode, IconComment, IconDatabaseNetwork, IconFileText, IconGlobe, IconGridFour, IconLayers, IconLightning, IconLock, IconPeoples, IconPhone, IconRemind, IconServer, IconSetting, IconShield } from "@/components/icon";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -104,7 +98,7 @@ const FlowArrow = () => (
     <div className="flex justify-center -my-4 relative z-10">
         <div className="w-px h-8 bg-gradient-to-b from-primary/0 via-emerald-500/50 to-emerald-500/0" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-             <ArrowDown className="w-4 h-4 text-primary/50 animate-bounce" />
+             <IconArrowDown className="w-4 h-4 text-primary/50 animate-bounce" />
         </div>
     </div>
 )
@@ -136,14 +130,14 @@ export function LogicalArchitectureDiagram() {
         {/* 1. Access Layer */}
         <LayerSection 
             title="Access Layer / 接入层" 
-            icon={<Globe className="w-3 h-3 text-primary" />}
+            icon={<IconGlobe className="w-3 h-3 text-primary" />}
             ipImage={IP_IMAGES.access}
             ipPosition="right"
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-4 md:pl-0 pr-4 md:pr-12">
              <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-primary/40 transition-all cursor-default">
                 <div className="flex items-center gap-3">
-                    <Globe className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                    <IconGlobe className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-zinc-300 group-hover:text-white">Web 门户端</span>
                         <span className="text-[10px] text-zinc-600 font-mono">React / Next.js</span>
@@ -154,7 +148,7 @@ export function LogicalArchitectureDiagram() {
 
              <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-primary/40 transition-all cursor-default">
                 <div className="flex items-center gap-3">
-                    <Smartphone className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                    <IconPhone className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-zinc-300 group-hover:text-white">移动端 App</span>
                         <span className="text-[10px] text-zinc-600 font-mono">iOS / Android / PWA</span>
@@ -165,7 +159,7 @@ export function LogicalArchitectureDiagram() {
 
              <div className="group p-4 rounded-xl border border-zinc-800 bg-black/40 flex items-center justify-between hover:border-primary/40 transition-all cursor-default">
                 <div className="flex items-center gap-3">
-                    <LayoutGrid className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                    <IconGridFour className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-zinc-300 group-hover:text-white">管理控制台</span>
                         <span className="text-[10px] text-zinc-600 font-mono">System Management</span>
@@ -185,7 +179,7 @@ export function LogicalArchitectureDiagram() {
                <div className="bg-[#050505] rounded-xl px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="flex items-center gap-4">
                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <ShieldCheck className="w-6 h-6" />
+                        <IconShield className="w-6 h-6" />
                      </div>
                      <div className="flex flex-col">
                         <span className="font-bold text-white font-jinbuti tracking-wide">API 网关</span>
@@ -209,29 +203,29 @@ export function LogicalArchitectureDiagram() {
         {/* 3. Business Service Layer */}
         <LayerSection 
             title="Business Layer / 业务层" 
-            icon={<Code className="w-3 h-3 text-primary" />}
+            icon={<IconCode className="w-3 h-3 text-primary" />}
             ipImage={IP_IMAGES.business}
             ipPosition="left"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pl-4 md:pl-12 pr-4 md:pr-0">
              <ModuleBox 
-                icon={<Brain className="w-5 h-5" />}
+                icon={<IconBrain className="w-5 h-5" />}
                 title="AI 核心服务"
                 items={["视觉分析", "决策智能体", "问答机器人", "产量预测"]}
                 isActive
              />
              <ModuleBox 
-                icon={<Zap className="w-5 h-5" />}
+                icon={<IconLightning className="w-5 h-5" />}
                 title="设备 IoT 服务"
                 items={["状态监测", "远程控制", "设备影子", "OTA 升级"]}
              />
              <ModuleBox 
-                icon={<Activity className="w-5 h-5" />}
+                icon={<IconChartLine className="w-5 h-5" />}
                 title="数据中台"
                 items={["数据清洗", "聚合统计", "报表生成", "异常告警"]}
              />
              <ModuleBox 
-                icon={<Users className="w-5 h-5" />}
+                icon={<IconPeoples className="w-5 h-5" />}
                 title="用户中心"
                 items={["身份认证 (IAM)", "RBAC 权限", "个人档案", "消息通知"]}
              />
@@ -243,7 +237,7 @@ export function LogicalArchitectureDiagram() {
         {/* 4. Support Layer */}
         <LayerSection 
             title="Support Layer / 支撑层" 
-            icon={<Server className="w-3 h-3 text-primary" />}
+            icon={<IconServer className="w-3 h-3 text-primary" />}
             ipImage={IP_IMAGES.support}
             ipPosition="right"
         >

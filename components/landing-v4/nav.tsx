@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, Menu, Moon, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { L, NAV_LINKS } from "./shared";
+import { IconArrowRightUp, IconClose, IconHamburgerButton, IconMoon, IconSun } from "@/components/icon";
 
 /* ------------------------------------------------------------
    导航 —— 对齐 loomy.xunfei.cn
@@ -33,7 +33,7 @@ function ThemeToggle() {
       className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.05] dark:hover:bg-white/[0.07]"
       style={{ color: L.ink }}
     >
-      {dark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
+      {dark ? <IconSun className="size-[18px]" /> : <IconMoon className="size-[18px]" />}
     </button>
   );
 }
@@ -112,7 +112,7 @@ export function LandingNav() {
             style={{ background: L.emerald300, color: L.neutral950 }}
           >
             免费开始
-            <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <IconArrowRightUp className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
           <button
             type="button"
@@ -121,7 +121,7 @@ export function LandingNav() {
             className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-black/[0.05] md:hidden"
             style={{ color: L.ink }}
           >
-            {open ? <X className="size-4" /> : <Menu className="size-4" />}
+            {open ? <IconClose className="size-4" /> : <IconHamburgerButton className="size-4" />}
           </button>
         </div>
       </motion.nav>

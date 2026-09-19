@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle2, Loader2, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconCheckOne, IconClose, IconInfo, IconLoading } from "@/components/icon";
 
 export type NoticeVariant = 'loading' | 'success' | 'error' | 'info'
 
@@ -23,28 +23,28 @@ const variantConfig: Record<NoticeVariant, {
   bgOpacity: number
 }> = {
   error: {
-    icon: <X size={18} className="text-red-400" />,
+    icon: <IconClose size={18} className="text-red-400" />,
     gradientId: 'glass-err',
     stops: ['rgba(239,68,68,0.12)', 'rgba(239,68,68,0.06)', 'rgba(239,68,68,0.02)'],
     strokeOpacity: 0.25,
     bgOpacity: 0.08,
   },
   success: {
-    icon: <CheckCircle2 size={18} className="text-emerald-400" />,
+    icon: <IconCheckOne size={18} className="text-emerald-400" />,
     gradientId: 'glass-ok',
     stops: ['rgba(16,185,129,0.12)', 'rgba(16,185,129,0.06)', 'rgba(16,185,129,0.02)'],
     strokeOpacity: 0.25,
     bgOpacity: 0.08,
   },
   loading: {
-    icon: <Loader2 size={18} className="text-blue-400 animate-spin" />,
+    icon: <IconLoading size={18} className="text-blue-400 animate-spin" />,
     gradientId: 'glass-load',
     stops: ['rgba(59,130,246,0.12)', 'rgba(59,130,246,0.06)', 'rgba(59,130,246,0.02)'],
     strokeOpacity: 0.25,
     bgOpacity: 0.08,
   },
   info: {
-    icon: <Info size={18} className="text-blue-300" />,
+    icon: <IconInfo size={18} className="text-blue-300" />,
     gradientId: 'glass-info',
     stops: ['rgba(147,197,253,0.10)', 'rgba(147,197,253,0.05)', 'rgba(147,197,253,0.01)'],
     strokeOpacity: 0.18,
@@ -113,7 +113,7 @@ function GlassCard({ notice, onClose }: { notice: NoticeItem; onClose: (id: numb
               {notice.title}
             </span>
             <button onClick={(e) => { e.stopPropagation(); onClose(notice.id) }} className="flex-shrink-0 p-0.5 rounded-md hover:bg-white/10 transition-colors">
-              <X size={14} className="text-white/40 hover:text-white/70" />
+              <IconClose size={14} className="text-white/40 hover:text-white/70" />
             </button>
           </div>
           {notice.description && (

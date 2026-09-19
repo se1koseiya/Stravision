@@ -4,11 +4,11 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { Loader2, ArrowLeft } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { AnimatePresence, motion } from "framer-motion"
+import { IconArrowLeft, IconLoading } from "@/components/icon";
 
 /* 与登录页共用同一张美术资源 */
 const LOGIN_ART = "/web/login/memory.png"
@@ -218,7 +218,7 @@ export default function ForgotPasswordPage() {
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-[#009456] transition-colors hover:bg-[#009456]/[0.06] disabled:cursor-not-allowed disabled:text-[#bbb] disabled:hover:bg-transparent"
           >
             {sendingCode ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <IconLoading className="h-3.5 w-3.5 animate-spin" />
             ) : countdown > 0 ? (
               `${countdown}s`
             ) : codeSent ? (
@@ -271,7 +271,7 @@ export default function ForgotPasswordPage() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <IconLoading className="mr-2 h-4 w-4 animate-spin" />
                       重置中...
                     </>
                   ) : (
@@ -292,7 +292,7 @@ export default function ForgotPasswordPage() {
 
         <div className="pt-3 text-center">
           <Link href="/login" className="inline-flex items-center gap-1 text-xs font-medium text-[#999] transition-colors hover:text-[#009456]">
-            <ArrowLeft className="h-3.5 w-3.5" />
+            <IconArrowLeft className="h-3.5 w-3.5" />
             返回登录
           </Link>
         </div>

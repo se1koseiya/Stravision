@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { IconArrowLeft } from "@/components/icon";
 
 export default function ApplyPage() {
   return (
@@ -14,7 +14,7 @@ export default function ApplyPage() {
       
       <nav className="absolute top-8 left-8 z-50">
         <Link href="/" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <IconArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span className="font-mono text-xs uppercase tracking-widest">Back</span>
         </Link>
       </nav>

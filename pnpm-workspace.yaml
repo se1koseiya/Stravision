@@ -1,2 +1,5 @@
 onlyBuiltDependencies:
   - better-sqlite3
+  # electron 的 postinstall 负责下载 Electron 运行时二进制（约 100MB）。
+  # 不在白名单内会被 pnpm 跳过，导致 electron 命令报 "Downloading Electron binary..." 后失败。
+  - electron

@@ -4,25 +4,8 @@ import React, { useMemo } from "react"
 import { ThoughtChain } from "@ant-design/x"
 import type { ThoughtChainProps } from "@ant-design/x"
 import { Flex, Typography } from "antd"
-import {
-  Search,
-  Globe,
-  CloudSun,
-  Activity,
-  History,
-  MapPin,
-  Sprout,
-  Droplets,
-  Wrench,
-  Brain,
-  CheckCircle2,
-  AlertCircle,
-  FileText,
-  Code,
-  Edit,
-  Loader2,
-} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconAttention, IconBrain, IconChartLine, IconCheckOne, IconCode, IconEdit, IconFileText, IconGlobe, IconHistory, IconLoading, IconLocalPin, IconSearch, IconSeedling, IconSunny, IconTool, IconWater } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -122,38 +105,38 @@ function mapChildStatus(
 // 根据工具名挑选 lucide-react 线性图标（strokeWidth 1.75，Trae Work 风格）
 function getIconForTool(toolName?: string): React.ReactNode {
   const STROKE = 1.75
-  if (!toolName) return <Wrench size={14} strokeWidth={STROKE} />
+  if (!toolName) return <IconTool size={14} strokeWidth={STROKE} />
   const n = toolName.toLowerCase()
-  if (n.includes("search")) return <Search size={14} strokeWidth={STROKE} />
+  if (n.includes("search")) return <IconSearch size={14} strokeWidth={STROKE} />
   if (n.includes("scrape") || n.includes("firecrawl") || n.includes("crawl") || n.includes("fetch"))
-    return <Globe size={14} strokeWidth={STROKE} />
-  if (n.includes("weather")) return <CloudSun size={14} strokeWidth={STROKE} />
-  if (n.includes("spectrum")) return <Activity size={14} strokeWidth={STROKE} />
+    return <IconGlobe size={14} strokeWidth={STROKE} />
+  if (n.includes("weather")) return <IconSunny size={14} strokeWidth={STROKE} />
+  if (n.includes("spectrum")) return <IconChartLine size={14} strokeWidth={STROKE} />
   if (n.includes("sensor_history") || n.includes("history"))
-    return <History size={14} strokeWidth={STROKE} />
-  if (n.includes("route") || n.includes("amap")) return <MapPin size={14} strokeWidth={STROKE} />
-  if (n.includes("soil")) return <Sprout size={14} strokeWidth={STROKE} />
-  if (n.includes("irrigation")) return <Droplets size={14} strokeWidth={STROKE} />
-  return <Wrench size={14} strokeWidth={STROKE} />
+    return <IconHistory size={14} strokeWidth={STROKE} />
+  if (n.includes("route") || n.includes("amap")) return <IconLocalPin size={14} strokeWidth={STROKE} />
+  if (n.includes("soil")) return <IconSeedling size={14} strokeWidth={STROKE} />
+  if (n.includes("irrigation")) return <IconWater size={14} strokeWidth={STROKE} />
+  return <IconTool size={14} strokeWidth={STROKE} />
 }
 
 function getIconForChildType(type: AgentChildItem["type"]): React.ReactNode {
   const STROKE = 1.75
   switch (type) {
     case "edit":
-      return <Edit size={14} strokeWidth={STROKE} />
+      return <IconEdit size={14} strokeWidth={STROKE} />
     case "read":
-      return <FileText size={14} strokeWidth={STROKE} />
+      return <IconFileText size={14} strokeWidth={STROKE} />
     case "command":
-      return <Code size={14} strokeWidth={STROKE} />
+      return <IconCode size={14} strokeWidth={STROKE} />
     case "search":
-      return <Search size={14} strokeWidth={STROKE} />
+      return <IconSearch size={14} strokeWidth={STROKE} />
     case "scrape":
-      return <Globe size={14} strokeWidth={STROKE} />
+      return <IconGlobe size={14} strokeWidth={STROKE} />
     case "thinking":
-      return <Brain size={14} strokeWidth={STROKE} />
+      return <IconBrain size={14} strokeWidth={STROKE} />
     default:
-      return <Wrench size={14} strokeWidth={STROKE} />
+      return <IconTool size={14} strokeWidth={STROKE} />
   }
 }
 
@@ -209,9 +192,9 @@ function buildItems(
           variant="solid"
           icon={
             ms.status === "error" ? (
-              <AlertCircle size={14} strokeWidth={1.75} />
+              <IconAttention size={14} strokeWidth={1.75} />
             ) : (
-              <CheckCircle2 size={14} strokeWidth={1.75} />
+              <IconCheckOne size={14} strokeWidth={1.75} />
             )
           }
           title={getStepText(ms) || "工具结果"}
@@ -358,7 +341,7 @@ export function AgentThoughtChain({
     <div className={cn("my-1.5", className)}>
       {isWorking && (
         <div className="flex items-center gap-1 text-[12px] text-[#1677ff] mb-1.5 px-0.5">
-          <Loader2 size={11} className="animate-spin" />
+          <IconLoading size={11} className="animate-spin" />
           <span style={{ fontWeight: 400 }}>
             任务执行中{items.length > 0 && ` · ${items.length} 步`}
           </span>

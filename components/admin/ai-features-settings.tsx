@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, Switch, Typography, Button, Tag } from "antd"
 import { toast } from "sonner"
-import { LoadingOutlined, FireOutlined, SaveOutlined, RotateLeftOutlined } from "@ant-design/icons"
+import { IconFire, IconLoading, IconSave, IconUndo } from "@/components/icon";
 
 interface AIFeatureConfig {
   enableTaskList: boolean
@@ -185,7 +185,7 @@ export function AIFeaturesSettings() {
     return (
       <Card style={{ border: "1px solid #EDEEEF" }}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px' }}>
-          <LoadingOutlined style={{ fontSize: '24px', color: '#8F959E' }} />
+          <IconLoading style={{ fontSize: '24px', color: '#8F959E' }} />
         </div>
       </Card>
     )
@@ -196,7 +196,7 @@ export function AIFeaturesSettings() {
       style={{ border: "1px solid #EDEEEF" }}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FireOutlined style={{ color: '#1677ff' }} />
+          <IconFire style={{ color: '#1677ff' }} />
           AI 功能开关
         </div>
       }
@@ -317,7 +317,7 @@ export function AIFeaturesSettings() {
           type="primary"
           onClick={handleSave}
           loading={saving}
-          icon={<SaveOutlined />}
+          icon={<IconSave />}
           style={{ flex: 1 }}
         >
           保存配置
@@ -325,7 +325,7 @@ export function AIFeaturesSettings() {
         <Button
           onClick={handleReset}
           disabled={saving}
-          icon={<RotateLeftOutlined />}
+          icon={<IconUndo />}
         >
           重置
         </Button>

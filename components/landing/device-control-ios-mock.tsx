@@ -2,21 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import {
-  LightBulbIcon,
-  SunIcon,
-  BeakerIcon,
-  CloudIcon,
-  FireIcon,
-  HomeIcon,
-  ChartBarIcon,
-  UserIcon,
-  Cog6ToothIcon,
-  ArrowPathIcon,
-  BoltIcon
-} from "@heroicons/react/24/outline"
-import { HomeIcon as HomeIconSolid } from "@heroicons/react/24/solid"
-
+import { IconChartHistogram, IconCloudy, IconFire, IconHome, IconLight, IconMedicineChest, IconRotate, IconSettingTwo, IconSun, IconThunderbolt, IconUser } from "@/components/icon";
 // --- Components ---
 
 function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: string) => void }) {
@@ -144,7 +130,7 @@ export function DeviceControlIOSMock() {
           <div className="flex justify-between items-center bg-white rounded-2xl p-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/50">
             <div className="flex flex-col items-center flex-1">
               <div className="flex items-center gap-1 text-gray-900 mb-0.5">
-                <FireIcon className="size-3.5 text-orange-500" />
+                <IconFire className="size-3.5 text-orange-500" />
                 <span className="text-base font-bold tracking-tight">24°C</span>
               </div>
               <span className="text-[9px] text-muted-foreground font-medium">室内温度</span>
@@ -154,7 +140,7 @@ export function DeviceControlIOSMock() {
 
             <div className="flex flex-col items-center flex-1">
               <div className="flex items-center gap-1 text-gray-900 mb-0.5">
-                <BeakerIcon className="size-3.5 text-blue-500" />
+                <IconMedicineChest className="size-3.5 text-blue-500" />
                 <span className="text-base font-bold tracking-tight">63%</span>
               </div>
               <span className="text-[9px] text-muted-foreground font-medium">空气湿度</span>
@@ -164,7 +150,7 @@ export function DeviceControlIOSMock() {
 
             <div className="flex flex-col items-center flex-1">
               <div className="flex items-center gap-1 text-gray-900 mb-0.5">
-                <SunIcon className="size-3.5 text-yellow-500" />
+                <IconSun className="size-3.5 text-yellow-500" />
                 <span className="text-base font-bold tracking-tight">良好</span>
               </div>
               <span className="text-[9px] text-muted-foreground font-medium">光照强度</span>
@@ -185,7 +171,7 @@ export function DeviceControlIOSMock() {
             <DeviceCard
               title="智能水泵"
               subtitle={relay5 === 1 ? "运行中" : "已停止"}
-              icon={BeakerIcon}
+              icon={IconMedicineChest}
               isOn={relay5 === 1}
               onToggle={() => setRelay5(prev => prev === 1 ? 0 : 1)}
               room="种植区 A"
@@ -195,7 +181,7 @@ export function DeviceControlIOSMock() {
             <DeviceCard
               title="排风系统"
               subtitle={relay6 === 1 ? "高速运行" : "已关闭"}
-              icon={ArrowPathIcon}
+              icon={IconRotate}
               isOn={relay6 === 1}
               onToggle={() => setRelay6(prev => prev === 1 ? 0 : 1)}
               room="种植区 B"
@@ -205,7 +191,7 @@ export function DeviceControlIOSMock() {
             <DeviceCard
               title="植物补光"
               subtitle={relay7 === 1 ? "自动模式" : "手动关闭"}
-              icon={BoltIcon}
+              icon={IconThunderbolt}
               isOn={relay7 === 1}
               onToggle={() => setRelay7(prev => prev === 1 ? 0 : 1)}
               room="全区域"
@@ -215,7 +201,7 @@ export function DeviceControlIOSMock() {
             <DeviceCard
               title="照明系统"
               subtitle={relay8 === 1 ? "开启" : "关闭"}
-              icon={SunIcon}
+              icon={IconSun}
               isOn={relay8 === 1}
               onToggle={() => setRelay8(prev => prev === 1 ? 0 : 1)}
               room="控制室"
@@ -226,7 +212,7 @@ export function DeviceControlIOSMock() {
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="size-7 rounded-full bg-gray-50 flex items-center justify-center text-muted-foreground">
-                    <LightBulbIcon className="size-3.5" />
+                    <IconLight className="size-3.5" />
                   </div>
                   <div>
                     <h3 className="text-[11px] font-bold text-gray-900">光谱调节 (RGB)</h3>
@@ -252,19 +238,19 @@ export function DeviceControlIOSMock() {
         <div className="absolute bottom-0 left-0 right-0 h-[80px] bg-white/95 backdrop-blur-md border-t border-gray-100/50 flex justify-around items-start pt-3 pb-8 px-6 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] z-20">
            <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="p-1.5 rounded-xl bg-gray-50 group-hover:bg-muted transition-colors">
-                 <HomeIconSolid className="size-4 text-gray-900" />
+                 <IconHome className="size-4 text-gray-900" />
               </div>
               <span className="text-[9px] font-medium text-gray-900">首页</span>
            </div>
            <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="p-1.5 rounded-xl bg-transparent group-hover:bg-gray-50 transition-colors">
-                 <ChartBarIcon className="size-4 text-muted-foreground group-hover:text-muted-foreground" />
+                 <IconChartHistogram className="size-4 text-muted-foreground group-hover:text-muted-foreground" />
               </div>
               <span className="text-[9px] font-medium text-muted-foreground group-hover:text-muted-foreground">数据</span>
            </div>
            <div className="flex flex-col items-center gap-1 group cursor-pointer">
               <div className="p-1.5 rounded-xl bg-transparent group-hover:bg-gray-50 transition-colors">
-                 <UserIcon className="size-4 text-muted-foreground group-hover:text-muted-foreground" />
+                 <IconUser className="size-4 text-muted-foreground group-hover:text-muted-foreground" />
               </div>
               <span className="text-[9px] font-medium text-muted-foreground group-hover:text-muted-foreground">我的</span>
            </div>

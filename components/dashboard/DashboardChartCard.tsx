@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
+import { IconLoading } from "@/components/icon";
 
 const AreaChart = dynamic(() => import("@ant-design/plots").then(m => m.Area), { ssr: false })
 
@@ -126,7 +126,7 @@ export function DashboardChartCard({
                 <div className="flex-1 w-full min-h-0 relative">
                     {isLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            <IconLoading className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     )}
                     {chartData.length > 0 && (

@@ -5,11 +5,11 @@ import { Suspense, useRef, useMemo, useState, useCallback, useEffect } from "rea
 import { Canvas, useThree, useFrame, invalidate } from "@react-three/fiber"
 import { OrbitControls, useGLTF, Html } from "@react-three/drei"
 import * as THREE from "three"
-import { Video, Thermometer, Droplets, Fan, Lightbulb, Sun, X, Plus, Bot, Sparkles, Send, Activity } from "lucide-react"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
 import { SpectralPopup } from "@/components/monitor/spectral-popup"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
 import { sanitizeHtml } from "@/lib/security/sanitize-html"
+import { IconChartLine, IconClose, IconFan, IconLight, IconMagic, IconPlus, IconRobot, IconSend, IconSun, IconThermometer, IconVideo, IconWater } from "@/components/icon";
 
 interface LightState {
   rgbLight: { r: number; g: number; b: number; intensity: number }
@@ -88,7 +88,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [-2.5, 1, -1.5] as [number, number, number],
     cameraPosition: [1, 4, 5] as [number, number, number],
     color: "#84cc16",
-    icon: Video
+    icon: IconVideo
   },
   { 
     id: "camera-b", 
@@ -98,7 +98,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [1.5, 1.3, -2] as [number, number, number],
     cameraPosition: [4, 4, 4] as [number, number, number],
     color: "#84cc16",
-    icon: Video
+    icon: IconVideo
   },
   { 
     id: "temp-sensor", 
@@ -108,7 +108,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [0, 0.6, 0] as [number, number, number],
     cameraPosition: [5, 4, 5] as [number, number, number],
     color: "#a78bfa",
-    icon: Thermometer
+    icon: IconThermometer
   },
   { 
     id: "irrigation", 
@@ -119,7 +119,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [-2, 0.2, 1] as [number, number, number],
     cameraPosition: [2, 4, 5] as [number, number, number],
     color: "#38bdf8",
-    icon: Droplets
+    icon: IconWater
   },
   { 
     id: "ventilation", 
@@ -130,7 +130,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [2.5, 0.2, 1.5] as [number, number, number],
     cameraPosition: [5, 4, 5] as [number, number, number],
     color: "#38bdf8",
-    icon: Fan
+    icon: IconFan
   },
   { 
     id: "rgb-light", 
@@ -140,7 +140,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [-1, 2, 0] as [number, number, number],
     cameraPosition: [3, 5, 5] as [number, number, number],
     color: "#f472b6",
-    icon: Lightbulb
+    icon: IconLight
   },
   { 
     id: "white-light", 
@@ -150,7 +150,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [1, 2, 0] as [number, number, number],
     cameraPosition: [4, 5, 5] as [number, number, number],
     color: "#fbbf24",
-    icon: Sun
+    icon: IconSun
   },
   { 
     id: "spectrometer", 
@@ -160,7 +160,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [2, 0.8, -0.5] as [number, number, number],
     cameraPosition: [5, 4, 4] as [number, number, number],
     color: "#ec4899",
-    icon: Activity
+    icon: IconChartLine
   },
   { 
     id: "ai-assistant", 
@@ -170,7 +170,7 @@ const DEVICE_MARKERS = [
     cameraTarget: [0, 1.6, 2] as [number, number, number],
     cameraPosition: [3, 5, 7] as [number, number, number],
     color: "#10b981",
-    icon: Bot
+    icon: IconRobot
   },
 ]
 
@@ -228,7 +228,7 @@ function Marker({ marker, isSelected, onClick, isDark }: MarkerProps) {
           `}
           style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}
         >
-          <Plus className={`w-2.5 h-2.5 ${isDark ? "text-white/80" : "text-slate-600"}`} />
+          <IconPlus className={`w-2.5 h-2.5 ${isDark ? "text-white/80" : "text-slate-600"}`} />
         </span>
       </button>
     </Html>
@@ -344,7 +344,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
             onClick={onClose} 
             className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-xs z-10 ${isDark ? "bg-black/20 hover:bg-black/40 text-white" : "bg-black/5 hover:bg-black/10 text-slate-900"}`}
           >
-            <X className="w-4 h-4" />
+            <IconClose className="w-4 h-4" />
           </button>
         </div>
       </Html>
@@ -384,7 +384,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
             </div>
           </div>
           <button onClick={onClose} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${isDark ? "hover:bg-white/10" : "hover:bg-black/5"}`}>
-            <X className="w-4 h-4" />
+            <IconClose className="w-4 h-4" />
           </button>
         </div>
 
@@ -798,21 +798,21 @@ function AIAssistantCard({
         <div className={`p-2 rounded-lg ${isDark ? "bg-slate-800/80" : "bg-white/80"} border ${isDark ? "border-slate-700" : "border-slate-200"}`}>
           <div className="grid grid-cols-2 gap-2 text-[10px]">
             <div className="flex items-center gap-1.5">
-              <Thermometer className="w-3 h-3 text-orange-500" />
+              <IconThermometer className="w-3 h-3 text-orange-500" />
               <span>{deviceData.temperature.toFixed(1)}°C</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Droplets className="w-3 h-3 text-blue-500" />
+              <IconWater className="w-3 h-3 text-blue-500" />
               <span>{deviceData.humidity.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Droplets className="w-3 h-3 text-cyan-500" />
+              <IconWater className="w-3 h-3 text-cyan-500" />
               <span className={deviceData.relay5 === 1 ? "text-primary" : ""}>
                 灌溉 {deviceData.relay5 === 1 ? "开" : "关"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Fan className="w-3 h-3 text-indigo-500" />
+              <IconFan className="w-3 h-3 text-indigo-500" />
               <span className={deviceData.relay6 === 1 ? "text-primary" : ""}>
                 通风 {deviceData.relay6 === 1 ? "开" : "关"}
               </span>
@@ -826,10 +826,10 @@ function AIAssistantCard({
         <div className={`p-2 rounded-lg ${isDark ? "bg-slate-800/80" : "bg-white/80"} border ${isDark ? "border-slate-700" : "border-slate-200"}`}>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "灌溉", relay: 5 as const, icon: Droplets, color: "text-cyan-500" },
-              { label: "通风", relay: 6 as const, icon: Fan, color: "text-indigo-500" },
-              { label: "补光", relay: 7 as const, icon: Lightbulb, color: "text-amber-500" },
-              { label: "光照植物补光灯", relay: 8 as const, icon: Sun, color: "text-yellow-500" },
+              { label: "灌溉", relay: 5 as const, icon: IconWater, color: "text-cyan-500" },
+              { label: "通风", relay: 6 as const, icon: IconFan, color: "text-indigo-500" },
+              { label: "补光", relay: 7 as const, icon: IconLight, color: "text-amber-500" },
+              { label: "光照植物补光灯", relay: 8 as const, icon: IconSun, color: "text-yellow-500" },
             ].map(({ label, relay, icon: Icon, color }) => {
               const isOn = deviceData[`relay${relay}`] === 1
               return (
@@ -918,7 +918,7 @@ function AIAssistantCard({
               : isDark ? "bg-slate-700 text-slate-500" : "bg-slate-200 text-slate-400"
           }`}
         >
-          <Send className="w-4 h-4" />
+          <IconSend className="w-4 h-4" />
         </button>
       </div>
 

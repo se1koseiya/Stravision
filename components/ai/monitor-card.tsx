@@ -3,12 +3,12 @@
 import { useState, useEffect, useMemo, memo, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
-import { Eye, Video, Wifi, WifiOff, Maximize2, Camera, Volume2, VolumeX, X, ZoomIn, ZoomOut } from "lucide-react";
 import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCamera, IconClose, IconCloseWifi, IconFullScreen, IconPreviewOpen, IconVideo, IconVolumeMute, IconVolumeNotice, IconWifi, IconZoomIn, IconZoomOut } from "@/components/icon";
 
 const MemoizedLiveStreamPlayer = memo(LiveStreamPlayer)
 
@@ -166,7 +166,7 @@ export function MonitorCard() {
             className="size-10 rounded-full flex items-center justify-center text-white"
             style={{ background: BERRY_THEME.primary }}
           >
-            <Eye size={20} />
+            <IconPreviewOpen size={20} />
           </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">实时监控</h3>
@@ -193,7 +193,7 @@ export function MonitorCard() {
                 className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white/80 hover:text-white border border-white/10 transition-all"
                 title="全屏查看"
               >
-                  <Maximize2 size={12} />
+                  <IconFullScreen size={12} />
               </button>
            </DialogTrigger>
            <button 
@@ -210,7 +210,7 @@ export function MonitorCard() {
       <div className="bg-[#E8F5E9]/50 dark:bg-white/5 rounded-[18px] p-3 flex items-center justify-between border border-[#E8F5E9] dark:border-white/10">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
-            <Video size={14} />
+            <IconVideo size={14} />
           </div>
           <div>
             <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100">主摄像头</h4>
@@ -220,12 +220,12 @@ export function MonitorCard() {
         <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/10 rounded-full border border-gray-100 dark:border-white/10 shadow-sm">
             {connectionStatus.connected ? (
                 <>
-                    <Wifi size={12} className="text-green-500" />
+                    <IconWifi size={12} className="text-green-500" />
                     <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">在线</span>
                 </>
             ) : (
                 <>
-                    <WifiOff size={12} className="text-red-500" />
+                    <IconCloseWifi size={12} className="text-red-500" />
                     <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">离线</span>
                 </>
             )}
@@ -249,10 +249,10 @@ export function MonitorCard() {
                    onClick={() => setIsMuted(!isMuted)}
                    className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-full text-white/80 hover:text-white border border-white/10 transition-all"
                 >
-                   {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                   {isMuted ? <IconVolumeMute size={18} /> : <IconVolumeNotice size={18} />}
                 </button>
                 <DialogClose className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-full text-white/80 hover:text-white border border-white/10 transition-all">
-                    <X size={18} />
+                    <IconClose size={18} />
                 </DialogClose>
             </div>
         </div>
@@ -267,11 +267,11 @@ export function MonitorCard() {
                  {/* Zoom Controls */}
                  <div className="flex items-center gap-1 p-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 pointer-events-auto">
                     <button onClick={() => handleZoom(-0.5)} className="p-2 rounded-full text-white hover:bg-white/20 transition-colors">
-                       <ZoomOut className="size-4" />
+                       <IconZoomOut className="size-4" />
                     </button>
                     <span className="text-xs font-bold text-white px-2 w-8 text-center">{zoomLevel}x</span>
                     <button onClick={() => handleZoom(0.5)} className="p-2 rounded-full text-white hover:bg-white/20 transition-colors">
-                       <ZoomIn className="size-4" />
+                       <IconZoomIn className="size-4" />
                     </button>
                  </div>
 
@@ -282,7 +282,7 @@ export function MonitorCard() {
                        className="p-3 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/10 text-white transition-all hover:scale-105 active:scale-95"
                        title="截图"
                     >
-                       <Camera className="size-5" />
+                       <IconCamera className="size-5" />
                     </button>
                  </div>
              </div>

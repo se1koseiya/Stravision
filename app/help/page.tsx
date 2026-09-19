@@ -3,23 +3,10 @@
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { 
-  Search, 
-  HelpCircle, 
-  Shield, 
-  Cpu, 
-  Activity, 
-  Settings, 
-  ChevronDown, 
-  MessageCircle, 
-  Mail, 
-  ArrowLeft,
-  Book,
-  FileText
-} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/ui/glass-card"
+import { IconArrowLeft, IconBook, IconChartLine, IconComments, IconCpu, IconDown, IconFileText, IconHelp, IconMail, IconSearch, IconSetting, IconShield } from "@/components/icon";
 
 // --- TYPES ---
 interface FaqItem {
@@ -40,25 +27,25 @@ const CATEGORIES: Category[] = [
   {
     id: "account",
     title: "账号与安全",
-    icon: <Shield className="w-6 h-6" />,
+    icon: <IconShield className="w-6 h-6" />,
     description: "登录、密码重置、多因素认证与账户设置"
   },
   {
     id: "devices",
     title: "设备管理",
-    icon: <Cpu className="w-6 h-6" />,
+    icon: <IconCpu className="w-6 h-6" />,
     description: "添加设备、远程控制、固件更新与故障排查"
   },
   {
     id: "monitor",
     title: "数据监控",
-    icon: <Activity className="w-6 h-6" />,
+    icon: <IconChartLine className="w-6 h-6" />,
     description: "实时数据查看、历史记录导出与图表分析"
   },
   {
     id: "settings",
     title: "系统设置",
-    icon: <Settings className="w-6 h-6" />,
+    icon: <IconSetting className="w-6 h-6" />,
     description: "通知偏好、界面定制与API密钥管理"
   },
   {
@@ -70,7 +57,7 @@ const CATEGORIES: Category[] = [
   {
     id: "billing",
     title: "订阅与账单",
-    icon: <FileText className="w-6 h-6" />,
+    icon: <IconFileText className="w-6 h-6" />,
     description: "套餐升级、发票管理与支付问题"
   }
 ]
@@ -179,7 +166,7 @@ const FaqItemComponent = ({ item, isOpen, onClick }: { item: FaqItem, isOpen: bo
         <span className={`text-sm md:text-base font-medium transition-colors duration-300 ${isOpen ? "text-emerald-400" : "text-white/80 group-hover:text-white"}`}>
           {item.question}
         </span>
-        <ChevronDown 
+        <IconDown 
           className={`w-5 h-5 text-white/40 transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} 
         />
       </button>
@@ -254,7 +241,7 @@ export default function HelpPage() {
             href="/dashboard" 
             className="inline-flex items-center text-sm text-white/40 hover:text-white transition-colors mb-8 group"
           >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            <IconArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
             返回仪表盘
           </Link>
           
@@ -275,7 +262,7 @@ export default function HelpPage() {
             <div className="relative max-w-2xl mx-auto mt-8 group">
               <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative flex items-center bg-white/5 border border-white/10 rounded-2xl p-2 backdrop-blur-xl focus-within:border-primary/50 focus-within:bg-white/10 transition-all duration-300">
-                <Search className="w-6 h-6 text-white/40 ml-3" />
+                <IconSearch className="w-6 h-6 text-white/40 ml-3" />
                 <input
                   type="text"
                   placeholder="搜索问题，例如：如何重置密码..."
@@ -325,7 +312,7 @@ export default function HelpPage() {
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <HelpCircle className="w-6 h-6 text-primary" />
+              <IconHelp className="w-6 h-6 text-primary" />
               常见问题
             </h2>
             {selectedCategory && (
@@ -381,11 +368,11 @@ export default function HelpPage() {
               </p>
               <div className="flex gap-4">
                 <Button className="bg-primary hover:bg-primary text-white rounded-xl h-11 px-6 gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                  <MessageCircle className="w-4 h-4" />
+                  <IconComments className="w-4 h-4" />
                   在线咨询
                 </Button>
                 <Button variant="outline" className="border-white/10 text-white hover:bg-white/5 rounded-xl h-11 px-6 gap-2">
-                  <Mail className="w-4 h-4" />
+                  <IconMail className="w-4 h-4" />
                   发送邮件
                 </Button>
               </div>
@@ -394,7 +381,7 @@ export default function HelpPage() {
             <GlassCard className="p-6 bg-gradient-to-br from-emerald-900/20 to-transparent border-primary/20">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-primary/10 text-emerald-400">
-                  <Book className="w-6 h-6" />
+                  <IconBook className="w-6 h-6" />
                 </div>
                 <div>
                   <h4 className="font-medium text-white mb-1">查看 API 文档</h4>
@@ -402,7 +389,7 @@ export default function HelpPage() {
                     如果您是开发者，可以在我们的开发文档中找到详细的接口说明。
                   </p>
                   <Link href="/docs/api" className="text-sm text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 group">
-                    前往文档 <ChevronDown className="w-4 h-4 -rotate-90 group-hover:translate-x-1 transition-transform" />
+                    前往文档 <IconDown className="w-4 h-4 -rotate-90 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </div>
               </div>

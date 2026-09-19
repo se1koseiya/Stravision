@@ -522,7 +522,7 @@ export async function resolveProvider(
 
   // 1. 如果用户提供了自定义 apiKey/apiUrl，直接使用（原有逻辑）
   if (userApiKey || userApiUrl) {
-    return resolveFromUserConfig(modelId, userApiKey, userApiUrl)
+    return resolveFromUserConfig(modelId, userApiKey, userApiUrl, config.providers)
   }
 
   // 2. 从已配置的提供商中查找该模型
@@ -578,20 +578,38 @@ export async function resolveProvider(
 
 /**
  * 使用用户自配置的 apiKey/apiUrl 解析
+ *
+ * 🚨 用户 key 优先于平台 key：只要带了用户 key，就永远走 user-custom（不消耗平台积分）。
+ * URL 回退链：用户显式 apiUrl → 系统环境变量 → 平台已配置供应商中该模型的 endpoint
+ * （用户 key + 平台地址映射 —— 覆盖"用户只贴了 key、模型从模型广场选"的场景，
+ * 否则只给 key 没 url 的请求 targetUrl 为空，上游调用必挂）。
  */
 function resolveFromUserConfig(
   modelId: string,
   userApiKey?: string,
   userApiUrl?: string,
+  providersForFallback?: AIProvider[],
 ): ResolvedProvider | null {
   if (!userApiKey) return null
 
   let url = normalizeOpenAIChatCompletionsUrl(userApiUrl)
 
-  // 如果用户只给了 key 没 url，尝试用系统默认
+  // 如果用户只给了 key 没 url，依次尝试系统默认 / 平台已配置供应商
   if (!url) {
     const systemBase = process.env.SYSTEM_OPENAI_BASE_URL || ''
     url = normalizeBaseUrl(systemBase, 'openai')
+  }
+  if (!url && Array.isArray(providersForFallback)) {
+    for (const provider of providersForFallback) {
+      if (!provider || provider.enabled === false || !provider.baseUrl) continue
+      const hasModel = Array.isArray(provider.models) && provider.models.some(
+        (m) => m && m.id === modelId && m.enabled !== false,
+      )
+      if (hasModel || provider.models?.length === 0) {
+        url = normalizeBaseUrl(provider.baseUrl, provider.type)
+        if (url) break
+      }
+    }
   }
 
   if (!url) return null

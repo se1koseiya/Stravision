@@ -1,6 +1,6 @@
-import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { IconShield } from "@/components/icon";
 
 export default function AccessDeniedPage() {
   return (
@@ -12,7 +12,7 @@ export default function AccessDeniedPage() {
       <div className="relative z-10 max-w-md w-full text-center space-y-6 p-4">
         <div className="flex justify-center">
           <div className="size-24 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shadow-lg shadow-red-500/20">
-            <ShieldAlert className="size-12 text-red-600 dark:text-red-500" />
+            <IconShield className="size-12 text-red-600 dark:text-red-500" />
           </div>
         </div>
         

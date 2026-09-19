@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Tag, Typography, Spin } from "antd"
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, ShieldOutlined } from "@ant-design/icons"
 import type { ColumnsType } from 'antd/es/table'
 import { toast } from "sonner"
+import { IconCheck, IconDelete, IconEdit, IconPlus, IconSearch, IconShield } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -140,7 +140,7 @@ export function MCPManager() {
       render: (val: string, record: MCPServer) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Text>{val}</Text>
-          {record.official && <ShieldOutlined style={{ color: '#1677ff', fontSize: 12 }} />}
+          {record.official && <IconShield style={{ color: '#1677ff', fontSize: 12 }} />}
         </div>
       )
     },
@@ -172,7 +172,7 @@ export function MCPManager() {
           <Button 
             type="text" 
             size="small" 
-            icon={<EditOutlined />}
+            icon={<IconEdit />}
             onClick={() => {
               setEditingServer(record)
               setModalOpen(true)
@@ -182,7 +182,7 @@ export function MCPManager() {
             type="text" 
             size="small" 
             danger
-            icon={<DeleteOutlined />}
+            icon={<IconDelete />}
             onClick={() => handleDelete(record.id)}
           />
         </div>
@@ -195,14 +195,14 @@ export function MCPManager() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <Input
           placeholder="Search MCP servers..."
-          prefix={<SearchOutlined style={{ color: '#999' }} />}
+          prefix={<IconSearch style={{ color: '#999' }} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ width: 300 }}
         />
         <Button 
           type="primary" 
-          icon={<PlusOutlined />}
+          icon={<IconPlus />}
           onClick={() => {
             setEditingServer({ 
               command: "npx", 

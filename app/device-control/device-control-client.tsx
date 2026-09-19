@@ -28,55 +28,9 @@ import {
   ConfigProvider,
   theme as antdTheme,
 } from "antd"
-import {
-  HistoryOutlined,
-  UndoOutlined,
-  SettingOutlined,
-  AppstoreOutlined,
-  UnorderedListOutlined,
-} from "@ant-design/icons"
-import { 
-  Droplet, 
-  Droplets, 
-  Fan, 
-  Lightbulb, 
-  Camera, 
-  Cpu, 
-  Activity, 
-  Sliders, 
-  Settings, 
-  Info, 
-  History, 
-  AlertTriangle, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronUp,
-  ChevronDown,
-  Mic,
-  Maximize2,
-  Minimize2,
-  X,
-  Video, 
-  Signal, 
-  Sun, 
-  CloudSun, 
-  Wifi, 
-  Thermometer, 
-  Wind, 
-  Clock,
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  AlertOctagon,
-  Compass,
-  ArrowRight,
-  RotateCcw,
-  Target,
-  Trash2
-} from "lucide-react"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
+import { CopilotSidebar } from "@/components/ai/copilot/copilot-sidebar"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import {
@@ -94,6 +48,7 @@ import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
+import { IconApplicationOne, IconArrowRight, IconAttention, IconCamera, IconCaution, IconChartLine, IconCheckOne, IconClose, IconCloudStorage, IconCompass, IconCpu, IconDelete, IconDown, IconFan, IconFullScreen, IconHelp, IconHistory, IconInfo, IconLeft, IconLight, IconListTwo, IconMicrophone, IconOffScreen, IconRefresh, IconRight, IconSetting, IconSettingTwo, IconSignal, IconSun, IconTarget, IconThermometer, IconTime, IconUndo, IconUp, IconVideo, IconWater, IconWifi, IconWind } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -409,8 +364,8 @@ export default function DeviceControlClient() {
   const relayDevices = useMemo(() => devices.filter(d => d.type === 'relay'), [devices])
 
   // 设备图标映射（lucide-react 名称 → 组件）
-  const DEVICE_ICON_CMP_MAP = useMemo<Record<string, typeof Droplets>>(() => ({
-    Droplets, Droplet, Fan, Lightbulb, Sun, Thermometer, Video, Compass, Activity, Cpu, Wind, CloudSun, Signal,
+  const DEVICE_ICON_CMP_MAP = useMemo<Record<string, typeof IconWater>>(() => ({
+    IconWater, IconWater, IconFan, IconLight, IconSun, IconThermometer, IconVideo, IconCompass, IconChartLine, IconCpu, IconWind, IconCloudStorage, IconSignal,
   }), [])
 
   const selectedCamera = useMemo(() => {
@@ -996,9 +951,9 @@ export default function DeviceControlClient() {
               )}
             >
               {sidebarCollapsed ? (
-                <ChevronRight className="size-3 text-slate-600 dark:text-slate-400" />
+                <IconRight className="size-3 text-slate-600 dark:text-slate-400" />
               ) : (
-                <ChevronLeft className="size-3 text-slate-600 dark:text-slate-400" />
+                <IconLeft className="size-3 text-slate-600 dark:text-slate-400" />
               )}
             </button>
 
@@ -1016,7 +971,7 @@ export default function DeviceControlClient() {
                     sidebarCollapsed && "justify-center px-2"
                   )}
                 >
-                  <Cpu className="size-4" />
+                  <IconCpu className="size-4" />
                   <span className={cn(sidebarCollapsed && "hidden")}>设备控制</span>
                 </button>
 
@@ -1030,7 +985,7 @@ export default function DeviceControlClient() {
                     sidebarCollapsed && "justify-center px-2"
                   )}
                 >
-                  <Sliders className="size-4" />
+                  <IconSettingTwo className="size-4" />
                   <span className={cn(sidebarCollapsed && "hidden")}>设备总览</span>
                 </button>
 
@@ -1047,10 +1002,10 @@ export default function DeviceControlClient() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <Settings className="size-4" />
+                        <IconSetting className="size-4" />
                         <span>设备分组</span>
                       </div>
-                      <ChevronDown className={cn("size-3 transition-transform", showDeviceGroups && "rotate-180")} />
+                      <IconDown className={cn("size-3 transition-transform", showDeviceGroups && "rotate-180")} />
                     </button>
 
                     {/* 设备分组展开内容 */}
@@ -1116,10 +1071,10 @@ export default function DeviceControlClient() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <History className="size-4" />
+                        <IconHistory className="size-4" />
                         <span>历史记录</span>
                       </div>
-                      <ChevronDown className={cn("size-3 transition-transform", showHistory && "rotate-180")} />
+                      <IconDown className={cn("size-3 transition-transform", showHistory && "rotate-180")} />
                     </button>
 
                     {/* 历史记录展开内容 */}
@@ -1165,7 +1120,7 @@ export default function DeviceControlClient() {
                               disabled={loadingLogs}
                               className="w-full text-[10px] font-bold text-[#19a15f] hover:underline flex items-center justify-center gap-1 disabled:opacity-50"
                             >
-                              <RefreshCw className={cn("size-3", loadingLogs && "animate-spin")} />
+                              <IconRefresh className={cn("size-3", loadingLogs && "animate-spin")} />
                               <span>刷新记录</span>
                             </button>
 
@@ -1244,10 +1199,10 @@ export default function DeviceControlClient() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <AlertOctagon className="size-4" />
+                        <IconCaution className="size-4" />
                         <span>告警记录</span>
                       </div>
-                      <ChevronDown className={cn("size-3 transition-transform", showAlerts && "rotate-180")} />
+                      <IconDown className={cn("size-3 transition-transform", showAlerts && "rotate-180")} />
                     </button>
 
                     {/* 告警记录展开内容 */}
@@ -1297,10 +1252,10 @@ export default function DeviceControlClient() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <Info className="size-4" />
+                        <IconInfo className="size-4" />
                         <span>通知设置</span>
                       </div>
-                      <ChevronDown className={cn("size-3 transition-transform", showNotifications && "rotate-180")} />
+                      <IconDown className={cn("size-3 transition-transform", showNotifications && "rotate-180")} />
                     </button>
 
                     {/* 通知设置展开内容 */}
@@ -1340,7 +1295,7 @@ export default function DeviceControlClient() {
             {!sidebarCollapsed && (
               <div className="pt-4 border-t border-slate-100 dark:border-zinc-900">
                 <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 transition-colors">
-                  <HelpCircle className="size-4" />
+                  <IconHelp className="size-4" />
                   <span>帮助中心</span>
                 </button>
               </div>
@@ -1390,11 +1345,11 @@ export default function DeviceControlClient() {
                         </div>
                         <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-950 p-1 rounded-xl">
                           <button className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 shadow-sm border border-slate-100 dark:border-zinc-800 text-xs font-bold text-[#19a15f] flex items-center gap-1">
-                            <AppstoreOutlined />
+                            <IconApplicationOne />
                             <span>卡片视图</span>
                           </button>
                           <button className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1">
-                            <UnorderedListOutlined />
+                            <IconListTwo />
                             <span>列表视图</span>
                           </button>
                         </div>
@@ -1404,7 +1359,7 @@ export default function DeviceControlClient() {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {(relayDevices.length > 0
                           ? relayDevices.map(d => {
-                              const IconCmp = DEVICE_ICON_CMP_MAP[d.icon] || Cpu
+                              const IconCmp = DEVICE_ICON_CMP_MAP[d.icon] || IconCpu
                               const relayNum = d.config?.relay_num as number | undefined
                               const isActive = relayNum
                                 ? ((deviceData?.[`relay${relayNum}` as keyof typeof deviceData] as number) || 0) === 1
@@ -1420,10 +1375,10 @@ export default function DeviceControlClient() {
                               }
                             })
                           : [
-                              { key: 5, title: "水泵 (Relay 5)", icon: Droplets, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/20" },
-                              { key: 6, title: "风扇 (Relay 6)", icon: Fan, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-                              { key: 7, title: "植物全光谱补光灯 (Relay 7)", icon: Lightbulb, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
-                              { key: 8, title: "光照植物补光灯 (Relay 8)", icon: Sun, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/20" },
+                              { key: 5, title: "水泵 (Relay 5)", icon: IconWater, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/20" },
+                              { key: 6, title: "风扇 (Relay 6)", icon: IconFan, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+                              { key: 7, title: "植物全光谱补光灯 (Relay 7)", icon: IconLight, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/20" },
+                              { key: 8, title: "光照植物补光灯 (Relay 8)", icon: IconSun, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/20" },
                             ].map((dev) => {
                               const isActive = (deviceData?.[`relay${dev.key}` as keyof typeof deviceData] as number || 0) === 1
                               return {
@@ -1504,9 +1459,9 @@ export default function DeviceControlClient() {
                             syncStatus === 'syncing' && "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/20",
                             syncStatus === 'error' && "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/20"
                           )}>
-                            {syncStatus === 'synced' && <CheckCircle2 className="size-3" />}
-                            {syncStatus === 'syncing' && <RefreshCw className="size-3 animate-spin" />}
-                            {syncStatus === 'error' && <AlertCircle className="size-3" />}
+                            {syncStatus === 'synced' && <IconCheckOne className="size-3" />}
+                            {syncStatus === 'syncing' && <IconRefresh className="size-3 animate-spin" />}
+                            {syncStatus === 'error' && <IconAttention className="size-3" />}
                             <span>
                               {syncStatus === 'synced' && '已同步'}
                               {syncStatus === 'syncing' && '同步中...'}
@@ -1639,14 +1594,14 @@ export default function DeviceControlClient() {
                                     className="p-1 rounded bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-[#19a15f] hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all disabled:opacity-50"
                                     title="刷新摄像头配置"
                                   >
-                                    <RefreshCw className={cn("size-3", loadingCameras && "animate-spin")} />
+                                    <IconRefresh className={cn("size-3", loadingCameras && "animate-spin")} />
                                   </button>
                                 </div>
                               </div>
 
                               {/* 当前摄像头信息 */}
                               <div className="flex items-center gap-2 px-2 py-1 bg-slate-50 dark:bg-zinc-900/40 rounded-lg">
-                                <Video className={cn("size-3", selectedCamera?.url ? "text-emerald-500" : "text-slate-400")} />
+                                <IconVideo className={cn("size-3", selectedCamera?.url ? "text-emerald-500" : "text-slate-400")} />
                                 <span className="text-[9px] font-medium text-slate-600 dark:text-slate-400">
                                   {selectedCamera?.name || '未选择'}
                                   {!selectedCamera?.url && ' (未配置)'}
@@ -1678,7 +1633,7 @@ export default function DeviceControlClient() {
                                   </>
                                 ) : (
                                   <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-zinc-700">
-                                    <Signal className="size-5 animate-pulse mb-2" />
+                                    <IconSignal className="size-5 animate-pulse mb-2" />
                                     <span className="text-[10px] font-medium">CCTV 未连接或离线</span>
                                     <span className="text-[8px] text-slate-500 mt-1">请先在系统设置中配置摄像头 URL</span>
                                   </div>
@@ -1705,7 +1660,7 @@ export default function DeviceControlClient() {
                                       className="p-1 rounded bg-black/40 text-white/80 hover:text-white hover:bg-black/60 transition-all"
                                       title="截图"
                                     >
-                                      <Camera className="size-3" />
+                                      <IconCamera className="size-3" />
                                     </button>
                                     <button
                                       onClick={() => {
@@ -1718,7 +1673,7 @@ export default function DeviceControlClient() {
                                       className="p-1 rounded bg-black/40 text-white/80 hover:text-white hover:bg-black/60 transition-all"
                                       title="录像"
                                     >
-                                      <Video className="size-3" />
+                                      <IconVideo className="size-3" />
                                     </button>
                                   </div>
                                   <button
@@ -1726,7 +1681,7 @@ export default function DeviceControlClient() {
                                     className="p-1 rounded bg-black/40 text-white/80 hover:text-white hover:bg-black/60 transition-all"
                                     title={isFullscreen ? "退出全屏" : "全屏"}
                                   >
-                                    {isFullscreen ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
+                                    {isFullscreen ? <IconOffScreen className="size-3" /> : <IconFullScreen className="size-3" />}
                                   </button>
                                 </div>
 
@@ -1747,7 +1702,7 @@ export default function DeviceControlClient() {
                                           />
                                         ) : (
                                           <div className="flex flex-col items-center justify-center text-zinc-500 select-none">
-                                            <Signal className="size-8 mb-2 opacity-70" />
+                                            <IconSignal className="size-8 mb-2 opacity-70" />
                                             <span className="text-[13px] font-medium">摄像头未连接</span>
                                             <span className="text-[11px] text-zinc-600 mt-1">请在系统设置中配置摄像头 URL</span>
                                           </div>
@@ -1830,7 +1785,7 @@ export default function DeviceControlClient() {
                                           className="size-7 rounded-md flex items-center justify-center text-white/45 hover:text-white hover:bg-white/[0.06] transition-colors"
                                           title="退出全屏"
                                         >
-                                          <Minimize2 className="size-3.5" />
+                                          <IconOffScreen className="size-3.5" />
                                         </button>
                                       </div>
 
@@ -1847,7 +1802,7 @@ export default function DeviceControlClient() {
                                                 <span className="text-[12px] text-white/40">mm</span>
                                               </div>
                                             </div>
-                                            <Compass className="size-4 text-white/35" />
+                                            <IconCompass className="size-4 text-white/35" />
                                           </div>
                                           <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2 text-[11px]">
                                             <span className="text-white/40">脉冲</span>
@@ -1880,7 +1835,7 @@ export default function DeviceControlClient() {
                                             )}
                                             title="向左"
                                           >
-                                            <ChevronLeft className="size-5" />
+                                            <IconLeft className="size-5" />
                                           </button>
 
                                           {/* 右按钮 */}
@@ -1894,7 +1849,7 @@ export default function DeviceControlClient() {
                                             )}
                                             title="向右"
                                           >
-                                            <ChevronRight className="size-5" />
+                                            <IconRight className="size-5" />
                                           </button>
 
                                           {/* 中央停止按钮 */}
@@ -1952,7 +1907,7 @@ export default function DeviceControlClient() {
                                               "disabled:opacity-30 disabled:cursor-not-allowed"
                                             )}
                                           >
-                                            <RotateCcw className="size-3.5" />
+                                            <IconUndo className="size-3.5" />
                                             复位
                                           </button>
                                           <button
@@ -1964,7 +1919,7 @@ export default function DeviceControlClient() {
                                               "disabled:opacity-30 disabled:cursor-not-allowed"
                                             )}
                                           >
-                                            <Target className="size-3.5" />
+                                            <IconTarget className="size-3.5" />
                                             预设
                                           </button>
                                         </div>
@@ -1975,14 +1930,14 @@ export default function DeviceControlClient() {
                                             onClick={() => message.info('截图功能')}
                                             className="flex-1 h-8 rounded-md text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/85"
                                           >
-                                            <Camera className="size-3.5" />
+                                            <IconCamera className="size-3.5" />
                                             截图
                                           </button>
                                           <button
                                             onClick={() => message.info('录像功能')}
                                             className="flex-1 h-8 rounded-md text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-white/55 hover:text-white/85"
                                           >
-                                            <Video className="size-3.5" />
+                                            <IconVideo className="size-3.5" />
                                             录像
                                           </button>
                                         </div>
@@ -2003,10 +1958,10 @@ export default function DeviceControlClient() {
                               {/* 罗盘圆盘 */}
                               <Col span={10} className="flex justify-center">
                                 <div className="relative size-28 rounded-full border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/40 flex items-center justify-center shadow-inner">
-                                  <button onClick={() => message.info('未启用垂直控制')} className="absolute top-1 text-slate-400 hover:text-[#19a15f]"><ChevronUp className="size-4" /></button>
-                                  <button onClick={() => message.info('未启用垂直控制')} className="absolute bottom-1 text-slate-400 hover:text-[#19a15f]"><ChevronDown className="size-4" /></button>
-                                  <button onClick={() => handleStepperControl(1)} className="absolute left-1 text-slate-400 hover:text-[#19a15f]"><ChevronLeft className="size-4" /></button>
-                                  <button onClick={() => handleStepperControl(2)} className="absolute right-1 text-slate-400 hover:text-[#19a15f]"><ChevronRight className="size-4" /></button>
+                                  <button onClick={() => message.info('未启用垂直控制')} className="absolute top-1 text-slate-400 hover:text-[#19a15f]"><IconUp className="size-4" /></button>
+                                  <button onClick={() => message.info('未启用垂直控制')} className="absolute bottom-1 text-slate-400 hover:text-[#19a15f]"><IconDown className="size-4" /></button>
+                                  <button onClick={() => handleStepperControl(1)} className="absolute left-1 text-slate-400 hover:text-[#19a15f]"><IconLeft className="size-4" /></button>
+                                  <button onClick={() => handleStepperControl(2)} className="absolute right-1 text-slate-400 hover:text-[#19a15f]"><IconRight className="size-4" /></button>
                                   <button onClick={() => handleStepperControl(0)} className="size-6 rounded-full bg-[#19a15f] border-2 border-white dark:border-zinc-900 flex items-center justify-center shadow-md">
                                     <span className="size-1.5 bg-white rounded-sm" />
                                   </button>
@@ -2097,13 +2052,13 @@ export default function DeviceControlClient() {
                                         onClick={(e) => e.stopPropagation()}
                                         className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
-                                        <Trash2 className="size-3" />
+                                        <IconDelete className="size-3" />
                                       </span>
                                     </Popconfirm>
                                   </div>
                                   <span className="text-[9px] text-muted-foreground block mt-1">{preset.desc}</span>
                                   <span className="text-[10px] text-[#19a15f] font-bold mt-1.5 block flex items-center gap-0.5">
-                                    <Compass className="size-3" /> {preset.mm} mm
+                                    <IconCompass className="size-3" /> {preset.mm} mm
                                   </span>
                                 </div>
                               ))}
@@ -2196,7 +2151,7 @@ export default function DeviceControlClient() {
                           <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
                               <div className="size-8 rounded-full bg-blue-50 dark:bg-blue-950/20 text-blue-500 flex items-center justify-center shrink-0">
-                                <Thermometer className="size-4" />
+                                <IconThermometer className="size-4" />
                               </div>
                               <div>
                                 <h3 className="font-bold text-xs text-foreground">温湿度传感器</h3>
@@ -2229,7 +2184,7 @@ export default function DeviceControlClient() {
                           <div className="flex justify-end pt-2 border-t border-slate-50 dark:border-zinc-800/40 mt-3 text-[10px]">
                             <button onClick={() => message.info('数据详情加载中...')} className="text-[#19a15f] hover:underline font-bold flex items-center gap-0.5">
                               <span>查看详情</span>
-                              <ArrowRight className="size-3" />
+                              <IconArrowRight className="size-3" />
                             </button>
                           </div>
                         </div>
@@ -2239,7 +2194,7 @@ export default function DeviceControlClient() {
                           <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
                               <div className="size-8 rounded-full bg-red-50 dark:bg-red-950/20 text-red-500 flex items-center justify-center shrink-0">
-                                <Cpu className="size-4" />
+                                <IconCpu className="size-4" />
                               </div>
                               <div>
                                 <h3 className="font-bold text-xs text-foreground">CO₂ 传感器</h3>
@@ -2266,7 +2221,7 @@ export default function DeviceControlClient() {
                           <div className="flex justify-end pt-2 border-t border-slate-50 dark:border-zinc-800/40 mt-3 text-[10px]">
                             <button onClick={() => message.info('数据详情加载中...')} className="text-[#19a15f] hover:underline font-bold flex items-center gap-0.5">
                               <span>查看详情</span>
-                              <ArrowRight className="size-3" />
+                              <IconArrowRight className="size-3" />
                             </button>
                           </div>
                         </div>
@@ -2298,7 +2253,7 @@ export default function DeviceControlClient() {
                     </div>
                     <div className="relative size-16 shrink-0 filter drop-shadow-md">
                       {/* 天气云朵插图 */}
-                      <CloudSun className="size-16 text-amber-500" />
+                      <IconCloudStorage className="size-16 text-amber-500" />
                     </div>
                   </div>
 
@@ -2310,7 +2265,7 @@ export default function DeviceControlClient() {
                   <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50 dark:border-zinc-800/40 text-xs">
                     <div className="flex items-center gap-2">
                       <div className="size-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-[#19a15f] flex items-center justify-center shrink-0">
-                        <Thermometer className="size-4" />
+                        <IconThermometer className="size-4" />
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 block font-bold">空气湿度</span>
@@ -2320,7 +2275,7 @@ export default function DeviceControlClient() {
                     
                     <div className="flex items-center gap-2">
                       <div className="size-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-[#19a15f] flex items-center justify-center shrink-0">
-                        <Wind className="size-4" />
+                        <IconWind className="size-4" />
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 block font-bold">风速</span>
@@ -2330,7 +2285,7 @@ export default function DeviceControlClient() {
 
                     <div className="flex items-center gap-2">
                       <div className="size-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-[#19a15f] flex items-center justify-center shrink-0">
-                        <Compass className="size-4" />
+                        <IconCompass className="size-4" />
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 block font-bold">大气压强</span>
@@ -2340,7 +2295,7 @@ export default function DeviceControlClient() {
 
                     <div className="flex items-center gap-2">
                       <div className="size-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-[#19a15f] flex items-center justify-center shrink-0">
-                        <Wind className="size-4" />
+                        <IconWind className="size-4" />
                       </div>
                       <div>
                         <span className="text-[9px] text-slate-400 block font-bold">风向</span>
@@ -2356,16 +2311,16 @@ export default function DeviceControlClient() {
                     <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">大棚环境参数</h3>
                     <Link href="/monitor" className="text-xs font-bold text-[#19a15f] hover:underline flex items-center gap-0.5">
                       <span>查看详情</span>
-                      <ArrowRight className="size-3" />
+                      <IconArrowRight className="size-3" />
                     </Link>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     {[
-                      { name: "室内温度", val: `${greenhouseMetrics.temp} °C`, icon: Thermometer },
-                      { name: "室内湿度", val: `${greenhouseMetrics.humidity} %`, icon: Droplets },
-                      { name: "二氧化碳浓度", val: `${greenhouseMetrics.co2} ppm`, icon: Cpu },
-                      { name: "光照强度", val: `${greenhouseMetrics.light} lux`, icon: Sun },
+                      { name: "室内温度", val: `${greenhouseMetrics.temp} °C`, icon: IconThermometer },
+                      { name: "室内湿度", val: `${greenhouseMetrics.humidity} %`, icon: IconWater },
+                      { name: "二氧化碳浓度", val: `${greenhouseMetrics.co2} ppm`, icon: IconCpu },
+                      { name: "光照强度", val: `${greenhouseMetrics.light} lux`, icon: IconSun },
                     ].map((metric) => (
                       <div key={metric.name} className="p-3 bg-slate-50 dark:bg-zinc-950/40 rounded-xl border border-slate-50 dark:border-zinc-900/60 flex items-center gap-3">
                         <metric.icon className="size-4 text-[#19a15f] shrink-0" />
@@ -2385,6 +2340,42 @@ export default function DeviceControlClient() {
 
         </div>
       </div>
+
+      {/* ===== AI 助手侧栏（复用 ai-assistant 的对话组件，欢迎词按页面区分）===== */}
+      <CopilotSidebar
+        pageKey="device-control"
+        dark={isDark}
+        deviceData={(deviceData ?? null) as unknown as Record<string, unknown> | null}
+        context={() => {
+          const lines: string[] = ["页面：设备控制（/device-control）"]
+          lines.push(`当前子页签：${activeSubTab === 'control' ? '设备控制' : '设备总览'}`)
+          lines.push(`已接入设备：${devices.length} 台`)
+
+          if (deviceData) {
+            lines.push("【设备开关状态】")
+            const names: Record<string, string> = {
+              relay5: "水泵系统",
+              relay6: "通风风扇",
+              relay7: "全光谱补光灯",
+              relay8: "辅助补光灯",
+            }
+            for (const [k, label] of Object.entries(names)) {
+              const v = (deviceData as Record<string, unknown>)[k]
+              lines.push(`- ${label}：${v === 1 ? "开启" : "关闭"}`)
+            }
+            const t = Number(deviceData.temperature)
+            const h = Number(deviceData.humidity)
+            if (Number.isFinite(t)) lines.push(`当前温度：${t.toFixed(1)}℃`)
+            if (Number.isFinite(h)) lines.push(`当前湿度：${h.toFixed(1)}%`)
+          } else {
+            lines.push("【设备开关状态】暂未上报")
+          }
+
+          lines.push(`【RGB 补光】R${r} G${g} B${b} W${w}`)
+          if (connectionStatus) lines.push(`连接状态：${connectionStatus}`)
+          return lines.join("\n")
+        }}
+      />
     </ConfigProvider>
   )
 }

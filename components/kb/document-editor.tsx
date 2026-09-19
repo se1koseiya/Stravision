@@ -24,14 +24,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   Button, Spin, Empty, Tooltip, Tag, App as AntApp, Segmented, Modal
 } from "antd"
-import {
-  Save, Download, Upload, Eye, Edit3, Columns2, Loader2,
-  Users, Clock, History, FileText, Wifi, WifiOff
-} from "lucide-react"
 import * as Y from "yjs"
 import { WebsocketProvider } from "y-websocket"
 import { cn } from "@/lib/utils"
 import KbOnlyOfficeEditor from "@/components/kb/kb-onlyoffice-editor"
+import { IconCloseWifi, IconColumn, IconDownload, IconEdit, IconFileText, IconHistory, IconLoading, IconPeoples, IconPreviewOpen, IconSave, IconTime, IconUpload, IconWifi } from "@/components/icon";
 
 // ===== 类型 =====
 interface CurrentUser {
@@ -496,15 +493,15 @@ export default function DocumentEditor({
       {/* 顶部工具栏 */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-2 flex-wrap">
-          <FileText size={14} className="text-[#1677ff]" />
+          <IconFileText size={14} className="text-[#1677ff]" />
           <span className="text-[13px] font-medium truncate max-w-[200px]">{title}</span>
           {connected ? (
             <Tooltip title="已连接协同服务">
-              <Wifi size={13} className="text-[#52c41a]" />
+              <IconWifi size={13} className="text-[#52c41a]" />
             </Tooltip>
           ) : (
             <Tooltip title="未连接协同服务">
-              <WifiOff size={13} className="text-[#ff4d4f]" />
+              <IconCloseWifi size={13} className="text-[#ff4d4f]" />
             </Tooltip>
           )}
           {hasRemoteUpdate && (
@@ -537,7 +534,7 @@ export default function DocumentEditor({
             {onlineUsers.length === 0 && (
               <Tooltip title="暂无在线协作者">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                  <Users size={12} className="text-gray-400" />
+                  <IconPeoples size={12} className="text-gray-400" />
                 </div>
               </Tooltip>
             )}
@@ -549,9 +546,9 @@ export default function DocumentEditor({
             value={viewMode}
             onChange={(v) => setViewMode(v as ViewMode)}
             options={[
-              { label: "", value: "edit", icon: <Edit3 size={13} />, title: "仅编辑" },
-              { label: "", value: "split", icon: <Columns2 size={13} />, title: "分屏" },
-              { label: "", value: "preview", icon: <Eye size={13} />, title: "仅预览" }
+              { label: "", value: "edit", icon: <IconEdit size={13} />, title: "仅编辑" },
+              { label: "", value: "split", icon: <IconColumn size={13} />, title: "分屏" },
+              { label: "", value: "preview", icon: <IconPreviewOpen size={13} />, title: "仅预览" }
             ]}
           />
 
@@ -572,7 +569,7 @@ export default function DocumentEditor({
               <Tooltip title="导入 Word 文档（.docx → Markdown）">
                 <Button
                   size="small"
-                  icon={<Upload size={13} />}
+                  icon={<IconUpload size={13} />}
                   onClick={() => importInputRef.current?.click()}
                 />
               </Tooltip>
@@ -581,7 +578,7 @@ export default function DocumentEditor({
           <Tooltip title="导出为 Word 文档">
             <Button
               size="small"
-              icon={<Download size={13} />}
+              icon={<IconDownload size={13} />}
               onClick={handleExportDocx}
             />
           </Tooltip>
@@ -589,7 +586,7 @@ export default function DocumentEditor({
             <Button
               type="primary"
               size="small"
-              icon={saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              icon={saving ? <IconLoading size={13} className="animate-spin" /> : <IconSave size={13} />}
               onClick={handleManualSave}
               loading={saving}
             >
@@ -641,18 +638,18 @@ export default function DocumentEditor({
         <div className="flex items-center gap-3">
           <span>{content.length} 字符</span>
           <span className="flex items-center gap-1">
-            <Users size={10} />
+            <IconPeoples size={10} />
             {onlineUsers.length} 人在线
           </span>
         </div>
         <div className="flex items-center gap-2">
           {saving ? (
             <span className="text-[#1677ff] flex items-center gap-1">
-              <Loader2 size={10} className="animate-spin" /> 保存中…
+              <IconLoading size={10} className="animate-spin" /> 保存中…
             </span>
           ) : lastSavedAt ? (
             <span className="flex items-center gap-1">
-              <Clock size={10} />
+              <IconTime size={10} />
               上次保存 {new Date(lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
             </span>
           ) : (

@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { CalendarDays, CloudRain, Wind, Thermometer, Sunrise, Sunset } from "lucide-react"
 import { Flex } from "antd"
 import { IOSWidgetCard } from "./ios-widget-card"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
@@ -11,6 +10,7 @@ import {
 } from "./weather-visualizations"
 import { WeatherEffects } from "./weather-effects"
 import { useWeatherVideo, WeatherVideoBackground } from "./weather-video"
+import { IconCalendar, IconLightRain, IconSunrise, IconSunset, IconThermometer, IconWind } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.weather
@@ -145,12 +145,12 @@ export function WeatherForecastWidget({
         <Flex vertical style={{ height: '100%' }}>
           <Flex align="center" justify="space-between" style={{ marginBottom: 8 }}>
             <Flex align="center" gap={6}>
-              <CalendarDays size={14} strokeWidth={1.75} color="rgba(255,255,255,0.8)" />
+              <IconCalendar size={14} strokeWidth={1.75} color="rgba(255,255,255,0.8)" />
               <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>未来预报</span>
             </Flex>
             <Flex align="center" gap={8}>
               <Flex align="center" gap={3}>
-                <Thermometer size={10} strokeWidth={2} color="rgba(255,255,255,0.5)" />
+                <IconThermometer size={10} strokeWidth={2} color="rgba(255,255,255,0.5)" />
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>
                   {avgLow}° / {avgHigh}°
                 </span>
@@ -182,16 +182,16 @@ export function WeatherForecastWidget({
         {/* Header */}
         <Flex align="center" justify="space-between">
           <Flex align="center" gap={6}>
-            <CalendarDays size={15} strokeWidth={1.75} color="rgba(255,255,255,0.9)" />
+            <IconCalendar size={15} strokeWidth={1.75} color="rgba(255,255,255,0.9)" />
             <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>7日预报</span>
           </Flex>
           <Flex gap={10}>
             <Flex align="center" gap={3}>
-              <Sunrise size={11} strokeWidth={2} color="rgba(255,255,255,0.6)" />
+              <IconSunrise size={11} strokeWidth={2} color="rgba(255,255,255,0.6)" />
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)', fontVariantNumeric: 'tabular-nums' }}>{sunrise}</span>
             </Flex>
             <Flex align="center" gap={3}>
-              <Sunset size={11} strokeWidth={2} color="rgba(255,255,255,0.6)" />
+              <IconSunset size={11} strokeWidth={2} color="rgba(255,255,255,0.6)" />
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)', fontVariantNumeric: 'tabular-nums' }}>{sunset}</span>
             </Flex>
           </Flex>
@@ -212,11 +212,11 @@ export function WeatherForecastWidget({
 
         {/* Summary stats */}
         <Flex gap={5}>
-          <SummaryChip icon={<Thermometer size={12} strokeWidth={ICON_STROKE} />} label="平均高温" value={`${avgHigh}°`} />
-          <SummaryChip icon={<Thermometer size={12} strokeWidth={ICON_STROKE} />} label="平均低温" value={`${avgLow}°`} />
-          <SummaryChip icon={<Wind size={12} strokeWidth={ICON_STROKE} />} label="最大风速" value={`${maxWind.toFixed(1)} m/s`} />
+          <SummaryChip icon={<IconThermometer size={12} strokeWidth={ICON_STROKE} />} label="平均高温" value={`${avgHigh}°`} />
+          <SummaryChip icon={<IconThermometer size={12} strokeWidth={ICON_STROKE} />} label="平均低温" value={`${avgLow}°`} />
+          <SummaryChip icon={<IconWind size={12} strokeWidth={ICON_STROKE} />} label="最大风速" value={`${maxWind.toFixed(1)} m/s`} />
           <SummaryChip
-            icon={<CloudRain size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconLightRain size={12} strokeWidth={ICON_STROKE} />}
             label="降水概率"
             value={`${Math.round(forecastDays.reduce((s, d) => s + (d.rainChance || 0), 0) / forecastDays.length)}%`}
           />

@@ -1,17 +1,5 @@
 "use client"
 
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  ChevronDownIcon,
-  ExternalLinkIcon,
-  Maximize2Icon,
-  MousePointerClickIcon,
-  RefreshCcwIcon,
-  Globe,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react"
 import type { ComponentProps, ReactNode } from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -19,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { IconArrowLeft, IconArrowRight, IconCaution, IconClickTap, IconDown, IconFullScreen, IconGlobe, IconLinkOut, IconLoading, IconRefresh } from "@/components/icon";
 
 export interface WebPreviewContextValue {
   url: string
@@ -184,7 +173,7 @@ export const WebPreviewBody = ({ className, loading, src, ...props }: WebPreview
     return (
       <div className="flex-1 flex items-center justify-center bg-muted/30">
         <div className="text-center space-y-2">
-          <Globe className="w-12 h-12 mx-auto text-muted-foreground/50" />
+          <IconGlobe className="w-12 h-12 mx-auto text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">输入 URL 开始浏览</p>
         </div>
       </div>
@@ -196,7 +185,7 @@ export const WebPreviewBody = ({ className, loading, src, ...props }: WebPreview
       <div className="flex-1 flex items-center justify-center bg-muted/30 p-8">
         <div className="text-center space-y-4 max-w-md">
           <div className="w-16 h-16 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+            <IconCaution className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
           </div>
           <div className="space-y-2">
             <h3 className="font-semibold text-lg">该内容被屏蔽了</h3>
@@ -208,7 +197,7 @@ export const WebPreviewBody = ({ className, loading, src, ...props }: WebPreview
             onClick={() => window.open(finalUrl, '_blank')}
             className="gap-2"
           >
-            <ExternalLinkIcon className="w-4 h-4" />
+            <IconLinkOut className="w-4 h-4" />
             在新标签页中打开
           </Button>
         </div>
@@ -220,7 +209,7 @@ export const WebPreviewBody = ({ className, loading, src, ...props }: WebPreview
     <div className="flex-1 relative">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <IconLoading className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       )}
       <iframe
@@ -266,7 +255,7 @@ export const WebPreviewConsole = ({
           variant="ghost"
         >
           Console
-          <ChevronDownIcon
+          <IconDown
             className={cn("h-4 w-4 transition-transform duration-200", consoleOpen && "rotate-180")}
           />
         </Button>
@@ -323,23 +312,23 @@ export default function WebPreviewDemo() {
     <WebPreview defaultUrl="/" style={{ height: "400px" }}>
       <WebPreviewNavigation>
         <WebPreviewNavigationButton tooltip="Go back">
-          <ArrowLeftIcon className="size-4" />
+          <IconArrowLeft className="size-4" />
         </WebPreviewNavigationButton>
         <WebPreviewNavigationButton tooltip="Go forward">
-          <ArrowRightIcon className="size-4" />
+          <IconArrowRight className="size-4" />
         </WebPreviewNavigationButton>
         <WebPreviewNavigationButton tooltip="Reload">
-          <RefreshCcwIcon className="size-4" />
+          <IconRefresh className="size-4" />
         </WebPreviewNavigationButton>
         <WebPreviewUrl />
         <WebPreviewNavigationButton tooltip="Select">
-          <MousePointerClickIcon className="size-4" />
+          <IconClickTap className="size-4" />
         </WebPreviewNavigationButton>
         <WebPreviewNavigationButton tooltip="Open in new tab">
-          <ExternalLinkIcon className="size-4" />
+          <IconLinkOut className="size-4" />
         </WebPreviewNavigationButton>
         <WebPreviewNavigationButton tooltip="Maximize">
-          <Maximize2Icon className="size-4" />
+          <IconFullScreen className="size-4" />
         </WebPreviewNavigationButton>
       </WebPreviewNavigation>
       <WebPreviewBody src="https://example.com" />

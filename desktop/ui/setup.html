@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="RfCU0PnbKPGORh0SwI97Wv">
+<head data-page-node-id="JnPO4OHhT4TTw8IxYFTnbL">
+<meta charset="utf-8" data-page-node-id="qP0Ab8aULZXwNcJoMQ1HZG" />
+<title>本地服务配置</title>
+<style>
+  /* 落地页视觉语言：白底 + 极淡环境光 + 墨色主按钮胶囊 + #009456 品牌绿 + 0.5px 锌色细边 */
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #ffffff; color: #0a0a0a;
+    overflow: hidden;
+  }
+  .glow {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(300px 220px at 96% -4%, rgba(0, 148, 86, 0.08), transparent 62%),
+      radial-gradient(360px 280px at -12% 108%, rgba(0, 148, 86, 0.05), transparent 60%);
+  }
+  .wrap { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+
+  /* 标题栏 + 向导莓 */
+  .head { position: relative; padding: 22px 26px 0; flex-shrink: 0; }
+  .mascot {
+    position: absolute; top: 2px; right: 10px;
+    width: 104px; height: 104px;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none; -webkit-user-select: none;
+  }
+  h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; max-width: 300px; }
+  .sub { font-size: 12px; color: #71717a; line-height: 1.55; margin-top: 5px; max-width: 310px; }
+
+  /* 步骤条（右边留出向导莓的位置） */
+  .steps { display: flex; align-items: center; gap: 6px; margin: 16px 118px 0 26px; flex-shrink: 0; }
+  .step {
+    flex: 1; display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: #a1a1aa; padding-bottom: 8px;
+    border-bottom: 1.5px solid #f1f1f3; cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .step .dot {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9.5px; background: #f4f4f5; color: #a1a1aa;
+    transition: background .15s ease, color .15s ease;
+  }
+  .step.active { color: #0a0a0a; border-bottom-color: #009456; font-weight: 600; }
+  .step.active .dot { background: #009456; color: #fff; }
+  .step.done { color: #52525b; }
+  .step.done .dot { background: #0a0a0a; color: #fff; }
+
+  /* 内容区 */
+  .body { flex: 1; overflow-y: auto; padding: 16px 26px 0; }
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .note {
+    font-size: 11px; line-height: 1.6; color: #71717a;
+    background: #fafafa; border: 0.5px solid #f0f0f1;
+    border-radius: 10px; padding: 9px 11px; margin-bottom: 14px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .row2 { display: flex; gap: 8px; }
+  .row2 > .field { flex: 1; }
+  label { display: block; font-size: 11.5px; color: #52525b; margin-bottom: 5px; font-weight: 500; }
+  select, input[type=text], input[type=password], input[type=number] {
+    width: 100%; height: 34px; padding: 0 10px;
+    font-size: 12.5px; font-family: inherit;
+    color: #18181b; background: #fff;
+    border: 0.5px solid #d4d4d8; border-radius: 10px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  select:focus, input:focus { border-color: #009456; box-shadow: 0 0 0 2.5px rgba(0, 148, 86, 0.12); }
+  input::placeholder { color: #a1a1aa; }
+  .hint { font-size: 11px; color: #8c8c8c; margin-top: 4px; line-height: 1.5; }
+  .hint a { color: #009456; text-decoration: none; font-weight: 500; cursor: pointer; }
+  .hint a:hover { text-decoration: underline; text-underline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  /* 分段选择（内置 / 自建） */
+  .seg { display: flex; gap: 0; margin-bottom: 14px; border: 0.5px solid #d4d4d8; border-radius: 999px; overflow: hidden; padding: 2px; background: #fafafa; }
+  .seg button {
+    flex: 1; height: 28px; border: 0; border-radius: 999px;
+    font-size: 12px; color: #52525b; background: transparent; cursor: pointer;
+    font-family: inherit; transition: background .15s ease, color .15s ease;
+  }
+  .seg button + button { border-left: 0; }
+  .seg button.on { background: #0a0a0a; color: #fff; font-weight: 500; }
+
+  /* 环境变量行 */
+  .env-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .env-row input { height: 32px; }
+  .env-row .k { flex: 0 0 38%; }
+  .env-row .v { flex: 1; }
+  .icon-btn {
+    width: 26px; height: 26px; flex-shrink: 0; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 0.5px solid #e4e4e7; border-radius: 999px; background: #fff;
+    color: #71717a; cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .icon-btn:hover { background: #fafafa; color: #0a0a0a; }
+  .add-btn {
+    height: 30px; padding: 0 12px; font-size: 11.5px; font-family: inherit;
+    border: 0.5px dashed #d4d4d8; border-radius: 999px;
+    background: #fff; color: #52525b; cursor: pointer;
+  }
+  .add-btn:hover { border-color: #009456; color: #009456; }
+
+  /* 高级设置折叠区（默认收起——冗余项不再占用首启流程） */
+  .adv-toggle {
+    margin: 18px 0 0; padding-top: 14px; border-top: 0.5px solid #e4e4e7;
+    font-size: 12px; color: #52525b; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .adv-toggle:hover { color: #0a0a0a; }
+  .adv-toggle .chev { display: inline-block; transition: transform .15s ease; font-size: 10px; }
+  .adv-toggle.open .chev { transform: rotate(90deg); }
+  .adv-body { margin-top: 14px; }
+
+  /* 已配置供应商（与网页管理后台的数据模型对齐） */
+  .prov-section { margin-bottom: 14px; }
+  .prov-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .prov-head .t { font-size: 11.5px; color: #52525b; font-weight: 500; }
+  .prov-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px;
+    border: 0.5px solid #e4e4e7; border-radius: 10px; background: #fff;
+  }
+  .prov-row .name { font-size: 12px; color: #0a0a0a; font-weight: 600; flex-shrink: 0; }
+  .prov-row .meta { flex: 1; font-size: 10.5px; color: #8c8c8c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prov-row .badge {
+    font-size: 9.5px; color: #009456; background: rgba(0, 148, 86, 0.08);
+    border-radius: 999px; padding: 1.5px 7px; flex-shrink: 0; font-weight: 500;
+  }
+  .prov-row .icon-btn.danger:hover { color: #b42318; border-color: #b42318; }
+
+  /* 底部 */
+  .foot { flex-shrink: 0; padding: 12px 26px 20px; border-top: 0.5px solid #f1f1f3; }
+  .err { font-size: 11.5px; color: #b42318; min-height: 16px; margin-bottom: 8px; line-height: 1.45; }
+  .actions { display: flex; align-items: center; gap: 8px; }
+  button.btn {
+    height: 34px; padding: 0 18px; font-size: 12.5px; font-family: inherit; font-weight: 500;
+    border-radius: 999px; border: 0.5px solid #e4e4e7;
+    background: #fff; color: #18181b; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  button.btn:hover { background: #fafafa; }
+  button.btn.primary { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
+  button.btn.primary:hover { background: #262626; }
+  button.btn:disabled { opacity: .4; cursor: default; }
+  .ghost {
+    margin-left: auto; font-size: 12px; color: #71717a;
+    background: none; border: 0; cursor: pointer; padding: 0; height: auto;
+  }
+  .ghost:hover { color: #0a0a0a; background: none; }
+  /* 结果态：按钮收拢到右侧成组，避免两个 margin-left:auto 把"立即重启"推到中间 */
+  .actions.result .ghost { margin-left: 0; }
+  .actions.result #btn-restart { margin-left: auto; }
+  .spacer { flex: 1; }
+</style>
+</head>
+<body data-page-node-id="B1NJ8G8MLLXGrXLUDQYBGH">
+  <div class="glow"></div>
+  <div class="wrap" data-page-node-id="k7UwR3VIQUAPXbycIQuFtP">
+    <div class="head" data-page-node-id="IprI44KoJIfiAjhw5eVdvE">
+      <h1 id="title" data-page-node-id="qNyKSBEhkcuLL2y25Y1UUm">配置本地服务</h1>
+      <div class="sub" id="subtitle" data-page-node-id="CC3qedfbQMxHmDFATNdAHd">
+        填写你自己的模型 API Key 与本地服务参数。凭据仅保存在本机。
+      </div>
+      <img class="mascot" src="assets/setup-mascot.png" alt="" draggable="false" />
+    </div>
+
+    <div class="steps" id="steps" data-page-node-id="MFIFysXYhU7tSiX3FyKNwE">
+      <div class="step active" data-step="0" data-page-node-id="dHFoLDjGFZqgVkLADQemL3"><span class="dot" data-page-node-id="2KstN4r7IeX3adDLd4KTNI">1</span>AI 助手</div>
+      <div class="step" data-step="1" data-page-node-id="KXD8W5eX78vsuva2lTF2WD"><span class="dot" data-page-node-id="GRx34l3ZUXJp0JArml8B38">2</span>外观与偏好</div>
+    </div>
+
+    <div class="body" data-page-node-id="7fbxFqoTCR2P3n8Fp7E1gA">
+      <!-- ========== 步骤 1：AI 助手 ========== -->
+      <div class="pane active" data-pane="0" data-page-node-id="MtzE8dQaszf0KZb3cuto34">
+        <div class="note" data-page-node-id="feQqWSI989vPXJwpUXTbNG">
+          配置一次，AI 助手、自动化流程、知识库检索、语音对话全部生效。<br />
+          API Key 留空则暂不启用 AI，可直接下一步先去配消息服务。
+        </div>
+
+        <!-- 已配置供应商（多供应商管理，与网页管理后台一致） -->
+        <div class="prov-section" id="prov-section" style="display:none">
+          <div class="prov-head"><span class="t">已配置供应商</span></div>
+          <div id="prov-list"></div>
+          <div class="field" style="margin-bottom:0">
+            <label for="defaultModel">默认模型（AI 助手"自动"模式使用）</label>
+            <input id="defaultModel" type="text" list="defaultModelList" placeholder="留空则使用所选服务商的默认模型" spellcheck="false" autocomplete="off" />
+            <datalist id="defaultModelList"></datalist>
+            <div class="hint">与网页管理后台一致：模型选"自动"时使用这里指定的模型。可直接输入任意模型 id（如 zai-org/GLM-5.3），不必局限于下拉建议；保存后会自动注册到对应服务商。</div>
+          </div>
+          <div style="height:4px"></div>
+        </div>
+
+        <div class="field" data-page-node-id="xEqGWAmBkR8VFagYybSbwc">
+          <label for="preset" data-page-node-id="AZRJyYaSOAv2f8fwX6F98S">模型服务商</label>
+          <select id="preset" data-page-node-id="eAvYimQRf9yLYjcd8pe9Rw"></select>
+        </div>
+
+        <div class="field hidden" id="url-field" data-page-node-id="PRQgyMwCws2XauNglrRMP1">
+          <label for="baseUrl" data-page-node-id="nvfDSQkl1AkoFrFGbv1dAi">接口地址（Base URL）</label>
+          <input id="baseUrl" type="text" placeholder="https://your-endpoint/v1" spellcheck="false" data-page-node-id="Mm8YYoKyiDc7cdxGeDDKtJ" />
+        </div>
+
+        <div class="field" data-page-node-id="lL9EQpHnFjCE8pZKA8r07H">
+          <label for="apiKey" data-page-node-id="aGd0Pm7o5CCHVoPDiWHFd7">API Key</label>
+          <input id="apiKey" type="password" placeholder="" spellcheck="false" autocomplete="off" data-page-node-id="bJTFoN3wSIXZaldPvycTIX" />
+          <div class="hint" id="key-hint" data-page-node-id="ONpVQRzV7u4YNoatLU9QZQ"></div>
+        </div>
+
+        <div class="field" data-page-node-id="mNXwRI0gDYiw1eFtMpC8q9">
+          <label for="model" data-page-node-id="jkznMImzSYV8SAVU1MKbLZ">默认模型（可选）</label>
+          <input id="model" type="text" placeholder="留空则使用服务商默认模型" spellcheck="false" data-page-node-id="jUnxmJo7A5elSmuQRaqoVh" />
+        </div>
+      </div>
+
+      <!-- ========== 步骤 2：外观与偏好（+ 高级设置折叠区） ========== -->
+      <div class="pane" data-pane="1" data-page-node-id="V3oGlAPKzufTCMphhzMJIp">
+        <div class="note" data-page-node-id="ygjs6jQG1mafwtWlPgBtHl">
+          这两项随时可以在「管理 → 个性化」里改。下面「高级设置」默认折叠——
+          MQTT、语音 Key、环境变量等都已经在管理后台开放，绝大多数用户不需要动。
+        </div>
+
+        <div class="field">
+          <label for="wiz-assistantName">助手的名字</label>
+          <input id="wiz-assistantName" type="text" placeholder="莓小智" spellcheck="false" autocomplete="off" />
+          <div class="hint">AI 助手以此自称，也可在管理后台修改。</div>
+        </div>
+
+        <div class="field">
+          <label for="wiz-userAddress">助手对你的称呼</label>
+          <input id="wiz-userAddress" type="text" placeholder="留空则不特意称呼" spellcheck="false" autocomplete="off" />
+          <div class="hint">例如「老板」「小朱」，AI 回复时会自然使用。</div>
+        </div>
+
+        <div class="field" id="wiz-theme-field">
+          <label for="wiz-theme">界面外观</label>
+          <select id="wiz-theme">
+            <option value="system">跟随系统</option>
+            <option value="light">浅色</option>
+            <option value="dark">深色</option>
+          </select>
+        </div>
+
+        <!-- ===== 高级设置（折叠） ===== -->
+        <div id="adv-toggle" class="adv-toggle" role="button" tabindex="0">
+          <span class="chev">▸</span> 高级设置（消息服务 / 密钥 / 环境变量）
+        </div>
+
+        <div id="adv-body" class="adv-body hidden">
+          <div class="note" style="margin-bottom:12px">
+            设备数据上报与控制指令走 MQTT。离线使用选「内置服务」即可，应用会自带一个仅监听本机的 broker。
+            以下配置也在「管理 → 摄像头与设备 / AI 设置」里开放。
+          </div>
+
+          <div class="seg" id="mqtt-mode" data-page-node-id="5ZqU5HwA7W9dS6puZDZhM3">
+            <button type="button" data-mode="local" data-page-node-id="zLq05NNDTvLoiJBLOzEuGO">内置服务（推荐）</button>
+            <button type="button" data-mode="remote" data-page-node-id="qx7vHKojgiisbijp9o9X6g">自建 / 云端 broker</button>
+          </div>
+
+          <div id="mqtt-remote" data-page-node-id="jO4GUuD230AxSqAeQrln5v">
+            <div class="row2" data-page-node-id="TVLbUZDipp4gvKXiL0QZ3H">
+              <div class="field" data-page-node-id="tSsZuIMdlAhpurUlGMRjLc">
+                <label for="mqttHost" data-page-node-id="vMMKX2PUEusAaRaiyOV6EB">服务器地址</label>
+                <input id="mqttHost" type="text" placeholder="mqtt.example.com" spellcheck="false" data-page-node-id="ZO3VZCEVf3RalCkjkzamO8" />
+              </div>
+              <div class="field" style="flex:0 0 104px" data-page-node-id="EZGfMCjCS6k5MLgl3RZt7b">
+                <label for="mqttPort" data-page-node-id="QEqq7nqHh7krr2kM9TRvVR">端口</label>
+                <input id="mqttPort" type="number" placeholder="1883" data-page-node-id="qAdWw5AqxlZV1A63lUzhUN" />
+              </div>
+            </div>
+            <div class="row2" data-page-node-id="nDS1sxBVZR3srJ7EqY0aY8">
+              <div class="field" data-page-node-id="guFXoQZJ9iwv3TxyPPiEQc">
+                <label for="mqttUsername" data-page-node-id="haj1ZxU4rTqc4XRxGKxXGq">用户名</label>
+                <input id="mqttUsername" type="text" spellcheck="false" autocomplete="off" data-page-node-id="AfWqWWLliFANF42Z1wTtLr" />
+              </div>
+              <div class="field" data-page-node-id="ofxjcj3StOJW4PoiWqaZRN">
+                <label for="mqttPassword" data-page-node-id="iXMCx875IGlivo7JWZkZXX">密码</label>
+                <input id="mqttPassword" type="password" spellcheck="false" autocomplete="off" data-page-node-id="84UDnsFkQenelHrEEQu3WT" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field" data-page-node-id="WzktHTEieCmYP11grigGXD">
+            <label for="mqttSub" data-page-node-id="aGNFhbtpHgCf2S6gcD8G8F">订阅主题</label>
+            <input id="mqttSub" type="text" spellcheck="false" data-page-node-id="xkhD5brdMrJxgrtyFUhg3k" />
+          </div>
+          <div class="field" data-page-node-id="NjcGMbhYdm2v4XClUInyTD">
+            <label for="mqttPub" data-page-node-id="mgKQKGwiKNf4kFOAQxs97B">发布主题</label>
+            <input id="mqttPub" type="text" spellcheck="false" data-page-node-id="GOCjet2zZHjvJ4RKuaDEgP" />
+          </div>
+
+          <div class="row2" data-page-node-id="UF8ZCr0x2ducDasa4A3tpC">
+            <div class="field" data-page-node-id="qoByGw0DjNIBxAlD7Y9YkJ">
+              <label for="mqttKeepalive" data-page-node-id="2H9hYDazZfWn7CJAKj1BLN">Keepalive（秒）</label>
+              <input id="mqttKeepalive" type="number" data-page-node-id="BFTSgqe2eeAHsE8ycPd7zr" />
+            </div>
+            <div class="field" data-page-node-id="f6sYIYj0AHQZYJZsNrsCEv">
+              <label for="mqttReconnect" data-page-node-id="mMFTu1e3znp1IDYy1lCVDj">重连间隔（毫秒）</label>
+              <input id="mqttReconnect" type="number" data-page-node-id="FpFLtsN7367kClsRI6DEBd" />
+            </div>
+          </div>
+
+          <div class="field" data-page-node-id="b2dH10ML5ZGZTvbExy6tIY">
+            <label for="mqttSsl" data-page-node-id="lZWKKSqQT4qMbH2D3MeVz7">传输加密</label>
+            <select id="mqttSsl" data-page-node-id="PMRHGZfccpHlPjSeSR75Ry">
+              <option value="false" data-page-node-id="hyUisRG5wjeYdVfX3DyMVa">关闭（mqtt://）</option>
+              <option value="true" data-page-node-id="zpMhrC1EuBUbkdKVtiAvL8">开启（mqtts://）</option>
+            </select>
+          </div>
+
+          <div class="field" data-page-node-id="3ynmqI6nNHQNYyFFB0WJwT">
+            <label for="voiceKey" data-page-node-id="kJOxvMkD6dzQxEqYp2mKxt">语音专用 Key（可选）</label>
+            <input id="voiceKey" type="password" placeholder="留空则复用 AI 助手 Key" spellcheck="false" autocomplete="off" data-page-node-id="sbeiDsRgUCiy5MY42dT21x" />
+            <div class="hint" data-page-node-id="pKEcHhmQL8vDZroEdn2Fb9">用于语音识别 / 实时对话（DashScope 兼容接口）。</div>
+          </div>
+
+          <div class="field" data-page-node-id="2HjYYRpQX16A8TA5IJubC4">
+            <label data-page-node-id="loFiA0xlT9HSdyawtCKMke">本地服务密钥（可选）</label>
+            <input id="jwtSecret" type="password" placeholder="留空则自动生成并持久化（推荐）" spellcheck="false" autocomplete="off" style="margin-bottom:6px" data-page-node-id="oQEOMPmLKu5JqBwmIFV80E" />
+            <input id="internalSecret" type="password" placeholder="内部服务鉴权密钥，留空自动生成" spellcheck="false" autocomplete="off" data-page-node-id="yaQcA3WfY7P30I1E0xOwPC" />
+            <div class="hint" data-page-node-id="LyinOYqnJNLwOZXE2xINqG">仅在需要与已有数据/服务对齐时填写；改动会使现有登录态失效。</div>
+          </div>
+
+          <div class="field" data-page-node-id="P01xDPllIGr4Tdy4vmateY">
+            <label data-page-node-id="FziUzLPNBKQLl4TA9MsMb5">自定义环境变量</label>
+            <div id="env-list" data-page-node-id="HJAEa8F9nEX3eTujwIvACp"></div>
+            <button type="button" class="add-btn" id="env-add" data-page-node-id="aTb9I6A0AYMl0ykYsR9RHy">+ 添加变量</button>
+            <div class="hint" data-page-node-id="kCUvCGNzjZflkomXtsNmDb">
+              例如 <code data-page-node-id="nakehHDX7Q3O9iTyEM8TiF">MQTT_CLIENT_ID</code>、<code data-page-node-id="cIUN5fnSAK6fHvQXTNIY68">GUARDIAN_CHECK_CRON</code>。
+              启动器管理的键（PORT / DATABASE_URL / JWT_SECRET 等）会被忽略。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot" data-page-node-id="Wl90zaRRkQ4s6H5LmWZLRC">
+      <div class="err" id="err" data-page-node-id="EDkEaIwDNzJLujPGsr4UKs"></div>
+      <div class="actions" data-page-node-id="Je5QrWWCODZnMdhRp6mNfA">
+        <button class="btn hidden" id="btn-prev" data-page-node-id="SArBFyRHMzLi0D2bWsz74q">上一步</button>
+        <button class="btn primary" id="btn-next" data-page-node-id="PGZw1GmWcpT4osIp8882Do">下一步</button>
+        <button class="btn primary hidden" id="btn-restart" style="margin-left:auto" data-page-node-id="MS9Y1T9YzWpX6VlhYhYZoB">立即重启</button>
+        <button class="ghost" id="btn-skip" data-page-node-id="Ywu3WPBRuyGxYC7fzb5FaP">稍后配置</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // 由主进程经 loadFile(query) 传入：first-run = 首启向导（可跳过），settings = 应用内打开
+  const MODE = new URLSearchParams(location.search).get('mode') === 'first-run' ? 'first-run' : 'settings';
+  const IS_FIRST_RUN = MODE === 'first-run';
+
+  const state = {
+    step: 0,
+    presets: [],
+    settings: null,
+    mode: 'local',
+    aiProviders: [],
+    defaultModelId: '',
+  };
+
+  /* ---------------- 步骤切换 ---------------- */
+
+  function renderStep() {
+    document.querySelectorAll('.pane').forEach((p) => {
+      p.classList.toggle('active', Number(p.dataset.pane) === state.step);
+    });
+    document.querySelectorAll('.step').forEach((s) => {
+      const n = Number(s.dataset.step);
+      s.classList.toggle('active', n === state.step);
+      s.classList.toggle('done', n < state.step);
+      s.querySelector('.dot').textContent = n < state.step ? '✓' : String(n + 1);
+    });
+
+    $('btn-prev').classList.toggle('hidden', state.step === 0);
+    $('btn-next').textContent = state.step === LAST_STEP ? '保存' : '下一步';
+    $('err').textContent = '';
+    document.querySelector('.body').scrollTop = 0;
+  }
+
+  /** 向导收敛为 2 步：0=AI 助手，1=外观与偏好（含高级折叠区） */
+  const LAST_STEP = 1;
+
+  /* ---------------- MQTT ---------------- */
+
+  function renderMqttMode() {
+    document.querySelectorAll('#mqtt-mode button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.mode === state.mode);
+    });
+    $('mqtt-remote').classList.toggle('hidden', state.mode !== 'remote');
+  }
+
+  /* ---------------- 环境变量行 ---------------- */
+
+  function addEnvRow(key, value) {
+    const row = document.createElement('div');
+    row.className = 'env-row';
+
+    const k = document.createElement('input');
+    k.type = 'text'; k.className = 'k'; k.placeholder = 'KEY'; k.spellcheck = false;
+    k.value = key || '';
+
+    const v = document.createElement('input');
+    v.type = 'text'; v.className = 'v'; v.placeholder = '值'; v.spellcheck = false;
+    v.value = value || '';
+
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'icon-btn'; del.textContent = '×';
+    del.title = '移除';
+    del.addEventListener('click', () => row.remove());
+
+    row.append(k, v, del);
+    $('env-list').appendChild(row);
+  }
+
+  function collectEnv() {
+    const out = [];
+    document.querySelectorAll('#env-list .env-row').forEach((row) => {
+      const k = row.querySelector('.k').value.trim();
+      const v = row.querySelector('.v').value;
+      if (k) out.push({ key: k, value: v });
+    });
+    return out;
+  }
+
+  /* ---------------- 供应商渲染 ---------------- */
+
+  function currentPreset() {
+    return state.presets.find((p) => p.id === $('preset').value);
+  }
+
+  function renderPreset() {
+    const p = currentPreset();
+    if (!p) return;
+    const isCustom = !p.baseUrl;
+    $('url-field').classList.toggle('hidden', !isCustom);
+    if (isCustom) $('baseUrl').value = '';
+    else if (!$('baseUrl').value) $('baseUrl').value = p.baseUrl;
+    $('apiKey').placeholder = p.keyHint || 'sk-…';
+
+    const hint = $('key-hint');
+    hint.textContent = '';
+    if (p.consoleUrl) {
+      const span = document.createElement('span');
+      span.textContent = '获取 Key：';
+      const a = document.createElement('a');
+      a.textContent = p.consoleUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      a.addEventListener('click', () => window.open(p.consoleUrl, '_blank'));
+      hint.append(span, a);
+    }
+  }
+
+  /* ---------------- 已配置供应商（adminUI 融合） ---------------- */
+
+  function renderProviders() {
+    const section = $('prov-section');
+    const list = $('prov-list');
+    list.innerHTML = '';
+    if (!state.aiProviders.length) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    for (const p of state.aiProviders) {
+      const row = document.createElement('div');
+      row.className = 'prov-row';
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = p.name || p.id;
+
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = p.apiKey ? p.apiKey : '未配置 Key';
+      meta.title = `${p.baseUrl || ''} · ${((p.models || []).filter((m) => m && m.enabled !== false)).map((m) => m.id).join(', ')}`;
+
+      if (p.isDefault) {
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = '默认';
+        row.appendChild(badge);
+      }
+      row.append(name, meta);
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'icon-btn danger';
+      del.textContent = '×';
+      del.title = '删除该供应商';
+      del.addEventListener('click', async () => {
+        if (!confirm(`确定删除供应商「${p.name || p.id}」？其 API Key 将从本机清除。`)) return;
+        const res = await window.stravisionDesktop.aiProviderDelete(p.id);
+        if (!res || !res.ok) {
+          $('err').textContent = (res && res.error) || '删除失败';
+          return;
+        }
+        await refreshProviders();
+      });
+      row.appendChild(del);
+
+      list.appendChild(row);
+    }
+
+    // 默认模型：自由输入 + datalist 预设建议（各供应商启用模型的 id）。
+    // 不做归属强制回退 —— 用户可填任意模型 id（自定义端点 / 新模型），
+    // 主进程保存时会自动把未知 id 注册到对应供应商，保证运行时可解析。
+    const inp = $('defaultModel');
+    const dl = $('defaultModelList');
+    dl.innerHTML = '';
+    for (const p of state.aiProviders) {
+      for (const m of (p.models || [])) {
+        if (!m || m.enabled === false) continue;
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.label = (p.name || p.id) + (m.name && m.name !== m.id ? ' · ' + m.name : '');
+        dl.appendChild(opt);
+      }
+    }
+    inp.value = state.defaultModelId || '';
+  }
+
+  async function refreshProviders() {
+    const res = await window.stravisionDesktop.getDesktopSettings();
+    if (res && res.ok) {
+      state.aiProviders = res.aiProviders || [];
+      state.defaultModelId = res.defaultModelId || '';
+      renderProviders();
+    }
+  }
+
+  /* ---------------- 数据收集 / 校验 ---------------- */
+
+  function collect() {
+    const mode = state.mode;
+    return {
+      settings: {
+        ai: {
+          providerId: $('preset').value,
+          baseUrl: $('baseUrl').value.trim(),
+          apiKey: $('apiKey').value.trim(),
+          model: $('model').value.trim(),
+          // 🆕 adminUI 融合：默认模型随保存一起落盘（没有供应商时为空串，主进程会校验归属）
+          defaultModelId: ($('defaultModel') && $('defaultModel').value) || '',
+        },
+        mqtt: {
+          mode,
+          // 内置模式下 host/port/账密由启动器接管（页面上的值只是回显），可以给默认值；
+          // 自建模式下**不能兜底**，否则用户留空会静默存成 127.0.0.1，
+          // 下面的必填校验也就永远触发不了。
+          host: mode === 'remote' ? $('mqttHost').value.trim() : $('mqttHost').value.trim() || '127.0.0.1',
+          port: mode === 'remote' ? Number($('mqttPort').value) || 0 : Number($('mqttPort').value) || 11883,
+          username: $('mqttUsername').value.trim(),
+          password: $('mqttPassword').value,
+          subscribeTopic: $('mqttSub').value.trim(),
+          publishTopic: $('mqttPub').value.trim(),
+          useSSL: $('mqttSsl').value === 'true',
+          keepalive: Number($('mqttKeepalive').value) || 60,
+          reconnectPeriod: Number($('mqttReconnect').value) || 5000,
+        },
+        voice: { dashscopeApiKey: $('voiceKey').value.trim() },
+        secrets: {
+          jwtSecret: $('jwtSecret').value.trim(),
+          internalApiSecret: $('internalSecret').value.trim(),
+        },
+        env: collectEnv(),
+        // 🆕 首启必要项之三：外观与偏好（管理后台「个性化」是权威入口，
+        // 这里只做首启引导，落盘后业务侧首登时回填到 user_preferences）
+        personal: {
+          assistantName: $('wiz-assistantName').value.trim(),
+          userAddress: $('wiz-userAddress').value.trim(),
+          theme: $('wiz-theme').value,
+        },
+      },
+    };
+  }
+
+  /** 返回错误信息，或 null 表示通过 */
+  function validateStep(step) {
+    const s = collect().settings;
+
+    if (step === 0) {
+      if (!s.ai.providerId) return '请选择模型服务商';
+      // API Key 允许留空：用户可以先跳过 AI，之后随时从「管理 → AI 设置」补填。
+      if (s.ai.apiKey && !s.ai.baseUrl) return '请填写接口地址';
+    }
+    // 高级项只在用户展开并填写后才校验（折叠状态不该拦住保存）
+    const advOpen = !$('adv-body').classList.contains('hidden');
+    if (advOpen) {
+      if (!s.mqtt.subscribeTopic) return '订阅主题不能为空';
+      if (!s.mqtt.publishTopic) return '发布主题不能为空';
+      if (s.mqtt.mode === 'remote') {
+        if (!s.mqtt.host) return '请填写 MQTT 服务器地址';
+        if (!s.mqtt.username) return '请填写 MQTT 用户名';
+        if (!s.mqtt.password) return '请填写 MQTT 密码';
+        if (!(s.mqtt.port > 0 && s.mqtt.port < 65536)) return 'MQTT 端口不合法';
+      }
+      for (const item of s.env) {
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(item.key)) {
+          return `环境变量名不合法：${item.key}`;
+        }
+      }
+    }
+    return null;
+  }
+
+  /* ---------------- 初始化 ---------------- */
+
+  async function init() {
+    const res = await window.stravisionDesktop.getDesktopSettings();
+    if (!res || !res.ok) {
+      $('err').textContent = (res && res.error) || '无法读取配置';
+      $('btn-next').disabled = true;
+      return;
+    }
+
+    state.presets = res.presets || [];
+    state.settings = res.settings;
+    state.mode = res.settings.mqtt.mode === 'remote' ? 'remote' : 'local';
+    state.aiProviders = res.aiProviders || [];
+    state.defaultModelId = res.defaultModelId || '';
+    renderProviders();
+
+    // 步骤 1
+    $('preset').innerHTML = '';
+    for (const p of state.presets) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      $('preset').appendChild(opt);
+    }
+    const ai = res.settings.ai || {};
+    if (ai.providerId && state.presets.some((p) => p.id === ai.providerId)) {
+      $('preset').value = ai.providerId;
+    }
+    renderPreset();
+    if (ai.baseUrl) $('baseUrl').value = ai.baseUrl;
+    if (ai.apiKey) $('apiKey').value = ai.apiKey;
+    if (ai.model) $('model').value = ai.model;
+
+    // 步骤 2
+    // 步骤 2：外观与偏好（个性化项落在 user_preferences，由业务侧 API 保存）
+    // 向导窗口拿不到当前登录用户，因此这里只做「本地偏好」暂存 +
+    // 首启时把称呼/助手名写进 desktop-settings.json 的 personal 段，
+    // 供业务侧首登后回填。管理后台的「个性化」页是权威入口。
+    const personal = (res.settings && res.settings.personal) || {};
+    $('wiz-assistantName').value = personal.assistantName || '莓小智';
+    $('wiz-userAddress').value = personal.userAddress || '';
+    $('wiz-theme').value = personal.theme || 'system';
+
+    // 高级区：MQTT
+    const m = res.settings.mqtt;
+    $('mqttHost').value = m.mode === 'remote' ? m.host : '';
+    $('mqttPort').value = m.port;
+    $('mqttUsername').value = m.mode === 'remote' ? m.username : '';
+    $('mqttPassword').value = m.mode === 'remote' ? m.password : '';
+    $('mqttSub').value = m.subscribeTopic || '';
+    $('mqttPub').value = m.publishTopic || '';
+    $('mqttSsl').value = m.useSSL ? 'true' : 'false';
+    $('mqttKeepalive').value = m.keepalive;
+    $('mqttReconnect').value = m.reconnectPeriod;
+    renderMqttMode();
+
+    // 高级区：语音 Key / 密钥 / 环境变量
+    $('voiceKey').value = (res.settings.voice && res.settings.voice.dashscopeApiKey) || '';
+    $('jwtSecret').value = (res.settings.secrets && res.settings.secrets.jwtSecret) || '';
+    $('internalSecret').value = (res.settings.secrets && res.settings.secrets.internalApiSecret) || '';
+    for (const item of res.settings.env || []) addEnvRow(item.key, item.value);
+
+    // 应用内打开：标题与按钮文案区分于首启向导
+    if (!IS_FIRST_RUN) {
+      $('title').textContent = '本地服务配置';
+      $('subtitle').textContent = '修改后保存；消息服务与环境变量需重启应用生效，AI 配置即时生效。';
+      $('btn-skip').textContent = '关闭';
+    }
+
+    renderStep();
+    $('apiKey').focus();
+  }
+
+  /* ---------------- 事件 ---------------- */
+
+  $('preset').addEventListener('change', () => {
+    $('baseUrl').value = '';
+    renderPreset();
+  });
+
+  document.querySelectorAll('#mqtt-mode button').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.mode = b.dataset.mode;
+      renderMqttMode();
+    });
+  });
+
+  document.querySelectorAll('.step').forEach((s) => {
+    s.addEventListener('click', () => {
+      const target = Number(s.dataset.step);
+      // 只允许回看已完成的步骤，避免跳过校验
+      if (target <= state.step) {
+        state.step = target;
+        renderStep();
+      }
+    });
+  });
+
+  $('env-add').addEventListener('click', () => addEnvRow('', ''));
+
+  // 高级设置折叠（默认收起：MQTT/密钥/env 都已在管理后台开放，避免首启吓人）
+  function toggleAdvanced() {
+    const body = $('adv-body');
+    const open = body.classList.toggle('hidden') === false;
+    $('adv-toggle').classList.toggle('open', open);
+  }
+  $('adv-toggle').addEventListener('click', toggleAdvanced);
+  $('adv-toggle').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleAdvanced();
+    }
+  });
+
+  $('btn-prev').addEventListener('click', () => {
+    if (state.step > 0) {
+      state.step -= 1;
+      renderStep();
+    }
+  });
+
+  $('btn-next').addEventListener('click', async () => {
+    const error = validateStep(state.step);
+    if (error) {
+      $('err').textContent = error;
+      return;
+    }
+
+    if (state.step < LAST_STEP) {
+      state.step += 1;
+      renderStep();
+      return;
+    }
+
+    // 末步：保存
+    $('btn-next').disabled = true;
+    $('btn-next').textContent = '正在保存…';
+    $('err').textContent = '';
+
+    const res = await window.stravisionDesktop.saveDesktopSettings(collect());
+
+    if (!res || !res.ok) {
+      $('btn-next').disabled = false;
+      $('btn-next').textContent = '保存';
+      $('err').textContent = (res && res.error) || '保存失败，请重试';
+      return;
+    }
+
+    // 首启：主进程会关闭本窗口并继续启动主界面，这里不用做收尾
+    if (IS_FIRST_RUN) return;
+
+    // 应用内打开的向导：把窗口切成"结果态"。
+    // 窗口是无边框的（frame:false），因此必须始终保留一个关闭出口，否则用户会被困住。
+    $('btn-next').classList.add('hidden');
+    $('btn-prev').classList.add('hidden');
+    $('steps').classList.add('hidden');
+    document.querySelector('.actions').classList.add('result');
+    $('btn-skip').textContent = '关闭';
+    if (res.restartRequired) {
+      $('btn-restart').classList.remove('hidden');
+      $('subtitle').textContent = '配置已保存。消息服务与环境变量需重启应用后生效。';
+    } else {
+      $('subtitle').textContent = '配置已保存，已立即生效。';
+    }
+  });
+
+  $('btn-restart').addEventListener('click', () => window.stravisionDesktop.relaunch());
+
+  $('btn-skip').addEventListener('click', () => {
+    // 首启向导"稍后配置" → 写跳过标记；应用内向导"关闭" → 直接关窗
+    if (IS_FIRST_RUN) window.stravisionDesktop.skipAiSetup();
+    else window.stravisionDesktop.closeSetup();
+  });
+
+  $('apiKey').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('btn-next').click();
+  });
+
+  init();
+</script>
+</body>
+</html>

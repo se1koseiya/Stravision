@@ -5,8 +5,8 @@ import Cropper from 'react-easy-crop'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Upload, X, Crop } from 'lucide-react'
 import { toast } from 'sonner'
+import { IconClose, IconCompression, IconUpload } from "@/components/icon";
 
 interface ImageCropperProps {
   open: boolean
@@ -86,7 +86,7 @@ export function ImageCropper({ open, onOpenChange, onCropComplete, aspect = 1, t
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-              <Upload className="size-10 text-zinc-400" />
+              <IconUpload className="size-10 text-zinc-400" />
               <div className="text-center">
                  <p className="text-sm font-medium">Select an image to start cropping</p>
                  <p className="text-xs text-zinc-500">Supports JPG, PNG, WEBP</p>

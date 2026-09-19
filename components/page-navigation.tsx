@@ -1,6 +1,5 @@
 "use client"
 
-import { CloudIcon, Cog6ToothIcon, ChartBarIcon, SparklesIcon, ChatBubbleLeftRightIcon, BoltIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
@@ -8,7 +7,7 @@ import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 
 import { cn } from "@/lib/utils"
-
+import { IconChartHistogram, IconCloudy, IconComment, IconLeft, IconMagic, IconRight, IconSettingTwo, IconThunderbolt } from "@/components/icon";
 type PageNavigationVariant = "dark" | "light"
 
 export function PageNavigation({
@@ -23,12 +22,12 @@ export function PageNavigation({
   const [isCompact, setIsCompact] = useState(false)
 
   const navItems = [
-    { href: "/monitor", icon: CloudIcon, label: "农作物监测", id: "nav-monitor" },
-    { href: "/device-control", icon: Cog6ToothIcon, label: "硬件设备控制", id: "nav-device-control" },
-    { href: "/dashboard", icon: ChartBarIcon, label: "数据看板", id: "nav-dashboard" },
-    { href: "/automation", icon: BoltIcon, label: "自动化", id: "nav-automation" },
-    { href: "/ai-assistant", icon: SparklesIcon, label: "AI 助手", id: "nav-ai-assistant" },
-    { href: "/chat", icon: ChatBubbleLeftRightIcon, label: "聊天", id: "nav-chat" },
+    { href: "/monitor", icon: IconCloudy, label: "农作物监测", id: "nav-monitor" },
+    { href: "/device-control", icon: IconSettingTwo, label: "硬件设备控制", id: "nav-device-control" },
+    { href: "/dashboard", icon: IconChartHistogram, label: "数据看板", id: "nav-dashboard" },
+    { href: "/automation", icon: IconThunderbolt, label: "自动化", id: "nav-automation" },
+    { href: "/ai-assistant", icon: IconMagic, label: "AI 助手", id: "nav-ai-assistant" },
+    { href: "/chat", icon: IconComment, label: "聊天", id: "nav-chat" },
   ]
 
   const activeIndex = navItems.findIndex((item) => pathname === item.href)
@@ -138,9 +137,9 @@ export function PageNavigation({
         aria-label={isCompact ? "展开导航" : "收起导航"}
       >
         {isCompact ? (
-          <ChevronRightIcon className="size-4 text-slate-600 dark:text-slate-400" />
+          <IconRight className="size-4 text-slate-600 dark:text-slate-400" />
         ) : (
-          <ChevronLeftIcon className="size-4 text-slate-600 dark:text-slate-400" />
+          <IconLeft className="size-4 text-slate-600 dark:text-slate-400" />
         )}
       </button>
     </div>

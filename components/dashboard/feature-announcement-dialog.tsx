@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ChevronRight, ChevronLeft, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
+import { IconClose, IconLeft, IconRight, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 export type MediaType = "image" | "video"
 
@@ -165,7 +165,7 @@ export function FeatureAnnouncementDialog({
                             onClick={handleClose}
                             className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-slate-700 hover:text-black transition-colors backdrop-blur-md"
                         >
-                            <X className="w-4 h-4" />
+                            <IconClose className="w-4 h-4" />
                         </button>
 
                         {/* Media Area */}
@@ -214,7 +214,7 @@ export function FeatureAnnouncementDialog({
                                             }}
                                             className="absolute bottom-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
                                         >
-                                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                            {isMuted ? <IconVolumeMute className="w-4 h-4" /> : <IconVolumeNotice className="w-4 h-4" />}
                                         </button>
                                         </>
 
@@ -276,7 +276,7 @@ export function FeatureAnnouncementDialog({
                                             onClick={handlePrev}
                                             className="px-4 py-2.5 rounded-[12px] text-slate-600 font-medium hover:bg-slate-100 transition-colors text-[14px] flex items-center justify-center"
                                         >
-                                            <ChevronLeft className="w-4 h-4 mr-1" /> 上一个
+                                            <IconLeft className="w-4 h-4 mr-1" /> 上一个
                                         </button>
                                     )}
 
@@ -286,7 +286,7 @@ export function FeatureAnnouncementDialog({
                                     >
                                         {isLast ? "知道了" : (
                                             <>
-                                                下一个 <ChevronRight className="w-4 h-4 ml-1" />
+                                                下一个 <IconRight className="w-4 h-4 ml-1" />
                                             </>
                                         )}
                                     </button>

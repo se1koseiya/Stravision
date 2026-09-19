@@ -3,10 +3,10 @@
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
-import { ShieldCheck } from "lucide-react";
+import type { ComponentType } from "react";
 import { Qwen, DeepSeek, Moonshot, Zhipu, Doubao, Spark } from "@lobehub/icons";
 import { L, L_MIX, SECTION_TITLE, SHADOW, fadeUp } from "./shared";
+import { IconShield, type IconProps } from "@/components/icon";
 
 /* 3D 工牌（three + rapier + meshline）只在这张卡滚进视口时才下载 */
 const LanyardScene = dynamic(() => import("./lanyard"), { ssr: false });
@@ -38,7 +38,7 @@ const PERSONA_FACES = [
 ];
 
 /** 产品动态模型选择器里实际支持的 provider（真实品牌图标） */
-const MODELS: { name: string; Icon: LucideIcon | any }[] = [
+const MODELS: { name: string; Icon: ComponentType<IconProps> | any }[] = [
   { name: "通义千问", Icon: (Qwen as any).Color ?? Qwen },
   { name: "DeepSeek", Icon: (DeepSeek as any).Color ?? DeepSeek },
   { name: "Kimi", Icon: (Moonshot as any).Color ?? Moonshot },
@@ -112,7 +112,7 @@ export function Bento() {
                       color: i === 1 ? "#0B3B26" : L.muted,
                     }}
                   >
-                    {i === 1 ? <ShieldCheck className="size-3" /> : i + 1}
+                    {i === 1 ? <IconShield className="size-3" /> : i + 1}
                   </span>
                   <span
                     className="text-[12.5px] font-medium"

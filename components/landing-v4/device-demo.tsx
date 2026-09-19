@@ -17,11 +17,11 @@
                  与 chat-message-renderer 解析到 IoT 指令时渲染的是同一个）
    ------------------------------------------------------------ */
 
-import { Radio } from "lucide-react";
 import type { AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain";
 import { DeviceControlCard } from "@/components/ai/device-control-card";
 import { DEVICE_IDS } from "@/lib/constants";
 import { DemoChat, DemoChip } from "./demo-chat/shell";
+import { IconRadio } from "@/components/icon";
 
 const QUESTION = "3 号棚有点闷，帮我把环境风扇打开";
 
@@ -103,7 +103,7 @@ export function DeviceDemo() {
         <>
           {/* 产品里真实的设备控制卡 */}
           <DeviceControlCard command={FAN_COMMAND} status="executed" />
-          <DemoChip icon={<Radio className="size-3" />}>
+          <DemoChip icon={<IconRadio className="size-3" />}>
             已开 09:41 · 留痕可回滚
           </DemoChip>
         </>

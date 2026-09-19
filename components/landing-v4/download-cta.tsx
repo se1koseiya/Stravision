@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, BookOpen } from "lucide-react";
 import { CONTAINER, L, L_MIX, SHADOW, fadeUp } from "./shared";
+import { IconArrowRightUp, IconBookOpen } from "@/components/icon";
 
 /* ------------------------------------------------------------
    尾屏 —— 对齐 loomy.xunfei.cn 的 `DownloadCta` + `LandingFooter`
@@ -129,7 +129,7 @@ export function DownloadCta() {
               className="flex h-16 w-[52px] items-center justify-center border-l transition-colors duration-200 hover:opacity-75"
               style={{ borderColor: "color-mix(in srgb, currentColor 20%, transparent)" }}
             >
-              <ArrowUpRight className="size-[1.15rem]" />
+              <IconArrowRightUp className="size-[1.15rem]" />
             </Link>
           </div>
 
@@ -139,7 +139,7 @@ export function DownloadCta() {
             className="inline-flex h-16 items-center justify-center gap-[0.45rem] rounded-full px-6 text-[1rem] font-bold transition-[transform,opacity] duration-200 hover:-translate-y-0.5"
             style={{ background: L.emerald300, color: L.neutral950 }}
           >
-            <BookOpen className="size-[1.15rem]" />
+            <IconBookOpen className="size-[1.15rem]" />
             查看订阅方案
           </Link>
         </motion.div>

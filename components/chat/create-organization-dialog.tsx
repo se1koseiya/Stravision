@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Modal, Input, Button, Select } from "antd"
-import { Network, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { chatClient } from "@/lib/chat/chat-client"
 import type { ChatOrganization } from "@/lib/chat/chat-types"
+import { IconNetworkTree, IconRight } from "@/components/icon";
 
 interface CreateOrganizationDialogProps {
   open: boolean
@@ -116,7 +116,7 @@ export function CreateOrganizationDialog({
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3">
           <span className="size-10 rounded-xl bg-[#f0f5ff] flex items-center justify-center shrink-0">
-            <Network size={20} strokeWidth={1.75} className="text-[#2f54eb]" />
+            <IconNetworkTree size={20} strokeWidth={1.75} className="text-[#2f54eb]" />
           </span>
           <div className="min-w-0">
             <h3 className="text-[16px] text-[rgba(0,0,0,0.88)]" style={{ fontWeight: 500 }}>
@@ -162,7 +162,7 @@ export function CreateOrganizationDialog({
           className="w-full !rounded-lg"
           style={{ width: "100%" }}
           notFoundContent="暂无其他组织"
-          suffixIcon={<ChevronRight size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.25)] rotate-90" />}
+          suffixIcon={<IconRight size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.25)] rotate-90" />}
         />
         <p className="text-[11px] text-[rgba(0,0,0,0.35)] mt-1.5">
           可选。选择后将作为该上级组织的下级节点，形成层级关系。

@@ -2,8 +2,8 @@
 
 import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from "@/components/ai/tool"
 import type { ToolUIPart } from "ai"
-import { PlugZap, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { IconArrowRight, IconConnect } from "@/components/icon";
 
 interface MCPToolDisplayProps {
   toolName: string
@@ -94,7 +94,7 @@ export function MCPToolDisplay({
               <div className="flex items-center gap-3.5 flex-1 min-w-0">
                 {/* Visual Icon Container */}
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shrink-0 shadow-sm border border-indigo-200/60 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
-                  <PlugZap size={22} strokeWidth={2} className="drop-shadow-sm group-hover:animate-pulse" />
+                  <IconConnect size={22} strokeWidth={2} className="drop-shadow-sm group-hover:animate-pulse" />
                 </div>
                 
                 {/* Text Content */}
@@ -116,7 +116,7 @@ export function MCPToolDisplay({
                 className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-[0_2px_10px_-4px_rgba(99,102,241,0.6)] hover:shadow-lg transition-all duration-200 text-[13px] font-medium"
               >
                 前往插件市场
-                <ArrowRight size={16} strokeWidth={2.5} className="opacity-90" />
+                <IconArrowRight size={16} strokeWidth={2.5} className="opacity-90" />
               </Link>
             </div>
             

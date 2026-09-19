@@ -4,12 +4,12 @@ import React from "react"
 import Image from "next/image"
 import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
-import { Activity, FileText, Zap, Calendar, Camera, Search, BarChart3, Brain } from "lucide-react"
 import XMarkdown from "@ant-design/x-markdown"
 import { MermaidCard } from "@/components/ai/mermaid-card"
 import { SvgCard } from "@/components/ai/svg-card"
 import { DeviceForgeCard, DeviceForgeSkeleton } from "@/components/ai/device-forge-card"
 import { parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
+import { IconBrain, IconCalendar, IconCamera, IconChartHistogram, IconChartLine, IconFileText, IconLightning, IconSearch } from "@/components/icon";
 
 import type { Message } from "@/app/ai-assistant/types"
 import { DeviceControlCard } from "@/components/ai/device-control-card"
@@ -60,14 +60,14 @@ const TAG_REGEX =
 
 function MobileCapabilitiesCard({ onExampleClick }: { onExampleClick: (ex: string) => void }) {
   const caps = [
-    { icon: Zap, title: "设备控制", color: "#1677ff", example: "打开水泵" },
-    { icon: Activity, title: "环境监测", color: "#52c41a", example: "当前环境如何" },
-    { icon: BarChart3, title: "光谱分析", color: "#722ed1", example: "获取光谱数据" },
-    { icon: Camera, title: "视觉巡检", color: "#fa8c16", example: "巡检温室" },
-    { icon: Calendar, title: "定时任务", color: "#eb2f96", example: "每天8点开灯" },
-    { icon: FileText, title: "报告生成", color: "#13c2c2", example: "生成环境报告" },
-    { icon: Search, title: "知识搜索", color: "#f5222d", example: "白粉病怎么防治" },
-    { icon: Brain, title: "智能分析", color: "#fa541c", example: "分析生长状态" },
+    { icon: IconLightning, title: "设备控制", color: "#1677ff", example: "打开水泵" },
+    { icon: IconChartLine, title: "环境监测", color: "#52c41a", example: "当前环境如何" },
+    { icon: IconChartHistogram, title: "光谱分析", color: "#722ed1", example: "获取光谱数据" },
+    { icon: IconCamera, title: "视觉巡检", color: "#fa8c16", example: "巡检温室" },
+    { icon: IconCalendar, title: "定时任务", color: "#eb2f96", example: "每天8点开灯" },
+    { icon: IconFileText, title: "报告生成", color: "#13c2c2", example: "生成环境报告" },
+    { icon: IconSearch, title: "知识搜索", color: "#f5222d", example: "白粉病怎么防治" },
+    { icon: IconBrain, title: "智能分析", color: "#fa541c", example: "分析生长状态" },
   ]
   return (
     <div className="my-3">
@@ -287,7 +287,7 @@ function renderTaggedContent(
         if (part.match(/^<\s*CONTEXT_COMPRESSED/))
           return (
             <div key={index} className="my-2 flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
-              <Activity size={12} className="text-emerald-500 shrink-0" />
+              <IconChartLine size={12} className="text-emerald-500 shrink-0" />
               <span>较早的对话历史已自动提炼并压缩</span>
             </div>
           )
@@ -328,7 +328,7 @@ function renderTaggedContent(
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 text-white" />
+                      <IconFileText className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{title}</h3>
@@ -346,7 +346,7 @@ function renderTaggedContent(
           return (
             <div key={index} className="my-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-xl text-sm text-amber-700 dark:text-amber-400 italic">
               <div className="flex items-center gap-2 mb-1 text-xs font-bold uppercase tracking-wide">
-                <Activity size={12} /> 历史记忆摘要
+                <IconChartLine size={12} /> 历史记忆摘要
               </div>
               {part.replace(/^<\s*PAST_MEMORY\s*>/, "").replace(/<\/\s*PAST_MEMORY\s*>/, "").trim()}
             </div>

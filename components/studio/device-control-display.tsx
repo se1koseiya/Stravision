@@ -1,8 +1,8 @@
 "use client"
 
-import { CheckCircle2, XCircle, Loader2, Lightbulb, Fan, Droplets, Camera, Power, Zap, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
+import { IconCamera, IconChartLine, IconCheckOne, IconCloseOne, IconFan, IconLight, IconLightning, IconLoading, IconPower, IconWater } from "@/components/icon";
 
 interface DeviceControlDisplayProps {
   toolName: string
@@ -21,7 +21,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
     switch (toolName) {
       case 'set_led':
         return {
-          icon: Lightbulb,
+          icon: IconLight,
           name: '植物补光灯',
           subtitle: 'RGB 全光谱控制',
           color: 'text-amber-500 dark:text-amber-400',
@@ -30,23 +30,23 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
         }
       case 'toggle_relay':
         const deviceName = input?.deviceName || `设备${input?.device}`
-        let icon = Power
+        let icon = IconPower
         let color = 'text-blue-500 dark:text-blue-400'
         let accentColor = 'bg-blue-500'
         let bgGradient = 'from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/5'
         
         if (deviceName.includes('风扇')) {
-          icon = Fan
+          icon = IconFan
           color = 'text-cyan-500 dark:text-cyan-400'
           accentColor = 'bg-cyan-500'
           bgGradient = 'from-cyan-500/5 to-blue-500/5 dark:from-cyan-500/10 dark:to-blue-500/5'
         } else if (deviceName.includes('水泵')) {
-          icon = Droplets
+          icon = IconWater
           color = 'text-blue-500 dark:text-blue-400'
           accentColor = 'bg-blue-500'
           bgGradient = 'from-blue-500/5 to-indigo-500/5 dark:from-blue-500/10 dark:to-indigo-500/5'
         } else if (deviceName.includes('补光灯')) {
-          icon = Lightbulb
+          icon = IconLight
           color = 'text-amber-500 dark:text-amber-400'
           accentColor = 'bg-amber-500'
           bgGradient = 'from-amber-500/5 to-orange-500/5 dark:from-amber-500/10 dark:to-orange-500/5'
@@ -62,7 +62,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
         }
       case 'control_camera':
         return {
-          icon: Camera,
+          icon: IconCamera,
           name: '摄像头云台',
           subtitle: '位置移动控制',
           color: 'text-purple-500 dark:text-purple-400',
@@ -71,7 +71,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
         }
       default:
         return {
-          icon: Power,
+          icon: IconPower,
           name: '设备控制',
           subtitle: 'IoT 设备管理',
           color: 'text-zinc-500 dark:text-zinc-400',
@@ -153,7 +153,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   className="absolute -bottom-2 -right-2 size-10 rounded-full bg-blue-500 flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
                 >
-                  <Loader2 className="size-5 text-white" />
+                  <IconLoading className="size-5 text-white" />
                 </motion.div>
               )}
               
@@ -164,7 +164,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
                   className="absolute -bottom-2 -right-2 size-10 rounded-full bg-primary flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
                 >
-                  <CheckCircle2 className="size-5 text-white" />
+                  <IconCheckOne className="size-5 text-white" />
                 </motion.div>
               )}
               
@@ -175,7 +175,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
                   className="absolute -bottom-2 -right-2 size-10 rounded-full bg-red-500 flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
                 >
-                  <XCircle className="size-5 text-white" />
+                  <IconCloseOne className="size-5 text-white" />
                 </motion.div>
               )}
             </div>
@@ -237,7 +237,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-4 backdrop-blur-sm shadow-sm">
                 <div className="flex items-center gap-2 mb-1">
-                  <Zap className="size-4 text-zinc-400" />
+                  <IconLightning className="size-4 text-zinc-400" />
                   <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">设备编号</span>
                 </div>
                 <div className="text-3xl font-bold text-zinc-900 dark:text-white">#{input.device}</div>
@@ -245,7 +245,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
               
               <div className="rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-4 backdrop-blur-sm shadow-sm">
                 <div className="flex items-center gap-2 mb-1">
-                  <Activity className="size-4 text-zinc-400" />
+                  <IconChartLine className="size-4 text-zinc-400" />
                   <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">状态</span>
                 </div>
                 <div className={cn(
@@ -262,7 +262,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-4 backdrop-blur-sm shadow-sm">
                 <div className="flex items-center gap-2 mb-1">
-                  <Camera className="size-4 text-zinc-400" />
+                  <IconCamera className="size-4 text-zinc-400" />
                   <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">方向</span>
                 </div>
                 <div className="text-2xl font-bold text-zinc-900 dark:text-white">
@@ -273,7 +273,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
               {input.distance_mm && (
                 <div className="rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-4 backdrop-blur-sm shadow-sm">
                   <div className="flex items-center gap-2 mb-1">
-                    <Activity className="size-4 text-zinc-400" />
+                    <IconChartLine className="size-4 text-zinc-400" />
                     <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">距离</span>
                   </div>
                   <div className="text-2xl font-bold text-zinc-900 dark:text-white">{input.distance_mm} <span className="text-lg text-zinc-500 dark:text-zinc-400">mm</span></div>
@@ -296,9 +296,9 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
             )}
           >
             <div className="flex items-center gap-3">
-              {isExecuting && <Loader2 className="size-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />}
-              {isSuccess && <CheckCircle2 className="size-4 text-primary dark:text-emerald-400 flex-shrink-0" />}
-              {isError && <XCircle className="size-4 text-red-600 dark:text-red-400 flex-shrink-0" />}
+              {isExecuting && <IconLoading className="size-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />}
+              {isSuccess && <IconCheckOne className="size-4 text-primary dark:text-emerald-400 flex-shrink-0" />}
+              {isError && <IconCloseOne className="size-4 text-red-600 dark:text-red-400 flex-shrink-0" />}
               <p className={cn(
                 "text-sm font-medium",
                 isSuccess && "text-emerald-700 dark:text-emerald-300",
@@ -319,7 +319,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
             className="rounded-2xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 p-4 backdrop-blur-sm shadow-sm"
           >
             <div className="flex items-start gap-3">
-              <XCircle className="size-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <IconCloseOne className="size-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">错误详情</p>
                 <p className="text-sm text-red-700 dark:text-red-300 break-words">{result.error}</p>

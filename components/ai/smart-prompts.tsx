@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Loader2, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconLoading, IconRefresh } from "@/components/icon";
 
 export interface SuggestFollowupItem {
   key: string
@@ -154,7 +154,7 @@ export function SmartPrompts({
             isDark ? "text-zinc-500" : "text-zinc-400"
           )}
         >
-          {loading && <Loader2 size={11} className="animate-spin" />}
+          {loading && <IconLoading size={11} className="animate-spin" />}
           <span>
             {loading
               ? "正在推断你可能想问的…"
@@ -172,7 +172,7 @@ export function SmartPrompts({
           title="换一批"
           aria-label="换一批"
         >
-          <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
+          <IconRefresh size={11} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
       <div className="flex flex-col gap-0.5">

@@ -7,18 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Trash2, 
-  GripVertical, 
-  Brain, 
-  Zap, 
-  CheckCircle, 
-  Bot,
-  Save,
-  Play
-} from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
+import { IconBrain, IconCheckOne, IconDelete, IconDrag, IconLightning, IconPlay, IconPlus, IconRobot, IconSave } from "@/components/icon";
 
 interface AgentNode {
   id: string;
@@ -32,28 +22,28 @@ const AGENT_TEMPLATES = [
   {
     type: 'planner',
     name: '任务规划器',
-    icon: Brain,
+    icon: IconBrain,
     color: 'blue',
     description: '分析用户需求，制定执行计划',
   },
   {
     type: 'executor',
     name: '执行器',
-    icon: Zap,
+    icon: IconLightning,
     color: 'green',
     description: '执行具体的操作和任务',
   },
   {
     type: 'validator',
     name: '验证器',
-    icon: CheckCircle,
+    icon: IconCheckOne,
     color: 'purple',
     description: '验证执行结果的正确性',
   },
   {
     type: 'coordinator',
     name: '协调器',
-    icon: Bot,
+    icon: IconRobot,
     color: 'orange',
     description: '协调多个 Agent 的工作',
   },
@@ -106,11 +96,11 @@ export function AgentWorkflowBuilder() {
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={saveWorkflow}>
-                <Save className="h-4 w-4 mr-2" />
+                <IconSave className="h-4 w-4 mr-2" />
                 保存
               </Button>
               <Button size="sm" onClick={executeWorkflow} disabled={workflow.length === 0}>
-                <Play className="h-4 w-4 mr-2" />
+                <IconPlay className="h-4 w-4 mr-2" />
                 执行
               </Button>
             </div>
@@ -162,7 +152,7 @@ export function AgentWorkflowBuilder() {
                           {template.description}
                         </p>
                       </div>
-                      <Plus className="h-4 w-4 text-muted-foreground" />
+                      <IconPlus className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Button>
                 </motion.div>
@@ -191,7 +181,7 @@ export function AgentWorkflowBuilder() {
           <CardContent>
             {workflow.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+                <IconRobot className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-sm text-muted-foreground">
                   从左侧选择 Agent 模板开始构建工作流
                 </p>
@@ -205,7 +195,7 @@ export function AgentWorkflowBuilder() {
               >
                 {workflow.map((agent, index) => {
                   const template = AGENT_TEMPLATES.find(t => t.type === agent.type);
-                  const Icon = template?.icon || Bot;
+                  const Icon = template?.icon || IconRobot;
                   
                   return (
                     <Reorder.Item
@@ -224,7 +214,7 @@ export function AgentWorkflowBuilder() {
                             <div className="flex items-start gap-3">
                               {/* 拖拽手柄 */}
                               <div className="flex items-center gap-2">
-                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                                <IconDrag className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-medium">
                                   {index + 1}
                                 </div>
@@ -304,7 +294,7 @@ export function AgentWorkflowBuilder() {
                                 onClick={() => removeAgent(agent.id)}
                                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <IconDelete className="h-4 w-4 text-red-500" />
                               </Button>
                             </div>
                           </CardContent>

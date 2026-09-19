@@ -19,16 +19,8 @@ import {
   message,
 } from "antd"
 import { toast } from "sonner"
-import {
-  SoundOutlined,
-  SaveOutlined,
-  ReloadOutlined,
-  DeleteOutlined,
-  CheckCircleFilled,
-  ExclamationCircleFilled,
-  ApiOutlined,
-} from "@ant-design/icons"
 import Link from "next/link"
+import { IconApi, IconAttention, IconCheckOne, IconDelete, IconRefresh, IconSave, IconVolumeNotice } from "@/components/icon";
 
 const { Text, Title, Paragraph } = Typography
 
@@ -172,7 +164,7 @@ export function VoiceSettings() {
       style={{ border: "1px solid #EDEEEF" }}
       title={
         <Space>
-          <SoundOutlined style={{ color: "#1677ff" }} />
+          <IconVolumeNotice style={{ color: "#1677ff" }} />
           <span>语音助手配置</span>
           <Tag color="purple">Omni 一体化</Tag>
         </Space>
@@ -183,9 +175,9 @@ export function VoiceSettings() {
             <Button size="small" type="link">TTS/ASR 参数</Button>
           </Link>
           <Popconfirm title="确定恢复默认配置？" onConfirm={handleReset} okText="确定" cancelText="取消">
-            <Button type="text" icon={<DeleteOutlined />} size="small">重置</Button>
+            <Button type="text" icon={<IconDelete />} size="small">重置</Button>
           </Popconfirm>
-          <Button type="text" icon={<ReloadOutlined />} onClick={fetchConfig} size="small" />
+          <Button type="text" icon={<IconRefresh />} onClick={fetchConfig} size="small" />
         </Space>
       }
     >
@@ -219,7 +211,7 @@ export function VoiceSettings() {
           <section>
             <Title level={5}>
               <Space>
-                <ApiOutlined />
+                <IconApi />
                 2. AI 提供商（与 AI 助理共用）
               </Space>
             </Title>
@@ -243,11 +235,11 @@ export function VoiceSettings() {
               />
               <div style={{ marginTop: 8 }}>
                 {config.apiKeyConfigured ? (
-                  <Tag icon={<CheckCircleFilled />} color="success">
+                  <Tag icon={<IconCheckOne />} color="success">
                     API Key 已就绪{config.providerName ? `（来源：${config.providerName}）` : ""}
                   </Tag>
                 ) : (
-                  <Tag icon={<ExclamationCircleFilled />} color="warning">
+                  <Tag icon={<IconAttention />} color="warning">
                     API Key 未配置，请在 AI 提供商中设置
                   </Tag>
                 )}
@@ -346,7 +338,7 @@ export function VoiceSettings() {
           <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
             <Space>
               <Button onClick={fetchConfig}>取消</Button>
-              <Button type="primary" htmlType="submit" loading={saving} icon={<SaveOutlined />}>
+              <Button type="primary" htmlType="submit" loading={saving} icon={<IconSave />}>
                 保存配置
               </Button>
             </Space>

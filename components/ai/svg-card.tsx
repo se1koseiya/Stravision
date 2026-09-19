@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
-import { AlertTriangle, Maximize2, Download, Palette } from "lucide-react"
+import { IconBackgroundColor, IconCaution, IconDownload, IconFullScreen } from "@/components/icon";
 
 /**
  * SvgCard — 渲染 AI 输出的 <ILLU>…</ILLU> 内的 SVG 插画
@@ -76,7 +76,7 @@ export function SvgCard({ code, streaming, darkMode, className }: SvgCardProps) 
         className={`my-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-3 ${className || ""}`}
       >
         <div className="flex items-center gap-2 text-[12px] text-zinc-400 dark:text-zinc-500 mb-2">
-          <Palette size={13} strokeWidth={1.75} className="animate-pulse" />
+          <IconBackgroundColor size={13} strokeWidth={1.75} className="animate-pulse" />
           <span>正在绘制插画…</span>
         </div>
         <div className="h-40 rounded-md bg-zinc-50 dark:bg-zinc-800/50 animate-pulse" />
@@ -89,7 +89,7 @@ export function SvgCard({ code, streaming, darkMode, className }: SvgCardProps) 
     return (
       <div className="my-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-3">
         <div className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 mb-1.5">
-          <AlertTriangle size={13} strokeWidth={1.75} />
+          <IconCaution size={13} strokeWidth={1.75} />
           <span>插画内容有误（未找到有效 SVG），已显示原始代码</span>
         </div>
         <pre className="text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300 overflow-x-auto whitespace-pre-wrap max-h-60">{code}</pre>
@@ -110,7 +110,7 @@ export function SvgCard({ code, streaming, darkMode, className }: SvgCardProps) 
             className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             title="放大查看"
           >
-            <Maximize2 size={13} strokeWidth={1.75} />
+            <IconFullScreen size={13} strokeWidth={1.75} />
           </button>
           <button
             type="button"
@@ -118,7 +118,7 @@ export function SvgCard({ code, streaming, darkMode, className }: SvgCardProps) 
             className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             title="下载 SVG"
           >
-            <Download size={13} strokeWidth={1.75} />
+            <IconDownload size={13} strokeWidth={1.75} />
           </button>
         </div>
       </div>

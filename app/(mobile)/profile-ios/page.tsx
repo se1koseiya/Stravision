@@ -14,7 +14,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { UserPublic } from "@/lib/db/user-service"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { MobileBackground } from "@/components/mobile-background"
-import { Smartphone, Activity, Shield, HelpCircle, Zap, Leaf, ThermometerSun, Camera, Info, RotateCcw, Moon, Sun } from "lucide-react";
 import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
 import { Bell } from "@/components/animate-ui/icons/bell";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui/dialog"
 import { clearAlertExpirations, getIgnoredAlerts } from "@/components/environment-alert"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
+import { IconCamera, IconChartLine, IconHelp, IconInfo, IconLeaf, IconLightning, IconMoon, IconPhone, IconShield, IconSun, IconThermometer, IconUndo } from "@/components/icon";
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -277,7 +277,7 @@ export default function ProfilePage() {
           >
              <div className="flex items-center gap-4">
                 <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                   {theme === 'dark' ? <Moon className="size-5 text-blue-400" /> : <Sun className="size-5 text-orange-500" />}
+                   {theme === 'dark' ? <IconMoon className="size-5 text-blue-400" /> : <IconSun className="size-5 text-orange-500" />}
                 </div>
                 <span className="text-[15px] font-bold text-slate-700 dark:text-slate-200">
                   {theme === 'dark' ? '深色模式' : '浅色模式'}
@@ -289,7 +289,7 @@ export default function ProfilePage() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <div><ListItem icon={Smartphone} title="设备管理" /></div>
+              <div><ListItem icon={IconPhone} title="设备管理" /></div>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh] rounded-t-[2rem]">
               <SheetHeader className="mb-6">
@@ -314,7 +314,7 @@ export default function ProfilePage() {
                       <div key={d.id} className="flex items-center justify-between p-3 bg-white dark:bg-black border dark:border-slate-800 rounded-xl shadow-sm">
                         <div className="flex items-center gap-3">
                            <div className="size-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
-                             <Smartphone size={16} />
+                             <IconPhone size={16} />
                            </div>
                            <div>
                              <div className="font-medium text-sm">{d.name}</div>
@@ -342,9 +342,9 @@ export default function ProfilePage() {
               </SheetHeader>
               <div className="space-y-4">
                  {[
-                   { id: "alerts", label: "重要告警", icon: Shield },
-                   { id: "status", label: "设备状态", icon: Zap },
-                   { id: "ai", label: "AI 建议", icon: Leaf },
+                   { id: "alerts", label: "重要告警", icon: IconShield },
+                   { id: "status", label: "设备状态", icon: IconLightning },
+                   { id: "ai", label: "AI 建议", icon: IconLeaf },
                    { id: "updates", label: "系统更新", icon: Bell },
                  ].map(item => (
                    <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl">
@@ -367,7 +367,7 @@ export default function ProfilePage() {
                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800">
                    <div className="flex items-center justify-between">
                      <div className="flex items-center gap-3">
-                       <RotateCcw className="size-5 text-amber-600" />
+                       <IconUndo className="size-5 text-amber-600" />
                        <div>
                          <span className="font-medium">已忽略的告警</span>
                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -394,7 +394,7 @@ export default function ProfilePage() {
           
           <Sheet>
             <SheetTrigger asChild>
-              <div><ListItem icon={Activity} title="活动日志" /></div>
+              <div><ListItem icon={IconChartLine} title="活动日志" /></div>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[70vh] rounded-t-[2rem]">
               <SheetHeader className="mb-6">
@@ -426,12 +426,12 @@ export default function ProfilePage() {
       {/* Settings Group 2 */}
       <div className="px-6 mb-6">
         <div className="bg-white/55 dark:bg-white/5 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.05)] border border-white/60 dark:border-white/10">
-          <ListItem icon={Shield} title="隐私与安全" />
+          <ListItem icon={IconShield} title="隐私与安全" />
           <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
           
           <Dialog>
             <DialogTrigger asChild>
-              <div><ListItem icon={Info} title="关于" /></div>
+              <div><ListItem icon={IconInfo} title="关于" /></div>
             </DialogTrigger>
             <DialogContent className="w-[85%] rounded-3xl bg-white/95 dark:bg-[#111827]/95 backdrop-blur-xl border-white/20 dark:border-white/5">
               <DialogHeader>
@@ -455,7 +455,7 @@ export default function ProfilePage() {
           </Dialog>
           <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
 
-          <ListItem icon={HelpCircle} title="帮助与支持" />
+          <ListItem icon={IconHelp} title="帮助与支持" />
           <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
           <div 
              onClick={() => { 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import { getVoiceKeyStatus, saveVoiceApiKey } from "@/lib/db/settings-service"
 import { z } from "zod"
 
@@ -19,7 +20,14 @@ import { z } from "zod"
 
 async function checkAdmin() {
   const currentUser = await getCurrentUser()
-  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "super_admin")) {
+  if (!currentUser) {
+    return null
+  }
+  // 🚨 桌面端放行：本地单用户形态，无平台角色概念（IS_DESKTOP_APP 构建期内联，Web 构建恒 false）
+  if (IS_DESKTOP_APP) {
+    return currentUser
+  }
+  if (currentUser.role !== "admin" && currentUser.role !== "super_admin") {
     return null
   }
   return currentUser

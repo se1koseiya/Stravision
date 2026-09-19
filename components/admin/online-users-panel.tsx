@@ -16,17 +16,10 @@ import {
   Typography as AntTypography,
   App
 } from "antd"
-import {
-  ReloadOutlined,
-  SearchOutlined,
-  TeamOutlined,
-  GlobalOutlined,
-  ApiOutlined,
-  DisconnectOutlined
-} from "@ant-design/icons"
 import type { TableColumnsType } from "antd"
 import { formatDistanceToNowStrict } from "date-fns"
 import { zhCN } from "date-fns/locale"
+import { IconApi, IconEarth, IconPeoples, IconRefresh, IconSearch, IconUnlink } from "@/components/icon";
 
 const { Text } = AntTypography
 
@@ -202,7 +195,7 @@ export function OnlineUsersPanel() {
       width: 220,
       render: (_: unknown, record: OnlineUser) => (
         <Space size={6}>
-          <GlobalOutlined style={{ color: "#8F959E", fontSize: 12 }} />
+          <IconEarth style={{ color: "#8F959E", fontSize: 12 }} />
           <span style={{ fontSize: 12 }}>{formatLocation(record.location)}</span>
         </Space>
       )
@@ -242,7 +235,7 @@ export function OnlineUsersPanel() {
       key: "location",
       render: (_: unknown, record: OnlineGuest) => (
         <Space size={6}>
-          <GlobalOutlined style={{ color: "#8F959E", fontSize: 12 }} />
+          <IconEarth style={{ color: "#8F959E", fontSize: 12 }} />
           <span style={{ fontSize: 12 }}>{formatLocation(record.location)}</span>
         </Space>
       )
@@ -287,7 +280,7 @@ export function OnlineUsersPanel() {
               <Text type="secondary" style={{ fontSize: 12 }}>自动刷新</Text>
               <Switch size="small" checked={autoRefresh} onChange={setAutoRefresh} />
             </Space>
-            <Button icon={<ReloadOutlined spin={loading} />} onClick={() => fetchSnapshot()} loading={loading}>
+            <Button icon={<IconRefresh spin={loading} />} onClick={() => fetchSnapshot()} loading={loading}>
               刷新
             </Button>
           </Space>
@@ -298,19 +291,19 @@ export function OnlineUsersPanel() {
           <Statistic
             title="在线用户"
             value={onlineCount}
-            prefix={<TeamOutlined style={{ color: "#1677ff" }} />}
+            prefix={<IconPeoples style={{ color: "#1677ff" }} />}
             styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
           />
           <Statistic
             title="访客 IP"
             value={guestCount}
-            prefix={<DisconnectOutlined style={{ color: "#1677ff" }} />}
+            prefix={<IconUnlink style={{ color: "#1677ff" }} />}
             styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
           />
           <Statistic
             title={`窗口内请求（${snapshot?.window_minutes ?? 5} 分钟）`}
             value={totalRequests}
-            prefix={<ApiOutlined style={{ color: "#1677ff" }} />}
+            prefix={<IconApi style={{ color: "#1677ff" }} />}
             styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
           />
         </div>
@@ -360,7 +353,7 @@ export function OnlineUsersPanel() {
             onPressEnter={lookupIp}
             style={{ fontFamily: "monospace" }}
           />
-          <Button type="primary" icon={<SearchOutlined />} onClick={lookupIp} loading={ipLooking}>
+          <Button type="primary" icon={<IconSearch />} onClick={lookupIp} loading={ipLooking}>
             查询
           </Button>
         </Space.Compact>

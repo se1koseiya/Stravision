@@ -19,21 +19,7 @@ import {
   Typography
 } from "antd"
 import type { ColumnsType } from "antd/es/table"
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  RefreshCw,
-  Droplets,
-  Fan,
-  Lightbulb,
-  Sun,
-  Thermometer,
-  Video,
-  Compass,
-  Activity,
-  Cpu
-} from "lucide-react"
+import { IconChartLine, IconCompass, IconCpu, IconDelete, IconFan, IconLight, IconPencil, IconPlus, IconRefresh, IconSun, IconThermometer, IconVideo, IconWater } from "@/components/icon";
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -99,14 +85,14 @@ const TYPE_LABEL: Record<DeviceType, string> = {
 
 // 设备图标映射（lucide-react），未命中回退到 Cpu
 const DEVICE_ICON_MAP: Record<string, React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
-  Droplets,
-  Fan,
-  Lightbulb,
-  Sun,
-  Thermometer,
-  Video,
-  Compass,
-  Activity,
+  IconWater,
+  IconFan,
+  IconLight,
+  IconSun,
+  IconThermometer,
+  IconVideo,
+  IconCompass,
+  IconChartLine,
   Cpu
 }
 
@@ -134,7 +120,7 @@ function formatTime(ts: number): string {
 }
 
 function renderDeviceIcon(iconName: string, color: string, box: number = 28) {
-  const Icon = DEVICE_ICON_MAP[iconName] || Cpu
+  const Icon = DEVICE_ICON_MAP[iconName] || IconCpu
   return (
     <div
       style={{
@@ -445,7 +431,7 @@ export default function DeviceManager() {
           <Button
             type="text"
             size="small"
-            icon={<Pencil size={14} strokeWidth={1.75} />}
+            icon={<IconPencil size={14} strokeWidth={1.75} />}
             onClick={() => handleEdit(record)}
             title="编辑"
           />
@@ -461,7 +447,7 @@ export default function DeviceManager() {
               type="text"
               size="small"
               danger
-              icon={<Trash2 size={14} strokeWidth={1.75} />}
+              icon={<IconDelete size={14} strokeWidth={1.75} />}
               title="删除"
             />
           </Popconfirm>
@@ -494,7 +480,7 @@ export default function DeviceManager() {
           </div>
           <Space>
             <Button
-              icon={<RefreshCw size={14} strokeWidth={1.75} />}
+              icon={<IconRefresh size={14} strokeWidth={1.75} />}
               onClick={fetchDevices}
               loading={loading}
             >
@@ -502,7 +488,7 @@ export default function DeviceManager() {
             </Button>
             <Button
               type="primary"
-              icon={<Plus size={14} strokeWidth={1.75} />}
+              icon={<IconPlus size={14} strokeWidth={1.75} />}
               onClick={handleAdd}
             >
               新增设备
@@ -527,7 +513,7 @@ export default function DeviceManager() {
         onCancel={() => !saving && setModalOpen(false)}
         title={
           <Space>
-            <Cpu size={16} strokeWidth={1.75} style={{ color: "#1677ff" }} />
+            <IconCpu size={16} strokeWidth={1.75} style={{ color: "#1677ff" }} />
             <span>{editingId ? "编辑设备" : "新增设备"}</span>
           </Space>
         }

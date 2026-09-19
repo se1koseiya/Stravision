@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Check, ArrowLeft, Crown, Sparkles, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
+import { IconArrowLeft, IconCheck, IconCrown, IconLock, IconMagic } from "@/components/icon";
 
 // --- Animations ---
 const fadeInUp = {
@@ -85,7 +85,7 @@ export default function PlansPage() {
       <nav className="fixed top-0 w-full h-20 px-8 md:px-12 flex items-center justify-between z-50 bg-[#FAFAFA]/80 dark:bg-[#050505]/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-900">
         <div className="flex items-center gap-4">
            <Link href="/ai-assistant" className="group flex items-center text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
-              <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+              <IconArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" />
               返回助手
            </Link>
         </div>
@@ -221,11 +221,11 @@ export default function PlansPage() {
                         style={{ background: `${gradient.split(")")[0]})`, opacity: 0.9 }}
                       >
                         {isPro ? (
-                          <Sparkles size={16} className="text-white" />
+                          <IconMagic size={16} className="text-white" />
                         ) : isEnterprise ? (
-                          <Crown size={16} className="text-white" />
+                          <IconCrown size={16} className="text-white" />
                         ) : (
-                          <Lock size={15} className="text-zinc-300" />
+                          <IconLock size={15} className="text-zinc-300" />
                         )}
                       </div>
                     </div>
@@ -277,7 +277,7 @@ export default function PlansPage() {
                                   : "rgba(113,113,122,0.2)",
                             }}
                           >
-                            <Check
+                            <IconCheck
                               size={10}
                               className={
                                 isPro ? "text-purple-400"

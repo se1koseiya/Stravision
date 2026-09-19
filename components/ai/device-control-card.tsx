@@ -2,18 +2,8 @@
 
 import { cn } from '@/lib/utils';
 import { DEVICE_IDS, STEPPER } from '@/lib/constants';
-import { 
-  CheckCircle2, 
-  Droplets, 
-  Fan, 
-  Lightbulb, 
-  Loader2, 
-  XCircle,
-  Power,
-  ArrowRight,
-  RotateCcw
-} from 'lucide-react';
 import { motion } from 'framer-motion';
+import { IconArrowRight, IconCheckOne, IconCloseOne, IconFan, IconLight, IconLoading, IconPower, IconUndo, IconWater } from "@/components/icon";
 
 interface DeviceControlCardProps {
   command: any;
@@ -41,7 +31,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         name: "补光色温阵列",
         label: "光谱控制",
         desc: `RGB: ${command.r}, ${command.g}, ${command.b}`,
-        icon: Lightbulb,
+        icon: IconLight,
         color: "text-amber-500 dark:text-amber-400",
         bgGradient: "from-amber-500/5 to-orange-500/5 dark:from-amber-500/10 dark:to-orange-500/5",
         accentColor: "bg-amber-500",
@@ -56,7 +46,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         name,
         label: "流体动力",
         desc: isOn ? "启动水利循环" : "切断水源供应",
-        icon: Droplets,
+        icon: IconWater,
         color: "text-blue-500 dark:text-blue-400",
         bgGradient: "from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/5",
         accentColor: "bg-blue-500",
@@ -69,7 +59,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         name,
         label: "空气调节",
         desc: isOn ? "启动大气循环" : "关闭通风系统",
-        icon: Fan,
+        icon: IconFan,
         color: "text-cyan-500 dark:text-cyan-400",
         bgGradient: "from-cyan-500/5 to-blue-500/5 dark:from-cyan-500/10 dark:to-blue-500/5",
         accentColor: "bg-cyan-500",
@@ -82,7 +72,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         name,
         label: "植物光照",
         desc: isOn ? "光合作用增强" : "进入休眠模式",
-        icon: Lightbulb,
+        icon: IconLight,
         color: "text-amber-500 dark:text-amber-400",
         bgGradient: "from-amber-500/5 to-orange-500/5 dark:from-amber-500/10 dark:to-orange-500/5",
         accentColor: "bg-amber-500",
@@ -100,7 +90,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
           name: "AI视觉巡检",
           label: "智能巡检系统",
           desc: `${direction} ${distance}mm 并拍摄分析`,
-          icon: Power,
+          icon: IconPower,
           color: "text-purple-500 dark:text-purple-400",
           bgGradient: "from-purple-500/5 to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/5",
           accentColor: "bg-purple-500",
@@ -112,7 +102,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         name: name.includes('云台') ? name : "摄像头云台",
         label: "位置移动控制",
         desc: `${direction} ${distance}mm`,
-        icon: Power,
+        icon: IconPower,
         color: "text-purple-500 dark:text-purple-400",
         bgGradient: "from-purple-500/5 to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/5",
         accentColor: "bg-purple-500",
@@ -124,7 +114,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
       name,
       label: "控制单元",
       desc: isOn ? "电源接通" : "电源断开",
-      icon: Power,
+      icon: IconPower,
       color: "text-primary dark:text-emerald-400",
       bgGradient: "from-primary/5 to-green-500/5 dark:from-primary/10 dark:to-green-500/5",
       accentColor: "bg-primary",
@@ -185,7 +175,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
               : "border-zinc-300 dark:border-white/5 opacity-60"
           )}>
             {isExecuting ? (
-              <Loader2 className={cn("size-7 animate-spin", meta.color)} strokeWidth={2} />
+              <IconLoading className={cn("size-7 animate-spin", meta.color)} strokeWidth={2} />
             ) : (
               <Icon className={cn("size-7", meta.color)} strokeWidth={2} />
             )}
@@ -234,7 +224,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
           {status === 'loading' ? (
             <div className="flex flex-col items-center gap-1.5">
               <div className="size-14 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center">
-                <Loader2 size={24} className="text-amber-600 dark:text-amber-400 animate-spin" strokeWidth={2.5} />
+                <IconLoading size={24} className="text-amber-600 dark:text-amber-400 animate-spin" strokeWidth={2.5} />
               </div>
               <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                 执行中
@@ -246,7 +236,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
               className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
             >
               执行
-              <ArrowRight size={14} />
+              <IconArrowRight size={14} />
             </button>
           ) : status === 'executed' ? (
             <motion.div 
@@ -259,7 +249,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
               {command.action === 'set_led' ? (
                 <div className="flex flex-col items-center">
                   <div className="size-14 rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <CheckCircle2 size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
+                    <IconCheckOne size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
                   </div>
                   <span className="text-[10px] font-bold text-primary dark:text-emerald-400 uppercase tracking-wider mt-1">
                     已设置
@@ -271,7 +261,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
                     // ON 状态 - 绿色高亮
                     <>
                       <div className="size-14 rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                        <CheckCircle2 size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
+                        <IconCheckOne size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
                       </div>
                       <div className="mt-1.5 px-3 py-1 rounded-full bg-primary/20 dark:bg-primary/30 border border-primary/40">
                         <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
@@ -283,7 +273,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
                     // OFF 状态 - 灰色暗淡
                     <>
                       <div className="size-14 rounded-2xl bg-zinc-200/80 dark:bg-zinc-800/80 border-2 border-zinc-300/60 dark:border-zinc-700/60 flex items-center justify-center opacity-70">
-                        <Power size={26} className="text-zinc-500 dark:text-zinc-400" strokeWidth={2.5} />
+                        <IconPower size={26} className="text-zinc-500 dark:text-zinc-400" strokeWidth={2.5} />
                       </div>
                       <div className="mt-1.5 px-3 py-1 rounded-full bg-zinc-200/80 dark:bg-zinc-800/80 border border-zinc-300/60 dark:border-zinc-700/60">
                         <span className="text-[11px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
@@ -298,7 +288,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
           ) : status === 'failed' ? (
             <div className="flex flex-col items-center gap-1.5">
               <div className="size-14 rounded-2xl border-2 border-red-500/40 bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center shadow-lg shadow-red-500/20">
-                <XCircle size={26} className="text-red-600 dark:text-red-400" strokeWidth={2.5} />
+                <IconCloseOne size={26} className="text-red-600 dark:text-red-400" strokeWidth={2.5} />
               </div>
               <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
                 失败
@@ -310,7 +300,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
               className="px-5 py-2.5 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
             >
               执行
-              <ArrowRight size={14} />
+              <IconArrowRight size={14} />
             </button>
           )}
         </div>
@@ -337,7 +327,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
                   ? "bg-red-100 dark:bg-red-900/30" 
                   : "bg-zinc-200 dark:bg-zinc-800"
               )}>
-                <XCircle 
+                <IconCloseOne 
                   size={18} 
                   className={cn(
                     isBoundaryError 
@@ -373,7 +363,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
                       onClick={onRetry}
                       className="w-full px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white text-xs font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-lg flex items-center justify-center gap-2"
                     >
-                      <RotateCcw size={14} />
+                      <IconUndo size={14} />
                       让AI重新规划方向
                     </button>
                   </div>

@@ -23,40 +23,12 @@ import {
   App,
   Typography as AntTypography
 } from "antd"
-import {
-  UserAddOutlined,
-  EditOutlined,
-  LogoutOutlined,
-  SettingOutlined,
-  BellOutlined,
-  SafetyCertificateOutlined,
-  RobotOutlined,
-  ThunderboltOutlined,
-  ToolOutlined,
-  FileTextOutlined,
-  LockOutlined,
-  WarningOutlined,
-  CloudServerOutlined,
-  ShopOutlined,
-  ApiOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  DashboardOutlined,
-  UserOutlined,
-  TeamOutlined,
-  NotificationOutlined,
-  CheckCircleFilled,
-  ExclamationCircleFilled,
-  BookOutlined,
-  DatabaseOutlined,
-  SoundOutlined,
-  ExperimentOutlined,
-  HistoryOutlined
-} from "@ant-design/icons"
 import type { TableColumnsType, MenuProps } from "antd"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { UserPublic } from "@/lib/db/user-service"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import { UserDialog } from "@/components/admin/user-dialog"
 import { BannedIPsManager } from "@/components/admin/banned-ips-manager"
 import { OnlineUsersPanel } from "@/components/admin/online-users-panel"
@@ -80,7 +52,9 @@ import { ModelMarketplace } from "@/components/admin/model-marketplace"
 import DeviceManager from "@/components/admin/device-manager"
 import { VoiceSettings } from "@/components/admin/voice-settings"
 import { VoiceTestPage } from "@/components/admin/voice-test-page"
+import { DesktopAbout } from "@/components/admin/desktop-about"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
+import { IconAddUser, IconApi, IconArrowLeft, IconAttention, IconBook, IconCamera, IconCaution, IconCertificate, IconCheckOne, IconCloudStorage, IconDashboard, IconDatabaseNetwork, IconEdit, IconExperiment, IconFileText, IconHistory, IconInfo, IconLayoutTwo, IconLock, IconLogout, IconPeoples, IconRemind, IconRobot, IconSetting, IconShop, IconThunderbolt, IconTool, IconUser, IconVolumeNotice } from "@/components/icon";
 
 const { Header, Sider, Content } = Layout
 const { Text, Title } = AntTypography
@@ -102,6 +76,7 @@ type AdminSection =
   | "skills"
   | "docs"
   | "devices"
+  | "desktop-about"
 
 interface SidebarItem {
   key: AdminSection
@@ -119,39 +94,38 @@ const sidebarGroups: SidebarGroup[] = [
   {
     key: "overview",
     label: "",
-    items: [{ key: "dashboard", label: "概览", icon: <DashboardOutlined /> }]
-  },
-  {
+    items: [{ key: "dashboard", label: "概览", icon: <IconDashboard /> }]
+  },  {
     key: "system",
     label: "系统管理",
     items: [
-      { key: "users", label: "用户管理", icon: <UserOutlined /> },
-      { key: "online-users", label: "在线用户", icon: <TeamOutlined /> },
-      { key: "security", label: "安全设置", icon: <LockOutlined /> },
-      { key: "announcement", label: "公告管理", icon: <NotificationOutlined /> },
-      { key: "changelog", label: "更新日志", icon: <HistoryOutlined /> },
-      { key: "settings", label: "系统设置", icon: <SettingOutlined /> },
-      { key: "devices", label: "设备管理", icon: <DatabaseOutlined /> }
+      { key: "users", label: "用户管理", icon: <IconUser /> },
+      { key: "online-users", label: "在线用户", icon: <IconPeoples /> },
+      { key: "security", label: "安全设置", icon: <IconLock /> },
+      { key: "announcement", label: "公告管理", icon: <IconRemind /> },
+      { key: "changelog", label: "更新日志", icon: <IconHistory /> },
+      { key: "settings", label: "系统设置", icon: <IconSetting /> },
+      { key: "devices", label: "设备管理", icon: <IconDatabaseNetwork /> }
     ]
   },
   {
     key: "ai",
     label: "AI 配置",
     items: [
-      { key: "ai-providers", label: "AI 提供商", icon: <CloudServerOutlined /> },
-      { key: "ai-models", label: "AI 模型", icon: <RobotOutlined /> },
-      { key: "model-marketplace", label: "模型市场", icon: <ShopOutlined /> },
-      { key: "voice-test", label: "语音测试", icon: <ExperimentOutlined /> }
+      { key: "ai-providers", label: "AI 提供商", icon: <IconCloudStorage /> },
+      { key: "ai-models", label: "AI 模型", icon: <IconRobot /> },
+      { key: "model-marketplace", label: "模型市场", icon: <IconShop /> },
+      { key: "voice-test", label: "语音测试", icon: <IconExperiment /> }
     ]
   },
   {
     key: "extension",
     label: "扩展",
     items: [
-      { key: "mcp-market", label: "MCP 市场", icon: <ApiOutlined /> },
-      { key: "kb-market", label: "知识库市场", icon: <BookOutlined /> },
-      { key: "skills", label: "Agent 技能", icon: <ToolOutlined /> },
-      { key: "docs", label: "文档管理", icon: <FileTextOutlined /> }
+      { key: "mcp-market", label: "MCP 市场", icon: <IconApi /> },
+      { key: "kb-market", label: "知识库市场", icon: <IconBook /> },
+      { key: "skills", label: "Agent 技能", icon: <IconTool /> },
+      { key: "docs", label: "文档管理", icon: <IconFileText /> }
     ]
   }
 ]
@@ -172,10 +146,54 @@ const sectionMeta: Record<AdminSection, { label: string; breadcrumb: string[] }>
   devices: { label: "设备管理", breadcrumb: ["系统管理", "设备管理"] },
   "kb-market": { label: "知识库市场", breadcrumb: ["扩展", "知识库市场"] },
   skills: { label: "Agent 技能", breadcrumb: ["扩展", "技能管理"] },
-  docs: { label: "文档管理", breadcrumb: ["扩展", "文档管理"] }
+  docs: { label: "文档管理", breadcrumb: ["扩展", "文档管理"] },
+  "desktop-about": { label: "关于本机", breadcrumb: ["关于"] },
+}
+
+/**
+ * 🚨 桌面端专属菜单（2026-09-17 用户反馈 adminUI"难用的要死，要以用户角度出发"）：
+ * 本地单用户形态下，"概览"里的总用户/会员/在线人数全是服务器端概念、毫无意义；
+ * AI 分区按用户语言重命名，并新增「关于本机」（版本/检查更新/日志/重启）。
+ *
+ * 🚨 2026-09-19 用户纠正：个性化 / 记忆与进化 **不再**是 admin 页面的分区——
+ * 它们属于「设置弹窗」（components/ai-settings-dialog.tsx，WorkBuddy 式居中弹窗）。
+ * admin 页只保留运维视角的「AI 配置」与「关于本机」。
+ */
+const desktopSidebarGroups: SidebarGroup[] = [
+  {
+    key: "ai",
+    label: "AI 设置",
+    items: [
+      { key: "ai-providers", label: "AI 服务", icon: <IconCloudStorage /> },
+      { key: "ai-models", label: "默认模型", icon: <IconRobot /> },
+      { key: "model-marketplace", label: "模型市场", icon: <IconShop /> },
+      { key: "voice-test", label: "语音", icon: <IconExperiment /> }
+    ]
+  },
+  {
+    key: "prefs",
+    label: "本机",
+    items: [{ key: "settings", label: "摄像头与设备", icon: <IconCamera /> }]
+  },
+  {
+    key: "about",
+    label: "",
+    items: [{ key: "desktop-about", label: "关于本机", icon: <IconInfo /> }]
+  }
+]
+
+// 桌面端面包屑/标题用用户语言命名（与 desktopSidebarGroups 一致）
+const desktopSectionLabels: Partial<Record<AdminSection, string>> = {
+  settings: "摄像头与设备",
+  "ai-providers": "AI 服务",
+  "ai-models": "默认模型",
+  "model-marketplace": "模型市场",
+  "voice-test": "语音",
+  "desktop-about": "关于本机",
 }
 
 export default function AdminPage() {
+  const router = useRouter()
   const [users, setUsers] = useState<UserPublic[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -187,8 +205,44 @@ export default function AdminPage() {
   const [onlineCount, setOnlineCount] = useState<number | null>(null)
 
   useEffect(() => {
+    // 支持 /admin?section=ai-providers 直达分区（桌面端「管理设置」入口用）。
+    // 用 window.location.search 而非 useSearchParams，避开 SSR prerender 对
+    // useSearchParams 的 Suspense 边界要求。
+    // 桌面端无参数时默认直达「AI 服务」——本地单用户没有"概览"可看（2026-09-17 改版）。
+    const s = new URLSearchParams(window.location.search).get("section") as AdminSection | null
+    if (s && sectionMeta[s]) setActiveSection(s)
+    else if (IS_DESKTOP_APP) setActiveSection("ai-providers")
+  }, [])
+
+  useEffect(() => {
     // 强制使用浅色主题 — 避免跟随系统深色模式导致侧边栏/顶栏变深色
     setIsDark(false)
+  }, [])
+
+  useEffect(() => {
+    // 🆕 首启向导的「助手名字 / 对我的称呼」回填：
+    // 向导窗口拿不到登录态，只能先把意向落盘到 desktop-settings.json；
+    // 这里在用户登录后调一次 apply-wizard，仅在用户从未显式设置过时生效。
+    if (!IS_DESKTOP_APP) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/user/personalization", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "apply-wizard" }),
+        })
+        if (res.ok && !cancelled) {
+          const d = await res.json()
+          if (d?.applied) console.log("[Personalization] 已回填向导偏好")
+        }
+      } catch {
+        /* 静默：向导偏好只是锦上添花，失败不影响主流程 */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const fetchUsers = async () => {
@@ -217,13 +271,18 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchCurrentUser()
-    fetchUsers()
-    fetch("/api/admin/online-users?window=5")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.online_users) setOnlineCount(data.online_users.length)
-      })
-      .catch(() => {})
+    // 🚨 桌面端不拉用户/在线统计：本地单用户无意义，且相关 admin API 未对桌面端放行（点了 403 弹"加载失败"）
+    if (!IS_DESKTOP_APP) {
+      fetchUsers()
+      fetch("/api/admin/online-users?window=5")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.online_users) setOnlineCount(data.online_users.length)
+        })
+        .catch(() => {})
+    } else {
+      setLoading(false)
+    }
   }, [])
 
   const handleEdit = (user: UserPublic) => {
@@ -314,23 +373,25 @@ export default function AdminPage() {
       key: "actions",
       width: 80,
       render: (_: any, record: UserPublic) => (
-        <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+        <Button type="text" icon={<IconEdit />} onClick={() => handleEdit(record)} />
       )
     }
   ]
 
   const userMenuItems: MenuProps["items"] = [
-    { key: "settings", icon: <SettingOutlined />, label: "设置" },
-    { key: "home", icon: <DashboardOutlined />, label: <Link href="/">返回首页</Link> },
-    { key: "logout", icon: <LogoutOutlined />, label: "退出登录", danger: true }
+    { key: "settings", icon: <IconSetting />, label: "设置" },
+    { key: "home", icon: <IconDashboard />, label: <Link href="/">返回首页</Link> },
+    { key: "logout", icon: <IconLogout />, label: "退出登录", danger: true }
   ]
 
   const meta = sectionMeta[activeSection]
+  // 桌面端标题/面包屑走用户语言命名
+  const displayLabel = (IS_DESKTOP_APP && desktopSectionLabels[activeSection]) || meta.label
 
   const renderPageHeader = (extra?: React.ReactNode) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
       <div>
-        <div style={{ fontSize: 18, fontWeight: 600, color: "#1F2329", lineHeight: 1.4 }}>{meta.label}</div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: "#1F2329", lineHeight: 1.4 }}>{displayLabel}</div>
         <div style={{ fontSize: 12, color: "#8F959E", marginTop: 2 }}>共 {users.length} 个用户</div>
       </div>
       {extra}
@@ -351,7 +412,7 @@ export default function AdminPage() {
                 <Statistic
                   title="总用户"
                   value={users.length}
-                  prefix={<UserOutlined style={{ color: "#1677ff" }} />}
+                  prefix={<IconUser style={{ color: "#1677ff" }} />}
                   styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
@@ -359,7 +420,7 @@ export default function AdminPage() {
                 <Statistic
                   title="管理员"
                   value={users.filter((u) => u.role === "admin" || u.role === "super_admin").length}
-                  prefix={<SafetyCertificateOutlined style={{ color: "#1677ff" }} />}
+                  prefix={<IconCertificate style={{ color: "#1677ff" }} />}
                   styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
@@ -367,7 +428,7 @@ export default function AdminPage() {
                 <Statistic
                   title="会员"
                   value={users.filter((u) => u.role === "member").length}
-                  prefix={<ThunderboltOutlined style={{ color: "#1677ff" }} />}
+                  prefix={<IconThunderbolt style={{ color: "#1677ff" }} />}
                   styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
@@ -375,7 +436,7 @@ export default function AdminPage() {
                 <Statistic
                   title="当前在线"
                   value={onlineCount ?? "—"}
-                  prefix={<TeamOutlined style={{ color: "#1677ff" }} />}
+                  prefix={<IconPeoples style={{ color: "#1677ff" }} />}
                   styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
@@ -383,7 +444,7 @@ export default function AdminPage() {
                 <Statistic
                   title="系统状态"
                   value="正常"
-                  prefix={<CheckCircleFilled style={{ color: "#1677ff" }} />}
+                  prefix={<IconCheckOne style={{ color: "#1677ff" }} />}
                   styles={{ content: { color: "#1F2329", fontSize: 18 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
@@ -404,7 +465,7 @@ export default function AdminPage() {
         return (
           <div>
             {renderPageHeader(
-              <Button type="primary" icon={<UserAddOutlined />} onClick={handleCreate}>新建用户</Button>
+              <Button type="primary" icon={<IconAddUser />} onClick={handleCreate}>新建用户</Button>
             )}
             <Card styles={{ body: { padding: 0 } }} style={{ border: "1px solid #EDEEEF" }}>
               <Table
@@ -451,6 +512,17 @@ export default function AdminPage() {
         return <ChangelogManager />
 
       case "settings":
+        // 桌面端：「摄像头与设备」只给本地用户看真正用得上的两项
+        // （摄像头地址 + 设备管理），服务器侧的品牌/限流/维护/语音 Key
+        // 全是运维概念，桌面端隐藏。
+        if (IS_DESKTOP_APP) {
+          return (
+            <Space direction="vertical" style={{ width: "100%" }} size={12}>
+              <CameraSettings />
+              <DeviceManager />
+            </Space>
+          )
+        }
         return (
           <Space direction="vertical" style={{ width: "100%" }} size={12}>
             <BrandingSettings />
@@ -467,6 +539,9 @@ export default function AdminPage() {
 
       case "voice-test":
         return <VoiceTestPage />
+
+      case "desktop-about":
+        return <DesktopAbout />
 
       case "devices":
         return <DeviceManager />
@@ -607,7 +682,7 @@ export default function AdminPage() {
             onClick={({ key }) => setActiveSection(key as AdminSection)}
             style={{ border: "none", marginTop: 4, background: "transparent", paddingInline: 0 }}
             inlineCollapsed={collapsed}
-            items={sidebarGroups.flatMap((group) => {
+            items={(IS_DESKTOP_APP ? desktopSidebarGroups : sidebarGroups).flatMap((group) => {
               if (!group.label) {
                 return group.items.map((item) => ({
                   key: item.key,
@@ -658,17 +733,27 @@ export default function AdminPage() {
               height: 56
             }}
           >
-            {/* Left: Collapse + Breadcrumb */}
+            {/* Left: 返回 + Collapse + Breadcrumb */}
             <Space size={12}>
+              {/* 🚨 返回入口（2026-09-17 用户反馈"adminui 页面不能返回上一页"）：
+                  桌面端固定回 AI 助手页（用户从「管理设置」进来）；Web 端走历史返回 */}
               <Button
                 type="text"
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                icon={<IconArrowLeft />}
+                onClick={() => (IS_DESKTOP_APP ? router.push("/ai-assistant") : router.back())}
+                style={{ fontSize: 13, color: "#1F2329" }}
+              >
+                返回
+              </Button>
+              <Button
+                type="text"
+                icon={collapsed ? <IconLayoutTwo /> : <IconLayoutTwo />}
                 onClick={() => setCollapsed(!collapsed)}
                 style={{ fontSize: 15, color: "#646A73" }}
               />
               <Breadcrumb
-                items={meta.breadcrumb.map((b, i) => ({
-                  title: i === meta.breadcrumb.length - 1 ? (
+                items={(IS_DESKTOP_APP ? [displayLabel] : meta.breadcrumb).map((b, i, arr) => ({
+                  title: i === arr.length - 1 ? (
                     <span style={{ color: "#1F2329", fontSize: 13 }}>{b}</span>
                   ) : (
                     <span style={{ color: "#8F959E", fontSize: 13 }}>{b}</span>
@@ -679,11 +764,13 @@ export default function AdminPage() {
 
             {/* Right: Actions */}
             <Space size={12}>
-              <Tooltip title="暂无新通知">
-                <Badge count={0} size="small">
-                  <BellOutlined style={{ fontSize: 16, color: "#646A73", cursor: "pointer" }} />
-                </Badge>
-              </Tooltip>
+              {!IS_DESKTOP_APP && (
+                <Tooltip title="暂无新通知">
+                  <Badge count={0} size="small">
+                    <IconRemind style={{ fontSize: 16, color: "#646A73", cursor: "pointer" }} />
+                  </Badge>
+                </Tooltip>
+              )}
               {currentUser ? (
                 <Dropdown
                   menu={{

@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { CalendarClock, CheckCircle2, XCircle, Loader2, Clock } from "lucide-react"
 import { Button, Card, Flex, Progress, Space, Tag, Typography, theme } from "antd"
 import { toast } from "sonner"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCalendar, IconCheckOne, IconCloseOne, IconLoading, IconTime } from "@/components/icon";
 
 const { Text, Title } = Typography
 
@@ -43,7 +43,7 @@ function CountdownToast({ id, targetTime, title }: { id: string | number; target
     <Flex vertical gap={8} style={{ width: "100%" }}>
       <Flex justify="space-between" align="center" gap={8}>
         <Flex align="center" gap={8} flex={1} style={{ minWidth: 0 }}>
-          <Clock size={18} style={{ color: token.colorPrimary }} className="animate-pulse" />
+          <IconTime size={18} style={{ color: token.colorPrimary }} className="animate-pulse" />
           <Text strong style={{ fontSize: 13 }}>任务倒计时</Text>
           <Text type="secondary" style={{ fontSize: 12 }} ellipsis>{title}</Text>
         </Flex>
@@ -202,7 +202,7 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
 
   if (status === "loading") return (
     <Flex align="center" gap={8} style={{ padding: "8px 0" }}>
-      <Loader2 size={14} style={{ color: token.colorPrimary }} className="animate-spin" />
+      <IconLoading size={14} style={{ color: token.colorPrimary }} className="animate-spin" />
       <Text style={{ fontSize: 13, color: token.colorPrimary }}>正在创建定时任务...</Text>
     </Flex>
   )
@@ -221,7 +221,7 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
           width: 40, height: 40, borderRadius: 10,
           background: BERRY_THEME.primary,
         }}>
-          <CalendarClock size={20} style={{ color: '#fff' }} />
+          <IconCalendar size={20} style={{ color: '#fff' }} />
         </Flex>
         <Flex vertical>
           <Text style={{ fontSize: 14, fontWeight: 600, color: token.colorText }}>✅ 定时任务已创建</Text>
@@ -238,7 +238,7 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
           width: 40, height: 40, borderRadius: token.borderRadius,
           background: `${token.colorError}15`,
         }}>
-          <XCircle size={20} style={{ color: token.colorError }} />
+          <IconCloseOne size={20} style={{ color: token.colorError }} />
         </Flex>
         <Flex vertical>
           <Title level={5} style={{ margin: 0, color: token.colorError }}>创建失败</Title>

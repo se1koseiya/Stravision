@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from "react"
 import { Card, Button, Typography, Flex, Form, InputNumber, Input, Select, Switch } from "antd"
-import { CheckCircle2 } from "lucide-react"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCheckOne } from "@/components/icon";
 
 const { Text, Paragraph } = Typography
 
@@ -323,7 +323,7 @@ export function CheckpointConfirm({
                   </Text>
                 )}
                 {isSelected && (
-                  <CheckCircle2
+                  <IconCheckOne
                     size={14}
                     strokeWidth={ICON_STROKE}
                     color={BERRY_THEME.primary}
@@ -348,7 +348,7 @@ export function CheckpointConfirm({
             gap: 6,
           }}
         >
-          <CheckCircle2 size={12} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
+          <IconCheckOne size={12} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
           <span>已确认：{options.find((o) => o.id === selectedId)?.label || selectedId}</span>
         </div>
       )}

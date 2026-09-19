@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Clock, CheckCircle2, XCircle, Loader2, Trash2, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { IconCalendar, IconCheckOne, IconCloseOne, IconDelete, IconLoading, IconTime } from "@/components/icon";
 
 interface AICronJob {
   id: number
@@ -57,17 +57,17 @@ export function AICronManager() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock className="h-4 w-4 text-blue-500" />
+        return <IconTime className="h-4 w-4 text-blue-500" />
       case 'running':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+        return <IconLoading className="h-4 w-4 text-blue-500 animate-spin" />
       case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        return <IconCheckOne className="h-4 w-4 text-green-500" />
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />
+        return <IconCloseOne className="h-4 w-4 text-red-500" />
       case 'cancelled':
-        return <XCircle className="h-4 w-4 text-muted-foreground" />
+        return <IconCloseOne className="h-4 w-4 text-muted-foreground" />
       default:
-        return <Clock className="h-4 w-4" />
+        return <IconTime className="h-4 w-4" />
     }
   }
 
@@ -112,7 +112,7 @@ export function AICronManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+        <IconLoading className="h-6 w-6 animate-spin text-blue-500" />
       </div>
     )
   }
@@ -120,7 +120,7 @@ export function AICronManager() {
   if (jobs.length === 0) {
     return (
       <div className="text-center p-8 text-zinc-500 dark:text-zinc-400">
-        <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+        <IconCalendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
         <p className="text-sm">暂无定时任务</p>
       </div>
     )
@@ -132,7 +132,7 @@ export function AICronManager() {
       {pendingJobs.length > 0 && (
         <div>
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+            <IconTime className="h-4 w-4" />
             待执行任务 ({pendingJobs.length})
           </h3>
           <div className="space-y-2">
@@ -158,7 +158,7 @@ export function AICronManager() {
                       </p>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
                         <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                          <IconCalendar className="h-3 w-3" />
                           {formatTime(job.scheduled_time)}
                         </span>
                         <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold">
@@ -171,7 +171,7 @@ export function AICronManager() {
                       className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
                       title="取消任务"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <IconDelete className="h-4 w-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -185,7 +185,7 @@ export function AICronManager() {
       {completedJobs.length > 0 && (
         <div>
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
+            <IconCheckOne className="h-4 w-4" />
             历史记录 ({completedJobs.length})
           </h3>
           <div className="space-y-2">

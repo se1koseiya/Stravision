@@ -18,29 +18,9 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { motion } from 'framer-motion'
-import { 
-  Bot,
-  Sparkles,
-  BrainCircuit,
-  Database,
-  Zap,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Cpu,
-  Globe,
-  Play,
-  RefreshCw,
-  Ear,
-  Volume2,
-  FileText,
-  Settings,
-  GitBranch,
-  Cloud,
-  Layers,
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { IconBrain, IconCaution, IconCheckOne, IconCloseOne, IconCloudStorage, IconCpu, IconDatabaseNetwork, IconFileText, IconGithub, IconGlobe, IconHeadphoneSound, IconLayers, IconLightning, IconMagic, IconPlay, IconRefresh, IconRobot, IconSetting, IconVolumeNotice } from "@/components/icon";
 
 type AgentNodeType = 
   | 'trigger' 
@@ -84,9 +64,9 @@ const AgentNodeComponent = ({ data, selected }: NodeProps & { data: AgentNodeDat
       case 'running':
         return <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse border border-amber-400" />
       case 'success':
-        return <CheckCircle2 className="w-4 h-4 text-primary" />
+        return <IconCheckOne className="w-4 h-4 text-primary" />
       case 'error':
-        return <XCircle className="w-4 h-4 text-rose-500" />
+        return <IconCloseOne className="w-4 h-4 text-rose-500" />
       default:
         return null
     }
@@ -117,7 +97,7 @@ const AgentNodeComponent = ({ data, selected }: NodeProps & { data: AgentNodeDat
             "p-3 rounded-none bg-zinc-900 border border-white/5 transition-colors",
             isHovered ? "text-white" : "text-zinc-500"
           )}>
-            {data.icon || <Bot className="w-5 h-5" />}
+            {data.icon || <IconRobot className="w-5 h-5" />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
@@ -167,7 +147,7 @@ const DecisionNodeComponent = ({ data, selected }: NodeProps & { data: AgentNode
       <div className="absolute inset-0 flex items-center justify-center -rotate-45 p-4">
         <div className="text-center">
           <div className="flex justify-center mb-2 text-amber-500">
-            <GitBranch className="w-6 h-6" />
+            <IconGithub className="w-6 h-6" />
           </div>
           <div className="font-black text-white text-[13px] leading-none tracking-tighter uppercase font-mono">{data.label}</div>
           {data.condition && (
@@ -236,7 +216,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '输入采集 / 触发点',
       description: '监测传感器阈值或主动指令',
-      icon: <Zap />,
+      icon: <IconLightning />,
       type: 'trigger',
       details: ['语音唤醒', '定时任务', '环境突变'],
       status: 'idle',
@@ -251,7 +231,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '语义解析引擎',
       description: '深度理解自然语言意图',
-      icon: <Ear />,
+      icon: <IconHeadphoneSound />,
       type: 'input',
       details: ['ASR 优化', 'NLP 意图识别'],
       status: 'idle',
@@ -266,7 +246,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '上下文感知建模',
       description: '构建当前实时的运行全景',
-      icon: <Database />,
+      icon: <IconDatabaseNetwork />,
       type: 'process',
       details: ['长短期记忆注入', '设备全息信息'],
       status: 'idle',
@@ -283,7 +263,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: 'MCP 智能调度器',
       description: '根据意图匹配最优化工具链',
-      icon: <Settings />,
+      icon: <IconSetting />,
       type: 'process',
       details: ['动态 API 绑定', '参数预计算'],
       status: 'idle',
@@ -312,7 +292,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: 'LLM 认知回复',
       description: '直接生成多轮对话建议',
-      icon: <BrainCircuit />,
+      icon: <IconBrain />,
       type: 'process',
       details: ['思维链推理', 'Prompt 增强'],
       status: 'idle',
@@ -327,7 +307,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '物理终端控制器',
       description: '驱动边缘侧继电器与执行机构',
-      icon: <Play />,
+      icon: <IconPlay />,
       type: 'action',
       details: ['水循环管理', '能源调度'],
       status: 'idle',
@@ -342,7 +322,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '云端分布式模型',
       description: '跨区域模型同步与负载均衡',
-      icon: <Cloud />,
+      icon: <IconCloudStorage />,
       type: 'external',
       details: ['多云 API 系统', '延迟敏感分发'],
       status: 'idle',
@@ -371,7 +351,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '反思与自我修正',
       description: '基于反馈不断演进的推理策略',
-      icon: <BrainCircuit />,
+      icon: <IconBrain />,
       type: 'process',
       details: ['强化学习反馈', '错误追踪分析'],
       status: 'idle',
@@ -386,7 +366,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '多模态交付构建',
       description: '生成最终的音视频、界面指令',
-      icon: <FileText />,
+      icon: <IconFileText />,
       type: 'process',
       details: ['TTS 音色映射', '3D 孪生更新'],
       status: 'idle',
@@ -401,7 +381,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '终端全向分发',
       description: '全平台实时同步 Agent 状态',
-      icon: <Volume2 />,
+      icon: <IconVolumeNotice />,
       type: 'output',
       details: ['广播播报', 'Admin 推送'],
       status: 'idle',
@@ -416,7 +396,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     data: {
       label: '持久化记忆库',
       description: '将成功经验永久固化在知识图谱',
-      icon: <Database />,
+      icon: <IconDatabaseNetwork />,
       type: 'process',
       details: ['矢量库同步', '经验权重更新'],
       status: 'idle',
@@ -582,12 +562,12 @@ function AIAgentFlowDiagramInner() {
         >
           {isSimulating ? (
             <>
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              <IconRefresh className="w-4 h-4 mr-2 animate-spin" />
               正在运行...
             </>
           ) : (
             <>
-              <Play className="w-4 h-4 mr-2" />
+              <IconPlay className="w-4 h-4 mr-2" />
               过程模拟演示
             </>
           )}
@@ -598,7 +578,7 @@ function AIAgentFlowDiagramInner() {
           onClick={handleFitView}
           className="bg-black/40 border-white/20 text-white/70 hover:bg-black hover:text-white rounded-none backdrop-blur-3xl font-mono text-[11px] tracking-widest uppercase py-5 px-6"
         >
-          <Layers className="w-4 h-4 mr-2" />
+          <IconLayers className="w-4 h-4 mr-2" />
           重置并居中
         </Button>
       </div>

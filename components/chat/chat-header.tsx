@@ -2,8 +2,8 @@
 
 import { memo } from "react"
 import { Avatar } from "antd"
-import { ChevronDown, ChevronLeft } from "lucide-react"
 import type { ChatGroup, ChatGroupMember, ChatTarget, ChatUser } from "@/lib/chat/chat-types"
+import { IconDown, IconLeft } from "@/components/icon";
 
 interface ChatHeaderProps {
   target: ChatTarget
@@ -50,7 +50,7 @@ function ChatHeaderInner({
             onClick={onBack}
             className="-ml-1 size-8 flex items-center justify-center rounded-full hover:bg-black/[0.04] shrink-0"
           >
-            <ChevronLeft size={20} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.65)]" />
+            <IconLeft size={20} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.65)]" />
           </button>
         )}
         <h2
@@ -78,7 +78,7 @@ function ChatHeaderInner({
         >
           {displayName?.[0]?.toUpperCase()}
         </Avatar>
-        <ChevronDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)] mr-0.5" />
+        <IconDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)] mr-0.5" />
       </button>
     </div>
   )

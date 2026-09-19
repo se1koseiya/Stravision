@@ -2,16 +2,16 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react';
 import { Select, Input, Typography } from 'antd';
-import { Camera, Clock, Activity, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IconCamera, IconChartLine, IconSettingTwo, IconTime } from "@/components/icon";
 
 const { Text } = Typography;
 
 const TriggerIcons = {
-  vlm: Camera,
-  sensor: Activity,
-  schedule: Clock,
-  default: Settings2,
+  vlm: IconCamera,
+  sensor: IconChartLine,
+  schedule: IconTime,
+  default: IconSettingTwo,
 };
 
 const TriggerNode = ({ id, data, selected }: NodeProps) => {

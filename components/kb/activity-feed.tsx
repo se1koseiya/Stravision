@@ -21,13 +21,8 @@ import {
   Avatar, Tooltip, Empty, Spin, Tabs, Tag, Button
 } from "antd"
 import { App as AntApp } from "antd"
-import {
-  FileText, FilePlus, FileEdit, Trash2, Share2, Download, Upload,
-  UserPlus, UserCheck, UserX, Crown, Shield, Edit3, Eye,
-  History, FolderPlus, FolderEdit, FolderX, Activity as ActivityIcon,
-  RefreshCw
-} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconAddUser, IconChartLine, IconCheckCorrect, IconCrown, IconDelete, IconDownload, IconEdit, IconFileAddition, IconFileEditing, IconFileText, IconFolderMinus, IconFolderPlus, IconFolderSettings, IconHistory, IconPeopleDelete, IconPreviewOpen, IconRefresh, IconShare, IconShield, IconUpload } from "@/components/icon";
 
 // ===== 类型 =====
 interface KbOperationLog {
@@ -63,7 +58,7 @@ interface ActivityFeedProps {
 
 // ===== 动作配置 =====
 interface ActionConfig {
-  icon: typeof FileText
+  icon: typeof IconFileText
   color: string
   bg: string
   label: (log: KbOperationLog) => string
@@ -71,85 +66,85 @@ interface ActionConfig {
 
 const ACTION_CONFIG: Record<string, ActionConfig> = {
   create_collection: {
-    icon: FolderPlus, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconFolderPlus, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
     label: (l) => `创建了知识库「${l.collection_name || "未命名"}」`
   },
   update_collection: {
-    icon: FolderEdit, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconFolderSettings, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
     label: (l) => `更新了知识库「${l.collection_name || "未命名"}」`
   },
   delete_collection: {
-    icon: FolderX, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
+    icon: IconFolderMinus, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
     label: (l) => `删除了知识库「${l.collection_name || "未命名"}」`
   },
   create_item: {
-    icon: FilePlus, color: "#52c41a", bg: "rgba(82,196,26,0.10)",
+    icon: IconFileAddition, color: "#52c41a", bg: "rgba(82,196,26,0.10)",
     label: (l) => l.collection_name
       ? `在「${l.collection_name}」创建了文档「${l.item_title || "未命名"}」`
       : `创建了文档「${l.item_title || "未命名"}」`
   },
   update_item: {
-    icon: FileEdit, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
+    icon: IconFileEditing, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
     label: (l) => `编辑了文档「${l.item_title || "未命名"}」`
   },
   delete_item: {
-    icon: Trash2, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
+    icon: IconDelete, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
     label: (l) => `删除了文档「${l.item_title || "未命名"}」`
   },
   restore_version: {
-    icon: History, color: "#722ed1", bg: "rgba(114,46,209,0.10)",
+    icon: IconHistory, color: "#722ed1", bg: "rgba(114,46,209,0.10)",
     label: (l) => `恢复了文档「${l.item_title || "未命名"}」的版本`
   },
   invite_user: {
-    icon: UserPlus, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconAddUser, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
     label: (l) => l.collection_name
       ? `邀请了用户加入「${l.collection_name}」`
       : `发送了协作邀请`
   },
   accept_invitation: {
-    icon: UserCheck, color: "#52c41a", bg: "rgba(82,196,26,0.10)",
+    icon: IconCheckCorrect, color: "#52c41a", bg: "rgba(82,196,26,0.10)",
     label: (l) => l.collection_name
       ? `接受了邀请，加入「${l.collection_name}」`
       : `接受了协作邀请`
   },
   reject_invitation: {
-    icon: UserX, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
+    icon: IconPeopleDelete, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
     label: (l) => `拒绝了加入「${l.collection_name || "知识库"}」的邀请`
   },
   cancel_invitation: {
-    icon: UserX, color: "#8c8c8c", bg: "rgba(140,140,140,0.10)",
+    icon: IconPeopleDelete, color: "#8c8c8c", bg: "rgba(140,140,140,0.10)",
     label: () => `取消了协作邀请`
   },
   update_role: {
-    icon: Shield, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
+    icon: IconShield, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
     label: (l) => l.collection_name
       ? `变更了「${l.collection_name}」的协作者角色`
       : `变更了协作者角色`
   },
   remove_collaborator: {
-    icon: UserX, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
+    icon: IconPeopleDelete, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
     label: (l) => l.collection_name
       ? `移除了「${l.collection_name}」的协作者`
       : `移除了协作者`
   },
   edit_document: {
-    icon: Edit3, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconEdit, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
     label: (l) => `编辑了文档「${l.item_title || "未命名"}」`
   },
   export_document: {
-    icon: Download, color: "#08979c", bg: "rgba(8,151,156,0.10)",
+    icon: IconDownload, color: "#08979c", bg: "rgba(8,151,156,0.10)",
     label: (l) => `导出了文档「${l.item_title || "未命名"}」`
   },
   import_document: {
-    icon: Upload, color: "#722ed1", bg: "rgba(114,46,209,0.10)",
+    icon: IconUpload, color: "#722ed1", bg: "rgba(114,46,209,0.10)",
     label: (l) => `从 Word 文档导入了「${l.item_title || "未命名"}」`
   },
   share: {
-    icon: Share2, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconShare, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
     label: (l) => `分享了文档「${l.item_title || "未命名"}」`
   },
   view: {
-    icon: Eye, color: "#8c8c8c", bg: "rgba(140,140,140,0.10)",
+    icon: IconPreviewOpen, color: "#8c8c8c", bg: "rgba(140,140,140,0.10)",
     label: (l) => `查看了文档「${l.item_title || "未命名"}」`
   }
 }
@@ -157,11 +152,11 @@ const ACTION_CONFIG: Record<string, ActionConfig> = {
 // 5 个一级 Tab（全部 / 编辑 / 创建 / 邀请 / 删除）
 // 大厂风格：左侧 lucide 图标 + 文字 + 右侧数字徽标
 const FILTER_TABS: Array<{ key: string; label: string; icon: any }> = [
-  { key: "all", label: "全部", icon: ActivityIcon },
-  { key: "edit", label: "编辑", icon: FileEdit },
-  { key: "create", label: "创建", icon: FilePlus },
-  { key: "invite", label: "邀请", icon: UserPlus },
-  { key: "delete", label: "删除", icon: Trash2 }
+  { key: "all", label: "全部", icon: IconChartLine },
+  { key: "edit", label: "编辑", icon: IconFileEditing },
+  { key: "create", label: "创建", icon: IconFileAddition },
+  { key: "invite", label: "邀请", icon: IconAddUser },
+  { key: "delete", label: "删除", icon: IconDelete }
 ]
 
 // 匹配过滤器（"edit" 匹配 update_*/edit_document，"create" 匹配 create_*，"invite" 匹配 *_invitation/invite_user，"delete" 匹配 delete_*/remove_*）
@@ -332,7 +327,7 @@ export default function ActivityFeed({
           </div>
           <Button
             type="text"
-            icon={<RefreshCw size={13} />}
+            icon={<IconRefresh size={13} />}
             onClick={() => fetchList(true)}
             loading={loading}
             style={{ borderRadius: 4, height: 26, fontSize: 12, padding: "0 8px" }}
@@ -414,7 +409,7 @@ export default function ActivityFeed({
             <div className="space-y-0.5">
               {filteredLogs.map((log) => {
                 const cfg = ACTION_CONFIG[log.action] || {
-                  icon: ActivityIcon,
+                  icon: IconChartLine,
                   color: "#8c8c8c",
                   bg: "rgba(140,140,140,0.10)",
                   label: (l: KbOperationLog) => `执行了操作：${l.action}`

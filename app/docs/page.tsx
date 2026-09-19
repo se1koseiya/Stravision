@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react"
 import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate } from "framer-motion"
 import Link from "next/link"
-import { ArrowUpRight, Cpu, Network, Zap, Eye, Terminal, Globe, Lock, ChevronRight } from "lucide-react"
+import { IconArrowRightUp, IconCpu, IconGlobe, IconLightning, IconLock, IconNetworkTree, IconPreviewOpen, IconRight, IconTerminal } from "@/components/icon";
 
 // --- UTILS ---
 function useParallax(value: any, distance: number) {
@@ -106,7 +106,7 @@ const FeatureRow = ({ title, desc, id, index, href }: { title: string, desc: str
 
             {/* Action */}
             <div className="hidden md:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 group-hover:border-primary/50 group-hover:scale-110 transition-all duration-500">
-                <ArrowUpRight className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400" />
+                <IconArrowRightUp className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400" />
             </div>
         </div>
     )
@@ -227,7 +227,7 @@ export default function DocsPage() {
                 </p>
                 <Link href="/docs/specs" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors border-b border-emerald-400/30 pb-1">
                     <span className="font-mono text-xs uppercase tracking-widest">Download Datasheet</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <IconRight className="w-4 h-4" />
                 </Link>
             </div>
 
@@ -265,7 +265,7 @@ export default function DocsPage() {
             </p>
             <Link href="/apply" className="group flex items-center gap-4 px-8 py-4 bg-primary text-black font-bold text-lg hover:bg-emerald-400 transition-colors">
                 <span>INITIALIZE</span>
-                <ArrowUpRight className="w-5 h-5 group-hover:rotate-45 transition-transform" />
+                <IconArrowRightUp className="w-5 h-5 group-hover:rotate-45 transition-transform" />
             </Link>
         </div>
       </footer>

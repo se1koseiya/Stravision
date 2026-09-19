@@ -15,12 +15,7 @@
 
 import { useEffect, useRef, useState, useId } from "react"
 import { Modal, Spin, App, Button, Space, Typography, Alert } from "antd"
-import {
-  EditOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  CloseOutlined,
-} from "@ant-design/icons"
+import { IconClose, IconEdit, IconPreviewOpen, IconRefresh } from "@/components/icon";
 
 const { Text } = Typography
 
@@ -249,11 +244,11 @@ export function OnlyOfficeEditor({
           <Text strong>{docTitle || "文档编辑器"}</Text>
           {activeMode === "edit" ? (
             <Text type="warning" style={{ fontSize: 12 }}>
-              <EditOutlined /> 编辑模式
+              <IconEdit /> 编辑模式
             </Text>
           ) : (
             <Text type="secondary" style={{ fontSize: 12 }}>
-              <EyeOutlined /> 查看模式
+              <IconPreviewOpen /> 查看模式
             </Text>
           )}
         </Space>
@@ -266,13 +261,13 @@ export function OnlyOfficeEditor({
       footer={
         <Space>
           <Button
-            icon={activeMode === "edit" ? <EyeOutlined /> : <EditOutlined />}
+            icon={activeMode === "edit" ? <IconPreviewOpen /> : <IconEdit />}
             onClick={handleSwitchMode}
             disabled={loading}
           >
             切换到{activeMode === "edit" ? "查看" : "编辑"}模式
           </Button>
-          <Button icon={<CloseOutlined />} onClick={handleClose}>
+          <Button icon={<IconClose />} onClick={handleClose}>
             关闭
           </Button>
         </Space>
@@ -298,7 +293,7 @@ export function OnlyOfficeEditor({
             description={error}
             style={{ maxWidth: 480, width: "100%" }}
           />
-          <Button icon={<ReloadOutlined />} onClick={handleReload}>
+          <Button icon={<IconRefresh />} onClick={handleReload}>
             重试
           </Button>
         </div>

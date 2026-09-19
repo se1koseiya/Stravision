@@ -5,20 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Bot, 
-  Brain, 
-  Zap, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  ArrowRight,
-  Play,
-  Pause,
-  RotateCcw,
-  Loader2
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { IconArrowRight, IconBrain, IconCheckOne, IconCloseOne, IconLightning, IconLoading, IconPause, IconPlay, IconRobot, IconTime, IconUndo } from "@/components/icon";
 
 interface Agent {
   id: string;
@@ -50,10 +38,10 @@ const AGENT_COLORS = {
 };
 
 const AGENT_ICONS = {
-  planner: Brain,
-  executor: Zap,
-  validator: CheckCircle,
-  coordinator: Bot,
+  planner: IconBrain,
+  executor: IconLightning,
+  validator: IconCheckOne,
+  coordinator: IconRobot,
 };
 
 export function MultiAgentOrchestrator() {
@@ -187,14 +175,14 @@ export function MultiAgentOrchestrator() {
   const getStatusIcon = (status: Agent['status']) => {
     switch (status) {
       case 'idle':
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+        return <IconTime className="h-4 w-4 text-muted-foreground" />;
       case 'thinking':
       case 'executing':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <IconLoading className="h-4 w-4 text-blue-500 animate-spin" />;
       case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <IconCheckOne className="h-4 w-4 text-green-500" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <IconCloseOne className="h-4 w-4 text-red-500" />;
     }
   };
 
@@ -221,7 +209,7 @@ export function MultiAgentOrchestrator() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5" />
+                <IconRobot className="h-5 w-5" />
                 {flow.name}
               </CardTitle>
               <CardDescription>多 Agent 协同执行工作流</CardDescription>
@@ -229,19 +217,19 @@ export function MultiAgentOrchestrator() {
             <div className="flex items-center gap-2">
               {flow.status === 'pending' && (
                 <Button onClick={startFlow} size="sm">
-                  <Play className="h-4 w-4 mr-2" />
+                  <IconPlay className="h-4 w-4 mr-2" />
                   开始执行
                 </Button>
               )}
               {flow.status === 'running' && (
                 <Button onClick={pauseFlow} variant="outline" size="sm">
-                  <Pause className="h-4 w-4 mr-2" />
+                  <IconPause className="h-4 w-4 mr-2" />
                   暂停
                 </Button>
               )}
               {(flow.status === 'completed' || flow.status === 'failed') && (
                 <Button onClick={resetFlow} variant="outline" size="sm">
-                  <RotateCcw className="h-4 w-4 mr-2" />
+                  <IconUndo className="h-4 w-4 mr-2" />
                   重置
                 </Button>
               )}
@@ -372,7 +360,7 @@ export function MultiAgentOrchestrator() {
                   {/* 连接线 */}
                   {index < flow.agents.length - 1 && (
                     <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
-                      <ArrowRight className={`h-6 w-6 ${
+                      <IconArrowRight className={`h-6 w-6 ${
                         agent.status === 'completed' ? 'text-green-500' : 'text-gray-300'
                       }`} />
                     </div>

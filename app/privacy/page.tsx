@@ -2,8 +2,8 @@
 
 import React from "react"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { GlassCard } from "@/components/ui/glass-card"
+import { IconArrowLeft } from "@/components/icon";
 
 export default function PrivacyPage() {
   return (
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
             href="/login" 
             className="inline-flex items-center text-sm text-white/40 hover:text-white transition-colors mb-6 group"
           >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            <IconArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
             返回登录
           </Link>
           <h1 className="text-3xl md:text-4xl font-bold mb-2">隐私政策 (Privacy Policy)</h1>

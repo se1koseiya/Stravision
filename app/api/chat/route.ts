@@ -12,6 +12,7 @@ import { resolveProvider, normalizeOpenAIChatCompletionsUrl, readProvidersConfig
 import { learnFromConversation } from '@/lib/ai/auto-learning-service'
 import { extractMemoriesFromConversation, persistMemories } from '@/lib/ai/memory-extraction-service'
 import { getUserMemoryForPrompt, writeUserMemory, getMemoryKeyLabel } from '@/lib/ai/user-memory-file-service'
+import { buildPersonalizationPrompt, getPersonalization } from '@/lib/db/personalization-service'
 import { getAllTasks } from '@/lib/db/scheduler-service'
 import { initDB } from '@/lib/db/database'
 import { getSummarizationConfig, STEPPER } from '@/lib/constants'
@@ -28,6 +29,7 @@ import { getRelevantSkillsContentCached } from '@/lib/ai/skill-router-cached'
 import { executeToolCallsSmart } from '@/lib/ai/parallel-tool-executor'
 import { waitForUserInput, cancelPendingUserInput } from '@/lib/ai/pending-user-input'
 import { getCachedResponse, cacheResponse } from '@/lib/ai/response-cache'
+import { IS_DESKTOP_APP } from '@/lib/desktop-mode'
 import { generateCompactSystemPrompt, filterDisabledFeatures, type AIFeatureConfig } from '@/lib/ai/prompt-templates'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -123,7 +125,16 @@ export async function POST(req: Request) {
     }
 
     // 是否使用系统托管 Key（用于配额扣减判断）
-    const useSystemKey = !userApiKey || !!resolved
+    // 🚨 只有"确实走平台 Key"才算系统用量：用户自带 key（user-custom）时，
+    // 无论模型 id 是否与系统供应商重名，都不检查、不扣减平台积分 ——
+    // 否则 Plus 用户配了自己的 key 仍被积分体系拦（历史上 resolved 恒为 truthy，
+    // 把 user-custom 也算成了系统 key）。
+    // 🚨 桌面端整体豁免（2026-09-14 用户实测 403 后定稿）：向导配的 Key 存本地
+    //    providers 配置（服务端 resolveProvider 解析），前端请求不带 apiKey →
+    //    !userApiKey=true 被误判成平台 Key → 403 会员墙。桌面端 = 本地运行 +
+    //    BYOK，平台配额/会员/结算整个体系不适用（useSystemKey=false 同时跳过
+    //    上方校验分支与流结束的 settleCredits 结算回调）。
+    const useSystemKey = !IS_DESKTOP_APP && (!userApiKey || (!!resolved && resolved.providerId !== 'user-custom'))
 
     // ===== AI 助手积分制度（token 计费 × 模型倍率 × 全局倍率） =====
     // 开启时：请求前仅做额度检查，流结束后按真实 usage 结算并在 [DONE] 前推送 credit_usage 事件
@@ -236,8 +247,12 @@ export async function POST(req: Request) {
         }
 
         // 并行：LLM 提取 + 正则兜底 + 自动学习（设备模式）
+        // 🎨 个性化开关：用户在「设置 → 记忆」中关闭「允许助手记住我」时不提取记忆
+        const personalCfg = await getPersonalization(user.id as number).catch(() => null)
+        const memoryEnabled = personalCfg ? personalCfg.memoryEnabled : true
         await Promise.all([
           (async () => {
+            if (!memoryEnabled) return
             try {
               const extracted = await extractMemoriesFromConversation(recentUserTexts, aiResponseText)
               if (extracted.memories.length > 0) {
@@ -816,6 +831,12 @@ export async function POST(req: Request) {
       // === 记忆增强：注入用户画像（md 文件为唯一真相源）===
       (async () => {
         try {
+          // 🔥 优先级最高：用户显式设置的个性化（回复风格/称呼/自定义指令/人格）
+          const personalPrompt = await buildPersonalizationPrompt(user.id as number).catch(() => '')
+          if (personalPrompt) {
+            enhancedSystemPrompt = `${enhancedSystemPrompt}${personalPrompt}`
+          }
+
           // 🔥 核心：直接读用户 md 记忆文件（data/user-memory/<userId>.md），
           // 这是最可靠、最直接的跨会话记忆来源，不受 db 排序/截断影响
           const memoryMd = await getUserMemoryForPrompt(user.id as number)

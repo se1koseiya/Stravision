@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconLoading } from "@/components/icon";
 
 const AreaChart = dynamic(() => import("@ant-design/plots").then(m => m.Area), { ssr: false })
 const A = BERRY_THEME.apple
@@ -83,7 +83,7 @@ export function WidgetTrendChart({ type, color, unit = "", className, showToggle
             <div className="flex-1 w-full min-h-0 relative" style={{ marginTop: showToggle ? 18 : 0 }}>
                 {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <Loader2 className="h-4 w-4 animate-spin" style={{ color: A.labelQuaternary }} strokeWidth={1.75} />
+                        <IconLoading className="h-4 w-4 animate-spin" style={{ color: A.labelQuaternary }} strokeWidth={1.75} />
                     </div>
                 )}
                 {chartData.length > 0 && (

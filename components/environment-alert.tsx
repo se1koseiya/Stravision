@@ -5,7 +5,7 @@ import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { X } from "lucide-react"
+import { IconClose } from "@/components/icon";
 
 type AlertType = 'temp_high' | 'humidity_high' | 'humidity_low' | 'co2_high' | 'light_low'
 
@@ -412,7 +412,7 @@ export function EnvironmentAlert() {
                   onClick={(e) => { e.stopPropagation(); dismissAlert(alert.id); }}
                   className="p-1.5 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 transition-colors shrink-0 -mt-1"
                 >
-                  <X size={16} />
+                  <IconClose size={16} />
                 </button>
               </div>
 

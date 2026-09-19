@@ -2,21 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Tooltip } from "antd"
-import {
-  Network,
-  Plus,
-  ChevronRight,
-  ChevronDown,
-  RefreshCw,
-  Building2,
-  Users as UsersIcon,
-  Trash2
-} from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { chatClient } from "@/lib/chat/chat-client"
 import type { ChatOrganization } from "@/lib/chat/chat-types"
 import { CreateOrganizationDialog } from "./create-organization-dialog"
+import { IconBuildingFour, IconDelete, IconDown, IconNetworkTree, IconPeoples, IconPlus, IconRefresh, IconRight } from "@/components/icon";
 
 const ICON_STROKE = 1.75
 
@@ -159,8 +150,8 @@ export function OrganizationTree({
               className="size-5 shrink-0 flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-[rgba(0,0,0,0.75)]"
             >
               {expanded
-                ? <ChevronDown size={14} strokeWidth={1.75} />
-                : <ChevronRight size={14} strokeWidth={1.75} />}
+                ? <IconDown size={14} strokeWidth={1.75} />
+                : <IconRight size={14} strokeWidth={1.75} />}
             </button>
           ) : (
             <span className="size-5 shrink-0" />
@@ -175,7 +166,7 @@ export function OrganizationTree({
                 : "bg-[#fafafa] text-[rgba(0,0,0,0.55)]"
             )}
           >
-            <Building2 size={15} strokeWidth={1.75} />
+            <IconBuildingFour size={15} strokeWidth={1.75} />
           </span>
 
           {/* 名称 */}
@@ -187,7 +178,7 @@ export function OrganizationTree({
 
           {/* 成员数 */}
           <span className="text-[11px] text-[rgba(0,0,0,0.4)] shrink-0 flex items-center gap-1">
-            <UsersIcon size={11} strokeWidth={1.75} />
+            <IconPeoples size={11} strokeWidth={1.75} />
             {node.member_count ?? 0}
           </span>
 
@@ -203,7 +194,7 @@ export function OrganizationTree({
                   disabled={syncingId === node.id}
                   className="size-6 flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-[#1677ff] disabled:opacity-50"
                 >
-                  <RefreshCw size={12} strokeWidth={1.75} className={syncingId === node.id ? "animate-spin" : ""} />
+                  <IconRefresh size={12} strokeWidth={1.75} className={syncingId === node.id ? "animate-spin" : ""} />
                 </button>
               </Tooltip>
               <Tooltip title="删除组织">
@@ -215,7 +206,7 @@ export function OrganizationTree({
                   disabled={deletingId === node.id}
                   className="size-6 flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-[#ff4d4f] disabled:opacity-50"
                 >
-                  <Trash2 size={12} strokeWidth={1.75} />
+                  <IconDelete size={12} strokeWidth={1.75} />
                 </button>
               </Tooltip>
             </div>
@@ -241,7 +232,7 @@ export function OrganizationTree({
           className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-black/[0.03] transition-colors"
         >
           <span className="size-9 rounded-full bg-[#f0f5ff] flex items-center justify-center text-[#2f54eb]">
-            <Plus size={18} strokeWidth={ICON_STROKE} />
+            <IconPlus size={18} strokeWidth={ICON_STROKE} />
           </span>
           <span className="text-[14px] text-[rgba(0,0,0,0.7)]">创建组织架构</span>
         </button>
@@ -254,7 +245,7 @@ export function OrganizationTree({
         </div>
       ) : tree.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-[13px] text-[rgba(0,0,0,0.35)] py-16">
-          <Network size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
+          <IconNetworkTree size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
           <span>暂无组织架构</span>
           {isAdmin && (
             <span className="text-[11px] text-[rgba(0,0,0,0.3)] mt-1">

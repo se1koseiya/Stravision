@@ -20,24 +20,7 @@ import {
   Switch
 } from "antd"
 import type { ColumnsType } from "antd/es/table"
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  SearchOutlined,
-  CheckCircleOutlined,
-  BookOutlined,
-  FireOutlined,
-  ReloadOutlined,
-  CloudUploadOutlined,
-  LinkOutlined,
-  EyeOutlined,
-  FileTextOutlined,
-  PictureOutlined,
-  ThunderboltOutlined,
-  CloseCircleOutlined,
-  LoadingOutlined
-} from "@ant-design/icons"
+import { IconBook, IconCheckOne, IconCloseOne, IconDelete, IconEdit, IconFileText, IconFire, IconLink, IconLoading, IconPicture, IconPlus, IconPreviewOpen, IconRefresh, IconSearch, IconThunderbolt, IconUpload } from "@/components/icon";
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -498,13 +481,13 @@ export function KnowledgeMarketManager() {
   const getEmbedStatusTag = (status: string) => {
     switch (status) {
       case "ready":
-        return <Tag color="green" icon={<CheckCircleOutlined />}>已向量化</Tag>
+        return <Tag color="green" icon={<IconCheckOne />}>已向量化</Tag>
       case "processing":
-        return <Tag color="blue" icon={<LoadingOutlined />}>向量化中</Tag>
+        return <Tag color="blue" icon={<IconLoading />}>向量化中</Tag>
       case "pending":
         return <Tag color="orange">待向量化</Tag>
       case "failed":
-        return <Tag color="red" icon={<CloseCircleOutlined />}>失败</Tag>
+        return <Tag color="red" icon={<IconCloseOne />}>失败</Tag>
       case "skipped":
         return <Tag>已跳过</Tag>
       default:
@@ -536,7 +519,7 @@ export function KnowledgeMarketManager() {
         }
         return (
           <div style={{ width: 48, height: 36, borderRadius: 6, background: record.color || "#1677ff", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
-            <BookOutlined />
+            <IconBook />
           </div>
         )
       }
@@ -549,7 +532,7 @@ export function KnowledgeMarketManager() {
         <Space direction="vertical" size={2}>
           <Space size={4}>
             <Text strong>{name}</Text>
-            {record.official === 1 && <CheckCircleOutlined style={{ color: "#1677ff" }} />}
+            {record.official === 1 && <IconCheckOne style={{ color: "#1677ff" }} />}
           </Space>
           {record.description && (
             <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
@@ -578,7 +561,7 @@ export function KnowledgeMarketManager() {
       width: 80,
       render: (_, record) => (
         <Space size={2}>
-          <FireOutlined style={{ color: "#fa8c16", fontSize: 12 }} />
+          <IconFire style={{ color: "#fa8c16", fontSize: 12 }} />
           <Text style={{ fontFamily: "monospace" }}>{record.subscriber_count || 0}</Text>
         </Space>
       )
@@ -614,9 +597,9 @@ export function KnowledgeMarketManager() {
       fixed: "right",
       render: (_, record) => (
         <Space size={0}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleView(record.id)} title="查看详情" />
-          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} title="编辑" />
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id, record.name)} title="删除" />
+          <Button type="text" size="small" icon={<IconPreviewOpen />} onClick={() => handleView(record.id)} title="查看详情" />
+          <Button type="text" size="small" icon={<IconEdit />} onClick={() => handleEdit(record)} title="编辑" />
+          <Button type="text" size="small" danger icon={<IconDelete />} onClick={() => handleDelete(record.id, record.name)} title="删除" />
         </Space>
       )
     }
@@ -631,9 +614,9 @@ export function KnowledgeMarketManager() {
       render: (title: string, record) => (
         <Space direction="vertical" size={2} style={{ maxWidth: 320 }}>
           <Space size={4}>
-            {record.content_type === "link" ? <LinkOutlined style={{ color: "#1677ff" }} /> :
-             record.content_type === "image" || record.content_type?.startsWith("image") ? <PictureOutlined style={{ color: "#1677ff" }} /> :
-             <FileTextOutlined style={{ color: "#1677ff" }} />}
+            {record.content_type === "link" ? <IconLink style={{ color: "#1677ff" }} /> :
+             record.content_type === "image" || record.content_type?.startsWith("image") ? <IconPicture style={{ color: "#1677ff" }} /> :
+             <IconFileText style={{ color: "#1677ff" }} />}
             <Text strong style={{ fontSize: 13 }}>{title}</Text>
           </Space>
           {record.source_url && (
@@ -687,13 +670,13 @@ export function KnowledgeMarketManager() {
           <Tooltip title="重新生成 embedding">
             <Button
               type="text" size="small"
-              icon={<ThunderboltOutlined />}
+              icon={<IconThunderbolt />}
               loading={reembedId === record.id}
               onClick={() => handleReembed(record)}
             />
           </Tooltip>
           <Tooltip title="删除条目">
-            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteItem(record)} />
+            <Button type="text" size="small" danger icon={<IconDelete />} onClick={() => handleDeleteItem(record)} />
           </Tooltip>
         </Space>
       )
@@ -708,17 +691,17 @@ export function KnowledgeMarketManager() {
         <Space>
           <Input
             placeholder="搜索知识库名称 / 描述"
-            prefix={<SearchOutlined style={{ color: "#1677ff" }} />}
+            prefix={<IconSearch style={{ color: "#1677ff" }} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 280 }}
             allowClear
           />
-          <Button icon={<ReloadOutlined />} onClick={fetchCollections}>刷新</Button>
+          <Button icon={<IconRefresh />} onClick={fetchCollections}>刷新</Button>
         </Space>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<IconPlus />}
           onClick={() => { setForm(DEFAULT_FORM); setActiveTab("basic"); setModalOpen(true) }}
         >
           新建市场知识库
@@ -765,7 +748,7 @@ export function KnowledgeMarketManager() {
         onCancel={() => !saving && setModalOpen(false)}
         title={
           <Space>
-            <BookOutlined style={{ color: "#1677ff" }} />
+            <IconBook style={{ color: "#1677ff" }} />
             <span>{form.id ? "编辑市场知识库" : "新建市场知识库"}</span>
           </Space>
         }
@@ -787,7 +770,7 @@ export function KnowledgeMarketManager() {
           items={[
             {
               key: "basic",
-              label: <span><FileTextOutlined /> 基本信息</span>,
+              label: <span><IconFileText /> 基本信息</span>,
               children: (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "8px 0" }}>
                   <Field label="知识库名称" required>
@@ -864,7 +847,7 @@ export function KnowledgeMarketManager() {
 
                   <Field label="封面图 URL">
                     <Input
-                      prefix={<LinkOutlined style={{ color: "#1677ff" }} />}
+                      prefix={<IconLink style={{ color: "#1677ff" }} />}
                       placeholder="https://… （留空则使用主题色块）"
                       value={form.cover_image}
                       onChange={(e) => setForm({ ...form, cover_image: e.target.value })}
@@ -886,7 +869,7 @@ export function KnowledgeMarketManager() {
                           onChange={(v) => setForm({ ...form, official: v })}
                         />
                         <Space size={4}>
-                          <CheckCircleOutlined style={{ color: "#1677ff" }} />
+                          <IconCheckOne style={{ color: "#1677ff" }} />
                           <Text>官方发布（展示认证标识）</Text>
                         </Space>
                       </label>
@@ -907,13 +890,13 @@ export function KnowledgeMarketManager() {
             },
             ...(form.id ? [{
               key: "items",
-              label: <span><BookOutlined /> 条目管理 ({items.length})</span>,
+              label: <span><IconBook /> 条目管理 ({items.length})</span>,
               children: (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "8px 0" }}>
                   {/* 1. 文件上传 */}
                   <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <CloudUploadOutlined style={{ color: "#1677ff", marginRight: 6 }} />
+                      <IconUpload style={{ color: "#1677ff", marginRight: 6 }} />
                       上传文件（自动 embedding）
                     </Text>
                     <Upload
@@ -923,7 +906,7 @@ export function KnowledgeMarketManager() {
                       multiple
                       disabled={uploading}
                     >
-                      <Button icon={<CloudUploadOutlined />} loading={uploading}>
+                      <Button icon={<IconUpload />} loading={uploading}>
                         点击或拖拽上传文件
                       </Button>
                     </Upload>
@@ -935,7 +918,7 @@ export function KnowledgeMarketManager() {
                   {/* 2. 添加链接 */}
                   <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <LinkOutlined style={{ color: "#1677ff", marginRight: 6 }} />
+                      <IconLink style={{ color: "#1677ff", marginRight: 6 }} />
                       添加链接（content_type=link）
                     </Text>
                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -943,7 +926,7 @@ export function KnowledgeMarketManager() {
                         placeholder="https://… 必填"
                         value={linkForm.url}
                         onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
-                        prefix={<LinkOutlined />}
+                        prefix={<IconLink />}
                       />
                       <Input
                         placeholder="标题（默认用 URL）"
@@ -964,7 +947,7 @@ export function KnowledgeMarketManager() {
                   {/* 3. 添加纯文本 */}
                   <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <FileTextOutlined style={{ color: "#1677ff", marginRight: 6 }} />
+                      <IconFileText style={{ color: "#1677ff", marginRight: 6 }} />
                       添加纯文本条目
                     </Text>
                     <Input
@@ -993,7 +976,7 @@ export function KnowledgeMarketManager() {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <Text strong>已有条目（{items.length}）</Text>
-                      <Button size="small" icon={<ReloadOutlined />} onClick={() => form.id && fetchItems(form.id)}>刷新</Button>
+                      <Button size="small" icon={<IconRefresh />} onClick={() => form.id && fetchItems(form.id)}>刷新</Button>
                     </div>
                     <Spin spinning={itemsLoading}>
                       {items.length === 0 ? (
@@ -1021,7 +1004,7 @@ export function KnowledgeMarketManager() {
       <Modal
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
-        title={<Space><BookOutlined style={{ color: "#1677ff" }} /><span>知识库详情</span></Space>}
+        title={<Space><IconBook style={{ color: "#1677ff" }} /><span>知识库详情</span></Space>}
         footer={[<Button key="close" onClick={() => setDetailModalOpen(false)}>关闭</Button>]}
         width={640}
       >
@@ -1034,7 +1017,7 @@ export function KnowledgeMarketManager() {
             )}
             <Space size={8} wrap>
               <Text strong style={{ fontSize: 18 }}>{detailCollection.name}</Text>
-              {detailCollection.official === 1 && <Tag icon={<CheckCircleOutlined />} color="blue">官方</Tag>}
+              {detailCollection.official === 1 && <Tag icon={<IconCheckOne />} color="blue">官方</Tag>}
               <Tag>{detailCollection.category}</Tag>
             </Space>
             <Text type="secondary">{detailCollection.description || "暂无描述"}</Text>

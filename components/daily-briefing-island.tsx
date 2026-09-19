@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { cn } from "@/lib/utils"
-import { Volume2, X, Loader2 } from "lucide-react"
 import { getVoiceSettings } from "@/components/ai-settings-dialog"
+import { IconClose, IconLoading, IconVolumeNotice } from "@/components/icon";
 
 interface DailyBriefingIslandProps {
   username?: string
@@ -259,7 +259,7 @@ export function DailyBriefingIsland({
           <div className="flex items-center justify-center h-full gap-3 px-5 animate-in fade-in duration-300">
             <div className="relative flex items-center justify-center">
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-primary flex items-center justify-center">
-                <Volume2 size={12} className="text-white" />
+                <IconVolumeNotice size={12} className="text-white" />
               </div>
               <div className="absolute inset-0 w-6 h-6 rounded-full bg-emerald-400/40 animate-ping" />
             </div>
@@ -276,7 +276,7 @@ export function DailyBriefingIsland({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-primary flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                  <Volume2 size={14} className="text-white" />
+                  <IconVolumeNotice size={14} className="text-white" />
                 </div>
                 <div>
                   <div className="text-[13px] font-semibold text-white/95 tracking-tight leading-tight">今日智能播报</div>
@@ -289,7 +289,7 @@ export function DailyBriefingIsland({
                   className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 flex items-center gap-1 transition-colors group"
                   title="不再显示今日播报"
                 >
-                  <X size={10} className="text-white/60 group-hover:text-white/80" />
+                  <IconClose size={10} className="text-white/60 group-hover:text-white/80" />
                   <span className="text-[10px] text-white/60 group-hover:text-white/80 font-medium">不再显示</span>
                 </button>
                 <button
@@ -297,7 +297,7 @@ export function DailyBriefingIsland({
                   className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
                   title="关闭"
                 >
-                  <X size={12} className="text-white/60" />
+                  <IconClose size={12} className="text-white/60" />
                 </button>
               </div>
             </div>

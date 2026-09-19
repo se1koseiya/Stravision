@@ -3,11 +3,11 @@
 
 import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, Send, Minimize2, Radio, Sparkles, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { IconClose, IconMagic, IconMicrophone, IconOffScreen, IconRadio, IconSend, IconVolumeNotice } from "@/components/icon";
 
 export interface Message {
   id: string;
@@ -79,7 +79,7 @@ export function XiaozhiPanel({
                 "w-8 h-8 rounded-full flex items-center justify-center shadow-inner",
                 "bg-gradient-to-br from-white/20 to-white/5 border border-white/10"
               )}>
-                <Sparkles className="w-4 h-4 text-white drop-shadow-md" />
+                <IconMagic className="w-4 h-4 text-white drop-shadow-md" />
               </div>
               <div>
                 <h3 className="font-semibold text-white/90 text-base leading-tight">莓小智</h3>
@@ -92,7 +92,7 @@ export function XiaozhiPanel({
               className="h-8 w-8 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors" 
               onClick={onClose}
             >
-              <Minimize2 className="w-4 h-4" />
+              <IconOffScreen className="w-4 h-4" />
             </Button>
           </div>
 
@@ -102,7 +102,7 @@ export function XiaozhiPanel({
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-[300px] text-white/30 space-y-4">
                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                     <Sparkles className="w-8 h-8 opacity-50" />
+                     <IconMagic className="w-8 h-8 opacity-50" />
                    </div>
                    <p className="text-sm font-light">“你好，我是莓小智，我可以帮你管理大棚。”</p>
                 </div>
@@ -179,7 +179,7 @@ export function XiaozhiPanel({
                   )}
                   onClick={status === 'listening' ? onStopVoice : onStartVoice}
                 >
-                  {status === 'listening' ? <Radio className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  {status === 'listening' ? <IconRadio className="w-4 h-4" /> : <IconMicrophone className="w-4 h-4" />}
                 </Button>
                 
                 <Input
@@ -201,7 +201,7 @@ export function XiaozhiPanel({
                       : "bg-white/5 text-white/20"
                   )}
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <IconSend className="w-3.5 h-3.5" />
                 </Button>
              </div>
           </div>

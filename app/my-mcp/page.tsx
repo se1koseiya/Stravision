@@ -3,12 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { 
-  ArrowLeft, Search, Download, Check, ExternalLink, Filter, Sparkles, Zap, 
-  Database, Globe, FileText, Code, MessageSquare, Calendar, Github, Slack, 
-  Info, Plus, Activity, Sprout, ShieldCheck, ArrowRight, Settings, Grid, Trash2, Power
-} from "lucide-react"
 import { motion } from "framer-motion"
+import { IconArrowLeft, IconArrowRight, IconCalendar, IconChartLine, IconCheck, IconCode, IconComment, IconDatabaseNetwork, IconDelete, IconDownload, IconFileText, IconFilter, IconGithub, IconGlobe, IconGridFour, IconInfo, IconLightning, IconLink, IconLinkOut, IconMagic, IconPlus, IconPower, IconSearch, IconSeedling, IconSetting, IconShield } from "@/components/icon";
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -189,7 +185,7 @@ export default function MyMCPPage() {
                className="text-white/60 hover:text-emerald-400 hover:bg-primary/10 h-8 px-2 gap-2 font-jinbuti rounded-none border border-transparent hover:border-primary/30"
                onClick={() => router.push('/ai-assistant')}
              >
-               <ArrowLeft className="size-4" />
+               <IconArrowLeft className="size-4" />
                <span className="hidden sm:inline-block">AI Assistant</span>
              </Button>
            </motion.div>
@@ -242,7 +238,7 @@ export default function MyMCPPage() {
              onClick={() => router.push('/my-mcp')}
              title="Settings"
            >
-              <Settings className="size-4" />
+              <IconSetting className="size-4" />
            </Button>
            
            <motion.div 
@@ -256,7 +252,7 @@ export default function MyMCPPage() {
            >
               <div className="flex items-center gap-1 bg-white/5 p-1 border border-white/10 shrink-0">
                  <div className="size-6 bg-white text-black flex items-center justify-center text-[10px] font-bold">EN</div>
-                 <div className="size-6 flex items-center justify-center text-white/40"><Globe className="size-3" /></div>
+                 <div className="size-6 flex items-center justify-center text-white/40"><IconGlobe className="size-3" /></div>
               </div>
            </motion.div>
 
@@ -265,7 +261,7 @@ export default function MyMCPPage() {
              onClick={() => setCustomDialogOpen(true)}
              style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
            >
-             <Plus className="size-3.5 mr-1.5" />
+             <IconPlus className="size-3.5 mr-1.5" />
              <span className="font-bold text-xs">添加自定义</span>
            </Button>
         </div>
@@ -323,7 +319,7 @@ export default function MyMCPPage() {
          <div className="max-w-[1600px] mx-auto">
             {installedServers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 bg-white/5 backdrop-blur-sm">
-                    <Grid className="size-16 text-primary/20 mb-6" />
+                    <IconGridFour className="size-16 text-primary/20 mb-6" />
                     <h3 className="text-xl font-bold mb-2 font-jinbuti">暂无已安装的 MCP Server</h3>
                     <p className="text-white/40 mb-8 max-w-md text-center font-light">
                         前往 MCP 广场探索并安装您需要的插件，它们将在这里显示。
@@ -367,7 +363,7 @@ export default function MyMCPPage() {
                             </div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button size="icon" variant="ghost" className="size-8 text-white/40 hover:text-emerald-400 hover:bg-primary/10 rounded-none" onClick={() => { setSelectedServer(server); setDetailDialogOpen(true); }}>
-                                    <Settings className="size-4" />
+                                    <IconSetting className="size-4" />
                                 </Button>
                             </div>
                          </div>
@@ -399,7 +395,7 @@ export default function MyMCPPage() {
                                  className="h-8 px-3 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 font-jinbuti rounded-none border border-red-500/20"
                                  onClick={() => handleUninstall(server.id)}
                                >
-                                  <Trash2 className="size-3 mr-1.5" /> 卸载
+                                  <IconDelete className="size-3 mr-1.5" /> 卸载
                                </Button>
                                <Button 
                                  size="sm" 

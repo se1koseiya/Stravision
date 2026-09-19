@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Trash2, GripVertical, Image as ImageIcon, Video, Save, CheckCircle2 } from "lucide-react"
 import { MediaType } from "./feature-announcement-dialog"
 import { motion, AnimatePresence } from "framer-motion"
+import { IconCheckOne, IconDelete, IconDrag, IconPicture, IconPlus, IconSave, IconVideo } from "@/components/icon";
 
 export interface FeatureAnnouncement {
     id: string
@@ -90,7 +90,7 @@ export function FeatureAnnouncementAdmin() {
                     disabled={saving || loading}
                     className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-medium transition-all shadow-sm h-fit"
                 >
-                    {saving ? "推送保存中..." : success ? <><CheckCircle2 className="w-4 h-4" /> 已推送生效</> : <><Save className="w-4 h-4" /> 保存所有更改</>}
+                    {saving ? "推送保存中..." : success ? <><IconCheckOne className="w-4 h-4" /> 已推送生效</> : <><IconSave className="w-4 h-4" /> 保存所有更改</>}
                 </button>
             </div>
 
@@ -117,7 +117,7 @@ export function FeatureAnnouncementAdmin() {
                                         )
                                     ) : (
                                         <div className="text-slate-400 text-xs flex flex-col items-center gap-2">
-                                            <ImageIcon className="w-8 h-8 opacity-20" />
+                                            <IconPicture className="w-8 h-8 opacity-20" />
                                             暂无媒体预览
                                         </div>
                                     )}
@@ -136,7 +136,7 @@ export function FeatureAnnouncementAdmin() {
                                             onClick={() => handleDelete(feature.id)}
                                             className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <IconDelete className="w-4 h-4" />
                                         </button>
                                     </div>
 
@@ -165,13 +165,13 @@ export function FeatureAnnouncementAdmin() {
                                                         onClick={() => handleUpdate(feature.id, "mediaType", "image")}
                                                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs rounded-md font-medium transition-all ${feature.mediaType === "image" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"}`}
                                                     >
-                                                        <ImageIcon className="w-3 h-3" /> 图片
+                                                        <IconPicture className="w-3 h-3" /> 图片
                                                     </button>
                                                     <button
                                                         onClick={() => handleUpdate(feature.id, "mediaType", "video")}
                                                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs rounded-md font-medium transition-all ${feature.mediaType === "video" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"}`}
                                                     >
-                                                        <Video className="w-3 h-3" /> 视频
+                                                        <IconVideo className="w-3 h-3" /> 视频
                                                     </button>
                                                 </div>
                                             </div>
@@ -211,7 +211,7 @@ export function FeatureAnnouncementAdmin() {
                                                             }}
                                                         />
                                                         <div className="h-full px-2 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 group-hover/upload:text-blue-500 transition-all">
-                                                            <Plus className="w-4 h-4" />
+                                                            <IconPlus className="w-4 h-4" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -227,7 +227,7 @@ export function FeatureAnnouncementAdmin() {
                         onClick={handleAddFeature}
                         className="w-full py-4 border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded-2xl flex items-center justify-center gap-2 text-slate-500 hover:text-blue-600 transition-all font-medium"
                     >
-                        <Plus className="w-5 h-5" /> 添加新功能卡片
+                        <IconPlus className="w-5 h-5" /> 添加新功能卡片
                     </button>
                 </div>
             )}

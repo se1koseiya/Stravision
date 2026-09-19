@@ -6,7 +6,7 @@ import {
   BaseEdge,
   type EdgeProps,
 } from "@xyflow/react";
-import { Trash2 } from "lucide-react";
+import { IconDelete } from "@/components/icon";
 
 interface DeletableEdgeProps extends EdgeProps {
   /** 删除该连线时回调（传边 id） */
@@ -77,7 +77,7 @@ export function DeletableEdge({
               onDelete?.(id);
             }}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <IconDelete className="h-3.5 w-3.5" />
           </button>
         </EdgeLabelRenderer>
       )}

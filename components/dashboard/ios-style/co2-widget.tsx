@@ -1,6 +1,5 @@
 "use client"
 
-import { Wind, AlertTriangle, CheckCircle2, Trees, Fan } from "lucide-react"
 import { Flex } from "antd"
 import {
   IOSWidgetCard,
@@ -14,6 +13,7 @@ import {
 import { WidgetRingProgress, WidgetLevelBar, WidgetLineChart, WidgetBars, WidgetGaugeStrip } from "./widget-visualizations"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCaution, IconCheckOne, IconFan, IconTree, IconWind } from "@/components/icon";
 
 const A = BERRY_THEME.apple
 const WC = A.widgetColors.co2
@@ -82,7 +82,7 @@ export function CO2Widget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Wind size={12} strokeWidth={ICON_STROKE} />}
+            icon={<IconWind size={12} strokeWidth={ICON_STROKE} />}
             label="CO₂"
             color={status.color}
             right={<div style={{ width: 6, height: 6, borderRadius: '50%', background: status.color }} />}
@@ -103,8 +103,8 @@ export function CO2Widget({
           <WidgetGaugeStrip value={value} min={400} max={2000} color={status.color} segments={10} height={5} />
           <WidgetMiniStats
             stats={[
-              { label: '室外', value: '420', color: A.accents.green, icon: <Trees size={9} strokeWidth={ICON_STROKE} /> },
-              { label: '阈值', value: '1k', color: A.accents.orange, icon: <AlertTriangle size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '室外', value: '420', color: A.accents.green, icon: <IconTree size={9} strokeWidth={ICON_STROKE} /> },
+              { label: '阈值', value: '1k', color: A.accents.orange, icon: <IconCaution size={9} strokeWidth={ICON_STROKE} /> },
               { label: '差值', value: `+${diff}`, color: status.color },
             ]}
           />
@@ -120,7 +120,7 @@ export function CO2Widget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Wind size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconWind size={14} strokeWidth={ICON_STROKE} />}
             label="CO₂ 浓度"
             color={status.color}
             right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -167,9 +167,9 @@ export function CO2Widget({
 
           <WidgetMiniStats
             stats={[
-              { label: '室外', value: '420', color: A.accents.green, icon: <CheckCircle2 size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '阈值', value: '1000', color: A.accents.orange, icon: <AlertTriangle size={10} strokeWidth={ICON_STROKE} /> },
-              { label: '建议', value: '<800', color: status.color, icon: <Fan size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '室外', value: '420', color: A.accents.green, icon: <IconCheckOne size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '阈值', value: '1000', color: A.accents.orange, icon: <IconCaution size={10} strokeWidth={ICON_STROKE} /> },
+              { label: '建议', value: '<800', color: status.color, icon: <IconFan size={10} strokeWidth={ICON_STROKE} /> },
             ]}
             style={{ borderTop: `1px solid ${A.separator}`, paddingTop: 10 }}
           />
@@ -184,7 +184,7 @@ export function CO2Widget({
       className={className}
       header={
         <WidgetHeader
-          icon={<Wind size={14} strokeWidth={ICON_STROKE} />}
+          icon={<IconWind size={14} strokeWidth={ICON_STROKE} />}
           label="CO₂"
           color={status.color}
           right={<WidgetStatusPill label={status.label} color={status.color} />}
@@ -221,9 +221,9 @@ export function CO2Widget({
         </Flex>
         <WidgetCompactFooter
           stats={[
-            { label: '室外', value: '420', color: A.accents.green, icon: <Trees size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '阈值', value: '1000', color: A.accents.orange, icon: <AlertTriangle size={10} strokeWidth={ICON_STROKE} /> },
-            { label: '理想', value: '<800', color: status.color, icon: <Fan size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '室外', value: '420', color: A.accents.green, icon: <IconTree size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '阈值', value: '1000', color: A.accents.orange, icon: <IconCaution size={10} strokeWidth={ICON_STROKE} /> },
+            { label: '理想', value: '<800', color: status.color, icon: <IconFan size={10} strokeWidth={ICON_STROKE} /> },
           ]}
         />
       </Flex>

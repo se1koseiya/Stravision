@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Zap, ChevronDown, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
   DropdownMenu,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { IconDown, IconLightning, IconSetting } from "@/components/icon";
 
 interface MCPServer {
   id: string
@@ -86,7 +86,7 @@ export function MCPStatusIndicator() {
         className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors relative group"
         title="启用 MCP 服务器"
       >
-        <Zap size={20} />
+        <IconLightning size={20} />
         <div className="absolute -top-1 -right-1 size-2 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
       </button>
     )
@@ -104,9 +104,9 @@ export function MCPStatusIndicator() {
           )}
           title={`${enabledServers.length} 个 MCP 服务器已启用`}
         >
-          <Zap size={16} className="shrink-0" />
+          <IconLightning size={16} className="shrink-0" />
           <span className="text-xs font-medium">{enabledServers.length}</span>
-          <ChevronDown size={14} className={cn(
+          <IconDown size={14} className={cn(
             "shrink-0 transition-transform",
             isOpen && "rotate-180"
           )} />
@@ -141,7 +141,7 @@ export function MCPStatusIndicator() {
           onClick={() => router.push('/my-mcp')}
           className="cursor-pointer"
         >
-          <Settings size={14} className="mr-2" />
+          <IconSetting size={14} className="mr-2" />
           管理 MCP 服务器
         </DropdownMenuItem>
         
@@ -149,7 +149,7 @@ export function MCPStatusIndicator() {
           onClick={() => router.push('/mcp-store')}
           className="cursor-pointer"
         >
-          <Zap size={14} className="mr-2" />
+          <IconLightning size={14} className="mr-2" />
           浏览 MCP 商店
         </DropdownMenuItem>
       </DropdownMenuContent>

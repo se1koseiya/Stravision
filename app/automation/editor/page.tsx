@@ -21,6 +21,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { IconApi, IconArrowLeft, IconBrain, IconChartLine, IconClickTap, IconDatabaseNetwork, IconDelete, IconGithub, IconGridFour, IconHandUp, IconLightning, IconLoading, IconLogout, IconMagic, IconMagicWand, IconMicrophone, IconPlay, IconPlus, IconRemind, IconSave, IconScan, IconSearch, IconSetting, IconSettingTwo, IconShield, IconSquareSmall, IconSwitch, IconTime, IconTimer, IconTrendingUp, IconVoiceOff, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 import TriggerNode from '@/components/automation/trigger-node';
 import LogicNode from '@/components/automation/logic-node';
@@ -30,7 +31,6 @@ import { DeletableEdge } from '@/components/automation/deletable-edge';
 import { EditorAIDefaultsContext, type EditorAIDefaults } from '@/components/automation/ai-node';
 import { NODE_TYPES } from '@/components/automation/node-types';
 import { Button } from '@/components/ui/button';
-import { Plus, Play, Save, Settings, ArrowLeft, Wand2, LogOut, LayoutGrid, Loader2, Bolt, Search, Sparkles, BrainCircuit, Zap, Mic, MicOff, Volume2, VolumeX, Activity, Clock, Hand, GitCompare, SlidersHorizontal, GitBranch, Timer, TrendingUp, ShieldAlert, ScanLine, ToggleRight, Bell, Webhook, Database, MousePointer2, SquareDashed, Trash2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 // antd 组件（飞书式整体风格）
@@ -270,7 +270,7 @@ function AutomationEditor() {
     } else {
       resetTranscript();
       startListening();
-      toast.info("正在聆听...", { icon: <Mic className="w-4 h-4 animate-pulse" /> });
+      toast.info("正在聆听...", { icon: <IconMicrophone className="w-4 h-4 animate-pulse" /> });
     }
   };
 
@@ -774,7 +774,7 @@ function AutomationEditor() {
                 type="text"
                 size="small"
                 onClick={() => router.push('/automation')}
-                icon={<ArrowLeft className="w-4 h-4" />}
+                icon={<IconArrowLeft className="w-4 h-4" />}
                 className="!text-slate-500"
               />
               
@@ -798,7 +798,7 @@ function AutomationEditor() {
                     size="small"
                     className="!h-8 !px-3.5 !text-slate-600"
                     onClick={() => setIsAiInputVisible(true)}
-                    icon={<Sparkles className="w-4 h-4 text-amber-500" />}
+                    icon={<IconMagic className="w-4 h-4 text-amber-500" />}
                 >
                     AI 生成
                 </AntButton>
@@ -809,7 +809,7 @@ function AutomationEditor() {
                     className="!h-8 !px-3.5 !text-slate-600"
                     onClick={handleSimulation}
                     disabled={isSimulating}
-                    icon={isSimulating ? <Loader2 className="w-4 h-4 animate-spin text-[#1677ff]" /> : <Play className="w-4 h-4 text-[#1677ff]" />}
+                    icon={isSimulating ? <IconLoading className="w-4 h-4 animate-spin text-[#1677ff]" /> : <IconPlay className="w-4 h-4 text-[#1677ff]" />}
                 >
                     {isSimulating ? '模拟运行中...' : '模拟运行'}
                 </AntButton>
@@ -820,7 +820,7 @@ function AutomationEditor() {
                     className="!h-8 !px-3.5 !text-slate-600"
                     onClick={handleRun}
                     disabled={isRunning}
-                    icon={isRunning ? <Loader2 className="w-4 h-4 animate-spin text-[#1677ff]" /> : <Zap className="w-4 h-4 text-[#1677ff]" />}
+                    icon={isRunning ? <IconLoading className="w-4 h-4 animate-spin text-[#1677ff]" /> : <IconLightning className="w-4 h-4 text-[#1677ff]" />}
                 >
                     {isRunning ? '正在运行...' : '立即运行'}
                 </AntButton>
@@ -830,7 +830,7 @@ function AutomationEditor() {
                     size="small"
                     className="!h-8 !px-3.5 !text-slate-600"
                     onClick={() => setIsDeviceSheetOpen(true)}
-                    icon={<LayoutGrid className="w-4 h-4" />}
+                    icon={<IconGridFour className="w-4 h-4" />}
                 >
                     设备
                 </AntButton>
@@ -841,7 +841,7 @@ function AutomationEditor() {
                     className="!h-8 !px-5"
                     onClick={handleSave}
                     disabled={isSaving}
-                    icon={isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    icon={isSaving ? <IconLoading className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
                 >
                     保存
                 </AntButton>
@@ -888,7 +888,7 @@ function AutomationEditor() {
                   type={interactionMode === 'select' ? 'primary' : 'text'}
                   size="small"
                   onClick={() => setInteractionMode('select')}
-                  icon={<MousePointer2 className="w-4 h-4" />}
+                  icon={<IconClickTap className="w-4 h-4" />}
                 >
                   选择
                 </AntButton>
@@ -896,7 +896,7 @@ function AutomationEditor() {
                   type={interactionMode === 'box' ? 'primary' : 'text'}
                   size="small"
                   onClick={() => setInteractionMode('box')}
-                  icon={<SquareDashed className="w-4 h-4" />}
+                  icon={<IconSquareSmall className="w-4 h-4" />}
                 >
                   框选
                 </AntButton>
@@ -907,7 +907,7 @@ function AutomationEditor() {
                   danger
                   disabled={selectedCount === 0}
                   onClick={handleDeleteSelected}
-                  icon={<Trash2 className="w-4 h-4" />}
+                  icon={<IconDelete className="w-4 h-4" />}
                 >
                   {selectedCount > 0 ? `删除(${selectedCount})` : '删除'}
                 </AntButton>
@@ -936,7 +936,7 @@ function AutomationEditor() {
                   {!isNodeLibraryCollapsed && (
                     <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                       <div className="p-1.5 rounded-md bg-[#1677ff]/10 text-[#1677ff] dark:text-blue-400">
-                        <LayoutGrid className="w-4 h-4" />
+                        <IconGridFour className="w-4 h-4" />
                       </div>
                       <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">组件库</span>
                     </div>
@@ -947,7 +947,7 @@ function AutomationEditor() {
                     className={`h-8 w-8 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all ${isNodeLibraryCollapsed ? 'mx-auto' : ''}`}
                     onClick={() => setIsNodeLibraryCollapsed(!isNodeLibraryCollapsed)}
                   >
-                    {isNodeLibraryCollapsed ? <Plus className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+                    {isNodeLibraryCollapsed ? <IconPlus className="w-4 h-4" /> : <IconArrowLeft className="w-4 h-4" />}
                   </Button>
                 </div>
 
@@ -956,7 +956,7 @@ function AutomationEditor() {
                   <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-300">
                     <div className="relative">
                       <AntInput
-                        prefix={<Search className="w-3.5 h-3.5 text-slate-400" />}
+                        prefix={<IconSearch className="w-3.5 h-3.5 text-slate-400" />}
                         placeholder="搜索组件..."
                         size="middle"
                         className="!rounded-md !bg-slate-50 dark:!bg-slate-800/60"
@@ -974,40 +974,40 @@ function AutomationEditor() {
                         key: 'trigger', label: '触发器',
                         icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 fill-slate-400"><path d="M2 1 L9 5 L2 9 Z" /></svg>,
                         items: [
-                          { type: 'triggerNode', subType: 'vlm', label: 'VLM 视觉', icon: <Wand2 className="w-3.5 h-3.5" />, desc: 'AI 视觉识别物体与异常' },
-                          { type: 'triggerNode', subType: 'sensor', label: '传感器', icon: <Activity className="w-3.5 h-3.5" />, desc: '实时监听温湿度等数据' },
-                          { type: 'triggerNode', subType: 'schedule', label: '定时任务', icon: <Clock className="w-3.5 h-3.5" />, desc: '按计划时间触发' },
-                          { type: 'triggerNode', subType: 'manual', label: '手动触发', icon: <Hand className="w-3.5 h-3.5" />, desc: '人工点击按钮触发' },
+                          { type: 'triggerNode', subType: 'vlm', label: 'VLM 视觉', icon: <IconMagicWand className="w-3.5 h-3.5" />, desc: 'AI 视觉识别物体与异常' },
+                          { type: 'triggerNode', subType: 'sensor', label: '传感器', icon: <IconChartLine className="w-3.5 h-3.5" />, desc: '实时监听温湿度等数据' },
+                          { type: 'triggerNode', subType: 'schedule', label: '定时任务', icon: <IconTime className="w-3.5 h-3.5" />, desc: '按计划时间触发' },
+                          { type: 'triggerNode', subType: 'manual', label: '手动触发', icon: <IconHandUp className="w-3.5 h-3.5" />, desc: '人工点击按钮触发' },
                         ],
                       },
                       {
                         key: 'logic', label: '判定',
                         icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>,
                         items: [
-                          { type: 'logicNode', subType: 'compare', label: '数值比较', icon: <GitCompare className="w-3.5 h-3.5" />, desc: '比较两个数值大小' },
-                          { type: 'logicNode', subType: 'range', label: '范围判断', icon: <SlidersHorizontal className="w-3.5 h-3.5" />, desc: '判断数值是否在范围内' },
-                          { type: 'logicNode', subType: 'condition', label: '与/或', icon: <GitBranch className="w-3.5 h-3.5" />, desc: '多条件组合（与/或）' },
-                          { type: 'logicNode', subType: 'delay', label: '延时等待', icon: <Timer className="w-3.5 h-3.5" />, desc: '等待指定时长后继续' },
+                          { type: 'logicNode', subType: 'compare', label: '数值比较', icon: <IconGithub className="w-3.5 h-3.5" />, desc: '比较两个数值大小' },
+                          { type: 'logicNode', subType: 'range', label: '范围判断', icon: <IconSettingTwo className="w-3.5 h-3.5" />, desc: '判断数值是否在范围内' },
+                          { type: 'logicNode', subType: 'condition', label: '与/或', icon: <IconGithub className="w-3.5 h-3.5" />, desc: '多条件组合（与/或）' },
+                          { type: 'logicNode', subType: 'delay', label: '延时等待', icon: <IconTimer className="w-3.5 h-3.5" />, desc: '等待指定时长后继续' },
                         ],
                       },
                       {
                         key: 'ai', label: 'AI',
                         icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>,
                         items: [
-                          { type: 'aiNode', subType: 'llm', label: '智能处理', icon: <Sparkles className="w-3.5 h-3.5" />, desc: 'LLM 分析并决策' },
-                          { type: 'aiNode', subType: 'trend', label: '趋势分析', icon: <TrendingUp className="w-3.5 h-3.5" />, desc: '历史数据预测趋势' },
-                          { type: 'aiNode', subType: 'anomaly', label: '异常检测', icon: <ShieldAlert className="w-3.5 h-3.5" />, desc: '自动识别异常' },
-                          { type: 'aiNode', subType: 'classify', label: '图像分类', icon: <ScanLine className="w-3.5 h-3.5" />, desc: '视觉模型分类识别' },
+                          { type: 'aiNode', subType: 'llm', label: '智能处理', icon: <IconMagic className="w-3.5 h-3.5" />, desc: 'LLM 分析并决策' },
+                          { type: 'aiNode', subType: 'trend', label: '趋势分析', icon: <IconTrendingUp className="w-3.5 h-3.5" />, desc: '历史数据预测趋势' },
+                          { type: 'aiNode', subType: 'anomaly', label: '异常检测', icon: <IconShield className="w-3.5 h-3.5" />, desc: '自动识别异常' },
+                          { type: 'aiNode', subType: 'classify', label: '图像分类', icon: <IconScan className="w-3.5 h-3.5" />, desc: '视觉模型分类识别' },
                         ],
                       },
                       {
                         key: 'action', label: '执行',
                         icon: <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 fill-slate-400"><path d="M2 1 L9 5 L2 9 Z" /></svg>,
                         items: [
-                          { type: 'actionNode', subType: 'device', label: '设备控制', icon: <ToggleRight className="w-3.5 h-3.5" />, desc: '控制设备开关/参数' },
-                          { type: 'actionNode', subType: 'notification', label: '发送通知', icon: <Bell className="w-3.5 h-3.5" />, desc: '站内信或邮件通知' },
-                          { type: 'actionNode', subType: 'webhook', label: 'Webhook', icon: <Webhook className="w-3.5 h-3.5" />, desc: '调用外部 HTTP 接口' },
-                          { type: 'actionNode', subType: 'database', label: '写入数据库', icon: <Database className="w-3.5 h-3.5" />, desc: '记录数据到数据库' },
+                          { type: 'actionNode', subType: 'device', label: '设备控制', icon: <IconSwitch className="w-3.5 h-3.5" />, desc: '控制设备开关/参数' },
+                          { type: 'actionNode', subType: 'notification', label: '发送通知', icon: <IconRemind className="w-3.5 h-3.5" />, desc: '站内信或邮件通知' },
+                          { type: 'actionNode', subType: 'webhook', label: 'Webhook', icon: <IconApi className="w-3.5 h-3.5" />, desc: '调用外部 HTTP 接口' },
+                          { type: 'actionNode', subType: 'database', label: '写入数据库', icon: <IconDatabaseNetwork className="w-3.5 h-3.5" />, desc: '记录数据到数据库' },
                         ],
                       },
                     ]
@@ -1089,7 +1089,7 @@ function AutomationEditor() {
           onClose={() => setIsDeviceSheetOpen(false)}
           title={
             <span className="flex items-center gap-2 !text-[15px]">
-              <LayoutGrid className="w-4 h-4 text-slate-500" />
+              <IconGridFour className="w-4 h-4 text-slate-500" />
               设备状态监控
             </span>
           }
@@ -1105,7 +1105,7 @@ function AutomationEditor() {
              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-lg p-1.5 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 relative flex items-center pl-3 bg-slate-50 dark:bg-slate-800/60 rounded-md border border-slate-200/70 dark:border-slate-700/60 focus-within:border-[#1677ff]/40">
-                    <Wand2 className="w-4 h-4 text-[#1677ff] mr-2 shrink-0" />
+                    <IconMagicWand className="w-4 h-4 text-[#1677ff] mr-2 shrink-0" />
                     <AntInput 
                       value={isListening ? (aiPrompt + (transcript ? ` ${transcript}` : '')) : aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
@@ -1130,7 +1130,7 @@ function AutomationEditor() {
                           )}
                           title="语音输入"
                         >
-                          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          {isListening ? <IconVoiceOff className="w-4 h-4" /> : <IconMicrophone className="w-4 h-4" />}
                         </Button>
                     </div>
                   </div>
@@ -1151,7 +1151,7 @@ function AutomationEditor() {
                       onClick={handleAiGenerate}
                       disabled={isAiGenerating || (!aiPrompt.trim() && !transcript)}
                       className="!h-9 !px-5 whitespace-nowrap"
-                      icon={isAiGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      icon={isAiGenerating ? <IconLoading className="w-4 h-4 animate-spin" /> : <IconMagic className="w-4 h-4" />}
                     >
                       立即生成
                     </AntButton>
@@ -1207,7 +1207,7 @@ export default function AutomationEditorPage() {
     <ReactFlowProvider>
       <Suspense fallback={
         <div className="flex h-screen items-center justify-center bg-[#F1EFEA] dark:bg-[#0B1220]">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <IconLoading className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       }>
         <AutomationEditor />

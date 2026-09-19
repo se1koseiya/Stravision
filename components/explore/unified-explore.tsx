@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ChevronRight, PanelLeftOpen, Plus, Settings, MoreHorizontal, LayoutGrid, Box, ChevronDown, Search, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { SkillStore } from "@/components/ai/skill-store"
@@ -21,6 +20,7 @@ import type { MCPServer } from "@/lib/data/mcp-servers"
 import { MCP_SERVERS as MCP_SERVERS_STATIC } from "@/lib/data/mcp-servers"
 import type { StoreSkill } from "@/lib/db/skill-store-service"
 import type { MarketCollection } from "@/components/kb/kb-store-content"
+import { IconArrowLeft, IconBox, IconClose, IconDown, IconGridFour, IconLayoutTwo, IconMore, IconPlus, IconRight, IconSearch, IconSetting } from "@/components/icon";
 
 interface UnifiedExploreProps {
   onClose: () => void
@@ -349,7 +349,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 )}
                 title="展开侧边栏"
               >
-                <PanelLeftOpen size={17} />
+                <IconLayoutTwo size={17} />
               </button>
             )}
             {onNewChat && (
@@ -361,7 +361,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 )}
                 title="新建对话"
               >
-                <Plus size={17} />
+                <IconPlus size={17} />
               </button>
             )}
           </div>
@@ -379,7 +379,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             >
               插件
             </button>
-            <ChevronRight size={14} className={isDark ? "text-zinc-600" : "text-gray-300"} />
+            <IconRight size={14} className={isDark ? "text-zinc-600" : "text-gray-300"} />
             <span className={cn("font-semibold", isDark ? "text-zinc-100" : "text-gray-900")}>管理</span>
           </div>
         ) : (
@@ -431,7 +431,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 : (isDark ? "bg-zinc-800/60 hover:bg-zinc-700 border-zinc-700/50 text-zinc-400" : "bg-gray-100/60 hover:bg-gray-200 border-gray-200/50 text-gray-600")
             )}
           >
-            <Settings size={13} />
+            <IconSetting size={13} />
             <span>管理</span>
           </button>
 
@@ -444,7 +444,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                   : "bg-gray-100/60 hover:bg-gray-200 border-gray-200/50 text-gray-600"
               )}>
                 <span>创建</span>
-                <ChevronDown size={13} />
+                <IconDown size={13} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} className={cn(
@@ -458,7 +458,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 )}
                 onSelect={() => toast("创建插件功能开发中...")}
               >
-                <LayoutGrid size={16} className={isDark ? "text-zinc-400" : "text-gray-400"} />
+                <IconGridFour size={16} className={isDark ? "text-zinc-400" : "text-gray-400"} />
                 <span>创建插件</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -468,7 +468,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 )}
                 onSelect={() => toast("创建技能功能开发中...")}
               >
-                <Box size={16} className={isDark ? "text-zinc-400" : "text-gray-400"} />
+                <IconBox size={16} className={isDark ? "text-zinc-400" : "text-gray-400"} />
                 <span>创建技能</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -478,7 +478,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             "size-9 rounded-xl flex items-center justify-center transition-colors",
             isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-gray-100 text-gray-400 hover:text-gray-700"
           )}>
-            <MoreHorizontal size={16} />
+            <IconMore size={16} />
           </button>
           <div className={cn("w-px h-5", isDark ? "bg-zinc-800" : "bg-gray-200")} />
           <button
@@ -489,7 +489,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             )}
             title="关闭"
           >
-            <X size={18} />
+            <IconClose size={18} />
           </button>
         </div>
       </div>
@@ -533,7 +533,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
 
               {/* 搜索框 */}
               <div className="relative w-56">
-                <Search className={cn(
+                <IconSearch className={cn(
                   "absolute left-3 top-1/2 -translate-y-1/2 size-3.5",
                   isDark ? "text-zinc-500" : "text-gray-400"
                 )} />
@@ -617,7 +617,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                         "size-7 flex items-center justify-center transition-colors",
                         isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
                       )} style={{ borderRadius: BERRY_THEME.radius.sm }}>
-                        <MoreHorizontal size={14} />
+                        <IconMore size={14} />
                       </button>
                     </div>
 

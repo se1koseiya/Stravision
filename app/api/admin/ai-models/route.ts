@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { getCurrentUser } from '@/lib/auth'
+import { IS_DESKTOP_APP } from '@/lib/desktop-mode'
 
 const CONFIG_PATH = path.join(process.cwd(), 'data', 'ai-models-config.json')
 
 // 统一 admin 授权校验：仅 admin / super_admin 可访问
+// 桌面端放行：本地单用户形态，无平台角色概念（Web 构建恒 false，角色校验照常生效）
 async function requireAdmin() {
   const currentUser = await getCurrentUser()
-  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+  if (!currentUser) {
+    return null
+  }
+  if (IS_DESKTOP_APP) {
+    return currentUser
+  }
+  if (currentUser.role !== 'admin' && currentUser.role !== 'super_admin') {
     return null
   }
   return currentUser

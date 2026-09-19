@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Twitter, Linkedin } from "lucide-react"
+import { IconGithub, IconLinkIn, IconTwitter } from "@/components/icon";
 
 export function Footer() {
   return (
@@ -15,13 +15,13 @@ export function Footer() {
             </p>
             <div className="flex gap-4">
               <Link href="#" className="text-muted-foreground hover:text-white transition-colors">
-                <Github className="w-5 h-5" />
+                <IconGithub className="w-5 h-5" />
               </Link>
               <Link href="#" className="text-muted-foreground hover:text-white transition-colors">
-                <Twitter className="w-5 h-5" />
+                <IconTwitter className="w-5 h-5" />
               </Link>
               <Link href="#" className="text-muted-foreground hover:text-white transition-colors">
-                <Linkedin className="w-5 h-5" />
+                <IconLinkIn className="w-5 h-5" />
               </Link>
             </div>
           </div>

@@ -77,7 +77,7 @@ export function RateLimitErrorCard({
         style={{
           background: '#ffffff',
           border: '1px solid rgba(0, 0, 0, 0.06)',
-          borderRadius: 12,
+          borderRadius: 10,
           padding: '24px 28px 20px',
           position: 'relative',
           marginBlock: 12,

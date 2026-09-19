@@ -3,16 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Alert, Card, Col, Flex, List, Row, Table, Tag, Typography } from "antd";
-import {
-  RiseOutlined,
-  AppstoreOutlined,
-  TeamOutlined,
-  BarChartOutlined,
-  ThunderboltFilled,
-  CheckCircleFilled,
-  RightOutlined,
-} from "@ant-design/icons";
 import { L, L_MIX, SHADOW } from "@/components/landing-v4/shared";
+import { IconApplicationOne, IconChartHistogram, IconCheckOne, IconPeoples, IconRight, IconThunderbolt, IconTrendingUp } from "@/components/icon";
 
 const { Title, Text } = Typography;
 
@@ -33,10 +25,10 @@ const PERSONAS = [
     color: "#E8F5EE",
     desc: "横跨分区的经营大脑：自动完成多棚巡检、环境调控、预警与复盘，让十个大棚像一个棚一样好管。",
     menu: [
-      { icon: RiseOutlined, label: "多区环境总览", note: "全棚趋势一屏掌握" },
-      { icon: AppstoreOutlined, label: "分区自动化规则", note: "按区下发执行策略" },
-      { icon: TeamOutlined, label: "巡检日报生成", note: "异常自动标注" },
-      { icon: BarChartOutlined, label: "产量复盘分析", note: "每茬都有迹可循" },
+      { icon: IconTrendingUp, label: "多区环境总览", note: "全棚趋势一屏掌握" },
+      { icon: IconApplicationOne, label: "分区自动化规则", note: "按区下发执行策略" },
+      { icon: IconPeoples, label: "巡检日报生成", note: "异常自动标注" },
+      { icon: IconChartHistogram, label: "产量复盘分析", note: "每茬都有迹可循" },
     ],
     mock: {
       title: "多区巡检 · 本周汇总",
@@ -57,10 +49,10 @@ const PERSONAS = [
     color: "#FDF0E7",
     desc: "一个人也能种出精品果：温湿度、补光、水肥全自动打理，把你的经验变成每一茬的稳定收成。",
     menu: [
-      { icon: ThunderboltFilled, label: "一键环境方案", note: "按品种套用模板" },
-      { icon: RiseOutlined, label: "水肥一体化控制", note: "指尖一按即生效" },
-      { icon: CheckCircleFilled, label: "异常即时预警", note: "越界第一秒推送" },
-      { icon: BarChartOutlined, label: "种植笔记沉淀", note: "经验变成知识库" },
+      { icon: IconThunderbolt, label: "一键环境方案", note: "按品种套用模板" },
+      { icon: IconTrendingUp, label: "水肥一体化控制", note: "指尖一按即生效" },
+      { icon: IconCheckOne, label: "异常即时预警", note: "越界第一秒推送" },
+      { icon: IconChartHistogram, label: "种植笔记沉淀", note: "经验变成知识库" },
     ],
     mock: {
       title: "今日环境 · 一键方案",
@@ -81,10 +73,10 @@ const PERSONAS = [
     color: "#F3EDFD",
     desc: "用数据讲好种植故事：生长曲线、环境大屏、延时影像，种得好，还要让所有人看得见。",
     menu: [
-      { icon: RiseOutlined, label: "生长数据大屏", note: "直播间的硬核背书" },
-      { icon: ThunderboltFilled, label: "延时影像素材", note: "自动沉淀生长片段" },
-      { icon: TeamOutlined, label: "一键分享海报", note: "朋友圈十分钟出图" },
-      { icon: BarChartOutlined, label: "成本收益核算", note: "每一茬算得清楚" },
+      { icon: IconTrendingUp, label: "生长数据大屏", note: "直播间的硬核背书" },
+      { icon: IconThunderbolt, label: "延时影像素材", note: "自动沉淀生长片段" },
+      { icon: IconPeoples, label: "一键分享海报", note: "朋友圈十分钟出图" },
+      { icon: IconChartHistogram, label: "成本收益核算", note: "每一茬算得清楚" },
     ],
     mock: {
       title: "本茬生长故事线",
@@ -151,7 +143,7 @@ export function Personas() {
       align: "right" as const,
       render: (v: string) => (
         <Text strong className="!text-[13px]" style={{ color: GREEN_INK }}>
-          {v} <CheckCircleFilled className="text-[11px]" />
+          {v} <IconCheckOne className="text-[11px]" />
         </Text>
       ),
     },
@@ -325,7 +317,7 @@ export function Personas() {
                               {m.note}
                             </Text>
                           </Flex>
-                          <RightOutlined
+                          <IconRight
                             className={`text-[12px] transition-all group-hover:translate-x-1 ${
                               i === 0 ? "" : "opacity-60"
                             }`}
@@ -351,7 +343,7 @@ export function Personas() {
                       {p.mock.title}
                     </Text>
                     <Tag
-                      icon={<CheckCircleFilled />}
+                      icon={<IconCheckOne />}
                       bordered={false}
                       className="!m-0 !rounded-full !px-2.5 !text-[11px] !font-semibold"
                       style={{ background: L.mint, color: GREEN_INK }}
@@ -370,7 +362,7 @@ export function Personas() {
                   />
                   <Alert
                     showIcon
-                    icon={<ThunderboltFilled style={{ color: GREEN_INK }} />}
+                    icon={<IconThunderbolt style={{ color: GREEN_INK }} />}
                     message={
                       <Text className="!text-[12px]" style={{ color: L.ink }}>
                         {p.mock.foot}

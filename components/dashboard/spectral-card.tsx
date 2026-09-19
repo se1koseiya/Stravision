@@ -2,8 +2,10 @@ import React from 'react'
 import { Typography, Tag, Flex } from "antd"
 import { DeviceData } from "@/lib/hooks/use-device-data"
 import { IOSWidgetCard } from "./ios-style/ios-widget-card"
+import { BERRY_THEME } from "@/lib/ui/berry-theme"
 
 const { Text } = Typography
+const A = BERRY_THEME.apple
 
 interface SpectralCardProps {
   data: DeviceData | null
@@ -82,7 +84,7 @@ export function SpectralCard({
       <Flex align="center" justify="center" style={{ width: 28, height: 28, borderRadius: 8, background: '#e879f910' }}>
         <Text style={{ fontSize: 14, color: '#e879f9', fontWeight: 700 }}>S</Text>
       </Flex>
-      <Text style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 500 }}>实时光谱</Text>
+      <Text style={{ fontSize: 12, color: A.labelTertiary, fontWeight: 500 }}>实时光谱</Text>
     </Flex>
   )
 
@@ -100,10 +102,10 @@ export function SpectralCard({
       <Flex vertical style={{ height: '100%' }} gap={8}>
         <Flex vertical gap={4}>
           <Flex align="baseline" gap={4}>
-            <Text style={{ fontSize: 32, fontWeight: 600, color: '#262626', lineHeight: 1 }}>
+            <Text style={{ fontSize: 32, fontWeight: 600, color: A.label, lineHeight: 1 }}>
               {maxValue}
             </Text>
-            <Text style={{ fontSize: 14, color: '#bfbfbf' }}>µmol</Text>
+            <Text style={{ fontSize: 14, color: A.labelQuaternary }}>µmol</Text>
           </Flex>
           <Tag style={{ fontSize: 11, background: '#e879f910', color: '#e879f9', border: 'none', borderRadius: 4, marginInlineStart: 0, alignSelf: 'flex-start' }}>
             Real-time

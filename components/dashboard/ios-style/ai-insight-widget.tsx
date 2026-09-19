@@ -1,6 +1,5 @@
 "use client"
 
-import { RefreshCw, AlertTriangle, Sparkles, TrendingUp, ShieldCheck } from "lucide-react"
 import { Typography, Button, Flex } from "antd"
 import { useState, useEffect } from "react"
 import {
@@ -10,6 +9,7 @@ import {
   WidgetLabel,
 } from "./ios-widget-card"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { IconCaution, IconMagic, IconRefresh, IconShield, IconTrendingUp } from "@/components/icon";
 
 const { Paragraph } = Typography
 const A = BERRY_THEME.apple
@@ -68,10 +68,10 @@ export function AIInsightWidget({
 
   const getRiskConfig = (level: string) => {
     switch (level) {
-      case 'high': return { label: '高风险', color: A.accents.red, icon: AlertTriangle }
-      case 'medium': return { label: '关注', color: A.accents.orange, icon: TrendingUp }
-      case 'low': return { label: '健康', color: A.accents.green, icon: ShieldCheck }
-      default: return { label: '分析中', color: A.accents.blue, icon: Sparkles }
+      case 'high': return { label: '高风险', color: A.accents.red, icon: IconCaution }
+      case 'medium': return { label: '关注', color: A.accents.orange, icon: IconTrendingUp }
+      case 'low': return { label: '健康', color: A.accents.green, icon: IconShield }
+      default: return { label: '分析中', color: A.accents.blue, icon: IconMagic }
     }
   }
 
@@ -86,7 +86,7 @@ export function AIInsightWidget({
         className={className}
         header={
           <WidgetHeader
-            icon={<Sparkles size={14} strokeWidth={ICON_STROKE} />}
+            icon={<IconMagic size={14} strokeWidth={ICON_STROKE} />}
             label="AI 洞察"
             color={config.color}
           />
@@ -99,7 +99,7 @@ export function AIInsightWidget({
         tint={WC.accent}
       >
         <Flex vertical align="center" justify="center" gap={8} style={{ height: '100%' }}>
-          <AlertTriangle size={24} strokeWidth={1.5} color={A.labelQuaternary} />
+          <IconCaution size={24} strokeWidth={1.5} color={A.labelQuaternary} />
           <span style={{ fontSize: 12, color: A.labelTertiary }}>服务不可用</span>
           <Button size="small" onClick={fetchInsight} style={{ fontSize: 11 }}>重试</Button>
         </Flex>
@@ -147,7 +147,7 @@ export function AIInsightWidget({
       className={className}
       header={
         <WidgetHeader
-          icon={<Sparkles size={14} strokeWidth={ICON_STROKE} />}
+          icon={<IconMagic size={14} strokeWidth={ICON_STROKE} />}
           label="AI 智能洞察"
           color={config.color}
           right={
@@ -156,7 +156,7 @@ export function AIInsightWidget({
               <Button
                 type="text"
                 size="small"
-                icon={<RefreshCw size={12} strokeWidth={ICON_STROKE} className={loading ? 'animate-spin' : ''} />}
+                icon={<IconRefresh size={12} strokeWidth={ICON_STROKE} className={loading ? 'animate-spin' : ''} />}
                 onClick={fetchInsight}
                 disabled={loading}
                 style={{ width: 24, height: 24, minWidth: 24, padding: 0 }}

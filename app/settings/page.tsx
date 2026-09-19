@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { Save, Upload, X, ArrowLeft, Bell, Mail, User, Shield } from "lucide-react"
+import { IconArrowLeft, IconClose, IconMail, IconRemind, IconSave, IconShield, IconUpload, IconUser } from "@/components/icon";
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import type { UserPublic } from "@/lib/db/user-service"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import { cn } from "@/lib/utils"
 
 // --- Animations ---
@@ -88,13 +89,15 @@ export default function SettingsPage() {
          } finally {
             setIsLoadingUser(false)
          }
-         // 获取配额信息
-         try {
-            const qRes = await fetch("/api/user/settings")
-            const qData = await qRes.json()
-            if (qData?.quota) setQuotaInfo(qData.quota)
-            if (qData?.credit) setCreditInfo(qData.credit)
-         } catch {}
+         // 获取配额信息（桌面端 BYOK：用户自带 API Key，无积分/配额概念，跳过）
+         if (!IS_DESKTOP_APP) {
+            try {
+               const qRes = await fetch("/api/user/settings")
+               const qData = await qRes.json()
+               if (qData?.quota) setQuotaInfo(qData.quota)
+               if (qData?.credit) setCreditInfo(qData.credit)
+            } catch {}
+         }
       }
 
       fetchCurrentUser()
@@ -213,7 +216,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center gap-6">
                <button className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                  <Bell className="size-5" />
+                  <IconRemind className="size-5" />
                </button>
                <UserAvatarMenu user={currentUser} />
             </div>
@@ -233,7 +236,7 @@ export default function SettingsPage() {
                         onClick={() => router.back()}
                         className="mb-8 pl-0 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-transparent"
                      >
-                        <ArrowLeft className="mr-2 size-4" />
+                        <IconArrowLeft className="mr-2 size-4" />
                         返回个人中心
                      </Button>
                   </motion.div>
@@ -289,7 +292,7 @@ export default function SettingsPage() {
                            className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                            onClick={() => fileInputRef.current?.click()}
                         >
-                           <Upload className="text-white size-8" />
+                           <IconUpload className="text-white size-8" />
                         </div>
                      </div>
 
@@ -338,7 +341,7 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                            <Label htmlFor="username" className="text-xs font-bold uppercase tracking-wider text-zinc-500">用户名</Label>
                            <div className="relative">
-                              <User className="absolute left-0 top-3.5 size-5 text-zinc-400" />
+                              <IconUser className="absolute left-0 top-3.5 size-5 text-zinc-400" />
                               <Input
                                  id="username"
                                  value={username}
@@ -352,7 +355,7 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                            <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-zinc-500">邮箱地址</Label>
                            <div className="relative">
-                              <Mail className="absolute left-0 top-3.5 size-5 text-zinc-400" />
+                              <IconMail className="absolute left-0 top-3.5 size-5 text-zinc-400" />
                               <Input
                                  id="email"
                                  value={email}
@@ -366,7 +369,7 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                            <Label htmlFor="avatarUrl" className="text-xs font-bold uppercase tracking-wider text-zinc-500">头像链接 (可选)</Label>
                            <div className="relative">
-                              <Upload className="absolute left-0 top-3.5 size-5 text-zinc-400" />
+                              <IconUpload className="absolute left-0 top-3.5 size-5 text-zinc-400" />
                               <Input
                                  id="avatarUrl"
                                  value={avatarUrl}
@@ -380,7 +383,7 @@ export default function SettingsPage() {
                         <div className="pt-8">
                            <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
                               <h4 className="font-bold mb-4 flex items-center gap-2">
-                                 <Shield className="size-4" /> 账户详情
+                                 <IconShield className="size-4" /> 账户详情
                               </h4>
                               <div className="space-y-4 text-sm">
                                  <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-800 border-dashed">
@@ -401,8 +404,8 @@ export default function SettingsPage() {
                            </div>
                         </div>
 
-                        {/* AI 积分信息（积分制度：token 计费 × 模型倍率 × 全局倍率） */}
-                        {(creditInfo || quotaInfo) && (
+                        {/* AI 积分信息（积分制度：token 计费 × 模型倍率 × 全局倍率；桌面端 BYOK 不显示） */}
+                        {!IS_DESKTOP_APP && (creditInfo || quotaInfo) && (
                            <div className="pt-8">
                               <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
                                  <h4 className="font-bold mb-4">AI 积分</h4>
@@ -515,7 +518,7 @@ export default function SettingsPage() {
                                  </span>
                               ) : (
                                  <span className="flex items-center gap-2">
-                                    <Save className="size-5" />
+                                    <IconSave className="size-5" />
                                     保存更改
                                  </span>
                               )}

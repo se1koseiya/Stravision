@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { X, Share2, MoreHorizontal, Search, Filter, Play, FileText, FileType, Music, Image as ImageIcon, Download, Trash2, Eye, Star, StarOff, FolderOpen, Clock, Sparkles, PanelLeftOpen, Plus, BrainCircuit } from "lucide-react"
 import { Dropdown, Tooltip, message } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { IconBrain, IconClose, IconDelete, IconDownload, IconFileText, IconFilter, IconFolderOpen, IconLayoutTwo, IconMagic, IconMore, IconMusic, IconPicture, IconPlay, IconPlus, IconPreviewOpen, IconSearch, IconShare, IconStar, IconTime } from "@/components/icon";
 
 export type SpaceItemType = "report" | "video" | "task" | "file" | "audio" | "creation" | "image"
 
@@ -41,13 +41,13 @@ interface MySpaceSidebarPanelProps {
 }
 
 const TYPE_META: Record<string, { label: string; color: string; icon: any }> = {
-  report:    { label: "报告",   color: "#6366f1", icon: FileText },
-  video:     { label: "视频",   color: "#ec4899", icon: Play },
-  task:      { label: "任务助理", color: "#10b981", icon: Sparkles },
-  file:      { label: "文件",   color: "#3b82f6", icon: FileType },
-  audio:     { label: "音频",   color: "#f59e0b", icon: Music },
-  creation:  { label: "创作",   color: "#8b5cf6", icon: Sparkles },
-  image:     { label: "图片",   color: "#06b6d4", icon: ImageIcon },
+  report:    { label: "报告",   color: "#6366f1", icon: IconFileText },
+  video:     { label: "视频",   color: "#ec4899", icon: IconPlay },
+  task:      { label: "任务助理", color: "#10b981", icon: IconMagic },
+  file:      { label: "文件",   color: "#3b82f6", icon: IconFileText },
+  audio:     { label: "音频",   color: "#f59e0b", icon: IconMusic },
+  creation:  { label: "创作",   color: "#8b5cf6", icon: IconMagic },
+  image:     { label: "图片",   color: "#06b6d4", icon: IconPicture },
 }
 
 const pad2 = (n: number) => n.toString().padStart(2, "0")
@@ -181,7 +181,7 @@ const ItemRow = ({
               isDark ? "hover:bg-zinc-800 hover:text-zinc-200" : "hover:bg-gray-100 hover:text-gray-700"
             )}
           >
-            <Share2 size={14} />
+            <IconShare size={14} />
           </button>
         </Tooltip>
         <Dropdown
@@ -203,7 +203,7 @@ const ItemRow = ({
               isDark ? "hover:bg-zinc-800 hover:text-zinc-200" : "hover:bg-gray-100 hover:text-gray-700"
             )}
           >
-            <MoreHorizontal size={14} />
+            <IconMore size={14} />
           </button>
         </Dropdown>
       </div>
@@ -240,17 +240,17 @@ function buildMenuItems({ item, onOpen, onDownload, onToggleFavorite, onDelete }
     fn()
   }
   const items: any[] = [
-    { key: "open", label: "打开查看", icon: <Eye size={13} />, onClick: stopAndRun(onOpen) },
+    { key: "open", label: "打开查看", icon: <IconPreviewOpen size={13} />, onClick: stopAndRun(onOpen) },
   ]
   if (onDownload) {
-    items.push({ key: "download", label: "下载", icon: <Download size={13} />, onClick: stopAndRun(onDownload) })
+    items.push({ key: "download", label: "下载", icon: <IconDownload size={13} />, onClick: stopAndRun(onDownload) })
   }
   if (onToggleFavorite) {
     items.push({ type: "divider" })
     items.push({
       key: "fav",
       label: item.favorite ? "取消收藏" : "收藏",
-      icon: item.favorite ? <StarOff size={13} /> : <Star size={13} />,
+      icon: item.favorite ? <IconStar size={13} /> : <IconStar size={13} />,
       onClick: stopAndRun(onToggleFavorite),
     })
   }
@@ -259,7 +259,7 @@ function buildMenuItems({ item, onOpen, onDownload, onToggleFavorite, onDelete }
     items.push({
       key: "delete",
       label: <span style={{ color: "#ef4444" }}>删除</span>,
-      icon: <Trash2 size={13} style={{ color: "#ef4444" }} />,
+      icon: <IconDelete size={13} style={{ color: "#ef4444" }} />,
       danger: true,
       onClick: stopAndRun(onDelete),
     })
@@ -398,7 +398,7 @@ export function MySpaceSidebarPanel({
             isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
             closing && "pointer-events-none"
           )}
-          style={{ borderRadius: 12 }}
+          style={{ borderRadius: 10 }}
         >
           {/* Header */}
           <div
@@ -421,7 +421,7 @@ export function MySpaceSidebarPanel({
                           : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                       )}
                     >
-                      <PanelLeftOpen size={17} />
+                      <IconLayoutTwo size={17} />
                     </button>
                   </Tooltip>
                 )}
@@ -436,7 +436,7 @@ export function MySpaceSidebarPanel({
                           : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                       )}
                     >
-                      <Plus size={17} />
+                      <IconPlus size={17} />
                     </button>
                   </Tooltip>
                 )}
@@ -472,7 +472,7 @@ export function MySpaceSidebarPanel({
                         : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                     )}
                   >
-                    <X size={17} />
+                    <IconClose size={17} />
                   </button>
                 </Tooltip>
               </div>
@@ -487,7 +487,7 @@ export function MySpaceSidebarPanel({
                   : "bg-gray-50 border-gray-200 focus-within:border-gray-300"
               )}
             >
-              <Search size={14} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+              <IconSearch size={14} className={isDark ? "text-zinc-500" : "text-gray-400"} />
               <input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
@@ -560,7 +560,7 @@ export function MySpaceSidebarPanel({
                         : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                     )}
                   >
-                    <BrainCircuit size={15} className={generatingMemory ? "animate-pulse" : ""} />
+                    <IconBrain size={15} className={generatingMemory ? "animate-pulse" : ""} />
                   </button>
                 </Tooltip>
                 <Tooltip title="筛选">
@@ -572,7 +572,7 @@ export function MySpaceSidebarPanel({
                         : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                     )}
                   >
-                    <Filter size={15} />
+                    <IconFilter size={15} />
                   </button>
                 </Tooltip>
                 <Tooltip title="刷新">
@@ -585,7 +585,7 @@ export function MySpaceSidebarPanel({
                         : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                     )}
                   >
-                    <Clock size={15} />
+                    <IconTime size={15} />
                   </button>
                 </Tooltip>
               </div>
@@ -601,7 +601,7 @@ export function MySpaceSidebarPanel({
                       isDark ? "bg-zinc-900" : "bg-gray-50"
                     )}
                   >
-                    <FolderOpen size={28} className={isDark ? "text-zinc-700" : "text-gray-300"} />
+                    <IconFolderOpen size={28} className={isDark ? "text-zinc-700" : "text-gray-300"} />
                   </div>
                   <p className={cn("text-sm", isDark ? "text-zinc-500" : "text-gray-400")}>
                     {keyword ? "没有匹配的内容" : "暂无内容"}

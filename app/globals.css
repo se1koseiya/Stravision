@@ -107,6 +107,16 @@
     }
   }
 
+  /* 统一图标入口 components/icon.tsx 的 spin 属性使用（lucide 迁移后新增） */
+  @keyframes stravision-icon-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   @keyframes shrink {
     0% {
       width: 100%;
@@ -193,6 +203,31 @@
   --glass-end: rgba(255, 255, 255, 0.6);
   --glass-border-start: rgba(255, 255, 255, 1);
   --glass-border-end: rgba(255, 255, 255, 0.2);
+
+  /* Berry widget (iOS Material) tokens — light */
+  --berry-canvas: #F2F2F7;
+  --berry-canvas-gradient: linear-gradient(180deg, #ECECEF 0%, #F2F2F7 30%, #F5F5F7 100%);
+  --berry-surface: #FFFFFF;
+  --berry-card-border: rgba(0, 0, 0, 0.04);
+  --berry-label: #1C1C1E;
+  --berry-label-secondary: #3C3C43;
+  --berry-label-tertiary: #8E8E93;
+  --berry-label-quaternary: #AEAEB2;
+  --berry-separator: rgba(60, 60, 67, 0.08);
+  --berry-separator-opaque: rgba(60, 60, 67, 0.12);
+  --berry-track: rgba(60, 60, 67, 0.08);
+  --berry-track-strong: rgba(60, 60, 67, 0.12);
+  --berry-grid-line: rgba(0, 0, 0, 0.05);
+  --berry-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --berry-shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 6px 16px -4px rgba(0,0,0,0.06), 0 12px 32px -8px rgba(0,0,0,0.05);
+  --berry-shadow-card-hover: 0 2px 6px rgba(0,0,0,0.06), 0 12px 28px -6px rgba(0,0,0,0.10), 0 24px 48px -12px rgba(0,0,0,0.08);
+  --berry-shadow-inner: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px -2px rgba(0,0,0,0.04);
+  --berry-shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px -2px rgba(0,0,0,0.04);
+  --berry-shadow-md: 0 1px 3px rgba(0,0,0,0.04), 0 6px 16px -4px rgba(0,0,0,0.06), 0 12px 32px -8px rgba(0,0,0,0.05);
+  --berry-shadow-lg: 0 2px 6px rgba(0,0,0,0.06), 0 12px 28px -6px rgba(0,0,0,0.10), 0 24px 48px -12px rgba(0,0,0,0.08);
+  --berry-popover: #FFFFFF;
+  --berry-popover-hover: #FAFAFA;
+  --berry-popover-border: #F0F0F0;
 }
 
 .dark {
@@ -246,6 +281,31 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.65 0.15 163);
+
+  /* Berry widget (iOS Material) tokens — dark（卡片底用 slate-800，对齐全站深色语言） */
+  --berry-canvas: #0F172A;
+  --berry-canvas-gradient: linear-gradient(180deg, #0B1220 0%, #0F172A 30%, #111827 100%);
+  --berry-surface: #1E293B;
+  --berry-card-border: rgba(255, 255, 255, 0.07);
+  --berry-label: #F5F5F7;
+  --berry-label-secondary: rgba(235, 235, 245, 0.72);
+  --berry-label-tertiary: rgba(235, 235, 245, 0.55);
+  --berry-label-quaternary: rgba(235, 235, 245, 0.35);
+  --berry-separator: rgba(255, 255, 255, 0.08);
+  --berry-separator-opaque: rgba(255, 255, 255, 0.12);
+  --berry-track: rgba(255, 255, 255, 0.10);
+  --berry-track-strong: rgba(255, 255, 255, 0.16);
+  --berry-grid-line: rgba(255, 255, 255, 0.07);
+  --berry-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --berry-shadow-card: 0 1px 3px rgba(0,0,0,0.30), 0 6px 16px -4px rgba(0,0,0,0.35);
+  --berry-shadow-card-hover: 0 2px 6px rgba(0,0,0,0.35), 0 12px 28px -6px rgba(0,0,0,0.45);
+  --berry-shadow-inner: 0 1px 2px rgba(0,0,0,0.25);
+  --berry-shadow-sm: 0 1px 2px rgba(0,0,0,0.30);
+  --berry-shadow-md: 0 1px 3px rgba(0,0,0,0.30), 0 6px 16px -4px rgba(0,0,0,0.35);
+  --berry-shadow-lg: 0 2px 6px rgba(0,0,0,0.40), 0 12px 28px -6px rgba(0,0,0,0.50);
+  --berry-popover: #1F2937;
+  --berry-popover-hover: rgba(255, 255, 255, 0.06);
+  --berry-popover-border: rgba(255, 255, 255, 0.10);
 }
 
 @layer base {
@@ -1229,3 +1289,25 @@ h6 {
   --lg-disc-ring-border: rgba(255, 255, 255, 0.08);
   --lg-mint-strong: #12241A;
 }
+
+/* ==========================================================================
+   AI 助手 · 会话列表「任务进行中」圆点
+   语义：该会话正在后台执行任务（切换对话不会中断任务）
+   ========================================================================== */
+.conv-running-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #1677ff;
+  animation: conv-running-pulse 1.4s ease-in-out infinite;
+}
+.dark .conv-running-dot { background: #4d9bff; }
+@keyframes conv-running-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.78); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conv-running-dot { animation: none; }
+}
+

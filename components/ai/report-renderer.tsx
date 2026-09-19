@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
-import { Download, Loader2, ExternalLink, Maximize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { sanitizeHtml } from "@/lib/security/sanitize-html"
 import { toast } from "sonner"
+import { IconDownload, IconFullScreen, IconLinkOut, IconLoading } from "@/components/icon";
 
 interface ReportRendererProps {
   htmlContent: string
@@ -124,7 +124,7 @@ export function ReportRenderer({
               className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors group"
               title="下载HTML"
             >
-              <Download className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
+              <IconDownload className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
             </button>
             
             <button
@@ -134,9 +134,9 @@ export function ReportRenderer({
               title="下载PDF"
             >
               {isGeneratingPdf ? (
-                <Loader2 className="w-4 h-4 text-zinc-600 dark:text-zinc-400 animate-spin" />
+                <IconLoading className="w-4 h-4 text-zinc-600 dark:text-zinc-400 animate-spin" />
               ) : (
-                <Download className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
+                <IconDownload className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
               )}
             </button>
             
@@ -145,7 +145,7 @@ export function ReportRenderer({
               className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors group"
               title="在新窗口打开"
             >
-              <ExternalLink className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
+              <IconLinkOut className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
             </button>
             
             <button
@@ -153,7 +153,7 @@ export function ReportRenderer({
               className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors group"
               title="全屏查看"
             >
-              <Maximize2 className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
+              <IconFullScreen className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100" />
             </button>
           </div>
         </div>

@@ -1,8 +1,12 @@
 import { createUser } from "@/lib/db/user-service"
+import { getPool } from "@/lib/db/database"
 import { generateToken, setAuthCookie } from "@/lib/auth"
 import { registerSchema } from "@/lib/validations/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { NextRequest } from "next/server"
+
+/** initDB() 预置的系统机器人账号（lib/db/database.ts），不计入"已有用户" */
+const SYSTEM_BOT_EMAIL = "bot@stravision.ai"
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,11 +27,28 @@ export async function POST(req: NextRequest) {
 
     const { email, password, username } = result.data
 
+    // 桌面端（离线单用户实例）：首个注册账号自动成为超级管理员。
+    // 否则用户拿不到 admin 后台权限，无法配置 AI 供应商等必要项。
+    // 仅 STRAVISION_LOCAL_MODE=1 时生效，线上环境行为完全不变。
+    //
+    // ⚠️ 必须排除系统机器人账号：initDB() 会无条件插入
+    // bot@stravision.ai（"莓小智"，role=admin），所以首次启动后 users 表
+    // 天然已有 1 行。若按 COUNT(*)===0 判断，本地实例永远拿不到管理员。
+    let role: string | undefined
+    if (process.env.STRAVISION_LOCAL_MODE === "1") {
+      const { rows } = await getPool().query<{ n: number }>(
+        "SELECT COUNT(*)::int AS n FROM users WHERE email <> $1",
+        [SYSTEM_BOT_EMAIL]
+      )
+      if (rows[0]?.n === 0) role = "super_admin"
+    }
+
     // 使用 user-service 创建用户(保存到数据库)
     const user = await createUser({
       email,
       password,
       username,
+      ...(role ? { role } : {}),
     })
 
     // 生成包含完整用户信息的 JWT 令牌

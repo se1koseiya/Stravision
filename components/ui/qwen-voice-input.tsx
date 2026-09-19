@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Mic, MicOff, Loader2, Volume2, Languages, Settings } from "lucide-react"
 import { useQwenSpeechRecognition } from "@/lib/hooks/use-qwen-speech-recognition"
 import { cn } from "@/lib/utils"
 import {
@@ -13,6 +12,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import { IconLoading, IconMicrophone, IconSetting, IconTranslate, IconVoiceOff, IconVolumeNotice } from "@/components/icon";
 
 interface QwenVoiceInputProps {
   onTranscript: (text: string) => void
@@ -168,7 +168,7 @@ export default function QwenVoiceInput({
           className="h-8 px-2 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
           disabled={isRecording || isProcessing}
         >
-          <Languages size={14} className="mr-1" />
+          <IconTranslate size={14} className="mr-1" />
           {getLanguageName(selectedLanguage)}
           {selectedDialect !== 'auto' && ` (${getDialectName(selectedDialect)})`}
         </Button>
@@ -249,9 +249,9 @@ export default function QwenVoiceInput({
               <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           ) : isRecording ? (
-            <MicOff size={14} className="mr-1" />
+            <IconVoiceOff size={14} className="mr-1" />
           ) : (
-            <Mic size={14} className="mr-1" />
+            <IconMicrophone size={14} className="mr-1" />
           )}
           
           <span className="text-xs">
@@ -273,7 +273,7 @@ export default function QwenVoiceInput({
       {showTranscript && transcript && (
         <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-start gap-2">
-            <Volume2 size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+            <IconVolumeNotice size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-zinc-900 dark:text-zinc-100 leading-relaxed">
                 {transcript}

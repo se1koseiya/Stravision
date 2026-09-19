@@ -6,9 +6,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertTriangle, RefreshCw, Sparkles, ArrowRight, Zap, CheckCircle2, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
+import { IconArrowRight, IconCaution, IconCheckOne, IconLightning, IconMagic, IconRefresh, IconSearch } from "@/components/icon";
 
 interface InsightData {
   riskLevel: 'low' | 'medium' | 'high'
@@ -71,12 +71,12 @@ export function AiInsightCard() {
       <Card className="h-full bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 overflow-hidden group">
         <CardContent className="h-full flex flex-col items-center justify-center p-8 text-center">
           <div className="size-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
-            <AlertTriangle className="size-6 text-red-500" />
+            <IconCaution className="size-6 text-red-500" />
           </div>
           <h3 className="font-bold text-zinc-900 dark:text-zinc-100 mb-2">无法生成报告</h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">AI 服务暂时不可用，请稍后重试</p>
           <Button variant="outline" size="sm" onClick={fetchInsight} className="rounded-full px-6 hover:bg-zinc-100 dark:hover:bg-zinc-900">
-            <RefreshCw className="h-4 w-4 mr-2" /> 重试
+            <IconRefresh className="h-4 w-4 mr-2" /> 重试
           </Button>
         </CardContent>
       </Card>
@@ -93,7 +93,7 @@ export function AiInsightCard() {
           onClick={fetchInsight}
           disabled={loading}
         >
-          <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+          <IconRefresh className={cn("size-4", loading && "animate-spin")} />
         </Button>
       </div>
 
@@ -136,9 +136,9 @@ export function AiInsightCard() {
                     "inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-medium w-fit whitespace-nowrap",
                     getStatusColor(data.riskLevel)
                   )}>
-                    {data.riskLevel === 'high' && <AlertTriangle className="size-3.5 shrink-0" />}
-                    {data.riskLevel === 'medium' && <Zap className="size-3.5 shrink-0" />}
-                    {data.riskLevel === 'low' && <CheckCircle2 className="size-3.5 shrink-0" />}
+                    {data.riskLevel === 'high' && <IconCaution className="size-3.5 shrink-0" />}
+                    {data.riskLevel === 'medium' && <IconLightning className="size-3.5 shrink-0" />}
+                    {data.riskLevel === 'low' && <IconCheckOne className="size-3.5 shrink-0" />}
                     <span className="truncate">{getStatusText(data.riskLevel)}</span>
                   </div>
 
@@ -150,7 +150,7 @@ export function AiInsightCard() {
                 <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                   <div className="flex items-start gap-3">
                     <div className="p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-full shrink-0">
-                      <Sparkles className="size-3.5 text-zinc-900 dark:text-white" />
+                      <IconMagic className="size-3.5 text-zinc-900 dark:text-white" />
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-0.5">AI 建议</h4>

@@ -1,25 +1,8 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import {
-  Brain,
-  Wrench,
-  Eye,
-  MessageSquare,
-  CheckCircle2,
-  Loader2,
-  Globe,
-  Search,
-  CloudLightning,
-  Zap,
-  Database,
-  MapPin,
-  Cpu,
-  ChevronDown,
-  ChevronUp,
-  Circle,
-} from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+import { IconBrain, IconCheckOne, IconComment, IconCpu, IconDatabaseNetwork, IconDown, IconGlobe, IconLightning, IconLoading, IconLocalPin, IconPreviewOpen, IconRound, IconSearch, IconSunny, IconTool, IconUp } from "@/components/icon";
 
 // --- Types ---
 
@@ -59,7 +42,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         bgColor: "bg-cyan-50 dark:bg-cyan-500/10",
         borderColor: "border-cyan-200 dark:border-cyan-500/20",
         glow: "shadow-[0_0_15px_rgba(6,182,212,0.3)] dark:shadow-[0_0_15px_rgba(34,211,238,0.4)]",
-        icon: Brain,
+        icon: IconBrain,
       }
     case "executor":
       return {
@@ -68,7 +51,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
         borderColor: "border-emerald-200 dark:border-emerald-500/20",
         glow: "shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]",
-        icon: Zap,
+        icon: IconLightning,
       }
     case "validator":
       return {
@@ -77,7 +60,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         bgColor: "bg-violet-50 dark:bg-violet-500/10",
         borderColor: "border-violet-200 dark:border-violet-500/20",
         glow: "shadow-[0_0_15px_rgba(139,92,246,0.3)] dark:shadow-[0_0_15px_rgba(139,92,246,0.4)]",
-        icon: CheckCircle2,
+        icon: IconCheckOne,
       }
     case "coordinator":
       return {
@@ -86,7 +69,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         bgColor: "bg-amber-50 dark:bg-amber-500/10",
         borderColor: "border-amber-200 dark:border-amber-500/20",
         glow: "shadow-[0_0_15px_rgba(245,158,11,0.3)] dark:shadow-[0_0_15px_rgba(251,191,36,0.4)]",
-        icon: MessageSquare,
+        icon: IconComment,
       }
     default:
       return {
@@ -95,7 +78,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
         borderColor: "border-emerald-200 dark:border-emerald-500/20",
         glow: "shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]",
-        icon: Cpu,
+        icon: IconCpu,
       }
   }
 }
@@ -105,21 +88,21 @@ const getStepIcon = (type: AgentStepType, toolName?: string, agentRole?: AgentRo
     return getAgentRoleConfig(agentRole).icon
   }
   
-  if (type === "thinking") return Brain
-  if (type === "answer") return MessageSquare
-  if (type === "observation") return Eye
+  if (type === "thinking") return IconBrain
+  if (type === "answer") return IconComment
+  if (type === "observation") return IconPreviewOpen
 
   if (toolName) {
     const t = toolName.toLowerCase()
-    if (t.includes("weather") || t.includes("天气")) return CloudLightning
-    if (t.includes("search") || t.includes("搜索") || t.includes("brave") || t.includes("exa")) return Search
-    if (t.includes("scrape") || t.includes("抓取") || t.includes("firecrawl")) return Globe
-    if (t.includes("spectrum") || t.includes("光谱")) return Zap
-    if (t.includes("route") || t.includes("路线") || t.includes("amap")) return MapPin
-    if (t.includes("device") || t.includes("设备")) return Cpu
-    if (t.includes("data") || t.includes("数据")) return Database
+    if (t.includes("weather") || t.includes("天气")) return IconSunny
+    if (t.includes("search") || t.includes("搜索") || t.includes("brave") || t.includes("exa")) return IconSearch
+    if (t.includes("scrape") || t.includes("抓取") || t.includes("firecrawl")) return IconGlobe
+    if (t.includes("spectrum") || t.includes("光谱")) return IconLightning
+    if (t.includes("route") || t.includes("路线") || t.includes("amap")) return IconLocalPin
+    if (t.includes("device") || t.includes("设备")) return IconCpu
+    if (t.includes("data") || t.includes("数据")) return IconDatabaseNetwork
   }
-  return Wrench
+  return IconTool
 }
 
 function ElapsedTimer({ startedAt }: { startedAt: number }) {
@@ -187,7 +170,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
             {hasMultipleAgents ? (
               <>
                 <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors">
-                  <Cpu className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <IconCpu className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="font-medium text-zinc-800 dark:text-zinc-100 tracking-wide transition-colors">
                   多 Agent 协作模式
@@ -200,7 +183,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
             ) : (
               <>
                 <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors">
-                  <Brain className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <IconBrain className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="font-medium text-zinc-800 dark:text-zinc-100 tracking-wide transition-colors">
                   Agent 执行链
@@ -225,7 +208,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
               )}
               title={autoCollapse ? "已启用自动折叠" : "点击启用自动折叠"}
             >
-              {autoCollapse ? <CheckCircle2 size={12} /> : <Circle size={12} />}
+              {autoCollapse ? <IconCheckOne size={12} /> : <IconRound size={12} />}
               <span>自动折叠</span>
             </button>
             
@@ -235,7 +218,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
               className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-white/10 transition-all border border-transparent hover:border-zinc-300 dark:hover:border-white/10"
               title={isCollapsed ? "展开执行链" : "折叠执行链"}
             >
-              {isCollapsed ? <ChevronDown size={16} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" /> : <ChevronUp size={16} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" />}
+              {isCollapsed ? <IconDown size={16} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" /> : <IconUp size={16} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" />}
             </button>
           </div>
         </div>
@@ -293,7 +276,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                        }}
                        transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Loader2 className={cn("size-3.5 animate-spin", roleConfig ? roleConfig.color : "text-emerald-600 dark:text-emerald-400")} />
+                      <IconLoading className={cn("size-3.5 animate-spin", roleConfig ? roleConfig.color : "text-emerald-600 dark:text-emerald-400")} />
                     </motion.div>
                   ) : step.status === "completed" ? (
                     <motion.div 
@@ -304,7 +287,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                          roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor}` : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-emerald-500/10 dark:text-emerald-500 dark:border-emerald-500/20"
                        )}
                     >
-                      <CheckCircle2 className={cn("size-3.5", roleConfig ? roleConfig.color : "text-zinc-500 dark:text-emerald-500")} />
+                      <IconCheckOne className={cn("size-3.5", roleConfig ? roleConfig.color : "text-zinc-500 dark:text-emerald-500")} />
                     </motion.div>
                   ) : step.status === "error" ? (
                     <motion.div 

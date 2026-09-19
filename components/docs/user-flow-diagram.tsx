@@ -1,14 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { 
-  UserPlus, ScanLine, Wifi, 
-  Activity, MessageSquare, Mic, 
-  FileText, TrendingUp, ArrowRight,
-  CheckCircle2, Smartphone, ShieldCheck
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { IconAddUser, IconArrowRight, IconChartLine, IconCheckOne, IconComment, IconFileText, IconMicrophone, IconPhone, IconScan, IconShield, IconTrendingUp, IconWifi } from "@/components/icon";
 
 const IP_IMAGES = {
     auth: "/ip/草莓头IP-招手姿势.png",
@@ -80,7 +75,7 @@ const StepCard = ({
                     <div className="space-y-3">
                         {subItems.map((item, i) => (
                             <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5 group-hover:border-primary/10 transition-colors">
-                                <CheckCircle2 className="w-4 h-4 text-primary/50 group-hover:text-primary transition-colors" />
+                                <IconCheckOne className="w-4 h-4 text-primary/50 group-hover:text-primary transition-colors" />
                                 <span className="text-xs text-zinc-300 font-mono">{item}</span>
                             </div>
                         ))}
@@ -95,7 +90,7 @@ const StepCard = ({
                         animate={{ x: [0, 5, 0], opacity: [0.3, 1, 0.3] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     >
-                        <ArrowRight className="w-6 h-6 text-primary/50" />
+                        <IconArrowRight className="w-6 h-6 text-primary/50" />
                     </motion.div>
                 </div>
             )}
@@ -103,7 +98,7 @@ const StepCard = ({
             {/* Mobile Connector */}
             {!isLast && (
                  <div className="lg:hidden flex justify-center py-4">
-                    <ArrowRight className="w-6 h-6 text-primary/30 rotate-90" />
+                    <IconArrowRight className="w-6 h-6 text-primary/30 rotate-90" />
                  </div>
             )}
         </motion.div>
@@ -138,7 +133,7 @@ export function UserFlowDiagram() {
             step="01"
             title="接入与认证"
             desc="用户通过多端入口进入平台，完成身份核验与权限获取。"
-            icon={<UserPlus className="w-6 h-6" />}
+            icon={<IconAddUser className="w-6 h-6" />}
             ipImage={IP_IMAGES.auth}
             subItems={[
                 "手机号/微信一键登录",
@@ -152,7 +147,7 @@ export function UserFlowDiagram() {
             step="02"
             title="设备配网"
             desc="将物理设备接入云端，建立数字孪生映射关系。"
-            icon={<ScanLine className="w-6 h-6" />}
+            icon={<IconScan className="w-6 h-6" />}
             ipImage={IP_IMAGES.device}
             subItems={[
                 "扫描设备二维码",
@@ -166,7 +161,7 @@ export function UserFlowDiagram() {
             step="03"
             title="交互与控制"
             desc="通过可视化界面或 AI 语音助手，实时管控农业现场。"
-            icon={<Mic className="w-6 h-6" />}
+            icon={<IconMicrophone className="w-6 h-6" />}
             ipImage={IP_IMAGES.interact}
             subItems={[
                 "实时视频/数据监控",
@@ -180,7 +175,7 @@ export function UserFlowDiagram() {
             step="04"
             title="决策与洞察"
             desc="基于历史数据与 AI 模型，获取种植建议与生长报告。"
-            icon={<TrendingUp className="w-6 h-6" />}
+            icon={<IconTrendingUp className="w-6 h-6" />}
             ipImage={IP_IMAGES.insight}
             isLast
             subItems={[

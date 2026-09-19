@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { createPortal } from "react-dom"
-import { ChevronDown, Check, Sprout, GraduationCap, Cog } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconCheck, IconDegreeHat, IconDown, IconSeedling, IconSetting } from "@/components/icon";
 
 interface PersonaMeta {
   id: string
@@ -24,13 +24,13 @@ interface PersonaSelectorProps {
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  expert: Sprout,
-  friendly: GraduationCap,
-  engineer: Cog,
+  expert: IconSeedling,
+  friendly: IconDegreeHat,
+  engineer: IconSetting,
 }
 
 function PersonaIcon({ id, size = 14, className }: { id: string; size?: number; className?: string }) {
-  const Cmp = ICON_MAP[id] ?? Sprout
+  const Cmp = ICON_MAP[id] ?? IconSeedling
   return <Cmp size={size} className={className} />
 }
 
@@ -131,7 +131,7 @@ export function PersonaSelector({ value, onChange, compact = false, className }:
         >
           <PersonaIcon id={current?.id || ''} size={13} className="text-[#1677ff]" />
           <span className="whitespace-nowrap">{current?.name}</span>
-          <ChevronDown
+          <IconDown
             size={12}
             className={cn(
               "text-zinc-400 transition-transform duration-200",
@@ -195,7 +195,7 @@ export function PersonaSelector({ value, onChange, compact = false, className }:
                       </p>
                     </div>
                     {isCurrent && (
-                      <Check size={14} className="text-[#1677ff] flex-shrink-0 mt-1" />
+                      <IconCheck size={14} className="text-[#1677ff] flex-shrink-0 mt-1" />
                     )}
                   </button>
                 )

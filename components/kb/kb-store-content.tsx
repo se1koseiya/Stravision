@@ -2,18 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Search, ShieldCheck, Check,
-  X, BookOpen, Plus, Sparkles, Tag as TagIcon,
-  User, FileText, Library, ChevronRight, Heart,
-  ArrowUpRight, Compass, FileSearch, Zap, Eye,
-  Calendar, Layers, ArrowRight, BarChart3, Clock
-} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Empty, Spin } from "antd"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { IconArrowRight, IconArrowRightUp, IconBookOpen, IconBookshelf, IconCalendar, IconChartHistogram, IconCheck, IconClose, IconCompass, IconFileSearch, IconFileText, IconHeart, IconLayers, IconLightning, IconMagic, IconPlus, IconPreviewOpen, IconRight, IconSearch, IconShield, IconTag, IconTime, IconUser } from "@/components/icon";
 
 interface MarketItem {
   id: number
@@ -309,7 +303,7 @@ function CollectionDetailView({
             title="关闭 (Esc)"
             aria-label="关闭"
           >
-            <X size={15} strokeWidth={2.2} />
+            <IconClose size={15} strokeWidth={2.2} />
           </button>
 
           <div className="px-6 sm:px-8 pt-5 sm:pt-6 pb-4 sm:pb-5">
@@ -321,19 +315,19 @@ function CollectionDetailView({
                 <div className="flex items-center gap-3 mb-1.5 flex-wrap text-[11.5px]">
                   {isOfficial && (
                     <span className="inline-flex items-center gap-1 text-blue-600 font-medium">
-                      <ShieldCheck size={11} strokeWidth={2.5} />
+                      <IconShield size={11} strokeWidth={2.5} />
                       官方认证
                     </span>
                   )}
                   {collection.category && (
                     <span className="inline-flex items-center gap-1 text-gray-500">
-                      <TagIcon size={11} />
+                      <IconTag size={11} />
                       {collection.category}
                     </span>
                   )}
                   {isSubscribed && (
                     <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                      <Check size={11} strokeWidth={3} />
+                      <IconCheck size={11} strokeWidth={3} />
                       已订阅
                     </span>
                   )}
@@ -357,7 +351,7 @@ function CollectionDetailView({
                     className="!h-8 !px-3.5 text-[12.5px] font-medium gap-1.5 !bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600 shadow-sm"
                     style={{ borderRadius: 8 }}
                   >
-                    <ArrowUpRight size={13} strokeWidth={2.5} />
+                    <IconArrowRightUp size={13} strokeWidth={2.5} />
                     进入对话
                   </Button>
                 ) : null}
@@ -372,9 +366,9 @@ function CollectionDetailView({
                   style={{ borderRadius: 8 }}
                 >
                   {isSubscribed ? (
-                    <><Check size={13} />已订阅</>
+                    <><IconCheck size={13} />已订阅</>
                   ) : (
-                    <><Plus size={13} strokeWidth={2.5} />订阅</>
+                    <><IconPlus size={13} strokeWidth={2.5} />订阅</>
                   )}
                 </Button>
               </div>
@@ -387,23 +381,23 @@ function CollectionDetailView({
           className="shrink-0 flex items-center divide-x divide-gray-200 px-6 sm:px-8 py-3 border-y border-gray-200/80 text-[12px]"
         >
           <InlineStat
-            icon={<FileText size={12} className="text-gray-400" />}
+            icon={<IconFileText size={12} className="text-gray-400" />}
             label="文档"
             value={collection.item_count_real ?? 0}
           />
           <InlineStat
-            icon={<Heart size={12} className="text-gray-400" />}
+            icon={<IconHeart size={12} className="text-gray-400" />}
             label="订阅"
             value={collection.subscriber_count ?? 0}
           />
           <InlineStat
-            icon={<User size={12} className="text-gray-400" />}
+            icon={<IconUser size={12} className="text-gray-400" />}
             label="发布者"
             value={collection.publisher_name || "匿名"}
             isText
           />
           <InlineStat
-            icon={<Calendar size={12} className="text-gray-400" />}
+            icon={<IconCalendar size={12} className="text-gray-400" />}
             label="更新"
             value={formatDate(collection.published_at)}
             isText
@@ -414,9 +408,9 @@ function CollectionDetailView({
         <div className="shrink-0 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200/80 px-6 sm:px-8">
           <div className="flex items-center gap-1 -mb-px overflow-x-auto scrollbar-hide">
             {([
-              { key: "overview", label: "概览", icon: <Compass size={13} /> },
-              { key: "documents", label: "文档", icon: <FileSearch size={13} />, badge: collection.item_count_real ?? 0 },
-              { key: "related", label: "相关推荐", icon: <Sparkles size={13} />, badge: related.length }
+              { key: "overview", label: "概览", icon: <IconCompass size={13} /> },
+              { key: "documents", label: "文档", icon: <IconFileSearch size={13} />, badge: collection.item_count_real ?? 0 },
+              { key: "related", label: "相关推荐", icon: <IconMagic size={13} />, badge: related.length }
             ] as { key: DetailTab; label: string; icon: React.ReactNode; badge?: number }[]).map(t => (
               <button
                 key={t.key}
@@ -535,7 +529,7 @@ function OverviewTab({
       {/* 推荐用法 —— 无外框，纯文字+内联 code */}
       <section className="pb-6">
         <SectionHeader
-          icon={<Zap size={13} />}
+          icon={<IconLightning size={13} />}
           title="推荐用法"
           subtitle="如何让 AI 在回答时自动检索此知识库"
         />
@@ -555,7 +549,7 @@ function OverviewTab({
 
       {/* 核心信息 —— 文字网格，无外框 */}
       <section className="py-6">
-        <SectionHeader icon={<BarChart3 size={13} />} title="核心信息" />
+        <SectionHeader icon={<IconChartHistogram size={13} />} title="核心信息" />
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-6">
           <InfoItem label="条目数" value={String(collection.item_count_real ?? 0)} />
           <InfoItem label="订阅人数" value={String(collection.subscriber_count ?? 0)} />
@@ -567,7 +561,7 @@ function OverviewTab({
       {/* 描述 —— 无外框，直接文本 */}
       {collection.description && (
         <section className="py-6">
-          <SectionHeader icon={<FileText size={13} />} title="知识库简介" />
+          <SectionHeader icon={<IconFileText size={13} />} title="知识库简介" />
           <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">
             {collection.description}
           </p>
@@ -577,12 +571,12 @@ function OverviewTab({
       {/* 元信息底栏 —— 无外框，纯图标+文字 */}
       <section className="pt-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11.5px] text-gray-500">
-          <MetaItem icon={<Library size={11} />} text="知识库" />
+          <MetaItem icon={<IconBookshelf size={11} />} text="知识库" />
           {isOfficial && (
-            <MetaItem icon={<ShieldCheck size={11} />} text="官方认证" accent />
+            <MetaItem icon={<IconShield size={11} />} text="官方认证" accent />
           )}
-          <MetaItem icon={<BookOpen size={11} />} text={`${collection.item_count_real ?? 0} 个文档`} />
-          <MetaItem icon={<Calendar size={11} />} text={`发布于 ${formatDate(collection.published_at)}`} />
+          <MetaItem icon={<IconBookOpen size={11} />} text={`${collection.item_count_real ?? 0} 个文档`} />
+          <MetaItem icon={<IconCalendar size={11} />} text={`发布于 ${formatDate(collection.published_at)}`} />
         </div>
       </section>
     </div>
@@ -661,7 +655,7 @@ function DocumentsTab({
   if (!isSubscribed) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <FileSearch size={28} className="text-gray-300 mb-3" strokeWidth={1.4} />
+        <IconFileSearch size={28} className="text-gray-300 mb-3" strokeWidth={1.4} />
         <h3 className="text-[14px] font-medium text-gray-700 mb-1">
           订阅后查看文档列表
         </h3>
@@ -673,7 +667,7 @@ function DocumentsTab({
           className="!h-8 !px-3.5 !text-[12.5px] !font-medium !bg-gray-900 hover:!bg-gray-800 !text-white !border-gray-900 gap-1.5"
           style={{ borderRadius: 8 }}
         >
-          <ArrowUpRight size={13} strokeWidth={2.5} />
+          <IconArrowRightUp size={13} strokeWidth={2.5} />
           订阅并查看
         </Button>
       </div>
@@ -704,7 +698,7 @@ function DocumentsTab({
       {/* 文档统计概览 —— 无外框，纯 inline pills */}
       {typeDistribution.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap text-[11.5px] text-gray-500">
-          <Layers size={12} className="text-gray-400" />
+          <IconLayers size={12} className="text-gray-400" />
           <span>类型分布</span>
           {typeDistribution.map(([type, count], i) => (
             <span key={type} className="flex items-center gap-1">
@@ -719,7 +713,7 @@ function DocumentsTab({
       {/* 文档列表 —— 行式 + hover 底色，无外框 */}
       <div>
         <SectionHeader
-          icon={<FileText size={13} />}
+          icon={<IconFileText size={13} />}
           title="文档列表"
           subtitle={`共 ${items.length} 个文档，按更新时间排序`}
         />
@@ -743,7 +737,7 @@ function DocumentsTab({
 function DocumentRow({ item }: { item: MarketItem }) {
   return (
     <div className="group flex items-start gap-3 px-2 py-3 -mx-2 hover:bg-gray-50 transition-colors cursor-default">
-      <FileText size={15} className="text-gray-400 mt-0.5 shrink-0" strokeWidth={1.6} />
+      <IconFileText size={15} className="text-gray-400 mt-0.5 shrink-0" strokeWidth={1.6} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <h4 className="text-[13px] font-medium text-gray-900 truncate group-hover:text-blue-700 transition-colors">
@@ -765,7 +759,7 @@ function DocumentRow({ item }: { item: MarketItem }) {
           <span>{formatDate(item.updated_at)}</span>
           {item.view_count > 0 && (
             <span className="flex items-center gap-0.5">
-              <Eye size={10} />
+              <IconPreviewOpen size={10} />
               {item.view_count}
             </span>
           )}
@@ -786,7 +780,7 @@ function RelatedTab({
   if (related.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Compass size={28} className="text-gray-300 mb-3" strokeWidth={1.4} />
+        <IconCompass size={28} className="text-gray-300 mb-3" strokeWidth={1.4} />
         <h3 className="text-[14px] font-medium text-gray-700 mb-1">
           暂无相关推荐
         </h3>
@@ -800,7 +794,7 @@ function RelatedTab({
   return (
     <div>
       <SectionHeader
-        icon={<Sparkles size={13} />}
+        icon={<IconMagic size={13} />}
         title="相关推荐"
         subtitle="同分类或同标签的优质知识库"
       />
@@ -824,7 +818,7 @@ function RelatedTab({
                     {c.name}
                   </h4>
                   {c.official === 1 && (
-                    <ShieldCheck size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+                    <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
                   )}
                   {subscribedIds.has(c.id) && (
                     <span className="text-[11px] text-emerald-600 font-medium">已订阅</span>
@@ -838,16 +832,16 @@ function RelatedTab({
                 <div className="flex items-center gap-3 mt-0.5 text-[11px] text-gray-400">
                   {c.category && <span>{c.category}</span>}
                   <span className="flex items-center gap-0.5">
-                    <FileText size={10} />
+                    <IconFileText size={10} />
                     <span className="tabular-nums">{c.item_count_real ?? 0}</span>
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <Heart size={10} />
+                    <IconHeart size={10} />
                     <span className="tabular-nums">{c.subscriber_count ?? 0}</span>
                   </span>
                 </div>
               </div>
-              <ArrowRight
+              <IconArrowRight
                 size={14}
                 className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0"
                 strokeWidth={2}
@@ -889,7 +883,7 @@ const CollectionCard = ({
               {collection.name}
             </h3>
             {isOfficial && (
-              <ShieldCheck size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+              <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
             )}
           </div>
           {collection.category && (
@@ -904,7 +898,7 @@ const CollectionCard = ({
         <Space stats={collection} />
         {subscribed ? (
           <span className="text-[11px] text-gray-400 flex items-center gap-1">
-            <Check size={11} strokeWidth={3} />
+            <IconCheck size={11} strokeWidth={3} />
             已订阅
           </span>
         ) : (
@@ -914,7 +908,7 @@ const CollectionCard = ({
             style={{ borderRadius: 6 }}
             title="订阅"
           >
-            <Plus size={13} strokeWidth={2.5} />
+            <IconPlus size={13} strokeWidth={2.5} />
           </button>
         )}
       </div>
@@ -926,11 +920,11 @@ function Space({ stats }: { stats: MarketCollection }) {
   return (
     <span className="text-[11.5px] text-gray-400 flex items-center gap-2.5">
       <span className="flex items-center gap-1">
-        <FileText size={11} />
+        <IconFileText size={11} />
         {stats.item_count_real ?? 0}
       </span>
       <span className="flex items-center gap-1">
-        <Heart size={11} />
+        <IconHeart size={11} />
         {stats.subscriber_count ?? 0}
       </span>
     </span>
@@ -1141,7 +1135,7 @@ export function KBStoreContent({
             <option value="created_at">最新创建</option>
           </select>
           <div className="relative w-56">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
             <input
               type="text"
               placeholder="搜索知识库"

@@ -1,7 +1,39 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+// 桌面端（Electron）构建开关。
+// 仅在 DESKTOP_BUILD=1 时输出 Next standalone 产物，供 Electron 主进程直接 fork。
+// 默认关闭 —— Docker / 线上构建仍走 standard 模式，行为与改造前完全一致。
+const isDesktopBuild = process.env.DESKTOP_BUILD === "1";
+
 const nextConfig: NextConfig = {
+  // 桌面端需要自包含的服务端产物（.next/standalone/server.js + 精简 node_modules）
+  ...(isDesktopBuild ? { output: "standalone" as const } : {}),
+  // 桌面端：收紧文件追踪范围。
+  // 实测（Next 16.1 + turbopack）不加此配置时，standalone 会把项目根目录整体
+  // 镜像进去 —— 含 README/Dockerfile/nginx，其中 data/ai-providers-config.json
+  // 带真实 API Key、data/sessions.json 是用户会话数据，构成凭据外发风险。
+  // 这里从源头排除，再由 scripts/desktop/prepare-standalone.mjs 精确放入所需资源。
+  ...(isDesktopBuild
+    ? {
+        outputFileTracingExcludes: {
+          "*": [
+            "./data/**",
+            "./desktop/**",
+            "./docs/**",
+            "./nginx/**",
+            "./scripts/**",
+            "./tmp/**",
+            "./release/**",
+            "./.git/**",
+            "./.workbuddy/**",
+            "./prisma/**",
+            "./examples/**",
+            "**/*.md",
+          ],
+        },
+      }
+    : {}),
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -174,8 +206,13 @@ const nextConfig: NextConfig = {
             value: 'origin-when-cross-origin'
           },
           {
+            // 桌面端需放开 camera：(self) —— 摄像头巡检、拍照上传依赖本机摄像头，
+            // 且桌面窗口访问的是 127.0.0.1 本地服务，非公网页面。
+            // 浏览器部署保持 camera=()，威胁模型不同，公网页面不应默认获得摄像头权限。
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=(self)'
+            value: isDesktopBuild
+              ? 'camera=(self), microphone=(self), geolocation=(self)'
+              : 'camera=(), microphone=(self), geolocation=(self)'
           }
         ]
       }

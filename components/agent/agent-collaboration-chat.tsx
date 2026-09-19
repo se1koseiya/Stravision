@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Brain, Zap, CheckCircle, Bot, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { IconBrain, IconCheckOne, IconLightning, IconRobot, IconUser } from "@/components/icon";
 
 interface Message {
   id: string;
@@ -20,27 +20,27 @@ interface Message {
 
 const AGENT_CONFIG = {
   planner: {
-    icon: Brain,
+    icon: IconBrain,
     color: 'bg-blue-500',
     name: '规划器',
   },
   executor: {
-    icon: Zap,
+    icon: IconLightning,
     color: 'bg-green-500',
     name: '执行器',
   },
   validator: {
-    icon: CheckCircle,
+    icon: IconCheckOne,
     color: 'bg-purple-500',
     name: '验证器',
   },
   coordinator: {
-    icon: Bot,
+    icon: IconRobot,
     color: 'bg-orange-500',
     name: '协调器',
   },
   user: {
-    icon: User,
+    icon: IconUser,
     color: 'bg-gray-500',
     name: '用户',
   },
@@ -133,7 +133,7 @@ export function AgentCollaborationChat() {
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="border-b">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Bot className="h-4 w-4" />
+          <IconRobot className="h-4 w-4" />
           Agent 协作对话
           {isProcessing && (
             <Badge variant="secondary" className="ml-auto">

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import { Edit, Save, Droplets, Sun, Wind, Leaf, LayoutGrid, Monitor, BarChart3, Grid, Thermometer, Fan, Lightbulb, Video, Cpu, Activity, Gauge, Signal } from "lucide-react"
+import { CopilotSidebar } from "@/components/ai/copilot/copilot-sidebar"
 import { Button } from "@/components/ui/button"
 import { ConfigProvider, theme as antdTheme, Typography, Tag, Flex } from "antd"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
@@ -20,10 +20,12 @@ import { useDeviceData, type DeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import type { UserPublic, MembershipTier } from "@/lib/db/user-service"
 import { useState, useEffect, useMemo } from "react"
 import dynamic from "next/dynamic"
+import { IconApplicationOne, IconChartHistogram, IconChartLine, IconCpu, IconDashboard, IconEdit, IconFan, IconGridFour, IconLeaf, IconLight, IconMinus, IconMonitor, IconPlus, IconPreviewClose, IconPreviewOpen, IconSave, IconSettingTwo, IconSignal, IconSun, IconThermometer, IconVideo, IconWater, IconWind } from "@/components/icon";
 
 // react-grid-layout 是重型库，延迟加载
 const GridLayout = dynamic(() => import("react-grid-layout").then(m => ({ default: m.default })), { ssr: false })
@@ -52,7 +54,6 @@ import {
 import { LAYOUT_PRESETS, getWidgetSize } from "@/lib/dashboard-layouts"
 import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Minus, Plus, Settings2, AppWindow, Eye, EyeOff } from "lucide-react"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import { PageHeader } from "@/components/page-header"
@@ -62,12 +63,12 @@ import { DailyBriefingIsland } from "@/components/daily-briefing-island"
 
 // ─── 设备状态条带组件（动态展示设备注册表中的所有设备） ───
 
-const DASH_DEVICE_ICON_MAP: Record<string, typeof Cpu> = {
-  Thermometer, Droplets, Fan, Lightbulb, Sun, Wind, Video, Cpu, Activity, Gauge, Signal, Monitor,
-  default: Cpu,
+const DASH_DEVICE_ICON_MAP: Record<string, typeof IconCpu> = {
+  IconThermometer, IconWater, IconFan, IconLight, IconSun, IconWind, IconVideo, IconCpu, IconChartLine, IconDashboard, IconSignal, IconMonitor,
+  default: IconCpu,
 }
 
-function getDashDeviceIcon(iconName: string): typeof Cpu {
+function getDashDeviceIcon(iconName: string): typeof IconCpu {
   return DASH_DEVICE_ICON_MAP[iconName] || DASH_DEVICE_ICON_MAP.default
 }
 
@@ -93,7 +94,7 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
   return (
     <div className="w-full max-w-[1600px] mx-auto mb-6">
       <div className="flex items-center gap-2 mb-3 px-1">
-        <LayoutGrid className="h-4 w-4 text-[#1677ff]" strokeWidth={1.75} />
+        <IconGridFour className="h-4 w-4 text-[#1677ff]" strokeWidth={1.75} />
         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">设备状态</h3>
         <span className="text-xs text-slate-400">{enabledDevices.length}</span>
       </div>
@@ -143,7 +144,8 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
               className="relative p-3 transition-all"
               style={{
                 borderRadius: BERRY_THEME.apple.radius.inner,
-                background: '#FFFFFF',
+                background: BERRY_THEME.apple.surface,
+                border: '1px solid var(--berry-card-border)',
                 boxShadow: BERRY_THEME.apple.shadow.card,
               }}
             >
@@ -178,6 +180,8 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
 
 export default function DashboardClient({ version = 'full' }: { version?: 'full' | 'simplified' }) {
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
   const { isElderFriendlyMode, toggleElderFriendlyMode } = useElderFriendly()
 
   // User authentication state
@@ -465,7 +469,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
   return (
     <ConfigProvider
       theme={{
-        algorithm: antdTheme.defaultAlgorithm,
+        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
           colorPrimary: BERRY_THEME.primary,
           borderRadius: BERRY_THEME.radius.lg,
@@ -522,34 +526,34 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                    <LayoutGrid className="size-4" />
+                    <IconGridFour className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>切换视图</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handlePresetChange("default")}>
-                    <LayoutGrid className="size-4 mr-2" /> 默认视图
+                    <IconGridFour className="size-4 mr-2" /> 默认视图
                     {currentPreset === "default" && <span className="ml-auto text-xs">✓</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handlePresetChange("compact")}>
-                    <Grid className="size-4 mr-2" /> 紧凑视图
+                    <IconGridFour className="size-4 mr-2" /> 紧凑视图
                     {currentPreset === "compact" && <span className="ml-auto text-xs">✓</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handlePresetChange("dataFirst")}>
-                    <BarChart3 className="size-4 mr-2" /> 数据优先
+                    <IconChartHistogram className="size-4 mr-2" /> 数据优先
                     {currentPreset === "dataFirst" && <span className="ml-auto text-xs">✓</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handlePresetChange("monitor")}>
-                    <Monitor className="size-4 mr-2" /> 监控大屏
+                    <IconMonitor className="size-4 mr-2" /> 监控大屏
                     {currentPreset === "monitor" && <span className="ml-auto text-xs">✓</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handlePresetChange("environment")}>
-                    <Wind className="size-4 mr-2" /> 环境监测
+                    <IconWind className="size-4 mr-2" /> 环境监测
                     {currentPreset === "environment" && <span className="ml-auto text-xs">✓</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handlePresetChange("soil")}>
-                    <Leaf className="size-4 mr-2" /> 土壤监测
+                    <IconLeaf className="size-4 mr-2" /> 土壤监测
                     {currentPreset === "soil" && <span className="ml-auto text-xs">✓</span>}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -568,15 +572,15 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                      <Edit className="size-4" />
+                      <IconEdit className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={() => setShowWidgetLibrary(true)}>
-                      <AppWindow className="size-4 mr-2" /> 添加组件
+                      <IconApplicationOne className="size-4 mr-2" /> 添加组件
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleEditMode}>
-                      <Edit className="size-4 mr-2" /> 编辑布局
+                      <IconEdit className="size-4 mr-2" /> 编辑布局
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => {
@@ -586,7 +590,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                       localStorage.setItem('dashboard-layout-preset', 'default')
                       toast.success('已恢复默认布局')
                     }}>
-                      <Settings2 className="size-4 mr-2" /> 恢复默认
+                      <IconSettingTwo className="size-4 mr-2" /> 恢复默认
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -949,10 +953,10 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                   }}
                 >
                   <div style={{
-                    background: '#fff',
+                    background: 'var(--berry-popover)',
                     borderRadius: BERRY_THEME.radius.md,
                     boxShadow: BERRY_THEME.shadow.lg,
-                    border: '1px solid #f0f0f0',
+                    border: '1px solid var(--berry-popover-border)',
                     padding: 8,
                     minWidth: 220,
                     display: 'flex',
@@ -964,7 +968,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: 8,
-                      background: '#fafafa',
+                      background: 'var(--berry-popover-hover)',
                       borderRadius: BERRY_THEME.radius.sm,
                       marginBottom: 8,
                     }}>
@@ -973,42 +977,42 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                         style={{
                           padding: 12,
                           borderRadius: BERRY_THEME.radius.sm,
-                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? '#fff' : 'transparent',
+                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? 'var(--berry-popover)' : 'transparent',
                           boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? BERRY_THEME.shadow.sm : 'none',
                           border: 'none',
                           cursor: 'pointer',
                         }}
                         onClick={() => handleResizeWidget(contextMenuState.widgetId, 'small')}
                       >
-                        <div style={{ width: 20, height: 20, border: '1.5px solid #8c8c8c', borderRadius: 6 }} />
+                        <div style={{ width: 20, height: 20, border: '1.5px solid var(--berry-label-quaternary)', borderRadius: 6 }} />
                       </button>
                       <button
                         className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
                         style={{
                           padding: 12,
                           borderRadius: BERRY_THEME.radius.sm,
-                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? '#fff' : 'transparent',
+                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'var(--berry-popover)' : 'transparent',
                           boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? BERRY_THEME.shadow.sm : 'none',
                           border: 'none',
                           cursor: 'pointer',
                         }}
                         onClick={() => handleResizeWidget(contextMenuState.widgetId, 'medium')}
                       >
-                        <div style={{ width: 32, height: 20, border: '1.5px solid #8c8c8c', borderRadius: 6 }} />
+                        <div style={{ width: 32, height: 20, border: '1.5px solid var(--berry-label-quaternary)', borderRadius: 6 }} />
                       </button>
                       <button
                         className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
                         style={{
                           padding: 12,
                           borderRadius: BERRY_THEME.radius.sm,
-                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? '#fff' : 'transparent',
+                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'var(--berry-popover)' : 'transparent',
                           boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? BERRY_THEME.shadow.sm : 'none',
                           border: 'none',
                           cursor: 'pointer',
                         }}
                         onClick={() => handleResizeWidget(contextMenuState.widgetId, 'large')}
                       >
-                        <div style={{ width: 32, height: 32, border: '1.5px solid #8c8c8c', borderRadius: 8 }} />
+                        <div style={{ width: 32, height: 32, border: '1.5px solid var(--berry-label-quaternary)', borderRadius: 8 }} />
                       </button>
                     </div>
 
@@ -1020,22 +1024,22 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                         border: 'none',
                         background: 'transparent',
                         cursor: 'pointer',
-                        color: '#595959',
+                        color: BERRY_THEME.apple.labelSecondary,
                         fontWeight: 500,
                         fontSize: 13,
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--berry-popover-hover)'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       onClick={() => {
                         setIsEditMode(true)
                         setContextMenuState(null)
                       }}
                     >
-                      <AppWindow size={14} strokeWidth={1.75} color="#8c8c8c" />
+                      <IconApplicationOne size={14} strokeWidth={1.75} color="var(--berry-label-quaternary)" />
                       编辑主屏幕
                     </button>
 
-                    <div style={{ height: 1, background: '#f0f0f0', margin: '4px 0' }} />
+                    <div style={{ height: 1, background: 'var(--berry-popover-border)', margin: '4px 0' }} />
 
                     <button
                       className="flex items-center gap-3 transition-colors text-left w-full"
@@ -1056,7 +1060,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                         setContextMenuState(null)
                       }}
                     >
-                      <Minus size={14} strokeWidth={1.75} />
+                      <IconMinus size={14} strokeWidth={1.75} />
                       移除小组件
                     </button>
                   </div>
@@ -1073,6 +1077,73 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
         onOpenChange={setShowWidgetLibrary}
         onAddWidget={handleAddWidget}
         existingWidgets={layout.map(l => l.i)}
+      />
+
+      {/* ===== AI 助手侧栏（复用 ai-assistant 的对话组件，欢迎词按页面区分）===== */}
+      <CopilotSidebar
+        pageKey="dashboard"
+        deviceData={(deviceData ?? null) as unknown as Record<string, unknown> | null}
+        context={() => {
+          const lines: string[] = ["页面：数据看板（/dashboard）"]
+
+          if (deviceData) {
+            lines.push("【实时环境】")
+            const pick: Array<[string, unknown, string]> = [
+              ["温度", deviceData.temperature, "℃"],
+              ["湿度", deviceData.humidity, "%"],
+              ["光照", (deviceData as Record<string, unknown>).light, "lux"],
+              ["CO₂", (deviceData as Record<string, unknown>).co2, "ppm"],
+            ]
+            for (const [label, val, unit] of pick) {
+              const n = Number(val)
+              if (Number.isFinite(n)) lines.push(`- ${label}：${n.toFixed(1)}${unit}`)
+            }
+            const relays: string[] = []
+            for (let i = 1; i <= 8; i++) {
+              const k = `relay${i}` as keyof typeof deviceData
+              if (deviceData[k] === 1) relays.push(`继电器${i}`)
+            }
+            if (relays.length) lines.push(`- 已开启：${relays.join("、")}`)
+          } else {
+            lines.push("【实时环境】暂未上报")
+          }
+
+          const keys = Object.keys(historyDataMap)
+          if (keys.length) {
+            lines.push("【近 1 小时趋势】")
+            for (const k of keys.slice(0, 6)) {
+              const arr = historyDataMap[k]
+              if (!Array.isArray(arr) || arr.length < 2) continue
+              const nums = arr
+                .map((p: { value?: unknown; v?: unknown }) =>
+                  Number(p?.value ?? p?.v)
+                )
+                .filter((n: number) => Number.isFinite(n))
+              if (nums.length < 2) continue
+              const min = Math.min(...nums)
+              const max = Math.max(...nums)
+              const last = nums[nums.length - 1]
+              const first = nums[0]
+              const delta = last - first
+              lines.push(
+                `- ${k}：当前 ${last.toFixed(1)}，1h 区间 ${min.toFixed(1)}~${max.toFixed(1)}，${
+                  delta >= 0 ? "上升" : "下降"
+                } ${Math.abs(delta).toFixed(1)}`
+              )
+            }
+          }
+
+          if (weatherData) {
+            const w = weatherData as Record<string, unknown>
+            const bits: string[] = []
+            if (w.temperature != null) bits.push(`气温 ${Number(w.temperature).toFixed(0)}℃`)
+            if (w.weather) bits.push(String(w.weather))
+            if (bits.length) lines.push(`【室外天气】${bits.join("，")}`)
+          }
+
+          lines.push(`【布局】当前 ${layout.length} 个小组件`)
+          return lines.join("\n")
+        }}
       />
 
     </>

@@ -9,28 +9,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { UserPublic } from "@/lib/db/user-service"
-import {
-  UserIcon,
-  ArrowRightOnRectangleIcon,
-  Cog6ToothIcon,
-  ChevronDownIcon,
-  QuestionMarkCircleIcon,
-  SunIcon,
-  MoonIcon,
-  MapPinIcon,
-  CloudIcon,
-  HeartIcon,
-  ArrowTopRightOnSquareIcon,
-  CheckBadgeIcon,
-} from "@heroicons/react/24/outline"
-import { Activity as ActivityIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { useTheme } from "next-themes"
-
+import { toast } from "sonner"
+import { DESKTOP_CAPABILITIES, IS_DESKTOP_APP } from "@/lib/desktop-mode"
+import {
+  isDesktopNotifyEnabled,
+  setDesktopNotifyEnabled,
+  onDesktopNotifyChange,
+  notifyDesktop,
+} from "@/lib/desktop-notify"
+import { IconCertificate, IconChartLine, IconCloudy, IconDown, IconHeart, IconHelp, IconLocalPin, IconLogout, IconMoon, IconRemind, IconRemindDisable, IconSettingTwo, IconShare, IconSun, IconUser } from "@/components/icon";
 interface UserAvatarMenuProps {
   user?: UserPublic | null
   variant?: "default" | "pill" | "avatar"
@@ -56,14 +49,14 @@ function getInitials(username: string): string {
 const membershipStyle = {
   plus: {
     label: "Plus",
-    icon: CheckBadgeIcon,
+    icon: IconCertificate,
     cls: "from-amber-400 to-orange-500 text-white",
     ringCls: "ring-amber-400/30",
     textCls: "text-amber-700 dark:text-amber-300",
   },
   pro: {
     label: "Pro",
-    icon: CheckBadgeIcon,
+    icon: IconCertificate,
     cls: "from-slate-700 to-slate-900 text-white",
     ringCls: "ring-slate-500/30",
     textCls: "text-slate-700 dark:text-slate-300",
@@ -126,6 +119,29 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
   const { isElderFriendlyMode, toggleElderFriendlyMode } = useElderFriendly()
   const { theme, setTheme } = useTheme()
 
+  // 桌面端原生通知开关。localStorage 只能在 effect 里读，否则 SSR/CSR 首帧不一致
+  const [notifyOn, setNotifyOn] = useState(true)
+  useEffect(() => {
+    if (!IS_DESKTOP_APP) return
+    setNotifyOn(isDesktopNotifyEnabled())
+    return onDesktopNotifyChange(() => setNotifyOn(isDesktopNotifyEnabled()))
+  }, [])
+
+  const toggleNotify = () => {
+    const next = !notifyOn
+    setDesktopNotifyEnabled(next)
+    setNotifyOn(next)
+    // 开启时立刻发一条，让用户马上确认系统通知确实能弹出来
+    if (next) {
+      notifyDesktop({
+        title: "桌面通知已开启",
+        body: "AI 任务跑完时（窗口不在前台）会在这里提醒你。",
+        level: "info",
+        force: true,
+      })
+    }
+  }
+
   if (!user) return null
 
   const membership = (user.membership || "free") as keyof typeof membershipStyle
@@ -180,7 +196,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
             <span className="text-sm font-semibold text-slate-900 max-w-[140px] truncate dark:text-slate-100">
               {user.username}
             </span>
-            <ChevronDownIcon className="size-4 text-slate-500 dark:text-slate-400" />
+            <IconDown className="size-4 text-slate-500 dark:text-slate-400" />
           </button>
         ) : (
           <button id="user-menu-trigger" className={cn("flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none", className)}>
@@ -231,16 +247,17 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
                 </span>
               </div>
               <p className="mt-1 truncate text-xs text-muted-foreground/80">{user.email}</p>
-              {membership !== "free" && (
+              {/* 桌面端为本地买断式运行，无计费通道 —— 隐藏会员权益/升级入口 */}
+              {DESKTOP_CAPABILITIES.payment && membership !== "free" && (
                 <button
                   onClick={() => router.push("/membership")}
                   className="mt-1.5 inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   查看会员权益
-                  <ArrowTopRightOnSquareIcon className="size-3" />
+                  <IconShare className="size-3" />
                 </button>
               )}
-              {membership === "free" && (
+              {DESKTOP_CAPABILITIES.payment && membership === "free" && (
                 <button
                   onClick={() => router.push("/membership")}
                   className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-foreground hover:bg-foreground/10 transition-colors"
@@ -254,10 +271,10 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
           {/* 天气：精致单行（替换原独立蓝色卡） */}
           {!loading && weatherData?.current && (
             <div className="mt-3 flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-2.5 py-1.5 text-[11px] text-muted-foreground">
-              <MapPinIcon className="size-3 text-muted-foreground/70" />
+              <IconLocalPin className="size-3 text-muted-foreground/70" />
               <span className="truncate max-w-[100px]">{weatherData.location?.name || "未知"}</span>
               <span className="text-muted-foreground/40">·</span>
-              <CloudIcon className="size-3 text-muted-foreground/70" />
+              <IconCloudy className="size-3 text-muted-foreground/70" />
               <span className="truncate max-w-[80px]">{weatherData.current?.condition?.text || ""}</span>
               <span className="ml-auto font-semibold tabular-nums text-foreground/80">
                 {weatherData.current?.temp_c?.toFixed(0)}°
@@ -277,7 +294,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
               toggleElderFriendlyMode()
             }}
           >
-            <HeartIcon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-pink-500 transition-colors" />
+            <IconHeart className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-pink-500 transition-colors" />
             <span className="flex-1 text-foreground">长辈模式</span>
             <Toggle on={isElderFriendlyMode} onChange={toggleElderFriendlyMode} accent="bg-pink-500" />
           </DropdownMenuItem>
@@ -290,9 +307,9 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
             }}
           >
             {isDark ? (
-              <SunIcon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-amber-500 transition-colors" />
+              <IconSun className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-amber-500 transition-colors" />
             ) : (
-              <MoonIcon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-slate-500 transition-colors" />
+              <IconMoon className="size-4 shrink-0 text-muted-foreground group-data-[highlighted]:text-slate-500 transition-colors" />
             )}
             <span className="flex-1 text-foreground">{isDark ? "浅色模式" : "深色模式"}</span>
             <Toggle on={isDark} onChange={() => setTheme(isDark ? "light" : "dark")} />
@@ -304,17 +321,17 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
         {/* ── 路由菜单：统一图标 + 标签 + 右箭头 ── */}
         <div className="px-1.5 py-1.5 space-y-0.5">
           <DropdownMenuItem className={itemBase} onClick={() => router.push("/profile")}>
-            <UserIcon className="size-4 shrink-0 text-muted-foreground" />
+            <IconUser className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 text-foreground">个人中心</span>
             <ChevronRightHint />
           </DropdownMenuItem>
           <DropdownMenuItem className={itemBase} onClick={() => router.push("/activity")}>
-            <ActivityIcon className="size-4 shrink-0 text-muted-foreground" />
+            <IconChartLine className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 text-foreground">活动动态</span>
             <ChevronRightHint />
           </DropdownMenuItem>
           <DropdownMenuItem className={itemBase} onClick={() => router.push("/settings")}>
-            <Cog6ToothIcon className="size-4 shrink-0 text-muted-foreground" />
+            <IconSettingTwo className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 text-foreground">个人设置</span>
             <ChevronRightHint />
           </DropdownMenuItem>
@@ -323,8 +340,66 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
             <span className="flex-1 text-foreground">我的 MCP</span>
             <ChevronRightHint />
           </DropdownMenuItem>
+          {/* 桌面端专属：本地服务（AI / MQTT / 密钥与环境变量）由原生向导配置 */}
+          {IS_DESKTOP_APP && (
+            <DropdownMenuItem
+              className={itemBase}
+              onClick={() => {
+                const api = window.stravisionDesktop
+                if (!api?.openSetup) {
+                  // 桥缺失 = preload 没注入成功，明确告知而不是无声失败
+                  toast.error("桌面桥未就绪（window.stravisionDesktop 不可用），请重启应用后重试")
+                  return
+                }
+                Promise.resolve(api.openSetup())
+                  .then((res) => {
+                    if (res && res.ok === false) {
+                      toast.error(`无法打开本地服务配置：${res.error ?? "未知错误"}`)
+                    }
+                  })
+                  .catch((err) => {
+                    toast.error(`无法打开本地服务配置：${err?.message ?? String(err)}`)
+                  })
+              }}
+            >
+              <IconCloudy className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex-1 text-foreground">本地服务配置</span>
+              <ChevronRightHint />
+            </DropdownMenuItem>
+          )}
+          {/* 桌面端专属：AI 任务跑完时弹系统通知（窗口不在前台时才弹） */}
+          {IS_DESKTOP_APP && (
+            <DropdownMenuItem
+              className={itemBase}
+              // 开关类条目：点完不收起菜单，方便连着改
+              onSelect={(event) => {
+                event.preventDefault()
+                toggleNotify()
+              }}
+            >
+              {notifyOn ? (
+                <IconRemind className="size-4 shrink-0 text-muted-foreground" />
+              ) : (
+                <IconRemindDisable className="size-4 shrink-0 text-muted-foreground" />
+              )}
+              <span className="flex-1 text-foreground">桌面通知</span>
+              <span
+                className={cn(
+                  "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200",
+                  notifyOn ? "bg-[#009456]" : "bg-foreground/15"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block size-3 rounded-full bg-white shadow-sm transition-transform duration-200",
+                    notifyOn ? "translate-x-3.5" : "translate-x-0.5"
+                  )}
+                />
+              </span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem className={itemBase} onClick={() => router.push("/help")}>
-            <QuestionMarkCircleIcon className="size-4 shrink-0 text-muted-foreground" />
+            <IconHelp className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 text-foreground">帮助中心</span>
             <ChevronRightHint />
           </DropdownMenuItem>
@@ -342,7 +417,7 @@ export function UserAvatarMenu({ user, variant = "default", className }: UserAva
             onClick={handleLogout}
             disabled={isLoggingOut}
           >
-            <ArrowRightOnRectangleIcon className="size-4 shrink-0" />
+            <IconLogout className="size-4 shrink-0" />
             <span className="flex-1">{isLoggingOut ? "登出中…" : "登出"}</span>
           </DropdownMenuItem>
         </div>

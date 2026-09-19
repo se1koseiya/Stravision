@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, Play } from "lucide-react";
 import { HERO_GLOWS, HERO_GLOW_BLUR, L } from "./shared";
 import { AppWindow } from "./app-window";
+import { IconArrowRightUp, IconPlay } from "@/components/icon";
 
 /* ------------------------------------------------------------
    首屏 —— 对齐 loomy.xunfei.cn 的 HeroGradientBackground
@@ -134,7 +134,7 @@ export function Hero() {
             style={{ background: L.btnBg, color: L.btnFg }}
           >
             免费开始使用
-            <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <IconArrowRightUp className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
           {/* 次：薄荷胶囊（Loomy 下载区同一个次按钮语言） */}
           <Link
@@ -142,7 +142,7 @@ export function Hero() {
             className="group inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-6 text-[15px] font-semibold transition-[transform,background-color,box-shadow] hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 sm:w-auto"
             style={{ background: L.emerald300, color: L.neutral950 }}
           >
-            <Play className="size-3.5 fill-current" />
+            <IconPlay className="size-3.5 fill-current" />
             查看现场演示
           </Link>
         </motion.div>

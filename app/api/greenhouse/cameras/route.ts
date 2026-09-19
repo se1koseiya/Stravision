@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { getGreenhouseCameraUrls, updateGreenhouseCameraUrls } from "@/lib/db/settings-service"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import { z } from "zod"
 
 const payloadSchema = z.object({
   cameraAUrl: z.string(),
   cameraBUrl: z.string()
 })
+
+/** 单用户写入限流：同一用户 10s 内最多 1 次，避免刷新式写入打满嵌入式 PG */
+const lastWriteAt = new Map<number, number>()
+const WRITE_COOLDOWN_MS = 10_000
 
 export async function GET(_req: NextRequest) {
   const user = await getCurrentUser()
@@ -23,8 +28,26 @@ export async function GET(_req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "super_admin") {
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // 网页版：摄像头地址是全站共享的接入配置，仍限管理员修改
+  // 桌面端：本机单用户使用，地址等价于「我的设备接入配置」，开放给当前用户
+  if (!IS_DESKTOP_APP && user.role !== "super_admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+  }
+
+  if (IS_DESKTOP_APP) {
+    const now = Date.now()
+    const prev = lastWriteAt.get(user.id as number) || 0
+    if (now - prev < WRITE_COOLDOWN_MS) {
+      return NextResponse.json(
+        { error: "操作过于频繁，请稍后再试" },
+        { status: 429 }
+      )
+    }
+    lastWriteAt.set(user.id as number, now)
   }
 
   try {
@@ -35,8 +58,14 @@ export async function POST(req: NextRequest) {
     }
 
     const normalized = {
-      cameraAUrl: parsed.data.cameraAUrl.trim(),
-      cameraBUrl: parsed.data.cameraBUrl.trim()
+      cameraAUrl: parsed.data.cameraAUrl.trim().slice(0, 2000),
+      cameraBUrl: parsed.data.cameraBUrl.trim().slice(0, 2000)
+    }
+
+    // 桌面端叠加落盘：写入 <userData>/server-data/desktop-settings.json，
+    // 与嵌入式 PG 双保险 —— 即使 PG 数据目录被重建，用户填的地址也不会丢。
+    if (IS_DESKTOP_APP) {
+      await persistCameraUrlsToDesktopSettings(normalized)
     }
 
     await updateGreenhouseCameraUrls(normalized)
@@ -47,3 +76,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * 桌面端：把摄像头地址持久化到 <userData>/server-data/desktop-settings.json。
+ *
+ * 但 Next 子进程拿不到 userData 绝对路径（只有 Launcher 知道），因此这里走
+ * 一个约定路径：由 Launcher 通过 STRAVISION_DATA_ROOT 环境变量告知数据根目录。
+ * 拿不到就静默跳过（PG 已存了一份，不阻塞保存）。
+ */
+async function persistCameraUrlsToDesktopSettings(urls: {
+  cameraAUrl: string
+  cameraBUrl: string
+}): Promise<void> {
+  const dataRoot = process.env.STRAVISION_DATA_ROOT
+  if (!dataRoot) return
+  try {
+    const fs = await import("node:fs/promises")
+    const path = await import("node:path")
+    const file = path.join(dataRoot, "desktop-settings.json")
+
+    let current: Record<string, unknown> = {}
+    try {
+      current = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>
+    } catch {
+      current = {}
+    }
+
+    current.cameras = {
+      cameraAUrl: urls.cameraAUrl,
+      cameraBUrl: urls.cameraBUrl,
+      updatedAt: Date.now(),
+    }
+
+    await fs.mkdir(path.dirname(file), { recursive: true })
+    await fs.writeFile(file, JSON.stringify(current, null, 2), { mode: 0o600 })
+  } catch (e) {
+    console.warn("[CameraSettings] 落盘 desktop-settings.json 失败（已保存到数据库）:", e)
+  }
+}

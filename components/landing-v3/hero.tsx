@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button, Col, Flex, Row, Typography } from "antd";
-import { RightOutlined } from "@ant-design/icons";
+import { IconRight } from "@/components/icon";
 
 const { Title, Text } = Typography;
 
@@ -136,7 +136,7 @@ export function Hero() {
                   type="primary"
                   shape="round"
                   size="large"
-                  icon={<RightOutlined className="text-[12px]" />}
+                  icon={<IconRight className="text-[12px]" />}
                   iconPosition="end"
                   style={{
                     background: "#0f172a",
@@ -155,7 +155,7 @@ export function Hero() {
                 <Button
                   shape="round"
                   size="large"
-                  icon={<RightOutlined className="text-[12px] !text-emerald-600" />}
+                  icon={<IconRight className="text-[12px] !text-emerald-600" />}
                   iconPosition="end"
                   style={{
                     background: "rgba(255,255,255,0.8)",

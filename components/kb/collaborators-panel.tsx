@@ -19,11 +19,8 @@ import {
   Avatar, Button, Modal, Input, Select, Empty, Spin, Tag,
   Dropdown, App as AntApp, Tooltip
 } from "antd"
-import {
-  UserPlus, MoreHorizontal, Trash2, Crown, Shield, Edit3, Eye,
-  X, Search, Loader2, Mail, ChevronDown
-} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IconAddUser, IconClose, IconCrown, IconDelete, IconDown, IconEdit, IconLoading, IconMail, IconMore, IconPreviewOpen, IconSearch, IconShield } from "@/components/icon";
 
 interface Collaborator {
   id: number
@@ -95,11 +92,11 @@ function roleColor(role: string): string {
 }
 
 function roleIcon(role: string) {
-  if (role === "owner") return Crown
-  if (role === "admin") return Shield
-  if (role === "editor") return Edit3
-  if (role === "viewer") return Eye
-  return Eye
+  if (role === "owner") return IconCrown
+  if (role === "admin") return IconShield
+  if (role === "editor") return IconEdit
+  if (role === "viewer") return IconPreviewOpen
+  return IconPreviewOpen
 }
 
 export default function CollaboratorsPanel({
@@ -319,7 +316,7 @@ export default function CollaboratorsPanel({
       {invitations.length > 0 && (
         <div className="mb-3 pb-3">
           <div className="text-[11px] text-[#fa8c16] mb-1.5 flex items-center gap-1 font-medium">
-            <Mail size={11} />
+            <IconMail size={11} />
             <span>待处理邀请 · {invitations.length}</span>
           </div>
           <div className="space-y-1.5">
@@ -429,7 +426,7 @@ export default function CollaboratorsPanel({
                             key: "remove",
                             label: "移除协作者",
                             danger: true,
-                            icon: <Trash2 size={12} />,
+                            icon: <IconDelete size={12} />,
                             onClick: () => handleRemove(c.user_id, c.username || "该用户")
                           }
                         ]
@@ -438,7 +435,7 @@ export default function CollaboratorsPanel({
                       <Button
                         type="text"
                         size="small"
-                        icon={<MoreHorizontal size={14} />}
+                        icon={<IconMore size={14} />}
                         style={{ borderRadius: 4, height: 24, width: 24, padding: 0, color: "rgba(0,0,0,0.45)" }}
                       />
                     </Dropdown>
@@ -536,7 +533,7 @@ export default function CollaboratorsPanel({
                 <Button
                   type="text"
                   size="small"
-                  icon={<X size={11} />}
+                  icon={<IconClose size={11} />}
                   onClick={() => {
                     setSelectedUser(null)
                     setSearchQuery("")

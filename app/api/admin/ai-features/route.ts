@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
+import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import fs from "node:fs/promises"
 import path from "node:path"
+
+// 🚨 桌面端放行：本地单用户形态，无平台角色概念（IS_DESKTOP_APP 构建期内联，Web 构建恒 false）
+async function requireAdmin() {
+  const user = await getCurrentUser()
+  if (!user) return null
+  if (IS_DESKTOP_APP) return user
+  return user.role === "admin" || user.role === "super_admin" ? user : null
+}
 
 const CONFIG_FILE = path.join(process.cwd(), "data", "ai-features-config.json")
 
@@ -70,9 +79,9 @@ async function saveConfig(config: AIFeatureConfig): Promise<void> {
 // GET - 获取配置
 export async function GET(req: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    
-    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    const user = await requireAdmin()
+
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -90,9 +99,9 @@ export async function GET(req: NextRequest) {
 // POST - 保存配置
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    
-    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    const user = await requireAdmin()
+
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

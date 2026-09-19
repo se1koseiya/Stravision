@@ -10,10 +10,10 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
-import { ArrowUpIcon, Quote, FileText } from "lucide-react";
 import { User } from "@/components/animate-ui/icons/user";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { ExternalLink } from "@/components/animate-ui/icons/external-link";
+import { IconArrowUp, IconFileText, IconQuote } from "@/components/icon";
 
 // Scroll configuration
 const SCROLL_CONFIG = {
@@ -556,7 +556,7 @@ export const PromptInputSubmit = React.forwardRef<HTMLButtonElement, PromptInput
     className={cn("size-8 rounded-full bg-gradient-to-r from-primary to-primary hover:from-emerald-600 hover:to-emerald-700", className)}
     {...props}
   >
-    {status === "loading" ? <Loader size={20} /> : <ArrowUpIcon className="size-4" />}
+    {status === "loading" ? <Loader size={20} /> : <IconArrowUp className="size-4" />}
   </Button>
 ))
 PromptInputSubmit.displayName = "PromptInputSubmit"
@@ -1216,7 +1216,7 @@ TaskItem.displayName = "TaskItem"
 export const TaskItemFile = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   ({ className, children, ...props }, ref) => (
     <span ref={ref} className={cn("inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5", className)} {...props}>
-      <FileText className="size-3" />
+      <IconFileText className="size-3" />
       <span className="text-foreground/90">{children}</span>
     </span>
   )
