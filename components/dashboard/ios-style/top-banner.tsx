@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { RealtimeVoiceOrb, DeviceCommand } from "@/components/realtime-voice-orb"
+import { DeviceCommand } from "@/components/realtime-voice-orb"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
 import { IconArrowRight, IconCalendar, IconUser } from "@/components/icon";
@@ -18,8 +18,8 @@ interface TopBannerProps {
 export function TopBanner({ 
   userName = "User", 
   className,
-  deviceData,
-  onDeviceCommand 
+  /* 🚨 2026-09-24：语音球已从顶栏移除（语音收编进 Copilot 的 Call 态）。
+     deviceData / onDeviceCommand 保留在 props 里，调用方无需改动。 */
 }: TopBannerProps) {
   const { isElderFriendlyMode } = useElderFriendly()
   const [dateStr, setDateStr] = useState("")
@@ -35,39 +35,47 @@ export function TopBanner({
 
   return (
     <div className={cn(
-      "w-full bg-white dark:bg-slate-900 rounded-[32px] p-6 flex items-center justify-between shadow-sm border border-transparent dark:border-slate-800",
+      /* 沉浸光感材质 —— HDS REGULAR 档（内容区卡片，与 dashboard 小组件卡同档，
+         因为它俩在视觉上是同层内容，档位不同会显得"两张卡不是一套"）。
+         原来 bg-white / dark:bg-zinc-900 是**纯实色板**：不透明 = 材质四件套一样都没有。
+         材质数值来自 components/device/material-css.ts（已全局注入，无需本页再导入 CSS）。 */
+      "dc-mat dc-mat--regular w-full rounded-[32px] p-6 flex items-center justify-between",
       isElderFriendlyMode && "elder-friendly-text",
       className
     )}>
 
       {/* Left side: Date and Task Button */}
       <div className="flex items-center gap-6">
-         {/* Date Circle */}
+         {/* Date Circle —— 卡片**内部**的嵌套表面：HDS THIN（控件压在卡片之上，
+             要能让卡片的色光继续透上来，所以比卡片更薄） */}
          <div className="flex items-center gap-3">
             <div className={cn(
-              "rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800 shrink-0",
+              "dc-mat dc-mat--thin rounded-full flex items-center justify-center shrink-0",
               isElderFriendlyMode ? "w-20 h-20" : "w-16 h-16"
             )}>
                <span className={cn(
-                 "font-bold text-slate-900 dark:text-white",
+                 "font-bold text-zinc-900 dark:text-white",
                  isElderFriendlyMode ? "text-3xl" : "text-2xl"
                )}>{dateStr}</span>
             </div>
             <div className="flex flex-col">
                <span className={cn(
-                 "font-semibold text-slate-900 dark:text-white leading-tight",
+                 "font-semibold text-zinc-900 dark:text-white leading-tight",
                  isElderFriendlyMode ? "text-base" : "text-sm"
                )}>{dayStr},</span>
                <span className={cn(
-                 "text-slate-500 dark:text-slate-400 leading-tight",
+                 "text-zinc-500 dark:text-zinc-400 leading-tight",
                  isElderFriendlyMode ? "text-base" : "text-sm"
                )}>{monthStr}</span>
             </div>
          </div>
 
-         {/* Tasks Button */}
+         {/* Tasks Button —— 品牌档材质（.dc-ctrl--brand）：从"平涂一块绿"升级成"一块有光的绿玻璃"
+             （模糊 + saturate 吸光 + 内缘光），并带按压弹性 + 按压点光源。
+             ⚠️ 这里必须删掉 bg-[#059669] / hover:bg-[#10B981] / shadow-*：
+                虽然未分层的材质样式确实会赢，但两条写法并存=下一个人改色会改到没生效的那条。 */}
          <Button className={cn(
-           "rounded-full bg-[#1677ff] hover:bg-[#4096ff] text-white border-0 px-6 font-normal shadow-md shadow-[#1677ff]/20 group hidden md:flex",
+           "dc-ctrl--brand dc-ctrl--press rounded-full text-white px-6 font-normal group hidden md:flex",
            isElderFriendlyMode ? "h-14 text-lg" : "h-12"
          )}>
             查看任务
@@ -77,16 +85,17 @@ export function TopBanner({
             )} />
          </Button>
 
-         {/* Calendar Icon Button */}
+         {/* Calendar Icon Button —— 卡片内的图标按钮：HDS THIN + 按压（点光源定位靠
+             .dc-ctrl--press 自带的 position: relative，右上角的小红点也吃同一个定位基准） */}
          <div className={cn(
-           "rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800 shrink-0 relative cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors hidden sm:flex",
+           "dc-mat dc-mat--thin dc-ctrl--press rounded-full flex items-center justify-center shrink-0 cursor-pointer hidden sm:flex",
            isElderFriendlyMode ? "w-14 h-14" : "w-12 h-12"
          )}>
             <IconCalendar className={cn(
-              "text-slate-600 dark:text-slate-300",
+              "text-zinc-600 dark:text-zinc-300",
               isElderFriendlyMode ? "w-6 h-6" : "w-5 h-5"
             )} />
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#1677ff] rounded-full border-2 border-white dark:border-slate-900" />
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#059669] rounded-full border-2 border-white dark:border-zinc-900" />
          </div>
       </div>
 
@@ -95,7 +104,7 @@ export function TopBanner({
          <div className="flex flex-col items-end text-right hidden sm:flex">
             <div className="flex items-center gap-2">
                <span className={cn(
-                 "font-bold text-slate-900 dark:text-white tracking-tight",
+                 "font-bold text-zinc-900 dark:text-white tracking-tight",
                  isElderFriendlyMode ? "text-3xl" : "text-2xl"
                )}>你好 {userName}，需要帮忙吗？</span>
                <span className={cn(
@@ -103,59 +112,11 @@ export function TopBanner({
                )}>👋</span>
             </div>
             <span className={cn(
-              "text-slate-400 dark:text-slate-500 font-medium tracking-tight mt-1",
+              "text-zinc-400 dark:text-zinc-500 font-medium tracking-tight mt-1",
               isElderFriendlyMode ? "text-2xl" : "text-xl"
             )}>| 随时向我提问！</span>
          </div>
 
-         <div className={cn(
-           "shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700",
-           isElderFriendlyMode ? "w-24 h-24" : "w-20 h-20"
-         )}>
-            {/* The real voice orb integrated directly with dashboard-specific system prompt */}
-            <RealtimeVoiceOrb 
-                size={isElderFriendlyMode ? 68 : 56} 
-                autoExecuteCommands={true}
-                bubblePosition="left"
-                deviceData={deviceData}
-                onDeviceCommand={onDeviceCommand}
-                systemPrompt={`你是莓小智，一个专业的智慧农业助手，现在用户正在查看数据看板页面。
-
-## 当前页面功能
-用户正在数据看板页面，这里展示了：
-- 实时环境数据：温度、湿度、光照、CO2浓度
-- 土壤数据：土壤湿度、肥力、氮磷钾含量
-- 天气信息：当前天气状况和预报
-- 光谱分析：植物光合作用相关的光谱数据
-- AI洞察：基于数据的智能分析和建议
-
-## 你的职责
-1. **数据解读**：帮助用户理解看板上的各项数据指标
-2. **趋势分析**：分析数据趋势，指出异常情况
-3. **建议提供**：基于当前数据给出种植建议
-4. **设备控制**：可以帮助用户控制水泵、风扇、补光灯等设备
-5. **问题解答**：回答用户关于数据的任何问题
-
-## 交互方式
-- 用简洁、专业但易懂的语言回答
-- 主动关注数据异常，提醒用户注意
-- 可以建议用户切换到其他页面进行具体操作
-- 对于长辈用户，使用更通俗的语言解释专业术语
-- 当用户要求控制设备时，直接执行并确认
-
-## 示例对话
-用户："温度怎么样？"
-你："当前温度17.1°C，处于适宜范围。建议保持这个温度，有利于草莓生长。"
-
-用户："土壤湿度够吗？"
-你："土壤湿度40.5%，略微偏干。建议适当增加灌溉，保持在50-60%之间最佳。"
-
-用户："开启风扇"
-你："好的，正在为您开启风扇 {"action":"toggle_relay","device":6,"value":1}"
-
-记住：你的目标是让用户轻松理解数据，做出正确的种植决策，并能方便地控制设备。`}
-            />
-         </div>
       </div>
 
     </div>

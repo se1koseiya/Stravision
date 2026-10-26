@@ -268,7 +268,7 @@ export function Voices() {
               <motion.figure
                 key={v.name}
                 {...fadeUp(0.05 * i)}
-                className="m-0 rounded-3xl p-5"
+                className="m-0 rounded-2xl p-5"
                 style={{ background: "var(--lg-ghost)" }}
               >
                 <blockquote className="text-[0.9375rem] font-semibold leading-[1.7]" style={{ color: L.desc }}>

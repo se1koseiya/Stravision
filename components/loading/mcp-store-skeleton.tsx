@@ -4,8 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function MCPStoreSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+      <div className="max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center justify-between mb-4">
@@ -28,7 +28,7 @@ export function MCPStoreSkeleton() {
         </div>
 
         {/* Featured Section */}
-        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <Skeleton className="h-8 w-48 mb-6" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
@@ -46,11 +46,11 @@ export function MCPStoreSkeleton() {
         </div>
 
         {/* Categories */}
-        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
           <Skeleton className="h-8 w-32 mb-6" />
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-4 shadow-lg border border-slate-200/50 dark:border-slate-800/50 text-center">
+              <div key={i} className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-2xl p-4 shadow-lg border border-zinc-200/50 dark:border-zinc-800/50 text-center">
                 <Skeleton className="h-12 w-12 rounded-xl mx-auto mb-3" />
                 <Skeleton className="h-4 w-16 mx-auto mb-1" />
                 <Skeleton className="h-3 w-8 mx-auto" />
@@ -60,7 +60,7 @@ export function MCPStoreSkeleton() {
         </div>
 
         {/* MCP Servers Grid */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
           <div className="flex items-center justify-between mb-6">
             <Skeleton className="h-8 w-40" />
             <Skeleton className="h-10 w-32 rounded-lg" />
@@ -70,7 +70,7 @@ export function MCPStoreSkeleton() {
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
               <div 
                 key={i} 
-                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-800/50 hover:shadow-xl transition-all duration-300"
+                className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-zinc-200/50 dark:border-zinc-800/50 hover:shadow-lg transition-all duration-300"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
                 {/* Header */}
@@ -112,7 +112,7 @@ export function MCPStoreSkeleton() {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-center mt-12 animate-in fade-in duration-700 delay-500">
+        <div className="flex justify-center mt-12 animate-in fade-in duration-500 delay-500">
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-10 w-10 rounded-lg" />

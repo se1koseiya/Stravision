@@ -83,7 +83,12 @@ export function MCPToolDisplay({
         {input && <ToolInput input={input} />}
         
         {isMissingMcp ? (
-          <div className="mt-4 p-4 sm:p-5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800/60 backdrop-blur-sm relative overflow-hidden group">
+          <div
+            /* HDS 沉浸光感 · 卡片档：bg-zinc-50/80 + backdrop-blur-sm → .dc-mat--neutral
+               （白画布上叠白会消失，故用中性灰膜；blur / 受光边 / 投影由材质统一给）
+               ⚠️ 卡本身不可点（CTA 是内部 Link）→ 不加 dc-ctrl--press，避免假按压反馈。
+               布局类全保留：mt-4 / p-4 sm:p-5 / rounded-2xl / relative / overflow-hidden / group。 */
+            className="mt-4 p-4 sm:p-5 rounded-2xl dc-mat dc-mat--regular dc-mat--neutral relative overflow-hidden group">
             {/* Dynamic Background Gradient for Premium Feel */}
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent opacity-60 dark:opacity-20 pointer-events-none" />
             

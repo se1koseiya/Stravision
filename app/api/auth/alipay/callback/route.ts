@@ -257,7 +257,7 @@ export async function GET(req: Request) {
   <title>登录成功</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; }
-    .icon { font-size: 64px; color: #52c41a; margin-bottom: 20px; }
+    .icon { font-size: 64px; color: #059669; margin-bottom: 20px; }
     h3 { margin-bottom: 10px; }
     p { color: #666; margin-bottom: 30px; }
     .btn { display: block; width: 100%; max-width: 300px; margin: 20px auto; padding: 12px 0; background: #1677FF; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; }

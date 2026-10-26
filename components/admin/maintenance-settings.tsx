@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { Button, Switch, Input, Typography, Spin, Card } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconCaution, IconCheckOne, IconLoading } from "@/components/icon";
 
 const { Text, Title } = Typography
@@ -95,8 +95,8 @@ export function MaintenanceSettings() {
                 borderRadius: 4, 
                 fontSize: 12, 
                 fontWeight: 500, 
-                background: '#FFF7E6',
-                color: '#FA8C16',
+                background: '#FAFAFA',
+                color: '#52525B',
                 border: '1px solid #FFD591'
               }}>
                 开启中
@@ -110,7 +110,7 @@ export function MaintenanceSettings() {
                 fontSize: 12, 
                 fontWeight: 500, 
                 background: '#F6FFED',
-                color: '#52C41A',
+                color: '#059669',
                 border: '1px solid #B7EB8F'
               }}>
                 运行中
@@ -159,7 +159,7 @@ export function MaintenanceSettings() {
             type="primary"
             onClick={handleSave} 
             loading={saving}
-            style={config.enabled ? { background: '#FA8C16', borderColor: '#FA8C16' } : {}}
+            style={config.enabled ? { background: '#52525B', borderColor: '#52525B' } : {}}
             icon={config.enabled ? <IconCaution /> : <IconCheckOne />}
           >
             {config.enabled ? "保存并开启维护" : "保存设置"}

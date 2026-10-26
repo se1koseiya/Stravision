@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Modal, Input, Button } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { chatClient } from "@/lib/chat/chat-client"
 import { IconClose, IconSearch } from "@/components/icon";
 
@@ -57,20 +57,20 @@ export function AddFriendDialog({ open, onOpenChange, onSent }: AddFriendDialogP
       centered
       closable={false}
       styles={{
-        content: { padding: 0, borderRadius: 10, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" },
+        container: { padding: 0, borderRadius: 10, overflow: "hidden", boxShadow: "var(--br-shadow-lg)" },
         body: { padding: 0 }
       }}
     >
       {/* 标题栏 */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3">
-        <h3 className="text-[16px] text-[rgba(0,0,0,0.88)]" style={{ fontWeight: 500 }}>
+        <h3 className="text-[16px] text-br-text-1" style={{ fontWeight: 500 }}>
           添加好友
         </h3>
         <button
           onClick={() => onOpenChange(false)}
-          className="size-7 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.45)] hover:text-[rgba(0,0,0,0.75)] hover:bg-black/[0.04] transition-colors"
+          className="size-7 flex items-center justify-center rounded-full text-br-text-3 hover:text-br-text-1 hover:bg-br-surface-3 transition-colors"
         >
-          <IconClose size={18} strokeWidth={1.75} />
+          <IconClose size={18} strokeWidth={2} />
         </button>
       </div>
 
@@ -78,13 +78,13 @@ export function AddFriendDialog({ open, onOpenChange, onSent }: AddFriendDialogP
       <div className="px-6 pb-5">
         <Input
           size="large"
-          prefix={<IconSearch size={16} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)] mr-1" />}
+          prefix={<IconSearch size={16} strokeWidth={2} className="text-br-text-3 mr-1" />}
           placeholder="输入手机号或账号"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
           onPressEnter={() => !submitting && handleSubmit()}
           autoFocus
-          className="!rounded-lg !bg-[#f2f3f5] !border-0 hover:!bg-[#ececec] !text-[14px] !h-10"
+          className="!rounded-lg !bg-br-surface-3 !border-0 hover:!bg-br-surface-4 !text-[14px] !h-10"
         />
       </div>
 
@@ -94,14 +94,14 @@ export function AddFriendDialog({ open, onOpenChange, onSent }: AddFriendDialogP
           size="large"
           loading={submitting}
           className="!w-[120px] !h-9 !rounded-lg !border-0 !font-medium !text-white !shadow-sm"
-          style={{ background: "linear-gradient(135deg, #1677ff 0%, #4cabff 100%)" }}
+          style={{ background: "var(--br-brand)" }}
           onClick={handleSubmit}
         >
           确定
         </Button>
         <Button
           size="large"
-          className="!w-[120px] !h-9 !rounded-lg !bg-[#f2f3f5] !border-0 !text-[rgba(0,0,0,0.75)] hover:!bg-[#ececec] hover:!text-[rgba(0,0,0,0.88)]"
+          className="!w-[120px] !h-9 !rounded-lg !bg-br-surface-3 !border-0 !text-br-text-1 hover:!bg-br-surface-4 hover:!text-br-text-1"
           onClick={() => onOpenChange(false)}
         >
           取消

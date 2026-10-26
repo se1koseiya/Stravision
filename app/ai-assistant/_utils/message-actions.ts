@@ -1,7 +1,7 @@
 "use client"
 
 // html-to-image 和 jspdf 仅在下载 PDF 时使用，延迟加载
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import type { AISettings, Message } from "@/app/ai-assistant/types"
 
 /**

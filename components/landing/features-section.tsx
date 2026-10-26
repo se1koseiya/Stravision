@@ -90,7 +90,7 @@ const Dots = () => {
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-24 px-4 max-w-7xl mx-auto relative z-10">
+    <section id="features" className="py-24 px-4 max-w-[1400px] mx-auto relative z-10">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -98,7 +98,7 @@ export function FeaturesSection() {
         transition={{ duration: 0.5 }}
         className="text-center mb-16"
       >
-        <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+        <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400">
           核心技术优势
         </h2>
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
@@ -115,7 +115,7 @@ export function FeaturesSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: i * 0.1 }}
             className={`
-              relative group overflow-hidden rounded-3xl p-6 
+              relative group overflow-hidden rounded-2xl p-6 
               border transition-all duration-300
               flex flex-col justify-between
               ${feature.glow ? feature.glow : 'border-white/10 hover:border-white/20'}

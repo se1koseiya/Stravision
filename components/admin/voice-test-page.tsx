@@ -1,25 +1,9 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import {
-  Card,
-  Typography,
-  Space,
-  Button,
-  Input,
-  InputNumber,
-  Select,
-  Tag,
-  Alert,
-  Divider,
-  Statistic,
-  Row,
-  Col,
-  Popconfirm,
-  Segmented,
-  message,
-} from "antd"
-import { toast } from "sonner"
+import { Card, Typography, Space, Button, Input, InputNumber, Select, Tag, Alert, Divider, Statistic, Row, Col, Popconfirm, Segmented } from "antd"
+
+import { toast } from "@/lib/ui/feedback"
 import { convertBlobToWav } from "@/lib/voice/voice-utils"
 import { IconCheckOne, IconCloseOne, IconDelete, IconExperiment, IconKey, IconLock, IconMicrophone, IconMinus, IconPause, IconPlayOne, IconPlus, IconPreviewClose, IconRefresh, IconSave, IconSetting, IconThunderbolt, IconVolumeNotice } from "@/components/icon";
 
@@ -63,7 +47,7 @@ interface OmniApiConfig {
 
 interface VoiceConfig {
   architecture: "cascade" | "omni"
-  asrMode?: "batch" | "realtime"
+  /* 🚨 2026-09-24：asrMode 已删除（纯 Omni 架构无独立 ASR 阶段） */
   providerId: string | null
   tts: TtsApiConfig
   asr: AsrApiConfig
@@ -352,7 +336,6 @@ export function VoiceTestPage() {
           tts: config.tts,
           asr: config.asr,
           omni: config.omni,
-          asrMode: config.asrMode ?? "batch",
         }),
       })
       if (!res.ok) {
@@ -367,28 +350,7 @@ export function VoiceTestPage() {
     }
   }
 
-  /** 切换 ASR 工作模式（batch 批量 / realtime 实时流式），立即 PATCH 保存 */
-  const handleAsrModeChange = async (value: "batch" | "realtime") => {
-    if (!config || config.asrMode === value) return
-    const prev = config.asrMode ?? "batch"
-    setConfig({ ...config, asrMode: value })
-    try {
-      const res = await fetch("/api/admin/settings/voice", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ asrMode: value }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || "保存失败")
-      }
-      toast.success(`ASR 已切换到${value === "batch" ? "批量模式" : "实时流式模式"}`)
-    } catch (err) {
-      // 回滚
-      setConfig({ ...config, asrMode: prev })
-      toast.error(err instanceof Error ? err.message : "切换 ASR 模式失败")
-    }
-  }
+  /* 🚨 2026-09-24：handleAsrModeChange 已删除 —— 纯 Omni 架构没有独立 ASR 阶段 */
 
   const updateTts = (patch: Partial<TtsApiConfig>) => {
     if (!config) return
@@ -598,7 +560,7 @@ export function VoiceTestPage() {
   }
 
   if (loadingConfig) return <div>加载语音配置中...</div>
-  if (!config) return <Alert message="配置加载失败，请先在系统设置中配置语音参数" type="error" />
+  if (!config) return <Alert title="配置加载失败，请先在系统设置中配置语音参数" type="error" />
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -610,7 +572,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <IconKey style={{ color: "#1677ff" }} />
+            <IconKey style={{ color: "#059669" }} />
             <span>API Key 安全设置</span>
             <Tag icon={<IconLock />} color="green">AES-256-GCM 加密</Tag>
           </Space>
@@ -625,7 +587,7 @@ export function VoiceTestPage() {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="语音模块 API Key 安全策略"
+          title="语音模块 API Key 安全策略"
           description={
             <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12 }}>
               <li>TTS 和 ASR 可各自配置独立 API Key，与 AI 助理的共享 Key 隔离</li>
@@ -746,7 +708,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <IconExperiment style={{ color: "#1677ff" }} />
+            <IconExperiment style={{ color: "#059669" }} />
             <span>语音助手测试台</span>
           </Space>
         }
@@ -788,7 +750,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <IconSetting style={{ color: "#1677ff" }} />
+            <IconSetting style={{ color: "#059669" }} />
             <span>TTS 朗读音色 API 设置</span>
           </Space>
         }
@@ -932,7 +894,7 @@ export function VoiceTestPage() {
             type="info"
             showIcon
             style={{ marginTop: 8 }}
-            message={`已从 UnifiedTTS 加载 ${unifiedVoices.length} 个音色`}
+            title={`已从 UnifiedTTS 加载 ${unifiedVoices.length} 个音色`}
             description="音色列表由 API 动态加载，切换模型时会自动刷新。保存配置后这些音色将持久化。"
           />
         )}
@@ -943,7 +905,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <IconVolumeNotice style={{ color: "#1677ff" }} />
+            <IconVolumeNotice style={{ color: "#059669" }} />
             <span>TTS 合成测试</span>
           </Space>
         }
@@ -985,7 +947,7 @@ export function VoiceTestPage() {
             <Alert
               type={ttsResult.success ? "success" : "error"}
               showIcon
-              message={ttsResult.success ? `合成成功 · 耗时 ${ttsResult.duration}ms` : `合成失败 · ${ttsResult.error}`}
+              title={ttsResult.success ? `合成成功 · 耗时 ${ttsResult.duration}ms` : `合成失败 · ${ttsResult.error}`}
               description={
                 ttsResult.success && ttsResult.data ? (
                   <Space direction="vertical" size={4}>
@@ -1004,7 +966,7 @@ export function VoiceTestPage() {
         style={{ border: "1px solid #EDEEEF" }}
         title={
           <Space>
-            <IconSetting style={{ color: "#1677ff" }} />
+            <IconSetting style={{ color: "#059669" }} />
             <span>ASR 语音识别 API 设置</span>
           </Space>
         }
@@ -1025,33 +987,7 @@ export function VoiceTestPage() {
           百度 ASR 使用 JSON base64 上传，dev_pid 自动按语言映射。
         </Paragraph>
 
-        {/* ASR 工作模式切换：batch 批量 / realtime 实时流式 */}
-        <div style={{ marginBottom: 16, padding: "12px 16px", background: "#fafafa", border: "1px solid #f0f0f0", borderRadius: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div>
-              <Text strong>ASR 工作模式</Text>
-              <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
-                {config.asrMode === "realtime"
-                  ? "实时流式：WebSocket 边说边出字，低延迟（需 DashScope）"
-                  : "批量模式：录音后一次性 HTTP 识别，兼容所有 providerType"}
-              </div>
-            </div>
-            <Segmented
-              value={config.asrMode ?? "batch"}
-              onChange={(v) => handleAsrModeChange(v as "batch" | "realtime")}
-              options={[
-                { label: "批量", value: "batch" },
-                { label: "实时", value: "realtime" },
-              ]}
-            />
-          </div>
-          {config.asrMode === "realtime" && (
-            <div style={{ marginTop: 8, padding: "8px 12px", background: "#e6f4ff", border: "1px solid #91caff", borderRadius: 6, fontSize: 12, color: "#1677ff" }}>
-              实时流式模式通过 WebSocket 边说边出字，显著降低首字延迟。仅支持 DashScope ASR 模型（如 qwen-audio-3.0-asr-flash-streaming），需启动 ws-server.js 代理。
-            </div>
-          )}
-        </div>
-
+        {/* 🚨 2026-09-24：ASR 工作模式（batch/realtime）已随纯 Omni 架构移除 */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ gridColumn: "1 / -1" }}>
             <Text>提供商类型（请求格式）</Text>
@@ -1062,7 +998,7 @@ export function VoiceTestPage() {
               style={{ width: "100%", marginTop: 4 }}
             />
             {config.asr.providerType === "browser" && (
-              <div style={{ marginTop: 4, padding: "8px 12px", background: "#f6ffed", border: "1px solid #b7eb8f", borderRadius: 6, fontSize: 12, color: "#52c41a" }}>
+              <div style={{ marginTop: 4, padding: "8px 12px", background: "#f6ffed", border: "1px solid #b7eb8f", borderRadius: 6, fontSize: 12, color: "#059669" }}>
                 浏览器原生模式：无需 API 端点/模型，直接使用浏览器内置 SpeechRecognition。推荐 Edge 浏览器（中文识别质量好且国内可用）。
               </div>
             )}
@@ -1090,71 +1026,7 @@ export function VoiceTestPage() {
             </>
           )}
 
-          {/* 实时 ASR 配置（仅 asrMode=realtime 时显示） */}
-          {config.asrMode === "realtime" && config.asr.providerType !== "browser" && (
-            <>
-              <div style={{ gridColumn: "1 / -1", marginTop: 4, paddingTop: 12, borderTop: "1px dashed #f0f0f0" }}>
-                <Text strong style={{ color: "#1677ff" }}>实时流式 ASR 配置（WebSocket）</Text>
-              </div>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <Text>实时 ASR WebSocket 端点</Text>
-                <Input
-                  value={config.asr.realtimeEndpoint ?? ""}
-                  onChange={(e) => updateAsr({ realtimeEndpoint: e.target.value })}
-                  placeholder="wss://dashscope.aliyuncs.com/api-ws/v1/inference"
-                  style={{ marginTop: 4 }}
-                />
-              </div>
-              <div>
-                <Text>实时 ASR 模型名</Text>
-                <Input
-                  value={config.asr.realtimeModel ?? ""}
-                  onChange={(e) => updateAsr({ realtimeModel: e.target.value })}
-                  placeholder="qwen-audio-3.0-asr-flash-streaming"
-                  style={{ marginTop: 4 }}
-                />
-              </div>
-              <div>
-                <Text>音频格式</Text>
-                <Select
-                  value={config.asr.format ?? "pcm"}
-                  onChange={(v) => updateAsr({ format: v })}
-                  options={[
-                    { value: "pcm", label: "PCM（推荐）" },
-                    { value: "wav", label: "WAV" },
-                    { value: "opus", label: "Opus" },
-                    { value: "mp3", label: "MP3" },
-                  ]}
-                  style={{ width: "100%", marginTop: 4 }}
-                />
-              </div>
-              <div>
-                <Text>采样率（Hz）</Text>
-                <InputNumber
-                  value={config.asr.sampleRate ?? 16000}
-                  onChange={(v) => updateAsr({ sampleRate: v ?? 16000 })}
-                  min={8000}
-                  max={48000}
-                  step={1000}
-                  style={{ width: "100%", marginTop: 4 }}
-                />
-              </div>
-              <div>
-                <Text>VAD 断句静音阈值（毫秒）</Text>
-                <InputNumber
-                  value={config.asr.maxSentenceSilence ?? 500}
-                  onChange={(v) => updateAsr({ maxSentenceSilence: v ?? 500 })}
-                  min={300}
-                  max={5000}
-                  step={100}
-                  style={{ width: "100%", marginTop: 4 }}
-                />
-                <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>
-                  对话场景推荐 400-600ms（阿里云官方推荐 400）
-                </div>
-              </div>
-            </>
-          )}
+          {/* 🚨 2026-09-24：实时 ASR 独立配置已随纯 Omni 架构移除 */}
 
           <div>
             <Text>默认语言</Text>
@@ -1177,78 +1049,14 @@ export function VoiceTestPage() {
         </div>
       </Card>
 
-      {/* ===== ASR 测试 ===== */}
-      <Card
-        style={{ border: "1px solid #EDEEEF" }}
-        title={
-          <Space>
-            <IconMicrophone style={{ color: "#1677ff" }} />
-            <span>ASR 语音识别测试</span>
-          </Space>
-        }
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Paragraph type="secondary" style={{ fontSize: 12 }}>
-            点击录音按钮，对着麦克风说话，停止后自动发送到 ASR 接口识别。模型: {config.asr.model} · 语言: {config.asr.defaultLanguage}
-          </Paragraph>
-          <Space>
-            {!asrRecording ? (
-              <Button
-                type="primary"
-                danger
-                icon={<IconMicrophone />}
-                onClick={startAsrRecording}
-                disabled={asrLoading}
-                size="large"
-              >
-                开始录音
-              </Button>
-            ) : (
-              <Button
-                type="primary"
-                icon={<IconPause />}
-                onClick={stopAsrRecording}
-                size="large"
-              >
-                停止录音
-              </Button>
-            )}
-            {asrLoading && <Text type="secondary">识别中...</Text>}
-          </Space>
-
-          {asrRecording && (
-            <Alert
-              type="warning"
-              message="正在录音..."
-              description="请对着麦克风说话，说完后点击「停止录音」"
-              showIcon
-              icon={<IconMicrophone style={{ color: "#ff4d4f" }} />}
-            />
-          )}
-
-          {asrTranscript && (
-            <Card type="inner" title="识别结果" size="small">
-              <Paragraph style={{ margin: 0, fontSize: 16 }}>{asrTranscript}</Paragraph>
-            </Card>
-          )}
-
-          {asrResult && (
-            <Alert
-              type={asrResult.success ? "success" : "error"}
-              showIcon
-              message={asrResult.success ? `识别成功 · 耗时 ${asrResult.duration}ms` : `识别失败 · ${asrResult.error}`}
-            />
-          )}
-        </div>
-      </Card>
-
+      {/* 🚨 2026-09-24：ASR 语音识别测试卡已移除（/api/speech 路由随纯 Omni 架构删除） */}
       {/* ===== Omni 一体化架构设置（仅在 omni 架构时显示） ===== */}
       {config.architecture === "omni" && (
         <Card
           style={{ border: "1px solid #EDEEEF" }}
           title={
             <Space>
-              <IconThunderbolt style={{ color: "#722ed1" }} />
+              <IconThunderbolt style={{ color: "#059669" }} />
               <span>Omni 一体化架构 API 设置</span>
               <Tag color="purple">WebSocket 实时流式</Tag>
             </Space>
@@ -1268,7 +1076,7 @@ export function VoiceTestPage() {
           <Alert
             type="info"
             showIcon
-            message="Omni 架构使用 WebSocket 实时流式连接（ASR+LLM+TTS 三合一），与级联架构的 HTTP 接口完全独立。"
+            title="Omni 架构使用 WebSocket 实时流式连接（ASR+LLM+TTS 三合一），与级联架构的 HTTP 接口完全独立。"
             style={{ marginBottom: 16 }}
           />
           <Row gutter={16}>
@@ -1325,7 +1133,7 @@ export function VoiceTestPage() {
           {/* Omni API Key 管理 */}
           <div style={{ marginBottom: 8 }}>
             <Space>
-              <IconKey style={{ color: "#722ed1" }} />
+              <IconKey style={{ color: "#059669" }} />
               <Text strong>Omni 独立 API Key</Text>
             </Space>
           </div>

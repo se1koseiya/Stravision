@@ -22,7 +22,7 @@ export function AIControlBorderDemo() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 shadow-xl border border-zinc-200 dark:border-zinc-800">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 shadow-lg border border-zinc-200 dark:border-zinc-800">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -89,11 +89,11 @@ export function AIControlBorderDemo() {
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-6 border border-blue-200 dark:border-blue-900">
-          <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-400 mb-2">
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-6 border border-emerald-200 dark:border-emerald-900">
+          <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-400 mb-2">
             使用方法
           </h4>
-          <pre className="text-xs text-blue-800 dark:text-blue-300 overflow-x-auto">
+          <pre className="text-xs text-emerald-800 dark:text-emerald-300 overflow-x-auto">
 {`import { AIControlBorderEffect } from '@/components/ai/ai-control-border-effect'
 
 <AIControlBorderEffect 

@@ -33,7 +33,9 @@ const Reasoning = React.forwardRef<React.ElementRef<typeof Collapsible>, Reasoni
         open={open}
         onOpenChange={setOpen}
         className={cn(
-          "border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 group/reasoning",
+          /* 思考链折叠卡：外观交材质（THIN 档 —— 面板内的薄层），布局类一个没动。
+             neutral 变体 = 本页主卡是纯白，叠白会与底同色（轮廓消失），改用极淡中性灰膜。 */
+          "dc-mat dc-mat--thin dc-mat--neutral rounded-lg group/reasoning",
           className
         )}
         {...props}

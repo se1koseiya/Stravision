@@ -45,7 +45,7 @@ export function Invitation() {
         </Link>
       </div>
 
-      <footer className="absolute bottom-12 text-[10px] text-gray-800 tracking-[0.3em] uppercase">
+      <footer className="absolute bottom-12 text-[11px] text-zinc-800 tracking-[0.3em] uppercase">
         Stravision © 2026 // Consciousness V1.0
       </footer>
     </section>

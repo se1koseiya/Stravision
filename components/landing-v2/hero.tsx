@@ -23,7 +23,7 @@ const KAI = '"Kaiti SC", "STKaiti", "KaiTi", "楷体", serif';
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[#F4EFE3]">
+    <section className="relative overflow-hidden bg-[#F4F4F5]">
       {/* 手绘草莓背景点缀 */}
       <StrawberrySprig className="pointer-events-none absolute -left-6 bottom-16 w-28 opacity-[0.14] md:left-10 md:w-36" />
 
@@ -34,14 +34,14 @@ export function Hero() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className="mb-7 text-[15px] text-[#A63A3D]"
+            className="mb-7 text-[14px] text-[#A63A3D]"
             style={{ fontFamily: KAI }}
           >
             —— 给种草莓的人，和替他们醒着的系统
           </motion.p>
 
           <h1
-            className="text-[clamp(2.5rem,5.6vw,4.6rem)] leading-[1.22] tracking-tight text-[#2B3122]"
+            className="text-[clamp(2.5rem,5.6vw,4.6rem)] leading-[1.22] tracking-tight text-[#18181B]"
             style={{ fontFamily: SERIF }}
           >
             <span className="block overflow-hidden">
@@ -75,7 +75,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: EASE, delay: 0.7 }}
-            className="mt-7 max-w-[46ch] text-[15.5px] leading-[1.9] text-[#2B3122]/70"
+            className="mt-7 max-w-[46ch] text-[16px] leading-[1.9] text-[#18181B]/70"
           >
             莓界把大棚里的温度、湿度、光照和影像，
             交给一个会对话的 AI 农事伙伴照看。
@@ -91,7 +91,7 @@ export function Hero() {
           >
             <Link
               href="/login"
-              className="group relative inline-flex items-center gap-2 text-[16px] text-[#2B3122] transition-colors duration-300 hover:text-[#A63A3D]"
+              className="group relative inline-flex items-center gap-2 text-[16px] text-[#18181B] transition-colors duration-300 hover:text-[#A63A3D]"
               style={{ fontFamily: SERIF }}
             >
               <span className="relative">
@@ -102,7 +102,7 @@ export function Hero() {
             </Link>
             <a
               href="#work"
-              className="text-[14.5px] text-[#2B3122]/55 underline decoration-[#2B3122]/25 decoration-1 underline-offset-4 transition-colors duration-300 hover:text-[#2B3122]"
+              className="text-[14px] text-[#18181B]/55 underline decoration-[#18181B]/25 decoration-1 underline-offset-4 transition-colors duration-300 hover:text-[#18181B]"
               style={{ fontFamily: SERIF }}
             >
               先看看它每天做什么
@@ -131,7 +131,7 @@ export function Hero() {
               />
             </div>
             <figcaption
-              className="absolute bottom-2.5 left-4 text-[13px] text-[#2B3122]/60"
+              className="absolute bottom-2.5 left-4 text-[13px] text-[#18181B]/60"
               style={{ fontFamily: KAI }}
             >
               三月，棚里的早晨
@@ -156,7 +156,7 @@ export function Hero() {
               />
             </div>
             <figcaption
-              className="absolute bottom-2 left-3.5 text-[12.5px] text-[#2B3122]/60"
+              className="absolute bottom-2 left-3.5 text-[13px] text-[#18181B]/60"
               style={{ fontFamily: KAI }}
             >
               第一茬花

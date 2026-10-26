@@ -54,11 +54,11 @@ const ITEMS = [
 
 export function Capabilities() {
   return (
-    <section id="work" className="relative bg-[#F4EFE3] py-28 md:py-36">
+    <section id="work" className="relative bg-[#F4F4F5] py-28 md:py-36">
       <div className="mx-auto max-w-[1100px] px-6 md:px-10">
         <div className="mb-16">
           <p
-            className="mb-5 flex items-baseline gap-3 text-[14px] text-[#2B3122]/50"
+            className="mb-5 flex items-baseline gap-3 text-[14px] text-[#18181B]/50"
             style={{ fontFamily: KAI }}
           >
             <span className="text-[#A63A3D]">它做的事</span>
@@ -66,7 +66,7 @@ export function Capabilities() {
             <span>六件，不多不少</span>
           </p>
           <h2
-            className="max-w-[24ch] text-[clamp(1.8rem,3.4vw,2.7rem)] leading-[1.4] tracking-tight text-[#2B3122]"
+            className="max-w-[24ch] text-[clamp(1.8rem,3.4vw,2.7rem)] leading-[1.4] tracking-tight text-[#18181B]"
             style={{ fontFamily: SERIF }}
           >
             监测、判断、执行、记录——
@@ -87,24 +87,24 @@ export function Capabilities() {
               {i > 0 && <WobblyRule className="h-3 w-full" />}
               <div className="group grid gap-3 py-8 transition-colors duration-300 md:grid-cols-[64px_1fr_auto] md:gap-8 md:py-9">
                 <span
-                  className="text-[15px] text-[#A63A3D]/70"
+                  className="text-[14px] text-[#A63A3D]/70"
                   style={{ fontFamily: KAI }}
                 >
                   {item.no}
                 </span>
                 <div>
                   <h3
-                    className="text-[1.35rem] tracking-tight text-[#2B3122] transition-colors duration-300 group-hover:text-[#A63A3D] md:text-[1.5rem]"
+                    className="text-[1.35rem] tracking-tight text-[#18181B] transition-colors duration-300 group-hover:text-[#A63A3D] md:text-[1.5rem]"
                     style={{ fontFamily: SERIF }}
                   >
                     {item.title}
                   </h3>
-                  <p className="mt-2.5 max-w-[58ch] text-[14.5px] leading-[1.85] text-[#2B3122]/60">
+                  <p className="mt-2.5 max-w-[58ch] text-[14px] leading-[1.85] text-[#18181B]/60">
                     {item.desc}
                   </p>
                 </div>
                 <span
-                  className="hidden self-start whitespace-nowrap text-[13.5px] text-[#2B3122]/35 transition-colors duration-300 group-hover:text-[#A63A3D]/70 md:block"
+                  className="hidden self-start whitespace-nowrap text-[13px] text-[#18181B]/35 transition-colors duration-300 group-hover:text-[#A63A3D]/70 md:block"
                   style={{ fontFamily: KAI }}
                 >
                   —— {item.note}

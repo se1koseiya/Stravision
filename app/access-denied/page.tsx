@@ -5,9 +5,8 @@ import { IconShield } from "@/components/icon";
 export default function AccessDeniedPage() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden text-foreground">
-      <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-[#0B1220]" />
-      <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:hidden" />
-      <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
+      <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-950" />
+      {/* 2026-10-22：页面级彩色光斑已移除（「全站除设备控制页外不再用渐变背景」） */}
 
       <div className="relative z-10 max-w-md w-full text-center space-y-6 p-4">
         <div className="flex justify-center">
@@ -25,7 +24,7 @@ export default function AccessDeniedPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-slate-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] p-6 text-left space-y-4">
+        <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-zinc-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] p-6 text-left space-y-4">
           <div className="space-y-1">
             <h3 className="font-semibold text-foreground">为什么会看到这个页面？</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -50,7 +49,7 @@ export default function AccessDeniedPage() {
            <p className="text-xs text-muted-foreground mb-4">
              如果您是管理员，请通过受信任的网络环境访问控制台进行解封。
            </p>
-           <Button variant="outline" className="bg-white/50 dark:bg-slate-800/50" asChild>
+           <Button variant="outline" className="bg-white/50 dark:bg-zinc-800/50" asChild>
              <Link href="/">返回首页</Link>
            </Button>
         </div>

@@ -50,7 +50,7 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
                       {isActive && (
                         <motion.div
                           layoutId="activeTabBackground"
-                          className="absolute inset-0 bg-[#1677ff] pointer-events-none"
+                          className="absolute inset-0 bg-[#059669] pointer-events-none"
                           initial={false}
                           transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         />
@@ -61,7 +61,7 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
                           layout
                           className={cn(
                              "flex items-center justify-center",
-                             isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
+                             isActive ? "text-white" : "text-zinc-500 dark:text-zinc-400"
                           )}
                         >
                           <Icon className={cn("size-5 transition-transform duration-300", isActive && "scale-105")} />

@@ -6,20 +6,20 @@ import { IconBug, IconCalendar, IconCaution, IconChartLine, IconFan, IconPower, 
 
 export function MonitorCardMock() {
   return (
-    <div className="w-full max-w-sm bg-black/40 border border-gray-800 rounded-xl overflow-hidden backdrop-blur-sm">
+    <div className="w-full max-w-sm bg-black/40 border border-zinc-800 rounded-xl overflow-hidden backdrop-blur-sm">
       <div className="relative aspect-video bg-background group">
         <div className="absolute inset-0 flex items-center justify-center">
-          <IconVideo className="w-8 h-8 text-gray-700" />
+          <IconVideo className="w-8 h-8 text-zinc-700" />
         </div>
         <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/60 backdrop-blur-md">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] text-white/90 font-medium tracking-wide">LIVE</span>
+          <span className="text-[11px] text-white/90 font-medium tracking-wide">LIVE</span>
         </div>
-        <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 text-[10px] text-white/80">
+        <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/60 text-[11px] text-white/80">
           温室 1 号摄像头
         </div>
       </div>
-      <div className="p-3 flex items-center justify-between border-t border-gray-800/50">
+      <div className="p-3 flex items-center justify-between border-t border-zinc-800/50">
         <div className="flex items-center gap-2">
           <IconWifi className="w-3.5 h-3.5 text-green-500" />
           <span className="text-xs text-muted-foreground">信号良好</span>
@@ -32,14 +32,14 @@ export function MonitorCardMock() {
 
 export function DeviceControlCardMock() {
   return (
-    <div className="w-full max-w-sm bg-black/40 border border-gray-800 rounded-xl p-4 backdrop-blur-sm">
+    <div className="w-full max-w-sm bg-black/40 border border-zinc-800 rounded-xl p-4 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
             <IconFan className="w-5 h-5 text-green-400" />
           </div>
           <div>
-            <h4 className="text-sm font-medium text-gray-200">排风扇控制</h4>
+            <h4 className="text-sm font-medium text-zinc-200">排风扇控制</h4>
             <span className="text-xs text-green-400">运行中</span>
           </div>
         </div>
@@ -53,7 +53,7 @@ export function DeviceControlCardMock() {
           <span>风速等级</span>
           <span>3 级</span>
         </div>
-        <div className="w-full bg-gray-700 rounded-full h-1.5">
+        <div className="w-full bg-zinc-700 rounded-full h-1.5">
           <div className="bg-green-500 h-1.5 rounded-full" style={{ width: "60%" }} />
         </div>
       </div>
@@ -63,14 +63,14 @@ export function DeviceControlCardMock() {
 
 export function TaskCardMock() {
   return (
-    <div className="w-full max-w-sm bg-black/40 border border-gray-800 rounded-xl p-4 backdrop-blur-sm flex items-start gap-3">
-      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-        <IconCalendar className="w-5 h-5 text-blue-400" />
+    <div className="w-full max-w-sm bg-black/40 border border-zinc-800 rounded-xl p-4 backdrop-blur-sm flex items-start gap-3">
+      <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+        <IconCalendar className="w-5 h-5 text-emerald-400" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <h4 className="text-sm font-medium text-gray-200">定时补光任务</h4>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/20">
+          <h4 className="text-sm font-medium text-zinc-200">定时补光任务</h4>
+          <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
             执行中
           </span>
         </div>
@@ -86,13 +86,13 @@ export function TaskCardMock() {
 
 export function DiseaseCardMock() {
   return (
-    <div className="w-full max-w-sm bg-black/40 border border-gray-800 rounded-xl p-4 backdrop-blur-sm">
+    <div className="w-full max-w-sm bg-black/40 border border-zinc-800 rounded-xl p-4 backdrop-blur-sm">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
           <IconBug className="w-5 h-5 text-red-400" />
         </div>
         <div>
-          <h4 className="text-sm font-medium text-gray-200">病虫害检测报告</h4>
+          <h4 className="text-sm font-medium text-zinc-200">病虫害检测报告</h4>
           <span className="text-xs text-red-400">检测到高风险</span>
         </div>
       </div>
@@ -118,19 +118,19 @@ export function DiseaseCardMock() {
 
 export function DataChartCardMock() {
   return (
-    <div className="w-full max-w-sm bg-black/40 border border-gray-800 rounded-xl p-4 backdrop-blur-sm">
+    <div className="w-full max-w-sm bg-black/40 border border-zinc-800 rounded-xl p-4 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <IconChartLine className="w-4 h-4 text-blue-400" />
-          <h4 className="text-sm font-medium text-gray-200">近7天生长环境数据</h4>
+          <IconChartLine className="w-4 h-4 text-emerald-400" />
+          <h4 className="text-sm font-medium text-zinc-200">近7天生长环境数据</h4>
         </div>
       </div>
       
       <div className="h-32 flex items-end justify-between gap-1 px-2">
         {[45, 52, 49, 62, 58, 65, 70].map((h, i) => (
-          <div key={i} className="w-full bg-blue-500/10 rounded-t-sm relative group">
+          <div key={i} className="w-full bg-emerald-500/10 rounded-t-sm relative group">
             <div 
-              className="absolute bottom-0 left-0 right-0 bg-blue-500/40 rounded-t-sm transition-all group-hover:bg-blue-500/60"
+              className="absolute bottom-0 left-0 right-0 bg-emerald-500/40 rounded-t-sm transition-all group-hover:bg-emerald-500/60"
               style={{ height: `${h}%` }}
             />
             {/* Tooltip on hover would go here in real implementation */}
@@ -138,7 +138,7 @@ export function DataChartCardMock() {
         ))}
       </div>
       
-      <div className="flex justify-between mt-3 text-[10px] text-muted-foreground font-mono">
+      <div className="flex justify-between mt-3 text-[11px] text-muted-foreground font-mono">
         <span>MON</span>
         <span>TUE</span>
         <span>WED</span>

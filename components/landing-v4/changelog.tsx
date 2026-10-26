@@ -67,7 +67,7 @@ export function Changelog({ entries }: { entries: ChangelogEntryView[] }) {
   );
 
   return (
-    <section className="relative overflow-hidden bg-white dark:bg-[#0C110E]" style={{ color: L.ink }}>
+    <section className="relative overflow-hidden bg-white dark:bg-[#09090B]" style={{ color: L.ink }}>
       {/* Hero 双色渐隐底：左黄右绿，向下洗进页面底色 */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[24rem] overflow-hidden">
         <div
@@ -126,7 +126,7 @@ export function Changelog({ entries }: { entries: ChangelogEntryView[] }) {
                         color: active ? L.accentStrong : L.muted,
                       }}
                     >
-                      <span className="block text-[15px] font-medium leading-tight">{n.version}</span>
+                      <span className="block text-[14px] font-medium leading-tight">{n.version}</span>
                       <span className="mt-0.5 block text-xs leading-tight">{n.date}</span>
                     </a>
                   </li>
@@ -139,7 +139,7 @@ export function Changelog({ entries }: { entries: ChangelogEntryView[] }) {
         {/* 右侧条目流：竖向发丝时间线（画在每个条目自己的左边框上，保证连续） */}
         <div className="relative min-w-0 flex-1">
           {entries.length === 0 && (
-            <p className="py-24 text-center text-[15px]" style={{ color: L.muted }}>
+            <p className="py-24 text-center text-[14px]" style={{ color: L.muted }}>
               暂无更新日志
             </p>
           )}
@@ -153,7 +153,7 @@ export function Changelog({ entries }: { entries: ChangelogEntryView[] }) {
               {/* 时间线节点：中心恰好压在左边框上 */}
               <span
                 aria-hidden
-                className="absolute left-0 top-[15px] z-10 hidden size-3 -translate-x-1/2 rounded-full border-2 bg-white lg:block dark:bg-[#0C110E]"
+                className="absolute left-0 top-[15px] z-10 hidden size-3 -translate-x-1/2 rounded-full border-2 bg-white lg:block dark:bg-[#09090B]"
                 style={{ borderColor: L.accentStrong }}
               />
 
@@ -197,7 +197,7 @@ export function Changelog({ entries }: { entries: ChangelogEntryView[] }) {
                   {entry.items.map((item, i) => (
                     <li
                       key={i}
-                      className="mt-2 text-base leading-[1.75] first:mt-0 marker:text-[#4ED18F]"
+                      className="mt-2 text-base leading-[1.75] first:mt-0 marker:text-[#059669]"
                       style={{ color: L.ink }}
                     >
                       <strong className="font-semibold">{TAG_LABEL[item.tag] ?? "更新"}：</strong>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useTheme } from "next-themes"
 import { ConfigProvider, App, theme, Segmented, Button as AntButton, Menu, Avatar as AntAvatar, Layout as AntLayout, Space, Tooltip, Dropdown, Modal, Input, Drawer } from "antd"
 import type { ConversationsProps } from "@ant-design/x"
@@ -38,15 +38,16 @@ import { motion, AnimatePresence } from "framer-motion"
 import { AISettingsDialog } from "@/components/ai-settings-dialog"
 import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
 import { MobileMessageContent } from "@/components/ai/mobile-message-content"
+import { MedicalRecordsPanel } from "@/components/ai/medical-records-panel"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useAIModels } from "@/lib/hooks/use-ai-models"
 import { cn } from "@/lib/utils"
 import { sanitizeHtml } from "@/lib/security/sanitize-html"
 import XMarkdown from "@ant-design/x-markdown"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import BerryOrb from "@/components/smoothui/berry-orb"
-import { IconArrowDown, IconArrowRight, IconArrowRightUp, IconArrowUp, IconAttention, IconBookshelf, IconBrain, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconCheck, IconCheckOne, IconComment, IconCompass, IconCopy, IconCpu, IconCrown, IconDelete, IconDownload, IconEdit, IconEmotionHappy, IconFileText, IconFolderOpen, IconFolderUpload, IconGlobe, IconHamburgerButton, IconHelp, IconHistory, IconHome, IconInfo, IconLayoutTwo, IconLight, IconLightning, IconLinkOut, IconList, IconLoading, IconMagic, IconMagicWand, IconMicrophone, IconMoon, IconMore, IconPause, IconPencil, IconPhone, IconPicture, IconPin, IconPlay, IconPlus, IconPreviewOpen, IconRefresh, IconRight, IconRocket, IconRound, IconSearch, IconSeedling, IconSend, IconSetting, IconShare, IconSignal, IconSun, IconThunderbolt, IconTime, IconTrendingUp, IconUndo, IconUp, IconUser, IconVoiceOff, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
+import { IconArrowDown, IconArrowRight, IconArrowRightUp, IconArrowUp, IconAttention, IconBookshelf, IconBrain, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconCheck, IconCheckOne, IconComment, IconCompass, IconCopy, IconCpu, IconCrown, IconDelete, IconDownload, IconEdit, IconEmotionHappy, IconFileText, IconFolderOpen, IconFolderUpload, IconGlobe, IconHamburgerButton, IconHelp, IconHistory, IconHome, IconInfo, IconLayoutTwo, IconLight, IconLightning, IconLinkOut, IconList, IconLoading, IconMagic, IconMagicWand, IconMicrophone, IconMoon, IconMore, IconNotebook, IconPause, IconPencil, IconPhone, IconPicture, IconPin, IconPlay, IconPlus, IconPreviewOpen, IconRefresh, IconRight, IconRocket, IconRound, IconSearch, IconSeedling, IconSend, IconSetting, IconShare, IconSignal, IconSun, IconThunderbolt, IconTime, IconTrendingUp, IconUndo, IconUp, IconUser, IconVoiceOff, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 // 参考来源展示组件（符合Ant Design X设计规范）
 function CitationSources({
@@ -68,7 +69,7 @@ function CitationSources({
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "mt-2 rounded-xl overflow-hidden border",
-        darkMode ? "bg-zinc-900 border-zinc-700" : "bg-gray-50 border-gray-200"
+        darkMode ? "bg-zinc-900 border-zinc-700" : "bg-zinc-50 border-zinc-200"
       )}
     >
       {/* 参考来源头部 */}
@@ -76,7 +77,7 @@ function CitationSources({
         onClick={onToggle}
         className={cn(
           "w-full flex items-center justify-between px-3 py-2 transition-colors",
-          darkMode ? "hover:bg-zinc-800" : "hover:bg-gray-100"
+          darkMode ? "hover:bg-zinc-800" : "hover:bg-zinc-100"
         )}
       >
         <div className="flex items-center gap-2">
@@ -109,7 +110,7 @@ function CitationSources({
               >
                 <span className={cn(
                   "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
-                  darkMode ? "bg-zinc-700 text-zinc-300" : "bg-gray-200 text-gray-600"
+                  darkMode ? "bg-zinc-700 text-zinc-300" : "bg-zinc-200 text-zinc-600"
                 )}>
                   {citation.number}
                 </span>
@@ -120,7 +121,7 @@ function CitationSources({
                     rel="noopener noreferrer"
                     className={cn(
                       "text-xs font-medium truncate block",
-                      darkMode ? "text-zinc-300 hover:text-emerald-400" : "text-gray-700 hover:text-emerald-600"
+                      darkMode ? "text-zinc-300 hover:text-emerald-400" : "text-zinc-700 hover:text-emerald-600"
                     )}
                   >
                     {citation.title}
@@ -128,7 +129,7 @@ function CitationSources({
                   {citation.description && (
                     <p className={cn(
                       "text-xs mt-0.5 line-clamp-2",
-                      darkMode ? "text-zinc-500" : "text-gray-500"
+                      darkMode ? "text-zinc-500" : "text-zinc-500"
                     )}>
                       {citation.description}
                     </p>
@@ -160,6 +161,8 @@ interface Message {
   content: string | Array<{ type: 'text' | 'image_url', text?: string, image_url?: { url: string } }>
   citations?: Citation[]
   reasoning?: { text: string; durationMs?: number }
+  /** 思考块是否仍在流式（`<REASONING>` 未闭合）—— 对齐 PC 端：思考期间正文不上屏 */
+  reasoningStreaming?: boolean
   tasks?: TaskModel[]
 }
 
@@ -174,7 +177,7 @@ interface SessionMeta { id: string; title: string; createdAt: number; updatedAt:
 
 // ---------------------------------------------------------------------------
 // 新消息分隔线 — 与 PC 端一致，区分历史消息和本次会话新增的消息
-// 样式：Ant Design 主色 #1677ff，lucide-react ArrowDown 图标 strokeWidth 1.75
+// 样式：Ant Design 主色 #059669，lucide-react ArrowDown 图标 strokeWidth 1.75
 // ---------------------------------------------------------------------------
 function NewMessageDivider() {
   return (
@@ -183,56 +186,48 @@ function NewMessageDivider() {
       role="separator"
       aria-label="新消息"
     >
-      <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
+      <div className="flex-1 h-px" style={{ background: "rgba(0,148,86, 0.18)" }} />
       <div
         className="flex items-center gap-1 text-[11px] select-none"
-        style={{ color: "#1677ff", fontWeight: 400 }}
+        style={{ color: "#059669", fontWeight: 400 }}
       >
-        <IconArrowDown size={12} strokeWidth={1.75} />
+        <IconArrowDown size={12} strokeWidth={2} />
         <span>新消息</span>
       </div>
-      <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
+      <div className="flex-1 h-px" style={{ background: "rgba(0,148,86, 0.18)" }} />
     </div>
   )
 }
 
 // ChatBubbleList组件 - 使用antdesignx的Bubble组件（深度优化版）
 // ---------------------------------------------------------------------------
-// MobileDeepThinking — 移动端推理过程展示（对齐 PC 端 DeepThinking 极简风格）
-// 流式中自动展开；完成后自动折叠
+// MobileDeepThinking — 移动端推理过程展示（对齐 PC 端 DeepThinking：灰底胶囊 + 左侧细线）
+// 折叠策略（2026-10-22 串行化）：思考流式中展开跟随；**思考一闭合立刻折叠** ——
+// 正文此刻才开始上屏，思考与正文永不同屏。用户手动点过的选择永久优先。
 // ---------------------------------------------------------------------------
 function MobileDeepThinking({
   reasoning,
-  isStreaming,
+  isThinking,
 }: {
   reasoning?: { text: string; durationMs?: number }
-  isStreaming?: boolean
+  /** 思考块是否仍在流式（未闭合） */
+  isThinking?: boolean
 }) {
-  // null = 用户未手动干预（此时由"流式展开 / 结束自动折叠"驱动）
+  // null = 用户未手动干预（此时由"思考流式展开 / 闭合即折叠"驱动）
   const [userChoice, setUserChoice] = useState<boolean | null>(null)
-  const [autoFolded, setAutoFolded] = useState(false)
   const [scrollable, setScrollable] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
-  // 流式开始 → 重置为自动模式
+  // 思考开始流式 → 重置用户选择
   useEffect(() => {
-    if (isStreaming) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAutoFolded(false)
+    if (isThinking) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserChoice(null)
     }
-  }, [isStreaming])
+  }, [isThinking])
 
-  // 流式结束 → 延迟自动折叠（用户手动点过则不干预）
-  useEffect(() => {
-    if (isStreaming || !reasoning?.text) return
-    const timer = setTimeout(() => setAutoFolded(true), 900)
-    return () => clearTimeout(timer)
-  }, [isStreaming, reasoning?.text])
-
-  // 展开态：用户手动选择优先；未干预时 流式中展开 / 结束后看自动折叠
-  const expanded = userChoice ?? (isStreaming ? true : !autoFolded)
+  // 展开态 = 思考是否正在流式（纯派生值，避免 effect 落地慢一帧导致同屏）
+  const expanded = userChoice ?? isThinking === true
 
   const toggle = () => setUserChoice((prev) => !(prev ?? expanded))
 
@@ -242,7 +237,7 @@ function MobileDeepThinking({
     const el = scrollRef.current
     if (!el) return
     el.scrollTop = el.scrollHeight
-  }, [reasoning?.text, expanded, isStreaming])
+  }, [reasoning?.text, expanded, isThinking])
 
   // 内容超出限高时才启用上下渐隐遮罩
   useEffect(() => {
@@ -262,7 +257,7 @@ function MobileDeepThinking({
 
   if (!reasoning?.text) return null
 
-  const isDone = !isStreaming && reasoning.text.length > 0
+  const isDone = !isThinking && reasoning.text.length > 0
   const duration = reasoning.durationMs ? `${(reasoning.durationMs / 1000).toFixed(1)}s` : null
 
   return (
@@ -271,19 +266,22 @@ function MobileDeepThinking({
         type="button"
         onClick={toggle}
         title={expanded ? "折叠思考过程" : "展开思考过程"}
-        className="group/think inline-flex items-center gap-1 text-[13px] leading-5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+        className="group/think inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3.5 py-2 text-[13px] leading-5 text-zinc-700 hover:bg-zinc-200/70 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/70 transition-colors"
         style={{ fontWeight: 400 }}
       >
+        <IconRound
+          size={14}
+          className={cn("shrink-0 text-zinc-500 dark:text-zinc-400", isThinking && "animate-pulse")}
+        />
         <span>深度思考</span>
         {duration && isDone && (
-          <span className="text-zinc-300 dark:text-zinc-600">· {duration}</span>
+          <span className="text-zinc-400 dark:text-zinc-500">· {duration}</span>
         )}
-        {isStreaming && <IconLoading size={10} className="animate-spin ml-0.5" />}
-        <IconRight
-          size={12}
+        <IconUp
+          size={14}
           className={cn(
-            "shrink-0 text-zinc-400 group-hover/think:text-zinc-600 transition-transform duration-200",
-            expanded && "rotate-90"
+            "shrink-0 text-zinc-500 dark:text-zinc-400 transition-transform duration-200",
+            !expanded && "rotate-180"
           )}
         />
       </button>
@@ -291,14 +289,15 @@ function MobileDeepThinking({
         <div
           ref={scrollRef}
           className={cn(
-            "berry-think-panel mt-2 ml-1.5 pl-3.5 pr-1.5 overflow-y-auto overscroll-contain text-[14px] leading-[1.8] text-[#8c8c8c] dark:text-zinc-400 whitespace-pre-wrap break-words",
+            "berry-think-panel mt-2 ml-1.5 pl-3.5 pr-1.5 overflow-y-auto overscroll-contain text-[14px] leading-[1.8] text-[#8f959e] dark:text-zinc-400 whitespace-pre-wrap break-words",
             scrollable && "berry-think-panel--faded"
           )}
           style={{ maxHeight: 280 }}
+          data-lenis-prevent
         >
           {reasoning.text}
-          {isStreaming && (
-            <span className="inline-block w-1.5 h-4 bg-[#1677ff]/70 animate-pulse rounded-sm ml-0.5 align-middle" />
+          {isThinking && (
+            <span className="inline-block w-1.5 h-4 bg-[#059669]/70 animate-pulse rounded-lg ml-0.5 align-middle" />
           )}
         </div>
       )}
@@ -311,8 +310,12 @@ function MobileDeepThinking({
 function splitReasoningFromContent(
   rawContent: string,
   reasoning?: { text: string; durationMs?: number }
-): { content: string; reasoning?: { text: string; durationMs?: number } } {
-  if (!rawContent || !rawContent.includes("<REASONING>")) return { content: rawContent, reasoning }
+): { content: string; reasoning?: { text: string; durationMs?: number }; streaming: boolean } {
+  if (!rawContent || !rawContent.includes("<REASONING>")) {
+    return { content: rawContent, reasoning, streaming: false }
+  }
+  // 最后一个 <REASONING> 还没等到 </REASONING> ⇒ 思考仍在流式
+  const streaming = rawContent.lastIndexOf("<REASONING>") > rawContent.lastIndexOf("</REASONING>")
   const blocks: string[] = []
   const stripped = rawContent.replace(
     /<REASONING>([\s\S]*?)(?:<\/REASONING>|$)/g,
@@ -329,6 +332,7 @@ function splitReasoningFromContent(
       innerText && !reasoning?.text
         ? { text: innerText, durationMs: reasoning?.durationMs }
         : reasoning,
+    streaming,
   }
 }
 
@@ -346,6 +350,7 @@ function ChatBubbleList({
   onSetInput,
   onOpenStudio,
   newMessageBoundary = 0,
+  sessionId,
 }: {
   messages: Message[]
   isLoading: boolean
@@ -361,6 +366,8 @@ function ChatBubbleList({
   onOpenStudio?: (title: string, html: string) => void
   /** 🔥 本次会话新消息分隔线索引（messages 数组中的原始 index） */
   newMessageBoundary?: number
+  /** 当前会话 id。诊断卡据此入病历档案；没有就不入档（不影响卡片显示） */
+  sessionId?: string
 }) {
   // 状态管理
   const [expandedCitations, setExpandedCitations] = useState<Record<number, boolean>>({})
@@ -376,13 +383,13 @@ function ChatBubbleList({
       shape: 'round' as const,
       styles: {
         content: {
-          backgroundColor: '#10b981',
+          backgroundColor: '#059669',
           color: '#ffffff',
           padding: '10px 16px',
           fontSize: 14,
           lineHeight: 1.6,
           borderRadius: 18,
-          boxShadow: '0 1px 2px rgba(16,185,129,0.2)',
+          boxShadow: '0 1px 2px rgba(0,148,86,0.2)',
         },
       },
     },
@@ -449,13 +456,50 @@ function ChatBubbleList({
     </div>
   )
 
+  /**
+   * 回溯「本条 AI 消息之前最近的一条带图用户消息」，取它的第一张图。
+   *
+   * 用途：`<DIAGNOSIS>` 诊断卡要拿这张原图当底图，才能在病害部位上画检测框与遮罩。
+   * 拿不到图 → `imageSrc` 为 undefined → `DetectionOverlay` 整块不渲染 →
+   * 用户只看到文字结论，等于没标。
+   *
+   * 🚨 索引口径：移动端不过滤 silent / PAST_MEMORY（boundary 直接对应 items 索引），
+   *    所以这里的 index 就是原始 messages 下标，与 PC 端 `nearestUserImageBefore` 口径一致。
+   */
+  const nearestUserImageBefore = React.useCallback(
+    (fromIndex: number): string | undefined => {
+      for (let i = fromIndex - 1; i >= 0; i--) {
+        const m = messages[i]
+        if (!m || m.role !== "user") continue
+        const c: any = m.content
+        if (Array.isArray(c)) {
+          const hit = c.find(
+            (p: any) => p?.type === "image_url" && typeof p?.image_url?.url === "string"
+          )
+          if (hit) return hit.image_url.url as string
+        } else if (typeof c === "string") {
+          // 兜底：少数路径把整条多模态内容 JSON 化塞进了字符串
+          const matched = c.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/)
+          if (matched) return matched[0]
+        }
+      }
+      return undefined
+    },
+    [messages]
+  )
+
   const items = messages.map((msg, index) => {
     const rawContent = typeof msg.content === 'string' ? msg.content : 
       msg.content.map(c => c.type === 'text' ? c.text : '').join('')
     // 深度思考兜底：content 里若残留 <REASONING> 原始块，抽出来交给 MobileDeepThinking
     const normalized = splitReasoningFromContent(rawContent, msg.reasoning)
-    const content = normalized.content
     const reasoning = normalized.reasoning
+    // 🧠 串行化：思考未闭合 ⇒ 正文不上屏（与 PC 端一致：先思考、后主文本）
+    const reasoningStreaming =
+      isLoading && index === messages.length - 1
+        ? (msg.reasoningStreaming ?? normalized.streaming)
+        : false
+    const content = reasoningStreaming ? "" : normalized.content
     
     if (msg.role === 'assistant') {
       return {
@@ -467,7 +511,7 @@ function ChatBubbleList({
         header: reasoning ? (
           <MobileDeepThinking
             reasoning={reasoning}
-            isStreaming={isLoading && index === messages.length - 1}
+            isThinking={reasoningStreaming}
           />
         ) : undefined,
         // 主内容：手机端业务卡片 + Markdown 渲染
@@ -482,12 +526,17 @@ function ChatBubbleList({
             onSendMessage={onSendMessage || (() => {})}
             onSetInput={onSetInput || (() => {})}
             onOpenStudio={onOpenStudio}
+            /* 只有这条消息真含诊断结论时才回溯原图 —— 其余消息保持无谓渲染最小化。
+               ⚠️ 必须传 messages 原始下标 index，不能传别处的相对序号。 */
+            diagnosisImageSrc={rawContent.includes("<DIAGNOSIS") ? nearestUserImageBefore(index) : undefined}
+            diagnosisSessionId={sessionId}
+            diagnosisMessageKey={rawContent.includes("<DIAGNOSIS") ? String(index) : undefined}
           />
         ),
         // 底部插槽：参考来源 + 操作
         footer: renderAiFooter(msg, index, content),
-        // 流式加载状态
-        loading: isLoading && index === messages.length - 1 && !content,
+        // 流式加载状态（有思考面板时不显示 loading，避免和思考面板抢位置）
+        loading: isLoading && index === messages.length - 1 && !content && !reasoning,
       }
     }
     
@@ -582,6 +631,8 @@ function ChatSenderInput({
   return (
     <div className={cn(
       "fixed bottom-0 left-0 right-0 z-50",
+      // 🚨 底部吃掉 Home Indicator（viewport-fit=cover 后 env() 才有值）
+      "pb-[max(env(safe-area-inset-bottom),8px)]",
       darkMode ? "bg-zinc-900" : "bg-white"
     )}>
       {/* + 展开面板 */}
@@ -592,8 +643,8 @@ function ChatSenderInput({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             className={cn(
-              "mx-4 mb-2 rounded-2xl p-4 shadow-xl border",
-              darkMode ? "bg-zinc-800 border-zinc-700" : "bg-gray-50 border-gray-200"
+              "mx-4 mb-2 rounded-2xl p-4 shadow-lg border",
+              darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-50 border-zinc-200"
             )}
           >
           {/* 添加照片和文件 */}
@@ -604,7 +655,7 @@ function ChatSenderInput({
             }}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors",
-              darkMode ? "hover:bg-zinc-700" : "hover:bg-gray-100"
+              darkMode ? "hover:bg-zinc-700" : "hover:bg-zinc-100"
             )}
           >
             <IconPlus style={{ fontSize: 16 }} />
@@ -628,7 +679,7 @@ function ChatSenderInput({
                         ? "bg-emerald-500 text-white"
                         : darkMode
                           ? "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                     )}
                   >
                     {mode.label}
@@ -696,7 +747,7 @@ function ChatSenderInput({
         {/* 输入框 */}
         <div className={cn(
           "flex-1 flex items-center rounded-2xl px-4",
-          darkMode ? "bg-zinc-800" : "bg-gray-100"
+          darkMode ? "bg-zinc-800" : "bg-zinc-100"
         )}>
           <input 
             value={input}
@@ -721,7 +772,7 @@ function ChatSenderInput({
 
       {/* 底部 AI 生成提示 */}
       <div className="text-center pb-1.5">
-        <span className={cn("text-[10px]", darkMode ? "text-zinc-700" : "text-gray-300")}>
+        <span className={cn("text-[11px]", darkMode ? "text-zinc-700" : "text-zinc-300")}>
           内容由 AI 生成
         </span>
       </div>
@@ -749,7 +800,7 @@ function MateChatHome({
   const quickActions = [
     { label: '种植诊断', description: '草莓叶片发黄、果实异常？帮我看看', action: '我的草莓叶片边缘发黄，可能是什么原因？该如何处理？', icon: <IconLight style={{ color: '#FFD700' }} />, color: '#FFD700' },
     { label: '环境调控', description: '温湿度、光照、土壤数据一键分析', action: '帮我分析当前大棚的温湿度和光照数据，给出环境调控建议', icon: <IconInfo style={{ color: '#1890FF' }} />, color: '#1890FF' },
-    { label: '病虫害防治', description: '识别病虫害并推荐绿色防控方案', action: '最近发现草莓植株上有白色粉末，是什么病害？如何绿色防治？', icon: <IconRocket style={{ color: '#722ED1' }} />, color: '#722ED1' },
+    { label: '病虫害防治', description: '识别病虫害并推荐绿色防控方案', action: '最近发现草莓植株上有白色粉末，是什么病害？如何绿色防治？', icon: <IconRocket style={{ color: '#059669' }} />, color: '#059669' },
   ]
 
   return (
@@ -763,7 +814,7 @@ function MateChatHome({
         
         {/* 标题 */}
         <h2 
-          style={{ color: darkMode ? '#ffffff' : '#111827' }}
+          style={{ color: darkMode ? '#ffffff' : '#18181B' }}
           className="text-2xl font-bold mb-3"
         >
           莓小智
@@ -771,7 +822,7 @@ function MateChatHome({
         
         {/* 描述 */}
         <p 
-          style={{ color: darkMode ? '#d4d4d8' : '#4b5563' }}
+          style={{ color: darkMode ? '#d4d4d8' : '#52525b' }}
           className="text-sm leading-relaxed text-center max-w-sm"
         >
           你好，我是莓小智，你的智慧农业环境管家。我可以帮你分析环境数据、检查设备状态、解答病害问题、提供种植建议。
@@ -815,6 +866,8 @@ export default function AIAssistantIOSPage() {
 
 function AIAssistantIOSContent() {
   const router = useRouter()
+  // 「我的」页的病历入口跳到 ?panel=records；读一次即用，不必留在 URL 上
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<UserPublic | null>(null)
   // 配额状态
   const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number; daily_usage: number; balance: number; reason?: string } | null>(null)
@@ -826,6 +879,8 @@ function AIAssistantIOSContent() {
   const [newMessageBoundary, setNewMessageBoundary] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
+  // 病历面板（诊断自动归档 + 复诊闭环）。手机端全屏浮层，与 PC 同一组件同一数据源。
+  const [medicalRecordsOpen, setMedicalRecordsOpen] = useState(false)
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
   // 与 PC 端一致：拉取一次 providers 配置作为自动选择模型的兜底数据源
@@ -833,7 +888,8 @@ function AIAssistantIOSContent() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
-  const [enableReasoning, setEnableReasoning] = useState(false)
+  // 🔥 深度思考默认开启（与 PC 端一致）：无需用户手动启用
+  const [enableReasoning, setEnableReasoning] = useState(true)
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [attachments, setAttachments] = useState<string[]>([])
   const [approvalMode, setApprovalMode] = useState<"request" | "auto" | "full">(() => {
@@ -978,7 +1034,8 @@ function AIAssistantIOSContent() {
       if (s) {
         const parsed = JSON.parse(s)
         setAiSettings(parsed)
-        if (!selectedModel && parsed?.model) setSelectedModel(parsed.model)
+        // 🚨 "auto" 是历史遗留值（模型选择器已无该入口），不要恢复成选中模型
+        if (!selectedModel && parsed?.model && parsed.model !== "auto") setSelectedModel(parsed.model)
       }
       const es = localStorage.getItem("ai-enable-search")
       if (es) setEnableSearch(es === "true")
@@ -995,8 +1052,23 @@ function AIAssistantIOSContent() {
     const enabledIds = new Set(aiConfig.models.filter(m => m.enabled).map(m => m.id))
     if (enabledIds.size === 0) return
 
+    // localStorage 里残留的历史 "auto" 就地纠正为具体模型，避免每次冷启动都走一遍回退
+    if (aiSettings?.model === "auto") {
+      const fb = getDefaultModelId()
+      if (fb) {
+        try {
+          const s = localStorage.getItem("ai-settings")
+          const parsed = s ? JSON.parse(s) : {}
+          parsed.model = fb
+          localStorage.setItem("ai-settings", JSON.stringify(parsed))
+          setAiSettings(parsed)
+        } catch { }
+      }
+    }
+
     const current = selectedModel || aiSettings?.model || ""
-    if (current && enabledIds.has(current)) return
+    // "auto" 是历史遗留值：模型选择器已不再提供该入口（2026-10-27），一律纠正为具体模型
+    if (current && current !== "auto" && enabledIds.has(current)) return
 
     const fallback = getDefaultModelId()
     if (!fallback || current === fallback) return
@@ -1058,6 +1130,24 @@ function AIAssistantIOSContent() {
       } catch {}
     })()
   }, [sessionId])
+
+  // 深链接：?panel=records 直接开病历面板（「我的」页的病历入口就走这条）
+  // 读一次就把 query 抹掉，避免用户关掉面板后又被路由变更重新弹出来。
+  useEffect(() => {
+    if (searchParams?.get("panel") !== "records") return
+    setMedicalRecordsOpen(true)
+    router.replace("/ai-assistant-ios", { scroll: false })
+  }, [searchParams, router])
+
+  // 深链接：?prompt=xxx 预填输入框（首页宫格「病害防治」等入口用）
+  // 只填不发 —— 用户多半要补一张图，直接发出去等于发一条空消息。
+  useEffect(() => {
+    const p = searchParams?.get("prompt")
+    if (!p) return
+    const text = p === "diagnose" ? "请帮我诊断这张照片里的病虫害" : p
+    setInput(text)
+    router.replace("/ai-assistant-ios", { scroll: false })
+  }, [searchParams, router])
 
   // Scroll to bottom
   useEffect(() => {
@@ -1318,6 +1408,9 @@ function AIAssistantIOSContent() {
               ""
             if (delta) {
               assistantContent += delta
+              // 🧠 思考块是否仍未闭合（决定正文要不要上屏）
+              const thinkingNow =
+                assistantContent.lastIndexOf("<REASONING>") > assistantContent.lastIndexOf("</REASONING>")
               // 节流渲染（~30fps），避免每个 token 都触发 React 重渲染
               const now = Date.now()
               if (now - lastRenderTs > 33) {
@@ -1330,6 +1423,7 @@ function AIAssistantIOSContent() {
                     reasoning: reasoningText
                       ? { text: reasoningText, durationMs: Date.now() - (reasoningStartTs || startTs) }
                       : undefined,
+                    reasoningStreaming: thinkingNow,
                   }
                   return next
                 })
@@ -1435,7 +1529,7 @@ function AIAssistantIOSContent() {
       theme={{
         algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#10b981',
+          colorPrimary: '#059669',
           borderRadius: 12,
         },
       }}
@@ -1443,7 +1537,7 @@ function AIAssistantIOSContent() {
       <App>
         <div className={cn(
           "h-[100dvh] w-full overflow-hidden font-sans transition-colors duration-500 fixed inset-0",
-          darkMode ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900"
+          darkMode ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
         )}>
           {/* 简洁背景 - 纯白或深色 */}
           <div className={cn(
@@ -1454,7 +1548,7 @@ function AIAssistantIOSContent() {
           {/* Sidebar - 固定左侧，随 drawerOpen 滑入滑出 */}
           <aside
             className={cn(
-              "fixed top-0 left-0 bottom-0 z-30 w-[320px] flex flex-col transition-transform duration-300 ease-out pt-12",
+              "fixed top-0 left-0 bottom-0 z-30 w-[320px] flex flex-col transition-transform duration-300 ease-out pt-[max(env(safe-area-inset-top),12px)]",
               darkMode ? "bg-[#18181b]" : "bg-[#fafafa]",
               drawerOpen ? "translate-x-0" : "-translate-x-full"
             )}
@@ -1489,7 +1583,7 @@ function AIAssistantIOSContent() {
                 {/* 用户信息 */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className={cn("text-[15px] font-semibold truncate", darkMode ? "text-zinc-100" : "text-zinc-900")}>
+                    <span className={cn("text-[14px] font-semibold truncate", darkMode ? "text-zinc-100" : "text-zinc-900")}>
                       {user?.username || "用户"}
                     </span>
                   </div>
@@ -1500,7 +1594,7 @@ function AIAssistantIOSContent() {
                     {quotaInfo && quotaInfo.reason !== 'membership_required' && quotaInfo.daily_limit < 999999 && (
                       <span className="ml-1.5">
                         （今日 {quotaInfo.daily_usage}/{quotaInfo.daily_limit}
-                        {quotaInfo.balance > 0 && <span className="text-[#1677ff]"> +{quotaInfo.balance}</span>}）
+                        {quotaInfo.balance > 0 && <span className="text-[#059669]"> +{quotaInfo.balance}</span>}）
                       </span>
                     )}
                   </div>
@@ -1536,7 +1630,7 @@ function AIAssistantIOSContent() {
                 </button>
                 <div className={cn("w-px my-1.5", darkMode ? "bg-zinc-700" : "bg-zinc-100")} />
                 <button
-                  onClick={() => { setDrawerOpen(false); router.push("/plans") }}
+                  onClick={() => { setDrawerOpen(false); router.push("/farm-plans") }}
                   className={cn(
                     "flex-1 flex flex-col items-center gap-1.5 py-3.5 transition-colors active:bg-zinc-100",
                     darkMode ? "hover:bg-zinc-700/30 active:bg-zinc-700/50" : "hover:bg-zinc-50"
@@ -1549,10 +1643,13 @@ function AIAssistantIOSContent() {
             </div>
 
             {/* 历史对话列表 - 白色卡片（含标题） */}
-            <div className={cn(
-              "flex-1 overflow-y-auto mx-3 mt-4 mb-3 rounded-xl overflow-hidden flex flex-col",
-              darkMode ? "bg-zinc-800" : "bg-white"
-            )}>
+            <div
+              className={cn(
+                "flex-1 overflow-y-auto mx-3 mt-4 mb-3 rounded-xl overflow-hidden flex flex-col",
+                darkMode ? "bg-zinc-800" : "bg-white"
+              )}
+              data-lenis-prevent
+            >
               {/* 卡片内标题 */}
               <div className={cn(
                 "shrink-0 flex items-center gap-2 px-4 pt-3 pb-2",
@@ -1597,9 +1694,9 @@ function AIAssistantIOSContent() {
               drawerOpen ? "translate-x-[320px]" : "translate-x-0"
             )}
           >
-          {/* Header */}
+          {/* Header —— 顶部吃掉灵动岛/状态栏（依赖根布局 viewport-fit=cover） */}
           <div className={cn(
-            "shrink-0 px-4 pt-12 pb-2 z-40",
+            "shrink-0 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-2 z-40",
             darkMode ? "bg-zinc-900/80 backdrop-blur-xl" : "bg-white/80 backdrop-blur-xl"
           )}>
             <div className="flex justify-between items-center">
@@ -1616,6 +1713,15 @@ function AIAssistantIOSContent() {
               </div>
               
               <div className="flex items-center gap-1 shrink-0">
+                {/* 病历入口：诊断自动归档在这里，复诊时可回填疗效。
+                    ⛔ 别删——移动端没有 PC 的侧边栏，这是它唯一的入口。 */}
+                <AntButton
+                  type="text"
+                  icon={<IconNotebook size={18} />}
+                  onClick={() => setMedicalRecordsOpen(true)}
+                  size="large"
+                  title="病历档案"
+                />
                 <AntButton
                   type="text"
                   icon={<IconEdit size={18} />}
@@ -1634,9 +1740,12 @@ function AIAssistantIOSContent() {
           </div>
 
           {/* Main Content */}
-          <div 
+          <div
             ref={mainScrollRef}
             className="flex-1 overflow-y-auto pt-2 pb-24 relative z-10"
+            // 全站滚轮由 React Lenis 接管，它会 preventDefault 吞掉未标注容器的滚轮。
+            // 聊天区是本页唯一的滚动容器，必须声明放行，否则手机上滚不动历史消息。
+            data-lenis-prevent
           >
             {messages.length === 0 ? (
               <MateChatHome
@@ -1649,6 +1758,7 @@ function AIAssistantIOSContent() {
                 isLoading={isLoading}
                 darkMode={darkMode}
                 newMessageBoundary={newMessageBoundary}
+                sessionId={sessionId}
                 deviceData={deviceData}
                 onExecuteCommand={async (cmd) => { await executeCommands([cmd]) }}
                 onSendMessage={(msg) => handleSend(msg)}
@@ -1694,8 +1804,8 @@ function AIAssistantIOSContent() {
                   items={[
                     { key: "1", icon: <IconLight style={{ color: '#FFD700' }} />, description: "对上面的内容做进一步分析" },
                     { key: "2", icon: <IconInfo style={{ color: '#1890FF' }} />, description: "当前环境适合采取什么设备操作" },
-                    { key: "3", icon: <IconRocket style={{ color: '#722ED1' }} />, description: "将分析结果生成可视化报告" },
-                    { key: "4", icon: <IconEmotionHappy style={{ color: '#52C41A' }} />, description: "用几句话概括重点内容" },
+                    { key: "3", icon: <IconRocket style={{ color: '#059669' }} />, description: "将分析结果生成可视化报告" },
+                    { key: "4", icon: <IconEmotionHappy style={{ color: '#059669' }} />, description: "用几句话概括重点内容" },
                   ]}
                   onItemClick={(info) => {
                     handleSend(info.data.description || "")
@@ -1892,11 +2002,11 @@ function AIAssistantIOSContent() {
                       "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
                       n.variant === 'error' ? "bg-red-500/10" :
                       n.variant === 'success' ? "bg-emerald-500/10" :
-                      "bg-blue-500/10"
+                      "bg-emerald-500/10"
                     )}>
                       {n.variant === 'error' ? <IconAttention size={16} className="text-red-500" /> :
                        n.variant === 'success' ? <IconCheckOne size={16} className="text-emerald-500" /> :
-                       <IconLoading size={16} className="text-blue-500 animate-spin" />}
+                       <IconLoading size={16} className="text-emerald-500 animate-spin" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className={cn("text-sm font-medium", darkMode ? "text-zinc-100" : "text-zinc-900")}>
@@ -1914,6 +2024,15 @@ function AIAssistantIOSContent() {
             )}
           </Modal>
 
+          {/* 病历档案面板 —— 与 PC 端同一组件、同一数据源（诊断自动沉淀 + 复诊闭环）。
+              手机上 sidebar 永远收起，所以不传 sidebarOpen / onExpandSidebar：
+              传了会在左上角多出一排 PC 才有的按钮。 */}
+          <MedicalRecordsPanel
+            open={medicalRecordsOpen}
+            onClose={() => setMedicalRecordsOpen(false)}
+            darkMode={darkMode}
+          />
+
           {/* Notices */}
           <div className="fixed top-20 left-4 right-4 z-50 flex flex-col gap-2">
             <AnimatePresence>
@@ -1925,10 +2044,10 @@ function AIAssistantIOSContent() {
                   exit={{ opacity: 0, y: -20, scale: 0.9 }}
                   className={cn(
                     "rounded-xl px-4 py-3 shadow-lg backdrop-blur-xl",
-                    n.variant === "loading" ? "bg-blue-500/90 text-white" :
+                    n.variant === "loading" ? "bg-emerald-500/90 text-white" :
                     n.variant === "success" ? "bg-emerald-500/90 text-white" :
                     n.variant === "error" ? "bg-red-500/90 text-white" :
-                    darkMode ? "bg-zinc-800/90 text-zinc-100" : "bg-white/90 text-gray-900"
+                    darkMode ? "bg-zinc-800/90 text-zinc-100" : "bg-white/90 text-zinc-900"
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">

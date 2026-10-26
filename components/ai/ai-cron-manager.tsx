@@ -57,9 +57,9 @@ export function AICronManager() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <IconTime className="h-4 w-4 text-blue-500" />
+        return <IconTime className="h-4 w-4 text-emerald-500" />
       case 'running':
-        return <IconLoading className="h-4 w-4 text-blue-500 animate-spin" />
+        return <IconLoading className="h-4 w-4 text-emerald-500 animate-spin" />
       case 'completed':
         return <IconCheckOne className="h-4 w-4 text-green-500" />
       case 'failed':
@@ -112,7 +112,7 @@ export function AICronManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <IconLoading className="h-6 w-6 animate-spin text-blue-500" />
+        <IconLoading className="h-6 w-6 animate-spin text-emerald-500" />
       </div>
     )
   }
@@ -161,7 +161,7 @@ export function AICronManager() {
                           <IconCalendar className="h-3 w-3" />
                           {formatTime(job.scheduled_time)}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
                           {job.task_type}
                         </span>
                       </div>
@@ -205,7 +205,7 @@ export function AICronManager() {
                     <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                       {job.task_description}
                     </p>
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
                       {job.executed_at ? formatTime(job.executed_at) : formatTime(job.created_at)}
                     </span>
                   </div>

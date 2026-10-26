@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Modal, Form, Input, Select, InputNumber, Segmented, Radio, message, theme } from "antd"
-import { toast } from "sonner"
+import { Modal, Form, Input, Select, InputNumber, Segmented, Radio, theme } from "antd"
+import { toast } from "@/lib/ui/feedback"
 import { IconLight, IconRemind, IconThunderbolt, IconTime } from "@/components/icon";
 
 const { TextArea } = Input
@@ -140,14 +140,14 @@ export function ManualTaskCreateModal({ open, onClose, onSuccess, editingTask }:
 
       if (values.mode === "delay") {
         if (!values.delay_seconds || values.delay_seconds < 1) {
-          message.error("延时时长必须大于 0")
+          toast.error("延时时长必须大于 0")
           setSubmitting(false)
           return
         }
         body.execute_at = Date.now() + values.delay_seconds * 1000
       } else {
         if (!values.cron) {
-          message.error("请填写 Cron 表达式")
+          toast.error("请填写 Cron 表达式")
           setSubmitting(false)
           return
         }
@@ -156,7 +156,7 @@ export function ManualTaskCreateModal({ open, onClose, onSuccess, editingTask }:
 
       if (values.task_action === "toggle_relay") {
         if (!values.device) {
-          message.error("请选择设备")
+          toast.error("请选择设备")
           setSubmitting(false)
           return
         }

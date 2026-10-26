@@ -1,26 +1,23 @@
 "use client"
 
+/**
+ * 语音助手配置
+ *
+ * 🚨 两端共用同一份数据逻辑（2026-10-01）：
+ *   - variant="page"（默认）：管理后台 `/admin` 的原有版式，视觉零变更；
+ *   - variant="embedded"：内嵌到 AI 设置弹窗，改用设置版式原子
+ *     （GroupTitle + Card + Row + GreenSwitch），颜色走 `--set-*` 令牌；
+ *     当前架构（纯 Omni）下 VAD 参数本就不生效，内嵌版收敛成一句说明，
+ *     精细参数仍留在管理后台「语音测试」页，避免用户在设置里调一个不起作用的开关。
+ */
+
 import { useState, useEffect, useCallback } from "react"
-import {
-  Card,
-  Typography,
-  Space,
-  Button,
-  Input,
-  InputNumber,
-  Select,
-  Switch,
-  Slider,
-  Tag,
-  Divider,
-  Alert,
-  Tooltip,
-  Popconfirm,
-  message,
-} from "antd"
-import { toast } from "sonner"
-import Link from "next/link"
-import { IconApi, IconAttention, IconCheckOne, IconDelete, IconRefresh, IconSave, IconVolumeNotice } from "@/components/icon";
+import { Card as AntdCard, Typography, Space, Button, Input, InputNumber, Select, Switch, Slider, Tag, Divider, Alert, Tooltip, Popconfirm } from "antd"
+
+import { toast } from "@/lib/ui/feedback"
+import { IconApi, IconAttention, IconCheckOne, IconDelete, IconRefresh, IconSave, IconVolumeNotice } from "@/components/icon"
+// 设置版式原子：仅 embedded 使用，所需 CSS 变量由设置弹窗根节点提供
+import { Card, GreenSwitch, GroupTitle, Row } from "@/components/settings/settings-modal-ui"
 
 const { Text, Title, Paragraph } = Typography
 
@@ -77,11 +74,22 @@ interface AIProviderOption {
   apiKeyMasked: string
 }
 
-export function VoiceSettings() {
+export function VoiceSettings({
+  variant = "page",
+  onDirtyChange,
+}: {
+  variant?: "page" | "embedded"
+  /** 内嵌时上报「有未保存修改」，供设置弹窗关闭前确认 */
+  onDirtyChange?: (dirty: boolean) => void
+} = {}) {
   const [config, setConfig] = useState<VoiceServerConfig | null>(null)
+  /** 最近一次落库的快照，用于判断是否有未保存修改 */
+  const [savedConfig, setSavedConfig] = useState<VoiceServerConfig | null>(null)
   const [providers, setProviders] = useState<AIProviderOption[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  const embedded = variant === "embedded"
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -93,6 +101,7 @@ export function VoiceSettings() {
       if (cfgRes.ok) {
         const data = await cfgRes.json()
         setConfig(data)
+        setSavedConfig(data)
       } else {
         toast.error("加载语音配置失败")
       }
@@ -113,8 +122,16 @@ export function VoiceSettings() {
     fetchConfig()
   }, [fetchConfig])
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    if (!config || !savedConfig) {
+      onDirtyChange?.(false)
+      return
+    }
+    onDirtyChange?.(JSON.stringify(config) !== JSON.stringify(savedConfig))
+  }, [config, savedConfig, onDirtyChange])
+
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!config) return
     try {
       setSaving(true)
@@ -128,6 +145,7 @@ export function VoiceSettings() {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || "保存失败")
       }
+      setSavedConfig(config)
       toast.success("语音配置已保存")
       fetchConfig()
     } catch (err) {
@@ -156,24 +174,132 @@ export function VoiceSettings() {
     setConfig({ ...config, vad: { ...config.vad, ...patch } })
   }
 
+  /* ------------------------------------------------------------------ */
+  /* 内嵌设置弹窗：设置版式                                               */
+  /* ------------------------------------------------------------------ */
+
+  if (embedded) {
+    if (loading) {
+      return (
+        <>
+          <GroupTitle>语音助手</GroupTitle>
+          <Card>
+            <div style={{ padding: "28px 20px", textAlign: "center", color: "var(--set-text-secondary)", fontSize: 13 }}>
+              正在读取语音配置…
+            </div>
+          </Card>
+        </>
+      )
+    }
+
+    if (!config) {
+      return (
+        <Alert type="error" showIcon title="语音配置加载失败" description="请稍后重试，或到管理后台检查语音服务状态。" />
+      )
+    }
+
+    return (
+      <>
+        <GroupTitle>语音助手</GroupTitle>
+        <Card>
+          <Row
+            title="语音架构"
+            desc="纯 Omni 一体化：直接使用实时全模态模型（Qwen-Omni-Realtime 系列），识别、理解、合成一体，低延迟并支持语音打断。"
+          >
+            <Tag style={{ margin: 0, borderRadius: 999, fontSize: 11.5 }}>Omni 一体化</Tag>
+          </Row>
+          <Row
+            title="默认朗读 AI 回复"
+            desc="关闭后，语音对话仅显示文字，不播放 TTS 音频。"
+            last
+          >
+            <GreenSwitch
+              checked={config.readAloud}
+              onChange={(v) => setConfig({ ...config, readAloud: v })}
+            />
+          </Row>
+        </Card>
+
+        <div style={{ height: 20 }} />
+        <GroupTitle>语音服务</GroupTitle>
+        <Card>
+          <Row
+            title="服务提供商"
+            desc="语音模块与 AI 助手共用同一套提供商配置，选定后 TTS / ASR 自动复用其 API Key。"
+          >
+            <Select
+              value={config.providerId ?? undefined}
+              onChange={(v) => setConfig({ ...config, providerId: v ?? null })}
+              style={{ minWidth: 260 }}
+              placeholder="选择已配置的提供商"
+              allowClear
+              options={providers.map((p) => ({
+                value: p.id,
+                label: `${p.name}（${p.type}）`,
+              }))}
+            />
+          </Row>
+          <Row title="接口密钥" desc="密钥取自上面所选提供商，无需在语音模块单独填写。" last>
+            {config.apiKeyConfigured ? (
+              <Tag icon={<IconCheckOne />} color="success" style={{ margin: 0, borderRadius: 999, fontSize: 11.5 }}>
+                已就绪{config.providerName ? `（${config.providerName}）` : ""}
+              </Tag>
+            ) : (
+              <Tag icon={<IconAttention />} color="warning" style={{ margin: 0, borderRadius: 999, fontSize: 11.5 }}>
+                未配置
+              </Tag>
+            )}
+          </Row>
+        </Card>
+
+        <div style={{ height: 20 }} />
+        <GroupTitle>语音活动检测</GroupTitle>
+        <Card>
+          <Row
+            title="由服务端自动断句"
+            desc="当前架构下由服务端 VAD 处理，本机无需调参；如需精细调节静音阈值、断句时长等，可在管理后台的语音测试页设置。"
+            last
+          >
+            <Tag style={{ margin: 0, borderRadius: 999, fontSize: 11.5 }}>服务端处理</Tag>
+          </Row>
+        </Card>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+          <Popconfirm title="确定恢复默认配置？" onConfirm={handleReset} okText="确定" cancelText="取消">
+            <Button disabled={saving} icon={<IconDelete />}>
+              恢复默认
+            </Button>
+          </Popconfirm>
+          <Button type="primary" onClick={() => handleSave()} loading={saving} icon={<IconSave />}>
+            保存配置
+          </Button>
+        </div>
+      </>
+    )
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 管理后台整页：保持既有版式                                            */
+  /* ------------------------------------------------------------------ */
+
   if (loading) return <div>加载语音配置中...</div>
-  if (!config) return <Alert message="配置加载失败" type="error" />
+  if (!config) return <Alert title="配置加载失败" type="error" />
 
   return (
-    <Card
+    <AntdCard
       style={{ border: "1px solid #EDEEEF" }}
       title={
         <Space>
-          <IconVolumeNotice style={{ color: "#1677ff" }} />
+          <IconVolumeNotice style={{ color: "#059669" }} />
           <span>语音助手配置</span>
           <Tag color="purple">Omni 一体化</Tag>
         </Space>
       }
       extra={
         <Space>
-          <Link href="/admin?section=voice-test" onClick={(e) => { e.preventDefault(); window.location.href = "/admin"; }}>
-            <Button size="small" type="link">TTS/ASR 参数</Button>
-          </Link>
+          <Button size="small" type="link" onClick={() => { window.location.href = "/admin" }}>
+            TTS/ASR 参数
+          </Button>
           <Popconfirm title="确定恢复默认配置？" onConfirm={handleReset} okText="确定" cancelText="取消">
             <Button type="text" icon={<IconDelete />} size="small">重置</Button>
           </Popconfirm>
@@ -250,10 +376,12 @@ export function VoiceSettings() {
               type="info"
               showIcon
               style={{ marginTop: 12 }}
-              message={
+              title={
                 <span>
                   TTS/ASR 的专用端点、模型、音色等参数请在
-                  <Link href="/admin" onClick={(e) => { e.preventDefault(); }}> 语音测试 </Link>
+                  <Button type="link" size="small" style={{ padding: "0 4px" }} onClick={() => { window.location.href = "/admin" }}>
+                    语音测试
+                  </Button>
                   页面中配置。
                 </span>
               }
@@ -320,7 +448,7 @@ export function VoiceSettings() {
               hint="超过此时长强制断句"
             />
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, padding: "8px 0", borderTop: "1px solid #f5f5f5" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, padding: "8px 0", borderTop: "1px solid #f4f4f5" }}>
               <div>
                 <Text>自适应噪声底</Text>
                 <Paragraph type="secondary" style={{ fontSize: 11, margin: 0 }}>
@@ -335,7 +463,7 @@ export function VoiceSettings() {
           </section>
 
           {/* ===== 保存按钮 ===== */}
-          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 12, borderTop: "1px solid #F4F4F5" }}>
             <Space>
               <Button onClick={fetchConfig}>取消</Button>
               <Button type="primary" htmlType="submit" loading={saving} icon={<IconSave />}>
@@ -345,7 +473,7 @@ export function VoiceSettings() {
           </div>
         </div>
       </form>
-    </Card>
+    </AntdCard>
   )
 }
 
@@ -373,7 +501,7 @@ function VadSliderRow({
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
         <Text>{label}</Text>
-        <Text style={{ color: "#1677ff", fontFamily: "monospace" }}>{formatter(value)}</Text>
+        <Text style={{ color: "#059669" }}>{formatter(value)}</Text>
       </div>
       <Slider
         min={min}

@@ -68,7 +68,7 @@ const configSchema = z.object({
   omni: omniSchema,
   vad: vadSchema,
   readAloud: z.boolean(),
-  asrMode: z.enum(["batch", "realtime"]).default("batch"),
+  /* 🚨 2026-09-24：asrMode 已退役（纯 Omni 架构无独立 ASR 阶段） */
 })
 
 /** PATCH 部分更新 schema（语音测试页单独保存 TTS/ASR/Omni/架构 参数） */
@@ -77,7 +77,6 @@ const patchSchema = z.object({
   tts: ttsSchema.optional(),
   asr: asrSchema.optional(),
   omni: omniSchema.optional(),
-  asrMode: z.enum(["batch", "realtime"]).optional(),
 })
 
 async function checkAdmin() {
@@ -165,7 +164,6 @@ export async function PATCH(req: NextRequest) {
       tts: result.data.tts ? { ...current.tts, ...result.data.tts } : current.tts,
       asr: result.data.asr ? { ...current.asr, ...result.data.asr } : current.asr,
       omni: result.data.omni ? { ...current.omni, ...result.data.omni } : current.omni,
-      asrMode: result.data.asrMode ?? current.asrMode ?? "batch",
     }
     await updateVoiceServerConfig(merged)
     return NextResponse.json({ success: true, config: merged })

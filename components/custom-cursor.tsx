@@ -78,7 +78,7 @@ export function CustomCursor() {
         
         {/* Label (Optional) */}
         <motion.div 
-            className="absolute top-4 left-4 text-[8px] font-mono text-primary whitespace-nowrap"
+            className="absolute top-4 left-4 text-[11px] font-mono text-primary whitespace-nowrap"
             animate={{ opacity: isHovering ? 1 : 0 }}
         >
             TARGET_LOCKED

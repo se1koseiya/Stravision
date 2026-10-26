@@ -104,7 +104,7 @@ export function MessageSearchDialog({
                     onSelectMessage(msg.id)
                     onOpenChange(false)
                   }}
-                  className="w-full text-left p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  className="w-full text-left p-3 rounded-lg hover:bg-br-surface-3 transition-colors"
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-xs text-muted-foreground">

@@ -6,13 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { XiaozhiPanel, Message } from "./XiaozhiPanel";
 import { useSpeechRecognition } from "@/lib/hooks/use-speech-recognition";
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/feedback";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator, ContextMenuCheckboxItem } from "@/components/ui/context-menu";
 import { RealtimeVoiceOrb, VoiceStatus, DeviceCommand, ScheduleTaskCommand, NavigateCommand } from "@/components/realtime-voice-orb";
 import { usePathname, useRouter } from "next/navigation";
 import { useDeviceData } from "@/lib/hooks/use-device-data";
 import { DeviceControlOverlay } from "./DeviceControlOverlay";
 import { getVoiceSettings } from "@/components/ai-settings-dialog";
+import { openSettings } from "@/components/settings/global-settings-host";
 
 // Re-export for compatibility
 export type XiaozhiStatus = VoiceStatus;
@@ -170,6 +171,12 @@ function FloatingXiaozhiContent() {
   // Handle navigate command from voice orb
   const router = useRouter();
   const handleNavigate = useCallback((cmd: NavigateCommand) => {
+    // 2026-10-05：设置不再有独立页面（/settings 已删除并并入设置弹窗），
+    // 语音说「打开设置」时直接开全局设置弹窗 —— 也未必要跳走当前页面。
+    if (cmd.page === 'settings') {
+      openSettings();
+      return;
+    }
     // Navigate to the specified page
     const pageRoutes: Record<string, string> = {
       'dashboard': '/dashboard',
@@ -177,7 +184,6 @@ function FloatingXiaozhiContent() {
       'device-control': '/device-control',
       'ai-assistant': '/ai-assistant',
       'profile': '/profile',
-      'settings': '/settings'
     };
     
     const route = pageRoutes[cmd.page];

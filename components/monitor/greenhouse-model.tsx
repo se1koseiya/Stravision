@@ -10,6 +10,7 @@ import { SpectralPopup } from "@/components/monitor/spectral-popup"
 import type { DeviceData } from "@/lib/hooks/use-device-data"
 import { sanitizeHtml } from "@/lib/security/sanitize-html"
 import { IconChartLine, IconClose, IconFan, IconLight, IconMagic, IconPlus, IconRobot, IconSend, IconSun, IconThermometer, IconVideo, IconWater } from "@/components/icon";
+import { useMaterialCss } from "@/components/device/immersive-card"
 
 interface LightState {
   rgbLight: { r: number; g: number; b: number; intensity: number }
@@ -62,7 +63,7 @@ class ModelErrorBoundary extends Component<{children: ReactNode}, {hasError: boo
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-full w-full items-center justify-center flex-col gap-4 text-muted-foreground p-8 text-center bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="flex h-full w-full items-center justify-center flex-col gap-4 text-muted-foreground p-8 text-center bg-zinc-50/50 dark:bg-zinc-900/50 rounded-[16px] border border-zinc-200 dark:border-zinc-800">
           <div className="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500 mb-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
@@ -87,7 +88,7 @@ const DEVICE_MARKERS = [
     position: [-2.5, 1.2, -1.5] as [number, number, number],
     cameraTarget: [-2.5, 1, -1.5] as [number, number, number],
     cameraPosition: [1, 4, 5] as [number, number, number],
-    color: "#84cc16",
+    color: "#71717a",
     icon: IconVideo
   },
   { 
@@ -97,7 +98,7 @@ const DEVICE_MARKERS = [
     position: [1.5, 1.5, -2] as [number, number, number],
     cameraTarget: [1.5, 1.3, -2] as [number, number, number],
     cameraPosition: [4, 4, 4] as [number, number, number],
-    color: "#84cc16",
+    color: "#71717a",
     icon: IconVideo
   },
   { 
@@ -107,7 +108,7 @@ const DEVICE_MARKERS = [
     position: [0, 0.8, 0] as [number, number, number],
     cameraTarget: [0, 0.6, 0] as [number, number, number],
     cameraPosition: [5, 4, 5] as [number, number, number],
-    color: "#a78bfa",
+    color: "#a1a1aa",
     icon: IconThermometer
   },
   { 
@@ -118,7 +119,7 @@ const DEVICE_MARKERS = [
     position: [-2, 0.3, 1] as [number, number, number],
     cameraTarget: [-2, 0.2, 1] as [number, number, number],
     cameraPosition: [2, 4, 5] as [number, number, number],
-    color: "#38bdf8",
+    color: "#a1a1aa",
     icon: IconWater
   },
   { 
@@ -129,7 +130,7 @@ const DEVICE_MARKERS = [
     position: [2.5, 0.3, 1.5] as [number, number, number],
     cameraTarget: [2.5, 0.2, 1.5] as [number, number, number],
     cameraPosition: [5, 4, 5] as [number, number, number],
-    color: "#38bdf8",
+    color: "#a1a1aa",
     icon: IconFan
   },
   { 
@@ -139,7 +140,7 @@ const DEVICE_MARKERS = [
     position: [-1, 2.2, 0] as [number, number, number],
     cameraTarget: [-1, 2, 0] as [number, number, number],
     cameraPosition: [3, 5, 5] as [number, number, number],
-    color: "#f472b6",
+    color: "#a1a1aa",
     icon: IconLight
   },
   { 
@@ -149,7 +150,7 @@ const DEVICE_MARKERS = [
     position: [1, 2.2, 0] as [number, number, number],
     cameraTarget: [1, 2, 0] as [number, number, number],
     cameraPosition: [4, 5, 5] as [number, number, number],
-    color: "#fbbf24",
+    color: "#a1a1aa",
     icon: IconSun
   },
   { 
@@ -159,7 +160,7 @@ const DEVICE_MARKERS = [
     position: [2, 1, -0.5] as [number, number, number],
     cameraTarget: [2, 0.8, -0.5] as [number, number, number],
     cameraPosition: [5, 4, 4] as [number, number, number],
-    color: "#ec4899",
+    color: "#71717a",
     icon: IconChartLine
   },
   { 
@@ -169,7 +170,7 @@ const DEVICE_MARKERS = [
     position: [0, 1.8, 2] as [number, number, number],
     cameraTarget: [0, 1.6, 2] as [number, number, number],
     cameraPosition: [3, 5, 7] as [number, number, number],
-    color: "#10b981",
+    color: "#059669",
     icon: IconRobot
   },
 ]
@@ -198,18 +199,18 @@ function Marker({ marker, isSelected, onClick, isDark }: MarkerProps) {
       <button
         onClick={onClick}
         className={`
+          dc-mat dc-mat--thin
           group relative flex items-center justify-center
           w-11 h-11 rounded-full cursor-pointer
-          backdrop-blur-md border-2
           transition-all duration-300 ease-out
-          ${isSelected ? "scale-125 ring-2 ring-white/60" : "hover:scale-110"}
-          ${isDark ? "bg-white/15 border-white/30" : "bg-white/70 border-white/80"}
+          ${isSelected ? "scale-125 outline-2 outline-solid outline-white/70 outline-offset-2" : "hover:scale-110"}
         `}
-        style={{ 
-          boxShadow: isSelected 
-            ? `0 0 24px ${marker.color}90, 0 8px 20px rgba(0,0,0,0.25)` 
-            : `0 4px 16px rgba(0,0,0,0.12)`
-        }}
+        /* 选中态的「设备色外发光」不再写 inline box-shadow ——
+           那会整条盖掉材质的内缘光（inline > 一切），气泡重新变成一块死平面。
+           改写成 CSS 变量：材质把它和 --mat-edge 合并在同一条 box-shadow 里。 */
+        style={(isSelected
+          ? { "--mat-shadow": `0 0 24px ${marker.color}90, 0 8px 20px rgba(0,0,0,0.25)` }
+          : {}) as React.CSSProperties}
       >
         {isAIAssistant ? (
           <img src="/logo.gif" alt="AI" className="w-6 h-6 object-contain" />
@@ -228,7 +229,7 @@ function Marker({ marker, isSelected, onClick, isDark }: MarkerProps) {
           `}
           style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}
         >
-          <IconPlus className={`w-2.5 h-2.5 ${isDark ? "text-white/80" : "text-slate-600"}`} />
+          <IconPlus className={`w-2.5 h-2.5 ${isDark ? "text-white/80" : "text-zinc-600"}`} />
         </span>
       </button>
     </Html>
@@ -253,9 +254,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
   const relay = "relay" in marker ? marker.relay : undefined
   const isOn = relay && deviceData ? deviceData[`relay${relay}`] === 1 : false
 
-  const cardBg = isDark ? "bg-slate-900/70 border-white/10 text-white" : "bg-white/70 border-white/50 text-slate-900"
-  const contentBg = isDark ? "bg-white/5" : "bg-black/5"
-  const subText = isDark ? "text-slate-400" : "text-slate-500"
+  const subText = isDark ? "text-zinc-400" : "text-zinc-500"
 
   // Process spectrum data if available
   const spectrumData = useMemo(() => {
@@ -338,14 +337,11 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
         distanceFactor={6}
         style={{ pointerEvents: "auto" }}
       >
-        <div className="relative w-[380px] h-[280px] animate-in fade-in zoom-in-95 duration-300">
-          <SpectralPopup data={spectralData} />
-          <button 
-            onClick={onClose} 
-            className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-xs z-10 ${isDark ? "bg-black/20 hover:bg-black/40 text-white" : "bg-black/5 hover:bg-black/10 text-slate-900"}`}
-          >
-            <IconClose className="w-4 h-4" />
-          </button>
+        {/* ⚠️ 这里原来写死 `h-[280px]`，而卡片内容实际需要 ~404px → 172px 溢出
+            （空态描述被下沿切一半、11 通道图例整块掉到卡片外）。
+            高度必须交给内容决定：只固定宽度，让 SpectralPopup 按内容撑开。 */}
+        <div className="relative w-[380px] animate-in fade-in zoom-in-95 duration-300">
+          <SpectralPopup data={spectralData} onClose={onClose} />
         </div>
       </Html>
     )
@@ -358,18 +354,19 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
       distanceFactor={6}
       style={{ pointerEvents: "auto" }}
     >
+      {/* 设备气泡卡 = HDS ULTRA_THICK 档（弹层：压在 3D 场景与页面之上，可读性优先）。
+          原来是「bg-white/70 + backdrop-blur-xl + 手写 box-shadow」—— 白色实底把背后压平，
+          读起来就是一块贴上去的白牌。改用共享材质后：低 alpha 半透明底 + 64px 模糊 +
+          1px 受光边 + 边缘光，同时不同档位共用一套 --mat-* 变量，改等级时全站一起动。
+          ⚠️ 手写的 inline box-shadow 必须删掉：inline 优先级最高，会把材质的内缘光整条盖掉
+             （想加自定义浮起/发光就把值写进 --mat-shadow 变量，材质会把它与边缘光合并）。 */}
       <div 
-        className={`w-72 p-4 rounded-2xl backdrop-blur-xl border shadow-2xl animate-in fade-in zoom-in-95 duration-300 ${cardBg}`}
-        style={{
-          boxShadow: isDark 
-            ? "0 25px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" 
-            : "0 25px 50px -12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.5)"
-        }}
+        className={`dc-mat dc-mat--ultra w-72 p-4 rounded-[20px] animate-in fade-in zoom-in-95 duration-300 ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${marker.color}20` }}>
+            <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ backgroundColor: `${marker.color}20` }}>
               {marker.type === "ai-assistant" ? (
                 <img src="/logo.gif" alt="AI" className="w-6 h-6 object-contain" />
               ) : (
@@ -383,14 +380,14 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               </p>
             </div>
           </div>
-          <button onClick={onClose} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${isDark ? "hover:bg-white/10" : "hover:bg-black/5"}`}>
+          <button onClick={onClose} className={`dc-ctrl--press dc-ctrl--sm w-6 h-6 rounded-full flex items-center justify-center text-xs ${isDark ? "hover:bg-white/10" : "hover:bg-black/5"}`}>
             <IconClose className="w-4 h-4" />
           </button>
         </div>
 
         {/* Sensor Content */}
         {marker.type === "sensor" && deviceData && (
-          <div className={`p-3 rounded-xl ${contentBg}`}>
+          <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className={`text-xs ${subText}`}>温度</p>
@@ -406,7 +403,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
 
         {/* Camera Content */}
         {marker.type === "camera" && (
-          <div className={`p-3 rounded-xl ${contentBg}`}>
+          <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10">
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
@@ -417,7 +414,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               </div>
               <button 
                 onClick={() => onViewCamera?.(marker.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium ${isDark ? "bg-white/10 hover:bg-white/15" : "bg-black/5 hover:bg-black/10"}`}
+                className="dc-ctrl--field dc-ctrl--press rounded-[10px] px-3 py-1.5 text-xs font-medium"
               >
                 查看画面
               </button>
@@ -427,18 +424,18 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
 
         {/* Control Content */}
         {isControl && relay && (
-          <div className={`p-3 rounded-xl ${contentBg}`}>
+          <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10">
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${isOn ? "bg-primary" : "bg-slate-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${isOn ? "bg-primary" : "bg-zinc-400"}`} />
                   <span className="text-sm font-medium">{isOn ? "运行中" : "已关闭"}</span>
                 </div>
               </div>
               <button 
                 onClick={() => onToggleRelay?.(relay, deviceData?.[`relay${relay}`] ?? 0)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${isOn ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
+                className={`dc-ctrl--press relative w-12 h-6 rounded-full transition-colors duration-200 ${isOn ? "bg-primary" : isDark ? "bg-zinc-600" : "bg-zinc-300"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${isOn ? "left-[calc(100%-22px)]" : "left-0.5"}`} />
               </button>
@@ -448,18 +445,18 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
 
         {/* RGB Light Content */}
         {marker.type === "light-rgb" && (
-          <div className={`p-3 rounded-xl space-y-3 ${contentBg}`}>
+          <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay7 === 1 ? "bg-primary" : "bg-slate-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay7 === 1 ? "bg-primary" : "bg-zinc-400"}`} />
                   <span className="text-sm font-medium">{deviceData?.relay7 === 1 ? "开启" : "关闭"}</span>
                 </div>
               </div>
               <button 
                 onClick={() => onToggleRelay?.(7, deviceData?.relay7 ?? 0)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay7 === 1 ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
+                className={`dc-ctrl--press relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay7 === 1 ? "bg-primary" : isDark ? "bg-zinc-600" : "bg-zinc-300"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${deviceData?.relay7 === 1 ? "left-[calc(100%-22px)]" : "left-0.5"}`} />
               </button>
@@ -499,7 +496,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
                 <span className="w-8 text-xs text-right">{lightState.rgbLight.g}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-4 text-xs font-bold text-blue-500">B</span>
+                <span className="w-4 text-xs font-bold text-emerald-500">B</span>
                 <input
                   type="range" min="0" max="255" value={lightState.rgbLight.b}
                   onChange={(e) => onLightChange({ rgbLight: { ...lightState.rgbLight, b: Number(e.target.value) } })}
@@ -516,7 +513,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               <input
                 type="range" min="0" max="100" value={lightState.rgbLight.intensity}
                 onChange={(e) => onLightChange({ rgbLight: { ...lightState.rgbLight, intensity: Number(e.target.value) } })}
-                className="flex-1 h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-slate-600 to-white"
+                className="flex-1 h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-zinc-600 to-white"
               />
               <span className="w-8 text-xs text-right">{lightState.rgbLight.intensity}%</span>
             </div>
@@ -528,11 +525,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
                 // 发送: led1=Blue, led2=Red, led3=Green
                 onUpdateLEDs?.(lightState.rgbLight.b, lightState.rgbLight.r, lightState.rgbLight.g, 0)
               }}
-              className={`w-full py-2 rounded-lg text-xs font-medium transition-colors ${
-                isDark 
-                  ? "bg-primary hover:bg-primary text-white" 
-                  : "bg-primary hover:bg-primary text-white"
-              }`}
+              className="dc-ctrl--brand dc-ctrl--press w-full py-2 rounded-[10px] text-xs font-medium text-white"
             >
               更新颜色
             </button>
@@ -541,18 +534,18 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
 
         {/* White Light Content */}
         {marker.type === "light-white" && (
-          <div className={`p-3 rounded-xl space-y-3 ${contentBg}`}>
+          <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-xs ${subText}`}>状态</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay8 === 1 ? "bg-primary" : "bg-slate-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${deviceData?.relay8 === 1 ? "bg-primary" : "bg-zinc-400"}`} />
                   <span className="text-sm font-medium">{deviceData?.relay8 === 1 ? "开启" : "关闭"}</span>
                 </div>
               </div>
               <button 
                 onClick={() => onToggleRelay?.(8, deviceData?.relay8 ?? 0)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay8 === 1 ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}
+                className={`dc-ctrl--press relative w-12 h-6 rounded-full transition-colors duration-200 ${deviceData?.relay8 === 1 ? "bg-primary" : isDark ? "bg-zinc-600" : "bg-zinc-300"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${deviceData?.relay8 === 1 ? "left-[calc(100%-22px)]" : "left-0.5"}`} />
               </button>
@@ -562,7 +555,7 @@ function DeviceCard({ marker, onClose, isDark, deviceData, onToggleRelay, onUpda
               <input
                 type="range" min="0" max="100" value={lightState.whiteLight.intensity}
                 onChange={(e) => onLightChange({ whiteLight: { ...lightState.whiteLight, intensity: Number(e.target.value) } })}
-                className="flex-1 h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-slate-600 to-yellow-100"
+                className="flex-1 h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-zinc-600 to-yellow-100"
               />
               <span className="w-8 text-xs text-right">{lightState.whiteLight.intensity}%</span>
             </div>
@@ -607,7 +600,6 @@ function AIAssistantCard({
   const [showControlBento, setShowControlBento] = useState(false)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
-  const contentBg = isDark ? "bg-white/5" : "bg-black/5"
 
   // 从 localStorage 获取 AI 设置
   const getAISettings = useCallback(() => {
@@ -663,7 +655,7 @@ function AIAssistantCard({
     cleanContent = cleanContent
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[10px]">$1</code>')
+      .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-700 rounded text-[11px]">$1</code>')
       .replace(/\n/g, '<br/>')
 
     // XSS 防护：净化后再注入 DOM，移除 AI 响应中可能的 <script>/事件属性等
@@ -776,7 +768,7 @@ function AIAssistantCard({
   }, [chatHistory])
 
   return (
-    <div className={`p-3 rounded-xl space-y-3 ${contentBg}`}>
+    <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10 space-y-3">
       {/* 状态栏 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -795,14 +787,14 @@ function AIAssistantCard({
 
       {/* 设备状态卡片 */}
       {showDeviceBento && deviceData && (
-        <div className={`p-2 rounded-lg ${isDark ? "bg-slate-800/80" : "bg-white/80"} border ${isDark ? "border-slate-700" : "border-slate-200"}`}>
-          <div className="grid grid-cols-2 gap-2 text-[10px]">
+        <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10">
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="flex items-center gap-1.5">
               <IconThermometer className="w-3 h-3 text-orange-500" />
               <span>{deviceData.temperature.toFixed(1)}°C</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <IconWater className="w-3 h-3 text-blue-500" />
+              <IconWater className="w-3 h-3 text-emerald-500" />
               <span>{deviceData.humidity.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -823,7 +815,7 @@ function AIAssistantCard({
 
       {/* 设备控制卡片 */}
       {showControlBento && deviceData && (
-        <div className={`p-2 rounded-lg ${isDark ? "bg-slate-800/80" : "bg-white/80"} border ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+        <div className="pt-3 mt-3 border-t border-black/8 dark:border-white/10">
           <div className="grid grid-cols-2 gap-2">
             {[
               { label: "灌溉", relay: 5 as const, icon: IconWater, color: "text-cyan-500" },
@@ -836,17 +828,16 @@ function AIAssistantCard({
                 <button
                   key={relay}
                   onClick={() => onToggleRelay?.(relay, isOn ? 1 : 0)}
-                  className={`flex items-center justify-between p-1.5 rounded-lg text-[10px] transition-colors ${
-                    isOn 
-                      ? isDark ? "bg-emerald-900/50 border-emerald-700" : "bg-emerald-50 border-emerald-200"
-                      : isDark ? "bg-slate-700/50 border-slate-600" : "bg-slate-50 border-slate-200"
-                  } border`}
+                  /* 「一层容器」：这张卡已经是玻璃材质，里面**不再**铺灰底圆角块
+                     （那会变成卡里套卡）。改用控件档 .dc-ctrl--ghost ——
+                     默认几乎透明只留边缘光，hover 才浮起，开关状态由右侧小胶囊承载。 */
+                  className="dc-ctrl--ghost dc-ctrl--press flex items-center justify-between p-1.5 rounded-[8px] text-[11px]"
                 >
                   <div className="flex items-center gap-1">
                     <Icon className={`w-3 h-3 ${color}`} />
                     <span>{label}</span>
                   </div>
-                  <div className={`w-6 h-3 rounded-full transition-colors ${isOn ? "bg-primary" : isDark ? "bg-slate-600" : "bg-slate-300"}`}>
+                  <div className={`w-6 h-3 rounded-full transition-colors ${isOn ? "bg-primary" : isDark ? "bg-zinc-600" : "bg-zinc-300"}`}>
                     <div className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-transform mt-[1px] ${isOn ? "ml-[13px]" : "ml-[1px]"}`} />
                   </div>
                 </button>
@@ -859,7 +850,7 @@ function AIAssistantCard({
       {/* 聊天区域 */}
       <div 
         ref={chatContainerRef}
-        className={`h-28 overflow-y-auto space-y-2 p-2 rounded-lg ${isDark ? "bg-slate-800/50" : "bg-white/50"}`}
+        className="h-28 overflow-y-auto space-y-2 py-3 mt-3 border-t border-black/8 dark:border-white/10"
       >
         {chatHistory.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -872,8 +863,8 @@ function AIAssistantCard({
               msg.role === "user" 
                 ? "bg-primary text-white rounded-br-md" 
                 : isDark 
-                  ? "bg-slate-700 text-slate-200 rounded-bl-md" 
-                  : "bg-slate-200 text-slate-800 rounded-bl-md"
+                  ? "bg-zinc-700 text-zinc-200 rounded-bl-md" 
+                  : "bg-zinc-200 text-zinc-800 rounded-bl-md"
             }`}>
               {msg.role === "assistant" ? renderContent(msg.content) : msg.content}
             </div>
@@ -884,11 +875,11 @@ function AIAssistantCard({
             <div className="w-5 h-5 mr-1.5 flex-shrink-0">
               <img src="/logo.gif" alt="AI" className="w-full h-full object-contain rounded-full animate-pulse" />
             </div>
-            <div className={`px-3 py-1.5 rounded-2xl rounded-bl-md text-xs ${isDark ? "bg-slate-700" : "bg-slate-200"}`}>
+            <div className={`px-3 py-1.5 rounded-2xl rounded-bl-md text-xs ${isDark ? "bg-zinc-700" : "bg-zinc-200"}`}>
               <span className="inline-flex gap-1">
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </span>
             </div>
           </div>
@@ -903,19 +894,19 @@ function AIAssistantCard({
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="问我任何问题..."
-          className={`flex-1 px-3 py-2 rounded-xl text-xs border ${
+          className={`flex-1 px-3 py-2 rounded-[8px] text-xs border ${
             isDark 
-              ? "bg-slate-800 border-slate-600 text-white placeholder:text-slate-500" 
-              : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+              ? "bg-zinc-800 border-zinc-600 text-white placeholder:text-zinc-500" 
+              : "bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400"
           }`}
         />
         <button
           onClick={handleSend}
           disabled={isLoading || !message.trim()}
-          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+          className={`dc-ctrl--press w-8 h-8 rounded-[8px] flex items-center justify-center transition-colors ${
             message.trim() && !isLoading
               ? "bg-primary text-white hover:bg-primary"
-              : isDark ? "bg-slate-700 text-slate-500" : "bg-slate-200 text-slate-400"
+              : isDark ? "bg-zinc-700 text-zinc-500" : "bg-zinc-200 text-zinc-400"
           }`}
         >
           <IconSend className="w-4 h-4" />
@@ -928,10 +919,10 @@ function AIAssistantCard({
           <button
             key={q}
             onClick={() => setMessage(q)}
-            className={`px-2 py-1 rounded-lg text-[10px] transition-colors ${
+            className={`px-2.5 py-1 rounded-full text-[11px] transition-colors ${
               isDark 
-                ? "bg-slate-700/50 hover:bg-slate-600/50 text-slate-300" 
-                : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                ? "bg-zinc-700/50 hover:bg-zinc-600/50 text-zinc-300" 
+                : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600"
             }`}
           >
             {q}
@@ -1248,7 +1239,7 @@ function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all"
 
       {/* 真实光照系统 - 模拟自然光 */}
       {/* 环境光 - 模拟天空散射光，降低强度让阴影更明显 */}
-      <ambientLight intensity={isDark ? 0.15 : 0.25} color={isDark ? "#4a6fa5" : "#e8f0ff"} />
+      <ambientLight intensity={isDark ? 0.15 : 0.25} color={isDark ? "#4a6fa5" : "#f4f4f5"} />
       
       {/* 半球光 - 模拟天空和地面的反射，天空偏蓝，地面偏暖 */}
       <hemisphereLight 
@@ -1333,6 +1324,10 @@ function Scene({ isDark, deviceData, onToggleRelay, onUpdateLEDs, filter = "all"
 }
 
 export function GreenhouseModel({ className, theme = "light", deviceData, onToggleRelay, onUpdateLEDs, filter = "all", onViewCamera, isUglyMode = false }: GreenhouseModelProps & { isUglyMode?: boolean }) {
+  /* 3D 画布内的浮层（设备气泡、气泡卡、AI 面板）渲染在 canvas 容器里，
+     与页面容器的样式作用域无关 —— 自己保证沉浸光感材质样式已注入。 */
+  useMaterialCss()
+
   const isDark = theme === "dark"
   const [isVisible, setIsVisible] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1393,6 +1388,6 @@ export function GreenhouseModel({ className, theme = "light", deviceData, onTogg
 // 3D 模型加载占位 — 无动画，静默等待
 function Model3DLoadingSkeleton({ isDark }: { isDark: boolean }) {
   return (
-    <div className="relative w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl overflow-hidden" />
+    <div className="relative w-full h-full bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 rounded-[32px] overflow-hidden" />
   )
 }

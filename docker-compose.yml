@@ -34,6 +34,10 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
+      # HITL 挂起注册表的跨实例传输层（lib/ai/hitl/）：多容器 / cluster 下必须配，
+      # 否则挂起状态只在本进程（单容器可用，扩容后失效）。复用 Cap 的 valkey 实例，
+      # 用 db 1 与 Cap 的 db 0 隔离。未配置 / 连不上时自动退化为进程内实现，不影响启动。
+      - REDIS_URL=${REDIS_URL:-redis://valkey:6379/1}
       - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
       - TZ=Asia/Shanghai
@@ -97,6 +101,10 @@ services:
       - "3002"
     depends_on:
       - db
+      # 共享 valkey（Redis 兼容）用于 HITL 跨实例投递。
+      # 刻意不写 condition: service_healthy —— web 不该因为缓存服务没就绪就起不来，
+      # 传输层在连不上时会自动退化为进程内实现（见 lib/ai/hitl/redis-transport.ts）。
+      - valkey
     restart: always
     logging:
       driver: "json-file"

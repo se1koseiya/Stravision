@@ -31,14 +31,14 @@ export function Nav() {
       transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "border-b border-[#2B3122]/10 bg-[#F4EFE3]/90 backdrop-blur-md"
+          ? "border-b border-[#18181B]/10 bg-[#F4F4F5]/90 backdrop-blur-md"
           : "border-b border-transparent bg-transparent"
       }`}
     >
       <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-6 md:px-10">
         <Link href="/" className="flex items-baseline gap-2">
           <span
-            className="text-xl tracking-tight text-[#2B3122]"
+            className="text-xl tracking-tight text-[#18181B]"
             style={{ fontFamily: SERIF }}
           >
             莓界
@@ -56,7 +56,7 @@ export function Nav() {
             <a
               key={l.href}
               href={l.href}
-              className="text-[14px] text-[#2B3122]/60 transition-colors duration-300 hover:text-[#A63A3D]"
+              className="text-[14px] text-[#18181B]/60 transition-colors duration-300 hover:text-[#A63A3D]"
               style={{ fontFamily: SERIF }}
             >
               {l.label}
@@ -66,7 +66,7 @@ export function Nav() {
 
         <Link
           href="/login"
-          className="rounded-full border border-[#2B3122]/30 px-5 py-2 text-[13px] text-[#2B3122] transition-all duration-300 hover:border-[#A63A3D] hover:bg-[#A63A3D] hover:text-[#F4EFE3] active:scale-[0.98]"
+          className="rounded-full border border-[#18181B]/30 px-5 py-2 text-[13px] text-[#18181B] transition-all duration-300 hover:border-[#A63A3D] hover:bg-[#A63A3D] hover:text-[#F4F4F5] active:scale-[0.98]"
           style={{ fontFamily: SERIF }}
         >
           进入平台

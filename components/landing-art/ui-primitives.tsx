@@ -358,8 +358,8 @@ export function ChapterMarker({
   title: string
   tone?: "dark" | "light"
 }) {
-  const muted = tone === "dark" ? "text-white/35" : "text-[#0A0A0B]/35"
-  const line = tone === "dark" ? "bg-white/10" : "bg-[#0A0A0B]/10"
+  const muted = tone === "dark" ? "text-white/35" : "text-[#09090B]/35"
+  const line = tone === "dark" ? "bg-white/10" : "bg-[#09090B]/10"
   return (
     <div className="flex items-center gap-4">
       <span className={`font-mono text-[11px] tracking-[0.25em] ${muted} uppercase`}>
@@ -383,7 +383,7 @@ export function ViewfinderCorners({
 }) {
   const c = tone === "dark"
     ? "absolute w-3 h-3 border-white/50 z-10"
-    : "absolute w-3 h-3 border-[#0A0A0B]/50 z-10"
+    : "absolute w-3 h-3 border-[#09090B]/50 z-10"
   return (
     <>
       <span className={`${c} -top-px -left-px border-t border-l`} />
@@ -406,9 +406,9 @@ export function Eyebrow({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-3 font-mono text-[11px] sm:text-[12px] tracking-[0.3em] text-[#1677ff] uppercase ${className}`}
+      className={`inline-flex items-center gap-3 font-mono text-[11px] sm:text-[12px] tracking-[0.3em] text-[#059669] uppercase ${className}`}
     >
-      <span className="block w-1.5 h-1.5 bg-[#1677ff]" />
+      <span className="block w-1.5 h-1.5 bg-[#059669]" />
       {children}
     </span>
   )

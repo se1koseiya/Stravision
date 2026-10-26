@@ -1,12 +1,34 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
 
+/**
+ * 多模态内容片段 —— 用户上传图片时，`content` 是数组而不是字符串。
+ *
+ * 🚨 这里原先只声明 `string`，于是 `app/api/sessions/[id]` 落库时用
+ * `String(m.content)` 把数组拍平成 `"[object Object],[object Object]"`：
+ * 用户上传的图在**刷新/切换会话后全部丢失**，诊断卡也因此再也回溯不到原图
+ * （表现正是「当场也只是文字结论、一张图都没有」）。
+ */
+export type ChatContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } }
+
 export type ChatMessage = {
   role: "user" | "assistant"
-  content: string
+  content: string | ChatContentPart[]
   citations?: Array<{ number: string; title: string; url: string; description?: string; quote?: string }>
   reasoning?: { text: string; durationMs?: number }
   tasks?: Array<{ title: string; items: Array<{ type: "text" | "file"; text: string; file?: { name: string; icon?: string } }>; status: "pending" | "in_progress" | "completed" }>
+  /**
+   * 📷 摄像头实时画面标记（2026-10-16）。
+   *
+   * 🚨 这个字段**必须随消息一起落库**：渲染层靠它把带图消息走「快照卡」
+   * （整帧可见 / 看大图 / 下载），没有它就会退化成一坨 168px 的用户原图小预览；
+   * 更关键的是 —— 快照消息是 **assistant** 角色，回传上游前必须被
+   * `downgradeAssistantImages()` 认出来并降级（否则 400）。
+   * PUT 路由的消息白名单若不带上它，刷新后卡片就"消失"了。
+   */
+  snapshot?: { camera: "a" | "b"; capturedAt?: number }
 }
 
 type SessionMeta = { id: string; title: string; createdAt: number; updatedAt: number; userId?: number }

@@ -102,7 +102,17 @@ const EMPTY_PROVIDERS_CONFIG = {
   defaultModelId: '',
   embeddingConfig: { providerId: '', model: '', enabled: false },
   creditConfig: { enabled: false },
-  webSearchConfig: { enabled: false, providerId: '', protocol: 'anysearch', apiKey: '', defaultCount: 8 },
+  // 联网搜索默认走内置本地引擎：零 Key、零外部服务，装完即用。
+  // 桌面端启动时 lib/web-search.js#ensureWebSearch 会尝试向授权服务器换一把
+  // Exa key，换到了就自动升级；换不到就保持这份 local 配置继续可用。
+  webSearchConfig: {
+    enabled: true,
+    providerId: '',
+    protocol: 'local',
+    apiKey: '',
+    defaultCount: 8,
+    managedBy: 'desktop-auto',
+  },
 };
 
 function dirSize(dir) {
@@ -401,15 +411,15 @@ function resolvePackageDir(srcRoot, name) {
  * 做 BFS，逐层把闭包内的所有包实体拷进 standalone/node_modules。
  * 按文件比对（copyTree），可反复执行并顺带修复被中断留下的半拷贝包。
  */
-function ensureRuntimePackages() {
+function expandPackages(seeds, label) {
   const srcRoot = path.join(ROOT, 'node_modules');
   const destRoot = path.join(STANDALONE, 'node_modules');
   fs.mkdirSync(destRoot, { recursive: true });
 
-  console.log('\n[prepare-standalone] 展开运行期依赖闭包（Next 追踪图外的包与其传递依赖）：');
+  console.log(`\n[prepare-standalone] ${label}：`);
 
   const seen = new Set();
-  const queue = [...EXTRA_PACKAGES];
+  const queue = [...seeds];
   const unreachable = [];
 
   while (queue.length) {
@@ -446,8 +456,186 @@ function ensureRuntimePackages() {
 
   console.log(`  闭包共 ${seen.size} 个包`);
   if (unreachable.length) {
-    console.log(`  ⚠ 未能定位（可能为可选依赖或平台包）：${unreachable.join(', ')}`);
+    console.log(`  ⚠ 未能定位（可能为可选依赖或平台包）：${[...new Set(unreachable)].join(', ')}`);
   }
+  return seen;
+}
+
+function ensureRuntimePackages() {
+  expandPackages(EXTRA_PACKAGES, '展开运行期依赖闭包（Next 追踪图外的包与其传递依赖）');
+}
+
+/**
+ * 列出被 Next 外部化的包：包名 → 包实体目录（`<name>-<16位hash>` 去掉 hash）。
+ *
+ * 同时看 standalone 与源构建产物两处，与 ensureExternalPackages 同源：
+ * 本机实测 Next 复制这一步可能整体失败（standalone 侧为空目录），此时以源为准。
+ */
+function listExternalPackages() {
+  const found = new Map();
+  const isDir = (p) => {
+    try {
+      return fs.statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  };
+
+  for (const root of [path.join(STANDALONE, '.next', 'node_modules'), path.join(ROOT, '.next', 'node_modules')]) {
+    if (!fs.existsSync(root)) continue;
+    let entries = [];
+    try {
+      entries = fs.readdirSync(root);
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
+      const full = path.join(root, entry);
+
+      if (entry.startsWith('@')) {
+        if (!isDir(full)) continue;
+        let members = [];
+        try {
+          members = fs.readdirSync(full);
+        } catch {
+          continue;
+        }
+        for (const member of members) {
+          const dir = path.join(full, member);
+          if (!fs.existsSync(path.join(dir, 'package.json'))) continue;
+          const name = `${entry}/${member.replace(HASH_SUFFIX, '$1')}`;
+          if (!found.has(name)) found.set(name, dir);
+        }
+        continue;
+      }
+
+      if (!fs.existsSync(path.join(full, 'package.json'))) continue;
+      const name = entry.replace(HASH_SUFFIX, '$1');
+      if (!found.has(name)) found.set(name, full);
+    }
+  }
+  return found;
+}
+
+/** 读 package.json（失败返回 null） */
+function readPackageJson(dir) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/** 该目录是否是"空壳"：只有 package.json，没有任何可 require 的内容 */
+function isEmptyPackageShell(dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return false;
+  }
+  return entries.length <= 1 && (entries.length === 0 || entries[0] === 'package.json');
+}
+
+/**
+ * 展开**外部化包**（next.config.ts 的 serverExternalPackages）的依赖闭包。
+ *
+ * 🚨🚨 2026-10-23 桌面端「对话一直 Request failed: 500 -」事故，别再删掉这个函数：
+ *   Turbopack 把 exceljs 外部化到 `.next/node_modules/exceljs-<hash>/` 时，**只复制包本体，
+ *   完全不追踪它自己的 dependencies**（Next 的 output tracing 对 external 包到此为止）。
+ *   于是安装包里：
+ *     · 顶层 dayjs 是个**残桩**（只有 package.json，plugin/ 目录根本没有）
+ *     · 传递依赖 minimatch / archiver 的深层依赖等整批缺失
+ *   → `require('dayjs/plugin/customParseFormat')` 失败
+ *   → exceljs 所在的 lib chunk（`lib_0e0f0109._.js`）在**求值期**就抛错
+ *   → 任何 import 到该 chunk 的路由（含 /api/chat）直接 500，且响应体为空
+ *   → 界面上只看到「Request failed: 500 - 」，看起来像 AI 接口挂了，实际是打包缺依赖。
+ *
+ * 为什么 dev 环境永远复现不出来：dev 直接吃仓库 node_modules，依赖齐全。
+ * 所以这条只能靠构建期补全 + assertExternalDependencyClosure() 拦截。
+ */
+function ensureExternalDependencyClosure() {
+  const externals = listExternalPackages();
+  if (externals.size === 0) {
+    console.log('\n[prepare-standalone] 无外部化包（跳过依赖闭包展开）');
+    return;
+  }
+
+  const seeds = [];
+  for (const [name, dir] of externals) {
+    const pkg = readPackageJson(dir);
+    if (!pkg) continue;
+    const deps = Object.keys({ ...(pkg.dependencies || {}), ...(pkg.optionalDependencies || {}) });
+    if (deps.length === 0) continue;
+    console.log(`  · ${name} 的运行时依赖 ${deps.length} 个`);
+    seeds.push(...deps);
+  }
+
+  expandPackages(seeds, '展开外部化包的依赖闭包（Next 不追踪 external 包的 dependencies）');
+}
+
+/**
+ * 构建期硬断言：外部化包的**整棵依赖闭包**都必须能在 standalone 里真正解析到。
+ *
+ * 判据是内容级的：目录存在不够（Next 会留下只有 package.json 的残桩），
+ * 必须不是空壳。这条断言就是为了不再出现「本地全绿、装完 500」。
+ */
+function assertExternalDependencyClosure() {
+  const externals = listExternalPackages();
+  if (externals.size === 0) return;
+
+  const problems = [];
+  const warnings = [];
+  const visited = new Set();
+
+  const walk = (name, chain, optional) => {
+    if (visited.has(name) || name.startsWith('node:') || name.startsWith('.')) return;
+    visited.add(name);
+
+    const dir = path.join(STANDALONE, 'node_modules', name);
+    const report = (msg) => (optional ? warnings : problems).push(msg);
+
+    if (!fs.existsSync(path.join(dir, 'package.json'))) {
+      report(`${chain.join(' → ')}：缺 ${name}`);
+      return;
+    }
+    if (isEmptyPackageShell(dir)) {
+      report(`${chain.join(' → ')}：${name} 是空壳（只有 package.json，实现文件缺失）`);
+      return;
+    }
+
+    const pkg = readPackageJson(dir);
+    if (!pkg) return;
+    // 先硬依赖、后可选依赖：可选包（平台二进制）允许缺失，只记警告
+    for (const dep of Object.keys(pkg.dependencies || {})) walk(dep, [...chain, name], optional);
+    for (const dep of Object.keys(pkg.optionalDependencies || {})) walk(dep, [...chain, name], true);
+  };
+
+  for (const [name, dir] of externals) {
+    const pkg = readPackageJson(dir);
+    if (!pkg) continue;
+    for (const dep of Object.keys(pkg.dependencies || {})) walk(dep, [name], false);
+    for (const dep of Object.keys(pkg.optionalDependencies || {})) walk(dep, [name], true);
+  }
+
+  if (warnings.length) {
+    console.log(
+      `[prepare-standalone] 可选依赖未随包（平台二进制等，不影响当前平台）：${warnings.length} 项`,
+    );
+  }
+
+  if (problems.length) {
+    console.error('\n✗ 外部化包的依赖闭包不完整（安装后会在 chunk 求值期抛错，界面整片 500）：');
+    for (const p of problems.slice(0, 20)) console.error(`  - ${p}`);
+    if (problems.length > 20) console.error(`  - …… 另有 ${problems.length - 20} 项`);
+    console.error('  请检查 ensureExternalDependencyClosure() 的种子与 expandPackages() 的 BFS。\n');
+    process.exit(1);
+  }
+
+  console.log(
+    `[prepare-standalone] 外部化包依赖闭包完整（${externals.size} 个包：${[...externals.keys()].join(', ')}）`,
+  );
 }
 
 /**
@@ -466,27 +654,56 @@ const HASH_SUFFIX = /^(.+)-[0-9a-f]{16}$/;
 
 function ensureExternalPackages() {
   const extRoot = path.join(STANDALONE, '.next', 'node_modules');
-  if (!fs.existsSync(extRoot)) {
+  // 🚨 以**源构建产物**（ROOT/.next/node_modules）的条目为准，而不是只扫 standalone 里的残留：
+  //   Windows + 杀软下实测 Next 复制这一步会**整体失败**——standalone/.next/node_modules
+  //   被建成完全空目录（连条目都没有）。此时按 standalone 遍历等于零次循环，静默什么都没补，
+  //   打出的包一启动就是 ERR_MODULE_NOT_FOUND（2026-10-06 线上 4.2.6 安装包即此事故）。
+  const srcExtRoot = path.join(ROOT, '.next', 'node_modules');
+
+  if (!fs.existsSync(extRoot) && !fs.existsSync(srcExtRoot)) {
     console.log('\n[prepare-standalone] 无 .next/node_modules（无需补全）');
     return;
   }
+  fs.mkdirSync(extRoot, { recursive: true });
+
+  const entries = new Set([
+    ...(fs.existsSync(srcExtRoot) ? fs.readdirSync(srcExtRoot) : []),
+    ...(fs.existsSync(extRoot) ? fs.readdirSync(extRoot) : []),
+  ]);
 
   const srcRoot = path.join(ROOT, 'node_modules');
   console.log('\n[prepare-standalone] 补全 .next/node_modules 外部化包：');
 
-  for (const entry of fs.readdirSync(extRoot)) {
+  for (const entry of entries) {
     const dest = path.join(extRoot, entry);
 
-    let isDir = false;
+    // 🚨 软链一律解引用成实体副本（2026-10-23 打包 EEXIST 事故）：
+    //   ① Next 在本机常把 `<name>-<hash>` 建成软链指向 pnpm store 的**绝对路径**。
+    //      装到用户机后那条路径不存在 → `ERR_MODULE_NOT_FOUND: pg-<hash>`，界面 Internal Server Error。
+    //   ② electron-builder 拷 extraResources 时第一次把软链原样建出来，紧随其后又对同名条目
+    //      再 create symlink → `EEXIST: file already exists, symlink ... bcryptjs-<hash>`，构建直接失败。
+    //   原判定用 statSync（跟随软链）→ 软链指向的实体含 package.json，被误判为"已完整"而跳过补全。
+    let isLink = false;
     try {
-      isDir = fs.statSync(dest).isDirectory();
+      isLink = fs.lstatSync(dest).isSymbolicLink();
     } catch {
-      continue;
+      isLink = false;
     }
-    if (!isDir) continue;
+    if (isLink) {
+      fs.unlinkSync(dest); // 只删链接本身，实体包不受影响
+      console.log(`  [解链] ${entry}（软链不可分发 → 改写实体副本）`);
+    }
 
+    let isDir = false;
+    if (!isLink) {
+      try {
+        isDir = fs.statSync(dest).isDirectory();
+      } catch {
+        isDir = false;
+      }
+    }
     // 已有 package.json 视为完整（空目录正是缺它才导致解析失败）
-    if (fs.existsSync(path.join(dest, 'package.json'))) {
+    if (isDir && fs.existsSync(path.join(dest, 'package.json'))) {
       console.log(`  [已完整] ${entry}`);
       continue;
     }
@@ -502,6 +719,88 @@ function ensureExternalPackages() {
     const stats = copyTree(src, dest, { followSymlinks: true });
     console.log(`  [补全] ${entry} ← ${name}（${stats.copied} 个文件）`);
   }
+
+  // 兜底：顶层补齐逻辑碰不到 scope 目录内部的条目（如 @pdf-lib/fontkit-<hash>），
+  // 这里对整棵 extRoot 做一次全层级解链。
+  const replaced = desymlinkTree(extRoot, srcRoot);
+  if (replaced > 0) {
+    console.log(`  [解链] 嵌套软链已改写成实体副本（共 ${replaced} 个）`);
+  }
+}
+
+/**
+ * 把一棵目录里**所有层级的软链**解引用成实体副本，并返回改写数量。
+ *
+ * 🚨 为什么必须做（2026-10-23 打包 EEXIST 事故）：
+ *   Next 生成的 `standalone/.next/node_modules` 是 pnpm 布局的镜像 —— 顶层
+ *   `<name>-<hash>` 与嵌套的 `@scope/<name>-<hash>` 都是软链，指向
+ *   `node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>` 的**绝对路径**。
+ *   ① 软链随包分发后，用户机上那条路径不存在 → `ERR_MODULE_NOT_FOUND: <name>-<hash>`
+ *      （界面直接 Internal Server Error，2026-10-06 线上事故同源）；
+ *   ② electron-builder 拷 extraResources 时第一次把软链原样建出来，紧接着又对同一
+ *      条目 create symlink → `EEXIST: file already exists, symlink ...`，构建必失败。
+ *   ensureExternalPackages 的主循环只看顶层条目：`@pdf-lib` 这种 scope 目录自身没有
+ *   package.json，会落进"补全"分支并复制 0 个文件，里面的软链原封不动。
+ */
+function desymlinkTree(root, srcRoot) {
+  let replaced = 0;
+
+  /** 软链目标失效时，按包名回到仓库根 node_modules 找实体 */
+  function fallbackEntity(full, dir) {
+    const base = path.basename(full).replace(/-[0-9a-f]{16}$/, '');
+    const scope = path.basename(dir).startsWith('@') ? `${path.basename(dir)}/` : '';
+    const name = `${scope}${base}`;
+    return resolvePackageDir(srcRoot, name) ?? locatePackageEntity(srcRoot, name) ?? null;
+  }
+
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+
+      let isLink = false;
+      try {
+        isLink = fs.lstatSync(full).isSymbolicLink();
+      } catch {
+        continue;
+      }
+
+      if (isLink) {
+        let entity = null;
+        try {
+          entity = fs.realpathSync(full);
+        } catch {
+          entity = null;
+        }
+        if (!entity) entity = fallbackEntity(full, dir);
+
+        fs.unlinkSync(full); // 只删链接本身
+        if (!entity) continue;
+
+        let st = null;
+        try {
+          st = fs.statSync(entity);
+        } catch {
+          continue;
+        }
+        if (st.isDirectory()) copyTree(entity, full, { followSymlinks: true });
+        else fs.copyFileSync(entity, full);
+        replaced++;
+        continue;
+      }
+
+      if (ent.isDirectory()) walk(full);
+    }
+  }
+
+  walk(root);
+  return replaced;
 }
 
 /**
@@ -788,6 +1087,84 @@ function assertRuntimePackages() {
   );
 }
 
+/**
+ * 语音识别模型 → **standalone 顶层 models/asr**（不是 data/！）
+ *
+ * 🚨 2026-10-27 桌面端「语音模型未安装」事故：模型一度随 data/ 一起打包，
+ *   而桌面端 data/ 是**可写数据目录** —— desktop/lib/links.js 首次运行会把它
+ *   改名成 data.__bundled__，并在原位置建指向 <userData>/server-data/data 的
+ *   目录联接。老用户升级时那个目标目录早已非空，迁移整段跳过 → 模型只留在
+ *   __bundled__ 里，运行时 cwd/data/models/asr 永远不存在，语音输入永久置灰。
+ *
+ *   models/ 不在 WRITABLE_DIRS 里，不会被联接吃掉，打包后恒定可见。
+ *   运行期解析顺序见 app/api/ai/asr/route.ts#modelDirCandidates。
+ *
+ * 只带运行期真正读的两个文件（其余全是构建期中间物）：
+ *   · model.int8.onnx —— 补过 CMVN/LFR/vocab 元数据的最终产物
+ *   · tokens.txt      —— sherpa 词表
+ *   model_quant.onnx（238MB 源包）/ tokens.json / am.mvn / config.yaml / _test.wav
+ *   一律不打包 —— 光 model_quant.onnx 一项就省掉一半体积。
+ */
+const ASR_MODEL_FILES = ['model.int8.onnx', 'tokens.txt'];
+const ASR_VARIANT = 'funasr-paraformer';
+
+function prepareAsrModel() {
+  console.log('\n[prepare-standalone] 随包语音模型 models/asr：');
+
+  if (process.env.ASR_SKIP_MODEL === '1') {
+    console.log('  [跳过] models/asr（ASR_SKIP_MODEL=1 → 桌面端语音输入将置灰）');
+    return;
+  }
+
+  const src = path.join(ROOT, 'data', 'models', 'asr');
+  const dest = path.join(STANDALONE, 'models', 'asr');
+
+  if (!fs.existsSync(src)) {
+    console.log('  [警告] data/models/asr 不存在 → 桌面端语音输入不可用（pnpm asr:model 可生成）');
+    return;
+  }
+
+  const t0 = Date.now();
+  let copied = 0;
+  const missing = [];
+
+  for (const variant of fs.readdirSync(src, { withFileTypes: true })) {
+    if (!variant.isDirectory()) continue;
+    for (const name of ASR_MODEL_FILES) {
+      const from = path.join(src, variant.name, name);
+      if (!fs.existsSync(from)) {
+        missing.push(`${variant.name}/${name}`);
+        continue;
+      }
+      const to = path.join(dest, variant.name, name);
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      const st = fs.statSync(from);
+      if (
+        fs.existsSync(to) &&
+        fs.statSync(to).size === st.size &&
+        fs.statSync(to).mtimeMs === st.mtimeMs
+      ) {
+        continue;
+      }
+      fs.copyFileSync(from, to);
+      copied++;
+    }
+  }
+
+  console.log(`  [完成] models/asr（${mb(dirSize(dest))}，复制 ${copied}，${Date.now() - t0}ms）`);
+
+  const ready = ASR_MODEL_FILES.every((f) =>
+    fs.existsSync(path.join(dest, ASR_VARIANT, f)),
+  );
+  if (ready) {
+    console.log(`  [校验] models/asr/${ASR_VARIANT}：${ASR_MODEL_FILES.join(' + ')} 齐全 ✓`);
+  } else {
+    console.log(
+      `  [校验] ⚠ models/asr/${ASR_VARIANT} 缺 ${missing.join(' / ') || '模型文件'} —— 桌面端语音输入会置灰`,
+    );
+  }
+}
+
 /** data/ 白名单重建 */
 function prepareDataDir() {
   const src = path.join(ROOT, 'data');
@@ -808,6 +1185,8 @@ function prepareDataDir() {
       fs.copyFileSync(from, path.join(dest, name));
       console.log(`  [完成] data/${name}`);
     }
+
+    // 语音识别模型由 prepareAsrModel() 单独落到 standalone/models/asr —— 不进 data/
   }
 
   fs.writeFileSync(
@@ -902,8 +1281,11 @@ function main() {
   ensureExternalPackages();
   materializeTracedPackages();
   ensureRuntimePackages();
+  ensureExternalDependencyClosure();
   assertRuntimePackages();
+  assertExternalDependencyClosure();
   prepareDataDir();
+  prepareAsrModel();
 
   if (!scanForSecrets()) {
     console.error('\n✗ 检测到疑似凭据残留，已终止构建以防凭据外发。');

@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server'
 import { guardAiQuota } from '@/lib/api/ai-quota-guard'
+import { adaptChatRequestBody } from '@/lib/ai/provider-body-adapter'
+import { IS_DESKTOP_APP } from '@/lib/desktop-mode'
+import { resolveRequestedModel, buildModelCandidates } from '@/lib/ai/effective-model'
+import {
+  resolveProvider,
+  normalizeOpenAIChatCompletionsUrl,
+  readProvidersConfig,
+} from '@/lib/ai/provider-resolver'
 
 export const runtime = 'nodejs'
 
@@ -7,16 +15,21 @@ export const runtime = 'nodejs'
  * 根据最近一次 AI 回复 + 用户上文，自动推断出 3 条用户可能想问的追问。
  *
  * 请求体：{ apiKey?, apiUrl?, model?, lastUser, lastAssistant, history? }
+ *   · `model` = **用户当前在模型选择器里选的模型**（与主对话 /api/chat 同一个值）；
+ *     缺省 / 'auto' 时才由服务端从 providers 配置解析默认模型。
  * 响应体：{ suggestions: string[] }
  *
- * 若用户未传入 apiKey，回退到系统环境变量 SYSTEM_OPENAI_API_KEY / SYSTEM_OPENAI_API_URL。
+ * 🚨 模型解析**必须与 /api/chat 完全同一条链路**（resolveProvider + resolveDefaultModelId），
+ *    绝不能在这里自行写死某个模型名 —— 否则用户在界面上换了模型，提示集仍按旧模型生成。
  */
 export async function POST(req: Request) {
   try {
-    const { apiKey: userApiKey, apiUrl: userApiUrl, model: userModel, lastUser, lastAssistant, history } = await req.json() as {
+    const { apiKey: userApiKey, apiUrl: userApiUrl, model: userModel, enableReasoning, lastUser, lastAssistant, history } = await req.json() as {
       apiKey?: string
       apiUrl?: string
       model?: string
+      /** 与主对话 enableReasoning 同源；未传时按 AI 助手页面的默认值 true 处理 */
+      enableReasoning?: boolean
       lastUser?: string
       lastAssistant?: string
       history?: { role: string; content: string }[]
@@ -26,19 +39,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Conversation context is required' }, { status: 400 })
     }
 
-    // 🔥 额度守卫：回退系统 key 时必须检查积分；用户自带 key 只要求登录
-    const guard = await guardAiQuota({ skipCreditCheck: !!userApiKey })
-    if (!guard.ok) return guard.response
+    // 🎯 模型 / 供应商解析：与主对话 /api/chat **完全相同**的一条链路
+    //    用户当前选择的模型 → providers 配置（admin）→ 系统 env。这里不再硬编码任何模型名。
+    //    🚨 `auto` 必须走 lib/ai/effective-model 的共享决策（reasoning 模型优先），
+    //       否则会和主对话挑到不同的模型 —— 那正是「提示集没跟随所选模型」的根因。
+    const providersConfig = await readProvidersConfig()
+    const normalizedUserUrl = userApiUrl ? normalizeOpenAIChatCompletionsUrl(userApiUrl) : undefined
+    const isByok = !!(userApiKey || userApiUrl)
+    const { model: effectiveModel, degraded, reason } = await resolveRequestedModel({
+      model: userModel,
+      enableReasoning: enableReasoning !== false,
+      isByok,
+      cfg: providersConfig,
+    })
+    if (degraded) console.warn('[suggest-followups]', reason)
 
-    // 解析 API 配置：用户配置 > 系统环境变量
-    const apiKey = (userApiKey || process.env.SYSTEM_OPENAI_API_KEY || '').trim()
-    const apiUrl = (userApiUrl || process.env.SYSTEM_OPENAI_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions').trim()
-    // 此任务使用快速/便宜模型，默认 qwen-turbo；用户显式传值才覆盖
-    const model = (userModel || process.env.SYSTEM_OPENAI_MODEL || 'qwen-turbo').trim()
+    // 🩹 候选模型链：首选 = 用户所选模型；平台托管模式下再备几个平台模型，
+    //    逐个尝试直到出结果 —— 单次失败就整个功能静默失效（历史上是"永远那三条通用文案"）
+    //    的体验太差。BYOK 时只有首选（用户的端点只认他自己的模型）。
+    const candidates = buildModelCandidates({
+      primary: effectiveModel,
+      cfg: providersConfig,
+      enableReasoning: enableReasoning !== false,
+      allowFallback: !isByok,
+      max: 6,
+    })
 
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API Key is required' }, { status: 400 })
+    const resolved = await resolveProvider(candidates[0], userApiKey, normalizedUserUrl)
+
+    if (!resolved && !userApiKey) {
+      return NextResponse.json(
+        { error: 'No AI provider configured for follow-up suggestions. Please add a provider in admin settings.' },
+        { status: 503 },
+      )
     }
+
+    // 🔥 额度守卫：口径与 /api/chat 的 useSystemKey 完全一致 ——
+    //   · 桌面端整体豁免（本地运行 + BYOK，平台积分/会员体系不适用；2026-09-14 实测 403 后定稿）
+    //   · 用户自带 key（user-custom / 未匹配到平台 provider）不检查积分，只要求登录
+    //   · 只有确实烧平台 key 才检查
+    //   🚨 少了这层豁免，桌面端用户（向导把 key 存进服务端 providers、前端不带 apiKey）
+    //      会在提示集上恒被 403 打回 fallback —— 表现为"提示集永远是那三条硬编码文案"。
+    const useSystemKey = !IS_DESKTOP_APP && (!userApiKey || (!!resolved && resolved.providerId !== 'user-custom'))
+    const guard = await guardAiQuota({ skipCreditCheck: !useSystemKey })
+    if (!guard.ok) return guard.response
 
     const systemPrompt = `你是一名"用户意图预测助手"。你的任务是根据 AI 助手最近一次回复以及用户的原始提问，推断出用户接下来最可能想问的 3 个追问。
 
@@ -61,34 +105,22 @@ export async function POST(req: Request) {
 
     const userMessage = `请基于以下对话预测用户接下来最可能想问的 3 个追问。\n\n${historyPart}\n\n${userPart}\n\n${assistantPart}`
 
-    // 复用与 optimize-prompt 相同的请求结构
-    let targetUrl = apiUrl || ''
-    const isDashScope = apiUrl?.includes('dashscope.aliyuncs.com') || model?.startsWith('qwen')
-    const isCompatibleMode = apiUrl?.includes('compatible-mode/v1') ?? false
+    // 统一走 OpenAI 兼容的 /chat/completions —— resolveProvider 返回的 baseUrl
+    // 已经规范化到该端点（DashScope 自动收敛到 compatible-mode），无需再分支判断厂商。
 
-    let requestBody: any
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    }
+    // 依次尝试候选链里的模型；第一个出结果的就用它。
+    let lastError = { status: 502, body: 'all candidates failed' }
+    let suggestions: string[] = []
+    let usedModel = candidates[0] || ''
 
-    if (isDashScope && !isCompatibleMode) {
-      requestBody = {
-        model: model || 'qwen-plus',
-        input: {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage },
-          ],
-        },
-        parameters: { result_format: 'message' },
-      }
-    } else {
-      if (/\/v1$/.test(targetUrl) && !/\/chat\/completions(\?|$)/.test(targetUrl)) {
-        targetUrl = `${targetUrl}/chat/completions`
-      }
-      requestBody = {
-        model: model || 'gpt-3.5-turbo',
+    for (const candidate of candidates) {
+      const r = await resolveProvider(candidate, userApiKey, normalizedUserUrl)
+      const key = r ? r.apiKey : (userApiKey || '')
+      const url = r ? r.baseUrl : (normalizedUserUrl || '')
+      if (!key || !url) continue
+
+      const requestBody = {
+        model: candidate,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
@@ -96,34 +128,59 @@ export async function POST(req: Request) {
         stream: false,
         temperature: 0.8,
       }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify(adaptChatRequestBody(requestBody, { baseUrl: url, model: candidate })),
+      })
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => '')
+        lastError = { status: response.status, body: body.slice(0, 200) }
+        console.warn(`[suggest-followups] model "${candidate}" failed (${response.status})`)
+        continue
+      }
+
+      const data = await response.json()
+      let raw = data.choices?.[0]?.message?.content || ''
+      if (!raw) {
+        // 兜底：少数网关把内容放在 output.choices（DashScope 原生格式）
+        raw = data.output?.choices?.[0]?.message?.content || ''
+      }
+      const list = parseJsonArray(raw)
+      if (list.length > 0) {
+        suggestions = list
+        usedModel = candidate
+        break
+      }
+      lastError = { status: 502, body: `unparsable: ${raw.slice(0, 120)}` }
     }
 
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      return NextResponse.json({ error: `API Error: ${response.status} - ${error}` }, { status: response.status })
-    }
-
-    const data = await response.json()
-
-    let raw = ''
-    if (isDashScope && !isCompatibleMode) {
-      raw = data.output?.choices?.[0]?.message?.content || ''
-    } else {
-      raw = data.choices?.[0]?.message?.content || ''
-    }
-
-    const suggestions = parseJsonArray(raw)
     if (suggestions.length === 0) {
-      return NextResponse.json({ error: 'Failed to parse suggestions', raw }, { status: 502 })
+      return NextResponse.json(
+        { error: `API Error: ${lastError.status} - ${lastError.body}`, tried: candidates },
+        { status: lastError.status },
+      )
     }
 
-    return NextResponse.json({ suggestions })
+    // 与 /api/ai/daily-insight 统一口径：降级/回退必须带 reason。
+    // 否则前端只会看到「提示集是兜底文案」，分不清是「模型名没解析到」还是「上游额度耗尽」。
+    const fellBack = usedModel !== effectiveModel
+    return NextResponse.json({
+      suggestions,
+      model: usedModel,
+      degraded: fellBack || degraded,
+      ...(fellBack || degraded
+        ? {
+            reason:
+              reason ??
+              (fellBack
+                ? `primary "${effectiveModel}" unavailable → fell back to "${usedModel}"`
+                : 'unknown'),
+          }
+        : {}),
+    })
   } catch (error: any) {
     console.error('Suggest followups error:', error)
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 })

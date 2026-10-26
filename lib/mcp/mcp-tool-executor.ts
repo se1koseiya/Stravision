@@ -7,17 +7,21 @@
  * 3. 返回执行结果供模型继续生成回复
  */
 
-import { getMCPServerIdByToolName } from './mcp-tool-definitions'
+import { getMCPServerIdByToolName, getToolDefinitionsByNames, isClientSideTool, getClientToolDefinitionsByNames } from './mcp-tool-definitions'
 import { spectrumConnectionPool } from './spectrum-connection-pool'
 import { getMultiSensorHistory } from '@/lib/db/device-service'
 import { skillManager } from '@/lib/ai/skill-system/skill-manager'
 import { executeDeviceControlTool, isMultimodal } from './builtin-device-control'
+import { executeAutomationStrategyTool } from './builtin-automation-strategy'
 import { executeAgentTaskTool } from './builtin-agent-tasks'
 import { executeDeepResearchTool } from './builtin-deep-research'
 import { executeSkillForgeTool } from './builtin-skill-forge'
 import { executeDeviceForgeTool } from './builtin-device-forge'
 import { executeFarmTool } from './builtin-farm-data'
 import { executeUserMemoryTool } from './builtin-user-memory'
+import { executeVisionDiagnosisTool } from './builtin-vision-diagnosis'
+import { executeMedicalRecordTool } from './builtin-medical-records'
+import { executeDocumentTool } from './builtin-document'
 
 interface MCPConfig {
     id: string
@@ -43,6 +47,43 @@ export interface AgentToolContext {
     sessionId?: string
     /** 长耗时工具（如 deep_research）的阶段进度回调，chat 路由会把它转成 SSE 推给前端思维链 */
     onProgress?: (stage: string, detail?: string) => void
+    /**
+     * 面向用户的「当前在做什么」一句话，chat 路由会转成 `agent_status` SSE
+     * 显示在对话里的执行过程上（如"正在识别病害并定位病灶区域…"）。
+     *
+     * 与 onProgress 的区别：onProgress 是 deep_research 专用的结构化阶段，
+     * onStage 是纯文案，任何工具都能用来告诉用户"我在干活，做到哪一步了"。
+     */
+    onStage?: (text: string) => void
+    /**
+     * 用户本轮消息里携带的图片（dataURL 或 http(s)）。
+     *
+     * 存在意义：视觉类工具（diagnose_plant_image）需要用户发的原图，
+     * 但让模型把几 MB 的 base64 原样回传到工具参数里既不现实也会打爆上下文。
+     * 由 /api/chat 从 fullMessages 中提取后随上下文透传，工具侧直接取用。
+     */
+    userImages?: string[]
+    /**
+     * 用户当前选择的模型 id（/api/chat 解析后的 effectiveModel）。
+     *
+     * 存在意义：视觉类工具必须用**用户选的模型**，而不是网关自己挑的视觉模型。
+     * 否则会出现「界面里换了个模型，诊断却还在跑另一个模型」的割裂。
+     */
+    userModel?: string
+    /**
+     * 用户本轮消息里携带的文档（`/api/chat` 从请求体 `documents` 提取后透传）。
+     *
+     * 与 `userImages` 同理：让模型不必把 fileId 从对话历史里"回忆"出来，
+     * 工具侧可以直接回答「本轮有哪几份文件」。
+     */
+    userDocuments?: Array<{ fileId: string; fileName: string; format: string; sizeText?: string }>
+    /**
+     * 前端会话 id（`/api/sessions` 里的那个）。
+     *
+     * ⚠️ 与 `sessionId` 不是一回事：后者是本次 Agent Loop 的 orchestrator 实例 id
+     * （`session-${userId}-${Date.now()}`），每轮都变。按会话列文件必须用这个。
+     */
+    conversationId?: string
 }
 
 /**
@@ -124,6 +165,16 @@ export async function executeMCPToolCall(
         return { success: false, error: `未知的 MCP 工具: ${functionName}` }
     }
 
+    // === 前端工具兜底：正常路径下 app/api/chat/route.ts 会在调用本函数之前拦截，
+    // 推 SSE client_tool_call 交给浏览器执行。走到这里说明拦截缺失（例如调用了未注册
+    // 执行器的旧接口），返回明确错误而不是静默失败，避免 Agent Loop 白等超时。
+    if (isClientSideTool(functionName)) {
+        return {
+            success: false,
+            error: `${functionName} 是需要前端（浏览器）执行的工具，当前调用链没有可用的执行器。请在支持该能力的页面里发起对话。`,
+        }
+    }
+
     // === 内置工具：不依赖用户 MCP 配置，直接执行 ===
     if (serverId === 'builtin-sensor-history') {
         console.log(`[MCP Executor] Calling builtin tool: ${functionName}, args:`, args)
@@ -170,6 +221,28 @@ export async function executeMCPToolCall(
         } catch (error: any) {
             console.error(`[MCP Executor] Error executing device control ${functionName}:`, error)
             return { success: false, error: error.message || '设备控制工具执行失败' }
+        }
+    }
+
+    // === 内置自动化策略（直写 automation_rules 表：list/detail/create/update/delete）===
+    if (serverId === 'builtin-automation-strategy') {
+        console.log(`[MCP Executor] Calling automation strategy tool: ${functionName}, args:`, args)
+        try {
+            return await executeAutomationStrategyTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing automation strategy ${functionName}:`, error)
+            return { success: false, error: error.message || '自动化策略工具执行失败' }
+        }
+    }
+
+    // === 内置工具索引（load_tool_schema：按需取回工具完整参数定义）===
+    if (serverId === 'builtin-tool-index') {
+        console.log(`[MCP Executor] Calling tool index: ${functionName}, args:`, args)
+        try {
+            return await executeToolIndex(functionName, args)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing tool index ${functionName}:`, error)
+            return { success: false, error: error.message || '工具索引执行失败' }
         }
     }
 
@@ -236,6 +309,39 @@ export async function executeMCPToolCall(
         } catch (error: any) {
             console.error(`[MCP Executor] Error executing user memory tool ${functionName}:`, error)
             return { success: false, error: error.message || '记忆工具执行失败' }
+        }
+    }
+
+    // === 内置视觉诊断（病虫害图像诊断：统一走 vision-gateway，不自写模型/Key）===
+    if (serverId === 'builtin-vision-diagnosis') {
+        console.log(`[MCP Executor] Calling vision diagnosis tool: ${functionName}, args:`, args)
+        try {
+            return await executeVisionDiagnosisTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing vision diagnosis ${functionName}:`, error)
+            return { success: false, error: error.message || '视觉诊断工具执行失败' }
+        }
+    }
+
+    // === 内置病历查询（只读：视觉诊断沉淀的档案，按 agentContext.userId 隔离）===
+    if (serverId === 'builtin-medical-records') {
+        console.log(`[MCP Executor] Calling medical record tool: ${functionName}, args:`, args)
+        try {
+            return await executeMedicalRecordTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing medical record tool ${functionName}:`, error)
+            return { success: false, error: error.message || '病历查询失败' }
+        }
+    }
+
+    // === 内置文档处理（PDF/Word/Excel/PPT 的读、生成、就地编辑）===
+    if (serverId === 'builtin-document') {
+        console.log(`[MCP Executor] Calling document tool: ${functionName}, args:`, args)
+        try {
+            return await executeDocumentTool(functionName, args, agentContext)
+        } catch (error: any) {
+            console.error(`[MCP Executor] Error executing document tool ${functionName}:`, error)
+            return { success: false, error: error.message || '文档处理失败' }
         }
     }
 
@@ -312,6 +418,64 @@ const WEATHER_PROVIDERS: Record<string, string> = {
  * 统一天气查询函数 - 消除 3 个几乎完全相同的函数
  * 所有天气提供商都通过 /api/mcp/weather 代理调用，仅 provider 字段不同
  */
+/**
+ * load_tool_schema：按需返回工具的完整参数定义
+ *
+ * 背景：为了省 token，请求里默认只带「工具名 + 一句话用途」的清单（见
+ * mcp-tool-definitions.getToolIndexEntries），完整 schema 由本工具按需取回。
+ * chat/route.ts 在检测到本轮调用了 load_tool_schema 后，会把对应定义并入
+ * 下一轮的 tools 数组；这里的返回值同时把 schema 交给模型看，双保险。
+ */
+async function executeToolIndex(
+    functionName: string,
+    args: Record<string, any>
+): Promise<ToolCallResult> {
+    if (functionName !== 'load_tool_schema') {
+        return { success: false, error: `未知的工具索引工具: ${functionName}` }
+    }
+
+    const raw = args?.tool_names
+    const names: string[] = Array.isArray(raw)
+        ? raw.map((n: any) => String(n || '').trim()).filter(Boolean)
+        : (typeof raw === 'string' && raw.trim() ? [raw.trim()] : [])
+
+    if (names.length === 0) {
+        return {
+            success: false,
+            error: 'tool_names 不能为空：请传入要加载的工具名数组（来自系统提示词的「可用工具」清单）',
+        }
+    }
+
+    const { found, missing } = getToolDefinitionsByNames(names)
+
+    // 前端工具（画布操作等）已随 tools 全量下发，不在懒加载注册表里；
+    // 模型若习惯性地先 load_tool_schema 请求它，这里补上定义，避免误报 missing。
+    const clientFound = getClientToolDefinitionsByNames(missing)
+    if (clientFound.length > 0) {
+        found.push(...clientFound)
+    }
+    const stillMissing = missing.filter(n => !clientFound.some(t => t.function.name === n))
+
+    if (found.length === 0) {
+        return {
+            success: false,
+            error: `没有匹配的工具：${names.join(', ')}。请从系统提示词的「可用工具」清单里原样复制工具名，不要臆造。`,
+        }
+    }
+
+    return {
+        success: true,
+        data: {
+            loaded: found.map(t => t.function.name),
+            missing: stillMissing,
+            schemas: found.map(t => t.function),
+            note: stillMissing.length > 0
+                ? `已加载 ${found.length} 个工具；以下名字不存在，请勿调用：${stillMissing.join(', ')}`
+                : `已加载 ${found.length} 个工具，下一轮可直接调用。`,
+        },
+    }
+}
+
 async function executeWeatherQuery(
     provider: string,
     args: Record<string, any>,
@@ -724,7 +888,9 @@ async function executeLoadSkill(
 // ===========================================================================
 // Agent 工具包执行器
 // 处理 ask_user_question / cron_create / cron_list / cron_delete /
-//       task_create / task_list / task_update
+//       task_create / task_list / task_update / 计划模式
+// 注：自动化策略工具（automation_strategy_*）已迁出到 builtin-automation-strategy，
+//     与设备控制同构，由 executeAutomationStrategyTool 独立分发。
 // ===========================================================================
 
 async function executeAgentTool(
@@ -775,6 +941,21 @@ function executeAskUserQuestion(args: Record<string, any>): ToolCallResult {
     if (args.context) clarifyData.context = args.context
     if (args.fields && Array.isArray(args.fields)) clarifyData.fields = args.fields
     if (args.options && Array.isArray(args.options)) clarifyData.options = args.options
+    // 🔥 分步提问：一次调用可带 1-4 个问题，前端渲染为 1/N 分步卡
+    if (args.questions && Array.isArray(args.questions)) {
+        const questions = args.questions
+            .filter((q: any) => q && (q.title || (q.options && q.options.length)))
+            .slice(0, 4)
+            .map((q: any) => {
+                const item: Record<string, any> = { title: String(q.title || '') }
+                if (q.context) item.context = q.context
+                if (q.options && Array.isArray(q.options)) item.options = q.options
+                if (q.fields && Array.isArray(q.fields)) item.fields = q.fields
+                if (q.multiple) item.multiple = true
+                return item
+            })
+        if (questions.length) clarifyData.questions = questions
+    }
 
     return {
         success: true,

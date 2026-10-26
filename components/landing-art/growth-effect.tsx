@@ -93,7 +93,7 @@ export function GrowthEffect() {
         this.segments = [{x: this.x, y: this.y, width: 4}]
         this.leaves = []
         this.width = 4
-        this.color = `rgba(16, 185, 129, ${Math.random() * 0.5 + 0.5})` // emerald-500
+        this.color = `rgba(0,148,86, ${Math.random() * 0.5 + 0.5})` // emerald-500
         this.speedVar = Math.random() * 0.5 + 0.5
         this.frameCount = 0
       }

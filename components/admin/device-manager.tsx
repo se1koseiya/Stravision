@@ -1,25 +1,12 @@
 "use client"
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useEffect } from "react"
-import {
-  Table,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  InputNumber,
-  Button,
-  Tag,
-  Space,
-  Popconfirm,
-  App,
-  Card,
-  ColorPicker,
-  Typography
-} from "antd"
+import { Table, Modal, Form, Input, Select, Switch, InputNumber, Button, Tag, Space, Popconfirm, Card, ColorPicker, Typography } from "antd"
 import type { ColumnsType } from "antd/es/table"
-import { IconChartLine, IconCompass, IconCpu, IconDelete, IconFan, IconLight, IconPencil, IconPlus, IconRefresh, IconSun, IconThermometer, IconVideo, IconWater } from "@/components/icon";
+import { IconCpu, IconDelete, IconPencil, IconPlus, IconRefresh } from "@/components/icon";
+// 图标解析统一走设备模块的规范实现（唯一白名单 + legacy 别名表），此处不再维护第二份映射表
+import { normalizeDeviceIconName, resolveDeviceIcon, ICON_OPTIONS } from "@/components/device/device-manager-dialog";
 
 const { Text } = Typography
 const { TextArea } = Input
@@ -83,18 +70,8 @@ const TYPE_LABEL: Record<DeviceType, string> = {
   stepper: "步进电机"
 }
 
-// 设备图标映射（lucide-react），未命中回退到 Cpu
-const DEVICE_ICON_MAP: Record<string, React.ComponentType<{ size?: number; strokeWidth?: number }>> = {
-  IconWater,
-  IconFan,
-  IconLight,
-  IconSun,
-  IconThermometer,
-  IconVideo,
-  IconCompass,
-  IconChartLine,
-  Cpu
-}
+// 设备图标解析：白名单 + legacy 别名归一（未命中回退通用芯片图标）
+// 统一走 @/components/device/device-manager-dialog 导出的 resolveDeviceIcon，此处不再维护第二份映射表
 
 const DEFAULT_FORM: FormValues = {
   name: "",
@@ -103,7 +80,7 @@ const DEFAULT_FORM: FormValues = {
   subscribe_topic: "",
   publish_topic: "",
   node_id: "",
-  icon: "Cpu",
+  icon: "IconCpu",
   is_critical: false,
   is_enabled: true,
   sort_order: 0,
@@ -120,14 +97,14 @@ function formatTime(ts: number): string {
 }
 
 function renderDeviceIcon(iconName: string, color: string, box: number = 28) {
-  const Icon = DEVICE_ICON_MAP[iconName] || IconCpu
+  const Icon = resolveDeviceIcon(iconName)
   return (
     <div
       style={{
         width: box,
         height: box,
         borderRadius: 6,
-        background: color || "#1677ff",
+        background: color || "#059669",
         color: "white",
         display: "flex",
         alignItems: "center",
@@ -135,7 +112,7 @@ function renderDeviceIcon(iconName: string, color: string, box: number = 28) {
         flexShrink: 0
       }}
     >
-      <Icon size={Math.floor(box * 0.5)} strokeWidth={1.75} />
+      <Icon size={Math.floor(box * 0.5)} strokeWidth={2} />
     </div>
   )
 }
@@ -143,14 +120,14 @@ function renderDeviceIcon(iconName: string, color: string, box: number = 28) {
 // ─── 组件 ───
 
 export default function DeviceManager() {
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
-  const [color, setColor] = useState<string>("#1677ff")
+  const [color, setColor] = useState<string>("#059669")
   const [form] = Form.useForm<FormValues>()
   const typeValue = Form.useWatch("type", form) as DeviceType | undefined
 
@@ -177,7 +154,7 @@ export default function DeviceManager() {
     setEditingId(null)
     form.resetFields()
     form.setFieldsValue(DEFAULT_FORM)
-    setColor("#1677ff")
+    setColor("#059669")
     setModalOpen(true)
   }
 
@@ -190,13 +167,13 @@ export default function DeviceManager() {
       subscribe_topic: device.subscribe_topic || "",
       publish_topic: device.publish_topic || "",
       node_id: device.node_id || "",
-      icon: device.icon || "Cpu",
+      icon: normalizeDeviceIconName(device.icon),
       is_critical: !!device.is_critical,
       is_enabled: !!device.is_enabled,
       sort_order: device.sort_order ?? 0,
       config: JSON.stringify(device.config || {}, null, 2)
     })
-    setColor(device.color || "#1677ff")
+    setColor(device.color || "#059669")
     setModalOpen(true)
   }
 
@@ -233,7 +210,7 @@ export default function DeviceManager() {
       subscribe_topic: (values.subscribe_topic || "").trim() || undefined,
       publish_topic: (values.publish_topic || "").trim() || undefined,
       node_id: (values.node_id || "").trim() || undefined,
-      icon: (values.icon || "").trim() || "Cpu",
+      icon: normalizeDeviceIconName(values.icon),
       color,
       is_critical: values.type === "relay" ? !!values.is_critical : false,
       is_enabled: !!values.is_enabled,
@@ -313,7 +290,7 @@ export default function DeviceManager() {
         <Space size={10}>
           {renderDeviceIcon(record.icon, record.color)}
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 500, lineHeight: 1.3, color: "#1F2329" }}>
+            <div style={{ fontWeight: 500, lineHeight: 1.3, color: "#18181B" }}>
               {record.name}
             </div>
             {record.category && (
@@ -343,7 +320,7 @@ export default function DeviceManager() {
         nodeId ? (
           <Text style={{ fontFamily: "monospace", fontSize: 12 }}>{nodeId}</Text>
         ) : (
-          <Text type="disabled">—</Text>
+          <Text type="secondary">—</Text>
         )
     },
     {
@@ -369,7 +346,7 @@ export default function DeviceManager() {
             </div>
           )}
           {!record.subscribe_topic && !record.publish_topic && (
-            <Text type="disabled">—</Text>
+            <Text type="secondary">—</Text>
           )}
         </Space>
       )
@@ -396,7 +373,7 @@ export default function DeviceManager() {
             关键
           </Tag>
         ) : (
-          <Text type="disabled">—</Text>
+          <Text type="secondary">—</Text>
         )
     },
     {
@@ -431,7 +408,7 @@ export default function DeviceManager() {
           <Button
             type="text"
             size="small"
-            icon={<IconPencil size={14} strokeWidth={1.75} />}
+            icon={<IconPencil size={14} strokeWidth={2} />}
             onClick={() => handleEdit(record)}
             title="编辑"
           />
@@ -447,7 +424,7 @@ export default function DeviceManager() {
               type="text"
               size="small"
               danger
-              icon={<IconDelete size={14} strokeWidth={1.75} />}
+              icon={<IconDelete size={14} strokeWidth={2} />}
               title="删除"
             />
           </Popconfirm>
@@ -470,7 +447,7 @@ export default function DeviceManager() {
           }}
         >
           <div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: "#1F2329" }}>
+            <div style={{ fontSize: 16, fontWeight: 500, color: "#18181B" }}>
               设备注册表
             </div>
             <div style={{ fontSize: 12, color: "#8F959E", marginTop: 2 }}>
@@ -480,7 +457,7 @@ export default function DeviceManager() {
           </div>
           <Space>
             <Button
-              icon={<IconRefresh size={14} strokeWidth={1.75} />}
+              icon={<IconRefresh size={14} strokeWidth={2} />}
               onClick={fetchDevices}
               loading={loading}
             >
@@ -488,7 +465,7 @@ export default function DeviceManager() {
             </Button>
             <Button
               type="primary"
-              icon={<IconPlus size={14} strokeWidth={1.75} />}
+              icon={<IconPlus size={14} strokeWidth={2} />}
               onClick={handleAdd}
             >
               新增设备
@@ -513,7 +490,7 @@ export default function DeviceManager() {
         onCancel={() => !saving && setModalOpen(false)}
         title={
           <Space>
-            <IconCpu size={16} strokeWidth={1.75} style={{ color: "#1677ff" }} />
+            <IconCpu size={16} strokeWidth={2} style={{ color: "#059669" }} />
             <span>{editingId ? "编辑设备" : "新增设备"}</span>
           </Space>
         }
@@ -593,10 +570,10 @@ export default function DeviceManager() {
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 16 }}>
             <Form.Item
               name="icon"
-              label="图标名称"
-              tooltip="lucide-react 图标名，如 Droplets / Fan / Lightbulb / Sun / Thermometer / Video / Compass"
+              label="图标"
+              tooltip="与设备管理弹窗共用同一套图标白名单，保存为规范 Icon* 名"
             >
-              <Input placeholder="例如 Droplets" />
+              <Select options={ICON_OPTIONS} placeholder="选择图标" />
             </Form.Item>
             <Form.Item label="颜色">
               <ColorPicker

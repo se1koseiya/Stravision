@@ -23,6 +23,11 @@ directories:
   output: ../release
   buildResources: build
 
+# 打包收尾：翻 Electron Fuses（禁用注入/调试 + asar 完整性校验）。
+# 与「混淆副本」配合：改 app.asar 里的任何字节都会通不过校验，应用起不来。
+# 见 desktop/after-pack.cjs 与 scripts/desktop/obfuscate-desktop.mjs。
+afterPack: after-pack.cjs
+
 # 🚨 必须配置 publish：electron-updater 运行期从 resources/app-update.yml 读更新源，
 #    而该文件只有配置了 publish 才会在打包时生成。4.2.0-4.2.3 缺失 → 客户端首查
 #    ENOENT 静默失败，在线更新从未生效（2026-09-16 修复）。只影响生成产物，不会自动发布。
@@ -37,6 +42,16 @@ asarUnpack:
   - "**/node_modules/embedded-postgres/**"
 
 extraResources:
+  # 🚨 静态 UI 页面（splash 启动图 / activate 激活窗口）必须放在 asar 之外：
+  #   本机打出的 app.asar 里路径是 Windows 反斜杠形态，Chromium 的 file:// 加载会
+  #   ERR_FILE_NOT_FOUND（Node 的 require 能容错，所以这个坑很隐蔽）。
+  #   主进程已改为打包态读 <resources>/ui（见 desktop/main.js 的 uiDir()）。
+  #   ⚠️ 2026-10-07：首启向导已从 ui/setup.html 改成 Next 路由 /desktop-setup，
+  #      不再走 file://，因此不在此列（它随 app-server 的 public/ 一起分发）。
+  - from: ui
+    to: ui
+    filter:
+      - "**/*"
   # Next standalone 完整运行时（已由 scripts/desktop/prepare-standalone.mjs 补齐
   # public/.next/static/server/ws-server/.agents/data/docs）。
   # 必须在 asar 之外：server.js 运行期动态读文件，asar 虚拟文件系统不可靠。
@@ -54,6 +69,27 @@ extraResources:
     to: app-server/node_modules
     filter:
       - "**/*"
+  # 🚨 第三处同源坑：Turbopack 把 serverExternalPackages（pg/jose/bcryptjs/node-cron/ws）
+  #   外部化到 `.next/node_modules/<name>-<16位hash>/`。这一层位于拷贝源的**第二层**，
+  #   理论上 createFilter 只吞"根层 node_modules"，但实测安装包里整层缺失
+  #   （上游 Next 复制阶段先失败 → 目录为空，见 prepare-standalone.mjs 的
+  #    ensureExternalPackages()）。显式再拷一次，与根层 node_modules 同一处置。
+  #   漏掉它 = 服务端 instrumentation hook 加载失败，界面直接 Internal Server Error。
+  - from: ../.next/standalone/.next/node_modules
+    to: app-server/.next/node_modules
+    filter:
+      - "**/*"
+  # 🎥 FFmpeg 静态二进制（RTMP 摄像头预览 /api/stream-rtmp 与 AI 抓帧必需）：
+  #   用户机器上通常没装 FFmpeg，且 Electron 子进程的 PATH 不含开发机安装目录，
+  #   裸 spawn("ffmpeg") 必然 ENOENT。这里随包内置，落在 resources/ffmpeg/<platform-arch>/，
+  #   desktop/lib/config.js 会把绝对路径通过 STRAVISION_FFMPEG_PATH 注入 Next 子进程。
+  #   必须在 asar 之外 —— asar 内的文件无法被 spawn。
+  #   打包前由 `pnpm desktop:fetch:ffmpeg` 落到 .cache/ffmpeg/（见 scripts/desktop/fetch-ffmpeg.mjs）。
+  - from: ../.cache/ffmpeg
+    to: ffmpeg
+    filter:
+      - "**/*"
+      - "!**/*.part"
 
 win:
   target:
@@ -70,6 +106,8 @@ win:
     - "!package-lock.json"
     - "!.npmrc"
     - "!electron-builder.yml"
+    - "!after-pack.cjs"
+    - "!ui/**"
     # 只保留 Windows 的内嵌 PostgreSQL 二进制（每平台包 ~40-60MB）
     - "!**/node_modules/@embedded-postgres/darwin-*/**"
     - "!**/node_modules/@embedded-postgres/linux-*/**"
@@ -103,6 +141,8 @@ mac:
     - "!package-lock.json"
     - "!.npmrc"
     - "!electron-builder.yml"
+    - "!after-pack.cjs"
+    - "!ui/**"
     - "!**/node_modules/@embedded-postgres/win32-*/**"
     - "!**/node_modules/@embedded-postgres/linux-*/**"
 
@@ -121,5 +161,7 @@ linux:
     - "!package-lock.json"
     - "!.npmrc"
     - "!electron-builder.yml"
+    - "!after-pack.cjs"
+    - "!ui/**"
     - "!**/node_modules/@embedded-postgres/win32-*/**"
     - "!**/node_modules/@embedded-postgres/darwin-*/**"

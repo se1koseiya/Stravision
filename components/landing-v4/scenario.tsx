@@ -35,9 +35,9 @@ const DeviceDemo = dynamic(
   { ssr: false, loading: () => <DemoChatSkeleton /> }
 );
 
-type Step = { icon: typeof IconSearch; label: string; note: string };
+export type Step = { icon: typeof IconSearch; label: string; note: string };
 
-type Scene = {
+export type Scene = {
   key: string;
   tab: string;
   desc: string;
@@ -48,6 +48,12 @@ type Scene = {
   preview: React.ReactNode;
   /** 预览区内容容器的额外类 */
   previewClass?: string;
+  /**
+   * 预览窗口（白底那一层）的高度类。
+   * 默认 `h-[24rem] md:h-[30.8rem]`；要装下「整条页面侧栏」这类高个子内容时，
+   * 由场景自己传一个更高的值（如产品更新页的 Copilot 场景）。
+   */
+  previewWindowClass?: string;
 };
 
 const SCENES: Scene[] = [
@@ -177,7 +183,7 @@ function SceneCard({ s, active, onClick }: { s: Scene; active: boolean; onClick:
       type="button"
       onClick={onClick}
       aria-selected={active}
-      className={`group relative flex rounded-3xl text-left transition-all duration-500 ${
+      className={`group relative flex rounded-2xl text-left transition-all duration-500 ${
         active
           ? "flex-1 flex-row items-start gap-[1.1rem] p-3.5 lg:flex-[2] lg:min-h-[10.5rem] lg:px-5 lg:py-3.5"
           : "flex-col items-center justify-center gap-3 p-3.5 lg:flex-1 lg:min-h-[10.5rem] lg:px-5 lg:py-3.5"
@@ -222,10 +228,28 @@ function SceneCard({ s, active, onClick }: { s: Scene; active: boolean; onClick:
   );
 }
 
-export function Scenarios() {
+/**
+ * 场景区可被别的页复用来演别的场景（2026-09-29 新增，全部可选）：
+ * 不传 = 落地页原样（深度研究 / 记忆 / 设备调控）；产品更新页传自己的三个场景。
+ */
+export interface ScenariosProps {
+  /** 场景列表（默认落地页那三个） */
+  scenes?: Scene[];
+  /** 区块大标题（默认「为多种种植场景而设计」） */
+  heading?: React.ReactNode;
+  /** 标题旁的手写感胶囊文案 */
+  hint?: string;
+}
+
+export function Scenarios({ scenes = SCENES, heading, hint }: ScenariosProps = {}) {
   const [active, setActive] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
-  const scene = SCENES[active];
+  const scene = scenes[active] ?? scenes[0];
+
+  // 传入的 scenes 变短时把选中项拉回范围内
+  useEffect(() => {
+    if (active >= scenes.length) setActive(0);
+  }, [active, scenes.length]);
 
   // 流程列表的高亮项依次推进，让「管线在跑」这件事可见
   useEffect(() => {
@@ -234,27 +258,33 @@ export function Scenarios() {
     return () => clearInterval(timer);
   }, [active]);
 
+  if (!scene) return null;
+
   return (
     <section className="pb-36 pt-24" style={{ background: L.surface }}>
       <div className={CONTAINER}>
         {/* 标题 + 手写感胶囊 */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-10">
           <h2 className="max-w-[29rem]" style={SECTION_TITLE}>
-            为多种种植场景
-            <br />
-            而设计
+            {heading ?? (
+              <>
+                为多种种植场景
+                <br />
+                而设计
+              </>
+            )}
           </h2>
           <p
             className="w-fit shrink-0 whitespace-nowrap rounded-full px-[1.15rem] py-3 text-[0.9375rem] font-bold leading-[1.4] lg:mt-[1.1rem]"
             style={{ background: L.accent, color: "#12291D", transform: "rotate(2deg)" }}
           >
-            点击卡片切换预览
+            {hint ?? "点击卡片切换预览"}
           </p>
         </div>
 
         {/* 场景卡切换器 */}
         <div className="mt-12 flex flex-col gap-4 lg:flex-row">
-          {SCENES.map((s, i) => (
+          {scenes.map((s, i) => (
             <SceneCard key={s.key} s={s} active={i === active} onClick={() => setActive(i)} />
           ))}
         </div>
@@ -290,7 +320,9 @@ export function Scenarios() {
                 }}
               >
                 <div
-                  className="h-[24rem] w-full overflow-hidden rounded-t-[1.15rem] border border-b-0 bg-white md:h-[30.8rem] dark:bg-[#121713]"
+                  className={`w-full overflow-hidden rounded-t-[1.15rem] border border-b-0 bg-white dark:bg-[#121713] ${
+                    scene.previewWindowClass ?? "h-[24rem] md:h-[30.8rem]"
+                  }`}
                   style={{ borderColor: "var(--lg-window-border)", boxShadow: SHADOW.halo }}
                 >
                   <div data-chat-scroll className="h-full overflow-y-auto p-5">

@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Dropdown, Tooltip, message } from "antd"
+import { Dropdown, Tooltip } from "antd"
+
+import { toast } from "@/lib/ui/feedback"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { IconBrain, IconClose, IconDelete, IconDownload, IconFileText, IconFilter, IconFolderOpen, IconLayoutTwo, IconMagic, IconMore, IconMusic, IconPicture, IconPlay, IconPlus, IconPreviewOpen, IconSearch, IconShare, IconStar, IconTime } from "@/components/icon";
@@ -41,20 +43,27 @@ interface MySpaceSidebarPanelProps {
 }
 
 const TYPE_META: Record<string, { label: string; color: string; icon: any }> = {
-  report:    { label: "报告",   color: "#6366f1", icon: IconFileText },
-  video:     { label: "视频",   color: "#ec4899", icon: IconPlay },
-  task:      { label: "任务助理", color: "#10b981", icon: IconMagic },
-  file:      { label: "文件",   color: "#3b82f6", icon: IconFileText },
-  audio:     { label: "音频",   color: "#f59e0b", icon: IconMusic },
-  creation:  { label: "创作",   color: "#8b5cf6", icon: IconMagic },
-  image:     { label: "图片",   color: "#06b6d4", icon: IconPicture },
+  report:    { label: "报告",   color: "#52525b", icon: IconFileText },
+  video:     { label: "视频",   color: "#71717a", icon: IconPlay },
+  task:      { label: "任务助理", color: "#059669", icon: IconMagic },
+  file:      { label: "文件",   color: "#059669", icon: IconFileText },
+  audio:     { label: "音频",   color: "#52525B", icon: IconMusic },
+  creation:  { label: "创作",   color: "#52525b", icon: IconMagic },
+  image:     { label: "图片",   color: "#52525b", icon: IconPicture },
 }
 
 const pad2 = (n: number) => n.toString().padStart(2, "0")
 
-/** 格式化为 "2026-05-21 23:07" 风格 */
+/** 归一 timestamp：兼容秒级（10 位）/毫秒级（13 位）输入，非法值返回 NaN */
+const toMs = (ts: number) => {
+  if (!Number.isFinite(ts)) return NaN
+  return ts < 1e12 ? ts * 1000 : ts
+}
+
+/** 格式化为 "2026-05-21 23:07" 风格；无效时间返回空串，避免显示 NaN-NaN-NaN NaN:NaN */
 const formatFullTime = (timestamp: number): string => {
-  const d = new Date(timestamp)
+  const d = new Date(toMs(timestamp))
+  if (isNaN(d.getTime())) return ""
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
@@ -72,7 +81,7 @@ const Thumbnail = ({ item, darkMode }: { item: SpaceItem; darkMode: boolean }) =
 
   if (firstImage) {
     return (
-      <div className="relative w-[72px] h-[54px] rounded-md overflow-hidden flex-shrink-0 border border-black/5 dark:border-white/5">
+      <div className="relative w-[72px] h-[54px] rounded-lg overflow-hidden flex-shrink-0 border border-black/5 dark:border-white/5">
         <img src={firstImage} alt={item.title} className="w-full h-full object-cover" />
         <div
           className="absolute top-1 left-1 w-4 h-4 rounded flex items-center justify-center"
@@ -86,8 +95,8 @@ const Thumbnail = ({ item, darkMode }: { item: SpaceItem; darkMode: boolean }) =
 
   return (
     <div
-      className="relative w-[72px] h-[54px] rounded-md flex items-center justify-center flex-shrink-0"
-      style={{ background: darkMode ? "rgba(255,255,255,0.04)" : "#f3f4f6" }}
+      className="relative w-[72px] h-[54px] rounded-lg flex items-center justify-center flex-shrink-0"
+      style={{ background: darkMode ? "rgba(255,255,255,0.04)" : "#f4f4f5" }}
     >
       <div
         className="absolute top-1 left-1 w-4 h-4 rounded flex items-center justify-center"
@@ -95,7 +104,7 @@ const Thumbnail = ({ item, darkMode }: { item: SpaceItem; darkMode: boolean }) =
       >
         <Icon size={9} className="text-white" />
       </div>
-      <Icon size={22} style={{ color: darkMode ? "#52525b" : "#cbd5e1" }} />
+      <Icon size={22} style={{ color: darkMode ? "#52525b" : "#d4d4d8" }} />
     </div>
   )
 }
@@ -125,7 +134,7 @@ const ItemRow = ({
         "group flex items-center gap-4 py-3.5 px-2 rounded-lg cursor-pointer transition-colors border-b",
         isDark
           ? "hover:bg-zinc-900/60 border-zinc-900"
-          : "hover:bg-gray-50 border-gray-100"
+          : "hover:bg-zinc-50 border-zinc-100"
       )}
     >
       <Thumbnail item={item} darkMode={isDark} />
@@ -134,14 +143,14 @@ const ItemRow = ({
       <div className="flex-1 min-w-0">
         <div
           className={cn(
-            "text-[14.5px] font-medium truncate leading-tight",
-            isDark ? "text-zinc-100" : "text-gray-900"
+            "text-[14px] font-medium truncate leading-tight",
+            isDark ? "text-zinc-100" : "text-zinc-900"
           )}
         >
           {item.title}
         </div>
         {item.html && item.type === "task" && (
-          <div className={cn("text-[12px] truncate mt-0.5", isDark ? "text-zinc-500" : "text-gray-400")}>
+          <div className={cn("text-[12px] truncate mt-0.5", isDark ? "text-zinc-500" : "text-zinc-400")}>
             {/* 子描述：解析出 html 中的第一行纯文本作为摘要 */}
             {extractFirstLine(item.html)}
           </div>
@@ -150,8 +159,8 @@ const ItemRow = ({
 
       {/* 类型标签 */}
       <div
-        className="text-[12.5px] flex-shrink-0 w-16 text-right"
-        style={{ color: isDark ? "#71717a" : "#9ca3af" }}
+        className="text-[13px] flex-shrink-0 w-16 text-right"
+        style={{ color: isDark ? "#71717a" : "#A1A1AA" }}
       >
         {meta.label}
       </div>
@@ -159,8 +168,8 @@ const ItemRow = ({
       {/* 时间戳 */}
       <div
         className={cn(
-          "text-[12.5px] flex-shrink-0 w-[120px] text-right tabular-nums",
-          isDark ? "text-zinc-500" : "text-gray-400"
+          "text-[13px] flex-shrink-0 w-[120px] text-right tabular-nums",
+          isDark ? "text-zinc-500" : "text-zinc-400"
         )}
       >
         {formatFullTime(item.timestamp)}
@@ -170,15 +179,15 @@ const ItemRow = ({
       <div
         className={cn(
           "flex items-center gap-1 flex-shrink-0 transition-opacity",
-          isDark ? "text-zinc-500" : "text-gray-400"
+          isDark ? "text-zinc-500" : "text-zinc-400"
         )}
       >
         <Tooltip title="分享">
           <button
             onClick={(e) => { e.stopPropagation() }}
             className={cn(
-              "w-7 h-7 flex items-center justify-center rounded-md transition-colors",
-              isDark ? "hover:bg-zinc-800 hover:text-zinc-200" : "hover:bg-gray-100 hover:text-gray-700"
+              "w-7 h-7 flex items-center justify-center rounded-lg transition-colors",
+              isDark ? "hover:bg-zinc-800 hover:text-zinc-200" : "hover:bg-zinc-100 hover:text-zinc-700"
             )}
           >
             <IconShare size={14} />
@@ -199,8 +208,8 @@ const ItemRow = ({
           <button
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "w-7 h-7 flex items-center justify-center rounded-md transition-colors",
-              isDark ? "hover:bg-zinc-800 hover:text-zinc-200" : "hover:bg-gray-100 hover:text-gray-700"
+              "w-7 h-7 flex items-center justify-center rounded-lg transition-colors",
+              isDark ? "hover:bg-zinc-800 hover:text-zinc-200" : "hover:bg-zinc-100 hover:text-zinc-700"
             )}
           >
             <IconMore size={14} />
@@ -258,8 +267,8 @@ function buildMenuItems({ item, onOpen, onDownload, onToggleFavorite, onDelete }
     items.push({ type: "divider" })
     items.push({
       key: "delete",
-      label: <span style={{ color: "#ef4444" }}>删除</span>,
-      icon: <IconDelete size={13} style={{ color: "#ef4444" }} />,
+      label: <span style={{ color: "#DC2626" }}>删除</span>,
+      icon: <IconDelete size={13} style={{ color: "#DC2626" }} />,
       danger: true,
       onClick: stopAndRun(onDelete),
     })
@@ -297,13 +306,13 @@ export function MySpaceSidebarPanel({
       })
       const data = await res.json()
       if (!res.ok) {
-        message.error(data?.error || "生成记忆档案失败")
+        toast.error(data?.error || "生成记忆档案失败")
       } else {
-        message.success("记忆档案已生成并保存到我的空间")
+        toast.success("记忆档案已生成并保存到我的空间")
         onItemsChange?.()
       }
     } catch {
-      message.error("网络错误，请稍后重试")
+      toast.error("网络错误，请稍后重试")
     } finally {
       setGeneratingMemory(false)
     }
@@ -347,7 +356,7 @@ export function MySpaceSidebarPanel({
       return
     }
     if (!item.html) {
-      message.warning("该条目没有可下载内容")
+      toast.warning("该条目没有可下载内容")
       return
     }
     const blob = new Blob([item.html], { type: 'text/html;charset=utf-8' })
@@ -395,7 +404,7 @@ export function MySpaceSidebarPanel({
             "fixed z-[150] flex flex-col font-sans overflow-hidden",
             "top-3 right-3 bottom-3",
             sidebarOpen ? "left-[272px]" : "left-3",
-            isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
+            isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900",
             closing && "pointer-events-none"
           )}
           style={{ borderRadius: 10 }}
@@ -418,7 +427,7 @@ export function MySpaceSidebarPanel({
                         "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                         isDark
                           ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                       )}
                     >
                       <IconLayoutTwo size={17} />
@@ -433,7 +442,7 @@ export function MySpaceSidebarPanel({
                         "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                         isDark
                           ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                       )}
                     >
                       <IconPlus size={17} />
@@ -447,7 +456,7 @@ export function MySpaceSidebarPanel({
                 <h1
                   className={cn(
                     "text-2xl font-semibold tracking-tight",
-                    isDark ? "text-zinc-100" : "text-gray-900"
+                    isDark ? "text-zinc-100" : "text-zinc-900"
                   )}
                 >
                   我的空间
@@ -455,7 +464,7 @@ export function MySpaceSidebarPanel({
                 <p
                   className={cn(
                     "mt-1 text-sm",
-                    isDark ? "text-zinc-500" : "text-gray-500"
+                    isDark ? "text-zinc-500" : "text-zinc-500"
                   )}
                 >
                   你生成的所有内容都会保存在这里
@@ -469,7 +478,7 @@ export function MySpaceSidebarPanel({
                       "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                       isDark
                         ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                        : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                     )}
                   >
                     <IconClose size={17} />
@@ -484,17 +493,17 @@ export function MySpaceSidebarPanel({
                 "flex items-center gap-2 px-3 h-9 rounded-lg border transition-colors",
                 isDark
                   ? "bg-zinc-900 border-zinc-800 focus-within:border-zinc-700"
-                  : "bg-gray-50 border-gray-200 focus-within:border-gray-300"
+                  : "bg-zinc-50 border-zinc-200 focus-within:border-zinc-300"
               )}
             >
-              <IconSearch size={14} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+              <IconSearch size={14} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
               <input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="搜索内容…"
                 className={cn(
-                  "flex-1 bg-transparent outline-none text-[13.5px]",
-                  isDark ? "text-zinc-200 placeholder:text-zinc-600" : "text-gray-800 placeholder:text-gray-400"
+                  "flex-1 bg-transparent outline-none text-[13px]",
+                  isDark ? "text-zinc-200 placeholder:text-zinc-600" : "text-zinc-800 placeholder:text-zinc-400"
                 )}
               />
             </div>
@@ -511,7 +520,7 @@ export function MySpaceSidebarPanel({
             <div
               className={cn(
                 "sticky top-0 z-10 flex items-center justify-between px-8 pt-2 pb-3 border-b",
-                isDark ? "bg-zinc-950 border-zinc-900" : "bg-white border-gray-100"
+                isDark ? "bg-zinc-950 border-zinc-900" : "bg-white border-zinc-100"
               )}
             >
               <div className="flex items-center gap-6">
@@ -528,10 +537,10 @@ export function MySpaceSidebarPanel({
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
                       className={cn(
-                        "relative py-2 text-[14.5px] font-medium transition-colors",
+                        "relative py-2 text-[14px] font-medium transition-colors",
                         active
-                          ? (isDark ? "text-zinc-100" : "text-gray-900")
-                          : (isDark ? "text-zinc-500 hover:text-zinc-300" : "text-gray-500 hover:text-gray-800")
+                          ? (isDark ? "text-zinc-100" : "text-zinc-900")
+                          : (isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-800")
                       )}
                     >
                       {tab.label}
@@ -539,7 +548,7 @@ export function MySpaceSidebarPanel({
                         className={cn(
                           "absolute -bottom-[13px] left-0 right-0 h-[2px] rounded-full transition-all duration-200",
                           active
-                            ? (isDark ? "bg-zinc-100 opacity-100 scale-x-100" : "bg-gray-900 opacity-100 scale-x-100")
+                            ? (isDark ? "bg-zinc-100 opacity-100 scale-x-100" : "bg-zinc-900 opacity-100 scale-x-100")
                             : "bg-transparent opacity-0 scale-x-0"
                         )}
                         style={{ pointerEvents: "none", transformOrigin: "center" }}
@@ -554,10 +563,10 @@ export function MySpaceSidebarPanel({
                     onClick={handleGenerateMemoryReport}
                     disabled={generatingMemory}
                     className={cn(
-                      "w-8 h-8 flex items-center justify-center rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                      "w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
                       isDark
                         ? "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
-                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
                     )}
                   >
                     <IconBrain size={15} className={generatingMemory ? "animate-pulse" : ""} />
@@ -566,10 +575,10 @@ export function MySpaceSidebarPanel({
                 <Tooltip title="筛选">
                   <button
                     className={cn(
-                      "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
+                      "w-8 h-8 flex items-center justify-center rounded-lg transition-colors",
                       isDark
                         ? "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
-                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
                     )}
                   >
                     <IconFilter size={15} />
@@ -579,10 +588,10 @@ export function MySpaceSidebarPanel({
                   <button
                     onClick={onItemsChange}
                     className={cn(
-                      "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
+                      "w-8 h-8 flex items-center justify-center rounded-lg transition-colors",
                       isDark
                         ? "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
-                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
                     )}
                   >
                     <IconTime size={15} />
@@ -598,15 +607,15 @@ export function MySpaceSidebarPanel({
                   <div
                     className={cn(
                       "w-16 h-16 rounded-2xl flex items-center justify-center mb-4",
-                      isDark ? "bg-zinc-900" : "bg-gray-50"
+                      isDark ? "bg-zinc-900" : "bg-zinc-50"
                     )}
                   >
-                    <IconFolderOpen size={28} className={isDark ? "text-zinc-700" : "text-gray-300"} />
+                    <IconFolderOpen size={28} className={isDark ? "text-zinc-700" : "text-zinc-300"} />
                   </div>
-                  <p className={cn("text-sm", isDark ? "text-zinc-500" : "text-gray-400")}>
+                  <p className={cn("text-sm", isDark ? "text-zinc-500" : "text-zinc-400")}>
                     {keyword ? "没有匹配的内容" : "暂无内容"}
                   </p>
-                  <p className={cn("text-xs mt-1", isDark ? "text-zinc-600" : "text-gray-300")}>
+                  <p className={cn("text-xs mt-1", isDark ? "text-zinc-600" : "text-zinc-300")}>
                     与 AI 对话生成的内容会自动保存到这里
                   </p>
                 </div>

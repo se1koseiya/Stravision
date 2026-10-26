@@ -41,7 +41,7 @@ export function CalendarTrigger({ className }: { className?: string }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto p-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-700/50 shadow-2xl rounded-[24px] overflow-hidden ring-1 ring-black/5" 
+        className="w-auto p-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-[24px] overflow-hidden ring-1 ring-black/5" 
         align="end"
         sideOffset={12}
       >

@@ -24,30 +24,30 @@ const LogicNode = ({ id, data, selected }: NodeProps) => {
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-slate-700 transition-colors"
+        className="w-3 h-3 !bg-zinc-400 !border-2 !border-white dark:!border-zinc-700 hover:!bg-zinc-700 transition-colors"
       />
       
       {/* 极简单色节点 */}
       <div className={cn(
-        "w-56 rounded-[10px] bg-white border overflow-hidden transition-all duration-150",
+        "w-56 rounded-[10px] bg-white dark:bg-zinc-900 border overflow-hidden transition-all duration-200",
         selected
-          ? "border-[#1677ff] shadow-[0_0_0_2px_rgba(22,119,255,0.10),0_4px_12px_rgba(22,119,255,0.08)]"
-          : "border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
-        status === 'running' ? "border-[#1677ff]" : "",
-        status === 'completed' ? "border-slate-300" : ""
+          ? "border-[#059669] shadow-[0_0_0_2px_rgba(0,148,86,0.10),0_4px_12px_rgba(0,148,86,0.08)]"
+          : "border-zinc-200 dark:border-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]",
+        status === 'running' ? "border-[#059669]" : "",
+        status === 'completed' ? "border-zinc-300 dark:border-zinc-600" : ""
       )}>
         <div className="px-5 pt-2.5 pb-3 space-y-2">
           <div className="flex items-center justify-between h-3.5">
-            <span className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">
+            <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-zinc-400 font-medium">
               {/* 菱形图标 = 判定（decision）语义 */}
               <svg viewBox="0 0 10 10" className="w-2 h-2">
                 <path d="M5 0 L10 5 L5 10 L0 5 Z" fill="none" stroke="currentColor" strokeWidth="1.2" />
               </svg>
               逻辑
             </span>
-            {status === 'running' && <span className="text-[10px] text-[#1677ff] font-medium">运行中</span>}
+            {status === 'running' && <span className="text-[11px] text-[#059669] font-medium">运行中</span>}
           </div>
-          <div className="text-[14px] font-medium text-slate-900 leading-snug">
+          <div className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 leading-snug">
             {data.label}
           </div>
           <div className="nodrag pt-1 space-y-2">
@@ -142,14 +142,14 @@ const LogicNode = ({ id, data, selected }: NodeProps) => {
         type="source"
         position={Position.Right}
         style={{ top: '30%' }}
-        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-emerald-500 transition-colors"
+        className="w-3 h-3 !bg-zinc-400 !border-2 !border-white dark:!border-zinc-700 hover:!bg-emerald-500 transition-colors"
       />
       <Handle
         id="false"
         type="source"
         position={Position.Right}
         style={{ top: '70%' }}
-        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-rose-500 transition-colors"
+        className="w-3 h-3 !bg-zinc-400 !border-2 !border-white dark:!border-zinc-700 hover:!bg-rose-500 transition-colors"
       />
     </div>
   );

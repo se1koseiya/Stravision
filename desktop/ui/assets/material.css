@@ -1,0 +1,154 @@
+/* ============================================================================
+   沉浸光感材质 —— 桌面端**静态引导页**（splash.html / activate.html）专用
+   ============================================================================
+
+   为什么会有这份文件：
+     这两页跑在 **bootstrap 最前面**（splash 是第 0 步、activate 是第 1 步的授权关卡），
+     窗口里根本加载不到 Next 服务，拿不到 layout.tsx 注入的
+     components/device/material-css.ts —— 所以只能按那边的数值手写一份等价实现。
+     又因为两页都要用，所以**不能各抄一份**（两份手写副本必然漂移），抽成这一份共享。
+
+   🚨 唯一来源仍然是 components/device/material-css.ts。改那边的数值，必须同步改这里；
+      两边不一致的表现是「激活窗口与首启向导长得不一样」。改完务必跑：
+        node desktop/verify-static-ui.mjs --shots   （需要 PUPPETEER_CORE_ROOT）
+
+   ⚠️ 只有亮色，不做暗色：这两页是「应用启动前」的品牌面，与 splash 同性质；
+      应用内的窗口（向导 / 主界面）才跟随系统主题。
+
+   ── 档位对应关系（与 material-css.ts 一一对应）──
+     .mat-rail   左栏承托面        = .dc-mat--regular
+     .mat-panel  全页唯一圆角容器  = .dc-mat--thick
+     .mat-field  输入框 / 文本域   = .dc-ctrl--field
+     .mat-brand  品牌 CTA          = .dc-ctrl--brand
+     .mat-seg    分段控件滑槽      = .dc-ctrl--track.dc-seg（凹槽）
+     .mat-ghost  幽灵按钮          = .dc-ctrl--ghost
+     .mat-press  按压反馈          = .dc-ctrl--press（③ 弹性 + ④ 点光源）
+
+   ── 使用纪律（踩过的坑）──
+     ⚠️ 页面自己的**版式规则绝不能声明** background / border / transition ——
+        它们排在 <link> 之后，同特异性下后写的赢，会静默盖掉材质
+        （表现是「一排没有光感的白控件」，CSS 不报错）。
+     ⚠️ 分段控件的**选中块**（那边叫 .dc-ctrl--thumb）不在这里建类：
+        滑块挂在页签按钮上，而页签按钮声明了 background:transparent 且排在后面，
+        独立材质类（0,1,0）会被它盖掉 → 白滑块静默消失。
+        所以走 `.tab.active`（0,2,0）才压得住。
+   ========================================================================== */
+
+@property --mgr { syntax: "<length>"; inherits: false; initial-value: 18px; }
+
+.mat-rail, .mat-panel, .mat-field, .mat-brand, .mat-seg, .mat-ghost {
+  --mb: 30px; --ms: 2.05; --mbri: 1.03; --mcont: 1.02;
+  --mline: rgba(255, 255, 255, .52);
+  /* 内缘光三件套（= --mat-edge）：上缘最亮（受光面）+ 边缘 1px 收口 + 四周一层极软内辉
+     （光在介质里漫反射）—— 不是硬描边。第三层最容易被漏掉，漏了材质会"发干"。 */
+  --medge: inset 0 0 1px rgba(255, 255, 255, .62), inset 0 1px 0 rgba(255, 255, 255, .58),
+           inset 0 0 24px -10px rgba(255, 255, 255, .40);
+  background-color: var(--mbg, rgba(255, 255, 255, .34));
+  -webkit-backdrop-filter: blur(var(--mb)) saturate(var(--ms)) brightness(var(--mbri)) contrast(var(--mcont));
+  backdrop-filter: blur(var(--mb)) saturate(var(--ms)) brightness(var(--mbri)) contrast(var(--mcont));
+  border: 1px solid var(--mline);
+  box-shadow: var(--mshadow, 0 1px 2px rgba(0, 0, 0, .03), 0 10px 28px -14px rgba(0, 0, 0, .10)), var(--medge);
+}
+
+/* 左栏＝承托面。**刻意无圆角也无边框**：一给圆角它就变成"第二个圆角矩形"，
+   与右侧面板打架。分隔只靠一条内阴影画出的 hairline（不占布局、不会叠成双线）。 */
+.mat-rail {
+  --mbg: rgba(255, 255, 255, .34);
+  border: 0; border-radius: 0;
+  box-shadow: inset -1px 0 0 rgba(9, 9, 11, .075), var(--medge);
+}
+
+/* 全页唯一的圆角容器 */
+.mat-panel {
+  --mb: 46px; --ms: 2.2; --mbri: 1.04;
+  --mbg: rgba(255, 255, 255, .46);
+  --mline: rgba(255, 255, 255, .58);
+  border-radius: 20px;
+}
+
+/* 控件压在卡片之上（而不是画布上），alpha 必须更低，让卡片的色光继续透上来 */
+.mat-field {
+  --mb: 24px; --ms: 2.1; --mbri: 1.04; --mline: rgba(255, 255, 255, .72);
+  --mbg: rgba(255, 255, 255, .44);
+  /* 控件的内缘光比卡片**更强**：面积小，全靠这一圈光说明「这是一块受光的介质」 */
+  --medge: inset 0 0 1px rgba(255, 255, 255, .72), inset 0 1px 0 rgba(255, 255, 255, .64);
+  --mshadow: 0 1px 2px rgba(0, 0, 0, .03), 0 6px 16px -12px rgba(0, 0, 0, .14);
+}
+
+/* 品牌 CTA：**不能靠降不透明度换光感**（品牌绿上的白字本来就紧，再降会掉到 3.4:1）。
+   所以光放在边缘与外部：填充接近实底，上缘 1px 白受光 + 外投影带品牌色 → 像自己发光。 */
+.mat-brand {
+  --mb: 16px; --ms: 1.45; --mbri: 1.06; --mline: rgba(255, 255, 255, .28);
+  --mbg: rgba(0, 140, 80, .94);
+  --medge: inset 0 1px 0 rgba(255, 255, 255, .42), inset 0 0 16px -6px rgba(255, 255, 255, .36);
+  --mshadow: 0 4px 14px -6px rgba(0, 148, 86, .55), 0 1px 2px rgba(0, 0, 0, .08);
+}
+/* hover：比静止态亮一点（受光增强），而不是换一个实色 */
+.mat-brand:hover:not(:disabled) {
+  --mbg: rgba(0, 152, 88, .95); --mbri: 1.10;
+  --mshadow: 0 6px 18px -6px rgba(0, 148, 86, .62), 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+/* 滑槽＝凹槽（比周围暗一档的中性介质）。光从上方来 → 上沿在阴影里、下沿受光，
+   所以是 inset 上黑 + inset 下白两条；凹槽**不能有白色描边**（凹陷的东西不该发光）。
+   ⚠️ 滑槽的 backdrop-filter 只有 blur / saturate / brightness，不带 contrast（那边就是这么写的）。 */
+.mat-seg {
+  --mbg: rgba(60, 60, 67, .055); --mline: rgba(60, 60, 67, .07);
+  background-color: var(--mbg);
+  -webkit-backdrop-filter: blur(18px) saturate(2.05) brightness(1.03);
+  backdrop-filter: blur(18px) saturate(2.05) brightness(1.03);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, .06), inset 0 -1px 0 rgba(255, 255, 255, .34),
+    inset 0 0 1px rgba(255, 255, 255, .62), inset 0 1px 0 rgba(255, 255, 255, .56);
+}
+
+/* 幽灵按钮：比 field 更淡，但**仍是一块有边缘光的介质**，不是裸文字 */
+.mat-ghost {
+  --mb: 14px; --ms: 1.7; --mbri: 1.04; --mcont: 1.01; --mline: rgba(255, 255, 255, .46);
+  --mbg: rgba(255, 255, 255, .30);
+  --medge: inset 0 0 1px rgba(255, 255, 255, .72), inset 0 1px 0 rgba(255, 255, 255, .64);
+  --mshadow: 0 1px 2px rgba(0, 0, 0, .02);
+}
+.mat-ghost:hover { --mbg: rgba(255, 255, 255, .52); --mline: rgba(255, 255, 255, .60); }
+
+/* ---------------------------------------------------------------- ③④ 按压反馈
+   = .dc-ctrl--press：③ 按压弹性（带一点回弹的 overshoot 曲线）+ ④ 按压点光源。
+   🚨 缩放必须走 CSS 独立属性 scale，**绝不能写 transform: scale()** ——
+      页面上的 WAAPI / framer-motion 动画占着 transform 通道，优先级高于普通声明，
+      会把 :active 里的 transform 整条吃掉（按下毫无反馈，而且 CSS 不报错、DevTools 也看不出来）。
+      scale 与 transform 正交合成，抢不走，也不会抹掉既有的 transform 居中写法。
+   ⚠️ transition 是**超集**：挂了 .mat-press 的控件自己就不要声明 transition 了
+      （页面里排在后面的普通规则会整条盖掉它，包括 background-color / color 的过渡）。 */
+.mat-press {
+  position: relative;
+  transition:
+    scale .16s cubic-bezier(.34, 1.56, .64, 1),
+    filter .16s ease,
+    box-shadow .22s ease, border-color .22s ease, background-color .22s ease,
+    color .2s ease;
+}
+.mat-press:active { scale: .96; filter: brightness(.95) saturate(1.06); }
+/* 点光源：控件太小，指针跟随没有意义 → 固定在中心向外扩散 */
+.mat-press::after {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  pointer-events: none; border-radius: inherit; opacity: 0;
+  /* plus-lighter：把光「加」上去而不是盖一层白膜 */
+  mix-blend-mode: plus-lighter;
+  background-image: radial-gradient(circle var(--mgr, 18px) at 50% 50%,
+    rgba(255, 255, 255, .72) 0%, rgba(255, 255, 255, .28) 42%, rgba(255, 255, 255, 0) 74%);
+}
+.mat-press:active::after { opacity: 1; animation: mat-bloom .5s cubic-bezier(.2, .72, .3, 1) both; }
+/* 涟漪式：扩散的同时淡掉，终帧 opacity 归 0 —— 按住不放也不会留一片常驻白光 */
+@keyframes mat-bloom {
+  0% { --mgr: 8px; opacity: .88 }
+  55% { --mgr: 84px; opacity: .40 }
+  100% { --mgr: 132px; opacity: 0 }
+}
+/* 禁用态不参与按压（浏览器多数不派发 :active，这里再兜一道） */
+.mat-press:disabled::after { display: none; }
+.mat-press:disabled:active { scale: none; filter: none; }
+@media (prefers-reduced-motion: reduce) {
+  .mat-press { transition: none }
+  .mat-press:active { scale: none; filter: none }
+  .mat-press:active::after { animation: none }
+}

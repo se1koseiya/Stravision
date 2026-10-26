@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 
 export function MessageNotificationListener() {
   const lastCheckedRef = useRef(Date.now())

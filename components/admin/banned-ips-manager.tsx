@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Form, Typography, Card } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { format } from "date-fns"
 import { BannedIP } from "@/lib/db/security-service"
 import { IconDelete, IconPause } from "@/components/icon";
@@ -80,7 +80,7 @@ export function BannedIPsManager() {
       dataIndex: "ip",
       key: "ip",
       render: (val: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#F5222D' }}>{val}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#DC2626' }}>{val}</span>
       ),
     },
     {

@@ -21,7 +21,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { IconApi, IconArrowLeft, IconBrain, IconChartLine, IconClickTap, IconDatabaseNetwork, IconDelete, IconGithub, IconGridFour, IconHandUp, IconLightning, IconLoading, IconLogout, IconMagic, IconMagicWand, IconMicrophone, IconPlay, IconPlus, IconRemind, IconSave, IconScan, IconSearch, IconSetting, IconSettingTwo, IconShield, IconSquareSmall, IconSwitch, IconTime, IconTimer, IconTrendingUp, IconVoiceOff, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
+import { IconApi, IconArrowLeft, IconBrain, IconChartLine, IconClickTap, IconDatabaseNetwork, IconDelete, IconGithub, IconGridFour, IconHandUp, IconLightning, IconLoading, IconLogout, IconMagic, IconMagicWand, IconPlay, IconPlus, IconRemind, IconSave, IconScan, IconSearch, IconSetting, IconSettingTwo, IconShield, IconSquareSmall, IconSwitch, IconTime, IconTimer, IconTrendingUp, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
 
 import TriggerNode from '@/components/automation/trigger-node';
 import LogicNode from '@/components/automation/logic-node';
@@ -32,20 +32,22 @@ import { EditorAIDefaultsContext, type EditorAIDefaults } from '@/components/aut
 import { NODE_TYPES } from '@/components/automation/node-types';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/lib/ui/feedback';
 // antd 组件（飞书式整体风格）
-import { Button as AntButton, Input as AntInput, Tag as AntTag, Drawer as AntDrawer } from 'antd';
+import { ConfigProvider, Button as AntButton, Input as AntInput, Tag as AntTag, Drawer as AntDrawer } from 'antd';
+import { useTheme } from "next-themes";
+import { antdScopeTheme } from "@/lib/theme/antd-scope-theme";
 import { DeviceSidebarList } from "@/components/automation/device-sidebar-list";
 // 新增：画布底部右下工具栏
 import { CanvasBottomToolbar } from "@/components/automation/canvas-bottom-toolbar";
+import { CopilotSidebar } from "@/components/ai/copilot/copilot-sidebar";
+import type { CopilotClientTools } from "@/components/ai/copilot/use-copilot-chat";
 import { PageNavigation } from "@/components/page-navigation";
 import { UserAvatarMenu } from "@/components/user-avatar-menu";
 import type { UserPublic } from "@/lib/db/user-service";
 import Image from "next/image";
 import { useEffect, Suspense } from "react";
-import { useSpeechRecognition } from "@/lib/hooks/use-speech-recognition";
 import { useSpeechSynthesis } from "@/lib/hooks/use-speech-synthesis";
-import { cn } from "@/lib/utils";
 import { useDeviceData } from "@/lib/hooks/use-device-data";
 
 const nodeTypes = {
@@ -53,6 +55,22 @@ const nodeTypes = {
   logicNode: LogicNode,
   actionNode: ActionNode,
   aiNode: AiNode,
+};
+
+/** 节点类型中文名（AI 新建节点但没给 label 时的兜底显示名） */
+const NODE_TYPE_CN: Record<string, string> = {
+  triggerNode: '触发器',
+  logicNode: '逻辑判断',
+  aiNode: 'AI 处理',
+  actionNode: '执行动作',
+};
+
+/** 节点类型 → 自动排布列坐标（AI 未指定 position 时用） */
+const NODE_COLUMN_X: Record<string, number> = {
+  triggerNode: 40,
+  logicNode: 340,
+  aiNode: 640,
+  actionNode: 940,
 };
 
 // 空白画布起步（不再预置示例节点和彩色连线）
@@ -76,6 +94,10 @@ function AutomationEditor() {
   const [selectedCount, setSelectedCount] = useState(0)
   // 交互模式：select = 平移/单选（默认），box = 拖拽框选多选
   const [interactionMode, setInteractionMode] = useState<'select' | 'box'>('select')
+
+  // 深色模式：画布点阵 / 连线 / antd 组件（Select、Input、Drawer…）统一跟随全局主题
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
   // 🔥 关键修复：规范化 nodes，确保每个节点都有合法的 position 和 id 字段，
   // 否则 React Flow 内部访问 node.position.x 时会抛出 "Cannot read properties of undefined (reading 'x')"
@@ -226,53 +248,17 @@ function AutomationEditor() {
 
   const [isSimulating, setIsSimulating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [isAiInputVisible, setIsAiInputVisible] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [quotaInfo, setQuotaInfo] = useState<{ daily_limit: number, daily_usage: number, balance: number } | null>(null);
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null);
   // 撤销/重做历史栈（快照节点/边集合）
   const undoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
   const redoStackRef = useRef<Array<{ nodes: Node[]; edges: Edge[] }>>([]);
-  const { screenToFlowPosition, toObject, deleteElements, getNodes, getEdges } = useReactFlow();
-
-  // Voice Interaction Hooks
-  const { 
-    isListening, 
-    transcript, 
-    startListening, 
-    stopListening, 
-    resetTranscript 
-  } = useSpeechRecognition({
-    continuous: true,
-    interimResults: true,
-    lang: 'zh-CN',
-    onResult: (result, isFinal) => {
-      if (isFinal) {
-        setAiPrompt(prev => prev ? `${prev} ${result}` : result);
-      }
-    },
-    onError: (err) => {
-      console.error("Speech recognition error:", err);
-      toast.error("语音识别出错: " + err);
-    }
-  });
+  const { screenToFlowPosition, toObject, deleteElements, getNodes, getEdges, fitView } = useReactFlow();
 
   const { speak, cancel: cancelSpeech, isSpeaking } = useSpeechSynthesis({
     lang: 'zh-CN',
     rate: 1.0,
     pitch: 1.0,
   });
-
-  const toggleListening = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      resetTranscript();
-      startListening();
-      toast.info("正在聆听...", { icon: <IconMicrophone className="w-4 h-4 animate-pulse" /> });
-    }
-  };
 
   const fetchUser = async () => {
     try {
@@ -398,11 +384,11 @@ function AutomationEditor() {
             type: 'deletable',
             animated: true,
             label,
-            labelStyle: { fill: "#475569", fontSize: 11, fontWeight: 500 },
+            labelStyle: { fill: "#52525B", fontSize: 11, fontWeight: 500 },
             labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9 },
             labelBgPadding: [4, 2],
             labelBgBorderRadius: 4,
-            style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+            style: { stroke: "#a1a1aa", strokeWidth: 1.5 },
           },
           eds
         )
@@ -432,6 +418,356 @@ function AutomationEditor() {
     setNodes(next.nodes)
     setEdges(next.edges)
   }, [nodes, edges, setNodes, setEdges])
+
+  // ===================== AI 画布操作（前端工具 automation_canvas_apply 的执行器）=====================
+  // 为什么在前端执行：画布（ReactFlow nodes/edges）是编辑器的本地 state，后端既看不到也未落库。
+  // 链路：模型 tool_call → 后端推 SSE client_tool_call → 这里落到 state（实时可见）→ 结果回传 → 模型继续。
+  // 约束：整批 ops 只压一次撤销栈（用户 Ctrl+Z 可整体回退）；不自动保存，避免覆盖用户未存的编辑。
+
+  /** DOM 级脉冲高亮：只加临时 class，不写进节点对象 —— 否则保存时会落进 graph_data */
+  const pulseNodes = useCallback((ids: string[]) => {
+    if (!ids.length) return
+    /**
+     * 逐个点亮，而不是一次性全亮 —— 让用户看得见"AI 在挨个动这些节点"。
+     * 改动多时压缩间隔，保证整体节奏仍落在 ~1.2s 内。
+     */
+    const step = ids.length <= 6 ? 200 : Math.max(55, Math.round(1200 / ids.length))
+    requestAnimationFrame(() => {
+      ids.forEach((id, i) => {
+        setTimeout(() => {
+          const el = document.querySelector(`.react-flow__node[data-id="${id}"]`) as HTMLElement | null
+          if (!el) return
+          el.classList.remove('ai-fresh')
+          void el.offsetWidth // 强制重排，让动画可重放
+          el.classList.add('ai-fresh')
+          setTimeout(() => el.classList.remove('ai-fresh'), 2800)
+        }, i * step)
+      })
+    })
+  }, [])
+
+  const applyCanvasOps = useCallback(
+    async (args: any) => {
+      const ops: any[] = Array.isArray(args?.ops) ? args.ops : []
+      if (ops.length === 0) {
+        return { success: false, error: 'ops 为空：请至少提供一个操作' }
+      }
+
+      // 整批改动只压一次快照，保证 AI 的改动可一键撤销
+      undoStackRef.current.push({ nodes, edges })
+      if (undoStackRef.current.length > 50) undoStackRef.current.shift()
+      redoStackRef.current = []
+
+      let nextNodes: Node[] = nodes.map(n => ({ ...n, data: { ...(n.data as any) } }))
+      let nextEdges: Edge[] = edges.map(e => ({ ...e }))
+      const applied: string[] = []
+      const warnings: string[] = []
+      const fresh = new Set<string>()
+      const createdIds: string[] = []
+      /** 本批新增节点的 id，按创建顺序 —— 用于把模型的短别名（a1/n2/node3）解析成真实 id */
+      const createdOrder: string[] = []
+      let addedCount = 0
+
+      const hasNode = (id: string) => nextNodes.some(n => n.id === id)
+      const genNodeId = (type: string) => {
+        let i = nextNodes.length + 1
+        let id = `${type}-${i}`
+        while (hasNode(id)) { i += 1; id = `${type}-${i}` }
+        return id
+      }
+      const autoPosition = (type: string) => ({
+        x: NODE_COLUMN_X[type] ?? 340,
+        y: 80 + nextNodes.filter(n => n.type === type).length * 170,
+      })
+      /**
+       * 把模型给的节点引用解析成真实 id。
+       *
+       * 实测模型很爱"先 add_node 不带 id，再用 a1/a2/a3 去 connect"，
+       * 若不兜底，整批连线会全部落空（画布上只有孤零零的节点）。
+       * 解析顺序：① 真实 id ② 本批第 k 个新增节点（a1/n2/node3 → k=1/2/3）③ label 唯一命中
+       */
+      const resolveRef = (ref: unknown): { id: string | null; via?: string } => {
+        const raw = String(ref ?? '').trim()
+        if (!raw) return { id: null }
+        if (hasNode(raw)) return { id: raw }
+        const m = /^[a-z_]*?(\d+)$/i.exec(raw)
+        if (m) {
+          const idx = Number(m[1])
+          if (idx >= 1 && idx <= createdOrder.length) {
+            const hit = createdOrder[idx - 1]
+            return { id: hit, via: `${raw} → ${hit}` }
+          }
+        }
+        const byLabel = nextNodes.filter(n => String((n.data as any)?.label || '').includes(raw))
+        if (byLabel.length === 1) return { id: byLabel[0].id, via: `${raw} → ${byLabel[0].id}` }
+        return { id: null }
+      }
+
+      for (const raw of ops) {
+        const op = String(raw?.op || '')
+        switch (op) {
+          case 'add_node': {
+            const reqType = String(raw.type || '')
+            const label = String(raw.label || '').trim()
+            const nodeType = SUPPORTED_NODE_TYPES.has(reqType)
+              ? reqType
+              : inferNodeType(label || '新节点', raw.subType)
+            const providedId = raw.id ? String(raw.id) : ''
+            const id = providedId && !hasNode(providedId) ? providedId : genNodeId(nodeType)
+            const pos =
+              raw.position && typeof raw.position.x === 'number' && typeof raw.position.y === 'number'
+                ? { x: raw.position.x, y: raw.position.y }
+                : autoPosition(nodeType)
+            const data: any = {
+              label: label || NODE_TYPE_CN[nodeType] || nodeType,
+              type: raw.subType ? String(raw.subType) : undefined,
+              config: raw.config && typeof raw.config === 'object' ? { ...raw.config } : {},
+            }
+            if (nodeType === 'aiNode' && !data.config.model) {
+              data.config.model = aiDefaults.modelId || 'qwen-plus'
+            }
+            nextNodes.push({ id, type: nodeType, position: pos, data } as Node)
+            createdIds.push(id)
+            createdOrder.push(id)
+            fresh.add(id)
+            addedCount++
+            applied.push(`新增节点 ${id}（${data.label}）`)
+            break
+          }
+          case 'update_node': {
+            const { id, via } = resolveRef(raw.id)
+            const idx = id ? nextNodes.findIndex(n => n.id === id) : -1
+            if (!id || idx === -1) { warnings.push(`update_node 找不到节点 ${raw.id}`); break }
+            const n: any = nextNodes[idx]
+            const data: any = { ...(n.data || {}) }
+            if (raw.label !== undefined) data.label = String(raw.label)
+            if (raw.subType !== undefined) data.type = String(raw.subType)
+            if (raw.config && typeof raw.config === 'object') {
+              data.config = { ...(data.config || {}), ...raw.config }
+            }
+            const position =
+              raw.position && typeof raw.position.x === 'number' && typeof raw.position.y === 'number'
+                ? { x: raw.position.x, y: raw.position.y }
+                : n.position
+            nextNodes[idx] = { ...n, position, data }
+            fresh.add(id)
+            applied.push(`更新节点 ${id}（${data.label}）${via ? `[别名 ${via}]` : ''}`)
+            break
+          }
+          case 'remove_node': {
+            const { id } = resolveRef(raw.id)
+            if (!id) { warnings.push(`remove_node 找不到节点 ${raw.id}`); break }
+            const linked = nextEdges.filter(e => e.source === id || e.target === id).length
+            nextNodes = nextNodes.filter(n => n.id !== id)
+            nextEdges = nextEdges.filter(e => e.source !== id && e.target !== id)
+            fresh.delete(id)
+            applied.push(`删除节点 ${id}${linked ? `（连带 ${linked} 条连线）` : ''}`)
+            break
+          }
+          case 'connect': {
+            const src = resolveRef(raw.source)
+            const tgt = resolveRef(raw.target)
+            const source = src.id
+            const target = tgt.id
+            if (!source || !target) {
+              warnings.push(
+                `connect 的节点无法解析：${raw.source} → ${raw.target}（画布上没有这些节点；` +
+                  `新增节点请自己在 add_node 里指定 id，或在 connect 里用节点名称）`
+              )
+              break
+            }
+            if (source === target) { warnings.push('connect 不允许节点自连'); break }
+            const sourceHandle = raw.sourceHandle ? String(raw.sourceHandle) : undefined
+            if (
+              nextEdges.some(
+                e => e.source === source && e.target === target && (e as any).sourceHandle === sourceHandle
+              )
+            ) {
+              warnings.push(`连线已存在：${source} → ${target}`)
+              break
+            }
+            const autoLabel = sourceHandle === 'true' ? '是' : sourceHandle === 'false' ? '否' : ''
+            const label = raw.edgeLabel !== undefined ? String(raw.edgeLabel) : autoLabel
+            nextEdges = addEdge(
+              {
+                source,
+                target,
+                sourceHandle,
+                targetHandle: raw.targetHandle ? String(raw.targetHandle) : undefined,
+                type: 'deletable',
+                animated: true,
+                label,
+                labelStyle: { fill: '#52525B', fontSize: 11, fontWeight: 500 },
+                labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+                labelBgPadding: [4, 2] as [number, number],
+                labelBgBorderRadius: 4,
+                style: { stroke: '#a1a1aa', strokeWidth: 1.5 },
+              } as any,
+              nextEdges
+            ) as Edge[]
+            const viaNote = [src.via, tgt.via].filter(Boolean).join(' / ')
+            applied.push(`连线 ${source} → ${target}${label ? `（${label}）` : ''}${viaNote ? `[别名 ${viaNote}]` : ''}`)
+            break
+          }
+          case 'disconnect': {
+            const idRef = raw.id ? resolveRef(raw.id).id : null
+            const srcRef = raw.source ? resolveRef(raw.source).id : null
+            const tgtRef = raw.target ? resolveRef(raw.target).id : null
+            if (!idRef && (!srcRef || !tgtRef)) {
+              warnings.push('disconnect 需要 id 或 source+target')
+              break
+            }
+            const before = nextEdges.length
+            nextEdges = nextEdges.filter(e =>
+              idRef ? e.id !== idRef : !(e.source === srcRef && e.target === tgtRef)
+            )
+            if (nextEdges.length === before) warnings.push('disconnect 没有匹配到连线')
+            else applied.push(`断开连线 ${idRef || `${srcRef} → ${tgtRef}`}`)
+            break
+          }
+          case 'move_node': {
+            const { id } = resolveRef(raw.id)
+            const idx = id ? nextNodes.findIndex(n => n.id === id) : -1
+            if (!id || idx === -1) { warnings.push(`move_node 找不到节点 ${raw.id}`); break }
+            if (!raw.position || typeof raw.position.x !== 'number' || typeof raw.position.y !== 'number') {
+              warnings.push('move_node 缺少合法 position')
+              break
+            }
+            nextNodes[idx] = { ...nextNodes[idx], position: { x: raw.position.x, y: raw.position.y } }
+            applied.push(`移动节点 ${id}`)
+            break
+          }
+          case 'highlight': {
+            const refs: unknown[] = Array.isArray(raw.ids)
+              ? raw.ids
+              : raw.id
+                ? [raw.id]
+                : nextNodes.map(n => n.id)
+            const found = refs.map(r => resolveRef(r).id).filter((v): v is string => !!v)
+            if (!found.length) { warnings.push('highlight 没有匹配到节点'); break }
+            found.forEach(id => fresh.add(id))
+            applied.push(`高亮 ${found.length} 个节点`)
+            break
+          }
+          case 'clear': {
+            const n = nextNodes.length
+            const e = nextEdges.length
+            nextNodes = []
+            nextEdges = []
+            fresh.clear()
+            applied.push(`清空画布（原有 ${n} 节点 / ${e} 连线）`)
+            break
+          }
+          default:
+            warnings.push(`不支持的 op：${op || '(空)'}`)
+        }
+      }
+
+      if (applied.length === 0) {
+        return {
+          success: false,
+          error: `没有任何操作生效。${warnings.join('；') || '请检查 ops 格式'}`,
+        }
+      }
+
+      setNodes(nextNodes)
+      setEdges(nextEdges)
+      pulseNodes([...fresh])
+
+      // 新增了节点就自动 fitView，保证"改动看得见"（否则可能落在当前视口外）
+      if (addedCount > 0) {
+        setTimeout(() => {
+          try { fitView({ duration: 620, padding: 0.25 }) } catch { /* ignore */ }
+        }, 80)
+      }
+
+      const summary = typeof args?.summary === 'string' ? args.summary : ''
+      console.log(`[Canvas AI] applied ${applied.length} ops:`, applied)
+      if (warnings.length) console.warn('[Canvas AI] warnings:', warnings)
+
+      return {
+        success: true,
+        summary: summary || undefined,
+        applied,
+        warnings: warnings.length ? warnings : undefined,
+        created_node_ids: createdIds.length ? createdIds : undefined,
+        canvas: { nodes: nextNodes.length, edges: nextEdges.length },
+        note: '改动已实时应用到画布，但尚未保存 —— 用户可 Ctrl+Z 撤销，或点「保存」落库。',
+      }
+    },
+    [nodes, edges, setNodes, setEdges, fitView, pulseNodes, aiDefaults.modelId]
+  )
+
+  /**
+   * 画布实时上下文 → 注入 systemPrompt
+   * 让模型"看见"当前画布：节点 id/类型/子类型/标签/坐标 + 连线，改图前必须先有这份信息。
+   */
+  const canvasContext = useCallback(() => {
+    const lines: string[] = ['页面：自动化策略「画布编辑器」（/automation/editor）']
+    lines.push(
+      `策略名称：${ruleName}` +
+        (ruleId ? `（已存在，rule_id=${ruleId}）` : '（尚未保存的新策略）')
+    )
+    lines.push(`画布规模：${nodes.length} 个节点 / ${edges.length} 条连线`)
+    if (nodes.length) {
+      lines.push('节点清单（id ｜ 类型 ｜ 子类型 ｜ 名称 ｜ 位置）：')
+      for (const n of nodes.slice(0, 40)) {
+        const d: any = n.data || {}
+        const pos = n.position
+          ? `(${Math.round(n.position.x)},${Math.round(n.position.y)})`
+          : '(未定位)'
+        lines.push(
+          `- ${n.id} ｜ ${n.type} ｜ ${d.type || '-'} ｜ ${d.label || '-'} ｜ ${pos}`
+        )
+      }
+      if (nodes.length > 40) lines.push(`（仅列出前 40 个，共 ${nodes.length} 个）`)
+    } else {
+      lines.push('节点清单：（画布当前为空）')
+    }
+    if (edges.length) {
+      lines.push('连线清单：')
+      for (const e of edges.slice(0, 60)) {
+        const handle = (e as any).sourceHandle ? `[${(e as any).sourceHandle}]` : ''
+        const label = typeof e.label === 'string' && e.label ? `｜标签=${e.label}` : ''
+        lines.push(`- ${e.id} ｜ ${e.source}${handle} → ${e.target}${label}`)
+      }
+    }
+    lines.push(
+      '说明：你可以用 automation_canvas_apply 直接修改这张画布（新增/更新/删除节点、连线、移动、高亮、清空），' +
+        '改动会实时生效到用户眼前的画布上，但不会自动保存。用户说"帮我加/改/连/删"时请直接动手，不要只给建议。' +
+        '改完用一两句话说明改动即可，不要再输出 <AUTOMATION_STRATEGY> 标签或节点 JSON 草稿。'
+    )
+    return lines.join('\n')
+  }, [nodes, edges, ruleName, ruleId])
+
+  /** 前端工具宿主：声明本页支持「自动化画布」能力 + 执行器 + 光效文案 */
+  const canvasClientTools = useMemo<CopilotClientTools>(
+    () => ({
+      capabilities: ['automation-canvas'],
+      handlers: {
+        automation_canvas_apply: async (args: any) => {
+          /**
+           * ⏱ 先留一小段"光效亮起"的时间再动画布。
+           * 用户反馈「消失得太快，没怎么看到」的根因有两层：① 光效寿命太短（已修）
+           * ② 光效刚淡入、画布就已经改完了 —— 看不到"过程"就只剩"结果"。
+           * 460ms 足够让边缘光带扫出来，对 Agent Loop 的总延迟可以忽略。
+           */
+          await new Promise(r => setTimeout(r, 460))
+          return applyCanvasOps(args)
+        },
+      },
+      labels: { automation_canvas_apply: '莓小智正在修改画布…' },
+      doneLabels: {
+        automation_canvas_apply: (result: unknown) => {
+          const r = result as { success?: boolean; applied?: string[] } | null
+          if (r?.success === false) return '画布改动没生效'
+          const n = r?.applied?.length ?? 0
+          return n ? `画布已更新 · ${n} 处改动` : '画布已更新'
+        },
+      },
+    }),
+    [applyCanvasOps]
+  )
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -611,111 +947,6 @@ function AutomationEditor() {
     }
   };
 
-  const fetchQuota = async () => {
-    try {
-      const res = await fetch('/api/user/settings');
-      const data = await res.json();
-      if (data.quota) {
-        setQuotaInfo(data.quota);
-      }
-    } catch (e) {
-      console.error('Failed to fetch quota:', e);
-    }
-  };
-
-  useEffect(() => {
-    if (isAiInputVisible) {
-      fetchQuota();
-    }
-  }, [isAiInputVisible]);
-
-  const handleAiGenerate = async () => {
-    if (!aiPrompt.trim()) {
-      toast.error('请输入需求描述');
-      return;
-    }
-    
-    setIsAiGenerating(true);
-    const loadingToast = toast.loading('AI 正在思考并生成自动化策略...');
-    
-    try {
-      const response = await fetch('/api/automation/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        if (response.status === 403) {
-          toast.error('配额不足', { 
-            description: data.reason || '您的 AI 生成配额已耗尽，请稍后再试或联系管理员', 
-            id: loadingToast,
-            duration: 5000
-          });
-        } else {
-          toast.error('生成失败', { 
-            description: data.error || '未知错误', 
-            id: loadingToast,
-            duration: 5000
-          });
-        }
-        speak("抱歉，生成策略失败。" + (data.reason || data.error || ''));
-        return;
-      }
-      
-      // Validate generated data
-      if (!data.nodes || !Array.isArray(data.nodes) || data.nodes.length === 0) {
-        toast.error('生成失败', { 
-          description: 'AI 生成的策略格式不正确，请重新描述需求', 
-          id: loadingToast,
-          duration: 5000
-        });
-        speak("生成的策略格式不正确，请重新描述需求。");
-        return;
-      }
-      
-      // Ensure all nodes have required fields
-      const validatedNodes = data.nodes.map((node: any, index: number) => ({
-        ...node,
-        id: node.id || `node-${index}`,
-        position: node.position || { x: index * 400, y: 100 },
-        data: {
-          ...node.data,
-          config: node.data?.config || {}
-        }
-      }));
-      
-      const safeNodes = sanitizeNodes(validatedNodes);
-      const nodeIds = new Set(safeNodes.map(n => n.id));
-      setNodes(safeNodes);
-      setEdges(sanitizeEdges(data.edges || [], nodeIds));
-      
-      toast.success('AI 策略生成成功！', { 
-        description: `已生成 ${validatedNodes.length} 个节点`,
-        id: loadingToast 
-      });
-      
-      // Voice feedback
-      speak(`自动化策略已生成，包含 ${validatedNodes.length} 个节点。请检查流程是否符合您的预期。`);
-
-      setIsAiInputVisible(false);
-      setAiPrompt('');
-      fetchQuota(); // 刷新配额
-    } catch (error) {
-      console.error('AI generation error:', error);
-      toast.error('AI 生成失败', { 
-        description: error instanceof Error ? error.message : '网络错误，请稍后重试', 
-        id: loadingToast,
-        duration: 5000
-      });
-      speak("抱歉，生成策略时遇到了问题，请稍后重试。");
-    } finally {
-      setIsAiGenerating(false);
-    }
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -756,12 +987,53 @@ function AutomationEditor() {
   };
 
   return (
+    <ConfigProvider theme={antdScopeTheme(isDark)}>
     <EditorAIDefaultsContext.Provider value={aiDefaults}>
-    <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
-      {/* Global Background */}
-      <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-[#0B1220]" />
-      <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:hidden" />
-      <div className="absolute inset-0 hidden dark:block dark:bg-[radial-gradient(1200px_circle_at_15%_10%,rgba(59,130,246,0.18),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(16,185,129,0.14),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(99,102,241,0.12),transparent_60%)]" />
+    <div className="automation-canvas-scope relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
+      {/* AI 改动画布时的节点脉冲高亮（只挂临时 class，不写进 graph_data） */}
+      <style>{`
+        @keyframes aiFreshPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(59,130,246,.55), 0 0 22px 4px rgba(139,92,246,.35); }
+          70%  { box-shadow: 0 0 0 14px rgba(59,130,246,0), 0 0 30px 10px rgba(139,92,246,0); }
+          100% { box-shadow: 0 0 0 0 rgba(59,130,246,0), 0 0 0 0 rgba(139,92,246,0); }
+        }
+        @keyframes aiFreshDash {
+          0%   { opacity: 0; transform: scale(.94); }
+          12%  { opacity: 1; transform: scale(1); }
+          64%  { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.05); }
+        }
+        .react-flow__node.ai-fresh { border-radius: 14px; animation: aiFreshPulse 1.5s cubic-bezier(.22,1,.36,1) 2; }
+        .react-flow__node.ai-fresh::after {
+          content: ""; position: absolute; inset: -7px; border-radius: 16px; pointer-events: none;
+          border: 1.5px dashed rgba(96,165,250,.85);
+          animation: aiFreshDash 2.8s ease-out 1 forwards;
+        }
+
+        /* ===== 深色模式：ReactFlow 内部元素（连线 / 框选 / 标签）=====
+           这些 DOM 由 @xyflow/react 生成，类名写不进 Tailwind，只能用作用域 CSS 覆盖。
+           作用域 = .automation-canvas-scope，避免影响 landing 页的 architecture-diagram。
+           注意：连接点（handle）的描边不能在这里覆盖——Tailwind 的 !border-white
+           位于 @layer utilities，而 !important 在分层中优先级反转（layer 内 > 未分层），
+           所以 handle 的深色描边写在节点组件的 className 里（dark:!border-zinc-700）。 */
+        .dark .automation-canvas-scope .react-flow__edge-path { stroke: #71717a !important; }
+        .dark .automation-canvas-scope .react-flow__edge.selected .react-flow__edge-path,
+        .dark .automation-canvas-scope .react-flow__edge:focus .react-flow__edge-path { stroke: #71717a !important; }
+        .dark .automation-canvas-scope .react-flow__arrowhead polyline,
+        .dark .automation-canvas-scope .react-flow__arrowhead path { stroke: #71717a; fill: #71717a; }
+        .dark .automation-canvas-scope .react-flow__selection,
+        .dark .automation-canvas-scope .react-flow__nodesselection-rect {
+          background: rgba(59,130,246,.10); border: 1px dashed rgba(96,165,250,.55);
+        }
+        .dark .automation-canvas-scope .react-flow__edge-text { fill: #d4d4d8; }
+        .dark .automation-canvas-scope .react-flow__edge-textbg { fill: #18181b; }
+        .dark .automation-canvas-scope .react-flow__attribution { background: transparent; }
+      `}</style>
+
+      {/* Global Background —— 纯中性画布。
+          2026-10-22：原来这里还叠了两层径向光斑（浅色薄荷+淡紫 / 深色蓝+绿+靛），
+          属于「全站除设备控制页外不再使用渐变背景」那条判据的清理对象，已移除。 */}
+      <div className="absolute inset-0 bg-[var(--berry-canvas)]" />
 
       {/* Editor Layout Grid */}
       <div className="relative z-10 w-full h-full flex flex-col">
@@ -769,13 +1041,13 @@ function AutomationEditor() {
         {/* 飞书式顶部工具栏（antd 组件） */}
         <div className="absolute top-0 left-0 w-full z-50 pointer-events-none px-5 py-4 flex items-start justify-between">
            {/* Left: Context & Back */}
-           <div className="flex items-center gap-3 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 rounded-lg shadow-sm pl-1.5 pr-4 py-1.5">
+           <div className="flex items-center gap-3 pointer-events-auto bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg shadow-sm pl-1.5 pr-4 py-1.5">
               <AntButton
                 type="text"
                 size="small"
                 onClick={() => router.push('/automation')}
                 icon={<IconArrowLeft className="w-4 h-4" />}
-                className="!text-slate-500"
+                className="!text-zinc-500 dark:!text-zinc-400"
               />
               
               <div className="flex flex-col justify-center">
@@ -792,49 +1064,39 @@ function AutomationEditor() {
            </div>
            
            {/* Right: Actions */}
-           <div className="flex items-center gap-2 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 rounded-lg shadow-sm p-1.5">
+           <div className="flex items-center gap-2 pointer-events-auto bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg shadow-sm p-1.5">
                 <AntButton
                     type="text"
                     size="small"
-                    className="!h-8 !px-3.5 !text-slate-600"
-                    onClick={() => setIsAiInputVisible(true)}
-                    icon={<IconMagic className="w-4 h-4 text-amber-500" />}
-                >
-                    AI 生成
-                </AntButton>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
-                <AntButton
-                    type="text"
-                    size="small"
-                    className="!h-8 !px-3.5 !text-slate-600"
+                    className="!h-8 !px-3.5 !text-zinc-600 dark:!text-zinc-300"
                     onClick={handleSimulation}
                     disabled={isSimulating}
-                    icon={isSimulating ? <IconLoading className="w-4 h-4 animate-spin text-[#1677ff]" /> : <IconPlay className="w-4 h-4 text-[#1677ff]" />}
+                    icon={isSimulating ? <IconLoading className="w-4 h-4 animate-spin text-[#059669]" /> : <IconPlay className="w-4 h-4 text-[#059669]" />}
                 >
                     {isSimulating ? '模拟运行中...' : '模拟运行'}
                 </AntButton>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+                <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5"></div>
                 <AntButton
                     type="text"
                     size="small"
-                    className="!h-8 !px-3.5 !text-slate-600"
+                    className="!h-8 !px-3.5 !text-zinc-600 dark:!text-zinc-300"
                     onClick={handleRun}
                     disabled={isRunning}
-                    icon={isRunning ? <IconLoading className="w-4 h-4 animate-spin text-[#1677ff]" /> : <IconLightning className="w-4 h-4 text-[#1677ff]" />}
+                    icon={isRunning ? <IconLoading className="w-4 h-4 animate-spin text-[#059669]" /> : <IconLightning className="w-4 h-4 text-[#059669]" />}
                 >
                     {isRunning ? '正在运行...' : '立即运行'}
                 </AntButton>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+                <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5"></div>
                 <AntButton
                     type="text"
                     size="small"
-                    className="!h-8 !px-3.5 !text-slate-600"
+                    className="!h-8 !px-3.5 !text-zinc-600 dark:!text-zinc-300"
                     onClick={() => setIsDeviceSheetOpen(true)}
                     icon={<IconGridFour className="w-4 h-4" />}
                 >
                     设备
                 </AntButton>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+                <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5"></div>
                 <AntButton
                     type="primary"
                     size="small"
@@ -874,16 +1136,16 @@ function AutomationEditor() {
             proOptions={{ hideAttribution: true }}
           >
             <Background 
-                color="#94a3b8" 
+                color={isDark ? "#71717a" : "#a1a1aa"} 
                 gap={24} 
                 size={1.5} 
                 variant={BackgroundVariant.Dots} 
-                className="opacity-[0.15] dark:opacity-[0.1]" 
+                className="opacity-[0.15] dark:opacity-[0.5]" 
             />
 
             {/* 顶部居中编辑工具栏：选择 / 框选 / 删除（可见操作入口） */}
             <Panel position="top-center" className="!mt-4">
-              <div className="nodrag pointer-events-auto flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-1.5 py-1 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+              <div className="nodrag pointer-events-auto flex items-center gap-1 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 bg-white/95 dark:bg-zinc-900/95 backdrop-blur px-1.5 py-1 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
                 <AntButton
                   type={interactionMode === 'select' ? 'primary' : 'text'}
                   size="small"
@@ -900,7 +1162,7 @@ function AutomationEditor() {
                 >
                   框选
                 </AntButton>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+                <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />
                 <AntButton
                   type="text"
                   size="small"
@@ -930,21 +1192,21 @@ function AutomationEditor() {
                 isNodeLibraryCollapsed ? 'w-16' : 'w-80'
               }`}
             >
-              <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] rounded-xl overflow-hidden transition-all duration-300">
+              <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] rounded-xl overflow-hidden transition-all duration-300">
                 {/* Header */}
-                <div className="px-4 border-b border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between shrink-0 h-12">
+                <div className="px-4 border-b border-zinc-200/70 dark:border-zinc-700/70 flex items-center justify-between shrink-0 h-12">
                   {!isNodeLibraryCollapsed && (
                     <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                      <div className="p-1.5 rounded-md bg-[#1677ff]/10 text-[#1677ff] dark:text-blue-400">
+                      <div className="p-1.5 rounded-lg bg-[#059669]/10 text-[#059669] dark:text-emerald-400">
                         <IconGridFour className="w-4 h-4" />
                       </div>
-                      <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">组件库</span>
+                      <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">组件库</span>
                     </div>
                   )}
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className={`h-8 w-8 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all ${isNodeLibraryCollapsed ? 'mx-auto' : ''}`}
+                    className={`h-8 w-8 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all ${isNodeLibraryCollapsed ? 'mx-auto' : ''}`}
                     onClick={() => setIsNodeLibraryCollapsed(!isNodeLibraryCollapsed)}
                   >
                     {isNodeLibraryCollapsed ? <IconPlus className="w-4 h-4" /> : <IconArrowLeft className="w-4 h-4" />}
@@ -953,13 +1215,13 @@ function AutomationEditor() {
 
                 {/* Search - Only shown when expanded */}
                 {!isNodeLibraryCollapsed && (
-                  <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-300">
                     <div className="relative">
                       <AntInput
-                        prefix={<IconSearch className="w-3.5 h-3.5 text-slate-400" />}
+                        prefix={<IconSearch className="w-3.5 h-3.5 text-zinc-400" />}
                         placeholder="搜索组件..."
                         size="middle"
-                        className="!rounded-md !bg-slate-50 dark:!bg-slate-800/60"
+                        className="!rounded-lg !bg-zinc-50 dark:!bg-zinc-800/60"
                       />
                     </div>
                   </div>
@@ -1025,15 +1287,15 @@ function AutomationEditor() {
                                   title={`${it.label} — ${it.desc}`}
                                   draggable
                                   onDragStart={(e) => onDragStart(e, it.type, it.subType, it.label)}
-                                  className="group w-9 h-9 rounded-md border border-transparent bg-white hover:border-[#1677ff]/40 hover:bg-[#1677ff]/[0.06] hover:shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-150"
+                                  className="group w-9 h-9 rounded-lg border border-transparent bg-white dark:bg-zinc-800 hover:border-[#059669]/40 hover:bg-[#059669]/[0.06] dark:hover:bg-zinc-700 hover:shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-200"
                                 >
-                                  <span className="text-slate-500 group-hover:text-[#1677ff] transition-colors">
+                                  <span className="text-zinc-500 dark:text-zinc-400 group-hover:text-[#059669] transition-colors">
                                     {it.icon}
                                   </span>
                                 </div>
                               ))}
                               {gi < groups.length - 1 && (
-                                <div className="my-1 w-6 h-px bg-slate-200" />
+                                <div className="my-1 w-6 h-px bg-zinc-200 dark:bg-zinc-700" />
                               )}
                             </div>
                           ))}
@@ -1048,10 +1310,10 @@ function AutomationEditor() {
                           <div key={g.key}>
                             {/* 分组标题 */}
                             <div className="px-1 flex items-center gap-1.5 mb-2">
-                              <span className="text-slate-400">{g.icon}</span>
-                              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">{g.label}</span>
-                              <div className="h-px flex-1 bg-slate-100 ml-0.5" />
-                              <span className="text-[10px] text-slate-300 tabular-nums">{g.items.length}</span>
+                              <span className="text-zinc-400 dark:text-zinc-500">{g.icon}</span>
+                              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{g.label}</span>
+                              <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800 ml-0.5" />
+                              <span className="text-[11px] text-zinc-300 dark:text-zinc-600 tabular-nums">{g.items.length}</span>
                             </div>
                             {/* 2 列紧凑网格 */}
                             <div className="grid grid-cols-2 gap-1.5">
@@ -1061,12 +1323,12 @@ function AutomationEditor() {
                                   title={`${it.label} — ${it.desc}`}
                                   draggable
                                   onDragStart={(e) => onDragStart(e, it.type, it.subType, it.label)}
-                                  className="group flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-md border border-slate-200/70 bg-white hover:border-[#1677ff]/40 hover:bg-[#1677ff]/[0.04] hover:shadow-sm transition-all duration-150 cursor-grab active:cursor-grabbing"
+                                  className="group flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-lg border border-zinc-200/70 dark:border-zinc-700/70 bg-white dark:bg-zinc-800 hover:border-[#059669]/40 hover:bg-[#059669]/[0.04] dark:hover:bg-zinc-700/60 hover:shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing"
                                 >
-                                  <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-200 text-slate-500 group-hover:border-[#1677ff]/40 group-hover:text-[#1677ff] group-hover:bg-[#1677ff]/[0.06] flex items-center justify-center transition-colors duration-150">
+                                  <div className="w-7 h-7 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 group-hover:border-[#059669]/40 group-hover:text-[#059669] group-hover:bg-[#059669]/[0.06] flex items-center justify-center transition-colors duration-200">
                                     {it.icon}
                                   </div>
-                                  <span className="text-[11.5px] font-medium text-slate-700 group-hover:text-[#1677ff] truncate w-full text-center transition-colors">
+                                  <span className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-[#059669] truncate w-full text-center transition-colors">
                                     {it.label}
                                   </span>
                                 </div>
@@ -1088,8 +1350,8 @@ function AutomationEditor() {
           open={isDeviceSheetOpen}
           onClose={() => setIsDeviceSheetOpen(false)}
           title={
-            <span className="flex items-center gap-2 !text-[15px]">
-              <IconGridFour className="w-4 h-4 text-slate-500" />
+            <span className="flex items-center gap-2 !text-[14px]">
+              <IconGridFour className="w-4 h-4 text-zinc-500" />
               设备状态监控
             </span>
           }
@@ -1099,106 +1361,20 @@ function AutomationEditor() {
            <DeviceSidebarList />
         </AntDrawer>
 
-        {/* Floating AI Input Bar */}
-        {isAiInputVisible && (
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[60] w-full max-w-2xl px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-lg p-1.5 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 relative flex items-center pl-3 bg-slate-50 dark:bg-slate-800/60 rounded-md border border-slate-200/70 dark:border-slate-700/60 focus-within:border-[#1677ff]/40">
-                    <IconMagicWand className="w-4 h-4 text-[#1677ff] mr-2 shrink-0" />
-                    <AntInput 
-                      value={isListening ? (aiPrompt + (transcript ? ` ${transcript}` : '')) : aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      onPressEnter={handleAiGenerate}
-                      variant="borderless"
-                      placeholder={isListening ? "正在聆听..." : "描述你想要的自动化场景..."}
-                      className="!bg-transparent !text-sm !flex-1"
-                      autoFocus
-                    />
-                    
-                    {/* Voice Input Button */}
-                    <div className="pr-2 pl-2 border-l border-slate-200 dark:border-slate-700/50 h-6 flex items-center my-auto">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={toggleListening}
-                          className={cn(
-                            "h-8 w-8 rounded-md transition-all",
-                            isListening 
-                              ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-600 animate-pulse" 
-                              : "text-slate-400 hover:text-[#1677ff] hover:bg-[#1677ff]/10"
-                          )}
-                          title="语音输入"
-                        >
-                          {isListening ? <IconVoiceOff className="w-4 h-4" /> : <IconMicrophone className="w-4 h-4" />}
-                        </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 pr-1 shrink-0">
-                    <AntButton
-                      size="small"
-                      onClick={() => {
-                        setIsAiInputVisible(false);
-                        stopListening();
-                      }}
-                      className="!h-9 !px-4 !text-slate-500"
-                    >
-                      取消
-                    </AntButton>
-                    <AntButton
-                      type="primary"
-                      size="small"
-                      onClick={handleAiGenerate}
-                      disabled={isAiGenerating || (!aiPrompt.trim() && !transcript)}
-                      className="!h-9 !px-5 whitespace-nowrap"
-                      icon={isAiGenerating ? <IconLoading className="w-4 h-4 animate-spin" /> : <IconMagic className="w-4 h-4" />}
-                    >
-                      立即生成
-                    </AntButton>
-                  </div>
-                </div>
-                {/* Quota Indicator */}
-                <div className="px-4 pb-2 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                  <div className="flex items-center gap-1.5">
-                    {isListening ? (
-                       <div className="flex items-center gap-1 text-indigo-500 font-bold animate-in fade-in">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce delay-0"></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce delay-150"></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce delay-300"></div>
-                          <span className="ml-1">正在录音...</span>
-                       </div>
-                    ) : (
-                       <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 animate-pulse"></div>
-                          <span>此操作将消耗 1 次 AI 生成配额</span>
-                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="opacity-60">
-                      剩余配额: {quotaInfo ? (
-                        <span className="text-slate-600 dark:text-slate-300 font-bold">
-                          {quotaInfo.balance > 0 ? quotaInfo.balance : (quotaInfo.daily_limit - quotaInfo.daily_usage)} 次
-                        </span>
-                      ) : (
-                        <div className="inline-flex items-center gap-1">
-                          <div className="flex gap-0.5">
-                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        </div>
-                      )}
-                    </span>
-                    <span className="opacity-60 underline cursor-help">配额说明</span>
-                  </div>
-                </div>
-             </div>
-          </div>
-        )}
       </div>
+
+      {/* ===== AI 助手侧栏：本页额外开启「前端画布工具」能力，
+          模型可调用 automation_canvas_apply 直接改用户眼前的画布；
+          执行期间屏幕边缘会亮起光效（components/ai/copilot/canvas-activity-glow）===== */}
+      <CopilotSidebar
+        pageKey="automation-editor"
+        context={canvasContext}
+        deviceData={deviceData as Record<string, unknown> | null}
+        clientTools={canvasClientTools}
+      />
     </div>
     </EditorAIDefaultsContext.Provider>
+    </ConfigProvider>
   );
 }
 
@@ -1206,7 +1382,7 @@ export default function AutomationEditorPage() {
   return (
     <ReactFlowProvider>
       <Suspense fallback={
-        <div className="flex h-screen items-center justify-center bg-[#F1EFEA] dark:bg-[#0B1220]">
+        <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
           <IconLoading className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       }>

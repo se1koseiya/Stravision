@@ -513,6 +513,32 @@ node desktop/verify-packaged.mjs --run    # 静态 + 真实启动打包后的 ex
 
 ---
 
+## 5.4 内置 FFmpeg（实时视频监控 / AI 抓帧）
+
+**为什么必须内置**：`/api/stream-rtmp`（RTMP → HTTP-FLV）与 `take_camera_snapshot`
+（AI 抓帧）都要 spawn 外部 `ffmpeg`。用户机器上基本没装 FFmpeg，Electron 子进程的 PATH
+也不含开发机安装目录 —— 裸 `spawn("ffmpeg")` 必然 `ENOENT`，表现为
+`failed to pipe response` + 500，监控画面直接黑屏且前端毫无提示。
+
+链路：
+
+```
+pnpm desktop:fetch:ffmpeg        # 下载到 .cache/ffmpeg/<platform-arch>/（gitignore，约 79MB）
+  → desktop/electron-builder.yml extraResources: ../.cache/ffmpeg → resources/ffmpeg/
+  → desktop/lib/config.js  getFfmpegEnv()  注入 STRAVISION_FFMPEG_PATH / STRAVISION_FFMPEG_DIR / PATH
+  → lib/media/ffmpeg.ts    resolveFfmpegBinary()  按优先级探测（env → resources → .cache → 系统 → PATH）
+```
+
+- `desktop:build` 末尾已串上 fetch（幂等，已存在则跳过）；临时跳过用 `DESKTOP_SKIP_FFMPEG=1`。
+- 换源：`DESKTOP_FFMPEG_MIRROR=<base>`；换版本：`DESKTOP_FFMPEG_TAG=b6.0`。
+- 缺 FFmpeg 时路由**不再崩在响应半路**，而是 503 + `code: FFMPEG_NOT_FOUND` + hint；
+  `/api/stream-rtmp?status=1` 供前端探针，monitor 页据此显示明确提示。
+- 直拷失败（H.265 等 FLV 不支持的编码）会自动降级 `libx264` 重试一次。
+- 许可：内置的是 GPLv3 构建（gyan.dev essentials），已随包附 `LICENSE.txt` 并在 `NOTICE` 声明；
+  需要 LGPL 时替换 `.cache/ffmpeg/<platform-arch>/` 下的二进制即可。
+
+---
+
 ## 6. 数据位置
 
 | 内容 | 路径 |

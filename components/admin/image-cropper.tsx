@@ -5,7 +5,7 @@ import Cropper from 'react-easy-crop'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { toast } from 'sonner'
+import { toast } from '@/lib/ui/feedback'
 import { IconClose, IconCompression, IconUpload } from "@/components/icon";
 
 interface ImageCropperProps {
@@ -120,7 +120,7 @@ export function ImageCropper({ open, onOpenChange, onCropComplete, aspect = 1, t
         <DialogFooter>
           <Button variant="ghost" onClick={() => { setImage(null); onOpenChange(false) }}>Cancel</Button>
           {image && (
-            <Button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-500 text-white">
+            <Button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white">
               {loading ? "Processing..." : "Crop & Save"}
             </Button>
           )}

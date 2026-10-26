@@ -92,7 +92,7 @@ export function Warning() {
   ]
 
   const colorMap: Record<string, { bg: string; text: string; light: string; border: string; ring: string }> = {
-    blue: { bg: "bg-blue-500", text: "text-blue-600", light: "bg-blue-50", border: "border-blue-200", ring: "ring-blue-500/20" },
+    blue: { bg: "bg-emerald-500", text: "text-emerald-600", light: "bg-emerald-50", border: "border-emerald-200", ring: "ring-emerald-500/20" },
     purple: { bg: "bg-purple-500", text: "text-purple-600", light: "bg-purple-50", border: "border-purple-200", ring: "ring-purple-500/20" },
     teal: { bg: "bg-teal-500", text: "text-teal-600", light: "bg-teal-50", border: "border-teal-200", ring: "ring-teal-500/20" },
   }
@@ -121,7 +121,7 @@ export function Warning() {
             scale: glowScale,
             opacity: glowOpacity,
           }}
-          className="absolute w-[80vw] h-[80vh] bg-gradient-to-r from-blue-400/30 via-teal-300/30 to-purple-400/30 blur-[120px] rounded-full z-0"
+          className="absolute w-[80vw] h-[80vh] bg-gradient-to-r from-emerald-400/30 via-teal-300/30 to-purple-400/30 blur-[120px] rounded-full z-0"
         />
 
         {/* The Expanding Canvas Container */}
@@ -134,7 +134,7 @@ export function Warning() {
             filter: containerBlur,
             opacity: bgOpacity 
           }}
-          className="relative w-full max-w-7xl aspect-[16/10] md:aspect-video lg:h-[85vh] overflow-hidden shadow-[0_60px_150px_rgba(0,0,0,0.3)] bg-slate-900 z-10"
+          className="relative w-full max-w-[1400px] aspect-[16/10] md:aspect-video lg:h-[85vh] overflow-hidden shadow-[0_60px_150px_rgba(0,0,0,0.3)] bg-zinc-900 z-10"
         >
           {/* Background Image - Dynamic Zoom */}
           <motion.div style={{ scale: bgScale }} className="absolute inset-0 z-0">
@@ -146,7 +146,10 @@ export function Warning() {
               priority
             />
             {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black/15 backdrop-blur-[1px]" />
+            <div
+              className="absolute inset-0 bg-black/15 dc-gblur"
+              style={{ "--gblur": "1px" } as React.CSSProperties}
+            />
           </motion.div>
 
           {/* Impact Flash Overlay */}
@@ -164,7 +167,7 @@ export function Warning() {
             }}
             className="relative z-30 w-full h-full flex items-center justify-center p-4 md:p-8 pt-20"
           >
-            <div className="bg-white/60 backdrop-blur-3xl rounded-[3rem] p-8 md:p-12 shadow-[0_40px_120px_rgba(0,0,0,0.1)] border border-white/80 flex flex-col lg:flex-row gap-12 w-full max-w-7xl max-h-full overflow-y-auto lg:overflow-visible custom-scrollbar relative">
+            <div className="bg-white/60 backdrop-blur-3xl rounded-[3rem] p-8 md:p-12 shadow-[0_40px_120px_rgba(0,0,0,0.1)] border border-white/80 flex flex-col lg:flex-row gap-12 w-full max-w-[1400px] max-h-full overflow-y-auto lg:overflow-visible custom-scrollbar relative">
               
               {/* Decorative Background Noise/Grain Effect */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
@@ -172,12 +175,12 @@ export function Warning() {
               {/* ============ LEFT COLUMN: Editorial Style ============ */}
               <div className="w-full lg:w-[40%] flex flex-col">
                 <div className="mb-12">
-                  <span className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-600 mb-4 block">系统架构设计</span>
-                  <h2 className="text-4xl md:text-5xl font-black text-gray-900 font-alimama tracking-tight leading-[1.1] mb-6">
+                  <span className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600 mb-4 block">系统架构设计</span>
+                  <h2 className="text-4xl md:text-5xl font-black text-zinc-900 font-alimama tracking-tight leading-[1.1] mb-6">
                     从边缘感知<br/>到云端决策
                   </h2>
-                  <div className="w-12 h-1 bg-gray-900 mb-8" />
-                  <p className="text-gray-500 text-lg font-medium leading-relaxed max-w-sm">
+                  <div className="w-12 h-1 bg-zinc-900 mb-8" />
+                  <p className="text-zinc-500 text-lg font-medium leading-relaxed max-w-sm">
                     打破传统温室的封闭性。我们构建了一套自愈式农业系统，让数据在毫秒间转化为生长动力。
                   </p>
                 </div>
@@ -190,13 +193,13 @@ export function Warning() {
                     fill
                     className="object-cover transition-transform duration-1000 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-transparent to-transparent" />
                   
                   {/* Floating BerryOrb - Minimalist placement */}
                   <div className="absolute bottom-8 left-8 z-20 flex items-center gap-4">
                     <BerryOrb size="56px" theme="dark" isActive={true} />
                     <div className="text-white">
-                      <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">运行状态</div>
+                      <div className="text-[11px] font-bold uppercase tracking-widest opacity-60">运行状态</div>
                       <div className="text-sm font-bold tracking-tight">AI 引擎运行中</div>
                     </div>
                   </div>
@@ -207,7 +210,7 @@ export function Warning() {
               <div className="w-full lg:w-[60%] flex flex-col">
                 
                 {/* Minimalist Tab Switcher */}
-                <div className="flex gap-8 mb-12 border-b border-gray-100 pb-2">
+                <div className="flex gap-8 mb-12 border-b border-zinc-100 pb-2">
                   {tabs.map((tab, idx) => {
                     const isActive = activeTab === idx
                     return (
@@ -215,12 +218,12 @@ export function Warning() {
                         key={tab.id}
                         onClick={() => setActiveTab(idx)}
                         className={`relative py-2 text-sm font-black tracking-tight transition-all ${
-                          isActive ? "text-gray-900" : "text-gray-300 hover:text-gray-500"
+                          isActive ? "text-zinc-900" : "text-zinc-300 hover:text-zinc-500"
                         }`}
                       >
                         {tab.label}
                         {isActive && (
-                          <motion.div layoutId="activeTabUnderline" className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-blue-600 rounded-full pointer-events-none" />
+                          <motion.div layoutId="activeTabUnderline" className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-emerald-600 rounded-full pointer-events-none" />
                         )}
                       </button>
                     )
@@ -239,19 +242,19 @@ export function Warning() {
                     {/* Editorial Content */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
                       <div>
-                        <h3 className="text-3xl font-black text-gray-900 font-alimama tracking-tighter mb-4">
+                        <h3 className="text-3xl font-black text-zinc-900 font-alimama tracking-tighter mb-4">
                           {active.title}
                         </h3>
-                        <p className="text-gray-500 font-medium leading-relaxed">
+                        <p className="text-zinc-500 font-medium leading-relaxed">
                           {active.description}
                         </p>
                       </div>
                       <div className="flex flex-col gap-6">
                         {active.metrics.map((m, i) => (
-                          <div key={m.label} className="flex items-baseline justify-between border-b border-gray-50 pb-2">
-                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{m.label}</span>
-                            <span className="text-xl font-black text-gray-900 font-alimama">
-                              {m.value}<span className="text-xs text-gray-400 ml-1">{m.unit}</span>
+                          <div key={m.label} className="flex items-baseline justify-between border-b border-zinc-50 pb-2">
+                            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{m.label}</span>
+                            <span className="text-xl font-black text-zinc-900 font-alimama">
+                              {m.value}<span className="text-xs text-zinc-400 ml-1">{m.unit}</span>
                             </span>
                           </div>
                         ))}
@@ -259,7 +262,7 @@ export function Warning() {
                     </div>
 
                     {/* Architectural Visualization - No more generic cards */}
-                    <div className="flex-1 bg-gray-50/50 rounded-[2.5rem] p-10 border border-gray-100 relative group overflow-hidden">
+                    <div className="flex-1 bg-zinc-50/50 rounded-[2.5rem] p-10 border border-zinc-100 relative group overflow-hidden">
                       <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                         <IconCpu size={120} strokeWidth={1} />
                       </div>
@@ -277,12 +280,12 @@ export function Warning() {
                             ]}
                           ].map((group) => (
                             <div key={group.label}>
-                              <div className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-6">{group.label}</div>
+                              <div className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.3em] mb-6">{group.label}</div>
                               <div className="flex flex-col gap-8">
                                 {group.sensors.map(s => (
                                   <div key={s.name}>
-                                    <div className="text-3xl font-black text-gray-900 font-alimama tracking-tight mb-1">{s.val}</div>
-                                    <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{s.name}</div>
+                                    <div className="text-3xl font-black text-zinc-900 font-alimama tracking-tight mb-1">{s.val}</div>
+                                    <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{s.name}</div>
                                   </div>
                                 ))}
                               </div>
@@ -293,7 +296,7 @@ export function Warning() {
 
                       {activeTab === 1 && (
                         <div className="relative z-10 flex flex-col">
-                          <div className="text-[10px] font-black text-purple-600 uppercase tracking-[0.3em] mb-8 text-center">报告生成管线</div>
+                          <div className="text-[11px] font-black text-purple-600 uppercase tracking-[0.3em] mb-8 text-center">报告生成管线</div>
                           <div className="flex flex-col gap-10">
                             {[
                               { name: "生长进度分析", status: "分析完成", progress: 100 },
@@ -303,16 +306,16 @@ export function Warning() {
                               <div key={step.name} className="relative">
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-4">
-                                    <span className="text-xs font-black text-gray-300">0{i+1}</span>
-                                    <span className="text-lg font-black text-gray-900 tracking-tight">{step.name}</span>
+                                    <span className="text-xs font-black text-zinc-300">0{i+1}</span>
+                                    <span className="text-lg font-black text-zinc-900 tracking-tight">{step.name}</span>
                                   </div>
-                                  <span className={`text-[10px] font-black tracking-widest uppercase ${step.progress === 100 ? 'text-green-500' : 'text-purple-500'}`}>
+                                  <span className={`text-[11px] font-black tracking-widest uppercase ${step.progress === 100 ? 'text-green-500' : 'text-purple-500'}`}>
                                     {step.status}
                                   </span>
                                 </div>
-                                <div className="h-[2px] w-full bg-gray-200">
+                                <div className="h-[2px] w-full bg-zinc-200">
                                   <motion.div 
-                                    className={`h-full ${step.progress === 100 ? 'bg-gray-900' : 'bg-purple-600'}`}
+                                    className={`h-full ${step.progress === 100 ? 'bg-zinc-900' : 'bg-purple-600'}`}
                                     initial={{ width: 0 }}
                                     animate={{ width: `${step.progress}%` }}
                                     transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
@@ -327,23 +330,23 @@ export function Warning() {
                       {activeTab === 2 && (
                         <div className="relative z-10 flex flex-col h-full justify-center">
                           <div className="max-w-md mx-auto w-full">
-                            <div className="text-[10px] font-black text-teal-600 uppercase tracking-[0.3em] mb-8 text-center">意图语义映射</div>
-                            <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-50 flex flex-col gap-6">
-                              <div className="italic text-xl font-medium text-gray-900 tracking-tight border-l-4 border-teal-500 pl-6 py-2">
+                            <div className="text-[11px] font-black text-teal-600 uppercase tracking-[0.3em] mb-8 text-center">意图语义映射</div>
+                            <div className="bg-white p-8 rounded-2xl shadow-lg border border-zinc-50 flex flex-col gap-6">
+                              <div className="italic text-xl font-medium text-zinc-900 tracking-tight border-l-4 border-teal-500 pl-6 py-2">
                                 “根据今天的高温预警，优化温室环境。”
                               </div>
                               <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-3 text-xs font-bold text-gray-400">
-                                  <div className="w-2 h-[1px] bg-gray-300" /> 正在翻译为 IoT 通讯协议
+                                <div className="flex items-center gap-3 text-xs font-bold text-zinc-400">
+                                  <div className="w-2 h-[1px] bg-zinc-300" /> 正在翻译为 IoT 通讯协议
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                  <div className="bg-gray-50 p-4 rounded-2xl">
-                                    <div className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">遮阳系统</div>
-                                    <div className="text-sm font-bold text-gray-900">执行：全展开</div>
+                                  <div className="bg-zinc-50 p-4 rounded-2xl">
+                                    <div className="text-[11px] font-black text-zinc-400 uppercase mb-1 tracking-widest">遮阳系统</div>
+                                    <div className="text-sm font-bold text-zinc-900">执行：全展开</div>
                                   </div>
-                                  <div className="bg-gray-50 p-4 rounded-2xl">
-                                    <div className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">雾化系统</div>
-                                    <div className="text-sm font-bold text-gray-900">执行：循环喷淋</div>
+                                  <div className="bg-zinc-50 p-4 rounded-2xl">
+                                    <div className="text-[11px] font-black text-zinc-400 uppercase mb-1 tracking-widest">雾化系统</div>
+                                    <div className="text-sm font-bold text-zinc-900">执行：循环喷淋</div>
                                   </div>
                                 </div>
                               </div>

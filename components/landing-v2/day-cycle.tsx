@@ -76,7 +76,7 @@ function PhotoCard({
         />
       </div>
       <figcaption
-        className="absolute bottom-2 left-3.5 text-[13px] text-[#2B3122]/60"
+        className="absolute bottom-2 left-3.5 text-[13px] text-[#18181B]/60"
         style={{ fontFamily: KAI }}
       >
         {caption}
@@ -91,7 +91,7 @@ export function DayCycle() {
       <div className="mx-auto max-w-[1400px] px-6 md:px-10">
         <div className="mb-20 text-center">
           <p
-            className="mb-5 text-[14px] text-[#2B3122]/50"
+            className="mb-5 text-[14px] text-[#18181B]/50"
             style={{ fontFamily: KAI }}
           >
             <span className="text-[#A63A3D]">大棚一日</span>
@@ -99,7 +99,7 @@ export function DayCycle() {
             <span>从晨检到守夜</span>
           </p>
           <h2
-            className="mx-auto max-w-[24ch] text-[clamp(1.8rem,3.4vw,2.7rem)] leading-[1.4] tracking-tight text-[#2B3122]"
+            className="mx-auto max-w-[24ch] text-[clamp(1.8rem,3.4vw,2.7rem)] leading-[1.4] tracking-tight text-[#18181B]"
             style={{ fontFamily: SERIF }}
           >
             系统替你醒着的
@@ -134,13 +134,13 @@ export function DayCycle() {
                     {m.time}
                   </p>
                   <h3
-                    className="mt-4 text-[1.55rem] tracking-tight text-[#2B3122]"
+                    className="mt-4 text-[1.55rem] tracking-tight text-[#18181B]"
                     style={{ fontFamily: SERIF }}
                   >
                     {m.title}
                   </h3>
                   <p
-                    className={`mt-4 max-w-[44ch] text-[14.5px] leading-[1.9] text-[#2B3122]/60 ${
+                    className={`mt-4 max-w-[44ch] text-[14px] leading-[1.9] text-[#18181B]/60 ${
                       left ? "" : "md:ml-auto"
                     }`}
                   >

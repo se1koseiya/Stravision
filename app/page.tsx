@@ -21,7 +21,7 @@ import {
      3 CapabilityOverview → 卖点 bento（左侧两卡 + 右侧跨行卡 + 整行模型卡）
      4 BusinessNeedsSection → 场景卡切换器 + 详情面板（左流程 / 右真组件预览台）
      5 对话演示（Loomy 预览台语言包裹真实对话窗）
-     6 PlatformSection    → 绿底四卡（#7DE9AC / #E6FDEE）
+     6 PlatformSection    → 绿底四卡（#6EE7B7 / #ECFDF5）
      7 UserVoicesSection  → 圆盘轨道口碑区（#EDFDFF）
      8 定价区（沿用同一套令牌自建，Loomy 无此块）
      9 DownloadCta + LandingFooter → 居中尾屏 + 五列页脚
@@ -84,7 +84,9 @@ const LandingFooter = dynamic(
 export default function HomePage() {
   return (
     <LandingThemeProvider>
-      <main className="min-h-[100dvh] bg-white text-[#222222] antialiased selection:bg-[#7DE9AC]/40 dark:bg-[#0C110E] dark:text-[#F2F4F1]">
+      {/* ⚠️ landing-legacy-font：落地页字体冻结 —— 本页保持「思源黑体 + 阿里妈妈数黑体」，
+          不参与全站 HarmonyOS 换字体（见 app/globals.css 的字体变量层） */}
+      <main className="landing-legacy-font min-h-[100dvh] bg-white text-[#222222] antialiased selection:bg-[#6EE7B7]/40 dark:bg-[#09090B] dark:text-[#F2F4F1]">
         <style>{`html { scroll-behavior: smooth; }`}</style>
 
         <LandingNav />

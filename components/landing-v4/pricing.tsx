@@ -54,7 +54,7 @@ const PLANS = [
 
 export function Pricing() {
   return (
-    <section id="plan" className="bg-white py-28 dark:bg-[#0C110E]">
+    <section id="plan" className="bg-white py-28 dark:bg-[#09090B]">
       <div className={CONTAINER}>
         <motion.div {...fadeUp()} className="max-w-[40rem]">
           <h2 className="m-0" style={SECTION_TITLE}>
@@ -143,7 +143,7 @@ export function Pricing() {
             style={{ background: L.btnBg, color: L.btnFg }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="size-6 rounded-md" />
+            <img src="/logo.png" alt="" className="size-6 rounded-lg" />
             查看完整套餐
             <IconArrowRightUp className="size-[1.15rem]" />
           </Link>

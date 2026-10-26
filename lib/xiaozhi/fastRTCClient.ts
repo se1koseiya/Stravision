@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/feedback";
 
 export interface FastRTCClientOptions {
   onStatusChange: (status: 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking') => void;

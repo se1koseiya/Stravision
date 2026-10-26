@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Modal, Input, Button, Select } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { chatClient } from "@/lib/chat/chat-client"
 import type { ChatOrganization } from "@/lib/chat/chat-types"
 import { IconNetworkTree, IconRight } from "@/components/icon";
@@ -108,33 +108,33 @@ export function CreateOrganizationDialog({
       centered
       closable={false}
       styles={{
-        content: { padding: 0, borderRadius: 12, overflow: "hidden" },
+        container: { padding: 0, borderRadius: 12, overflow: "hidden" },
         body: { padding: 0 }
       }}
     >
       {/* 头部 */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-3">
-          <span className="size-10 rounded-xl bg-[#f0f5ff] flex items-center justify-center shrink-0">
-            <IconNetworkTree size={20} strokeWidth={1.75} className="text-[#2f54eb]" />
+          <span className="size-10 rounded-xl bg-br-brand-soft flex items-center justify-center shrink-0">
+            <IconNetworkTree size={20} strokeWidth={2} className="text-br-brand-ink" />
           </span>
           <div className="min-w-0">
-            <h3 className="text-[16px] text-[rgba(0,0,0,0.88)]" style={{ fontWeight: 500 }}>
+            <h3 className="text-[16px] text-br-text-1" style={{ fontWeight: 500 }}>
               创建组织架构
             </h3>
-            <p className="text-[12px] text-[rgba(0,0,0,0.45)] mt-0.5">
+            <p className="text-[12px] text-br-text-3 mt-0.5">
               建立部门、团队节点，邀请成员加入后自动成为大棚成员并出现在通讯录
             </p>
           </div>
         </div>
       </div>
 
-      <div className="h-px bg-black/[0.06]" />
+      <div className="h-px bg-br-surface-4" />
 
       {/* 组织名称 */}
       <div className="px-6 pt-5">
-        <label className="block text-[12px] text-[rgba(0,0,0,0.65)] mb-2" style={{ fontWeight: 500 }}>
-          组织名称 <span className="text-[#ff4d4f]">*</span>
+        <label className="block text-[12px] text-br-text-2 mb-2" style={{ fontWeight: 500 }}>
+          组织名称 <span className="text-br-danger">*</span>
         </label>
         <Input
           size="large"
@@ -149,7 +149,7 @@ export function CreateOrganizationDialog({
 
       {/* 上级组织 */}
       <div className="px-6 pt-4">
-        <label className="block text-[12px] text-[rgba(0,0,0,0.65)] mb-2" style={{ fontWeight: 500 }}>
+        <label className="block text-[12px] text-br-text-2 mb-2" style={{ fontWeight: 500 }}>
           上级组织
         </label>
         <Select
@@ -162,16 +162,16 @@ export function CreateOrganizationDialog({
           className="w-full !rounded-lg"
           style={{ width: "100%" }}
           notFoundContent="暂无其他组织"
-          suffixIcon={<IconRight size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.25)] rotate-90" />}
+          suffixIcon={<IconRight size={14} strokeWidth={2} className="text-br-text-3 rotate-90" />}
         />
-        <p className="text-[11px] text-[rgba(0,0,0,0.35)] mt-1.5">
+        <p className="text-[11px] text-br-text-3 mt-1.5">
           可选。选择后将作为该上级组织的下级节点，形成层级关系。
         </p>
       </div>
 
       {/* 描述 */}
       <div className="px-6 pt-4 pb-5">
-        <label className="block text-[12px] text-[rgba(0,0,0,0.65)] mb-2" style={{ fontWeight: 500 }}>
+        <label className="block text-[12px] text-br-text-2 mb-2" style={{ fontWeight: 500 }}>
           描述（可选）
         </label>
         <Input.TextArea
@@ -186,10 +186,10 @@ export function CreateOrganizationDialog({
         />
       </div>
 
-      <div className="h-px bg-black/[0.06]" />
+      <div className="h-px bg-br-surface-4" />
 
       {/* 底部操作 */}
-      <div className="px-6 py-3 flex items-center justify-end gap-2 bg-[#fafafa]">
+      <div className="px-6 py-3 flex items-center justify-end gap-2 bg-br-surface-2">
         <Button
           size="middle"
           className="!rounded-lg"

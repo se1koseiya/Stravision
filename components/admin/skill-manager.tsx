@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Tag, Space, Typography, Card } from "antd"
 import type { ColumnsType } from "antd/es/table"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { ImageCropper } from "./image-cropper"
 import { IconCode, IconDelete, IconEarth, IconEdit, IconFire, IconLayoutTwo, IconLink, IconLock, IconPicture, IconPlus, IconSearch } from "@/components/icon";
 
@@ -126,7 +126,7 @@ export function SkillManager() {
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
-        backgroundColor: "#F2F3F5",
+        backgroundColor: "#F4F4F5",
         border: "1px solid #EDEEEF",
         ...(className?.split(" ").reduce((acc, cls) => ({ ...acc, [cls]: true }), {}) || {}),
       }}>
@@ -148,7 +148,7 @@ export function SkillManager() {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
-      render: (priority: number) => <Text strong style={{ color: "#1677ff" }}>#{priority}</Text>,
+      render: (priority: number) => <Text strong style={{ color: "#059669" }}>#{priority}</Text>,
     },
     {
       title: "Icon",
@@ -371,7 +371,7 @@ export function SkillManager() {
                     flex: 1,
                     height: 32,
                     borderRadius: 6,
-                    backgroundColor: "#F2F3F5",
+                    backgroundColor: "#F4F4F5",
                     border: "1px solid #EDEEEF",
                     display: "flex",
                     alignItems: "center",
@@ -438,7 +438,7 @@ export function SkillManager() {
                 gap: 24,
                 padding: "12px 16px",
                 borderRadius: 6,
-                backgroundColor: "#F7F8FA",
+                backgroundColor: "#FAFAFA",
                 border: "1px solid #EDEEEF",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -462,7 +462,7 @@ export function SkillManager() {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <Text strong style={{ color: "#1F2329" }}>Interaction Examples (Comma Separated)</Text>
+              <Text strong style={{ color: "#18181B" }}>Interaction Examples (Comma Separated)</Text>
               <Input
                 placeholder="e.g. 你是谁？,当前环境如何？"
                 value={editingSkill?.examples || ""}
@@ -473,7 +473,7 @@ export function SkillManager() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Text strong style={{ color: "#1F2329", display: "flex", alignItems: "center", gap: 8 }}>
+            <Text strong style={{ color: "#18181B", display: "flex", alignItems: "center", gap: 8 }}>
               <IconCode /> System Prompt (Core Instructions)
             </Text>
             <Input.TextArea

@@ -41,7 +41,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
       label: "环境温度", 
       value: deviceData?.temperature?.toFixed(1) || "19.2", 
       unit: "℃", 
-      color: "text-blue-400" 
+      color: "text-emerald-400" 
     },
     { 
       icon: IconWater, 
@@ -148,7 +148,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
           <div className="text-left">
             <div className="text-sm font-bold text-white flex items-center gap-2">
               AI 深度分析
-              <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full">推荐</span>
+              <span className="text-[11px] px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full">推荐</span>
             </div>
             <div className="text-xs text-zinc-400">
               AI 会根据环境分析，提供专业级优化方案
@@ -226,8 +226,8 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-bold text-white">{item.title}</h3>
                     <span className={cn(
-                      "text-[10px] px-2 py-0.5 rounded-full",
-                      item.status === "待执行" && "bg-blue-500/20 text-blue-400",
+                      "text-[11px] px-2 py-0.5 rounded-full",
+                      item.status === "待执行" && "bg-emerald-500/20 text-emerald-400",
                       item.status === "待确认" && "bg-yellow-500/20 text-yellow-400",
                       item.status === "进行中" && "bg-emerald-500/20 text-emerald-400"
                     )}>
@@ -235,7 +235,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mb-2">{item.description}</p>
-                  <div className="text-[10px] text-zinc-500">{item.time}</div>
+                  <div className="text-[11px] text-zinc-500">{item.time}</div>
                 </div>
               </div>
             </motion.div>
@@ -272,7 +272,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
             ))}
           </div>
           
-          <div className="flex justify-between text-[10px] text-zinc-500 mt-2">
+          <div className="flex justify-between text-[11px] text-zinc-500 mt-2">
             <span>00:00</span>
             <span>06:00</span>
             <span>12:00</span>
@@ -298,7 +298,7 @@ export function ModernHomeView({ user, deviceData, onStartChat }: ModernHomeView
               <action.icon className="w-6 h-6 text-emerald-400" />
             </div>
             <div className="text-sm font-bold mb-1">{action.title}</div>
-            <div className="text-[10px] text-zinc-500">{action.subtitle}</div>
+            <div className="text-[11px] text-zinc-500">{action.subtitle}</div>
           </div>
         ))}
       </motion.div>

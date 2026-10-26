@@ -92,6 +92,9 @@ export interface VoiceController {
   interrupt: () => void;
   /** 刷新配额 */
   refreshQuota: () => Promise<QuotaInfo | null>;
+  /** 通话静音（丢弃上行麦克风音频，下行播放不受影响）；旧实现可能未提供 */
+  muted?: boolean;
+  setMuted?: (v: boolean) => void;
 }
 
 /** 两个架构 Hook 共享的入参 */

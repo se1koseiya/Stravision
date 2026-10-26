@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clientScheduler, type ClientScheduledTask } from '@/lib/ai/client-scheduler'
-import { toast } from 'sonner'
+import { toast } from '@/lib/ui/feedback'
 import { IconCalendar, IconCheckOne, IconCloseOne, IconDelete, IconRemind, IconTime } from "@/components/icon";
 
 export function ClientScheduledTasks() {
@@ -73,7 +73,7 @@ export function ClientScheduledTasks() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <IconTime className="h-4 w-4 text-blue-500" />
+        return <IconTime className="h-4 w-4 text-emerald-500" />
       case 'completed':
         return <IconCheckOne className="h-4 w-4 text-green-500" />
       case 'cancelled':
@@ -102,20 +102,20 @@ export function ClientScheduledTasks() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4"
+          className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4"
         >
           <div className="flex items-start gap-3">
-            <IconRemind className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <IconRemind className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100 mb-1">
                 开启通知提醒
               </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-3">
                 允许浏览器通知，任务完成时会及时提醒您
               </p>
               <button
                 onClick={handleRequestNotification}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors"
               >
                 开启通知
               </button>
@@ -139,7 +139,7 @@ export function ClientScheduledTasks() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -153,11 +153,11 @@ export function ClientScheduledTasks() {
                         {task.description}
                       </p>
                       <div className="flex items-center gap-3 text-xs">
-                        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
                           <IconCalendar className="h-3 w-3" />
                           {formatTimeRemaining(task.scheduledTime)}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
                           {task.taskType}
                         </span>
                       </div>
@@ -201,7 +201,7 @@ export function ClientScheduledTasks() {
                     <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                       {task.description}
                     </p>
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
                       {new Date(task.scheduledTime).toLocaleString('zh-CN')}
                     </span>
                   </div>

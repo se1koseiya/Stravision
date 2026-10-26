@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { isDesktopApp } from "@/lib/desktop-mode";
 
 interface RateLimitConfig {
   limit: number;
@@ -54,6 +55,14 @@ export interface ExtendedRateLimitConfig extends RateLimitConfig {
 }
 
 export function rateLimit(req: NextRequest, config: ExtendedRateLimitConfig = { limit: 300, windowMs: 60 * 1000, autoBan: false }) {
+  // 桌面端整体豁免：桌面版是「本机 127.0.0.1 + 单用户」形态，没有公网爆破 / 刷接口的威胁，
+  // 而所有请求都来自同一条回环地址（getClientIp 拿不到 x-forwarded-for ⇒ 全部落进同一个桶），
+  // 限流只会在正常使用中误伤自己 —— 表现为界面里凭空冒出「请求过于频繁」。
+  // 判定见 lib/desktop-mode.ts#isDesktopApp（构建期内联 + 主进程运行时变量）。
+  if (isDesktopApp()) {
+    return { success: true };
+  }
+
   const now = Date.now();
   
   // Lazy Cleanup: Run cleanup periodically to prevent memory leaks

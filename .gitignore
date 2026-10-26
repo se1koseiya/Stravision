@@ -48,12 +48,14 @@ next-env.d.ts
 *.db
 *.db-shm
 *.db-wal
-data/*.db
-data/*.json
-!data/.gitkeep
 
-# 用户记忆档案（每个用户一个 md，含隐私，不入库）
-data/user-memory/
+# 🚨 运行期数据目录整体不入库（许可证密钥 / 发布凭证 / 会话 / 用户记忆 / ASR 模型全在这）
+#    只放 .gitkeep 占位；⛔ 别再改成 data/*.json 白名单式规则 —— offline-license-*.txt 等会漏掉
+/data/
+!/data/.gitkeep
+
+# 语音识别模型（Paraformer int8 约 240MB，pnpm asr:model 现下，不入库）
+data/models/asr/
 
 # Certificates
 nginx/certs/
@@ -77,8 +79,63 @@ public/weathervideo/snow.mp4
 /tmp/
 tmp/
 _tmp_*
+# 🚨 探针鉴权凭证（192 字节有效 JWT，能直连本地 API）与类型检查临时日志 —— 严禁入库
+_verify_token.txt
+_tsc*.log
+_tsc_*.log
+
+# 🚨 根目录 `_` 前缀 = 本地探针/审计/Chrome 无头 profile 约定（1500+ 文件）
+#    必须锚定根目录 `/_*`；⛔ 绝不能写成 `_*` —— 会误伤 app/**/_components、app/**/_utils 等真实源码
+/_*
+/__pycache__/
+/dev/
+
+# 本地探针/审计/影片/宣传产物目录 —— 不入库
+/.data/
+/.film-v2/
+/.motion-ui-promo/
+/.probe-files.json
+/.probe-shots/
+/.promo-signal/
+/NVIDIA Corporation/
+/tmp-imv-scene/
+/outputs/
+/deliverables/
+/motion-kit/
+/promo-video-desktop/
+/public/dev-promo/
+/public/uploads/*
+!/public/uploads/.gitkeep
+/app/dev-*/
+
+# 打包/调试日志、PowerShell 重定向事故文件、审计报告、根目录混淆产物
+/desktop-*.log
+/lockdiff.tmp
+/nul,*
+/copilot_*_after_*.png
+/icon-align-audit-report.html
+/2025-annual-report.html
+/TECHNICAL_MANUAL.docx
+# 🚨 根目录 main.js 是 obfuscate-desktop.mjs 的混淆产物；真实源码在 desktop/main.js
+/main.js
+
+# 旧依赖备份 / 调试产物目录 —— 不入库；同时避免 Tailwind v4 自动内容扫描误入
+# （这些目录合计几十万文件，扫描会拖爆 PostCSS worker）
+/node_modules.old/
+/node_modules.old2/
+/output/
+/tmp-desktop-shots/
+/tmp-verify/
 _l1.json
 _l2.json
+
+# 宣传片 / 一镜到底影片的构建产物 —— 不入库；
+# 同时避免 Tailwind v4 自动内容扫描误入（影片目录里成百上千个 frame PNG，
+# 扫描会拖爆 PostCSS worker）
+/.spike/
+/.promo-build/
+/.promo-rebuild/
+/.promo-film/
 
 # 桌面端（Electron）
 # desktop/node_modules 由 npm 安装（与前端 pnpm 依赖树隔离，见 desktop/package.json 说明）
@@ -87,6 +144,16 @@ desktop/.verify-pgdata/
 desktop-build.log
 # electron-builder 产物
 /release/
+# 🚨 装机验证 / 便携包解包产物（release-sim/、release-*）
+# 里面 resources/app-server/{data,docs} 是指向 %APPDATA%\stravision-desktop-runtime
+# \server-data\* 的目录联接（junction）。若不忽略，Tailwind v4 自动内容扫描会跟着
+# 联接跑出项目根 → Turbopack 拼出 ../../../../AppData/... 后报
+# "leaves the filesystem root" → 全站每个页面 500（2026-10-25 实际踩过）
+/release-sim/
+/release-*/
 
 # 打包用的常驻缓存：已解压的 Electron 运行时（scripts/desktop/electron-dist.mjs）
 /.cache/
+
+# 打包期生成的「混淆副本」目录（由 scripts/desktop/obfuscate-desktop.mjs 生成）
+desktop-obf/

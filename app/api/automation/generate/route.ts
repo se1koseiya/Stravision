@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { initDB } from '@/lib/db/database';
 import { incrementAiUsage, getUserAiQuota } from '@/lib/db/ai-quota-service';
 import { readProvidersConfig, resolveDefaultModelId, resolveProvider } from '@/lib/ai/provider-resolver';
+import { adaptChatRequestBody } from '@/lib/ai/provider-body-adapter';
 
 export const runtime = 'nodejs';
 
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
+      body: JSON.stringify(adaptChatRequestBody({
         model: selectedModel,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -129,7 +130,7 @@ export async function POST(req: Request) {
         ],
         temperature: 0.7,
         response_format: { type: "json_object" }
-      }),
+      }, { baseUrl: chatUrl, model: selectedModel })),
     });
 
     if (!response.ok) {

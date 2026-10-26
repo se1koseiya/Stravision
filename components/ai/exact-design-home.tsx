@@ -154,11 +154,11 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
           />
 
           {/* Orbital Rings - 改为浅绿色 */}
-          <div className={cn("absolute inset-[-40px] rounded-[100%] border-[0.5px] border-emerald-400/30 dark:border-emerald-500/20 shadow-[inset_0_0_20px_rgba(52,211,153,0.1)] dark:shadow-[inset_0_0_20px_rgba(52,211,153,0.05)] transition-all duration-700", (isFocused || input.trim()) ? "animate-[spin_4s_linear_infinite]" : "animate-[spin_10s_linear_infinite]")} />
-          <div className={cn("absolute inset-[-80px] rounded-[100%] border-[0.5px] border-emerald-400/20 dark:border-emerald-500/10 shadow-[inset_0_0_20px_rgba(52,211,153,0.05)] dark:shadow-[inset_0_0_20px_rgba(52,211,153,0.02)] transition-all duration-700", (isFocused || input.trim()) ? "animate-[spin_6s_linear_infinite_reverse]" : "animate-[spin_15s_linear_infinite_reverse]")} />
-          <div className={cn("absolute inset-[-120px] rounded-[100%] border-[0.5px] border-emerald-400/10 dark:border-emerald-500/5 shadow-[inset_0_0_20px_rgba(52,211,153,0.02)] dark:shadow-[inset_0_0_20px_rgba(52,211,153,0.01)] transition-all duration-700", (isFocused || input.trim()) ? "animate-[spin_8s_linear_infinite]" : "animate-[spin_20s_linear_infinite]")} />
+          <div className={cn("absolute inset-[-40px] rounded-[100%] border-[0.5px] border-emerald-400/30 dark:border-emerald-500/20 shadow-[inset_0_0_20px_rgba(52,211,153,0.1)] dark:shadow-[inset_0_0_20px_rgba(52,211,153,0.05)] transition-all duration-500", (isFocused || input.trim()) ? "animate-[spin_4s_linear_infinite]" : "animate-[spin_10s_linear_infinite]")} />
+          <div className={cn("absolute inset-[-80px] rounded-[100%] border-[0.5px] border-emerald-400/20 dark:border-emerald-500/10 shadow-[inset_0_0_20px_rgba(52,211,153,0.05)] dark:shadow-[inset_0_0_20px_rgba(52,211,153,0.02)] transition-all duration-500", (isFocused || input.trim()) ? "animate-[spin_6s_linear_infinite_reverse]" : "animate-[spin_15s_linear_infinite_reverse]")} />
+          <div className={cn("absolute inset-[-120px] rounded-[100%] border-[0.5px] border-emerald-400/10 dark:border-emerald-500/5 shadow-[inset_0_0_20px_rgba(52,211,153,0.02)] dark:shadow-[inset_0_0_20px_rgba(52,211,153,0.01)] transition-all duration-500", (isFocused || input.trim()) ? "animate-[spin_8s_linear_infinite]" : "animate-[spin_20s_linear_infinite]")} />
           
-          <BerryOrb isActive={isFocused || input.trim().length > 0} className="w-full h-full shadow-[0_0_80px_rgba(52,211,153,0.2)] dark:shadow-[0_0_80px_rgba(52,211,153,0.3)] rounded-full transition-shadow duration-700" />
+          <BerryOrb isActive={isFocused || input.trim().length > 0} className="w-full h-full shadow-[0_0_80px_rgba(52,211,153,0.2)] dark:shadow-[0_0_80px_rgba(52,211,153,0.3)] rounded-full transition-shadow duration-500" />
         </motion.div>
       </div>
 
@@ -181,7 +181,7 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
         transition={{ delay: 0.3 }}
         className="relative z-10 w-full max-w-3xl mb-12"
       >
-        <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2rem] p-2 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/10 transition-all focus-within:border-emerald-500/50 dark:focus-within:border-emerald-500/50 focus-within:shadow-[0_0_40px_rgba(16,185,129,0.15)] dark:focus-within:shadow-[0_0_40px_rgba(16,185,129,0.2)] focus-within:bg-white dark:focus-within:bg-white/10 shadow-xl dark:shadow-2xl">
+        <div className="bg-white/80 dark:bg-white/5 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2rem] p-2 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/10 transition-all focus-within:border-emerald-500/50 dark:focus-within:border-emerald-500/50 focus-within:shadow-[0_0_40px_rgba(0,148,86,0.15)] dark:focus-within:shadow-[0_0_40px_rgba(0,148,86,0.2)] focus-within:bg-white dark:focus-within:bg-white/10 shadow-lg dark:shadow-lg">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -255,7 +255,7 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
               className={cn(
                 "w-12 h-12 rounded-full flex items-center justify-center border shrink-0 ml-3 transition-all",
                 input.trim() 
-                  ? "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 dark:hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-105" 
+                  ? "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 dark:hover:bg-emerald-400 shadow-[0_0_15px_rgba(0,148,86,0.3)] dark:shadow-[0_0_20px_rgba(0,148,86,0.4)] scale-105" 
                   : "border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
               )}
             >
@@ -276,7 +276,7 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
           <div
             key={index}
             onClick={() => onSendMessage(`我想进行${action.title}`)}
-            className="flex items-center gap-6 md:gap-8 p-5 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl hover:bg-white dark:hover:bg-white/10 hover:border-zinc-300 dark:hover:border-white/20 transition-all cursor-pointer group shadow-sm hover:shadow-md dark:shadow-xl dark:hover:shadow-2xl hover:-translate-y-1 relative"
+            className="flex items-center gap-6 md:gap-8 p-5 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl hover:bg-white dark:hover:bg-white/10 hover:border-zinc-300 dark:hover:border-white/20 transition-all cursor-pointer group shadow-sm hover:shadow-sm dark:shadow-lg dark:hover:shadow-lg hover:-translate-y-1 relative"
           >
             <div className="w-12 h-12 flex items-center justify-center shrink-0 relative">
               {/* 3D IP 形象，添加破局感（绝对定位、溢出容器、悬停放大） */}
@@ -302,10 +302,10 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="hidden xl:flex flex-col w-[420px] p-6 gap-5 overflow-y-auto custom-scrollbar bg-gradient-to-b from-slate-50/80 to-white/80 dark:from-slate-900/80 dark:to-black/80 backdrop-blur-sm"
+        className="hidden xl:flex flex-col w-[420px] p-6 gap-5 overflow-y-auto custom-scrollbar bg-gradient-to-b from-zinc-50/80 to-white/80 dark:from-zinc-900/80 dark:to-black/80 backdrop-blur-sm"
       >
         {/* Banner 区域 - 使用 ability.png 背景 */}
-        <div className="relative overflow-hidden rounded-3xl h-[180px] mb-2 shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl h-[180px] mb-2 shadow-sm">
           {/* 背景图片 */}
           <div className="absolute inset-0 z-0">
             <Image 
@@ -319,120 +319,120 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
           </div>
           
           {/* 浅色遮罩 */}
-          <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/60 via-white/40 to-transparent dark:from-slate-900/60 dark:via-slate-900/40" />
+          <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/60 via-white/40 to-transparent dark:from-zinc-900/60 dark:via-zinc-900/40" />
           
           {/* 内容层 */}
           <div className="relative z-10 p-6 h-full flex flex-col justify-between">
             {/* 标题区域 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <IconChartLine className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                <h2 className="text-lg font-black font-alimama tracking-wide text-slate-800 dark:text-slate-200">实时数据</h2>
+                <IconChartLine className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
+                <h2 className="text-lg font-black font-alimama tracking-wide text-zinc-800 dark:text-zinc-200">实时数据</h2>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md rounded-full border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
-                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">在线</span>
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">在线</span>
               </div>
             </div>
 
             {/* 副标题 */}
-            <div className="text-sm font-medium text-slate-600 dark:text-slate-400">环境监测概览</div>
+            <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">环境监测概览</div>
           </div>
         </div>
         
         {/* 数据卡片 - 统一图标颜色 */}
         <div className="grid grid-cols-2 gap-3">
           {/* 温度卡片 */}
-          <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-md hover:border-slate-300/50 dark:hover:border-slate-600/50 transition-all">
+          <div className="bg-white/90 dark:bg-zinc-800/90 rounded-2xl p-4 border border-zinc-200/50 dark:border-zinc-700/50 hover:shadow-sm hover:border-zinc-300/50 dark:hover:border-zinc-600/50 transition-all">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                <IconThermometer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+              <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-700/50">
+                <IconThermometer className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">温度</span>
-              <span className="ml-auto text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">温度</span>
+              <span className="ml-auto text-[11px] font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700/50 px-2 py-0.5 rounded-full">
                 实时
               </span>
             </div>
             <div className="space-y-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tight">
+                <span className="text-2xl font-black text-zinc-700 dark:text-zinc-300 tracking-tight">
                   {deviceData?.temperature?.toFixed(1) || '0.0'}
                 </span>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">°C</span>
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">°C</span>
               </div>
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+              <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                 适宜 18-28°C
               </div>
             </div>
           </div>
 
           {/* 湿度卡片 */}
-          <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-md hover:border-slate-300/50 dark:hover:border-slate-600/50 transition-all">
+          <div className="bg-white/90 dark:bg-zinc-800/90 rounded-2xl p-4 border border-zinc-200/50 dark:border-zinc-700/50 hover:shadow-sm hover:border-zinc-300/50 dark:hover:border-zinc-600/50 transition-all">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                <IconWater className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+              <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-700/50">
+                <IconWater className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">湿度</span>
-              <span className="ml-auto text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">湿度</span>
+              <span className="ml-auto text-[11px] font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700/50 px-2 py-0.5 rounded-full">
                 实时
               </span>
             </div>
             <div className="space-y-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tight">
+                <span className="text-2xl font-black text-zinc-700 dark:text-zinc-300 tracking-tight">
                   {deviceData?.humidity?.toFixed(0) || '0'}
                 </span>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">%</span>
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">%</span>
               </div>
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+              <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                 适宜 60-80%
               </div>
             </div>
           </div>
 
           {/* 光照卡片 */}
-          <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-md hover:border-slate-300/50 dark:hover:border-slate-600/50 transition-all">
+          <div className="bg-white/90 dark:bg-zinc-800/90 rounded-2xl p-4 border border-zinc-200/50 dark:border-zinc-700/50 hover:shadow-sm hover:border-zinc-300/50 dark:hover:border-zinc-600/50 transition-all">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                <IconSun className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+              <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-700/50">
+                <IconSun className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">光照强度</span>
-              <span className="ml-auto text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">光照强度</span>
+              <span className="ml-auto text-[11px] font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700/50 px-2 py-0.5 rounded-full">
                 实时
               </span>
             </div>
             <div className="space-y-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tight">
+                <span className="text-2xl font-black text-zinc-700 dark:text-zinc-300 tracking-tight">
                   {deviceData?.light?.toFixed(0) || '0'}
                 </span>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">lux</span>
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">lux</span>
               </div>
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+              <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                 当前光照强度
               </div>
             </div>
           </div>
 
           {/* 土壤湿度卡片 */}
-          <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-md hover:border-slate-300/50 dark:hover:border-slate-600/50 transition-all">
+          <div className="bg-white/90 dark:bg-zinc-800/90 rounded-2xl p-4 border border-zinc-200/50 dark:border-zinc-700/50 hover:shadow-sm hover:border-zinc-300/50 dark:hover:border-zinc-600/50 transition-all">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                <IconCloudStorage className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+              <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-700/50">
+                <IconCloudStorage className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">土壤水分</span>
-              <span className="ml-auto text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">土壤水分</span>
+              <span className="ml-auto text-[11px] font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-700/50 px-2 py-0.5 rounded-full">
                 实时
               </span>
             </div>
             <div className="space-y-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tight">
+                <span className="text-2xl font-black text-zinc-700 dark:text-zinc-300 tracking-tight">
                   {deviceData?.earth_water?.toFixed(0) || '0'}
                 </span>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">%</span>
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">%</span>
               </div>
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+              <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                 土壤含水量
               </div>
             </div>
@@ -442,8 +442,8 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
         {/* 快速操作区域 - 统一图标颜色 */}
         <div className="space-y-3 mt-2">
           <div className="flex items-center gap-2">
-            <IconLightning className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            <div className="text-sm font-black font-alimama tracking-wide text-slate-800 dark:text-slate-200">快速操作</div>
+            <IconLightning className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+            <div className="text-sm font-black font-alimama tracking-wide text-zinc-800 dark:text-zinc-200">快速操作</div>
           </div>
           
           <div className="space-y-3">
@@ -465,22 +465,22 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
               </div>
               
               {/* 统一的浅色遮罩 */}
-              <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-slate-900/70 dark:via-slate-900/50 dark:to-slate-900/30" />
+              <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-zinc-900/70 dark:via-zinc-900/50 dark:to-zinc-900/30" />
               
               {/* 内容层 */}
               <div className="relative z-10 p-4 flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-md border border-slate-200/50 dark:border-slate-700/50">
-                  <IconChartHistogram className="w-4 h-4 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+                <div className="p-2 rounded-xl bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm shadow-sm border border-zinc-200/50 dark:border-zinc-700/50">
+                  <IconChartHistogram className="w-4 h-4 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-black font-alimama tracking-wider text-slate-800 dark:text-slate-200 mb-0.5">
+                  <div className="text-sm font-black font-alimama tracking-wider text-zinc-800 dark:text-zinc-200 mb-0.5">
                     今日数据总结
                   </div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                     查看环境数据分析
                   </div>
                 </div>
-                <IconRight className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
+                <IconRight className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all" />
               </div>
             </button>
 
@@ -502,22 +502,22 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
               </div>
               
               {/* 统一的浅色遮罩 */}
-              <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-slate-900/70 dark:via-slate-900/50 dark:to-slate-900/30" />
+              <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-zinc-900/70 dark:via-zinc-900/50 dark:to-zinc-900/30" />
               
               {/* 内容层 */}
               <div className="relative z-10 p-4 flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-md border border-slate-200/50 dark:border-slate-700/50">
-                  <IconLight className="w-4 h-4 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+                <div className="p-2 rounded-xl bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm shadow-sm border border-zinc-200/50 dark:border-zinc-700/50">
+                  <IconLight className="w-4 h-4 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-black font-alimama tracking-wider text-slate-800 dark:text-slate-200 mb-0.5">
+                  <div className="text-sm font-black font-alimama tracking-wider text-zinc-800 dark:text-zinc-200 mb-0.5">
                     优化建议
                   </div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                     AI 智能分析建议
                   </div>
                 </div>
-                <IconRight className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
+                <IconRight className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all" />
               </div>
             </button>
 
@@ -539,22 +539,22 @@ export function ExactDesignHome({ user, deviceData, onSendMessage }: ExactDesign
               </div>
               
               {/* 统一的浅色遮罩 */}
-              <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-slate-900/70 dark:via-slate-900/50 dark:to-slate-900/30" />
+              <div className="absolute inset-0 z-[1] bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-zinc-900/70 dark:via-zinc-900/50 dark:to-zinc-900/30" />
               
               {/* 内容层 */}
               <div className="relative z-10 p-4 flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-md border border-slate-200/50 dark:border-slate-700/50">
-                  <IconSettingTwo className="w-4 h-4 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+                <div className="p-2 rounded-xl bg-white/95 dark:bg-zinc-800/95 backdrop-blur-sm shadow-sm border border-zinc-200/50 dark:border-zinc-700/50">
+                  <IconSettingTwo className="w-4 h-4 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-black font-alimama tracking-wider text-slate-800 dark:text-slate-200 mb-0.5">
+                  <div className="text-sm font-black font-alimama tracking-wider text-zinc-800 dark:text-zinc-200 mb-0.5">
                     设备状态
                   </div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                     实时设备监控
                   </div>
                 </div>
-                <IconRight className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
+                <IconRight className="w-4 h-4 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 group-hover:translate-x-0.5 transition-all" />
               </div>
             </button>
           </div>

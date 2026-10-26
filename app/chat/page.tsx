@@ -1,10 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { App as AntApp, ConfigProvider } from "antd"
+import { App as AntApp, ConfigProvider, theme as antdTheme } from "antd"
 import { XProvider } from "@ant-design/x"
+import { useTheme } from "next-themes"
 import zhCN from "antd/locale/zh_CN"
-import { toast } from "sonner"
+import { toast, message } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { chatClient } from "@/lib/chat/chat-client"
 import type {
@@ -34,6 +35,10 @@ import { MessageSearchDialog } from "@/components/chat/message-search-dialog"
 import type { SendMessageFn } from "@/components/chat/chat-input-bar"
 
 export default function ChatPage() {
+  // ===== 0. 主题（antd 必须跟随，否则暗色下弹窗/下拉/骨架仍是白底） =====
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+
   // ===== 1. Bootstrap =====
   const { currentUser, isMobile } = useChatBootstrap()
 
@@ -104,9 +109,18 @@ export default function ChatPage() {
   }, [activeGroup])
 
   // ===== 7. Send handler (适配新 SendMessageFn 签名) =====
+  /**
+   * 附件必须**先上传再落库**（2026-10-22 修）
+   *
+   * 旧实现把 `URL.createObjectURL(file)` 直接当 file_url 存进数据库 —— 那是个
+   * `blob:http://host/uuid` 的一次性内存地址，只活在发送者当前标签页里：
+   *   · 接收方拿到这串 URL 必然裂图/无法播放；
+   *   · 发送者自己刷新或换设备，历史消息全部失效。
+   * 后端 `/api/chat/upload` 早就写好了（鉴权 + 类型/体积校验 + 落 public/uploads/chat），
+   * 只是一直没人调。这里补上，并且在等待期间给一条 loading 提示。
+   */
   const handleSend: SendMessageFn = useCallback(async ({ text, file }) => {
     if (file) {
-      const url = URL.createObjectURL(file)
       const type = file.type.startsWith("image/")
         ? "image"
         : file.type.startsWith("video/")
@@ -114,12 +128,26 @@ export default function ChatPage() {
           : file.type.startsWith("audio/")
             ? "audio"
             : "file"
-      const result = await sendMessage({ content: text || (type === "audio" ? "[语音]" : "[文件]"), type, fileUrl: url })
-      if (result.ok) {
-        refreshFriends()
-        refreshGroups()
-      } else {
-        toast.error(result.error || "发送失败")
+      const hide = message.loading(type === "image" ? "图片上传中…" : "文件上传中…", 0)
+      try {
+        const up = await chatClient.uploadFile(file)
+        if (!up.ok || !up.url) {
+          toast.error(up.error || "上传失败，请重试")
+          return
+        }
+        const result = await sendMessage({
+          content: text || file.name || (type === "audio" ? "[语音]" : "[文件]"),
+          type,
+          fileUrl: up.url
+        })
+        if (result.ok) {
+          refreshFriends()
+          refreshGroups()
+        } else {
+          toast.error(result.error || "发送失败")
+        }
+      } finally {
+        hide()
       }
       return
     }
@@ -135,8 +163,29 @@ export default function ChatPage() {
 
   // ===== 8. Voice recorder =====
   const { isRecording, startRecording, stopRecording, cancelRecording } = useVoiceRecorder({
-    onAudioReady: (url) => {
-      void sendMessage({ content: "[语音]", type: "audio", fileUrl: url })
+    onAudioReady: async (url) => {
+      // 同上：录音给的是 blob URL，必须先转成服务端地址才能被对方听见
+      try {
+        const blob = await fetch(url).then(r => r.blob())
+        const ext = blob.type.includes("mp4") ? "m4a" : "webm"
+        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: blob.type || "audio/webm" })
+        const hide = message.loading("语音上传中…", 0)
+        try {
+          const up = await chatClient.uploadFile(file)
+          if (!up.ok || !up.url) {
+            toast.error(up.error || "语音上传失败")
+            return
+          }
+          const r = await sendMessage({ content: "[语音]", type: "audio", fileUrl: up.url })
+          if (!r.ok) toast.error(r.error || "语音发送失败")
+        } finally {
+          hide()
+        }
+      } catch {
+        toast.error("语音处理失败")
+      } finally {
+        URL.revokeObjectURL(url)
+      }
     },
     onError: (msg) => toast.error(msg)
   })
@@ -316,24 +365,25 @@ export default function ChatPage() {
     <ConfigProvider
       locale={zhCN}
       theme={{
+        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          colorPrimary: "#1677ff",
+          colorPrimary: isDark ? "#34D399" : "#059669",
           borderRadius: 8,
         },
       }}
     >
     <AntApp>
-    <XProvider theme={{ token: { colorPrimary: "#1677ff" } }}>
-    <div className="h-[100dvh] w-screen bg-white font-sans overflow-hidden flex flex-col">
+    <XProvider theme={{ algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm, token: { colorPrimary: isDark ? "#34D399" : "#059669" } }}>
+    <div className="h-[100dvh] w-screen bg-br-surface font-sans overflow-hidden flex flex-col">
       {/* 顶部 PageHeader */}
-      <div className="border-b border-black/[0.06] shrink-0">
+      <div className="border-b border-br-line shrink-0">
         <PageHeader user={currentUser}>
           <InvitationNotifier />
         </PageHeader>
       </div>
 
       {/* 主区域 */}
-      <div className="flex-1 min-h-0 overflow-hidden flex bg-white">
+      <div className="flex-1 min-h-0 overflow-hidden flex bg-br-canvas">
         {/* 左侧：侧边栏（消息模式64+280=344px，通讯录模式64+180+260=504px） */}
         <div
           className={cn(
@@ -368,7 +418,7 @@ export default function ChatPage() {
         {/* 通讯录模式：右侧直接显示详情面板（占满剩余空间） */}
         {primaryTab === "contacts" ? (
           !isMobile && (
-            <div className="flex-1 min-w-0 h-full bg-white">
+            <div className="flex-1 min-w-0 h-full bg-br-surface">
               {selectedOrg ? (
                 <OrganizationDetailPanel
                   org={selectedOrg}
@@ -396,7 +446,7 @@ export default function ChatPage() {
                   />
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center text-[14px] text-[rgba(0,0,0,0.3)]">
+                <div className="h-full flex items-center justify-center text-[14px] text-br-text-3">
                   选择一个联系人或组织查看详情
                 </div>
               )}
@@ -440,8 +490,8 @@ export default function ChatPage() {
             {!isMobile && target && (
               <div
                 className={cn(
-                  "absolute top-0 right-0 h-full w-[300px] bg-white border-l border-black/[0.06] z-20",
-                  "transition-transform duration-300 ease-in-out shadow-[-4px_0_16px_rgba(0,0,0,0.04)]",
+                  "absolute top-0 right-0 h-full w-[300px] bg-br-surface z-20",
+                  "transition-transform duration-300 ease-in-out shadow-[-4px_0_16px_rgba(0,0,0,0.04)] dark:shadow-[-4px_0_16px_rgba(0,0,0,0.4)]",
                   showDetails
                     ? "translate-x-0"
                     : "translate-x-full pointer-events-none"

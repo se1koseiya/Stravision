@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Tooltip, message, Spin } from "antd"
+import { Tooltip, Spin } from "antd"
+
+import { toast } from "@/lib/ui/feedback"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { ScheduledTasksList, type ScheduledTask } from "@/components/ai/scheduled-tasks-list"
@@ -67,7 +69,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
 
   const handleManualCreated = () => {
     handleRefresh()
-    message.success("任务创建成功")
+    toast.success("任务创建成功")
   }
 
   const handleConversational = (prompt: string) => {
@@ -100,7 +102,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
               "fixed z-[150] flex flex-col font-sans overflow-hidden",
               "top-3 right-3 bottom-3",
               sidebarOpen ? "left-[272px]" : "left-3",
-              isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
+              isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900",
               closing && "pointer-events-none"
             )}
             style={{ borderRadius: 10 }}
@@ -123,7 +125,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                           "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                           isDark
                             ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                            : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                         )}
                       >
                         <IconLayoutTwo size={17} />
@@ -138,7 +140,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                           "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                           isDark
                             ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                            : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                         )}
                       >
                         <IconPlus size={17} />
@@ -152,7 +154,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                   <h1
                     className={cn(
                       "text-2xl font-semibold tracking-tight",
-                      isDark ? "text-zinc-100" : "text-gray-900"
+                      isDark ? "text-zinc-100" : "text-zinc-900"
                     )}
                   >
                     定时任务
@@ -160,7 +162,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                   <p
                     className={cn(
                       "mt-1 text-sm",
-                      isDark ? "text-zinc-500" : "text-gray-500"
+                      isDark ? "text-zinc-500" : "text-zinc-500"
                     )}
                   >
                     让 AI 按计划自动执行任务，并把结果定时送达
@@ -177,7 +179,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                         "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
                         isDark
                           ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                       )}
                     >
                       <IconClose size={17} />
@@ -193,7 +195,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                         "flex items-center gap-1.5 px-4 h-9 rounded-lg text-sm font-medium transition-colors",
                         isDark
                           ? "bg-zinc-100 text-zinc-900 hover:bg-white"
-                          : "bg-gray-900 text-white hover:bg-gray-800"
+                          : "bg-zinc-900 text-white hover:bg-zinc-800"
                       )}
                     >
                       创建
@@ -213,7 +215,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                             "absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg overflow-hidden z-10",
                             isDark
                               ? "bg-zinc-900 border-zinc-800"
-                              : "bg-white border-gray-200"
+                              : "bg-white border-zinc-200"
                           )}
                         >
                           <button
@@ -226,7 +228,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                               "flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left transition-colors",
                               isDark
                                 ? "text-zinc-200 hover:bg-zinc-800"
-                                : "text-gray-700 hover:bg-gray-50"
+                                : "text-zinc-700 hover:bg-zinc-50"
                             )}
                           >
                             <IconPlus />
@@ -242,7 +244,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                               "flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left transition-colors border-t",
                               isDark
                                 ? "text-zinc-200 hover:bg-zinc-800 border-zinc-800"
-                                : "text-gray-700 hover:bg-gray-50 border-gray-100"
+                                : "text-zinc-700 hover:bg-zinc-50 border-zinc-100"
                             )}
                           >
                             <IconComment />
@@ -276,7 +278,7 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                     height="72"
                     viewBox="0 0 72 72"
                     fill="none"
-                    className={cn(isDark ? "text-zinc-700" : "text-gray-300")}
+                    className={cn(isDark ? "text-zinc-700" : "text-zinc-300")}
                   >
                     {/* 日历主体 */}
                     <rect x="12" y="16" width="48" height="44" rx="4" stroke="currentColor" strokeWidth="1.5" fill="none" />
@@ -291,20 +293,20 @@ export function SchedulerSidebarPanel({ open, onClose, onConversationalCreate, d
                     <path d="M36 41V46L39 48" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
 
-                  <p className={cn("mt-6 text-sm", isDark ? "text-zinc-400" : "text-gray-500")}>
+                  <p className={cn("mt-6 text-sm", isDark ? "text-zinc-400" : "text-zinc-500")}>
                     创建定时任务
                   </p>
-                  <p className={cn("mt-1 text-sm", isDark ? "text-zinc-500" : "text-gray-400")}>
+                  <p className={cn("mt-1 text-sm", isDark ? "text-zinc-500" : "text-zinc-400")}>
                     <button
                       onClick={() => setManualOpen(true)}
-                      className={cn("hover:underline", isDark ? "text-blue-400" : "text-blue-500")}
+                      className={cn("hover:underline", isDark ? "text-emerald-400" : "text-emerald-500")}
                     >
                       手动添加
                     </button>
                     <span className="mx-1.5">或</span>
                     <button
                       onClick={() => handleConversational("我想创建一个定时任务：")}
-                      className={cn("hover:underline", isDark ? "text-blue-400" : "text-blue-500")}
+                      className={cn("hover:underline", isDark ? "text-emerald-400" : "text-emerald-500")}
                     >
                       通过会话创建
                     </button>

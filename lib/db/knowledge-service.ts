@@ -203,7 +203,7 @@ export async function createCollection(input: CreateCollectionInput): Promise<nu
       input.name,
       input.description ?? null,
       input.parent_id ?? null,
-      input.color ?? "#1677ff",
+      input.color ?? "#059669",
       input.icon ?? "folder",
       input.sort_order ?? 0,
       now
@@ -294,7 +294,7 @@ export async function updateCollectionItemCount(collectionId: number): Promise<v
 
 // ============== 标签 (Tags) ==============
 
-export async function upsertTag(userId: number, name: string, color = "#1677ff"): Promise<number> {
+export async function upsertTag(userId: number, name: string, color = "#059669"): Promise<number> {
   await initDB()
   const now = Date.now()
   const res = await execute(
@@ -411,7 +411,7 @@ export async function createItem(input: CreateItemInput): Promise<number> {
   })
 }
 
-async function upsertTagInternal(client: any, userId: number, name: string, color = "#1677ff"): Promise<number> {
+async function upsertTagInternal(client: any, userId: number, name: string, color = "#059669"): Promise<number> {
   const res = await client.query(
     `INSERT INTO knowledge_tags (user_id, name, color, usage_count, created_at)
      VALUES ($1, $2, $3, 0, $4)
@@ -1411,7 +1411,7 @@ export async function createMarketCollection(input: CreateMarketCollectionInput)
       input.publisher_id,
       input.name,
       input.description ?? null,
-      input.color ?? "#1677ff",
+      input.color ?? "#059669",
       input.icon ?? "book",
       input.category ?? "general",
       input.cover_image ?? null,

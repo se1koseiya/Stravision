@@ -42,9 +42,9 @@ function PersonaIcon({ id, size = 14, className }: { id: string; size?: number; 
  */
 export function PersonaSelector({ value, onChange, compact = false, className }: PersonaSelectorProps) {
   const [personas, setPersonas] = useState<PersonaMeta[]>([
-    { id: 'expert', name: '种植专家', tagline: '农艺师视角 · 数据驱动 · 深度专业', icon: '🌿', color: '#52c41a' },
-    { id: 'friendly', name: '新手向导', tagline: '通俗易懂 · 循序渐进 · 手把手教', icon: '🌱', color: '#1677ff' },
-    { id: 'engineer', name: '农业工程师', tagline: '系统视角 · 设备联动 · 自动化优先', icon: '⚙️', color: '#722ed1' },
+    { id: 'expert', name: '种植专家', tagline: '农艺师视角 · 数据驱动 · 深度专业', icon: '🌿', color: '#059669' },
+    { id: 'friendly', name: '新手向导', tagline: '通俗易懂 · 循序渐进 · 手把手教', icon: '🌱', color: '#059669' },
+    { id: 'engineer', name: '农业工程师', tagline: '系统视角 · 设备联动 · 自动化优先', icon: '⚙️', color: '#059669' },
   ])
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
@@ -123,19 +123,19 @@ export function PersonaSelector({ value, onChange, compact = false, className }:
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] transition-colors",
             "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
-            open && "border-[#1677ff]/40 bg-[#1677ff]/[0.04] text-[#1677ff]"
+            open && "border-[#059669]/40 bg-[#059669]/[0.04] text-[#059669]"
           )}
           title={current?.tagline}
           aria-expanded={open}
           aria-haspopup="listbox"
         >
-          <PersonaIcon id={current?.id || ''} size={13} className="text-[#1677ff]" />
+          <PersonaIcon id={current?.id || ''} size={13} className="text-[#059669]" />
           <span className="whitespace-nowrap">{current?.name}</span>
           <IconDown
             size={12}
             className={cn(
               "text-zinc-400 transition-transform duration-200",
-              open && "rotate-180 text-[#1677ff]"
+              open && "rotate-180 text-[#059669]"
             )}
           />
         </button>
@@ -166,13 +166,13 @@ export function PersonaSelector({ value, onChange, compact = false, className }:
                     className={cn(
                       "w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors",
                       isCurrent
-                        ? "bg-[#1677ff]/[0.08]"
+                        ? "bg-[#059669]/[0.08]"
                         : "hover:bg-zinc-50"
                     )}
                   >
                     <div className={cn(
-                      "mt-0.5 flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center",
-                      isCurrent ? "bg-[#1677ff] text-white" : "bg-zinc-100 text-zinc-500"
+                      "mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center",
+                      isCurrent ? "bg-[#059669] text-white" : "bg-zinc-100 text-zinc-500"
                     )}>
                       <PersonaIcon id={p.id} size={14} />
                     </div>
@@ -180,22 +180,22 @@ export function PersonaSelector({ value, onChange, compact = false, className }:
                       <div className="flex items-center gap-1.5">
                         <span className={cn(
                           "text-[13px] leading-none",
-                          isCurrent ? "text-[#1677ff] font-medium" : "text-zinc-800"
+                          isCurrent ? "text-[#059669] font-medium" : "text-zinc-800"
                         )}>
                           {p.name}
                         </span>
                         {isCurrent && (
-                          <span className="text-[10px] text-[#1677ff] leading-none">
+                          <span className="text-[11px] text-[#059669] leading-none">
                             · 当前
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-[11.5px] text-zinc-500 leading-snug">
+                      <p className="mt-1 text-[12px] text-zinc-500 leading-snug">
                         {p.tagline}
                       </p>
                     </div>
                     {isCurrent && (
-                      <IconCheck size={14} className="text-[#1677ff] flex-shrink-0 mt-1" />
+                      <IconCheck size={14} className="text-[#059669] flex-shrink-0 mt-1" />
                     )}
                   </button>
                 )
@@ -223,14 +223,14 @@ export function PersonaSelector({ value, onChange, compact = false, className }:
             className={cn(
               "flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 transition-all",
               p.id === value
-                ? "border-[#1677ff] bg-[#1677ff]/[0.04]"
-                : "border-border hover:border-[#1677ff]/40 hover:bg-accent/50"
+                ? "border-[#059669] bg-[#059669]/[0.04]"
+                : "border-border hover:border-[#059669]/40 hover:bg-accent/50"
             )}
           >
             <PersonaIcon
               id={p.id}
               size={20}
-              className={p.id === value ? "text-[#1677ff]" : "text-zinc-500"}
+              className={p.id === value ? "text-[#059669]" : "text-zinc-500"}
             />
             <span className="text-xs font-medium text-center">{p.name}</span>
           </button>

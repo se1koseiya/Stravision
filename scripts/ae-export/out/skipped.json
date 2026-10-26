@@ -1,0 +1,86 @@
+[
+  {
+    "rel": "components/ai/assistant-home-view.tsx",
+    "reason": "no-jsx"
+  },
+  {
+    "rel": "components/automation/action-node.tsx",
+    "reason": "no-explicit-export"
+  },
+  {
+    "rel": "components/automation/logic-node.tsx",
+    "reason": "no-explicit-export"
+  },
+  {
+    "rel": "components/automation/trigger-node.tsx",
+    "reason": "no-explicit-export"
+  },
+  {
+    "rel": "components/desktop/desktop-notification-bridge.tsx",
+    "reason": "no-jsx"
+  },
+  {
+    "rel": "components/landing-art/mascot-context.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/landing-v4/theme-provider.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/lazy-providers.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/message-notification-listener.tsx",
+    "reason": "no-jsx"
+  },
+  {
+    "rel": "components/page-transition.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/root-scrollbar.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/scheduler-init.tsx",
+    "reason": "no-jsx"
+  },
+  {
+    "rel": "components/scroll-activity.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/smooth-scroll.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/sw-register.tsx",
+    "reason": "no-jsx"
+  },
+  {
+    "rel": "components/theme-provider.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/toaster-wrapper.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/ui/aspect-ratio.tsx",
+    "reason": "no-jsx"
+  },
+  {
+    "rel": "components/ui/smooth-transition.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/ui/web-preview-adapter.tsx",
+    "reason": "logic-only-name"
+  },
+  {
+    "rel": "components/wheel-scroll-guard.tsx",
+    "reason": "no-jsx"
+  }
+]

@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Tag, Typography, Spin } from "antd"
 import type { ColumnsType } from 'antd/es/table'
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconCheck, IconDelete, IconEdit, IconPlus, IconSearch, IconShield } from "@/components/icon";
 
 const { Text } = Typography
@@ -108,7 +108,7 @@ export function MCPManager() {
       dataIndex: 'priority',
       key: 'priority',
       width: 80,
-      render: (val: number) => <Text strong style={{ color: '#1677ff' }}>#{val}</Text>
+      render: (val: number) => <Text strong style={{ color: '#059669' }}>#{val}</Text>
     },
     {
       title: 'Icon',
@@ -140,7 +140,7 @@ export function MCPManager() {
       render: (val: string, record: MCPServer) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Text>{val}</Text>
-          {record.official && <IconShield style={{ color: '#1677ff', fontSize: 12 }} />}
+          {record.official && <IconShield style={{ color: '#059669', fontSize: 12 }} />}
         </div>
       )
     },
@@ -343,7 +343,7 @@ export function MCPManager() {
           </div>
 
           <div>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 4, color: '#1677ff' }}>Default Env Vars (JSON Object)</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4, color: '#059669' }}>Default Env Vars (JSON Object)</Text>
             <Input.TextArea 
               placeholder='{"API_KEY": ""}' 
               value={editingServer?.envVars || "{}"}

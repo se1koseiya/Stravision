@@ -12,7 +12,7 @@ import type { UserPublic } from "@/lib/db/user-service"
 import { deviceForgeStore, parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
 import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandInput as CommandInputUI, CommandItem, CommandList } from "@/components/ui/command"
-import { IconArrowRightUp, IconAttention, IconBackgroundColor, IconBookOpen, IconBookshelf, IconBrain, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconCheckOne, IconCommentAdd, IconCommentDashed, IconCompass, IconCopy, IconCpu, IconCrown, IconDelete, IconDown, IconDownload, IconFileText, IconFolderOpen, IconFolderUpload, IconFullScreen, IconGlobe, IconGridFour, IconHelp, IconHome, IconInfo, IconLayoutTwo, IconLightning, IconLinkOut, IconList, IconListCheckbox, IconLoading, IconLock, IconMagicWand, IconMicrophone, IconMonitor, IconMoon, IconMore, IconPause, IconPencil, IconPhone, IconPicture, IconPin, IconPlay, IconPlusCross, IconPreviewOpen, IconRefresh, IconRight, IconRound, IconSearch, IconSeedling, IconSettingTwo, IconShare, IconSignal, IconSun, IconThunderbolt, IconTime, IconTool, IconUndo, IconUp, IconVoiceOff, IconVolumeMute, IconVolumeNotice, IconWallet } from "@/components/icon";
+import { IconArrowRightUp, IconAttention, IconBackgroundColor, IconBookOpen, IconBookshelf, IconBrain, IconCamera, IconCaution, IconChartHistogram, IconChartLine, IconCheckOne, IconCommentAdd, IconCommentDashed, IconCompass, IconCopy, IconCpu, IconCrown, IconDelete, IconDown, IconDownload, IconFileSearch, IconFileText, IconFolderOpen, IconFolderUpload, IconFullScreen, IconGlobe, IconGridFour, IconHelp, IconInfo, IconLayoutTwo, IconLightning, IconLinkOut, IconList, IconListCheckbox, IconLoading, IconLock, IconMagicWand, IconMonitor, IconMoon, IconMore, IconNotebook, IconPause, IconPencil, IconPhone, IconPicture, IconPin, IconPlay, IconPlusCross, IconPreviewOpen, IconRefresh, IconRight, IconRound, IconSearch, IconSeedling, IconSettingTwo, IconShare, IconSignal, IconSun, IconThunderbolt, IconTime, IconTool, IconUndo, IconUp, IconVoiceOff, IconVolumeMute, IconVolumeNotice, IconWallet } from "@/components/icon";
 
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
 const MessageWithReport = dynamic(() => import("@/components/ai/message-with-report").then(mod => ({ default: mod.MessageWithReport })), { ssr: false })
@@ -24,8 +24,12 @@ const VoiceChatModal = dynamic(() => import("@/components/ai/voice-chat-modal").
 const LiveStreamPlayer = dynamic(() => import("@/components/live-stream-player").then(m => ({ default: m.LiveStreamPlayer })), { ssr: false })
 const WebPreview = dynamic(() => import("@/components/ai/web-preview").then(m => ({ default: m.WebPreview })), { ssr: false })
 const DeviceControlCard = dynamic(() => import("@/components/ai/device-control-card").then(m => ({ default: m.DeviceControlCard })), { ssr: false })
-const HTMLPreviewCard = dynamic(() => import("@/components/ai/html-preview-card").then(m => ({ default: m.HTMLPreviewCard })), { ssr: false })
+// HTMLPreviewCard 已废弃（代码产物改用 antd X 代码块交付，见 chat-message-renderer.tsx#EnhancedCodeBlock）
 const BrowserActivity = dynamic(() => import("@/components/ai/browser-activity").then(m => ({ default: m.BrowserActivity })), { ssr: false })
+// 对话区背景：WebGL 流动雾（three 片元着色器）—— 只在客户端跑，不参与 SSR。
+// 2026-10-22 用户「不行引入那个 webgl 吧，舍弃 pixel」：PixelBlast 像素抖动已撤出本页
+// （组件文件仍在，desktop-setup 的 aurora-backdrop 还在用，不要删）。
+const AuroraBg = dynamic(() => import("@/components/ai/aurora-bg").then(m => ({ default: m.AuroraBg })), { ssr: false })
 
 import { Settings as SettingsIcon } from "@/components/animate-ui/icons/settings";
 import { Plus } from "@/components/animate-ui/icons/plus";
@@ -33,6 +37,41 @@ import { LogOut } from "@/components/animate-ui/icons/log-out";
 // 🚨 必须 import：本文件 4 处直接使用 IS_DESKTOP_APP（2894/6416/6441/6500），
 // 漏 import 编译不报错、运行时 ReferenceError 炸整页（2026-09-16 用户卡面板崩溃根因）
 import { IS_DESKTOP_APP } from "@/lib/desktop-mode";
+// 🪟 桌面端自绘窗口 chrome（2026-10-06 顶栏重做）：把原生菜单与 − □ ✕ 内联进本页顶栏。
+// 见 components/desktop/desktop-window-chrome.tsx 顶部注释。
+import {
+  DESKTOP_DRAG,
+  DESKTOP_NO_DRAG,
+  DesktopWindowControls,
+  DesktopWindowMenu,
+  useDesktopHeaderHost,
+} from "@/components/desktop/desktop-window-chrome";
+
+/**
+ * sender「能力 / 模式行」清单 —— 参考稿输入框那排事物的本地化对应物：
+ *   快速回答 / AI 生图 / 写作 / 解题 / 深度研究 / PPT 生成 / 数据分析 / 更多
+ *   ↓
+ *   巡检分析 / 病虫害识别 / 环境监测 / 种植策略 / 研究
+ *
+ * 放模块级（而不是组件里的 useMemo）：它**完全不依赖任何 state**，写成常量
+ * 就不会每次渲染新建一个数组、让 sender 里的 find 白算。
+ *
+ * 想「去掉一两个」（用户原话）＝直接从 `farmSkillsToModes()` 的返回里 slice，
+ * 或者在这里显式列 key —— 只动这一处，sender 那边零改动。
+ */
+const SENDER_MODES: SenderModeItem[] = [
+  ...farmSkillsToModes(),
+  {
+    key: "research",
+    label: "研究",
+    icon: <IconFileSearch size={14} />,
+    /* 对齐参考稿「解题 → 输入题目，或上传题目图片」：进模式后 placeholder 就该说清楚
+       这条输入要干嘛，而不是继续挂一句通用的「发送消息」。 */
+    placeholder: "描述你想研究的问题，莓小智会联网检索并给出带来源的结论",
+    /* 进研究模式顺带打开 web_search / deep_research 工具组（退出时自动关掉）。 */
+    search: true,
+  },
+]
 import { X } from "@/components/animate-ui/icons/x";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { Search } from "@/components/animate-ui/icons/search";
@@ -50,10 +89,17 @@ import remarkGfm from "remark-gfm"
 // html-to-image 和 jspdf 仅在下载 PDF 时使用，延迟加载
 // import * as htmlToImage from 'html-to-image'
 // import jsPDF from "jspdf"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 // Toaster 已在全局 layout.tsx 的 ToasterWrapper 中提供，此处不再重复创建
 import { motion, AnimatePresence } from "framer-motion"
 import { useUserReports, type LocalSpaceReport } from "@/hooks/use-user-reports"
+import {
+  hasReportIntent,
+  looksLikeReportHtml,
+  looksLikeCodeArtifact,
+  isBareHtmlArtifact,
+  extractReportTitle,
+} from "@/lib/ai/deliverable-classifier"
 
 import {
   DropdownMenu,
@@ -86,6 +132,11 @@ import {
 } from "@/components/ui/assistant-ui"
 
 import { getVoiceSettings, AISettingsDialog } from "@/components/ai-settings-dialog"
+import {
+  toCameraSnapshotMessages,
+  type PendingCameraSnapshot,
+} from "@/lib/ai/camera-snapshot"
+import { OPEN_CONTEXT_PREFS_EVENT } from "@/app/ai-assistant/_components/context-compression-notice"
 import type { SettingsSection } from "@/components/ai-settings-dialog"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
@@ -124,15 +175,25 @@ import { parseScheduleTask, removeScheduleTaskTag } from '@/lib/ai/schedule-task
 import { SchedulerSidebarPanel } from "@/components/ai/scheduler-sidebar-panel"
 import { MySpaceSidebarPanel } from "@/components/ai/my-space-sidebar-panel"
 import { KnowledgeSidebarPanel } from "@/components/ai/knowledge-sidebar-panel"
+import { MedicalRecordsPanel } from "@/components/ai/medical-records-panel"
 import { DeviceForgeSidebarPanel } from "@/components/ai/device-forge-sidebar-panel"
 import { filterDisabledFeatures } from '@/lib/ai/prompt-templates'
 
 // BrowserActivity, WebPreview — 已改为 dynamic import
 
-// DeviceControlCard, HTMLPreviewCard — 已改为 dynamic import
+// DeviceControlCard — 已改为 dynamic import
+// HTMLPreviewCard — 已废弃删除（代码产物交付 = antd X 代码块）
 import { AIControlBorderEffect } from "@/components/ai/ai-control-border-effect"
 import { DynamicModelSelector } from "@/components/ai/dynamic-model-selector"
-import { PredictiveInsightCard } from "@/components/ai/predictive-insight-card"
+/* 能力 / 模式行：4 条种植能力与落地页首屏**同源**（farm-skills.tsx 的提示词只有一份），
+   「研究」是本页特有的一条（它要顺带打开联网检索 / 深度研究工具组）。 */
+import { farmSkillsToModes } from "@/components/ai/farm-skills"
+import type { SenderModeItem } from "@/components/ai/sender-modes"
+/* 顶栏胶囊 = 对话总结（取代原「趋势预测」入口）：
+   用户开始一轮新对话时，用**他当前选择的模型**把意图压成一句话，
+   既当标题（侧栏「最近对话」列表）也在顶栏常驻展示。见 lib/ai/conversation-title.ts */
+import { ConversationSummary } from "@/components/ai/conversation-summary"
+import { summarizeConversationTitle, fallbackConversationTitle } from "@/lib/ai/conversation-title"
 import { GuardianAlertBell } from "@/components/ai/guardian-alert-bell"
 import { useAIModels } from "@/lib/hooks/use-ai-models"
 
@@ -140,13 +201,37 @@ import { useAIModels } from "@/lib/hooks/use-ai-models"
 import { ModernHomeView } from "@/components/ai/modern-home-view"
 import { MateChatHome } from "@/components/ai/matechat-home"
 import { CapabilitiesCard } from "@/components/ai/capabilities-card"
-import type { Citation, TaskItemModel, TaskModel, Message, AISettings, SessionMeta, ChatAttachment } from "@/app/ai-assistant/types"
+import type { Citation, TaskItemModel, TaskModel, Message, AISettings, SessionMeta, ChatAttachment, DocumentRef } from "@/app/ai-assistant/types"
+import {
+  MAX_SENDER_IMAGES,
+  isImageFile,
+  pickFilesFromClipboard,
+  prepareImageFile,
+  readFileAsDataUrl,
+} from "@/app/ai-assistant/_utils/paste-image"
+import { uploadDocumentFile, toDocumentRefs } from "@/app/ai-assistant/_utils/upload-document"
+/** 文档产物引用（artifacts → DocumentRef）唯一源：Copilot 侧栏共用同一套口径 */
+import { collectDocumentRefs, mergeDocumentRefs } from "@/lib/ai/document-artifact"
 import { isVLMModel, getCanonicalSignature, isIoTCommand as checkIoTCommand, filterDisabledFeatures as filterFeatures, DEVICE_NAMES, MCP_SERVER_TOOLS, getGreetingByHour } from "@/app/ai-assistant/_utils/helpers"
 import { DynamicTaskPlanner } from "@/app/ai-assistant/_components/dynamic-task-planner"
 import { PremiumReportLoader } from "@/app/ai-assistant/_components/premium-report-loader"
 import { ChatMessageRenderer } from "@/app/ai-assistant/_components/chat-message-renderer"
 import { ChatBubbleList } from "@/app/ai-assistant/_components/chat-bubble-list"
 import { ChatSenderInput } from "@/app/ai-assistant/_components/chat-sender-input"
+import { DocumentPreviewDock, PreviewPanelToggle } from "@/app/ai-assistant/_components/document-preview"
+import { ConversationSearch } from "@/app/ai-assistant/_components/conversation-search"
+import { ShareConversationButton } from "@/app/ai-assistant/_components/share-conversation"
+import { ContextUsageMeter, type ContextUsageInfo } from "@/app/ai-assistant/_components/context-usage-meter"
+import { ToastConfirm } from "@/components/ui/toast-confirm"
+// 🛑 高风险工具执行前确认：裁决令牌（与后端同一份常量，勿在本地另写字符串字面量）
+import {
+  TOOL_CONFIRM_APPROVE_REPLY,
+  TOOL_CONFIRM_REJECT_REPLY,
+  TOOL_CONFIRM_APPROVE_TEXT,
+  TOOL_CONFIRM_REJECT_TEXT,
+  TOOL_CONFIRM_RUNNING_TEXT,
+  TOOL_CONFIRM_DONE_TEXT,
+} from "@/lib/ai/tool-confirmation"
 import { useTTSEngine } from "@/app/ai-assistant/_hooks/use-tts-engine"
 import { handleDownloadPDF, createSelectFilesHandler, createPasteHandler, handleSettingsSave as saveSettings, copyMessageText } from "@/app/ai-assistant/_utils/message-actions"
 import { type AIActionSummary } from "@/app/ai-assistant/_components/ai-action-summary"
@@ -156,11 +241,17 @@ import { notifyDesktop, summarizeForNotification } from "@/lib/desktop-notify"
 function SmartPromptsWrapper({
   messages,
   aiSettings,
+  model,
+  enableReasoning,
   darkMode,
   onPick,
 }: {
   messages: Message[]
   aiSettings: AISettings | null
+  /** 🎯 用户当前选择的模型（与发给 /api/chat 的 model 同一个值） */
+  model?: string
+  /** 与发给 /api/chat 的深度思考开关同源 —— auto 模式下要靠它挑到同一个模型 */
+  enableReasoning?: boolean
   darkMode: boolean
   onPick: (text: string) => void
 }) {
@@ -185,14 +276,11 @@ function SmartPromptsWrapper({
     <SmartPrompts
       lastUser={lastUser}
       lastAssistant={lastAssistant}
+      model={model}
+      enableReasoning={enableReasoning}
       aiSettings={aiSettings}
       darkMode={darkMode}
       onPick={onPick}
-      fallback={[
-        { key: "f1", description: "对上面的内容做进一步分析" },
-        { key: "f2", description: "当前环境适合采取什么设备操作" },
-        { key: "f3", description: "将分析结果生成可视化报告" },
-      ]}
     />
   )
 }
@@ -260,11 +348,13 @@ type SessionScope = {
   currentBrowserUrl: string | null
   browserScreenshot: string | null
   studioData: any[]
+  /** 本会话最近一轮请求的上下文容量（用于 footer 的「已用 / 窗口」指示器） */
+  contextUsage: ContextUsageInfo | null
 }
 
 export default function AIAssistantPage() {
   return (
-    <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-[#1677ff]">Loading AI Assistant...</div>}>
+    <React.Suspense fallback={<div className="flex h-screen items-center justify-center bg-zinc-950 text-[#059669]">Loading AI Assistant...</div>}>
       <AIAssistantContent />
     </React.Suspense>
   )
@@ -290,6 +380,8 @@ function AIAssistantContent() {
   const [newMessageBoundary, setNewMessageBoundary] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
+  /** 当前对话的上下文容量（后端每轮请求经 SSE `context_usage` 上报；切会话时按快照恢复） */
+  const [contextUsage, setContextUsage] = useState<ContextUsageInfo | null>(null)
 
   // ===== 🔥 会话作用域运行时（切换对话后任务继续在后台执行）=====
   // activeSessionIdRef：实时记录当前激活会话（组件 state 在流式闭包里是旧快照，不可用）
@@ -330,6 +422,7 @@ function AIAssistantContent() {
     sessionScopesRef.current[id] = {
       messages: [], agentStatus: "", agentSteps: [],
       aiActionSummary: null, latestTaskListContent: "", running: false,
+      contextUsage: null,
     } as any
     activeSessionIdRef.current = id
     setSessionId(id)
@@ -341,6 +434,7 @@ function AIAssistantContent() {
     setAgentSteps([])
     setAiActionSummary(null)
     setLatestTaskListContent("")
+    setContextUsage(null)
     setIsLoading(false)
   }, [])
 
@@ -350,16 +444,47 @@ function AIAssistantContent() {
   // 兜底同步：任何路径改动 sessionId 后，ref 都能跟上
   useEffect(() => { activeSessionIdRef.current = sessionId }, [sessionId])
   const [sessions, setSessions] = useState<SessionMeta[]>([])
+  /* ── 对话总结（= 会话标题）──────────────────────────────────────────────
+     顶栏胶囊（ConversationSummary）与侧栏「最近对话」列表**共用同一个值**：
+     都取自 `sessions.find(当前会话).title`，唯一数据源，不会出现两处说法不一致。
+     生成时机：用户发出第一轮消息时用其**当前选择的模型**总结意图（见 ensureConversationTitle）。 */
+  const [convSummary, setConvSummary] = useState("")
+  const [summarizing, setSummarizing] = useState(false)
+  /** 已进入「生成标题」流程的会话 id —— 防用户连发两条导致重复总结 */
+  const titledSessionsRef = useRef<Set<string>>(new Set())
+  /* 会话切换 / 标题变化 → 同步顶栏总结胶囊 */
+  useEffect(() => {
+    if (!sessionId || isTempSession(sessionId)) {
+      setConvSummary("")
+      return
+    }
+    const s = sessions.find((x) => x.id === sessionId)
+    const t = s?.title || ""
+    // 「新会话 <时间>」是占位标题，还没总结出来 → 显示占位态
+    setConvSummary(t.startsWith("新会话") ? "" : t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, sessions])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
   const [enableSearch, setEnableSearch] = useState(false)
   const [searchPanelOpen, setSearchPanelOpen] = useState(false)
+  /** 🔍 对话内搜索（顶栏胶囊，区别于侧栏的全局搜索面板） */
+  const [convSearchOpen, setConvSearchOpen] = useState(false)
+  /* ── 能力 / 模式行（2026-10-01 用户：「把这些放到 sender」+「你看看人家的」）──
+     参考稿里输入框的行为：未选中 = 一排扁平图文胶囊；选中 = 整排收起，
+     只留那一枚「淡绿底 + 墨绿字 + ×」的小胶囊。这里只存「当前进了哪个模式」，
+     模式清单是静态的（见下面的 senderModes）。
+     与 enableSearch 的关系：进「研究」模式会顺带开检索工具，退出时关掉；
+     进种植能力模式不动它 —— 两件事不再互相绑死（旧版把研究绑死在 enableSearch 上）。 */
+  const [activeModeKey, setActiveModeKey] = useState<string | null>(null)
   // 提供商/模型的推理能力缓存：{ [modelId]: boolean | undefined }
   const [modelSupportsReasoning, setModelSupportsReasoning] = useState<Record<string, boolean | undefined>>({})
   // 记录是否已尝试加载（避免重复请求）
   const [providerConfigLoaded, setProviderConfigLoaded] = useState(false)
   const [searchTab, setSearchTab] = useState<"history" | "space" | "agent">("history")
   const [searchKeyword, setSearchKeyword] = useState("")
-  const [enableReasoning, setEnableReasoning] = useState(false)
+  // 🔥 深度思考默认开启（2026-09-25 用户要求）：AI 助手无需用户手动启用，默认就走深度思考。
+  // 服务端仍会二次判定 —— 仅当模型 supportsReasoning 时才真正生效（app/api/chat/route.ts: shouldEnableReasoning）。
+  const [enableReasoning, setEnableReasoning] = useState(true)
   // 用 useAIModels 拉取一次 providers 配置（与下拉框共用同一份数据），保证 modelSupportsReasoning 与下拉框完全一致
   const { config: aiConfig, loading: aiConfigLoading, refetch: aiConfigRefetch, getDefaultModelId } = useAIModels()
 
@@ -422,31 +547,17 @@ function AIAssistantContent() {
   })
   const [enableMcp, setEnableMcp] = useState(true) // MCP Toggle
 
-  // ===== 智能提示集自动隐藏逻辑 =====
+  // ===== 智能提示集显示逻辑 =====
+  // 🚨 用户要求（2026-10-04）：对话结束后**常驻显示**，不做自动隐藏 ——
+  //    一直保留，直到用户开始下一句（打字/发送）才收起。
   const [showSmartPrompts, setShowSmartPrompts] = useState(false)
-  const hidePromptsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const SMART_PROMPTS_HIDE_DELAY_MS = 8000
-  const clearHidePromptsTimer = () => {
-    if (hidePromptsTimerRef.current) {
-      clearTimeout(hidePromptsTimerRef.current)
-      hidePromptsTimerRef.current = null
-    }
-  }
 
   // ===== 思考链可见性（完成后保留，不自动消失） =====
   const [showThoughtChain, setShowThoughtChain] = useState(false)
 
-  // 卸载时清理所有计时器
-  useEffect(() => {
-    return () => {
-      if (hidePromptsTimerRef.current) clearTimeout(hidePromptsTimerRef.current)
-    }
-  }, [])
-
-  // 监听最后一条消息：如果是 assistant 且不在 loading / agent status 中，则显示并开始倒计时
+  // 监听最后一条消息：assistant 且不在 loading / agent status 中 → 显示并**常驻**
   useEffect(() => {
     if (isLoading || agentStatus) {
-      clearHidePromptsTimer()
       setShowSmartPrompts(false)
       return
     }
@@ -456,34 +567,16 @@ function AIAssistantContent() {
       return
     }
     setShowSmartPrompts(true)
-    clearHidePromptsTimer()
-    hidePromptsTimerRef.current = setTimeout(() => {
-      setShowSmartPrompts(false)
-      hidePromptsTimerRef.current = null
-    }, SMART_PROMPTS_HIDE_DELAY_MS)
-    return clearHidePromptsTimer
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, isLoading, agentStatus])
 
-  // 用户在输入框打字时立刻隐藏
+  // 用户开始敲下一句 → 收起（这就是「保留到下一句」的终点）
   useEffect(() => {
     if (input.trim().length > 0) {
-      clearHidePromptsTimer()
       setShowSmartPrompts(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input])
-
-  // 悬停时暂停倒计时，移开后重新计时
-  const onPromptsHoverStart = () => clearHidePromptsTimer()
-  const onPromptsHoverEnd = () => {
-    if (!showSmartPrompts) return
-    clearHidePromptsTimer()
-    hidePromptsTimerRef.current = setTimeout(() => {
-      setShowSmartPrompts(false)
-      hidePromptsTimerRef.current = null
-    }, SMART_PROMPTS_HIDE_DELAY_MS)
-  }
 
   // 思考链：AI 正在处理或存在步骤时显示；完成后保留，不自动消失
   useEffect(() => {
@@ -734,7 +827,7 @@ function AIAssistantContent() {
                 },
                 { type: "divider" },
                 { key: "delete", icon: <IconDelete size={13} />,
-                  label: <span style={{ color: "#ef4444" }}>删除此对话</span>, danger: true,
+                  label: <span style={{ color: "#DC2626" }}>删除此对话</span>, danger: true,
                 },
               ],
               onClick: (menuInfo) => handleConvMenuClick(menuInfo as any, key),
@@ -747,7 +840,7 @@ function AIAssistantContent() {
                 cursor: "pointer", color: darkMode ? "#71717a" : "#c4c8cf", opacity: 0,
                 transition: "opacity 0.15s, background 0.15s", flexShrink: 0,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = darkMode ? "#27272a" : "#f0f0f0" }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = darkMode ? "#27272a" : "#F4F4F5" }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = ""; e.currentTarget.style.background = "transparent" }}
             >
               <IconMore size={14} />
@@ -793,6 +886,26 @@ function AIAssistantContent() {
   const [devicePillExpanded, setDevicePillExpanded] = useState(false) // 控制胶囊展开动画
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("")
+  /* 切换模型：原顶栏 DynamicModelSelector 的 onValueChange 逻辑**逐字搬**到 sender footer
+     （2026-10-01 用户：「将 ai 模型选择器放入 sender 参考 workbuddy」）。
+     没做任何语义改动 —— 只是换了个摆放位置，别在这里顺手"优化"业务逻辑。 */
+  const handleModelChange = (id: string) => {
+    setSelectedModel(id)
+    // 切换到用户自配模型时，把 baseUrl/apiKey/modelId 写入 aiSettings
+    if (id.startsWith('custom-')) {
+      try {
+        const raw = localStorage.getItem('berry-realm.custom-models.v1')
+        const list = raw ? JSON.parse(raw) : []
+        const c = list.find((x: any) => x.id === id)
+        if (c) {
+          setAiSettings(prev => prev
+            ? { ...prev, apiKey: c.apiKey, apiUrl: c.baseUrl, model: c.modelId }
+            : { apiKey: c.apiKey, apiUrl: c.baseUrl, model: c.modelId }
+          )
+        }
+      } catch {}
+    }
+  }
   const [selectedPersona, setSelectedPersona] = useState<string>(() => {
     // 从 localStorage 读取上次选择的 persona
     if (typeof window !== 'undefined') {
@@ -803,6 +916,16 @@ function AIAssistantContent() {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [voiceChatOpen, setVoiceChatOpen] = useState(false)
+
+  /* 对话区背景（WebGL 雾 + 白点阵）生命周期：进入即亮 → 保持 20s → 淡出 → 卸载。
+     🚨 必须与 CSS 动画 pb-aura-lifecycle 的总时长（21.8s）严格对齐：
+     0→0.9s 淡入 · 0.9~20s 保持 · 20~21.8s 淡出。改一处必须改另一处。
+     卸载不是为了省内存，是为了**释放 WebGL 上下文**（见 aurora-bg.tsx 顶部注释）。 */
+  const [auraMounted, setAuraMounted] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setAuraMounted(false), 21800)
+    return () => clearTimeout(t)
+  }, [])
   const [showExhaustedDialog, setShowExhaustedDialog] = useState(false)
   // 后端 403 返回的具体拒绝原因（如"积分余额不足（剩余 0.45…）"），弹窗内透出
   const [quotaDenyMsg, setQuotaDenyMsg] = useState<string | null>(null)
@@ -945,6 +1068,25 @@ function AIAssistantContent() {
   const [schedulerPanelOpen, setSchedulerPanelOpen] = useState(false)
   const [mySpaceOpen, setMySpaceOpen] = useState(false)
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
+  // 病历侧边面板（视觉诊断沉淀 + 复诊闭环；2026-10-04 从独立页迁进 AI 助手）
+  const [medicalRecordsOpen, setMedicalRecordsOpen] = useState(false)
+
+  /**
+   * 侧栏浮层面板**互斥**开关。
+   * 这五个面板都占同一块区域（fixed z-[150]），同时打开只会互相压盖 ——
+   * 之前只有"哪个后挂载哪个在上面"的隐式行为，用户看起来像"点了个没反应"。
+   * 统一走这个 helper，语义变成"一次只开一个"。
+   */
+  const openSidebarPanel = useCallback(
+    (which: "explore" | "space" | "scheduler" | "knowledge" | "records") => {
+      setExploreOpen(which === "explore")
+      setMySpaceOpen(which === "space")
+      setSchedulerPanelOpen(which === "scheduler")
+      setKnowledgeOpen(which === "knowledge")
+      setMedicalRecordsOpen(which === "records")
+    },
+    [],
+  )
 
   // 打开我的空间面板时清零未读角标
   useEffect(() => {
@@ -971,7 +1113,21 @@ function AIAssistantContent() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   // 🆕 打开设置弹窗时定位到哪个分区（桌面端「管理设置」直达「模型」）
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization")
-  
+
+  /**
+   * 「已自动整理对话上下文」卡片里的「调整容量与触发点」按钮 → 直达
+   * 设置弹窗的「助理设置」分区（消息渲染层在很深的树里，用全局事件解耦，
+   * 不需要逐层 prop drilling）。
+   */
+  useEffect(() => {
+    const handler = () => {
+      setSettingsSection("assistant")
+      setSettingsOpen(true)
+    }
+    window.addEventListener(OPEN_CONTEXT_PREFS_EVENT, handler)
+    return () => window.removeEventListener(OPEN_CONTEXT_PREFS_EVENT, handler)
+  }, [])
+
   // Skill State
   const [mandatorySkillsEnabled, setMandatorySkillsEnabled] = useState(true)
   const [selectedStoreSkillIds, setSelectedStoreSkillIds] = useState<string[]>([])
@@ -1268,16 +1424,74 @@ function AIAssistantContent() {
   // 而非触发新对话。SSE 流结束时清空，超时也会清空。
   const waitingForUserInputRef = useRef<{
     checkpointId: string
-    type: 'checkpoint' | 'clarify'
+    /**
+     * 🛑 `'tool_confirm'` = 高风险工具的执行前确认（设备启停 / 删除 / 自动化部署等）。
+     * 与 checkpoint / clarify 的关键差异：**不问消息内容**，而是在 sender 上方浮出
+     * 一枚确认胶囊（见 toolConfirm state），只回传同意/拒绝两个哨兵值。
+     */
+    type: 'checkpoint' | 'clarify' | 'tool_confirm'
     title: string
     timeoutMs: number
     startedAt: number
   } | null>(null)
 
+  /**
+   * 🛑 高风险工具的执行前确认条（2026-10-14 用户：「改成在 sender 上方出现确认」）
+   *
+   * 非空即在输入框正上方浮出一枚 ToastConfirm 胶囊。
+   * 数据完全由后端 SSE 驱动（`tool_confirmation_required` / `tool_confirmation_resolved`），
+   * 文案也由后端拼好（优先取 AI 自己那句说明）—— 前端不参与判定「哪些工具要确认」。
+   */
+  const [toolConfirm, setToolConfirm] = useState<{
+    id: string
+    toolName: string
+    text: string
+    state: 'initial' | 'loading' | 'success'
+    successText?: string
+  } | null>(null)
+  /** SSE 回调里要读最新值（回调闭包捕获的是旧 state） */
+  const toolConfirmRef = useRef<typeof toolConfirm>(null)
+  useEffect(() => { toolConfirmRef.current = toolConfirm }, [toolConfirm])
+
+  /** 点「执行」→ loading → 完成后展示终态文案再淡出 */
+  const finishToolConfirm = useCallback((successText: string, delay = 1600) => {
+    setToolConfirm(prev => (prev ? { ...prev, state: 'success', successText } : prev))
+    window.setTimeout(() => {
+      setToolConfirm(prev => (prev?.state === 'success' ? null : prev))
+    }, delay)
+  }, [])
+
   // 🔥 DEVICE_FORGE 卡片直推兜底：connect_device_from_doc 工具返回的 ui_card 先暂存，
   // 流结束时若模型没有按 note 复述 <DEVICE_FORGE> 标签（偶发幻觉 → 卡片"出现又消失"），
   // 则自动把卡片补进消息内容，保证可编辑接入表单一定渲染且随历史持久化。
   const pendingForgeCardRef = useRef<{ card: Record<string, unknown>; sig: string } | null>(null)
+
+  /**
+   * 📷 摄像头截图投递队列（2026-10-16）
+   *
+   * 背景：`take_camera_snapshot` / `move_camera_and_look` 由**服务端 ffmpeg** 抓帧，
+   * 结果随 SSE `tool_result.result.images` 送到浏览器 —— 但此前只进了 studioData，
+   * 前端从没渲染过，用户问"给我看看棚里"时图抓到了却看不到（工具结果里还写着
+   * "图片已转发给用户"，等于谎报）。
+   *
+   * 为什么**不能**收到就插消息：流式期间助手消息永远写 `messages[last]`
+   * （见 handleSend 里 `newMsgs[newMsgs.length-1] = {...assistantMsg}`），
+   * 中途插入的截图消息会被下一段正文直接覆盖。这里先入队，流收尾时（finally，见
+   * flushPendingCameraSnapshots）再一次性插进对话流并落库 —— 与 DEVICE_FORGE
+   * 卡片"先暂存、收尾补位"同一套路。
+   */
+  const pendingCameraSnapshotsRef = useRef<PendingCameraSnapshot[]>([])
+
+  /**
+   * 📎 本轮 AI 产出/修改的文档（`document_create` / `document_edit` 的产物）。
+   *
+   * 与截图队列同构：工具结果随 SSE 到达时先入队，流收尾时再合并进**最后一条助手消息**
+   * 的 `documents` 字段 —— 流式期间助手消息对象每段正文都在重建，直接改会被覆盖。
+   *
+   * 为什么不拼进正文文本：一旦成了自然语言，渲染层就再也拿不到 downloadUrl 画下载卡，
+   * 用户只能手动复制链接（且长链接会被 markdown 拆断）。
+   */
+  const pendingDocArtifactsRef = useRef<DocumentRef[]>([])
 
   /**
    * 响应 CHECKPOINT / CLARIFY 表单提交
@@ -1322,6 +1536,23 @@ function AIAssistantContent() {
         // 注意：不要清空 waitingForUserInputRef，要等 user_input_received 事件到达时再清
         // loading 通知保留，由 user_input_received 事件处理时清除
         console.log('[Chat] Respond succeeded, Agent Loop will resume')
+
+        // 🔥 看门狗：respond 返回 200 只代表"回复已送达后端并 resolve 了挂起 promise"，
+        // 但若后端流已异常关闭/进程重启，user_input_received 可能永远不来 ——
+        // 此时 waitingForUserInputRef 与 loading 通知会永久残留，用户看到的就是
+        // "提交完一直转圈、AI 不响应"。兜底：超时后主动清理状态并提示，让用户能继续操作。
+        const watchdogId = waiting.checkpointId
+        window.setTimeout(() => {
+          if (waitingForUserInputRef.current?.checkpointId !== watchdogId) return // 已正常恢复
+          console.warn('[Chat] Respond sent but no resume event received; clearing stale waiting state')
+          waitingForUserInputRef.current = null
+          setNotices(prev => prev.filter(n => n.variant !== 'loading'))
+          showNotice(
+            'AI 未继续响应',
+            '回复已送达但长时间未收到后续，请重新发送消息继续。',
+            'warning'
+          )
+        }, 45000)
       }
     } catch (e: any) {
       console.error('[Chat] Respond error:', e)
@@ -1331,13 +1562,54 @@ function AIAssistantContent() {
     }
   }, [])
 
-  const [notices, setNotices] = useState<{ id: number; title: string; description?: string; variant?: 'loading' | 'success' | 'error'; expanded: boolean }[]>([])
+  /**
+   * 🛑 响应「高风险工具执行前确认」胶囊的点击
+   *
+   * 与 `respondToCheckpoint` 走**同一条恢复通道**（POST /api/chat/respond），
+   * 区别只在 reply 是机器哨兵而不是自然语言 —— 后端据此判定批准/拒绝。
+   *
+   *  - 批准：胶囊转 `loading`（执行中）；后端执行完发 `tool_result` 时再收尾成「已执行」。
+   *  - 拒绝：立即收起胶囊（不做假动的"处理中"），后端会把「用户拒绝」交回模型。
+   *  - 送达失败：**清掉挂起态并把胶囊退回可点**，否则用户会对着一个点了没反应的胶囊干等。
+   */
+  const respondToolConfirm = useCallback(async (approved: boolean) => {
+    const pending = toolConfirmRef.current
+    if (!pending || (pending.state !== 'initial' && pending.state !== 'loading')) return
+    if (approved) setToolConfirm(prev => (prev ? { ...prev, state: 'loading' } : prev))
+
+    try {
+      const res = await fetch('/api/chat/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          checkpoint_id: pending.id,
+          reply: approved ? TOOL_CONFIRM_APPROVE_REPLY : TOOL_CONFIRM_REJECT_REPLY,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || `请求失败（${res.status}）`)
+      }
+      console.log(`[Chat] Tool confirm sent: ${pending.toolName} → ${approved ? 'APPROVED' : 'REJECTED'}`)
+      if (!approved) {
+        waitingForUserInputRef.current = null
+        setToolConfirm(null)
+      }
+    } catch (e: any) {
+      console.error('[Chat] Tool confirm respond failed:', e)
+      waitingForUserInputRef.current = null
+      setToolConfirm(prev => (prev ? { ...prev, state: 'initial' } : prev))
+      showNotice('确认未送达', e?.message || '请重试', 'error')
+    }
+  }, [])
+
+  const [notices, setNotices] = useState<{ id: number; title: string; description?: string; variant?: 'loading' | 'success' | 'error' | 'warning'; expanded: boolean }[]>([])
   const noticeIdCounter = useRef(0)
   
   // 🔥 修复：跟踪已显示通知的报告，避免重复弹窗
   const notifiedReportsRef = useRef<Set<string>>(new Set())
 
-  const showNotice = (title: string, description?: string, variant?: 'loading' | 'success' | 'error') => {
+  const showNotice = (title: string, description?: string, variant?: 'loading' | 'success' | 'error' | 'warning') => {
     const id = ++noticeIdCounter.current
     setNotices(prev => [...prev, { id, title, description, variant, expanded: false }])
 
@@ -1426,7 +1698,8 @@ function AIAssistantContent() {
       if (s) {
         const parsed = JSON.parse(s)
         setAiSettings(parsed)
-        if (!selectedModel && parsed?.model) setSelectedModel(parsed.model)
+        // 🚨 "auto" 是历史遗留值（模型选择器已无该入口），不要恢复成选中模型
+        if (!selectedModel && parsed?.model && parsed.model !== "auto") setSelectedModel(parsed.model)
       }
       const es = localStorage.getItem("ai-enable-search")
       if (es) setEnableSearch(es === "true")
@@ -1444,8 +1717,23 @@ function AIAssistantContent() {
     const enabledIds = new Set(aiConfig.models.filter(m => m.enabled).map(m => m.id))
     if (enabledIds.size === 0) return
 
+    // localStorage 里残留的历史 "auto" 就地纠正为具体模型，避免每次冷启动都走一遍回退
+    if (aiSettings?.model === "auto") {
+      const fb = getDefaultModelId()
+      if (fb) {
+        try {
+          const s = localStorage.getItem("ai-settings")
+          const parsed = s ? JSON.parse(s) : {}
+          parsed.model = fb
+          localStorage.setItem("ai-settings", JSON.stringify(parsed))
+          setAiSettings(parsed)
+        } catch { }
+      }
+    }
+
     const current = selectedModel || aiSettings?.model || ""
-    if (current && enabledIds.has(current)) {
+    // "auto" 是历史遗留值：模型选择器已不再提供该入口（2026-10-27），一律纠正为具体模型
+    if (current && current !== "auto" && enabledIds.has(current)) {
       // 当前模型有效，无需回退
       return
     }
@@ -1608,6 +1896,7 @@ function AIAssistantContent() {
       setAgentSteps([...live.agentSteps])
       setAiActionSummary(live.aiActionSummary)
       setLatestTaskListContent(live.latestTaskListContent)
+      setContextUsage(live.contextUsage ?? null)
       setIsLoading(!!live.running)
       try {
         const draft = localStorage.getItem(`ai-input-draft-${sessionId}`)
@@ -1621,6 +1910,7 @@ function AIAssistantContent() {
     setAgentSteps([])
     setAiActionSummary(null)
     setLatestTaskListContent("")
+    setContextUsage(null)
     setIsLoading(false)
 
       ; (async () => {
@@ -1730,7 +2020,18 @@ function AIAssistantContent() {
     setIsInspecting(false)
   }, [])
 
-  /** 把截图以「用户可见的助手消息」插入对话流（仅展示，不触发 AI 新的一轮推理） */
+  /**
+   * 把截图以「用户可见的助手消息」插入对话流（仅展示，不触发 AI 新的一轮推理）。
+   *
+   * 调用方 = `finishVisionCapture` ← `executeCommands` ← 设备控制卡上用户手动点「截图」。
+   * （AI 自己抓帧的那条链路走 `pendingCameraSnapshotsRef` + `__flushCameraSnapshots`，
+   *  不经过这里。）
+   *
+   * 🚨 必须带 `snapshot` 标记（2026-10-18 补）：渲染层靠它决定走**快照卡**
+   * 还是 **168px 小预览**（chat-message-renderer 的 `msg.snapshot ? … : …` 分支）。
+   * 缺了它，同一张画面从设备卡手动触发时用户只能看到一个小缩略图 —— 与
+   * "AI 抓帧投递"两条链路形态不一致，看起来就像"卡片出了问题"。
+   */
   const appendCameraSnapshotMessage = useCallback((cameraId: 'a' | 'b', dataUrl: string, query?: string) => {
     setMessages((prev: Message[]) => {
       const label = cameraId === 'b' ? 'B' : 'A'
@@ -1743,6 +2044,7 @@ function AIAssistantContent() {
           { type: "text", text },
           { type: "image_url", image_url: { url: dataUrl } },
         ],
+        snapshot: { camera: cameraId, capturedAt: Date.now() },
       } as Message]
       if (sessionId && !isTempSession(sessionId)) {
         fetch(`/api/sessions/${sessionId}`, {
@@ -2531,6 +2833,87 @@ function AIAssistantContent() {
     console.log('[executeCommands] Manual device execution finished (no silent feedback to AI).')
   }
 
+  /**
+   * 🏷️ 对话总结（= 对话标题）——「用户开始对话就总结其意图」的唯一入口。
+   *
+   * · 每个会话只跑一次：`titledSessionsRef` 去重；且只在标题仍是占位（「新会话 …」）
+   *   时才动它 —— 用户手动改过名 / 已经总结过的会话不会被覆盖。
+   * · 用的是**用户当前选择的模型**（`selectedModel` 优先，其次 `aiSettings.model`）。
+   * · 结果同时落到两处，保证「顶栏胶囊」和「侧栏最近对话」说法一致：
+   *     PATCH /api/sessions/:id  → 持久化
+   *     setSessions              → 顶栏 ConversationSummary 胶囊（见上面的同步 effect）
+   */
+  const ensureConversationTitle = async (sid: string, msgs: Message[]) => {
+    if (!sid || isTempSession(sid)) return
+    if (titledSessionsRef.current.has(sid)) return
+
+    const titleMessages = msgs
+      .filter((m) => !(m as Message & { isSilent?: boolean }).isSilent)
+      .map((m) => ({ role: m.role, content: m.content }))
+
+    // 兜底标题所需的「首条用户消息纯文本」（含多模态数组时取其中的 text 片段）
+    const firstUserText = (() => {
+      for (const m of titleMessages) {
+        if (m.role !== "user") continue
+        if (typeof m.content === "string" && m.content.trim()) return m.content
+        if (Array.isArray(m.content)) {
+          const part = m.content.find((p) => p.type === "text" && p.text)
+          if (part?.text) return part.text
+        }
+      }
+      return ""
+    })()
+    const flatFirstUser = firstUserText.replace(/\s+/g, " ").trim()
+
+    /**
+     * 判断一个标题是不是「机器生成的」→ 允许被总结覆盖。
+     *  · 「新会话 <时间>」= 新建会话时的占位
+     *  · 首条用户消息的前缀（≤30 字）= 旧版 `userMsg.slice(0, 24/30)` 的机械截断
+     *    —— 用户手动改名几乎不可能刚好等于原话前缀，所以这两类可以放心覆盖；
+     *      真正被用户改过名的标题不会被碰。
+     */
+    const isAutoTitle = (t: string) => {
+      const title = (t || "").trim()
+      if (!title) return true
+      if (title.startsWith("新会话")) return true
+      return !!flatFirstUser && title.length <= 30 && flatFirstUser.startsWith(title)
+    }
+
+    const cur = sessions.find((s) => s.id === sid)
+    if (!isAutoTitle(cur?.title || "")) return
+    // 先占坑再发请求：用户连发两条时，第二条会在这里直接返回，不会重复调用模型
+    titledSessionsRef.current.add(sid)
+
+    const stillActive = () => activeSessionIdRef.current === sid
+    if (stillActive()) setSummarizing(true)
+    try {
+      const title = await summarizeConversationTitle(titleMessages, {
+        model: selectedModel || aiSettings?.model,
+        apiKey: aiSettings?.apiKey,
+        apiUrl: aiSettings?.apiUrl,
+      })
+      const finalTitle = (title || fallbackConversationTitle(firstUserText, 24)).trim()
+      if (!finalTitle) return
+      await fetch(`/api/sessions/${sid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: finalTitle }),
+      })
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== sid) return s
+          // 生成期间用户手动改名了（或已是总结标题）→ 尊重现状，不覆盖
+          if (!isAutoTitle(s.title || "")) return s
+          return { ...s, title: finalTitle }
+        })
+      )
+    } catch {
+      /* 标题生成失败不影响主对话：保留占位标题即可 */
+    } finally {
+      if (stillActive()) setSummarizing(false)
+    }
+  }
+
   const handleSend = async (
     overrideText?: any, 
     overrideAttachments?: ChatAttachment[], 
@@ -2567,6 +2950,7 @@ function AIAssistantContent() {
         currentBrowserUrl: null,
         browserScreenshot: null,
         studioData: [],
+        contextUsage: null,
       }
       return __scopeObj
     }
@@ -2594,6 +2978,7 @@ function AIAssistantContent() {
     const __commitCurrentBrowserUrl = __scopedSetter<string | null>("currentBrowserUrl", setCurrentBrowserUrl)
     const __commitBrowserScreenshot = __scopedSetter<string | null>("browserScreenshot", setBrowserScreenshot)
     const __commitStudioData = __scopedSetter<any[]>("studioData", setStudioData)
+    const __commitContextUsage = __scopedSetter<ContextUsageInfo | null>("contextUsage", setContextUsage)
 
     // 过滤掉可能作为事件对象传入的 overrideText（如 onClick={handleSend}）
     if (overrideText && typeof overrideText === 'object' && !Array.isArray(overrideText)) {
@@ -2632,8 +3017,15 @@ function AIAssistantContent() {
     // 只有在非自动触发且无输入时才拦截
     if (!isAutoTrigger && !text.trim() && currentAttachments.length === 0) return
     
+    // 🔥 澄清卡 / 检查点 / 计划审批的回复必须能穿透 loading 守卫。
+    //    原因：Agent Loop 挂起等待用户输入时 isLoading 恒为 true，而这几种回复
+    //    （【澄清回复】【检查点确认】【计划批准】【计划拒绝】）属于「延续当前这一轮」。
+    //    一旦被守卫拦下，用户看到的就是「卡片提交完，AI 半天不响应」的静默卡死 ——
+    //    这是 respondToCheckpoint 兜底路径（如 /api/chat/respond 返回 404）唯一的出口。
+    const isCheckpointReply =
+      typeof text === 'string' && /^【(澄清回复|检查点确认|计划批准|计划拒绝)】/.test(text)
     // 强制允许视觉截图等内部反馈消息穿透 loading 拦截
-    if (isLoading && !isFeedback && !isSilent) {
+    if (isLoading && !isFeedback && !isSilent && !isCheckpointReply) {
         console.log("[handleSend] Blocked by isLoading guard")
         return
     }
@@ -2701,10 +3093,13 @@ function AIAssistantContent() {
       // 取基础文本：overrideText 优先（自动触发场景），否则用输入框文本
       const baseText = typeof overrideText === "string" ? overrideText : userMsg
       // 合并附件图片（覆盖自动触发和手动发送两种场景）
-      if (currentAttachments.length > 0) {
+      // ⚠️ 只合并**图片**：文档附件的 dataUrl 为空（它们以 fileId 走服务端），
+      //    若照旧全量 map 成 image_url，上游会收到 `url: ""` 直接 400。
+      const imageAtts = currentAttachments.filter((att) => (att.dataUrl || "").startsWith("data:image/"))
+      if (imageAtts.length > 0) {
         return [
           { type: "text", text: baseText },
-          ...currentAttachments.map((att) => ({ type: "image_url" as const, image_url: { url: att.dataUrl } }))
+          ...imageAtts.map((att) => ({ type: "image_url" as const, image_url: { url: att.dataUrl } }))
         ]
       }
       return baseText
@@ -2719,7 +3114,16 @@ function AIAssistantContent() {
       return
     }
 
-    const userMessage: Message = { role: "user", content: userMessageContent, isSilent }
+    // 本轮附带的文档（只带引用，不带内容）：服务端据此把「有哪些文件」注入上下文，
+    // AI 再用 document_read 按需读取正文 —— 一份 80 页 PDF 不该在发送时被全量塞进请求体
+    const docRefs = toDocumentRefs(currentAttachments)
+
+    const userMessage: Message = {
+      role: "user",
+      content: userMessageContent,
+      isSilent,
+      ...(docRefs.length ? { documents: docRefs.map((d) => ({ ...d, origin: "uploaded" as const })) } : {}),
+    }
 
     // 🔥 用户主动发新消息时重置页面级 TASK_LIST（反馈消息不重置，保持任务规划连续性）
     if (!isFeedback && !isSilent) {
@@ -2737,50 +3141,119 @@ function AIAssistantContent() {
 
     let assistantMsg: Message = { role: "assistant", content: "" }
 
+    /**
+     * 📷 收尾投递：把本轮抓到的摄像头画面插进对话流（用户可见）并落库。
+     *
+     * 时机刻意放在 `finally`：图**已经抓到手了**，没道理因为后续某一轮模型报错、
+     * 用户中途点停止而把它吞掉 —— 那正是"AI 说在截图、用户什么都没看到"的来源。
+     *
+     * 落库一次性写全量 messages（而不是分两次 PUT）：收尾时助手正文那条已落库，
+     * 这里把 [全量 + 截图消息] 一起写，避免两次 PUT 竞态把正文冲掉。
+     */
+    const __flushCameraSnapshots = async () => {
+      const pendingSnaps = pendingCameraSnapshotsRef.current
+      if (!pendingSnaps || pendingSnaps.length === 0) return
+      pendingCameraSnapshotsRef.current = []
+
+      const snapMsgs = toCameraSnapshotMessages(pendingSnaps) as unknown as Message[]
+      const nextMsgs = [...(__getScope().messages as Message[]), ...snapMsgs]
+      __commitMessages(nextMsgs)
+      console.log(`[Camera Snapshot] delivered ${snapMsgs.length} snapshot message(s) to chat`)
+
+      if (ensuredSessionId && !isTempSession(ensuredSessionId)) {
+        try {
+          await fetch(`/api/sessions/${ensuredSessionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: nextMsgs }),
+          })
+    } catch (e) {
+      console.warn('[Camera Snapshot] persist failed:', e)
+        }
+      }
+    }
+
+    /**
+     * 📎 收尾投递：把本轮生成/修改的文档挂到最后一条助手消息上并落库。
+     *
+     * 合并而不是新插消息：产物是「这条回复的附件」，用户读的是一段话 + 若干可下载文件，
+     * 而不是被拆成两条（一条讲、一条只放文件）。
+     * 若本轮没有任何助手消息（用户中途停止且模型没吐字），才单独插一条纯附件消息。
+     */
+    const __flushDocArtifacts = async () => {
+      const pending = pendingDocArtifactsRef.current
+      if (!pending || pending.length === 0) return
+      pendingDocArtifactsRef.current = []
+
+      const msgs = [...(__getScope().messages as Message[])]
+      let idx = -1
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].role === 'assistant') {
+          idx = i
+          break
+        }
+      }
+
+      let nextMsgs: Message[]
+      if (idx < 0) {
+        nextMsgs = [...msgs, { role: 'assistant', content: '', documents: pending }]
+      } else {
+        const merged = mergeDocumentRefs(msgs[idx].documents, pending)
+        nextMsgs = [...msgs]
+        nextMsgs[idx] = { ...msgs[idx], documents: merged }
+      }
+
+      __commitMessages(nextMsgs)
+      console.log(`[Document Artifacts] delivered ${pending.length} file(s) to chat`)
+
+      if (ensuredSessionId && !isTempSession(ensuredSessionId)) {
+        try {
+          await fetch(`/api/sessions/${ensuredSessionId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: nextMsgs.filter(m => !(m as Message & { isSilent?: boolean }).isSilent) }),
+          })
+        } catch (e) {
+          console.warn('[Document Artifacts] persist failed:', e)
+        }
+      }
+    }
+
     try {
       // 每次新请求时清空工作室旧数据，并确保流结束时关闭浏览器
       __commitBrowsingUrl(null)
       __commitCurrentBrowserUrl(null)
       __commitBrowserScreenshot(null)
       __commitStudioData([])
+      // 📷 截图投递队列同样按请求清空（上一轮已投递完毕，避免跨轮串味）
+      pendingCameraSnapshotsRef.current = []
+      // 📎 文档产物队列同上
+      pendingDocArtifactsRef.current = []
       
       // 🔒 临时会话：整块落库（PATCH 标题 + PUT 消息）跳过，消息只留在内存
       if (ensuredSessionId && !isTempSession(ensuredSessionId)) {
-        const current = sessions.find((s) => s.id === ensuredSessionId)
-        if (current && current.title && current.title.startsWith("新会话")) {
-          const cand = userMsg.slice(0, 24)
-          await fetch(`/api/sessions/${ensuredSessionId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: cand }) })
-          setSessions((prev) => prev.map((s) => (s.id === ensuredSessionId ? { ...s, title: cand } : s)))
-        }
+        // 🏷️ 对话总结（= 标题）：首轮消息到达时，用**用户当前选择的模型**把用户意图压成
+        //    一句话 —— 它同时是侧栏「最近对话」的标题和顶栏 ConversationSummary 胶囊。
+        //    （原先这里是 `userMsg.slice(0, 24)` 的机械截断。）
+        //    🚨 刻意不 await：总结要走一次模型请求（1~3s），await 会把首字延迟一起拖长。
+        void ensureConversationTitle(ensuredSessionId, currentMessagesForApi)
 
-        // 保存消息到会话时，过滤掉 isSilent 内部反馈消息（避免重新加载时污染对话历史）
-        // 同时确保正确序列化消息内容
+        /**
+         * 保存消息到会话：只过滤掉 isSilent 内部反馈消息（避免重新加载时污染对话历史），
+         * **原样透传消息对象**。
+         *
+         * 🚨 修复（2026-10-16）：「怎么没发图给我」的真凶在这里 ——
+         * 此前这里是 `.map(m => ({ role: m.role, content: safeContent }))`，一个只保留
+         * `role`/`content` 的**对象重建**。它把 `snapshot` 标记整个削掉了：
+         *   · 内存里卡片正常，一刷新就退化成 168px 小预览 —— 用户看到的正是"图没了"；
+         *   · 且回传上游时 `downgradeAssistantImages()` 认不出它（见 provider-body-adapter），
+         *     又会踩 assistant 图片 400。
+         * 落库字段白名单**唯一源**已收敛到服务端 `app/api/sessions/[id]/route.ts` 的 PUT
+         * （它也负责把多模态数组规范化为 [{type:'image_url'},{type:'text'}]，前端不必也不该再抄一遍）。
+         * 此后新增任何「渲染层/上游层要读」的消息字段，只需改服务端那一处。
+         */
         const messagesToSave = currentMessagesForApi
           .filter(m => !(m as Message & { isSilent?: boolean }).isSilent)
-          .map(m => {
-          let safeContent = m.content;
-          if (Array.isArray(safeContent)) {
-            // 如果是数组格式的多模态消息，我们需要深拷贝并清理它
-            safeContent = safeContent.map(part => {
-              if (part.type === 'image_url') {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url: typeof part.image_url === 'string' ? part.image_url : (part.image_url?.url || '')
-                  }
-                };
-              }
-              return {
-                type: part.type || 'text',
-                text: part.text || ''
-              };
-            });
-          }
-          return {
-            role: m.role,
-            content: safeContent
-          };
-        })
 
         await fetch(`/api/sessions/${ensuredSessionId}`, {
           method: "PUT",
@@ -2838,13 +3311,15 @@ function AIAssistantContent() {
 - 目标：友好交流，帮助理解，用户完全掌控
 - 行为准则：
   1. 用自然语言回答问题和提供建议
-  2. 如果用户需要控制设备，先解释操作的作用和影响
-  3. 然后调用设备控制工具（系统会等待用户手动点击"执行"按钮确认）
+  2. 如果需要动设备/删数据/部署自动化，**先写一句自然语言说明**（作用与影响），再调用对应工具
+  3. 系统会自动在输入框上方弹出确认条等你确认，**你不需要自己问"要不要执行"**
   4. 提供建议但让用户做最终决定
   5. 如果不确定用户意图，主动询问
-  6. 所有设备操作都需要用户手动确认
-- 重要：你可以调用设备控制工具，但系统会等待用户手动确认后才执行
-- 示例：用户说"温度有点高" → 解释"当前32°C偏高，建议开启风扇降温" → 调用 toggle_relay 工具 → 用户点击"执行"按钮后才会真正执行`;
+- 重要：你可以调用设备控制等工具，但真正下发要等用户点确认条上的"执行"
+- 🚨 严禁输出设备控制卡片，严禁在正文里写 JSON 形式的设备指令 —— 一律走原生工具调用
+- 🚨 你调用工具前写的那句话会**原样显示在确认条上**，所以务必具体、简短（如"即将开启 1 号继电器"）
+- 🚨 用户拒绝后工具会返回失败，**不要重试同一动作**，改为说明情况或提出替代方案
+- 示例：用户说"温度有点高" → "当前 32°C 偏高，建议开启风扇降温" → 调用 toggle_relay → 用户在确认条上点"执行"后才真正执行`;
       }
 
       // 计划模式：用户手动启用时，通过请求体 enablePlanning 传给后端
@@ -2884,20 +3359,24 @@ function AIAssistantContent() {
         }
       }
 
-      // === 前端感知：检测是否需要上下文压缩 (Frontend Pre-perception) ===
-      const nonMemoryMsgs = currentMessagesForApi.filter(m => {
-        const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
-        return !content.includes('<PAST_MEMORY>')
-      })
-      const overflowStringified = nonMemoryMsgs.map(m => m.role + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n')
-      
-      const historyToSummarizeLength = nonMemoryMsgs.slice(0, Math.max(0, nonMemoryMsgs.length - 4))
-          .map(m => m.role + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
-          .join('\n').length
-
-      if (overflowStringified.length > 50000 && nonMemoryMsgs.length > 5 && historyToSummarizeLength > 1000) {
-        __commitAgentStatus("对话记录过长，莓小智正在提炼并压缩记忆...")
-        await new Promise(r => setTimeout(r, 800)) // 给用户一点看到提示的时间
+      /**
+       * === 前端感知：本轮是否可能触发上下文压缩 ===
+       *
+       * 压缩发生在服务端、且**在 SSE 流建立之前**（摘要要先用本轮完整历史生成），
+       * 所以这段等待期前端拿不到任何后端信号 —— 但可以基于上一轮上报的真实计量预判：
+       *   usedTokens（上轮实际占用） ≥ 压缩触发线 × 0.9  →  本轮极可能触发压缩
+       *
+       * 🚨 口径必须与后端一致：触发线来自 SSE `context_usage.compressionTriggerTokens`
+       *    （= 输入预算 × 用户自定义比例）。旧实现用「字符数 > 50000」猜，与 token 预算
+       *    脱钩 —— 中文长文早就超了却不提示，英文长文远没到却乱提示。
+       */
+      if (
+        contextUsage &&
+        typeof contextUsage.compressionTriggerTokens === 'number' &&
+        contextUsage.compressionTriggerTokens > 0 &&
+        contextUsage.usedTokens >= contextUsage.compressionTriggerTokens * 0.9
+      ) {
+        __commitAgentStatus("上下文接近容量上限，正在整理较早的对话…")
       }
 
       console.log(`[Stream] 🚀 Fetching /api/chat, model=${selectedModel || aiSettings?.model}, msgLen=${currentMessagesForApi.length}`)
@@ -2923,6 +3402,20 @@ function AIAssistantContent() {
           enableMcp,
           persona: selectedPersona, // 传递当前选中的 AI 角色
           enablePlanning, // 传递计划模式开关，后端据此初始化 planMode
+          // 🛑 声明「本前端挂了执行前确认胶囊，可以接住高风险工具的挂起」。
+          //
+          // 只由**请求批准模式**开启：在「替我审批 / 完全访问」下用户已明确授权自动执行，
+          // 再弹确认条等于把用户的授权又拿走（且与那两个模式的提示词直接矛盾）。
+          // 于是口径是：request 模式 + 所有高风险工具（见 CONFIRMATION_REQUIRED_TOOLS）。
+          //
+          // 为什么是「显式声明」而不是让后端看 approvalMode：Copilot 侧栏同样传
+          // approvalMode='request'，但它没有确认 UI —— 后端若按模式判定会在那边挂到
+          // 5 分钟超时。传这个字段 = 「我这边有 UI 能接住」（同 clientCapabilities 的思路）。
+          // ⚠️ 不要删：删掉后后端退回「直接执行」，确认条再也不会出现。
+          toolConfirmation: approvalMode === 'request',
+          // 📎 本轮附带的文档（只传引用）：服务端把它注入上下文「有哪些文件」，
+          // 正文由 document_read 工具按需分段读取。
+          documents: docRefs.length ? docRefs : undefined,
           // 用户自配模型列表（让服务端用对应倍率计算积分）
           customModels: (() => {
             try {
@@ -2998,7 +3491,6 @@ function AIAssistantContent() {
       // 上一轮若因异常中断残留了未注入的 DEVICE_FORGE 卡片，本轮重新开始前清空
       pendingForgeCardRef.current = null
       let reasoningText = ""
-      let reasoningStart = -1
       const startTs = Date.now()
       __commitMessages(prev => [...prev, assistantMsg])
 
@@ -3093,6 +3585,53 @@ function AIAssistantContent() {
       ]
       __commitAgentSteps(currentAgentSteps)
 
+      /**
+       * 🧠 深度思考解析（串行化唯一入口）
+       *
+       * 需求：**先输出思考，思考输出完成后才输出主文本** —— 两者永不同屏。
+       * 规则：
+       *   1. `streaming === true`（存在未闭合的 `<REASONING>`）⇒ 正文一律不上屏；
+       *   2. 已闭合的思考块**全部**抽出（多轮工具链会产生多个块，只取第一个是旧 bug：
+       *      第 2 轮的思考会连带标签漏进正文）；
+       *   3. 正文 = 所有标签外的文本 —— 顺序不变，只是等思考闭合后才放出。
+       */
+      const splitReasoningBlocks = (raw: string): { text: string; body: string; streaming: boolean } => {
+        if (!enableReasoning) {
+          // 未开启深度思考：标签连同内容整体丢弃（与旧行为一致）
+          return {
+            text: "",
+            body: raw
+              .replace(/<REASONING>[\s\S]*?<\/REASONING>/g, "")
+              .replace(/<REASONING>[\s\S]*$/g, ""),
+            streaming: false,
+          }
+        }
+        const blocks: string[] = []
+        let body = ""
+        let cursor = 0
+        let streaming = false
+        while (cursor < raw.length) {
+          const start = raw.indexOf("<REASONING>", cursor)
+          if (start === -1) {
+            body += raw.slice(cursor)
+            break
+          }
+          body += raw.slice(cursor, start)
+          const end = raw.indexOf("</REASONING>", start + 11)
+          if (end === -1) {
+            // 半截闭合标签（chunk 切在 "</REASON"）不能算进思考正文
+            blocks.push(raw.slice(start + 11).replace(/<\/?[A-Z_]{0,10}$/, ""))
+            streaming = true
+            break
+          }
+          blocks.push(raw.slice(start + 11, end))
+          cursor = end + 12
+        }
+        // 半截标签（chunk 正好切在 "<REASON"）不能漏到正文里
+        if (!streaming) body = body.replace(/<[A-Z_]{0,9}$/, "")
+        return { text: blocks.join("\n\n").trim(), body, streaming }
+      }
+
       const decoder = new TextDecoder()
       let buffer = ""
       let ttsProcessedLength = 0
@@ -3170,6 +3709,41 @@ function AIAssistantContent() {
                  break
               }
 
+              // 🧮 上下文容量事件：后端每轮请求上报「已用 token / 模型窗口 / 输入预算 / 分项明细」
+              // → 驱动输入框 footer 的容量指示器（走会话作用域提交，切走再切回结果一致）
+              if (data.type === 'context_usage' && typeof data.usedTokens === 'number') {
+                __commitContextUsage({
+                  usedTokens: data.usedTokens,
+                  windowTokens: typeof data.windowTokens === 'number' ? data.windowTokens : 0,
+                  inputBudgetTokens: typeof data.inputBudgetTokens === 'number' ? data.inputBudgetTokens : 0,
+                  model: typeof data.model === 'string' ? data.model : '',
+                  compressed: !!data.compressed,
+                  breakdown: Array.isArray(data.breakdown) ? data.breakdown : undefined,
+                  // 用户自定义的上下文偏好（设置 → 助理设置 → 上下文与压缩）
+                  windowIsCustom: !!data.windowIsCustom,
+                  compressionTriggerRatio:
+                    typeof data.compressionTriggerRatio === 'number' ? data.compressionTriggerRatio : undefined,
+                  compressionTriggerTokens:
+                    typeof data.compressionTriggerTokens === 'number' ? data.compressionTriggerTokens : undefined,
+                })
+                continue
+              }
+
+              // 上下文整理失败（服务端压缩未成功）—— 必须让用户知道，
+              // 否则观感就是「卡了一下，历史没变，也没人说为什么」。
+              if (data.type === 'context_compress_failed') {
+                notification.open({
+                  key: 'context-compress-failed',
+                  message: '上下文整理未完成',
+                  description:
+                    '本轮对话已接近上下文容量上限，但自动整理没有成功，较早的对话仍按原样保留。'
+                    + '可在「设置 → 助理设置 → 上下文与压缩」调大容量，或把触发比例调低一些。',
+                  duration: 7,
+                  placement: 'bottomRight',
+                })
+                continue
+              }
+
               // 处理上下文更新事件 (持久化记忆压缩结果)
               if (data.type === 'context_update' && Array.isArray(data.messages)) {
                  // 会话切换保护
@@ -3211,7 +3785,7 @@ function AIAssistantContent() {
                     ),
                     description: text,
                     icon: (
-                      <span style={{ color: '#1677ff' }}>
+                      <span style={{ color: '#059669' }}>
                         <IconSeedling size={18} />
                       </span>
                     ),
@@ -3224,7 +3798,59 @@ function AIAssistantContent() {
 
               // Handle tool results
               if (data.tool_result) {
+                 // 🛑 刚被用户批准执行的高风险工具跑完了 → 让 sender 上方的确认胶囊收尾。
+                 //    不这样做的话胶囊会永远停在「执行中」转圈（用户只能干看）。
+                 {
+                   const confirmed = toolConfirmRef.current
+                   if (confirmed && confirmed.state === 'loading' && confirmed.toolName === data.tool_result.name) {
+                     finishToolConfirm(TOOL_CONFIRM_DONE_TEXT)
+                   }
+                 }
                  __commitStudioData(prev => [...prev, data.tool_result])
+
+                 // 📷 摄像头截图：服务端 ffmpeg 抓的帧随 tool_result 一起到了 → 入队等收尾投递给用户。
+                 //    判据只看**结果里真有图**（result.images），不按工具名硬编码 ——
+                 //    take_camera_snapshot 与 move_camera_and_look 走的是同一条多模态回传链路，
+                 //    将来任何返回 _multimodal 画面的工具都能自动获得"发给用户"的能力。
+                 //    ⛔ 不能在这里直接插消息：流式期间助手消息永远写 messages[last]，
+                 //       插进去会被下一段正文覆盖（见 pendingCameraSnapshotsRef 注释）。
+                 {
+                   const snapImages = data.tool_result.result?.images
+                   if (Array.isArray(snapImages) && snapImages.length > 0) {
+                     const snapTool = String(data.tool_result.name || '')
+                     const snapArgs = data.tool_result.args || {}
+                     const cameraId: 'a' | 'b' = snapArgs.camera_id === 'b' ? 'b' : 'a'
+                     // 同一轮里模型偶尔会重复调用同一工具同一参数（实测 take_camera_snapshot 连调两次）
+                     // → 去重，别把两张几乎一样的画面都塞给用户
+                     const snapKey = `${snapTool}:${JSON.stringify(snapArgs)}`
+                     const snapUrl = snapImages[0]?.url
+                     if (
+                       typeof snapUrl === 'string' && snapUrl &&
+                       !pendingCameraSnapshotsRef.current.some(s => s.key === snapKey)
+                     ) {
+                       pendingCameraSnapshotsRef.current.push({
+                         key: snapKey,
+                         cameraId,
+                         dataUrl: snapUrl,
+                         query: (typeof overrideText === 'string' ? overrideText : userMsg) || '',
+                       })
+                       console.log(`[Camera Snapshot] queued for user delivery (${snapTool}, camera=${cameraId})`)
+                     }
+                   }
+                 }
+
+                 // 📎 文档产物：`document_create` / `document_edit` 返回的 artifacts 入队，
+                 //    收尾时挂到最后一条助手消息上（见 __flushDocArtifacts）。
+                 //    判据同样只看**结果里真有 artifacts**，不按工具名硬编码 ——
+                 //    将来任何产出文件的工具都能自动获得下载卡。
+                 {
+                   const arts = data.tool_result.result?.artifacts
+                   const refs = collectDocumentRefs(arts, pendingDocArtifactsRef.current)
+                   if (refs.length > 0) {
+                     pendingDocArtifactsRef.current.push(...refs)
+                     console.log(`[Document Artifacts] queued ${refs.length} file(s) for delivery`)
+                   }
+                 }
 
                  // 🔥 connect_device_from_doc：设备接入卡片「直推」——不再依赖模型复述 <DEVICE_FORGE> 标签。
                  // 1) 立即把 ui_card 注册进全局 store 并打开右侧面板（生成完成瞬间用户就能看到/编辑表单）；
@@ -3394,6 +4020,45 @@ function AIAssistantContent() {
                 continue
               }
 
+              // 🛑 处理「高风险工具执行前确认」事件（2026-10-14 用户：「改成在 sender 上方出现确认」）
+              // 后端命中 CONFIRMATION_REQUIRED_TOOLS 后**不执行**，推这个事件并挂起。
+              // 前端在输入框正上方浮出一枚 ToastConfirm 胶囊；点「执行」才回传批准。
+              // 注意：与 user_input_required 是两个不同事件 —— 这条不走消息内容渲染，
+              // 也不渲染任何表单，只驱动 sender 上方那枚浮层。
+              if (data.tool_confirmation_required) {
+                const { id, tool_name, text, timeout_ms } = data.tool_confirmation_required
+                console.log(`[Chat] Tool confirmation required: ${tool_name} (id=${id})`)
+                waitingForUserInputRef.current = {
+                  checkpointId: id,
+                  type: 'tool_confirm',
+                  title: text || tool_name,
+                  timeoutMs: timeout_ms || 5 * 60 * 1000,
+                  startedAt: Date.now(),
+                }
+                setToolConfirm({
+                  id,
+                  toolName: tool_name,
+                  text: text || tool_name,
+                  state: 'initial',
+                })
+                __commitAgentStatus(`等待确认：${text || tool_name}`)
+                continue
+              }
+
+              // 🛑 用户裁决已送达后端（批准则紧接着开始执行；拒绝则后端把「用户拒绝」交回模型）
+              if (data.tool_confirmation_resolved) {
+                const { id, approved } = data.tool_confirmation_resolved
+                console.log(`[Chat] Tool confirmation resolved: id=${id} approved=${approved}`)
+                waitingForUserInputRef.current = null
+                __commitAgentStatus(approved ? '正在执行...' : 'AI 思考中...')
+                // 批准：胶囊保持「执行中」，等 tool_result 到了再收尾成「已执行」。
+                // 拒绝：胶囊由 respondToolConfirm 收起；这里只兜底处理「别的端点了忽略」的情况。
+                if (!approved) {
+                  setToolConfirm(prev => (prev && prev.id === id ? null : prev))
+                }
+                continue
+              }
+
               // 🔥 处理「等待用户输入」事件（CHECKPOINT / CLARIFY 挂起）
               // 后端 Agent Loop 检测到 <CHECKPOINT> / <CLARIFY> 后不 break，而是挂起等待。
               // 这里标记 SSE 流处于「等待用户输入」状态，前端表单提交时走 /api/chat/respond
@@ -3449,6 +4114,12 @@ function AIAssistantContent() {
                   duration: 0
                 })
                 __commitAgentSteps([...currentAgentSteps])
+                continue
+              }
+
+              // 🌱 后端状态提示（如"莓小智正在挑选工具…"）：首字出现前先给用户一个可见的进展状态
+              if (data.agent_status && typeof data.agent_status.text === "string") {
+                __commitAgentStatus(data.agent_status.text)
                 continue
               }
 
@@ -3736,139 +4407,35 @@ function AIAssistantContent() {
                         }
                     }
 
-                    // 🔥 检测并自动包裹裸露的 HTML 报告代码
-                    // 检查是否已经有 [REPORT:...] 标签包裹或已有开始标记（避免在AI已经原生输出[REPORT:时进行干扰）
-                    const hasReportTag = assistantMsg.content.includes('[REPORT:') || /\[REPORT:[^\]]+\][\s\S]*?\[\/REPORT\]/.test(assistantMsg.content)
-                    
-                    if (!hasReportTag) {
-                        // 🔥 增强的 HTML 检测模式 - 更激进地捕获各种 HTML 结构
-                        // 1. 完整的 HTML 文档
-                        const fullHtmlPattern = /<!DOCTYPE[^>]*>[\s\S]*?<html[\s\S]*?<\/html>/gi
-                        // 2. 带 style 属性的 div 容器（更宽松的匹配）
-                        const styledDivPattern = /<div\s+style\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/div>/gi
-                        // 3. 带 style 属性的 p 标签（某些模型可能用 p 标签）
-                        const styledPPattern = /<p\s+style\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/p>/gi
-                        // 4. 任何以 < 开头并包含多个 HTML 标签的内容
-                        const multiTagPattern = /(?:<(?:div|p|h[1-6]|section|article)\s+[^>]*>[\s\S]*?){3,}/gi
-                        
-                        // 🔥 首先处理可能被包裹在 markdown 代码块中的 HTML
-                        const markdownHtmlPattern = /```(?:html)?\s*(<!DOCTYPE[\s\S]*?<\/html>|<(?:div|p|section|article)\s+[\s\S]*?<\/(?:div|p|section|article)>)\s*```/gi
-                        const markdownMatches = assistantMsg.content.match(markdownHtmlPattern)
-                        
-                        if (markdownMatches && markdownMatches.length > 0) {
-                            console.log('[Stream Filter] Found HTML in markdown code blocks:', markdownMatches.length)
-                            markdownMatches.forEach((codeBlock) => {
-                                // 提取代码块中的 HTML
-                                const htmlMatch = codeBlock.match(/```(?:html)?\s*([\s\S]*?)\s*```/)
-                                if (htmlMatch && htmlMatch[1]) {
-                                    const htmlCode = htmlMatch[1].trim()
-                                    const isReportHtml = /(?:报告|分析|监测|数据|统计|环境|设备|温度|湿度|Report|Analysis|gradient|font-family)/i.test(htmlCode)
-                                    
-                                    if (isReportHtml && htmlCode.length > 150) { // 降低最小长度要求
-                                        console.log('[Stream Filter] Detected HTML report in markdown code block, extracting and wrapping...')
-                                        
-                                        // 提取标题
-                                        let reportTitle = "AI生成报告"
-                                        const h1Match = htmlCode.match(/<h1[^>]*>(.*?)<\/h1>/i)
-                                        if (h1Match && h1Match[1]) {
-                                            reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
-                                        }
-                                        
-                                        // 包裹并替换
-                                        const wrappedReport = `[REPORT:${reportTitle}]\n${htmlCode}\n[/REPORT]`
-                                        assistantMsg.content = assistantMsg.content.replace(codeBlock, wrappedReport)
-                                        console.log(`[Stream Filter] Extracted from markdown and wrapped: "${reportTitle}"`)
-                                    }
-                                }
-                            })
-                        }
-                        
-                        // 🔥 查找裸露的 HTML 报告代码（不在代码块和 REPORT 标签中的）
-                        // 先移除已经在代码块中的内容，避免重复检测
-                        let contentWithoutCodeBlocks = assistantMsg.content.replace(/```[\s\S]*?```/g, '')
-                        
-                        // 尝试所有检测模式
-                        const allPatterns = [fullHtmlPattern, styledDivPattern, styledPPattern]
-                        let foundHtml = false
-                        
-                        for (const pattern of allPatterns) {
-                            const htmlMatches = contentWithoutCodeBlocks.match(pattern)
-                            
-                            if (htmlMatches && htmlMatches.length > 0) {
-                                console.log(`[Stream Filter] Found ${htmlMatches.length} bare HTML blocks with pattern:`, pattern.source.substring(0, 50))
-                                htmlMatches.forEach((htmlCode) => {
-                                    // 验证这是否真的是报告 HTML（包含报告特征关键词或样式特征）
-                                    const isReportHtml = /(?:报告|分析|监测|数据|统计|环境|设备|温度|湿度|Report|Analysis|gradient|font-family|max-width|padding|border-radius)/i.test(htmlCode)
-                                    
-                                    if (isReportHtml && htmlCode.length > 150) { // 降低最小长度要求
-                                        console.log('[Stream Filter] Detected bare HTML report code, auto-wrapping...')
-                                        console.log('[Stream Filter] HTML preview:', htmlCode.substring(0, 100) + '...')
-                                        
-                                        // 尝试从 HTML 中提取标题
-                                        let reportTitle = "AI生成报告"
-                                        
-                                        // 尝试从 <h1> 标签提取
-                                        const h1Match = htmlCode.match(/<h1[^>]*>(.*?)<\/h1>/i)
-                                        if (h1Match && h1Match[1]) {
-                                            reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
-                                        } else {
-                                            // 尝试从 <title> 标签提取
-                                            const titleMatch = htmlCode.match(/<title[^>]*>(.*?)<\/title>/i)
-                                            if (titleMatch && titleMatch[1]) {
-                                                reportTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim()
-                                            } else {
-                                                // 尝试从内容中查找"报告"相关文字
-                                                const reportTextMatch = htmlCode.match(/([^<>]*?(?:报告|分析|监测)[^<>]*?)(?:<|$)/i)
-                                                if (reportTextMatch && reportTextMatch[1]) {
-                                                    reportTitle = reportTextMatch[1].trim().substring(0, 30)
-                                                }
-                                            }
-                                        }
-                                        
-                                        // 自动包裹为标准格式
-                                        const wrappedReport = `[REPORT:${reportTitle}]\n${htmlCode}\n[/REPORT]`
-                                        
-                                        // 替换原始 HTML 为包裹后的版本
-                                        assistantMsg.content = assistantMsg.content.replace(htmlCode, wrappedReport)
-                                        foundHtml = true
-                                        
-                                        console.log(`[Stream Filter] Auto-wrapped report: "${reportTitle}"`)
-                                    }
-                                })
-                                
-                                if (foundHtml) break // 找到并处理后就退出循环
-                            }
-                        }
-                        
-                        // 🔥 最后的兜底检测：如果内容很长且包含大量 HTML 标签，但还没被包裹
-                        if (!foundHtml && contentWithoutCodeBlocks.length > 300) {
-                            const htmlTagCount = (contentWithoutCodeBlocks.match(/<[^>]+>/g) || []).length
-                            const hasStyleAttr = /style\s*=\s*["'][^"']*["']/.test(contentWithoutCodeBlocks)
-                            const hasReportKeywords = /(?:报告|分析|监测|数据|统计|环境|设备)/i.test(contentWithoutCodeBlocks)
-                            
-                            if (htmlTagCount > 10 && hasStyleAttr && hasReportKeywords) {
-                                console.log('[Stream Filter] Fallback detection: Found complex HTML structure with report keywords')
-                                console.log('[Stream Filter] HTML tag count:', htmlTagCount)
-                                
-                                // 尝试提取整个 HTML 内容
-                                const firstTagIndex = contentWithoutCodeBlocks.indexOf('<')
-                                if (firstTagIndex !== -1) {
-                                    const htmlContent = contentWithoutCodeBlocks.substring(firstTagIndex)
-                                    
-                                    let reportTitle = "AI生成报告"
-                                    const h1Match = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i)
-                                    if (h1Match && h1Match[1]) {
-                                        reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
-                                    }
-                                    
-                                    const wrappedReport = `[REPORT:${reportTitle}]\n${htmlContent}\n[/REPORT]`
-                                    assistantMsg.content = assistantMsg.content.replace(htmlContent, wrappedReport)
-                                    console.log(`[Stream Filter] Fallback wrapped report: "${reportTitle}"`)
-                                }
-                            }
+                    // 🔥 交付物分流：报告 vs 代码产物（2026-10-11 重做）
+                    //
+                    // 旧实现在这里有两个致命缺陷：
+                    //   ① 只要 HTML 带 style 就自动包成 [REPORT:...]，关键词表里还含 `数据` /
+                    //      `font-family` / `gradient` / `padding` → 任何前端代码都会被判成"报告"；
+                    //   ② 连 ```html 代码块也被整体替换成报告卡 → 源码消失、用户拿不到代码。
+                    //
+                    // 新口径：只有「用户确实要报告」且「内容不是程序型代码」才包报告；
+                    //         代码围栏（html / ts / py …）内的内容一律不动，交给代码卡交付。
+                    // 判定口径唯一来源：lib/ai/deliverable-classifier.ts
+                    const hasReportTag =
+                        assistantMsg.content.includes('[REPORT:') ||
+                        /\[REPORT:[^\]]+\][\s\S]*?\[\/REPORT\]/.test(assistantMsg.content)
+
+                    if (!hasReportTag && hasReportIntent(text, rootIntentRef.current)) {
+                        // 先剥掉代码围栏，避免把代码产物卷进报告判定
+                        const contentWithoutCodeBlocks = assistantMsg.content.replace(/```[\s\S]*?```/g, '')
+                        const bareHtmlMatch =
+                            contentWithoutCodeBlocks.match(/<!DOCTYPE[^>]*>[\s\S]*?<\/html>/i) ||
+                            contentWithoutCodeBlocks.match(/<div\s+style\s*=\s*["'][^"']*["'][^>]*>[\s\S]*/i) ||
+                            contentWithoutCodeBlocks.match(/<p\s+style\s*=\s*["'][^"']*["'][^>]*>[\s\S]*/i)
+
+                        if (bareHtmlMatch && !looksLikeCodeArtifact(bareHtmlMatch[0])) {
+                            const reportTitle = extractReportTitle(bareHtmlMatch[0])
+                            const wrappedReport = `[REPORT:${reportTitle}]\n${bareHtmlMatch[0]}\n[/REPORT]`
+                            assistantMsg.content = assistantMsg.content.replace(bareHtmlMatch[0], wrappedReport)
+                            console.log(`[Stream Filter] 识别为报告并包裹: "${reportTitle}"`)
                         }
                     }
-                    
                     // 注意：不要移除正确包裹的 <TASK_LIST>...</TASK_LIST>
                     // 只移除裸露的 JSON 和错误的标签
 
@@ -4027,27 +4594,14 @@ function AIAssistantContent() {
                 
                 // Simplified reasoning parsing (仅在开启深度思考模式时解析)
                 const combined = assistantMsg.content as string
-                // ... reasoning logic ...
-                if (enableReasoning && reasoningStart === -1) {
-                  const sIdx = combined.indexOf("<REASONING>")
-                  if (sIdx !== -1) reasoningStart = sIdx
-                }
+                // 🧠 串行化：思考未闭合 ⇒ streaming=true（渲染层据此先只放思考面板，见下方注释）
+                const parsedReasoning = splitReasoningBlocks(combined)
+                reasoningText = parsedReasoning.text
                 
-                let display = combined
-                if (enableReasoning && reasoningStart !== -1) {
-                  const endIdx = combined.indexOf("</REASONING>", reasoningStart)
-                  if (endIdx !== -1) {
-                    reasoningText = combined.slice(reasoningStart + 11, endIdx)
-                    display = combined.slice(0, reasoningStart) + combined.slice(endIdx + 12)
-                  } else {
-                    reasoningText = combined.slice(reasoningStart + 11)
-                    display = combined.slice(0, reasoningStart)
-                  }
-                } else if (!enableReasoning) {
-                  // 未开启深度思考时，移除所有 REASONING 标签
-                  display = display.replace(/<REASONING>[\s\S]*?<\/REASONING>/g, '')
-                  display = display.replace(/<REASONING>[\s\S]*$/g, '') // 移除未闭合的标签
-                }
+                // 正文 = 所有思考块之外的文本（含多轮工具链里第 2、3 个思考块之后的内容）。
+                // ⚠️ 这里**不**把思考期间的正文置空：正文上屏与否由渲染层按 reasoningStreaming 裁决
+                //    （page 层置空会连带把「这条气泡已经有内容」的事实抹掉，触发 isWorkingBubble 短路）。
+                const display = parsedReasoning.body
 
                 // 🔥 用普通setState（不flushSync），让React自然批处理渲染
                 // XMarkdown的streaming={{hasNextChunk:true}}会自动处理增量动画
@@ -4058,6 +4612,8 @@ function AIAssistantContent() {
                       role: "assistant",
                       content: display,
                       reasoning: enableReasoning ? { text: reasoningText, durationMs: Date.now() - startTs } : undefined,
+                      // 🧠 思考仍在流式 ⇒ 渲染层只放思考面板，正文等到闭合后才上屏
+                      reasoningStreaming: parsedReasoning.streaming,
                       model: selectedModel || aiSettings?.model
                     }
                     return newMsgs
@@ -4141,7 +4697,14 @@ function AIAssistantContent() {
       }
 
       // Mark answer as completed (the ThoughtChain stays visible; collapsing is handled internally)
-      const answerIdx = currentAgentSteps.findIndex(s => s.type === 'answer')
+      // 🚨 字段错位修复（2026-10-14）：上面 push 的是 `kind:"narrative"` + `id:"answer-N"`，
+      //    从不写 `type` 字段 → 老写法 `s.type === 'answer'` 恒为 -1，这一行永远停在 active，
+      //    工具调用链因此永远等不到"本轮已结束"（也就永远不会自动折叠）。
+      const answerIdx = currentAgentSteps.findIndex(
+        (s) =>
+          s.type === 'answer' ||
+          (typeof s.id === 'string' && s.id.startsWith('answer-')),
+      )
       if (answerIdx !== -1) {
         currentAgentSteps[answerIdx].status = 'completed'
         currentAgentSteps[answerIdx].duration = Date.now() - (currentAgentSteps[answerIdx].startedAt || startTs)
@@ -4159,6 +4722,12 @@ function AIAssistantContent() {
       if (waitingForUserInputRef.current) {
         console.warn('[Stream End] SSE closed while waiting for user input, clearing state')
         waitingForUserInputRef.current = null
+      }
+      // 🛑 同理兜底：流结束时收起残留的确认胶囊（后端异常关闭 / 5 分钟未点 / 页面切走）。
+      //    留着一枚点不动的胶囊比不显示更糟 —— 用户会以为界面卡死了。
+      if (toolConfirmRef.current) {
+        console.warn('[Stream End] SSE closed while a tool confirmation was pending, dismissing')
+        setToolConfirm(null)
       }
 
       // 🔥 标签解析失败自动打回：检测 CLARIFY/DECISION 标签 JSON 是否解析失败
@@ -4261,80 +4830,61 @@ function AIAssistantContent() {
         }
       }
       
-      // 🔥 流结束后的最终HTML检测和包裹（兜底方案）
+      // 🔥 流结束后的最终交付物分流（兜底方案）
+      //
+      // 与流式阶段共用同一套判定（lib/ai/deliverable-classifier.ts）：
+      //   - 报告特征双证成立（语义 + 结构，且非程序型代码）→ 包 [REPORT:] 交付报告卡
+      //   - 裸 HTML 代码产物（无围栏）→ 补 html 语言围栏，交付代码卡（源码 + 预览 + 下载）
+      //     原因：无围栏的裸 HTML 会被 Markdown 渲染器当未知 HTML 静默吞掉，
+      //     表现为"AI 说写好了，界面上什么都没有"。
+      //   - 其余一律不动
       const finalContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : ''
       if (finalContent && !finalContent.includes('[REPORT:')) {
-        console.log('[Final HTML Check] Checking for bare HTML in completed response...')
-        
-        // 检测是否包含大量HTML标签和报告特征
-        const htmlTagCount = (finalContent.match(/<[^>]+>/g) || []).length
-        const hasStyleAttr = /style\s*=\s*["'][^"']*["']/.test(finalContent)
-        const hasReportKeywords = /(?:报告|分析|监测|数据|统计|环境|设备|温度|湿度)/i.test(finalContent)
-        
-        console.log('[Final HTML Check] HTML tags:', htmlTagCount, 'Has styles:', hasStyleAttr, 'Has keywords:', hasReportKeywords)
-        
-        if (htmlTagCount > 5 && hasStyleAttr && hasReportKeywords) {
-          console.log('[Final HTML Check] ⚠️ Detected bare HTML report in final output!')
-          
-          // 查找HTML内容的起始位置
-          const htmlStartPatterns = [
-            /<div\s+style\s*=/i,
-            /<p\s+style\s*=/i,
-            /<!DOCTYPE/i,
-            /<html/i
-          ]
-          
-          let htmlStartIndex = -1
-          for (const pattern of htmlStartPatterns) {
-            const match = finalContent.match(pattern)
-            if (match && match.index !== undefined) {
-              htmlStartIndex = match.index
-              break
-            }
+        const htmlStartPatterns = [
+          /<div\s+style\s*=/i,
+          /<p\s+style\s*=/i,
+          /<!DOCTYPE/i,
+          /<html/i,
+        ]
+
+        let htmlStartIndex = -1
+        for (const pattern of htmlStartPatterns) {
+          const match = finalContent.match(pattern)
+          if (match && match.index !== undefined) {
+            htmlStartIndex = match.index
+            break
           }
-          
-          if (htmlStartIndex !== -1) {
-            // 分离前面的文本说明和HTML代码
-            const beforeHtml = finalContent.substring(0, htmlStartIndex).trim()
-            const htmlContent = finalContent.substring(htmlStartIndex).trim()
-            
-            console.log('[Final HTML Check] Before HTML:', beforeHtml.substring(0, 100))
-            console.log('[Final HTML Check] HTML content length:', htmlContent.length)
-            
-            // 提取报告标题
-            let reportTitle = "AI生成报告"
-            const h1Match = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i)
-            if (h1Match && h1Match[1]) {
-              reportTitle = h1Match[1].replace(/<[^>]+>/g, '').trim()
-            } else {
-              const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i)
-              if (titleMatch && titleMatch[1]) {
-                reportTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim()
-              }
-            }
-            
-            // 重新组合：说明文字 + 包裹的HTML
-            const wrappedContent = beforeHtml 
+        }
+
+        if (htmlStartIndex !== -1) {
+          // 分离前面的文本说明与后面的 HTML 内容
+          const beforeHtml = finalContent.substring(0, htmlStartIndex).trim()
+          const htmlContent = finalContent.substring(htmlStartIndex).trim()
+
+          if (looksLikeReportHtml(htmlContent)) {
+            const reportTitle = extractReportTitle(htmlContent)
+            assistantMsg.content = beforeHtml
               ? `${beforeHtml}\n\n[REPORT:${reportTitle}]\n${htmlContent}\n[/REPORT]`
               : `[REPORT:${reportTitle}]\n${htmlContent}\n[/REPORT]`
-            
-            assistantMsg.content = wrappedContent
-            console.log('[Final HTML Check] ✅ Wrapped HTML report:', reportTitle)
-            
-            // 更新消息显示
-            /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
-              __commitMessages(prev => {
-                const newMsgs = [...prev]
-                newMsgs[newMsgs.length - 1] = { ...assistantMsg }
-                return newMsgs
-              })
-            }
+            console.log('[Final Delivery Check] ✅ 识别为报告:', reportTitle)
+          } else if (isBareHtmlArtifact(htmlContent) || looksLikeCodeArtifact(htmlContent)) {
+            assistantMsg.content = beforeHtml
+              ? `${beforeHtml}\n\n\`\`\`html\n${htmlContent}\n\`\`\``
+              : `\`\`\`html\n${htmlContent}\n\`\`\``
+            console.log('[Final Delivery Check] ✅ 识别为代码产物，转为 html 代码块交付')
+          } else {
+            console.log('[Final Delivery Check] 内容既非报告也非代码产物，保持原样')
           }
-        } else {
-          console.log('[Final HTML Check] No bare HTML detected in final output')
+
+          /* 会话隔离：由 __commitXxx 内部按当前激活会话分流 */ {
+            __commitMessages(prev => {
+              const newMsgs = [...prev]
+              newMsgs[newMsgs.length - 1] = { ...assistantMsg }
+              return newMsgs
+            })
+          }
         }
       }
-
       // 🔥 流结束后的最终自动化策略检测和包裹（兜底方案）
       // 处理两种情况：
       //  1. 裸 ```json ... ``` 代码块（早期包裹失败）
@@ -4568,6 +5118,11 @@ function AIAssistantContent() {
         __commitMessages(prev => [...prev, { role: "assistant", content: errMsg }])
       }
     } finally {
+      // 📷 先把本轮抓到的摄像头画面投递给用户（成功/报错/被停止三种收尾都投递）
+      await __flushCameraSnapshots()
+      // 📎 再把本轮生成/修改的文档挂到最后一条助手消息（同样三种收尾都投递）
+      await __flushDocArtifacts()
+
       // 🔥 架构变更后：AI 通过 Agent Loop 内的工具调用完成设备控制，前端不再有
       // "解析 JSON + 触发 executeCommands + 静默消息反馈" 的后续任务链。
       // 直接清理 loading 状态即可（除非处于 isFeedback/isSilent 内部触发的子调用）。
@@ -4895,51 +5450,96 @@ function AIAssistantContent() {
     }
   }
 
+  /**
+   * 文件 / 图片 → 受控体积的附件，落进 sender 的常显缩略图行。
+   *
+   * 粘贴（Ctrl/⌘+V）与「+」里选文件走**同一条**通路 —— 以前两边各自 FileReader，
+   * 粘贴那份还不压缩，行为必然漂移。
+   *
+   * 压缩是刚需：剪贴板里的全屏截图在 Windows 上常是 2560×1440 的 PNG，
+   * base64 能到 3–8 MB，直接塞 `image_url` 会把请求体打爆（上游 413 / 网关超时）。
+   */
+  const appendFiles = useCallback(
+    async (files: File[]) => {
+      if (!files.length) return
+
+      // 图片受张数限制（每张都进请求体）；文档走服务端落盘，只带 fileId，不占图片配额
+      const imageCount = attachments.filter((a) => !a.fileId).length
+      const room = MAX_SENDER_IMAGES - imageCount
+
+      const added: ChatAttachment[] = []
+      let skipped = 0
+      let imagesAdded = 0
+      let docsAdded = 0
+
+      for (const file of files) {
+        try {
+          if (isImageFile(file)) {
+            if (imagesAdded >= room) {
+              skipped += 1
+              continue
+            }
+            const img = await prepareImageFile(file)
+            added.push({ name: img.name, type: img.type, dataUrl: img.dataUrl })
+            imagesAdded += 1
+          } else {
+            // 非图片一律走文档通道：服务端嗅探真实格式（不信后缀），
+            // 不支持的格式会带回准确原因（如「这是旧版 .doc，请另存为 .docx」）
+            added.push(await uploadDocumentFile(file, sessionId || undefined))
+            docsAdded += 1
+          }
+        } catch (err) {
+          // 单个失败（损坏 / 网络）不拖累其余，静默跳过并计数
+          skipped += 1
+          console.warn("[appendFiles] 跳过无法处理的文件:", file.name, err)
+        }
+      }
+
+      if (added.length) {
+        setAttachments((prev) => [...prev, ...added])
+        const failed = added.filter((a) => a.status === "error")
+        const ready = added.filter((a) => a.status !== "error")
+        if (failed.length) {
+          showNotice(
+            `${failed.length} 个文件无法添加`,
+            failed.map((f) => `${f.name}：${f.error || "格式不支持"}`).join("；").slice(0, 120),
+            "error",
+          )
+        } else if (docsAdded > 0 && imagesAdded > 0) {
+          showNotice(`已添加 ${imagesAdded} 张图片、${docsAdded} 个文档`, "文档已解析，可直接提问内容", "success")
+        } else if (docsAdded > 0) {
+          showNotice(`已添加 ${docsAdded} 个文档`, ready[0]?.sizeText ? `首个：${ready[0].name}（${ready[0].sizeText}）` : "可直接提问内容", "success")
+        } else {
+          showNotice(`已添加 ${imagesAdded} 张图片`, "可继续补充说明，或点缩略图右上角 × 移除", "success")
+        }
+      }
+      if (skipped > 0) {
+        showNotice("部分文件已跳过", `${skipped} 个文件无法读取或超出图片数量上限`, "error")
+      }
+    },
+    [attachments, sessionId, showNotice],
+  )
+
   const onSelectFiles: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const files = Array.from(e.currentTarget.files || [])
-    files.forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const url = typeof reader.result === "string" ? reader.result : ""
-        if (url) setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", dataUrl: url }])
-      }
-      reader.readAsDataURL(file)
-    })
+    // 先清空 value：同一张图连选两次也要触发 change
     e.currentTarget.value = ""
-    if (files.length > 0) {
-      showNotice("附件已添加", `共 ${files.length} 个`, "success")
-    }
+    void appendFiles(files)
   }
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
+  /**
+   * 粘贴：剪贴板里带文件时才接管，否则**必须放浏览器过去** ——
+   * 否则粘贴一段文字会被吞掉（e.preventDefault 会连文本一起拦）。
+   */
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData.items
-    const files: File[] = []
-    
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].kind === 'file') {
-        const file = items[i].getAsFile()
-        if (file) {
-          files.push(file)
-        }
-      }
-    }
-    
-    if (files.length > 0) {
-      e.preventDefault()
-      files.forEach((file) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const url = typeof reader.result === "string" ? reader.result : ""
-          if (url) setAttachments((prev) => [...prev, { name: file.name || `pasted-${Date.now()}.png`, type: file.type || "image/png", dataUrl: url }])
-        }
-        reader.readAsDataURL(file)
-      })
-      showNotice("已粘贴附件", `共 ${files.length} 个文件`, "success")
-    }
+    const files = pickFilesFromClipboard(e.clipboardData)
+    if (files.length === 0) return
+    e.preventDefault()
+    void appendFiles(files)
   }
 
   const handleDownloadPDF = async (messageIndex: number) => {
@@ -5155,13 +5755,154 @@ function AIAssistantContent() {
 
   const groupOrder = ["Today", "Yesterday", "Previous 7 Days", "Earlier"]
 
+  /* ============================================================================
+     侧栏版式 token（2026-10-01 · 按设计参考稿重做）
+     ----------------------------------------------------------------------------
+     量测来源：用户给的设计参考图 570×1638（@2x），逐行游程 + 连通域取值：
+       侧栏净宽 260 · 底色 #fafafa（无描边、无分割线）
+       行高 32 · 行距 2（行距 34）· 行圆角 10 · 行左右内衬 = 面板 14 + 行内 8
+       图标墨迹 14~15px（≈17px 图标）· 图标↔文字 9 · 行文字 14
+       选中/悬停底色 #f1f1f1（对 #fafafa 底 Δ≈9）· 分区标题 13.5 #a6a6a6
+       顶部三枚 28×28 幽灵图标钮（间距 8、图标 18）· 品牌名 20px/700 在图标行之下
+     本平台沿用既有色系（晨雾松 emerald×zinc），只把「版式 + 对比层级」对齐参考稿。
+     ========================================================================== */
+  const SB = { padX: 12, rowH: 32, rowGap: 2, rowR: 10, rowPadX: 8, icon: 17, iconGap: 9, label: 14, head: 13.5 }
+
+  /**
+   * 🪟 桌面端自绘窗口 chrome（2026-10-06 顶栏重做）。
+   *
+   * 本页不用 `PageHeader`，是自绘布局，所以窗口 chrome 的接线要在这里自己做：
+   *   ① `useDesktopHeaderHost()` —— 告诉全局兜底层「本页已有自绘顶栏」，
+   *      否则兜底拖拽带会继续渲染并盖住侧栏顶部图标（本次 bug 的直接成因）；
+   *   ② `desktopChrome` —— 下面顶栏的 drag/no-drag、菜单、控制键都靠它 gate，
+   *      浏览器部署下这些一律不渲染，行为与改动前一致。
+   */
+  useDesktopHeaderHost()
+  const desktopChrome = IS_DESKTOP_APP
+
+  /**
+   * 窗口是否真的在透传桌面（玻璃壳）。2026-10-23 用户：
+   * 「AI 助手浅色模式下的磨砂区域跟深色一样」——
+   * 根因就在侧栏那行 `background: darkMode ? "transparent" : "#f7f7f9"`：
+   * 暗色是 transparent（吃到了画布/桌面的磨砂），浅色却写死一块不透明的灰白，
+   * 于是同一套材质只有暗色成立。玻璃壳打开时两侧统一走 transparent，
+   * 由 globals.css 的 --br-canvas（已按 --glass-a 半透明）负责底色。
+   */
+  const [glassShell, setGlassShell] = useState(false)
+  useEffect(() => {
+    const bridge = (window as unknown as { stravisionDesktop?: { glassShell?: boolean } }).stravisionDesktop
+    setGlassShell(bridge?.glassShell === true)
+  }, [])
+  const sbTone = {
+    hover: darkMode ? "rgba(255,255,255,0.06)" : "rgba(13,13,13,0.045)",
+    active: darkMode ? "rgba(255,255,255,0.10)" : "rgba(13,13,13,0.07)",
+    text: darkMode ? "#d4d4d8" : "#0d0d0d",
+    textOn: darkMode ? "#fafafa" : "#09090b",
+    icon: darkMode ? "#a1a1aa" : "#71717a",
+    iconOn: darkMode ? "#e4e4e7" : "#18181b",
+    head: darkMode ? "#71717a" : "#a1a1aa",
+  }
+
+  /** 侧栏统一行：图标 + 文字 + 右侧插槽（徽标/更多）。全侧栏只有这一种行规格。 */
+  const sbRow = (o: {
+    key: string
+    icon: React.ReactNode
+    label: string
+    active?: boolean
+    onClick?: () => void
+    tail?: React.ReactNode
+    badge?: number
+    dot?: boolean
+  }) => (
+    <div
+      key={o.key}
+      onClick={o.onClick}
+      title={o.label}
+      style={{
+        display: "flex", alignItems: "center", gap: SB.iconGap,
+        height: SB.rowH, padding: `0 ${SB.rowPadX}px`, marginBottom: SB.rowGap,
+        borderRadius: SB.rowR, cursor: "pointer", userSelect: "none",
+        background: o.active ? sbTone.active : "transparent",
+        color: o.active ? sbTone.textOn : sbTone.text,
+        fontSize: SB.label,
+        fontWeight: o.active ? 500 : 400,
+        transition: "background 0.15s, color 0.15s",
+      }}
+      onMouseEnter={(e) => { if (!o.active) e.currentTarget.style.background = sbTone.hover }}
+      onMouseLeave={(e) => { if (!o.active) e.currentTarget.style.background = "transparent" }}
+    >
+      <span style={{ display: "inline-flex", flexShrink: 0, color: o.active ? sbTone.iconOn : sbTone.icon }}>{o.icon}</span>
+      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
+      {o.badge !== undefined && o.badge > 0 && (
+        <span style={{
+          fontSize: 10.5, lineHeight: "16px", height: 16, minWidth: 16, padding: "0 5px",
+          textAlign: "center", borderRadius: 999, flexShrink: 0,
+          color: darkMode ? "#a1a1aa" : "#71717a",
+          background: darkMode ? "rgba(255,255,255,0.08)" : "rgba(13,13,13,0.06)",
+        }}>{o.badge > 99 ? "99+" : o.badge}</span>
+      )}
+      {o.dot && (
+        <span style={{
+          width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: "#059669",
+        }} />
+      )}
+      {o.tail}
+    </div>
+  )
+
+  /** 侧栏分区标题：可折叠 + 右侧可选动作（小标题 + 右侧动作插槽版式）。 */
+  const sbHead = (key: string, label: string, action?: React.ReactNode) => (
+    <div
+      onClick={() => toggleSection(key)}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        height: 30, marginTop: 12, padding: `0 ${SB.rowPadX}px`,
+        borderRadius: 8, cursor: "pointer", userSelect: "none",
+        color: sbTone.head, fontSize: SB.head, transition: "background 0.15s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = sbTone.hover }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+    >
+      <span>{label}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        {action}
+        <IconDown size={12} strokeWidth={2} style={{
+          opacity: 0.6,
+          transition: "transform 0.2s ease",
+          transform: collapsedSections.has(key) ? "rotate(-90deg)" : "rotate(0deg)",
+        }} />
+      </span>
+    </div>
+  )
+
+  /** 侧栏顶部幽灵图标钮（三枚 28×28 同排、图标 18）。 */
+  const sbIconBtn = (o: { key: string; title: string; icon: React.ReactNode; onClick: () => void; on?: boolean; onColor?: string }) => (
+    <button
+      key={o.key}
+      onClick={o.onClick}
+      title={o.title}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: 28, height: 28, borderRadius: 8, border: "none", flexShrink: 0,
+        background: o.on ? sbTone.active : "transparent",
+        cursor: "pointer",
+        color: o.on ? (o.onColor || sbTone.iconOn) : sbTone.icon,
+        transition: "background 0.15s, color 0.15s",
+      }}
+      onMouseEnter={(e) => { if (!o.on) e.currentTarget.style.background = sbTone.hover }}
+      onMouseLeave={(e) => { if (!o.on) e.currentTarget.style.background = "transparent" }}
+    >
+      {o.icon}
+    </button>
+  )
+
   return (
     <ConfigProvider
       locale={zhCN}
       theme={{
         algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#1677ff",
+          colorPrimary: "#059669",
           borderRadius: 10,
         },
       }}
@@ -5192,6 +5933,72 @@ function AIAssistantContent() {
         .ai-assistant-page svg[width="13"],
         .ai-assistant-page svg[width="14"] { stroke-width: 1.75; }
         .ai-assistant-page svg[width="12"] { stroke-width: 2; }
+
+        /* 对话区背景生命周期：淡入 → 保持 20s → 淡出 → 卸载。
+           --pb-max 由容器内联样式按明暗主题注入。
+           时间轴（总 21.8s）：0→0.9s 淡入 · 0.9~20s 保持 · 20~21.8s 淡出
+           （0.9s / 20s 落在 4% / 92% 两个关键帧上）。
+           ⚠️ 改总时长必须同步 page.tsx 里 auraMounted 的卸载定时器（21800ms）。 */
+        /* ===== 对话区氛围层（.pb-aura）—— 2026-10-22 第三版：WebGL 雾 + 白点阵 =====
+           演进史（别再走回头路）：
+             v1 CSS 斜向色带          → 用户「好丑」（有形状、有方向，一眼看见带子在斜着走）
+             v2 CSS radial 雾 + 点阵  → 用户「参考人家这个」「有动起来的雾」「底下有白色点」
+             v3 本版                  → 用户「不行引入那个 webgl 吧，舍弃 pixel」
+           判据：参考稿那块背景是**全屏 canvas 用片元着色器实时画的雾**，
+           不是 CSS 渐变。CSS 只能整体平移一张固定图案，
+           做不出"雾在有机翻涌"；给它加 animation 得到的是一张纸在滑。
+           ── 分工依据（为什么雾用 WebGL、点阵还用 CSS）──
+             雾   = 低频、大块、必须有机变化 → WebGL 半分辨率 + 30fps 封顶最省
+             点阵 = 高频、必须像素级锐利   → CSS gradient（半分辨率渲染会把 1px 的点糊掉）
+           ── 参考图实测（2520×1004，2x DPR ⇒ CSS 1260×502）──
+             雾：顶部中间最浓 (220,253,239)，左上 (243,254,249)，中部 (247,255,251)，底部 (253,255,254)
+                反解叠加色 ≈ rgb(22,242,148)，峰值 alpha ≈ .20
+             点阵：沿一行扫像素得**稳定 16 物理 px 周期**（= 8 CSS px），点在浅绿底上比底色更白，
+                点径约 2 物理 px ⇒ 1 CSS px，正方形网格
+           ── 三层结构（自下而上）──
+             .pb-aura-scene   裁切 + 淡出容器（z0，pointer-events:none，绝不挡点击与滚轮）
+             .pb-aura-canvas  AuroraBg 挂载点（WebGL 雾）
+             .pb-aura-dots    白点阵（8px 网格，**静止** —— 网格纹跟着动就像电视雪花）
+           ⚠️ 只在上半部可见、向下渐隐（mask）——「清透」而非「糊一层」的决定性一步：
+              参考稿顶部是淡薄荷 (≈rgb(240,254,248))，到中部就回到纯白。
+           ⚠️ 本层在内容层**之下**（内容层 zIndex:1）。 */
+        .pb-aura-scene{
+          position: absolute; inset: 0; z-index: 0;
+          overflow: hidden; pointer-events: none;
+          /* 用户要求「20 秒后要消失的」—— 背景是"进入这一屏"的开场，不是常驻装饰；
+             久留会让正文一直压在一层纹理上（也正是 v1 被嫌脏的原因之一）。
+             ⚠️ 只写 opacity，不写 display/visibility —— 淡出必须连续，且保持 GPU 合成。 */
+          opacity: 0;
+          animation: pb-aura-lifecycle 21.8s ease-in-out forwards;
+          -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 26%, rgba(0,0,0,.60) 46%, rgba(0,0,0,.17) 64%, transparent 78%);
+          mask-image: linear-gradient(to bottom, #000 0%, #000 26%, rgba(0,0,0,.60) 46%, rgba(0,0,0,.17) 64%, transparent 78%);
+        }
+        .pb-aura-canvas{
+          position: absolute; inset: 0;
+        }
+        .pb-aura-dots{
+          position: absolute; inset: 0;
+          background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,.95) 0 .55px, rgba(255,255,255,0) .95px);
+          background-size: 8px 8px;
+        }
+        /* 暗色：白点阵在暗底上会变成"满天星"，压到几乎只剩质感。
+           雾的暗色配色不走 CSS —— 由 AuroraBg 的 uTone uniform 切 #10B981。 */
+        .dark .pb-aura-dots{
+          background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,.07) 0 .55px, rgba(255,255,255,0) .95px);
+        }
+        @keyframes pb-aura-lifecycle {
+          0%   { opacity: 0; }
+          4%   { opacity: var(--pb-max, 1); }
+          92%  { opacity: var(--pb-max, 1); }
+          100% { opacity: 0; }
+        }
+        /* 2026-10-22：这里的「三团 emerald 光晕 + 18s 漂移」（.pb-aurora）已按用户要求删除。
+           判据：对话区的背后没有任何需要被透出来的东西（气泡是裸文本、没有玻璃卡），
+           所以它不是沉浸光感的「景」，只是一层会呼吸的彩色渐变 —— 正是用户说的"好丑"。 */
+        @media (prefers-reduced-motion: reduce) {
+          /* 尊重系统「减少动态效果」：不播开场动画即视为不显示（氛围层是纯装饰） */
+          .pb-aura-scene { animation: none !important; opacity: 0 !important; }
+        }
       `}</style>
     <App>
     <>
@@ -5201,7 +6008,16 @@ function AIAssistantContent() {
       className={cn(
         "ai-assistant-page",
         "fixed inset-0 w-full h-full overflow-hidden flex font-sans transition-colors duration-300",
-        darkMode ? "bg-zinc-900 text-zinc-100" : "bg-[#f7f7f9] text-zinc-900",
+        /* 画布底色走 --berry-canvas（暗态 #09090B），**不要把这里改回 bg-zinc-900**：
+           2026-10-22 用户先要求「PixelBlast 绿色点阵完全保留原本的不要修改」，
+           我一度把底色也一并还原成 zinc-900(#18181B)，用户随即反馈「颜色没有之前的深了」——
+           也就是说：**要的是更深的底，不是更浅的底**。两件事拆开看：
+             · 画布  → --berry-canvas（暗 #09090B / 亮 #F7F7F8），与全站统一，玻璃壳下可透传
+             · 背景层 → WebGL 雾 + 白点阵（见 .pb-aura），21.8s 生命周期后自动卸载
+           为什么底色深一档背景层会更好看：雾和点都是极淡的叠色，底色越深对比越清晰；
+           原来的 zinc-900 是"半灰半黑"，浅绿的雾浮在上面反而发闷。 */
+        "bg-[var(--berry-canvas)]",
+        darkMode ? "text-zinc-100" : "text-zinc-900",
         isExecutingControl && "ai-control-active",
         isElderFriendlyMode && "elder-friendly-text"
       )}
@@ -5213,13 +6029,13 @@ function AIAssistantContent() {
       {executingDeviceName && (
         <div className="pointer-events-none fixed top-6 left-1/2 -translate-x-1/2 z-[10000]">
           <div
-            className="pointer-events-auto overflow-hidden flex items-center shadow-2xl shadow-black/5 dark:shadow-black/20"
+            className="pointer-events-auto overflow-hidden flex items-center shadow-lg shadow-black/5 dark:shadow-black/20"
             style={{
               height: "48px",
               padding: "0 6px",
               borderRadius: 999,
               background: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(20px)",
+              backdropFilter: "blur(calc(20px * var(--dc-mat-scale, 1)))",
               border: "1px solid rgba(0,0,0,0.05)",
               color: "#18181b",
               width: devicePillExpanded ? "auto" : "48px",
@@ -5239,7 +6055,7 @@ function AIAssistantContent() {
                     transition: "all 0.3s ease 0.1s"
                 }}
             >
-                <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Executing</span>
+                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">Executing</span>
                 <span className="text-sm font-medium text-zinc-900 leading-none mt-0.5">{executingDeviceName}</span>
             </div>
           </div>
@@ -5276,10 +6092,12 @@ function AIAssistantContent() {
             /* 2026-09-19 抓千问 design token 对齐：
                侧栏底色走 --ty-background-pc-sidebar #f7f7f9（中性灰，去蓝调），
                与主区 #fff 形成克制的层级差；此前侧栏是 transparent，
-               靠整页 #f7f8fa 透出，底色偏蓝且与主区对比过重。
+               靠整页 #fafafa 透出，底色偏蓝且与主区对比过重。
                同日追加（用户反馈）：**不要边界线**——纯靠底色差分层级，
                不用 --ty-line-border 描边。 */
-            background: darkMode ? "transparent" : "#f7f7f9",
+            /* 玻璃壳（窗口透传桌面）时两侧都透明 —— 让浅色也吃到和深色同一层磨砂；
+               浏览器部署仍走 #f7f7f9 的中性灰分层。 */
+            background: glassShell || darkMode ? "transparent" : "#f7f7f9",
             display: "flex",
             flexDirection: "column",
             height: "100vh",
@@ -5289,319 +6107,171 @@ function AIAssistantContent() {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            {/* ===== 顶部：应用名 + 搜索 + 折叠 =====
-                2026-09-19 版式按行业通用对话产品整理；同日修正三处细节（用户截图反馈）：
-                - 两个按钮曾用 30/30 + gap 4，图标换到 17px 后按钮外沿顶到容器 padding
-                  边线上（行宽 232 = 内容刚好塞满），观感"没对齐"。改回 28/28 + gap 2，
-                  与顶栏、列表行统一为 28px 点击区规格。
-                - 搜索图标原用 framer-motion 版（viewBox 24 / strokeWidth 2 写死），
-                  与 lucide 版 PanelLeft 的矩形轮廓不是同一套线条基因（圆 vs 方），
-                  故统一改用 `IconSearch`（同样是 lucide，圆头圆角、受控 strokeWidth）。
-                - 行高锁定 28：原来受 18px 品牌字撑到约 31px，两个按钮垂直居中后
-                  上下留白不对称，视觉上"飘"。22px 行高盒让 28px 按钮精确居中对齐。 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "16px 12px 12px 14px" }}>
-              <span style={{
-                fontFamily: "AlimamaShuHeiTi, sans-serif",
-                fontSize: 18, fontWeight: 700, lineHeight: "22px",
-                color: darkMode ? "#e4e4e7" : "#18181b",
-                whiteSpace: "nowrap",
-              }}>莓小智</span>
-              <div style={{ flex: 1 }} />
-              <button onClick={() => setSearchPanelOpen(true)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 28, height: 28, borderRadius: 8, border: "none", background: "transparent",
-                  cursor: "pointer", color: darkMode ? "#a1a1aa" : "#52525b" }}
-                className="hover:!bg-black/[0.05] dark:hover:!bg-white/[0.06]"
-                title="搜索"
-              >
-                <IconSearch size={16} strokeWidth={1.9} />
-              </button>
-              <button onClick={() => setSidebarOpen(false)}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 28, height: 28, borderRadius: 8, border: "none", background: "transparent",
-                  cursor: "pointer", color: darkMode ? "#a1a1aa" : "#52525b" }}
-                className="hover:!bg-black/[0.05] dark:hover:!bg-white/[0.06]"
-                title="收起侧边栏"
-              >
-                <IconLayoutTwo size={16} strokeWidth={1.9} />
-              </button>
+            {/* ===== 顶部图标行（2026-10-01 按参考稿重做）=====
+                版式：三枚幽灵图标钮同排、左对齐、图标 18、间距 8；
+                品牌名从「与按钮同排」下移成独立大字标题。
+                参考稿量测：图标行中心 y=24 → 品牌名中心 y=65 → 首个列表行中心 y=110。
+                ⚠️ 「临时对话」从原「新建对话右侧的 40×40 方按钮」迁到此处（顶栏第三枚
+                   本就是新建类图标），原位置的实心大按钮一并撤掉，侧栏不再有大色块。
+                🚨 桌面端必须显式 no-drag：本行 y=10~38 落在窗口顶部，
+                   父级/兜底层一旦是 drag，三枚图标会被拖拽区吞掉而点不动
+                   （2026-10-06 用户反馈「有些 icon 点不了」的直接现象）。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px 0 18px", ...(desktopChrome ? DESKTOP_NO_DRAG : {}) }}>
+              {sbIconBtn({ key: "collapse", title: "收起侧边栏", icon: <IconLayoutTwo size={18} strokeWidth={1.9} />, onClick: () => setSidebarOpen(false) })}
+              {sbIconBtn({ key: "search", title: "搜索", icon: <IconSearch size={18} strokeWidth={1.9} />, onClick: () => setSearchPanelOpen(true) })}
+              {sbIconBtn({
+                key: "temp",
+                title: "临时对话（不保存记录）",
+                icon: <IconCommentDashed size={18} strokeWidth={1.9} />,
+                on: tempSessionActive,
+                onColor: "#059669",
+                onClick: () => {
+                  if (isTempSession(sessionId)) { showNotice("临时对话", "当前已在临时对话中", "success"); return }
+                  createTempSession()
+                },
+              })}
             </div>
 
-            {/* ===== 新建对话主按钮行（白底描边主按钮 + 方形附按钮 同排）===== */}
-            <div style={{ display: "flex", gap: 8, padding: "0 12px 12px" }}>
-              <button
-                onClick={() => createNewSession()}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  height: 40, borderRadius: 10,
-                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e8e8ea",
-                  background: darkMode ? "#27272a" : "#fff",
-                  color: darkMode ? "#e4e4e7" : "#18181b",
-                  fontSize: 14, fontWeight: 500,
-                  cursor: "pointer", userSelect: "none",
-                  boxShadow: darkMode ? "none" : "0 1px 2px rgba(0,0,0,0.03)",
-                  transition: "background 0.15s, border-color 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#3f3f46" : "#fafafa" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#fff" }}
-              >
-                {/* 「气泡 + 右上角加号」= 新建对话（2026-09-19 用户截图反馈：
-                    原来是裸加号 IconPlusCross，与 Qwen 侧栏造型不符）。
-                    IconCommentAdd 的气泡 path 与右侧「临时对话」的 IconCommentDashed 同源，
-                    并排不会一粗一细；线宽走规范 16px → strokeWidth 2（=1.33px）。 */}
-                <IconCommentAdd size={16} strokeWidth={1.9} />
-                <span>新建对话</span>
-              </button>
-              {/* 临时对话（主按钮右侧的方按钮位）：
-                  开一个不落库、不进列表的孤立会话 —— 消息只留内存，切走即弃。 */}
-              <button
-                onClick={() => {
-                  if (isTempSession(sessionId)) {
-                    showNotice("临时对话", "当前已在临时对话中", "success")
-                    return
-                  }
-                  createTempSession()
-                }}
-                title="临时对话（不保存记录）"
-                style={{
-                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e8e8ea",
-                  background: tempSessionActive
-                    ? (darkMode ? "#3f3f46" : "#f4f4f5")
-                    : (darkMode ? "#27272a" : "#fff"),
-                  color: tempSessionActive ? "#1677ff" : (darkMode ? "#a1a1aa" : "#52525b"),
-                  cursor: "pointer",
-                  transition: "background 0.15s, color 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#3f3f46" : "#fafafa" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = tempSessionActive ? (darkMode ? "#3f3f46" : "#f4f4f5") : (darkMode ? "#27272a" : "#fff") }}
-              >
-                {/* 线宽与左侧「新建对话」统一为 2（16px → 1.33px）。
-                    原先 1.75 = 1.17px，两个按钮同排时细 12%，肉眼能看出不一致。 */}
-                <IconCommentDashed size={16} strokeWidth={1.9} />
-              </button>
+            {/* ===== 品牌名（20px/700 大字，左缘与列表行图标列对齐）===== */}
+            <div style={{ padding: "14px 12px 0 12px" }}>
+              <span style={{
+                display: "block", paddingLeft: SB.rowPadX,
+                fontFamily: "var(--font-ui-strong)",
+                fontSize: 20, fontWeight: 700, lineHeight: "26px", letterSpacing: "-0.01em",
+                color: darkMode ? "#fafafa" : "#09090b",
+                whiteSpace: "nowrap",
+              }}>莓小智</span>
             </div>
 
             {/* ===== 分组与列表区域 ===== */}
-            <div data-lenis-prevent className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "2px 10px 0" }}>
+            <div data-lenis-prevent className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "16px " + SB.padX + "px 0" }}>
               {/* 隐藏滚动条 */}
               <style>{`
-                .sidebar-scroll::-webkit-scrollbar { width: 5px; }
-                .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-                .sidebar-scroll::-webkit-scrollbar-thumb {
-                  background: #d1d5db;
-                  border-radius: 3px;
-                  transition: opacity 0.2s;
-                  opacity: 0;
+                /* 滚动条已交回全站统一段（原 5px + opacity 0/1 的私有实现已删，2026-10-11）：
+                   那套只在亮色下给了 #d4d4d8，暗色底下等于没有 —— 「不滚动就隐藏」现在由
+                   components/scroll-activity.tsx + globals.css 统一负责，这里不要再写。 */
+                /* 会话条目（antd-x Conversations）统一到侧栏行规格（2026-10-01）：
+                   圆角 10 / 文字 14 / 悬停与选中同层浅底。
+                   原来条目底色与手写行不是一套（悬停 #f4f4f5 vs rgba(13,13,13,0.045)），
+                   同一个列表里两种悬停观感。 */
+                .sidebar-scroll .ant-conversations-item {
+                  border-radius: 10px !important;
+                  font-size: 14px !important;
+                  transition: background-color 0.15s;
                 }
-                .sidebar-scroll:hover::-webkit-scrollbar-thumb,
-                .sidebar-scroll:active::-webkit-scrollbar-thumb { opacity: 1; }
-                .sidebar-scroll { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-                .sidebar-scroll:hover, .sidebar-scroll:active { scrollbar-color: #d1d5db transparent; }
+                .sidebar-scroll .ant-conversations-item:hover { background-color: ${sbTone.hover} !important; }
+                .sidebar-scroll .ant-conversations-item-active {
+                  background-color: ${sbTone.active} !important;
+                  font-weight: 500;
+                }
               `}</style>
 
-              {/* ===== 功能导航（图标 17px、行高 36px、间距疏朗）=====
-                  2026-09-19 用户要求：版式参考行业通用版式，但功能项保留本平台现有这组。
-                  2026-09-19 追加（抓千问官网 design token 对齐）：
-                  - 千问图标统一 strokeWidth 2（24 grid 基准），我们原为 1.75，
-                    在 17px 渲染下视觉细约 12.5%，用户反馈"稍微细那么一点" → 全侧栏统一抬到 2。
-                  - 文字主色由 #3f3f46 抬到千问 --ty-text-primary #0d0d0d（更黑更实）。
-                  - hover 底色由 #f4f4f5 调整为千问 --qwtp-hover-bg #0d0d0d08（更淡）。 */}
+              {/* ===== 新建对话：列表首行（2026-10-01 按参考稿重做）=====
+                  原来是跟「临时对话」并排的 40px 实心材质大按钮；参考稿里
+                  「新建对话」就是列表第一行（悬停/选中垫一层浅底），侧栏因此
+                  不再有任何大色块。临时对话已上移到顶部第三枚图标钮。 */}
+              {sbRow({
+                key: "new-chat",
+                icon: <IconCommentAdd size={SB.icon} strokeWidth={1.9} />,
+                label: "新建对话",
+                onClick: () => createNewSession(),
+              })}
+
+              {/* ===== 功能导航（保留 2026-09-19 定的这组功能项，行规格统一）=====
+                  2026-10-01 按参考稿统一：行高 32 / 行距 2 / 圆角 10 / 图标 17 /
+                  图标↔文字 9 / 文字 14 / 悬停与选中都走同一层浅底。
+                  本轮补上「面板打开 = 该行高亮」——原来功能项完全没有选中态，
+                  点开「我的空间」后从列表里看不出当前停在哪个面板。 */}
               {[
-                {
-                  key: "explore",
-                  label: "探索",
-                  icon: <IconCompass size={16} strokeWidth={1.9} />,
-                  onClick: () => setExploreOpen(true),
-                },
-                {
-                  key: "space",
-                  label: "我的空间",
-                  icon: <IconFolderOpen size={16} strokeWidth={1.9} />,
-                  onClick: () => setMySpaceOpen(true),
-                  badge: spaceReports.length > 0 ? spaceReports.length : undefined,
-                },
-                {
-                  key: "scheduler",
-                  label: "定时任务",
-                  icon: <IconTime size={16} strokeWidth={1.9} />,
-                  onClick: () => setSchedulerPanelOpen(true),
-                },
-                {
-                  key: "knowledge",
-                  label: "知识库",
-                  icon: <IconBookOpen size={16} strokeWidth={1.9} />,
-                  onClick: () => setKnowledgeOpen(true),
-                },
-                {
-                  key: "settings",
-                  label: "更多",
-                  icon: <IconGridFour size={16} strokeWidth={1.9} />,
-                  onClick: () => setSettingsOpen(true),
-                },
-              ].map((item) => (
-                <div
-                  key={item.key}
-                  onClick={item.onClick}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    height: 36, padding: "0 8px",
-                    borderRadius: 8, cursor: "pointer", userSelect: "none",
-                    color: darkMode ? "#d4d4d8" : "#0d0d0d",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-                >
-                  <span style={{ display: "inline-flex", flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }}>{item.icon}</span>
-                  <span style={{ fontSize: 14, fontWeight: 400 }}>{item.label}</span>
-                  {item.badge !== undefined && (
-                    <span style={{
-                      fontSize: 10,
-                      color: darkMode ? "#a1a1aa" : "#9ca3af",
-                      background: darkMode ? "#27272a" : "#f4f4f5",
-                      padding: "0 5px",
-                      borderRadius: 8,
-                      minWidth: 16,
-                      textAlign: "center",
-                      lineHeight: "16px",
-                      height: 16,
-                    }}>{item.badge}</span>
-                  )}
-                  {/* 新报告小红点：SSE 收到 new_report 时点亮，面板打开后清零 */}
-                  {item.key === "space" && mySpaceNewBadge > 0 && (
-                    <span
-                      title={`${mySpaceNewBadge} 份新简报`}
-                      style={{
-                        width: 7, height: 7, borderRadius: 999, background: "#1677ff",
-                        boxShadow: "0 0 0 2px " + (darkMode ? "#0a0a0c" : "#f7f7f9"),
-                        marginLeft: 2
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
+                { key: "explore", label: "探索", icon: <IconCompass size={SB.icon} strokeWidth={1.9} />, onClick: () => openSidebarPanel("explore"), active: exploreOpen },
+                { key: "space", label: "我的空间", icon: <IconFolderOpen size={SB.icon} strokeWidth={1.9} />, onClick: () => openSidebarPanel("space"), active: mySpaceOpen, badge: spaceReports.length > 0 ? spaceReports.length : undefined, dot: mySpaceNewBadge > 0 },
+                { key: "records", label: "病历", icon: <IconNotebook size={SB.icon} strokeWidth={1.9} />, onClick: () => openSidebarPanel("records"), active: medicalRecordsOpen },
+                { key: "scheduler", label: "定时任务", icon: <IconTime size={SB.icon} strokeWidth={1.9} />, onClick: () => openSidebarPanel("scheduler"), active: schedulerPanelOpen },
+                { key: "knowledge", label: "知识库", icon: <IconBookOpen size={SB.icon} strokeWidth={1.9} />, onClick: () => openSidebarPanel("knowledge"), active: knowledgeOpen },
+                { key: "settings", label: "更多", icon: <IconGridFour size={SB.icon} strokeWidth={1.9} />, onClick: () => setSettingsOpen(true), active: settingsOpen },
+              ].map((item) => sbRow({
+                key: item.key,
+                icon: item.icon,
+                label: item.label,
+                onClick: item.onClick,
+                active: item.active,
+                badge: (item as any).badge,
+                dot: (item as any).dot,
+              }))}
 
               {/* ===== 工作台分组（2026-09-19 新增）：真实路由跳转，去业务页当宿主，
                     AI 助手在那里以 Copilot 抽屉 + 悬浮球形态常驻。
                     2026-09-19 追加：分区标题可折叠（同日用户要求）===== */}
-              <div
-                onClick={() => toggleSection("workspace")}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 8px 6px", cursor: "pointer", userSelect: "none",
-                  borderRadius: 6, transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-              >
-                <span style={{ fontSize: 12.5, color: darkMode ? "#71717a" : "#999", fontWeight: 400 }}>工作台</span>
-                <IconDown size={12} strokeWidth={2} style={{
-                  color: darkMode ? "#71717a" : "#999",
-                  opacity: 0.7,
-                  transition: "transform 0.2s ease",
-                  transform: collapsedSections.has("workspace") ? "rotate(-90deg)" : "rotate(0deg)",
-                }} />
-              </div>
+              {sbHead("workspace", "工作台")}
 
               {!collapsedSections.has("workspace") && [
                 {
                   key: "ws-monitor",
                   label: "实时监控",
-                  icon: <IconMonitor size={16} strokeWidth={1.9} />,
+                  icon: <IconMonitor size={SB.icon} strokeWidth={1.9} />,
                   href: "/monitor",
                 },
                 {
                   key: "ws-dashboard",
                   label: "数据看板",
-                  icon: <IconChartHistogram size={16} strokeWidth={1.9} />,
+                  icon: <IconChartHistogram size={SB.icon} strokeWidth={1.9} />,
                   href: "/dashboard",
                 },
                 {
                   key: "ws-automation",
                   label: "自动化",
-                  icon: <IconThunderbolt size={16} strokeWidth={1.9} />,
+                  icon: <IconThunderbolt size={SB.icon} strokeWidth={1.9} />,
                   href: "/automation",
                 },
                 {
                   key: "ws-device",
                   label: "设备控制",
-                  icon: <IconSettingTwo size={16} strokeWidth={1.9} />,
+                  icon: <IconSettingTwo size={SB.icon} strokeWidth={1.9} />,
                   href: "/device-control",
                 },
-              ].map((item) => (
-                <div
-                  key={item.key}
-                  onClick={() => router.push(item.href)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    height: 36, padding: "0 8px",
-                    borderRadius: 8, cursor: "pointer", userSelect: "none",
-                    color: darkMode ? "#d4d4d8" : "#0d0d0d",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-                >
-                  <span style={{ display: "inline-flex", flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }}>{item.icon}</span>
-                  <span style={{ fontSize: 14, fontWeight: 400 }}>{item.label}</span>
-                </div>
-              ))}
+              ].map((item) => sbRow({
+                key: item.key,
+                icon: item.icon,
+                label: item.label,
+                onClick: () => router.push(item.href),
+              }))}
 
-              {/* ===== 对话分组（小标题可折叠 + 「新分组」独立整行）===== */}
-              <div
-                onClick={() => toggleSection("groups")}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 8px 6px", cursor: "pointer", userSelect: "none",
-                  borderRadius: 6, transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-              >
-                <span style={{ fontSize: 12.5, color: darkMode ? "#71717a" : "#999", fontWeight: 400 }}>对话分组</span>
-                <IconDown size={12} strokeWidth={2} style={{
-                  color: darkMode ? "#71717a" : "#999",
-                  opacity: 0.7,
-                  transition: "transform 0.2s ease",
-                  transform: collapsedSections.has("groups") ? "rotate(-90deg)" : "rotate(0deg)",
-                }} />
-              </div>
+              {/* ===== 对话分组（2026-10-01 按参考稿：标题右侧「+」直接新建分组）=====
+                  参考稿量测：「分组」标题右端 x=224.5~235.5 有一枚 ≈16px 的「+」，
+                  与「分组示例」右侧铃铛同列 —— 即「小标题 + 右侧动作插槽」版式。
+                  ⚠️ 原来「新分组」是独立整行（2026-09-19 用户要求）；本轮按参考稿收进
+                     标题行右插槽，列表少一行、且「+」与分组项右缘天然对齐。
+                     「+」自身 stopPropagation —— 标题行整体仍是分区折叠开关。 */}
+              {sbHead("groups", "对话分组",
+                <span
+                  onClick={(e) => { e.stopPropagation(); setShowNewGroupInput(true) }}
+                  title="新建分组"
+                  style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 20, height: 20, borderRadius: 6, cursor: "pointer",
+                    color: sbTone.head, transition: "background 0.15s, color 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = sbTone.active; e.currentTarget.style.color = darkMode ? "#e4e4e7" : "#18181b" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = sbTone.head }}
+                >
+                  <Plus size={15} strokeWidth={1.9} />
+                </span>
+              )}
 
               {!collapsedSections.has("groups") && (<>
-              {/* 新分组：独立整行，图标与分组项对齐 */}
-              <div
-                onClick={() => setShowNewGroupInput(true)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  height: 34, padding: "0 8px",
-                  borderRadius: 8, cursor: "pointer", userSelect: "none",
-                  color: darkMode ? "#d4d4d8" : "#0d0d0d",
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-              >
-                <span style={{ display: "inline-flex", flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }}>
-                  <Plus size={16} strokeWidth={1.9} />
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 400 }}>新分组</span>
-              </div>
-
               {showNewGroupInput && (
-                <div style={{ display: "flex", gap: 4, margin: "4px 0", padding: "0 8px" }}>
+                <div style={{ display: "flex", gap: 6, marginBottom: 6, padding: "0 " + SB.rowPadX + "px" }}>
                   <input autoFocus value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") addGroup(newGroupName); if (e.key === "Escape") { setShowNewGroupInput(false); setNewGroupName("") } }}
                     onBlur={() => { if (newGroupName.trim()) addGroup(newGroupName); else setShowNewGroupInput(false) }}
-                    placeholder="输入分组名..."
+                    placeholder="输入分组名…"
                     style={{
-                      flex: 1, height: 30, fontSize: 13,
+                      flex: 1, height: SB.rowH, fontSize: 13,
                       border: darkMode ? "1px solid #3f3f46" : "1px solid #e4e4e7",
-                      borderRadius: 8, padding: "0 10px", outline: "none",
+                      borderRadius: SB.rowR, padding: "0 10px", outline: "none",
                       background: darkMode ? "#27272a" : "#fff",
-                      color: darkMode ? "#e4e4e7" : "#374151"
+                      color: darkMode ? "#e4e4e7" : "#3f3f46",
                     }}
                   />
                 </div>
@@ -5615,49 +6285,46 @@ function AIAssistantContent() {
                   <div
                     onClick={() => { toggleGroupCollapse(g.id); setActiveGroupId(g.id) }}
                     style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 7,
-                      height: 34, padding: "0 8px", cursor: "pointer", userSelect: "none",
-                      borderRadius: 8,
-                      background: isActiveGroup
-                        ? (darkMode ? "#27272a" : "rgba(13,13,13,0.05)")
-                        : "transparent",
-                      color: darkMode ? "#d4d4d8" : "#0d0d0d",
-                      transition: "background 0.15s",
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: SB.iconGap,
+                      height: SB.rowH, padding: "0 " + SB.rowPadX + "px", marginBottom: SB.rowGap,
+                      cursor: "pointer", userSelect: "none",
+                      borderRadius: SB.rowR,
+                      background: isActiveGroup ? sbTone.active : "transparent",
+                      color: isActiveGroup ? sbTone.textOn : sbTone.text,
+                      fontSize: SB.label,
+                      transition: "background 0.15s, color 0.15s",
                     }}
-                    onMouseEnter={(e) => { if (!isActiveGroup) e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
+                    onMouseEnter={(e) => { if (!isActiveGroup) e.currentTarget.style.background = sbTone.hover }}
                     onMouseLeave={(e) => { if (!isActiveGroup) e.currentTarget.style.background = "transparent" }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-                      <IconFolderOpen size={16} strokeWidth={1.9} style={{ flexShrink: 0, color: darkMode ? "#a1a1aa" : "#666" }} />
-                      <span style={{
-                        fontSize: 14, fontWeight: 400,
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>{g.name}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: SB.iconGap, minWidth: 0 }}>
+                      <IconFolderOpen size={SB.icon} strokeWidth={1.9} style={{ flexShrink: 0, color: isActiveGroup ? sbTone.iconOn : sbTone.icon }} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
                       {collapsedGroups.has(g.id) ? (
-                        <IconRight size={12} strokeWidth={2} style={{ opacity: 0.45, flexShrink: 0 }} />
+                        <IconRight size={12} strokeWidth={2} style={{ opacity: 0.5, flexShrink: 0 }} />
                       ) : (
-                        <ChevronDown size={12} strokeWidth={2} style={{ opacity: 0.45, flexShrink: 0 }} />
+                        <ChevronDown size={12} strokeWidth={2} style={{ opacity: 0.5, flexShrink: 0 }} />
                       )}
                     </div>
                     <Dropdown trigger={["click"]} placement="bottomLeft"
                       menu={{
                         items: [
                           { key: "del-group", icon: <IconDelete size={12} />,
-                            label: <span style={{ color: "#ef4444" }}>删除分组</span> },
+                            label: <span style={{ color: "#DC2626" }}>删除分组</span> },
                         ],
                         onClick: () => deleteGroup(g.id),
                       }}
                     >
                       <button onClick={(e) => e.stopPropagation()}
                         style={{ display: "flex", alignItems: "center", justifyContent: "center",
-                          width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent",
-                          cursor: "pointer", color: darkMode ? "#71717a" : "#9ca3af",
+                          width: 20, height: 20, borderRadius: 6, border: "none", background: "transparent",
+                          cursor: "pointer", color: darkMode ? "#71717a" : "#a1a1aa",
                           opacity: isActiveGroup ? 1 : 0,
                           transition: "opacity 0.15s", flexShrink: 0 }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
                         onMouseLeave={(e) => { if (!isActiveGroup) e.currentTarget.style.opacity = "0" }}
                       >
-                        <IconMore size={12} />
+                        <IconMore size={13} />
                       </button>
                     </Dropdown>
                   </div>
@@ -5667,7 +6334,7 @@ function AIAssistantContent() {
                       onActiveChange={(key: string) => { switchActiveSession(String(key)) }}
                       onDelete={(info: any) => deleteSession(String(info.key))}
                       items={groupedSessionItems[g.id] || []}
-                      styles={{ item: { borderRadius: 8, padding: "7px 8px", marginBottom: 1 } }}
+                      styles={{ item: { borderRadius: SB.rowR, padding: "6px " + SB.rowPadX + "px", marginBottom: SB.rowGap } }}
                     />
                   )}
                 </div>
@@ -5676,24 +6343,7 @@ function AIAssistantContent() {
               </>)}
 
               {/* 最近对话（小标题可折叠，列表项直接跟在下面） */}
-              <div
-                onClick={() => toggleSection("recent")}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "14px 8px 6px", cursor: "pointer", userSelect: "none",
-                  borderRadius: 6, transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "rgba(13,13,13,0.03)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-              >
-                <span style={{ fontSize: 12.5, color: darkMode ? "#71717a" : "#999", fontWeight: 400 }}>最近对话</span>
-                <IconDown size={12} strokeWidth={2} style={{
-                  color: darkMode ? "#71717a" : "#999",
-                  opacity: 0.7,
-                  transition: "transform 0.2s ease",
-                  transform: collapsedSections.has("recent") ? "rotate(-90deg)" : "rotate(0deg)",
-                }} />
-              </div>
+              {sbHead("recent", "最近对话")}
 
               {!collapsedSections.has("recent") && (<>
               {/* 临时对话条目：仅在临时态出现，提示"这条不保存"并提供返回入口 */}
@@ -5701,22 +6351,23 @@ function AIAssistantContent() {
                 <div
                   onClick={() => { /* 已在临时态，无操作 */ }}
                   style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    height: 34, padding: "0 8px", marginBottom: 2,
-                    borderRadius: 8, userSelect: "none",
-                    background: darkMode ? "#27272a" : "#f4f4f5",
-                    color: "#1677ff",
+                    display: "flex", alignItems: "center", gap: SB.iconGap,
+                    height: SB.rowH, padding: "0 " + SB.rowPadX + "px", marginBottom: SB.rowGap,
+                    borderRadius: SB.rowR, userSelect: "none",
+                    background: sbTone.active,
+                    color: "#059669",
+                    fontSize: SB.label,
                   }}
                 >
-                  <IconCommentDashed size={15} strokeWidth={1.9} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: 13.5, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <IconCommentDashed size={SB.icon} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     临时对话
                   </span>
                   <span style={{
-                    fontSize: 10, padding: "0 6px", height: 16, lineHeight: "16px",
-                    borderRadius: 8, flexShrink: 0,
-                    color: darkMode ? "#a1a1aa" : "#9ca3af",
-                    background: darkMode ? "#3f3f46" : "#e4e4e7",
+                    fontSize: 10.5, padding: "0 6px", height: 16, lineHeight: "16px",
+                    borderRadius: 999, flexShrink: 0,
+                    color: darkMode ? "#a1a1aa" : "#71717a",
+                    background: darkMode ? "rgba(255,255,255,0.08)" : "rgba(5,150,105,0.10)",
                   }}>不保存</span>
                 </div>
               )}
@@ -5727,14 +6378,21 @@ function AIAssistantContent() {
                 onActiveChange={(key: string) => { switchActiveSession(String(key)) }}
                 onDelete={(info: any) => deleteSession(String(info.key))}
                 items={recentSessionItems}
-                styles={{ item: { borderRadius: 8, padding: "8px 8px", marginBottom: 2 } }}
+                styles={{ item: { borderRadius: SB.rowR, padding: "6px " + SB.rowPadX + "px", marginBottom: SB.rowGap } }}
               />
               </>)}
 
               {/* 底部留白（探索入口已移至上方侧边栏） */}
 
             </div>
-            {/* ===== 用户区（点击头像触发 Popover 浅色面板） ===== */}
+            {/* ===== 用户区（点击头像触发 Popover 浅色面板） =====
+                2026-09-22：AI 守护铃铛从对话卡顶栏挪到用户卡右边（用户截图反馈：跟 WorkBuddy 一样，
+                头像 + 昵称一行，通知铃铛紧随其右）。侧栏收起时铃铛回落到顶栏最右 ——
+                与「侧栏收起 → 展开/新建按钮上浮到顶栏」同一套行为，保证铃铛不会被藏死。
+                2026-10-01 按参考稿收口：头像 30→32、昵称 13→13.5、去掉尾部右箭头
+                （参考稿「用户aoWj」只有一个圆头像 + 昵称），点击区规格与列表行统一。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "0 " + SB.padX + "px 14px 12px" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
             <Popover
               trigger="click"
               open={showUserPopover}
@@ -5749,6 +6407,7 @@ function AIAssistantContent() {
                   router={router}
                   setShowUserPopover={setShowUserPopover}
                   setSettingsOpen={setSettingsOpen}
+                  setSettingsSection={setSettingsSection}
                   handleUserMenuClick={handleUserMenuClick}
                   toggleDarkMode={toggleDarkMode}
                 />
@@ -5757,28 +6416,32 @@ function AIAssistantContent() {
             >
               <div
                 style={{
-                  display: "flex", alignItems: "center", gap: 9,
-                  padding: "8px 10px", margin: "0 6px 8px",
-                  borderRadius: 9, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 10,
+                  height: 46, padding: "0 " + SB.rowPadX + "px", margin: 0,
+                  borderRadius: SB.rowR, cursor: "pointer",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f4f4f5" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = sbTone.hover }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
               >
-                <AntAvatar size={30} src={user?.avatar_url} style={{ backgroundColor: darkMode ? "rgba(22,119,255,0.18)" : "#e6f4ff", color: "#1677ff", flexShrink: 0, fontSize: 13, fontWeight: 600 }}>
+                <AntAvatar size={32} src={user?.avatar_url} style={{ backgroundColor: darkMode ? "rgba(0,148,86,0.18)" : "#ECFDF5", color: "#059669", flexShrink: 0, fontSize: 13, fontWeight: 600 }}>
                   {user?.username?.[0]?.toUpperCase() || "B"}
                 </AntAvatar>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: darkMode ? "#e4e4e7" : "#27272a", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, color: darkMode ? "#fafafa" : "#09090b", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {user?.username || "管理员"}
                   </div>
-                  <div style={{ fontSize: 10.5, color: darkMode ? "#71717a" : "#a1a1aa", marginTop: 1, letterSpacing: 0.3 }}>
+                  <div style={{ fontSize: 10.5, color: sbTone.head, marginTop: 2, letterSpacing: 0.3 }}>
                     {(creditInfo?.membership || user?.membership || 'free').toUpperCase()}
                   </div>
                 </div>
-                <IconRight size={13} style={{ color: darkMode ? "#52525b" : "#c4c4c8", flexShrink: 0 }} />
               </div>
             </Popover>
+            </div>
+            {/* 🔔 AI 主动守护通知铃铛 —— 紧贴用户卡右侧（用户 2026-09-22 反馈）。
+                收起态由顶栏那份接管，这里就卸载，避免同一个铃铛渲染两份（各自 30s 轮询）。 */}
+            {sidebarOpen && <GuardianAlertBell placement="topLeft" iconSize={18} />}
+            </div>
           </div>
         </AntLayout.Sider>
 
@@ -5804,20 +6467,85 @@ function AIAssistantContent() {
 
         {/* Main — 对话区域卡片浮在 sidebar 背景之上 */}
         <AntLayout.Content style={{ display: "flex", flexDirection: "column", position: "relative", background: "transparent", padding: 12 }}>
-          {/* 卡片容器：圆角 + 白色背景 */}
+          {/* 卡片容器：圆角 + 白色背景。
+              🚨 flexDirection 是 **row**：本容器是一行两列 ——
+              左列 = 对话（顶栏 + 气泡 + sender），右列 = 文档预览停靠面板（见文件末尾）。
+              三段式布局（WorkBuddy 同款）：预览不是浮层，是对话列的兄弟节点，
+              打开时对话列自己变窄，没有遮罩、没有层级抢占。 */}
           <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            background: darkMode ? "#0a0a0c" : "#fff",
+            position: "relative",
+            flex: 1, display: "flex", flexDirection: "row",
+            /* ⚠️ 必须是 backgroundColor（不是 background 简写）：背景简写会连子层
+               背景层（.pb-aura 的雾与点阵）的叠色关系一起重置，且这类"静默失效"
+               在 DevTools 里只表现为"类在、但没效果"。 */
+            /* 2026-10-22：原来写死 darkMode ? "#0a0a0c" : "#fff"，暗色下这块白底是整页
+               最刺眼的一片（且和全站浅色 token 不同源）。改成 --br-canvas：
+               亮 #FAFAFA（几乎看不出与纯白的差）、暗 #08080A（比原值更深，雾与点阵对比更好）。 */
+            backgroundColor: "var(--br-canvas)",
             borderRadius: 10, overflow: "hidden",
             minHeight: 0,
           }}>
-            {/* Top bar */}
-            <div className={cn(
-              "h-12 flex items-center gap-3 px-4 shrink-0",
-              darkMode ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
-            )}>
+            {/* ===== 对话区氛围层：WebGL 流动雾 + 白点阵 =====
+                雾 = <AuroraBg>（片元着色器：三团高斯光斑被 fbm 噪声推着走，半分辨率 30fps）；
+                点阵 = CSS 8px 网格。两者一起被 .pb-aura-scene 的 mask 收在上半部、向下渐隐。
+                🚨 生命周期：同一个 auraMounted 开关 + 同一条 pb-aura-lifecycle
+                   （21.8s：淡入 → 保持 20s → 淡出 → 卸载）—— 用户要求「20 秒后要消失的」。
+                   卸载会 dispose + forceContextLoss 释放 WebGL 上下文：浏览器同时存活的
+                   上下文有上限（通常 16 个），反复进出对话页不释放会把监控页的 3D 一起拖死。
+                ⚠️ pointer-events:none 由 CSS 保证，绝不能吃掉对话区的点击与滚轮。
+                ⚠️ PixelBlast 已于 2026-10-22 按用户要求从本页撤掉（「舍弃 pixel」）——
+                   组件文件保留给 desktop-setup 的 aurora-backdrop 用，别删文件。 */}
+            {auraMounted && (
+              <div
+                aria-hidden
+                className="pb-aura-scene"
+                style={{ ["--pb-max" as string]: darkMode ? 0.9 : 1 }}
+              >
+                <AuroraBg className="pb-aura-canvas" tone={darkMode ? "dark" : "light"} />
+                <div className="pb-aura-dots" />
+              </div>
+            )}
+
+            {/* ===== 内容层（浮在背景之上） =====
+                🚨 minWidth:0 —— 本层现在是行方向的「对话列」，预览面板展开时它要能
+                被压窄。没有这个，气泡里的宽内容会把 flex:1 撑爆，预览列被挤出视口。 */}
+            <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+            {/* ===== 对话卡顶栏（2026-10-06 重做：48px → 72px，对齐主站顶栏） =====
+                用户反馈「ai助手的顶部窗口要重做，有些 icon 点不了」。
+
+                重做前的问题（CDP 实测）：
+                  ① 这条 h-12(48px) 完全**没有声明拖拽区** —— 无边框窗口在这一页的
+                     对话区顶部整条拖不动；
+                  ② 全局兜底拖拽带（fixed top-0 h-10 z-100，pointerEvents:auto）盖住了
+                     侧栏顶部那排图标（y=10~38），点「收起侧边栏」侧栏宽度 260 → 260 毫无反应；
+                  ③ 窗口控制键 − □ ✕ 只有全局兜底层提供，本页没有自己的。
+
+                重做后（对齐 components/page-header.tsx 的既有做法）：
+                  - 高度 72px，与主站其它页面顶栏统一；
+                  - 整条声明 drag（窗口可拖），内部每个可交互件显式 no-drag；
+                  - 左侧内联 DesktopWindowMenu（编辑/窗口/帮助/关于）——原来挂在
+                    Electron 默认菜单上，主进程已 setApplicationMenu(null) 摘掉；
+                  - 右侧内联 DesktopWindowControls（− □ ✕），贴右上角；
+                  - 调用 useDesktopHeaderHost() 告知全局兜底层「本页有自绘顶栏」，
+                    避免同一组控制键渲染两份。
+
+                🚨 这里必须调 useDesktopHeaderHost()：本页是自绘布局（不用 PageHeader），
+                   漏调会让兜底层继续渲染并盖住内容 —— 正是本次 bug 的成因之一。 */}
+            <div
+              className={cn(
+                "h-[72px] flex items-center gap-3 px-4 shrink-0",
+                /* @container：让下面的 DesktopWindowMenu 按**这条顶栏实际拿到多宽**决定显隐，
+                   而不是按视口断点猜（顶栏宽度≠视口宽度）。只在桌面端加：
+                   container-type 会带一层 containment，浏览器部署不必沾这个风险。 */
+                desktopChrome && "@container",
+                /* 本页顶栏在**圆角卡片内部**（不是窗口级顶栏），所以不挂 .desktop-chrome-bar ——
+                   在卡片里再压一条带子会和卡面拉出接缝。窗框层的处理见 components/page-header.tsx。 */
+                darkMode ? "bg-transparent text-zinc-100" : "bg-transparent text-zinc-900"
+              )}
+              style={desktopChrome ? DESKTOP_DRAG : undefined}
+            >
               {!sidebarOpen && (
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5" style={desktopChrome ? DESKTOP_NO_DRAG : undefined}>
                   <Button variant="ghost" size="icon-sm" onClick={() => setSidebarOpen(true)}
                     className={cn(
                       "hover:bg-zinc-100 dark:hover:bg-zinc-800",
@@ -5838,48 +6566,56 @@ function AIAssistantContent() {
                   </Button>
                 </div>
               )}
-              <div className="flex items-center justify-center gap-2">
-                <DynamicModelSelector
-                  value={selectedModel || aiSettings?.model || ""}
-                  onValueChange={(id) => {
-                    setSelectedModel(id)
-                    // 切换到用户自配模型时，把 baseUrl/apiKey/modelId 写入 aiSettings
-                    if (id.startsWith('custom-')) {
-                      try {
-                        const raw = localStorage.getItem('berry-realm.custom-models.v1')
-                        const list = raw ? JSON.parse(raw) : []
-                        const c = list.find((x: any) => x.id === id)
-                        if (c) {
-                          setAiSettings(prev => prev
-                            ? { ...prev, apiKey: c.apiKey, apiUrl: c.baseUrl, model: c.modelId }
-                            : { apiKey: c.apiKey, apiUrl: c.baseUrl, model: c.modelId }
-                          )
-                        }
-                      } catch {}
-                    }
-                  }}
-                />
-                <PredictiveInsightCard onTrigger={(prompt) => handleSend(prompt)} />
+              {/* 桌面端：原生菜单已摘除，这几组功能内联到这里（自带 no-drag）。
+                  仅在窗口够宽时显示，避免挤占中间的对话总结。
+                  ⚠️ 放在展开/新建按钮右边 —— 左侧段本来就窄，菜单优先。 */}
+              {desktopChrome && <DesktopWindowMenu className="hidden @min-[520px]:flex" />}
+              <div className="flex items-center justify-center gap-2 min-w-0" style={desktopChrome ? DESKTOP_NO_DRAG : undefined}>
+                {/* 🚨 模型选择器已迁入底部 sender 的 footer（2026-10-01 用户：
+                    「将 ai 模型选择器放入 sender 参考 workbuddy」）——
+                    这里**刻意不放第二份**，否则同屏两个模型选择器，改一个另一个不跟着变。 */}
+                {/* 🏷️ 对话总结（2026-10-01 用户：「去掉趋势预测，换成对话的总结」）——
+                    用**用户当前选择的模型**在对话开始时总结其意图，这句话既是顶栏这里的
+                    胶囊文案，也是侧栏「最近对话」列表里的标题（同源，不会两处不一致）。 */}
+                {!convSearchOpen && <ConversationSummary summary={convSummary} loading={summarizing} darkMode={darkMode} />}
               </div>
               <div className="flex-1" />
-              {/* 🔗 返回工作台：莓小智此前没有任何跳转出口（用户只能手动改 URL），
-                  桌面端尤其致命 —— 任务跑完想回 monitor / dashboard 都没入口 */}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => router.push("/dashboard")}
-                className={cn(
-                  "hover:bg-zinc-100 dark:hover:bg-zinc-800",
-                  darkMode ? "text-zinc-300" : "text-zinc-600"
+              {/* 顶栏右侧三件套：🔍 对话内搜索 · ↗ 分享对话 · ▣ 折叠/展开预览面板。
+                  三枚并排是刻意的 —— ▣ 若跟着面板一起收进窄边，折叠后就再也展不开了。
+                  搜索打开时胶囊占满顶栏中段（ConversationSummary 让位）。 */}
+              <div className="flex shrink-0 items-center gap-1.5" style={desktopChrome ? DESKTOP_NO_DRAG : undefined}>
+                {convSearchOpen ? (
+                  <ConversationSearch
+                    open
+                    onClose={() => setConvSearchOpen(false)}
+                    messages={messages}
+                    className="flex-1"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConvSearchOpen(true)}
+                    data-conversation-search-trigger
+                    title="搜索对话内容"
+                    className={cn(
+                      "inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500",
+                      "transition-colors hover:bg-zinc-900/[0.06] hover:text-zinc-700",
+                      "dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-200",
+                    )}
+                  >
+                    <IconSearch size={16} />
+                  </button>
                 )}
-                title="返回工作台"
-              >
-                <IconHome size={16} />
-              </Button>
-              {/* 🔔 AI 主动守护通知铃铛 */}
-              <GuardianAlertBell />
+                <ShareConversationButton messages={messages} sessionId={sessionId} darkMode={darkMode} />
+                <PreviewPanelToggle />
+              </div>
+              {/* 🔔 AI 主动守护通知铃铛：常驻位置已挪到侧栏用户卡右边（用户 2026-09-22 反馈）。
+                  侧栏收起时（用户卡整体不可见）才回落到顶栏最右，避免铃铛被藏死。 */}
+              {!sidebarOpen && <div style={desktopChrome ? DESKTOP_NO_DRAG : undefined}><GuardianAlertBell /></div>}
               {/* 👤 账户入口统一收口到侧栏底部用户卡（原顶栏 UserAvatarMenu 浮层信息过载，
                   天气/长辈模式等与 AI 助手场景无关 —— 用户 2026-09-16 反馈过度设计，已移除） */}
+              {/* 🪟 桌面端窗口控制键：贴右上角（原生 caption button 心智）。 */}
+              {desktopChrome && <DesktopWindowControls className="-mr-2" />}
             </div>
 
             {/* Chat area */}
@@ -5891,27 +6627,11 @@ function AIAssistantContent() {
                 input={input}
                 setInput={setInput}
                 isLoading={isLoading}
-                approvalMode={approvalMode}
-                setApprovalMode={setApprovalMode}
-                enableReasoning={enableReasoning}
-                setEnableReasoning={(v) => {
-                  if (v) {
-                    // 开启思考时：检查当前模型是否支持深度推理
-                    const currentModel = selectedModel || aiSettings?.model || ""
-                    const supported = checkModelSupportsReasoning(currentModel)
-                    if (supported === false) {
-                      toast.warning("当前模型不支持深度思考", {
-                        description: `模型「${currentModel}」不具备深度推理能力，请到模型库选择支持思考的模型。`,
-                        duration: 4500,
-                      })
-                      return
-                    }
-                  }
-                  setEnableReasoning(v)
-                }}
-                enableSearch={enableSearch}
-                setEnableSearch={setEnableSearch}
-                hasSearchTool={availableTools.some(t => t.name.includes("search") || t.name.includes("exa") || t.name.includes("brave"))}
+                /* 🚨 composer={false}：本组件不再自带输入框 —— 输入框统一到下方
+                   那份唯一的 ChatSenderInput（空态 / 会话态共用同一个实例，
+                   见文件底部「唯一 sender」注释块）。思考/研究/权限/语音/模型
+                   这些开关本来就在 ChatSenderInput 的工具条上，不再重复传。 */
+                composer={false}
               />
              ) : (
               <ChatBubbleList
@@ -5938,6 +6658,10 @@ function AIAssistantContent() {
                   autoExecuteCommands,
                   assistantMode: approvalMode,
                   enableReasoning,
+                  /* 病历归档的会话维度（与 chat-bubble-list 提供的消息键拼成幂等键）。
+                     ⚠️ 临时对话（__temp__）刻意不传 —— 它的语义就是「不落库、切走即弃」，
+                     在用户明确选择不留痕的会话里偷偷写病历会破坏信任。 */
+                  diagnosisSessionId: isTempSession(sessionId) ? undefined : sessionId,
                   onOpenStudioFromTask: () => setStudioOpen(true),
                   onOpenStudio,
                   onExecuteCommand: async (c) => { await executeCommands([c]) },
@@ -5958,12 +6682,12 @@ function AIAssistantContent() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
                       transition={{ duration: 0.3, ease: 'easeOut' }}
-                      onMouseEnter={onPromptsHoverStart}
-                      onMouseLeave={onPromptsHoverEnd}
                     >
                       <SmartPromptsWrapper
                         messages={messages}
                         aiSettings={aiSettings}
+                        model={selectedModel || aiSettings?.model}
+                        enableReasoning={enableReasoning}
                         darkMode={darkMode}
                         onPick={(text) => handleSend(text)}
                       />
@@ -5977,10 +6701,10 @@ function AIAssistantContent() {
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "6px 12px", marginBottom: 6,
-                background: darkMode ? "rgba(22,119,255,0.12)" : "rgba(22,119,255,0.08)",
-                border: `1px solid ${darkMode ? "rgba(22,119,255,0.25)" : "rgba(22,119,255,0.20)"}`,
+                background: darkMode ? "rgba(0,148,86,0.12)" : "rgba(0,148,86,0.08)",
+                border: `1px solid ${darkMode ? "rgba(0,148,86,0.25)" : "rgba(0,148,86,0.20)"}`,
                 borderRadius: 8,
-                fontSize: 12, color: darkMode ? "#b3d9ff" : "#1677ff",
+                fontSize: 12, color: darkMode ? "#b3d9ff" : "#059669",
               }}>
                 <span style={{ fontWeight: 500 }}>
                   计划模式中 · AI 将先调研并提交计划，你审批后才会执行
@@ -5989,7 +6713,7 @@ function AIAssistantContent() {
                   onClick={() => setEnablePlanning(false)}
                   style={{
                     background: "transparent", border: "none", cursor: "pointer",
-                    color: darkMode ? "#b3d9ff" : "#1677ff", fontSize: 12,
+                    color: darkMode ? "#b3d9ff" : "#059669", fontSize: 12,
                     padding: "2px 8px", borderRadius: 6,
                   }}
                 >
@@ -5997,16 +6721,76 @@ function AIAssistantContent() {
                 </button>
               </div>
             )}
+            {/* ===== 唯一 sender（2026-10-01 用户：「统一 sender」）=================
+                空态与会话态共用这一份实例，恒挂对话区底部 —— 于是两件事同时消失：
+                  · 「同屏两个输入框」（原来首页自带一个 + 这里再挂一个）
+                  · 「发完第一条消息输入框换了个样子」（原来是两套完全不同的组件）
+                欢迎区交给 MateChatHome composer={false}，它现在只管招呼语 /
+                推荐问法 / 4 个种植能力入口，一根输入框线都不碰。
+                ⚠️ 别再给它加任何 `messages.length > 0 &&` 条件 —— 那正是老 bug 的成因。 */}
+            <div style={{ flexShrink: 0 }}>
+            {/* 🛑 高风险工具执行前确认条（2026-10-14 用户：「改成在 sender 上方出现确认」）——
+                由后端 SSE `tool_confirmation_required` 驱动，浮在输入框**正上方**。
+                刻意不塞进消息流：它不是一条对话消息，而是「此刻要不要下发这条指令」的
+                瞬时裁决；贴着 sender 才能做到「看完就点」，不必跟随消息滚走后回翻。
+                ⚠️ 文案 / 工具名单全由后端决定（见 lib/ai/tool-confirmation.ts），
+                   前端在这里不做任何判定，只负责画出来 + 回传哨兵值。
+                ⚠️ 不要给它套死宽高：ToastConfirm 是内容驱动的浮层（见组件内注释）。
+                🚨 2026-10-16 两次修正（均由用户反馈截图驱动）：
+                   ① 「歪了」—— 原先直接挂在 sender 外面那层是**全宽容器**（无宽度约束），
+                      胶囊贴在容器最左边、比输入卡凸出约 60px。改为走 ChatSenderInput 的
+                      `overlay` 插槽 —— 它渲染在 `.sender-morph-host`（`maxWidth: 1120` +
+                      `margin: 0 auto`）**内部**，于是有了与输入卡完全一致的水平基准。
+                   ② 「让他居中」—— 在 ① 的基准之上再做水平居中：overlay 里包一层 flex 居中。
+                      ⚠️ 居中容器只负责摆位置，⛔ 不给胶囊定宽（宽度仍由 ToastConfirm 的
+                      inline-flex 内容驱动 —— 见组件内注释）。
+                   ⛔ 别再把它挪回外面自己套宽度约束（会变成第四处 1120 字面量）。 */}
             <ChatSenderInput
+                overlay={
+                  <div className="flex justify-center">
+                    <AnimatePresence initial={false}>
+                      {toolConfirm && (
+                        <motion.div
+                          key={toolConfirm.id}
+                          className="mb-2 max-w-full"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 6 }}
+                          transition={{ duration: 0.2, ease: 'easeOut' }}
+                        >
+                          <ToastConfirm
+                            state={toolConfirm.state}
+                            initialText={toolConfirm.text}
+                            loadingText={TOOL_CONFIRM_RUNNING_TEXT}
+                            successText={toolConfirm.successText || TOOL_CONFIRM_DONE_TEXT}
+                            resetText={TOOL_CONFIRM_REJECT_TEXT}
+                            saveText={TOOL_CONFIRM_APPROVE_TEXT}
+                            onReset={() => respondToolConfirm(false)}
+                            onSave={() => respondToolConfirm(true)}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                }
                 darkMode={darkMode}
+                /* ── 常开态（2026-10-22 用户：「ai 助手页面的 sender 就给我正常敞开，
+                   不要给我搞那个伸缩，那个伸缩是 copilot 专用的」）──────────────
+                   主助手 = 固定展开的沉浸光感卡：多行输入 + 整条业务工具条，
+                   没有胶囊折叠、没有高度补间。伸缩动画只活在 Copilot 自己的
+                   sender（components/ai/copilot/copilot-sender.tsx）里。 */
                 input={input}
                 setInput={setInput}
+                /* 语音输入（2026-10-24）：本地 sherpa-onnx 识别，说话直接变草稿。
+                   与右簇那枚「语音通话」不是一回事 —— 那个是实时对话，这个是语音打字。 */
+                enableVoiceInput
                 onSend={(text) => handleSend(text)}
                 isLoading={isLoading}
                 attachments={attachments}
                 onSelectFiles={onSelectFiles}
                 onRemoveAttachment={removeAttachment}
                 onPaste={handlePaste}
+                onDropFiles={(files) => void appendFiles(files)}
                 enableReasoning={enableReasoning}
                 setEnableReasoning={(v) => {
                   if (v) {
@@ -6043,11 +6827,67 @@ function AIAssistantContent() {
                 }}
                 enableSearch={enableSearch}
                 setEnableSearch={setEnableSearch}
+                /* 能力 / 模式：4 条种植能力（数据源与落地页首屏同源）+ 「研究」。
+                   2026-10-21 工具栏精简后，这一排**不再铺在工具条上**，而是收进
+                   sender 的「连接器 → 技能」组；已选中时工具条仍留一枚绿色 × 胶囊。
+                   modes 照传 —— 连接器面板与选中态胶囊都靠它渲染。
+                   「位置紧张就去掉一两个」的开关仍是这里：往 SENDER_MODES 里少放一条即可。 */
+                modes={SENDER_MODES}
+                activeMode={activeModeKey}
+                setActiveMode={setActiveModeKey}
                 availableTools={availableTools}
                 onCancel={handleStop}
                 approvalMode={approvalMode}
                 setApprovalMode={setApprovalMode}
+                /* 上下文容量指示器（2026-10-10 用户：「让用户看到当前对话的上下文窗口容量」）——
+                   数据来自后端 SSE 的 `context_usage` 事件（已用 token 唯一真相源），
+                   窗口容量/输入预算在组件内按当前模型推断，与后端共用同一套口径。 */
+                contextMeter={
+                  <ContextUsageMeter
+                    usage={contextUsage}
+                    model={selectedModel || aiSettings?.model || ""}
+                    hasMessages={messages.length > 0}
+                    darkMode={darkMode}
+                  />
+                }
+                /* 模型选择器：从顶栏搬进 footer 右侧（发送键左边），参考 WorkBuddy 的摆放 ——
+                   就在输入框里、手指自然落点，不再跑到页面顶部去够。 */
+                modelSelector={
+                  <DynamicModelSelector
+                    value={selectedModel || aiSettings?.model || ""}
+                    onValueChange={handleModelChange}
+                  />
+                }
+                /* ── 工具栏业务化精简（2026-10-21）────────────────────────────────
+                   参考图给的是结构，内容按业务切：
+                     ＋        → 加素材（照片 / 文件）
+                     连接器⌄   → 能力（种植场景技能 + 已装插件 + 内置开关）
+                     🛡 权限⌄  → 设备控制的授权档位
+                   右簇保留容量 / 模型 / 语音输入 / 发送。
+                   skillCount 是「已启用技能数」（内建 + 商店安装），面板里明说
+                   「AI 会按问题自动匹配」—— 技能不需要用户逐条挑。 */
+                toolbarMode="minimal"
+                skillCount={builtinSkills.length + installedStoreSkills.length}
+                onManageSkills={() => setStoreOpen(true)}
+                onManagePlugins={() => setExploreOpen(true)}
+                /* 2026-10-24（用户定）：撤掉「语音通话」入口，语音只留发送键左边那枚
+                   「语音输入」（说话转文字进草稿）。VoiceChatModal 相关代码先留着不删 ——
+                   入口一旦恢复就能接回来，不必重挖一遍弹窗逻辑。 */
               />
+              {/* 免责说明：统一后两种状态都有（之前只有首页有）——对齐参考稿 */}
+              <div
+                style={{
+                  textAlign: "center",
+                  fontSize: 11.5,
+                  marginTop: -4,
+                  paddingBottom: 8,
+                  color: darkMode ? "#6b6b74" : "#a1a1aa",
+                  letterSpacing: 0.2,
+                }}
+              >
+                内容由 AI 提供，请仔细甄别
+              </div>
+            </div>
         </div>
 
         {/* Unified Explore — 覆盖对话区域 */}
@@ -6112,6 +6952,16 @@ function AIAssistantContent() {
           }}
         />
 
+        {/* 病历史侧边面板 —— 诊断沉淀 + 复诊闭环（与「我的空间 / 知识库」同一块区域，靠 openSidebarPanel 互斥） */}
+        <MedicalRecordsPanel
+          open={medicalRecordsOpen}
+          onClose={() => setMedicalRecordsOpen(false)}
+          darkMode={darkMode}
+          sidebarOpen={sidebarOpen}
+          onExpandSidebar={() => setSidebarOpen(true)}
+          onNewChat={createNewSession}
+        />
+
         {/* 设备接入实时面板 — DEVICE_FORGE 卡片出现时自动弹出，
             展示 AI 生成设备接入配置的步骤/失败原因与可编辑表单 */}
         <DeviceForgeSidebarPanel
@@ -6127,20 +6977,20 @@ function AIAssistantContent() {
           placement="right"
           width="min(520px, 92vw)"
           destroyOnClose
-          closeIcon={<X size={14} strokeWidth={1.5} style={{ color: '#8c8c8c' }} />}
+          closeIcon={<X size={14} strokeWidth={2} style={{ color: '#8f959e' }} />}
           title={
             <Flex align="center" gap={8}>
-              <IconFileText size={15} strokeWidth={1.75} style={{ color: '#1677ff' }} />
+              <IconFileText size={15} strokeWidth={2} style={{ color: '#059669' }} />
               <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.88)' }}>
                 {reportData?.title || "AI 智能生成报告"}
               </span>
             </Flex>
           }
           styles={{
-            body: { padding: 0, background: darkMode ? '#0a0a0a' : '#fafafa' },
+            body: { padding: 0, background: darkMode ? '#0A0A0A' : '#fafafa' },
             header: {
               padding: '12px 16px',
-              borderBottom: `1px solid ${darkMode ? '#27272a' : '#f0f0f0'}`,
+              borderBottom: `1px solid ${darkMode ? '#27272a' : '#F4F4F5'}`,
             },
           }}
         >
@@ -6169,7 +7019,7 @@ function AIAssistantContent() {
                   justifyContent: 'space-between',
                   gap: 8,
                   padding: '10px 16px',
-                  borderTop: `1px solid ${darkMode ? '#27272a' : '#f0f0f0'}`,
+                  borderTop: `1px solid ${darkMode ? '#27272a' : '#F4F4F5'}`,
                   background: darkMode ? '#0f0f10' : '#fff',
                 }}
               >
@@ -6179,7 +7029,7 @@ function AIAssistantContent() {
                     <AntButton
                       type="text"
                       size="small"
-                      icon={<IconDownload size={14} strokeWidth={1.5} />}
+                      icon={<IconDownload size={14} strokeWidth={2} />}
                       onClick={() => {
                         const blob = new Blob([reportData.html], { type: 'text/html;charset=utf-8' })
                         const url = URL.createObjectURL(blob)
@@ -6198,7 +7048,7 @@ function AIAssistantContent() {
                     <AntButton
                       type="text"
                       size="small"
-                      icon={<IconFileText size={14} strokeWidth={1.5} />}
+                      icon={<IconFileText size={14} strokeWidth={2} />}
                       onClick={async () => {
                         const toastId = toast.loading("正在生成 PDF...")
                         try {
@@ -6251,7 +7101,7 @@ function AIAssistantContent() {
                     <AntButton
                       type="text"
                       size="small"
-                      icon={<IconLinkOut size={14} strokeWidth={1.5} />}
+                      icon={<IconLinkOut size={14} strokeWidth={2} />}
                       onClick={() => {
                         const w = window.open('', '_blank')
                         if (w) {
@@ -6267,7 +7117,7 @@ function AIAssistantContent() {
                 <AntButton
                   type="primary"
                   size="small"
-                  icon={<IconFolderUpload size={13} strokeWidth={1.75} />}
+                  icon={<IconFolderUpload size={13} strokeWidth={2} />}
                   onClick={async () => {
                     const exists = spaceReports.some(
                       (r) => r.title === reportData.title && r.html === reportData.html
@@ -6290,6 +7140,13 @@ function AIAssistantContent() {
             </div>
           )}
         </Drawer>
+            </div>
+
+            {/* ===== 右列：文档预览停靠面板（三段式的第三段） =====
+                平时 width:0 完全收起；卡片点「预览」→ 总线通知 → 对话列变窄、本列展开。
+                它必须放在「内容层」的**外面**（作为卡片容器的第二个子节点），
+                否则会被对话列的 flex:1 压扁，也盖不到整卡高度。 */}
+            <DocumentPreviewDock />
           </div>
         </AntLayout.Content>
       </AntLayout>
@@ -6310,7 +7167,7 @@ function AIAssistantContent() {
             onClick={() => setSearchPanelOpen(false)}
             style={{
               position: "fixed", inset: 0, zIndex: 300,
-              background: "rgba(0,0,0,0.2)", backdropFilter: "blur(2px)",
+              background: "rgba(0,0,0,0.2)", backdropFilter: "blur(calc(2px * var(--dc-mat-scale, 1)))",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
@@ -6347,8 +7204,8 @@ function AIAssistantContent() {
                           position: "relative", padding: "4px 0 10px",
                           fontSize: 14, fontWeight: active ? 600 : 400,
                           color: active
-                            ? (darkMode ? "#e4e4e7" : "#111827")
-                            : (darkMode ? "#71717a" : "#9ca3af"),
+                            ? (darkMode ? "#e4e4e7" : "#18181B")
+                            : (darkMode ? "#71717a" : "#A1A1AA"),
                           background: "none", border: "none", cursor: "pointer",
                         }}
                       >
@@ -6358,7 +7215,7 @@ function AIAssistantContent() {
                             position: "absolute", left: "50%", bottom: 0,
                             transform: "translateX(-50%)",
                             width: 20, height: 2, borderRadius: 1,
-                            background: darkMode ? "#e4e4e7" : "#111827",
+                            background: darkMode ? "#e4e4e7" : "#18181B",
                           }} />
                         )}
                       </button>
@@ -6368,7 +7225,7 @@ function AIAssistantContent() {
                 <button onClick={() => setSearchPanelOpen(false)}
                   style={{ display: "flex", alignItems: "center", justifyContent: "center",
                     width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent",
-                    cursor: "pointer", color: darkMode ? "#a1a1aa" : "#6b7280" }}
+                    cursor: "pointer", color: darkMode ? "#a1a1aa" : "#71717A" }}
                   title="关闭"
                 >
                   <X size={16} />
@@ -6380,10 +7237,10 @@ function AIAssistantContent() {
                 <div style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "10px 12px",
-                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
+                  border: darkMode ? "1px solid #3f3f46" : "1px solid #e4e4e7",
                   borderRadius: 10,
                 }}>
-                  <Search size={15} style={{ color: darkMode ? "#a1a1aa" : "#9ca3af" }} />
+                  <Search size={15} style={{ color: darkMode ? "#a1a1aa" : "#A1A1AA" }} />
                   <input autoFocus value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     onKeyDown={(e) => {
@@ -6396,7 +7253,7 @@ function AIAssistantContent() {
                     placeholder="搜索"
                     style={{
                       flex: 1, fontSize: 14, outline: "none", border: "none",
-                      background: "transparent", color: darkMode ? "#e4e4e7" : "#111827",
+                      background: "transparent", color: darkMode ? "#e4e4e7" : "#18181B",
                     }}
                   />
                 </div>
@@ -6405,17 +7262,17 @@ function AIAssistantContent() {
               {/* 列表 */}
               <div style={{ maxHeight: 360, overflowY: "auto", padding: "0 12px 12px" }}>
                 {searchTab === "history" && getFilteredItems().length === 0 && (
-                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#9ca3af", fontSize: 13 }}>
+                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#A1A1AA", fontSize: 13 }}>
                     {searchKeyword ? "没有匹配的对话" : "暂无历史对话"}
                   </div>
                 )}
                 {searchTab === "space" && getFilteredItems().length === 0 && (
-                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#9ca3af", fontSize: 13 }}>
+                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#A1A1AA", fontSize: 13 }}>
                     {searchKeyword ? "没有匹配的空间文件" : "暂无空间文件"}
                   </div>
                 )}
                 {searchTab === "agent" && (
-                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#9ca3af", fontSize: 13 }}>
+                  <div style={{ padding: "32px 0", textAlign: "center", color: darkMode ? "#71717a" : "#A1A1AA", fontSize: 13 }}>
                     智能体功能开发中
                   </div>
                 )}
@@ -6423,10 +7280,10 @@ function AIAssistantContent() {
                   <div key={item.id} onClick={() => handlePickSearchItem(item)}
                     style={{
                       padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-                      color: darkMode ? "#e4e4e7" : "#374151", fontSize: 13,
+                      color: darkMode ? "#e4e4e7" : "#3F3F46", fontSize: 13,
                       transition: "background 0.12s",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"}
+                    onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? "#27272a" : "#f4f4f5"}
                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
                     {item.title}
@@ -6519,13 +7376,13 @@ function AIAssistantContent() {
             )}
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="text-[15px] font-semibold text-slate-900 dark:text-zinc-50 tracking-tight">
+            <h3 className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
               {quotaInfo?.reason === 'membership_required' ? '会员专属功能' : '积分不足'}
             </h3>
             {creditInfo?.membership === 'plus' || creditInfo?.membership === 'pro' ? (
               <span
-                className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded-full text-[10px] font-semibold text-white ${
-                  creditInfo?.membership === 'plus' ? 'bg-amber-500' : 'bg-blue-500'
+                className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded-full text-[11px] font-semibold text-white ${
+                  creditInfo?.membership === 'plus' ? 'bg-amber-500' : 'bg-emerald-500'
                 }`}
               >
                 <IconCrown className="w-2.5 h-2.5" />
@@ -6536,7 +7393,7 @@ function AIAssistantContent() {
         </div>
 
         {/* 描述：一句讲清现状 + 出路 */}
-        <p className="text-[13px] text-slate-500 dark:text-zinc-400 leading-relaxed mt-3">
+        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed mt-3">
           {quotaInfo?.reason === 'membership_required'
             ? '当前账号暂未开通会员，升级 Pro / Plus 后即可继续使用 AI 功能。'
             : '当前余额不足以发起新一轮对话，充值后立即恢复，或等待每月 1 日自动刷新。'}
@@ -6544,21 +7401,21 @@ function AIAssistantContent() {
 
         {/* metric 双卡：label 在上、数字在下（tabular-nums 等宽数字） */}
         <div className="grid grid-cols-2 gap-2 mt-4">
-          <div className="rounded-lg bg-slate-50 dark:bg-zinc-800/70 px-3.5 py-3">
-            <div className="text-[12px] text-slate-500 dark:text-zinc-400">剩余积分</div>
-            <div className="text-[22px] leading-tight font-semibold text-slate-900 dark:text-zinc-50 mt-1 [font-variant-numeric:tabular-nums]">
+          <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/70 px-3.5 py-3">
+            <div className="text-[12px] text-zinc-500 dark:text-zinc-400">剩余积分</div>
+            <div className="text-[20px] leading-tight font-semibold text-zinc-900 dark:text-zinc-50 mt-1 [font-variant-numeric:tabular-nums]">
               {(creditInfo?.totalRemaining ?? 0).toFixed(2)}
             </div>
           </div>
-          <div className="rounded-lg bg-slate-50 dark:bg-zinc-800/70 px-3.5 py-3">
-            <div className="text-[12px] text-slate-500 dark:text-zinc-400">本月用量</div>
-            <div className="text-[22px] leading-tight font-semibold text-slate-900 dark:text-zinc-50 mt-1 [font-variant-numeric:tabular-nums]">
+          <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/70 px-3.5 py-3">
+            <div className="text-[12px] text-zinc-500 dark:text-zinc-400">本月用量</div>
+            <div className="text-[20px] leading-tight font-semibold text-zinc-900 dark:text-zinc-50 mt-1 [font-variant-numeric:tabular-nums]">
               {(creditInfo?.monthlyUsed ?? 0).toFixed(0)}
-              <span className="text-[13px] font-normal text-slate-400 dark:text-zinc-500">
+              <span className="text-[13px] font-normal text-zinc-400 dark:text-zinc-500">
                 {' / '}{(creditInfo?.monthlyQuota ?? 0).toFixed(0)}
               </span>
             </div>
-            <div className="h-[3px] w-full rounded-full bg-slate-200 dark:bg-zinc-700 mt-2 overflow-hidden">
+            <div className="h-[3px] w-full rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 overflow-hidden">
               <div
                 className="h-full rounded-full bg-rose-500 dark:bg-rose-400"
                 style={{
@@ -6575,7 +7432,7 @@ function AIAssistantContent() {
         </div>
 
         {/* 刷新提示 */}
-        <div className="flex items-center gap-1.5 mt-3 text-[12px] text-slate-400 dark:text-zinc-500">
+        <div className="flex items-center gap-1.5 mt-3 text-[12px] text-zinc-400 dark:text-zinc-500">
           <IconRefresh className="w-3 h-3" />
           <span>积分每月 1 日自动刷新</span>
         </div>
@@ -6594,7 +7451,7 @@ function AIAssistantContent() {
             {quotaInfo?.reason === 'membership_required' ? '升级会员' : '充值积分'}
           </AntButton>
           <AntButton
-            className="!h-10 !rounded-[10px] !px-5 !text-[14px] !border-slate-200 dark:!border-zinc-700 !text-slate-600 dark:!text-zinc-300 !shadow-none"
+            className="!h-10 !rounded-[10px] !px-5 !text-[14px] !border-zinc-200 dark:!border-zinc-700 !text-zinc-600 dark:!text-zinc-300 !shadow-none"
             onClick={() => setShowExhaustedDialog(false)}
           >
             我知道了
@@ -6622,6 +7479,7 @@ function UserPanelContent({
   router,
   setShowUserPopover,
   setSettingsOpen,
+  setSettingsSection,
   handleUserMenuClick,
   toggleDarkMode,
 }: {
@@ -6640,24 +7498,25 @@ function UserPanelContent({
   router: ReturnType<typeof useRouter>
   setShowUserPopover: (v: boolean) => void
   setSettingsOpen: (v: boolean) => void
+  setSettingsSection: (s: SettingsSection) => void
   handleUserMenuClick: (e: { key: string }) => void
   toggleDarkMode: () => void
 }) {
   const tier = (creditInfo?.membership || user?.membership || 'free').toLowerCase()
   const tierLabel = tier === 'plus' ? 'Plus 版' : tier === 'pro' ? 'Pro 版' : '体验版'
   const close = () => setShowUserPopover(false)
-  const tx = darkMode ? '#a0a0a8' : '#6b7280'
+  const tx = darkMode ? '#a0a0a8' : '#71717A'
 
   return (
     <div style={{ background: darkMode ? '#1f1f23' : '#ffffff' }}>
       {/* Header：头像 + 用户名 + 关闭 */}
       <div style={{ padding: '12px 14px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AntAvatar size={36} src={user?.avatar_url} style={{ backgroundColor: '#e6f4ff', color: '#1677ff', flexShrink: 0 }}>
+          <AntAvatar size={36} src={user?.avatar_url} style={{ backgroundColor: '#ECFDF5', color: '#059669', flexShrink: 0 }}>
             {user?.username?.[0]?.toUpperCase() || 'U'}
           </AntAvatar>
           <div style={{ lineHeight: 1.3 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: darkMode ? '#f5f5f5' : '#111827' }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: darkMode ? '#f4f4f5' : '#18181B' }}>
               {user?.username || '未登录'}
             </div>
             <div style={{ fontSize: 11.5, color: tx, marginTop: 2 }}>
@@ -6675,7 +7534,7 @@ function UserPanelContent({
           style={{
             fontSize: 13,
             fontWeight: 500,
-            color: tier === 'plus' ? '#f0b429' : tier === 'pro' ? '#1677ff' : '#6b7280',
+            color: tier === 'plus' ? '#f0b429' : tier === 'pro' ? '#059669' : '#71717A',
           }}
         >
           {tierLabel}
@@ -6698,13 +7557,13 @@ function UserPanelContent({
       <div style={{ padding: '10px 12px' }}>
         <div
           onClick={() => { close(); router.push('/subscription') }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? '#27272c' : '#f3f4f6' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? '#25262b' : '#f9fafb' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? '#27272c' : '#f4f4f5' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? '#25262b' : '#fafafa' }}
           style={{
             padding: '12px 14px',
             borderRadius: 10,
-            background: darkMode ? '#25262b' : '#f9fafb',
-            border: darkMode ? '0.5px solid #34353a' : '0.5px solid #e5e7eb',
+            background: darkMode ? '#25262b' : '#fafafa',
+            border: darkMode ? '0.5px solid #34353a' : '0.5px solid #e4e4e7',
             cursor: 'pointer',
             transition: 'background 0.15s',
           }}
@@ -6720,24 +7579,24 @@ function UserPanelContent({
             <span style={{
               fontSize: 22, fontWeight: 600,
               fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-              color: darkMode ? '#1677ff' : '#1677ff',
+              color: darkMode ? '#059669' : '#059669',
               letterSpacing: -0.3,
             }}>
               {(creditInfo?.totalRemaining ?? 0).toFixed(2)}
             </span>
             <span style={{ fontSize: 12, color: tx }}>积分</span>
           </div>
-          <div style={{ height: 4, borderRadius: 2, background: darkMode ? '#3a3a40' : '#e5e7eb', overflow: 'hidden', marginBottom: 8 }}>
+          <div style={{ height: 4, borderRadius: 2, background: darkMode ? '#3a3a40' : '#e4e4e7', overflow: 'hidden', marginBottom: 8 }}>
             <div style={{
               height: '100%',
               width: `${Math.min(100, (creditInfo?.monthlyQuota ?? 0) > 0 ? ((creditInfo?.monthlyUsed ?? 0) / creditInfo!.monthlyQuota) * 100 : 0)}%`,
-              background: '#1677ff',
+              background: '#059669',
               borderRadius: 2, transition: 'width 0.3s',
             }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: tx }}>
-            <span>本月剩余 <strong style={{ color: darkMode ? '#e4e4e7' : '#374151', fontWeight: 500 }}>{(creditInfo?.monthlyRemaining ?? 0).toFixed(1)}</strong></span>
-            <span>充值 <strong style={{ color: darkMode ? '#e4e4e7' : '#374151', fontWeight: 500 }}>+{(creditInfo?.balance ?? 0).toFixed(2)}</strong></span>
+            <span>本月剩余 <strong style={{ color: darkMode ? '#e4e4e7' : '#3F3F46', fontWeight: 500 }}>{(creditInfo?.monthlyRemaining ?? 0).toFixed(1)}</strong></span>
+            <span>充值 <strong style={{ color: darkMode ? '#e4e4e7' : '#3F3F46', fontWeight: 500 }}>+{(creditInfo?.balance ?? 0).toFixed(2)}</strong></span>
           </div>
         </div>
       </div>
@@ -6751,14 +7610,15 @@ function UserPanelContent({
           label="设置"
           onClick={() => { close(); setSettingsSection("personalization"); setSettingsOpen(true) }}
         />
-        {/* 桌面端：管理设置 —— 打开同一套设置弹窗并直达「模型」分区
-            （服务商增删等完整运维仍在 /admin，从「模型」分区一键跳转） */}
+        {/* 桌面端：管理设置 —— 打开同一套设置弹窗并直达「AI 服务」分区
+            （服务商增删改 / API Key / 模型清单 / 默认模型；知识库与积分等运维配置
+             收在该分区内的「高级设置」里。老 key "model" 仍兼容，见 SECTION_ALIAS） */}
         {IS_DESKTOP_APP && (
           <PanelRow
             darkMode={darkMode}
             icon={<IconTool size={15} />}
             label="管理设置"
-            onClick={() => { close(); setSettingsSection("model"); setSettingsOpen(true) }}
+            onClick={() => { close(); setSettingsSection("ai-services"); setSettingsOpen(true) }}
           />
         )}
         <PanelRow
@@ -6855,8 +7715,8 @@ function PanelRow({
   right?: React.ReactNode
   onClick?: () => void
 }) {
-  const tx = darkMode ? '#a0a0a8' : '#6b7280'
-  const hoverBg = darkMode ? '#27272c' : '#f3f4f6'
+  const tx = darkMode ? '#a0a0a8' : '#71717A'
+  const hoverBg = darkMode ? '#27272c' : '#f4f4f5'
   return (
     <div
       onClick={onClick}
@@ -6870,7 +7730,7 @@ function PanelRow({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ color: tx, display: 'flex' }}>{icon}</span>
-        <span style={{ fontSize: 13, color: darkMode ? '#e4e4e7' : '#1f2937' }}>{label}</span>
+        <span style={{ fontSize: 13, color: darkMode ? '#e4e4e7' : '#27272a' }}>{label}</span>
       </div>
       {right && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: tx }}>{right}</div>}
     </div>

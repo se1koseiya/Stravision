@@ -71,7 +71,7 @@ export function DeletableEdge({
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px, ${deleteBtnY}px)`,
             }}
-            className="nodrag nopan pointer-events-auto absolute z-10 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-md transition-transform hover:scale-110 hover:bg-red-600"
+            className="nodrag nopan pointer-events-auto absolute z-10 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-red-600"
             onClick={(e) => {
               e.stopPropagation();
               onDelete?.(id);

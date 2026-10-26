@@ -4,10 +4,11 @@ import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Empty, Spin } from "antd"
-import { toast } from "sonner"
+import { Spin } from "antd"
+import { toast } from "@/lib/ui/feedback"
 import type { MCPServer } from "@/lib/data/mcp-servers"
 import { cn } from "@/lib/utils"
+import { EmptyState } from "@/components/illustration"
 import { CustomMCPDialog } from "@/components/mcp/custom-mcp-dialog"
 import { IconBookOpen, IconCheck, IconClose, IconCopy, IconLightning, IconMagic, IconPlus, IconSearch, IconServer, IconShield, IconTag, IconTerminal, IconUser } from "@/components/icon";
 
@@ -27,14 +28,14 @@ const PluginsIllustration = ({ className }: { className?: string }) => (
     {/* 左下蓝色曲线 */}
     <path
       d="M5 85 C 35 35, 75 25, 110 50 S 175 70, 195 45"
-      stroke="#1677ff"
+      stroke="#059669"
       strokeWidth="1.4"
       strokeLinecap="round"
       fill="none"
       opacity="0.85"
     />
     {/* 左圆：竖线纹理 */}
-    <circle cx="60" cy="48" r="22" fill="rgba(22,119,255,0.10)" />
+    <circle cx="60" cy="48" r="22" fill="rgba(0,148,86,0.10)" />
     {[42, 48, 54, 60, 66, 72, 78].map(x => (
       <line
         key={x}
@@ -42,36 +43,36 @@ const PluginsIllustration = ({ className }: { className?: string }) => (
         y1={28}
         x2={x}
         y2={68}
-        stroke="#1677ff"
+        stroke="#059669"
         strokeWidth="1"
         opacity="0.55"
       />
     ))}
     {/* 右圆：实心淡蓝 */}
-    <circle cx="115" cy="58" r="24" fill="rgba(22,119,255,0.18)" />
+    <circle cx="115" cy="58" r="24" fill="rgba(0,148,86,0.18)" />
     {/* 圆上小圆点 */}
-    <circle cx="108" cy="22" r="4" fill="#1677ff" />
+    <circle cx="108" cy="22" r="4" fill="#059669" />
     {/* </> 符号 */}
     <text
       x="100"
       y="55"
       fontSize="11"
       fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
-      fill="#1677ff"
+      fill="#059669"
       fontWeight="600"
     >{`</>`}</text>
     {/* 星号 */}
     <g transform="translate(165, 22)">
-      <line x1="0" y1="-9" x2="0" y2="9" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="-9" y1="0" x2="9" y2="0" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="-6.5" y1="-6.5" x2="6.5" y2="6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="-6.5" y1="6.5" x2="6.5" y2="-6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="-6.5" x2="6.5" y2="6.5" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="6.5" x2="6.5" y2="-6.5" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
     </g>
     {/* 散点 */}
-    <circle cx="20" cy="20" r="1.6" fill="#1677ff" />
-    <circle cx="180" cy="60" r="1.6" fill="#1677ff" />
-    <circle cx="195" cy="80" r="1" fill="#1677ff" opacity="0.6" />
-    <circle cx="40" cy="95" r="1.2" fill="#1677ff" opacity="0.5" />
+    <circle cx="20" cy="20" r="1.6" fill="#059669" />
+    <circle cx="180" cy="60" r="1.6" fill="#059669" />
+    <circle cx="195" cy="80" r="1" fill="#059669" opacity="0.6" />
+    <circle cx="40" cy="95" r="1.2" fill="#059669" opacity="0.5" />
   </svg>
 )
 
@@ -79,12 +80,12 @@ const PluginsIllustration = ({ className }: { className?: string }) => (
 //  卡片图标：单字符 + 主题色圆（按名称哈希选色）
 // ================================================================
 const PALETTE = [
-  { bg: "rgba(124,58,237,0.10)", text: "#7c3aed", border: "rgba(124,58,237,0.20)" }, // purple
-  { bg: "rgba(22,119,255,0.10)", text: "#1677ff", border: "rgba(22,119,255,0.22)" }, // blue
+  { bg: "rgba(124,58,237,0.10)", text: "#3f3f46", border: "rgba(124,58,237,0.20)" }, // purple
+  { bg: "rgba(0,148,86,0.10)", text: "#059669", border: "rgba(0,148,86,0.22)" }, // blue
   { bg: "rgba(82,196,26,0.10)", text: "#389e0d", border: "rgba(82,196,26,0.22)" },   // green
   { bg: "rgba(250,140,22,0.10)", text: "#d46b08", border: "rgba(250,140,22,0.22)" }, // orange
   { bg: "rgba(235,47,150,0.10)", text: "#c41d7f", border: "rgba(235,47,150,0.22)" }, // magenta
-  { bg: "rgba(19,194,194,0.10)", text: "#08979c", border: "rgba(19,194,194,0.22)" }, // cyan
+  { bg: "rgba(19,194,194,0.10)", text: "#52525B", border: "rgba(19,194,194,0.22)" }, // cyan
 ]
 
 const hashIndex = (s: string) => {
@@ -105,8 +106,8 @@ const ServerIcon = ({
   const dim =
     size === "lg" ? "size-12 text-[20px]" :
       size === "sm" ? "size-8 text-[13px]" :
-        "size-10 text-[15px]"
-  const radius = shape === "square" ? "rounded-md" : "rounded-full"
+        "size-10 text-[14px]"
+  const radius = shape === "square" ? "rounded-lg" : "rounded-full"
 
   // 退回到首字母（优先用英文 name，再退到 displayName 中的首个英文字符）+ 颜色
   const getFirstLetter = (s: MCPServer): string => {
@@ -147,7 +148,7 @@ const ServerIcon = ({
       className={cn(
         dim,
         radius,
-        "flex items-center justify-center shrink-0 select-none bg-white border border-gray-200"
+        "flex items-center justify-center shrink-0 select-none bg-white border border-zinc-200"
       )}
     >
       <img
@@ -220,7 +221,9 @@ const ServerDetailView = ({
         animate={{ opacity: open ? 1 : 0 }}
         exit={{ opacity: 0 }}
         onClick={handleClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        /* 遮罩的模糊也接全站「材质厚度」档位（.dc-gblur × --dc-mat-scale） */
+        style={{ "--gblur": "2px" } as React.CSSProperties}
+        className="absolute inset-0 bg-black/40 dc-gblur"
         aria-hidden
       />
 
@@ -229,13 +232,13 @@ const ServerDetailView = ({
         animate={{ opacity: open ? 1 : 0, y: open ? 0 : 12, scale: open ? 1 : 0.98 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-2xl max-h-[88vh] bg-white border border-gray-200/80 flex flex-col overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[88vh] bg-white border border-zinc-200/80 flex flex-col overflow-hidden"
         style={{ borderRadius: 12 }}
       >
         {/* 关闭按钮 */}
         <button
           onClick={handleClose}
-          className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          className="absolute top-3.5 right-3.5 z-50 size-8 flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
           style={{ borderRadius: 8 }}
           title="关闭"
         >
@@ -248,20 +251,20 @@ const ServerDetailView = ({
             <div className="flex items-start gap-3.5">
               <ServerIcon server={server} size="lg" shape="square" />
               <div className="flex-1 min-w-0 pt-0.5">
-                <h2 className="text-[18px] font-semibold leading-tight text-gray-900 tracking-tight">
+                <h2 className="text-[18px] font-semibold leading-tight text-zinc-900 tracking-tight">
                   {server.displayName}
                 </h2>
-                <p className="text-[12.5px] text-gray-500 leading-relaxed mt-1.5 pr-2">
+                <p className="text-[13px] text-zinc-500 leading-relaxed mt-1.5 pr-2">
                   {server.description}
                 </p>
               </div>
               <Button
                 onClick={(e) => isInstalled ? onUninstall(e, server) : onInstall(e, server)}
                 className={cn(
-                  "h-8 px-3.5 text-[12.5px] font-medium shrink-0 gap-1.5",
+                  "h-8 px-3.5 text-[13px] font-medium shrink-0 gap-1.5",
                   isInstalled
                     ? "!bg-white !text-red-500 !border !border-red-200 hover:!bg-red-50 hover:!border-red-300"
-                    : "!bg-gray-900 hover:!bg-gray-800 !text-white !border-gray-900"
+                    : "!bg-zinc-900 hover:!bg-zinc-800 !text-white !border-zinc-900"
                 )}
                 style={{ borderRadius: 8 }}
               >
@@ -277,12 +280,12 @@ const ServerDetailView = ({
             <div className="mt-5">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
-                  <IconMagic size={12} className="text-gray-400" />
-                  <span className="text-[12.5px] font-semibold text-gray-700">推荐 Prompt</span>
+                  <IconMagic size={12} className="text-zinc-400" />
+                  <span className="text-[13px] font-semibold text-zinc-700">推荐 Prompt</span>
                 </div>
                 <button
                   onClick={handleCopyPrompt}
-                  className="size-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  className="size-6 flex items-center justify-center text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                   style={{ borderRadius: 6 }}
                   title="复制"
                 >
@@ -294,7 +297,7 @@ const ServerDetailView = ({
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="输入推荐用法描述…"
                 rows={2}
-                className="w-full px-3 py-2 text-[12.5px] text-gray-700 bg-white border border-gray-200 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors resize-none leading-relaxed placeholder:text-gray-300"
+                className="w-full px-3 py-2 text-[13px] text-zinc-700 bg-white border border-zinc-200 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-colors resize-none leading-relaxed placeholder:text-zinc-300"
                 style={{ borderRadius: 8 }}
               />
             </div>
@@ -302,11 +305,11 @@ const ServerDetailView = ({
             {/* 启动命令 */}
             <div className="mt-5">
               <div className="flex items-center gap-1.5 mb-2">
-                <IconTerminal size={12} className="text-gray-400" />
-                <span className="text-[12.5px] font-semibold text-gray-700">启动命令</span>
+                <IconTerminal size={12} className="text-zinc-400" />
+                <span className="text-[13px] font-semibold text-zinc-700">启动命令</span>
               </div>
               <pre
-                className="text-[12px] font-mono text-gray-300 bg-gray-900 px-3.5 py-3 overflow-auto max-h-[180px] leading-relaxed scrollbar-thin whitespace-pre-wrap break-words"
+                className="text-[12px] font-mono text-zinc-300 bg-zinc-900 px-3.5 py-3 overflow-auto max-h-[180px] leading-relaxed scrollbar-thin whitespace-pre-wrap break-words"
                 style={{ borderRadius: 8 }}
               >
 {commandLine || "（暂无命令）"}
@@ -317,19 +320,19 @@ const ServerDetailView = ({
             {server.features && server.features.length > 0 && (
               <div className="mt-5">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <IconLightning size={12} className="text-gray-400" />
-                  <span className="text-[12.5px] font-semibold text-gray-700">核心功能</span>
-                  <span className="text-[11px] text-gray-400">({server.features.length})</span>
+                  <IconLightning size={12} className="text-zinc-400" />
+                  <span className="text-[13px] font-semibold text-zinc-700">核心功能</span>
+                  <span className="text-[11px] text-zinc-400">({server.features.length})</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {server.features.map((feature, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 px-2.5 py-1.5 border border-gray-200"
+                      className="flex items-center gap-2 px-2.5 py-1.5 border border-zinc-200"
                       style={{ borderRadius: 6 }}
                     >
-                      <IconCheck size={11} className="text-blue-600 shrink-0" strokeWidth={3} />
-                      <span className="text-[12px] text-gray-700">{feature}</span>
+                      <IconCheck size={11} className="text-emerald-600 shrink-0" strokeWidth={3} />
+                      <span className="text-[12px] text-zinc-700">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -337,23 +340,23 @@ const ServerDetailView = ({
             )}
 
             {/* 元信息：提供者 / 分类 / 协议 */}
-            <div className="mt-4 flex items-center gap-3 text-[11.5px] text-gray-400 flex-wrap">
+            <div className="mt-4 flex items-center gap-3 text-[12px] text-zinc-400 flex-wrap">
               <span className="flex items-center gap-1">
                 <IconServer size={11} />{server.provider || "第三方"}
               </span>
-              <span className="w-px h-3 bg-gray-200" />
+              <span className="w-px h-3 bg-zinc-200" />
               <span className="flex items-center gap-1">
                 <IconTag size={11} />{server.category}
               </span>
               {isOfficial && (
                 <>
-                  <span className="w-px h-3 bg-gray-200" />
+                  <span className="w-px h-3 bg-zinc-200" />
                   <span className="flex items-center gap-1">
                     <IconShield size={11} />官方认证
                   </span>
                 </>
               )}
-              <span className="w-px h-3 bg-gray-200" />
+              <span className="w-px h-3 bg-zinc-200" />
               <span className="flex items-center gap-1">
                 <IconBookOpen size={11} />MCP 协议
               </span>
@@ -383,42 +386,42 @@ const ServerCard = ({
   return (
     <div
       onClick={onClick}
-      className="group relative flex flex-col gap-2.5 px-4 pt-4 pb-3.5 bg-white border border-gray-200/80 hover:border-blue-300 transition-colors cursor-pointer"
+      className="group relative flex flex-col gap-2.5 px-4 pt-4 pb-3.5 bg-white border border-zinc-200/80 hover:border-emerald-300 transition-colors cursor-pointer"
       style={{ borderRadius: 12 }}
     >
       <div className="flex items-start gap-3">
         <ServerIcon server={server} size="md" shape="circle" />
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-center gap-1.5">
-            <h3 className="text-[14px] font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
+            <h3 className="text-[14px] font-semibold text-zinc-900 truncate group-hover:text-emerald-700 transition-colors">
               {server.displayName}
             </h3>
             {isOfficial && (
-              <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+              <IconShield size={11} className="text-emerald-500 shrink-0" strokeWidth={2.5} />
             )}
           </div>
           {server.category && (
-            <span className="text-[11px] text-gray-400 mt-0.5 inline-block">· {server.category}</span>
+            <span className="text-[11px] text-zinc-400 mt-0.5 inline-block">· {server.category}</span>
           )}
         </div>
       </div>
-      <p className="text-[12.5px] text-gray-500 leading-relaxed line-clamp-3 min-h-[3.6em]">
+      <p className="text-[13px] text-zinc-500 leading-relaxed line-clamp-3 min-h-[3.6em]">
         {server.description}
       </p>
       <div className="mt-auto flex items-center justify-between pt-1">
-        <span className="text-[11.5px] text-gray-400 flex items-center gap-1">
+        <span className="text-[12px] text-zinc-400 flex items-center gap-1">
           <IconServer size={11} />
           {server.provider || "第三方"}
         </span>
         {installed ? (
-          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+          <span className="text-[11px] text-zinc-400 flex items-center gap-1">
             <IconCheck size={11} strokeWidth={3} />
             已添加
           </span>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); onInstall(e) }}
-            className="size-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="size-6 flex items-center justify-center text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
             style={{ borderRadius: 6 }}
             title="添加至会话"
           >
@@ -566,10 +569,10 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
       {/* 标题区 */}
       <div className="flex items-center justify-between gap-6 mb-7">
         <div>
-          <h1 className="text-[32px] font-bold text-gray-900 leading-none tracking-tight" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+          <h1 className="text-[32px] font-bold text-zinc-900 leading-none tracking-tight" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
             Plugins
           </h1>
-          <p className="text-[13px] text-gray-500 mt-2.5 flex items-center gap-1">
+          <p className="text-[13px] text-zinc-500 mt-2.5 flex items-center gap-1">
             <span>扩展 AI 工具，连接万物</span>
           </p>
         </div>
@@ -578,7 +581,7 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
 
       {/* 主标签 + 搜索 */}
       <div className="flex items-center justify-between gap-4 mb-3">
-        <div className="flex items-center gap-1 bg-gray-100/70 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-zinc-100/70 p-1 rounded-xl">
           {mainTabs.map(t => (
             <button
               key={t.key}
@@ -586,8 +589,8 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
               className={cn(
                 "px-5 py-1.5 text-[13px] font-medium transition-all rounded-lg",
                 mainTab === t.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               {t.label}
@@ -595,20 +598,20 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
           ))}
         </div>
         <div className="relative w-64">
-          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
           <input
             type="text"
             placeholder="搜索插件"
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-gray-200 text-gray-700 placeholder-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors"
+            className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-zinc-200 text-zinc-700 placeholder-zinc-400 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-colors"
             style={{ borderRadius: 10 }}
           />
         </div>
       </div>
 
       {/* 子标签 */}
-      <div className="flex items-center gap-6 mb-5 border-b border-gray-200/80">
+      <div className="flex items-center gap-6 mb-5 border-b border-zinc-200/80">
         {subTabs.map((t, i) => (
           <button
             key={t.key}
@@ -616,15 +619,15 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
             className={cn(
               "relative pb-2.5 text-[13px] font-medium transition-colors",
               subTab === t.key
-                ? "text-gray-900"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-zinc-900"
+                : "text-zinc-500 hover:text-zinc-700"
             )}
           >
             <span className="inline-flex items-center gap-1">
               {t.label}
               <span className={cn(
                 "text-[11px] tabular-nums",
-                subTab === t.key ? "text-gray-500" : "text-gray-400"
+                subTab === t.key ? "text-zinc-500" : "text-zinc-400"
               )}>
                 {i === 0 ? `(${subCounts.all})` : subCounts[t.key as keyof typeof subCounts]}
               </span>
@@ -632,7 +635,7 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
             {subTab === t.key && (
               <motion.span
                 layoutId="plugin-subtab-underline"
-                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600 pointer-events-none"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-emerald-600 pointer-events-none"
                 transition={{ duration: 0.2 }}
               />
             )}
@@ -642,15 +645,13 @@ export function MCPStoreContent({ searchQuery = "", darkMode = false, onTryInCha
 
       {/* 卡片网格 */}
       {filteredServers.length === 0 ? (
-        <div className="py-20 flex flex-col items-center justify-center text-center">
-          <Empty
-            description={
-              <span className="text-[13px] text-gray-500">
-                {localSearch ? `未搜索到 "${localSearch}" 相关插件` : "暂无插件"}
-              </span>
-            }
-          />
-        </div>
+        <EmptyState
+          className="py-20"
+          illustration={localSearch ? "search" : "empty-list"}
+          illustrationWidth={190}
+          title={localSearch ? `未搜索到「${localSearch}」相关插件` : "暂无插件"}
+          description={localSearch ? "换个关键词试试，或浏览推荐插件。" : "等插件上架后，这里会展示可安装的 MCP Server。"}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredServers.map(server => {

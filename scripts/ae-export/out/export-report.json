@@ -1,0 +1,1959 @@
+{
+  "generatedAt": "2026-10-24T14:42:04.629Z",
+  "theme": "light",
+  "png": [
+    {
+      "slug": "admin__access-logs-viewer",
+      "dir": "admin",
+      "file": "components/admin/access-logs-viewer.tsx",
+      "w": 1280,
+      "h": 135,
+      "out": "ae-assets/png/admin/admin__access-logs-viewer@2x.png"
+    },
+    {
+      "slug": "admin__ai-features-settings",
+      "dir": "admin",
+      "file": "components/admin/ai-features-settings.tsx",
+      "w": 1280,
+      "h": 1399,
+      "out": "ae-assets/png/admin/admin__ai-features-settings@2x.png"
+    },
+    {
+      "slug": "admin__ai-models-manager",
+      "dir": "admin",
+      "file": "components/admin/ai-models-manager.tsx",
+      "w": 1280,
+      "h": 120,
+      "out": "ae-assets/png/admin/admin__ai-models-manager@2x.png"
+    },
+    {
+      "slug": "admin__ai-providers-manager",
+      "dir": "admin",
+      "file": "components/admin/ai-providers-manager.tsx",
+      "w": 1280,
+      "h": 1330,
+      "out": "ae-assets/png/admin/admin__ai-providers-manager@2x.png"
+    },
+    {
+      "slug": "admin__announcement-sender",
+      "dir": "admin",
+      "file": "components/admin/announcement-sender.tsx",
+      "w": 1280,
+      "h": 377,
+      "out": "ae-assets/png/admin/admin__announcement-sender@2x.png"
+    },
+    {
+      "slug": "admin__banned-ips-manager",
+      "dir": "admin",
+      "file": "components/admin/banned-ips-manager.tsx",
+      "w": 1280,
+      "h": 135,
+      "out": "ae-assets/png/admin/admin__banned-ips-manager@2x.png"
+    },
+    {
+      "slug": "admin__branding-settings",
+      "dir": "admin",
+      "file": "components/admin/branding-settings.tsx",
+      "w": 1280,
+      "h": 286,
+      "out": "ae-assets/png/admin/admin__branding-settings@2x.png"
+    },
+    {
+      "slug": "admin__camera-settings",
+      "dir": "admin",
+      "file": "components/admin/camera-settings.tsx",
+      "w": 1280,
+      "h": 347,
+      "out": "ae-assets/png/admin/admin__camera-settings@2x.png"
+    },
+    {
+      "slug": "admin__changelog-manager",
+      "dir": "admin",
+      "file": "components/admin/changelog-manager.tsx",
+      "w": 1280,
+      "h": 235,
+      "out": "ae-assets/png/admin/admin__changelog-manager@2x.png"
+    },
+    {
+      "slug": "admin__changelog-sender",
+      "dir": "admin",
+      "file": "components/admin/changelog-sender.tsx",
+      "w": 1280,
+      "h": 1053,
+      "out": "ae-assets/png/admin/admin__changelog-sender@2x.png"
+    },
+    {
+      "slug": "admin__desktop-about",
+      "dir": "admin",
+      "file": "components/admin/desktop-about.tsx",
+      "w": 1280,
+      "h": 504,
+      "out": "ae-assets/png/admin/admin__desktop-about@2x.png"
+    },
+    {
+      "slug": "admin__desktop-licenses-manager",
+      "dir": "admin",
+      "file": "components/admin/desktop-licenses-manager.tsx",
+      "w": 1280,
+      "h": 273,
+      "out": "ae-assets/png/admin/admin__desktop-licenses-manager@2x.png"
+    },
+    {
+      "slug": "admin__device-manager",
+      "dir": "admin",
+      "file": "components/admin/device-manager.tsx",
+      "w": 1280,
+      "h": 198,
+      "out": "ae-assets/png/admin/admin__device-manager@2x.png"
+    },
+    {
+      "slug": "admin__docs-manager",
+      "dir": "admin",
+      "file": "components/admin/docs-manager.tsx",
+      "w": 1280,
+      "h": 323,
+      "out": "ae-assets/png/admin/admin__docs-manager@2x.png"
+    },
+    {
+      "slug": "admin__image-cropper",
+      "dir": "admin",
+      "file": "components/admin/image-cropper.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/admin/admin__image-cropper@2x.png"
+    },
+    {
+      "slug": "admin__knowledge-market-manager",
+      "dir": "admin",
+      "file": "components/admin/knowledge-market-manager.tsx",
+      "w": 1280,
+      "h": 300,
+      "out": "ae-assets/png/admin/admin__knowledge-market-manager@2x.png"
+    },
+    {
+      "slug": "admin__maintenance-settings",
+      "dir": "admin",
+      "file": "components/admin/maintenance-settings.tsx",
+      "w": 1280,
+      "h": 405,
+      "out": "ae-assets/png/admin/admin__maintenance-settings@2x.png"
+    },
+    {
+      "slug": "admin__mcp-manager",
+      "dir": "admin",
+      "file": "components/admin/mcp-manager.tsx",
+      "w": 1280,
+      "h": 278,
+      "out": "ae-assets/png/admin/admin__mcp-manager@2x.png"
+    },
+    {
+      "slug": "admin__mcp-market-manager",
+      "dir": "admin",
+      "file": "components/admin/mcp-market-manager.tsx",
+      "w": 1280,
+      "h": 230,
+      "out": "ae-assets/png/admin/admin__mcp-market-manager@2x.png"
+    },
+    {
+      "slug": "admin__model-marketplace",
+      "dir": "admin",
+      "file": "components/admin/model-marketplace.tsx",
+      "w": 1280,
+      "h": 529,
+      "out": "ae-assets/png/admin/admin__model-marketplace@2x.png"
+    },
+    {
+      "slug": "admin__online-users-panel",
+      "dir": "admin",
+      "file": "components/admin/online-users-panel.tsx",
+      "w": 1280,
+      "h": 511,
+      "out": "ae-assets/png/admin/admin__online-users-panel@2x.png"
+    },
+    {
+      "slug": "admin__onlyoffice-editor",
+      "dir": "admin",
+      "file": "components/admin/onlyoffice-editor.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/admin/admin__onlyoffice-editor@2x.png"
+    },
+    {
+      "slug": "admin__rate-limit-settings",
+      "dir": "admin",
+      "file": "components/admin/rate-limit-settings.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/admin/admin__rate-limit-settings@2x.png"
+    },
+    {
+      "slug": "admin__skill-manager",
+      "dir": "admin",
+      "file": "components/admin/skill-manager.tsx",
+      "w": 1280,
+      "h": 1072,
+      "out": "ae-assets/png/admin/admin__skill-manager@2x.png"
+    },
+    {
+      "slug": "admin__user-dialog",
+      "dir": "admin",
+      "file": "components/admin/user-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/admin/admin__user-dialog@2x.png"
+    },
+    {
+      "slug": "admin__voice-settings",
+      "dir": "admin",
+      "file": "components/admin/voice-settings.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/admin/admin__voice-settings@2x.png"
+    },
+    {
+      "slug": "admin__voice-test-page",
+      "dir": "admin",
+      "file": "components/admin/voice-test-page.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/admin/admin__voice-test-page@2x.png"
+    },
+    {
+      "slug": "agent__agent-collaboration-chat",
+      "dir": "agent",
+      "file": "components/agent/agent-collaboration-chat.tsx",
+      "w": 1280,
+      "h": 600,
+      "out": "ae-assets/png/agent/agent__agent-collaboration-chat@2x.png"
+    },
+    {
+      "slug": "agent__agent-flow-diagram",
+      "dir": "agent",
+      "file": "components/agent/agent-flow-diagram.tsx",
+      "w": 1280,
+      "h": 782,
+      "out": "ae-assets/png/agent/agent__agent-flow-diagram@2x.png"
+    },
+    {
+      "slug": "agent__agent-workflow-builder",
+      "dir": "agent",
+      "file": "components/agent/agent-workflow-builder.tsx",
+      "w": 1280,
+      "h": 612,
+      "out": "ae-assets/png/agent/agent__agent-workflow-builder@2x.png"
+    },
+    {
+      "slug": "agent__multi-agent-orchestrator",
+      "dir": "agent",
+      "file": "components/agent/multi-agent-orchestrator.tsx",
+      "w": 1280,
+      "h": 591,
+      "out": "ae-assets/png/agent/agent__multi-agent-orchestrator@2x.png"
+    },
+    {
+      "slug": "ai__ai-control-border-demo",
+      "dir": "ai",
+      "file": "components/ai/ai-control-border-demo.tsx",
+      "w": 1280,
+      "h": 1000,
+      "out": "ae-assets/png/ai/ai__ai-control-border-demo@2x.png"
+    },
+    {
+      "slug": "ai__ai-control-border-effect",
+      "dir": "ai",
+      "file": "components/ai/ai-control-border-effect.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__ai-control-border-effect@2x.png"
+    },
+    {
+      "slug": "ai__ai-cron-manager",
+      "dir": "ai",
+      "file": "components/ai/ai-cron-manager.tsx",
+      "w": 1280,
+      "h": 144,
+      "out": "ae-assets/png/ai/ai__ai-cron-manager@2x.png"
+    },
+    {
+      "slug": "ai__aurora-bg",
+      "dir": "ai",
+      "file": "components/ai/aurora-bg.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__aurora-bg@2x.png"
+    },
+    {
+      "slug": "ai__browser-activity",
+      "dir": "ai",
+      "file": "components/ai/browser-activity.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__browser-activity@2x.png"
+    },
+    {
+      "slug": "ai__calendar-trigger",
+      "dir": "ai",
+      "file": "components/ai/calendar-trigger.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__calendar-trigger@2x.png"
+    },
+    {
+      "slug": "ai__capabilities-card",
+      "dir": "ai",
+      "file": "components/ai/capabilities-card.tsx",
+      "w": 1280,
+      "h": 913,
+      "out": "ae-assets/png/ai/ai__capabilities-card@2x.png"
+    },
+    {
+      "slug": "ai__citation-group",
+      "dir": "ai",
+      "file": "components/ai/citation-group.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__citation-group@2x.png"
+    },
+    {
+      "slug": "ai__client-scheduled-tasks",
+      "dir": "ai",
+      "file": "components/ai/client-scheduled-tasks.tsx",
+      "w": 1280,
+      "h": 164,
+      "out": "ae-assets/png/ai/ai__client-scheduled-tasks@2x.png"
+    },
+    {
+      "slug": "ai__control-bento-grid",
+      "dir": "ai",
+      "file": "components/ai/control-bento-grid.tsx",
+      "w": 1280,
+      "h": 132,
+      "out": "ae-assets/png/ai/ai__control-bento-grid@2x.png"
+    },
+    {
+      "slug": "ai__conversation-summary",
+      "dir": "ai",
+      "file": "components/ai/conversation-summary.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__conversation-summary@2x.png"
+    },
+    {
+      "slug": "ai-copilot__canvas-activity-glow",
+      "dir": "copilot",
+      "file": "components/ai/copilot/canvas-activity-glow.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/copilot/ai-copilot__canvas-activity-glow@2x.png"
+    },
+    {
+      "slug": "ai-copilot__copilot-berry",
+      "dir": "copilot",
+      "file": "components/ai/copilot/copilot-berry.tsx",
+      "w": 1280,
+      "h": 1254,
+      "out": "ae-assets/png/copilot/ai-copilot__copilot-berry@2x.png"
+    },
+    {
+      "slug": "ai-copilot__copilot-call",
+      "dir": "copilot",
+      "file": "components/ai/copilot/copilot-call.tsx",
+      "w": 1280,
+      "h": 80,
+      "out": "ae-assets/png/copilot/ai-copilot__copilot-call@2x.png"
+    },
+    {
+      "slug": "ai-copilot__copilot-sidebar",
+      "dir": "copilot",
+      "file": "components/ai/copilot/copilot-sidebar.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/copilot/ai-copilot__copilot-sidebar@2x.png"
+    },
+    {
+      "slug": "ai__detection-overlay",
+      "dir": "ai",
+      "file": "components/ai/detection-overlay.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__detection-overlay@2x.png"
+    },
+    {
+      "slug": "ai__device-bento-grid",
+      "dir": "ai",
+      "file": "components/ai/device-bento-grid.tsx",
+      "w": 1280,
+      "h": 226,
+      "out": "ae-assets/png/ai/ai__device-bento-grid@2x.png"
+    },
+    {
+      "slug": "ai__device-forge-sidebar-panel",
+      "dir": "ai",
+      "file": "components/ai/device-forge-sidebar-panel.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__device-forge-sidebar-panel@2x.png"
+    },
+    {
+      "slug": "ai__exact-design-home",
+      "dir": "ai",
+      "file": "components/ai/exact-design-home.tsx",
+      "w": 1280,
+      "h": 920,
+      "out": "ae-assets/png/ai/ai__exact-design-home@2x.png"
+    },
+    {
+      "slug": "ai__farm-skills",
+      "dir": "ai",
+      "file": "components/ai/farm-skills.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__farm-skills@2x.png"
+    },
+    {
+      "slug": "ai__guardian-alert-bell",
+      "dir": "ai",
+      "file": "components/ai/guardian-alert-bell.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__guardian-alert-bell@2x.png"
+    },
+    {
+      "slug": "ai__knowledge-sidebar-panel",
+      "dir": "ai",
+      "file": "components/ai/knowledge-sidebar-panel.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__knowledge-sidebar-panel@2x.png"
+    },
+    {
+      "slug": "ai__manual-task-create-modal",
+      "dir": "ai",
+      "file": "components/ai/manual-task-create-modal.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__manual-task-create-modal@2x.png"
+    },
+    {
+      "slug": "ai__matechat-home",
+      "dir": "ai",
+      "file": "components/ai/matechat-home.tsx",
+      "w": 1280,
+      "h": 305,
+      "out": "ae-assets/png/ai/ai__matechat-home@2x.png"
+    },
+    {
+      "slug": "ai__mcp-tool-display",
+      "dir": "ai",
+      "file": "components/ai/mcp-tool-display.tsx",
+      "w": 1280,
+      "h": 105,
+      "out": "ae-assets/png/ai/ai__mcp-tool-display@2x.png"
+    },
+    {
+      "slug": "ai__medical-records-panel",
+      "dir": "ai",
+      "file": "components/ai/medical-records-panel.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__medical-records-panel@2x.png"
+    },
+    {
+      "slug": "ai__memory-profile-bar",
+      "dir": "ai",
+      "file": "components/ai/memory-profile-bar.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__memory-profile-bar@2x.png"
+    },
+    {
+      "slug": "ai__mermaid-card",
+      "dir": "ai",
+      "file": "components/ai/mermaid-card.tsx",
+      "w": 1280,
+      "h": 74,
+      "out": "ae-assets/png/ai/ai__mermaid-card@2x.png"
+    },
+    {
+      "slug": "ai__mobile-message-content",
+      "dir": "ai",
+      "file": "components/ai/mobile-message-content.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__mobile-message-content@2x.png"
+    },
+    {
+      "slug": "ai__modern-home-view",
+      "dir": "ai",
+      "file": "components/ai/modern-home-view.tsx",
+      "w": 1280,
+      "h": 1896,
+      "out": "ae-assets/png/ai/ai__modern-home-view@2x.png"
+    },
+    {
+      "slug": "ai__monitor-card",
+      "dir": "ai",
+      "file": "components/ai/monitor-card.tsx",
+      "w": 1280,
+      "h": 459,
+      "out": "ae-assets/png/ai/ai__monitor-card@2x.png"
+    },
+    {
+      "slug": "ai__persona-selector",
+      "dir": "ai",
+      "file": "components/ai/persona-selector.tsx",
+      "w": 1280,
+      "h": 118,
+      "out": "ae-assets/png/ai/ai__persona-selector@2x.png"
+    },
+    {
+      "slug": "ai__pixel-blast",
+      "dir": "ai",
+      "file": "components/ai/pixel-blast.tsx",
+      "w": 1280,
+      "h": 640,
+      "out": "ae-assets/png/ai/ai__pixel-blast@2x.png"
+    },
+    {
+      "slug": "ai__rate-limit-error-card-editorial",
+      "dir": "ai",
+      "file": "components/ai/rate-limit-error-card-editorial.tsx",
+      "w": 1280,
+      "h": 285,
+      "out": "ae-assets/png/ai/ai__rate-limit-error-card-editorial@2x.png"
+    },
+    {
+      "slug": "ai__rate-limit-error-card",
+      "dir": "ai",
+      "file": "components/ai/rate-limit-error-card.tsx",
+      "w": 1280,
+      "h": 192,
+      "out": "ae-assets/png/ai/ai__rate-limit-error-card@2x.png"
+    },
+    {
+      "slug": "ai__reasoning",
+      "dir": "ai",
+      "file": "components/ai/reasoning.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__reasoning@2x.png"
+    },
+    {
+      "slug": "ai__scheduled-tasks-list",
+      "dir": "ai",
+      "file": "components/ai/scheduled-tasks-list.tsx",
+      "w": 1280,
+      "h": 124,
+      "out": "ae-assets/png/ai/ai__scheduled-tasks-list@2x.png"
+    },
+    {
+      "slug": "ai__scheduler-sidebar-panel",
+      "dir": "ai",
+      "file": "components/ai/scheduler-sidebar-panel.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__scheduler-sidebar-panel@2x.png"
+    },
+    {
+      "slug": "ai__sender-modes",
+      "dir": "ai",
+      "file": "components/ai/sender-modes.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__sender-modes@2x.png"
+    },
+    {
+      "slug": "ai__skill-store",
+      "dir": "ai",
+      "file": "components/ai/skill-store.tsx",
+      "w": 1280,
+      "h": 180,
+      "out": "ae-assets/png/ai/ai__skill-store@2x.png"
+    },
+    {
+      "slug": "ai__smart-prompts",
+      "dir": "ai",
+      "file": "components/ai/smart-prompts.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__smart-prompts@2x.png"
+    },
+    {
+      "slug": "ai__spectral-card",
+      "dir": "ai",
+      "file": "components/ai/spectral-card.tsx",
+      "w": 1280,
+      "h": 223,
+      "out": "ae-assets/png/ai/ai__spectral-card@2x.png"
+    },
+    {
+      "slug": "ai__tool",
+      "dir": "ai",
+      "file": "components/ai/tool.tsx",
+      "w": 1280,
+      "h": 58,
+      "out": "ae-assets/png/ai/ai__tool@2x.png"
+    },
+    {
+      "slug": "ai__vision-inspection-agent",
+      "dir": "ai",
+      "file": "components/ai/vision-inspection-agent.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__vision-inspection-agent@2x.png"
+    },
+    {
+      "slug": "ai__vision-inspection-card",
+      "dir": "ai",
+      "file": "components/ai/vision-inspection-card.tsx",
+      "w": 1280,
+      "h": 360,
+      "out": "ae-assets/png/ai/ai__vision-inspection-card@2x.png"
+    },
+    {
+      "slug": "ai__voice-chat-modal",
+      "dir": "ai",
+      "file": "components/ai/voice-chat-modal.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__voice-chat-modal@2x.png"
+    },
+    {
+      "slug": "ai__voice-input-button",
+      "dir": "ai",
+      "file": "components/ai/voice-input-button.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__voice-input-button@2x.png"
+    },
+    {
+      "slug": "ai__web-preview",
+      "dir": "ai",
+      "file": "components/ai/web-preview.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ai/ai__web-preview@2x.png"
+    },
+    {
+      "slug": "root__ai-settings-dialog",
+      "dir": "components",
+      "file": "components/ai-settings-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/components/root__ai-settings-dialog@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__arrow-left",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/arrow-left.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__arrow-left@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__arrow-right",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/arrow-right.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__arrow-right@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__arrow-up",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/arrow-up.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__arrow-up@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__at-sign",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/at-sign.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__at-sign@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__bell",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/bell.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__bell@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__bot",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/bot.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__bot@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__check-check",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/check-check.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__check-check@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__check",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/check.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__check@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-down",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/chevron-down.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__chevron-down@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-left",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/chevron-left.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__chevron-left@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-right",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/chevron-right.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__chevron-right@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-up",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/chevron-up.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__chevron-up@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__clock",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/clock.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__clock@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__external-link",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/external-link.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__external-link@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__icon",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/icon.tsx",
+      "w": 64,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__icon@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__layers",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/layers.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__layers@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__log-out",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/log-out.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__log-out@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__map-pin",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/map-pin.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__map-pin@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__menu",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/menu.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__menu@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__message-circle",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/message-circle.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__message-circle@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__message-square",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/message-square.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__message-square@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__paperclip",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/paperclip.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__paperclip@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__plus",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/plus.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__plus@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__refresh-ccw",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/refresh-ccw.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__refresh-ccw@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__refresh-cw",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/refresh-cw.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__refresh-cw@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__search",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/search.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__search@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__send",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/send.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__send@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__settings",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/settings.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__settings@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__sparkles",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/sparkles.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__sparkles@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__timer",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/timer.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__timer@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__trash-2",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/trash-2.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__trash-2@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__upload",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/upload.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__upload@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__user",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/user.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__user@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__users",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/users.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__users@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__volume-2",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/volume-2.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__volume-2@2x.png"
+    },
+    {
+      "slug": "animate-ui-icons__x",
+      "dir": "icons",
+      "file": "components/animate-ui/icons/x.tsx",
+      "w": 48,
+      "h": 48,
+      "out": "ae-assets/png/icons/animate-ui-icons__x@2x.png"
+    },
+    {
+      "slug": "auth__auth-card-shell",
+      "dir": "auth",
+      "file": "components/auth/auth-card-shell.tsx",
+      "w": 1280,
+      "h": 1000,
+      "out": "ae-assets/png/auth/auth__auth-card-shell@2x.png"
+    },
+    {
+      "slug": "automation__ai-node",
+      "dir": "automation",
+      "file": "components/automation/ai-node.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/automation/automation__ai-node@2x.png"
+    },
+    {
+      "slug": "automation__canvas-left-toolbar",
+      "dir": "automation",
+      "file": "components/automation/canvas-left-toolbar.tsx",
+      "w": 1280,
+      "h": 296,
+      "out": "ae-assets/png/automation/automation__canvas-left-toolbar@2x.png"
+    },
+    {
+      "slug": "automation__deletable-edge",
+      "dir": "automation",
+      "file": "components/automation/deletable-edge.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/automation/automation__deletable-edge@2x.png"
+    },
+    {
+      "slug": "automation__device-sidebar-list",
+      "dir": "automation",
+      "file": "components/automation/device-sidebar-list.tsx",
+      "w": 1280,
+      "h": 676,
+      "out": "ae-assets/png/automation/automation__device-sidebar-list@2x.png"
+    },
+    {
+      "slug": "root__automation-strategy-card",
+      "dir": "components",
+      "file": "components/automation-strategy-card.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/components/root__automation-strategy-card@2x.png"
+    },
+    {
+      "slug": "root__capsule-navigation",
+      "dir": "components",
+      "file": "components/capsule-navigation.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/components/root__capsule-navigation@2x.png"
+    },
+    {
+      "slug": "chat__add-friend-dialog",
+      "dir": "chat",
+      "file": "components/chat/add-friend-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__add-friend-dialog@2x.png"
+    },
+    {
+      "slug": "chat__chat-empty-state",
+      "dir": "chat",
+      "file": "components/chat/chat-empty-state.tsx",
+      "w": 1280,
+      "h": 288,
+      "out": "ae-assets/png/chat/chat__chat-empty-state@2x.png"
+    },
+    {
+      "slug": "chat__chat-header",
+      "dir": "chat",
+      "file": "components/chat/chat-header.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__chat-header@2x.png"
+    },
+    {
+      "slug": "chat__chat-info-panel",
+      "dir": "chat",
+      "file": "components/chat/chat-info-panel.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__chat-info-panel@2x.png"
+    },
+    {
+      "slug": "chat__chat-input-bar",
+      "dir": "chat",
+      "file": "components/chat/chat-input-bar.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__chat-input-bar@2x.png"
+    },
+    {
+      "slug": "chat__chat-message-list",
+      "dir": "chat",
+      "file": "components/chat/chat-message-list.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__chat-message-list@2x.png"
+    },
+    {
+      "slug": "chat__chat-sidebar",
+      "dir": "chat",
+      "file": "components/chat/chat-sidebar.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__chat-sidebar@2x.png"
+    },
+    {
+      "slug": "chat__chat-window",
+      "dir": "chat",
+      "file": "components/chat/chat-window.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__chat-window@2x.png"
+    },
+    {
+      "slug": "chat__image-preview-dialog",
+      "dir": "chat",
+      "file": "components/chat/image-preview-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__image-preview-dialog@2x.png"
+    },
+    {
+      "slug": "chat__message-context-menu",
+      "dir": "chat",
+      "file": "components/chat/message-context-menu.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__message-context-menu@2x.png"
+    },
+    {
+      "slug": "chat__message-item",
+      "dir": "chat",
+      "file": "components/chat/message-item.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__message-item@2x.png"
+    },
+    {
+      "slug": "chat__message-search-dialog",
+      "dir": "chat",
+      "file": "components/chat/message-search-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__message-search-dialog@2x.png"
+    },
+    {
+      "slug": "chat__organization-detail-panel",
+      "dir": "chat",
+      "file": "components/chat/organization-detail-panel.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/chat/chat__organization-detail-panel@2x.png"
+    },
+    {
+      "slug": "chat__organization-tree",
+      "dir": "chat",
+      "file": "components/chat/organization-tree.tsx",
+      "w": 1280,
+      "h": 192,
+      "out": "ae-assets/png/chat/chat__organization-tree@2x.png"
+    },
+    {
+      "slug": "root__ColorBends",
+      "dir": "components",
+      "file": "components/ColorBends.tsx",
+      "w": 1280,
+      "h": 640,
+      "out": "ae-assets/png/components/root__ColorBends@2x.png"
+    },
+    {
+      "slug": "root__custom-cursor",
+      "dir": "components",
+      "file": "components/custom-cursor.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/components/root__custom-cursor@2x.png"
+    },
+    {
+      "slug": "root__daily-briefing-island",
+      "dir": "components",
+      "file": "components/daily-briefing-island.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/components/root__daily-briefing-island@2x.png"
+    },
+    {
+      "slug": "dashboard__ai-insight-card",
+      "dir": "dashboard",
+      "file": "components/dashboard/ai-insight-card.tsx",
+      "w": 1280,
+      "h": 60,
+      "out": "ae-assets/png/dashboard/dashboard__ai-insight-card@2x.png"
+    },
+    {
+      "slug": "dashboard__DashboardChartCard",
+      "dir": "dashboard",
+      "file": "components/dashboard/DashboardChartCard.tsx",
+      "w": 1280,
+      "h": 138,
+      "out": "ae-assets/png/dashboard/dashboard__DashboardChartCard@2x.png"
+    },
+    {
+      "slug": "dashboard__feature-announcement-admin",
+      "dir": "dashboard",
+      "file": "components/dashboard/feature-announcement-admin.tsx",
+      "w": 1280,
+      "h": 1000,
+      "out": "ae-assets/png/dashboard/dashboard__feature-announcement-admin@2x.png"
+    },
+    {
+      "slug": "dashboard__feature-announcement-dialog",
+      "dir": "dashboard",
+      "file": "components/dashboard/feature-announcement-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/dashboard/dashboard__feature-announcement-dialog@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__co2-widget",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/co2-widget.tsx",
+      "w": 1280,
+      "h": 125,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__co2-widget@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__heatmap-widget",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/heatmap-widget.tsx",
+      "w": 1280,
+      "h": 152,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__heatmap-widget@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__ios-widget-card",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/ios-widget-card.tsx",
+      "w": 1280,
+      "h": 58,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__ios-widget-card@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__top-banner",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/top-banner.tsx",
+      "w": 1280,
+      "h": 114,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__top-banner@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__weather-forecast-widget",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/weather-forecast-widget.tsx",
+      "w": 1280,
+      "h": 353,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__weather-forecast-widget@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__weather-video",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/weather-video.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__weather-video@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__widget-trend-chart",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/widget-trend-chart.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__widget-trend-chart@2x.png"
+    },
+    {
+      "slug": "dashboard-ios-style__widget-visualizations",
+      "dir": "ios-style",
+      "file": "components/dashboard/ios-style/widget-visualizations.tsx",
+      "w": 1280,
+      "h": 80,
+      "out": "ae-assets/png/ios-style/dashboard-ios-style__widget-visualizations@2x.png"
+    },
+    {
+      "slug": "dashboard__membership-card",
+      "dir": "dashboard",
+      "file": "components/dashboard/membership-card.tsx",
+      "w": 1280,
+      "h": 169,
+      "out": "ae-assets/png/dashboard/dashboard__membership-card@2x.png"
+    },
+    {
+      "slug": "dashboard__spectral-card",
+      "dir": "dashboard",
+      "file": "components/dashboard/spectral-card.tsx",
+      "w": 1280,
+      "h": 1331,
+      "out": "ae-assets/png/dashboard/dashboard__spectral-card@2x.png"
+    },
+    {
+      "slug": "dashboard__widget-library-dialog",
+      "dir": "dashboard",
+      "file": "components/dashboard/widget-library-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/dashboard/dashboard__widget-library-dialog@2x.png"
+    },
+    {
+      "slug": "desktop__desktop-window-chrome",
+      "dir": "desktop",
+      "file": "components/desktop/desktop-window-chrome.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/desktop/desktop__desktop-window-chrome@2x.png"
+    },
+    {
+      "slug": "root__desktop-install-prompt",
+      "dir": "components",
+      "file": "components/desktop-install-prompt.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/components/root__desktop-install-prompt@2x.png"
+    },
+    {
+      "slug": "device__device-manager-dialog",
+      "dir": "device",
+      "file": "components/device/device-manager-dialog.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/device/device__device-manager-dialog@2x.png"
+    },
+    {
+      "slug": "device__immersive-card",
+      "dir": "device",
+      "file": "components/device/immersive-card.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/device/device__immersive-card@2x.png"
+    },
+    {
+      "slug": "device__imv-scene",
+      "dir": "device",
+      "file": "components/device/imv-scene.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/device/device__imv-scene@2x.png"
+    },
+    {
+      "slug": "device-access__access-modal",
+      "dir": "device-access",
+      "file": "components/device-access/access-modal.tsx",
+      "w": 1280,
+      "h": 48,
+      "out": "ae-assets/png/device-access/device-access__access-modal@2x.png"
+    }
+  ],
+  "svg": [
+    {
+      "slug": "admin__access-logs-viewer",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__access-logs-viewer.svg"
+    },
+    {
+      "slug": "admin__ai-features-settings",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__ai-features-settings.svg"
+    },
+    {
+      "slug": "admin__ai-providers-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__ai-providers-manager.svg"
+    },
+    {
+      "slug": "admin__announcement-sender",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__announcement-sender.svg"
+    },
+    {
+      "slug": "admin__banned-ips-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__banned-ips-manager.svg"
+    },
+    {
+      "slug": "admin__branding-settings",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__branding-settings.svg"
+    },
+    {
+      "slug": "admin__camera-settings",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__camera-settings.svg"
+    },
+    {
+      "slug": "admin__changelog-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__changelog-manager.svg"
+    },
+    {
+      "slug": "admin__changelog-sender",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__changelog-sender.svg"
+    },
+    {
+      "slug": "admin__desktop-about",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__desktop-about.svg"
+    },
+    {
+      "slug": "admin__desktop-licenses-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__desktop-licenses-manager.svg"
+    },
+    {
+      "slug": "admin__device-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__device-manager.svg"
+    },
+    {
+      "slug": "admin__docs-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__docs-manager.svg"
+    },
+    {
+      "slug": "admin__knowledge-market-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__knowledge-market-manager.svg"
+    },
+    {
+      "slug": "admin__maintenance-settings",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__maintenance-settings.svg"
+    },
+    {
+      "slug": "admin__mcp-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__mcp-manager.svg"
+    },
+    {
+      "slug": "admin__mcp-market-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__mcp-market-manager.svg"
+    },
+    {
+      "slug": "admin__model-marketplace",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__model-marketplace.svg"
+    },
+    {
+      "slug": "admin__online-users-panel",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__online-users-panel.svg"
+    },
+    {
+      "slug": "admin__skill-manager",
+      "dir": "admin",
+      "out": "ae-assets/svg/admin/admin__skill-manager.svg"
+    },
+    {
+      "slug": "agent__agent-collaboration-chat",
+      "dir": "agent",
+      "out": "ae-assets/svg/agent/agent__agent-collaboration-chat.svg"
+    },
+    {
+      "slug": "agent__agent-workflow-builder",
+      "dir": "agent",
+      "out": "ae-assets/svg/agent/agent__agent-workflow-builder.svg"
+    },
+    {
+      "slug": "agent__multi-agent-orchestrator",
+      "dir": "agent",
+      "out": "ae-assets/svg/agent/agent__multi-agent-orchestrator.svg"
+    },
+    {
+      "slug": "ai__ai-control-border-demo",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__ai-control-border-demo.svg"
+    },
+    {
+      "slug": "ai__ai-cron-manager",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__ai-cron-manager.svg"
+    },
+    {
+      "slug": "ai__calendar-trigger",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__calendar-trigger.svg"
+    },
+    {
+      "slug": "ai__capabilities-card",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__capabilities-card.svg"
+    },
+    {
+      "slug": "ai__client-scheduled-tasks",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__client-scheduled-tasks.svg"
+    },
+    {
+      "slug": "ai__control-bento-grid",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__control-bento-grid.svg"
+    },
+    {
+      "slug": "ai-copilot__copilot-call",
+      "dir": "copilot",
+      "out": "ae-assets/svg/copilot/ai-copilot__copilot-call.svg"
+    },
+    {
+      "slug": "ai__device-bento-grid",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__device-bento-grid.svg"
+    },
+    {
+      "slug": "ai__exact-design-home",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__exact-design-home.svg"
+    },
+    {
+      "slug": "ai__farm-skills",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__farm-skills.svg"
+    },
+    {
+      "slug": "ai__guardian-alert-bell",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__guardian-alert-bell.svg"
+    },
+    {
+      "slug": "ai__matechat-home",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__matechat-home.svg"
+    },
+    {
+      "slug": "ai__mcp-tool-display",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__mcp-tool-display.svg"
+    },
+    {
+      "slug": "ai__mermaid-card",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__mermaid-card.svg"
+    },
+    {
+      "slug": "ai__modern-home-view",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__modern-home-view.svg"
+    },
+    {
+      "slug": "ai__monitor-card",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__monitor-card.svg"
+    },
+    {
+      "slug": "ai__persona-selector",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__persona-selector.svg"
+    },
+    {
+      "slug": "ai__rate-limit-error-card",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__rate-limit-error-card.svg"
+    },
+    {
+      "slug": "ai__scheduled-tasks-list",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__scheduled-tasks-list.svg"
+    },
+    {
+      "slug": "ai__spectral-card",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__spectral-card.svg"
+    },
+    {
+      "slug": "ai__vision-inspection-card",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__vision-inspection-card.svg"
+    },
+    {
+      "slug": "ai__voice-input-button",
+      "dir": "ai",
+      "out": "ae-assets/svg/ai/ai__voice-input-button.svg"
+    },
+    {
+      "slug": "animate-ui-icons__arrow-left",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__arrow-left.svg"
+    },
+    {
+      "slug": "animate-ui-icons__arrow-right",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__arrow-right.svg"
+    },
+    {
+      "slug": "animate-ui-icons__arrow-up",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__arrow-up.svg"
+    },
+    {
+      "slug": "animate-ui-icons__at-sign",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__at-sign.svg"
+    },
+    {
+      "slug": "animate-ui-icons__bell",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__bell.svg"
+    },
+    {
+      "slug": "animate-ui-icons__bot",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__bot.svg"
+    },
+    {
+      "slug": "animate-ui-icons__check-check",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__check-check.svg"
+    },
+    {
+      "slug": "animate-ui-icons__check",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__check.svg"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-down",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__chevron-down.svg"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-left",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__chevron-left.svg"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-right",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__chevron-right.svg"
+    },
+    {
+      "slug": "animate-ui-icons__chevron-up",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__chevron-up.svg"
+    },
+    {
+      "slug": "animate-ui-icons__clock",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__clock.svg"
+    },
+    {
+      "slug": "animate-ui-icons__external-link",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__external-link.svg"
+    },
+    {
+      "slug": "animate-ui-icons__layers",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__layers.svg"
+    },
+    {
+      "slug": "animate-ui-icons__log-out",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__log-out.svg"
+    },
+    {
+      "slug": "animate-ui-icons__map-pin",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__map-pin.svg"
+    },
+    {
+      "slug": "animate-ui-icons__menu",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__menu.svg"
+    },
+    {
+      "slug": "animate-ui-icons__message-circle",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__message-circle.svg"
+    },
+    {
+      "slug": "animate-ui-icons__message-square",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__message-square.svg"
+    },
+    {
+      "slug": "animate-ui-icons__paperclip",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__paperclip.svg"
+    },
+    {
+      "slug": "animate-ui-icons__plus",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__plus.svg"
+    },
+    {
+      "slug": "animate-ui-icons__refresh-ccw",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__refresh-ccw.svg"
+    },
+    {
+      "slug": "animate-ui-icons__refresh-cw",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__refresh-cw.svg"
+    },
+    {
+      "slug": "animate-ui-icons__search",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__search.svg"
+    },
+    {
+      "slug": "animate-ui-icons__send",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__send.svg"
+    },
+    {
+      "slug": "animate-ui-icons__settings",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__settings.svg"
+    },
+    {
+      "slug": "animate-ui-icons__sparkles",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__sparkles.svg"
+    },
+    {
+      "slug": "animate-ui-icons__timer",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__timer.svg"
+    },
+    {
+      "slug": "animate-ui-icons__trash-2",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__trash-2.svg"
+    },
+    {
+      "slug": "animate-ui-icons__upload",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__upload.svg"
+    },
+    {
+      "slug": "animate-ui-icons__user",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__user.svg"
+    },
+    {
+      "slug": "animate-ui-icons__users",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__users.svg"
+    },
+    {
+      "slug": "animate-ui-icons__volume-2",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__volume-2.svg"
+    },
+    {
+      "slug": "animate-ui-icons__x",
+      "dir": "icons",
+      "out": "ae-assets/svg/icons/animate-ui-icons__x.svg"
+    },
+    {
+      "slug": "automation__canvas-left-toolbar",
+      "dir": "automation",
+      "out": "ae-assets/svg/automation/automation__canvas-left-toolbar.svg"
+    },
+    {
+      "slug": "automation__device-sidebar-list",
+      "dir": "automation",
+      "out": "ae-assets/svg/automation/automation__device-sidebar-list.svg"
+    },
+    {
+      "slug": "chat__organization-tree",
+      "dir": "chat",
+      "out": "ae-assets/svg/chat/chat__organization-tree.svg"
+    },
+    {
+      "slug": "dashboard__ai-insight-card",
+      "dir": "dashboard",
+      "out": "ae-assets/svg/dashboard/dashboard__ai-insight-card.svg"
+    },
+    {
+      "slug": "dashboard__DashboardChartCard",
+      "dir": "dashboard",
+      "out": "ae-assets/svg/dashboard/dashboard__DashboardChartCard.svg"
+    },
+    {
+      "slug": "dashboard__feature-announcement-admin",
+      "dir": "dashboard",
+      "out": "ae-assets/svg/dashboard/dashboard__feature-announcement-admin.svg"
+    },
+    {
+      "slug": "dashboard-ios-style__co2-widget",
+      "dir": "ios-style",
+      "out": "ae-assets/svg/ios-style/dashboard-ios-style__co2-widget.svg"
+    },
+    {
+      "slug": "dashboard-ios-style__top-banner",
+      "dir": "ios-style",
+      "out": "ae-assets/svg/ios-style/dashboard-ios-style__top-banner.svg"
+    },
+    {
+      "slug": "dashboard-ios-style__weather-forecast-widget",
+      "dir": "ios-style",
+      "out": "ae-assets/svg/ios-style/dashboard-ios-style__weather-forecast-widget.svg"
+    },
+    {
+      "slug": "dashboard-ios-style__widget-visualizations",
+      "dir": "ios-style",
+      "out": "ae-assets/svg/ios-style/dashboard-ios-style__widget-visualizations.svg"
+    },
+    {
+      "slug": "dashboard__membership-card",
+      "dir": "dashboard",
+      "out": "ae-assets/svg/dashboard/dashboard__membership-card.svg"
+    },
+    {
+      "slug": "dashboard__spectral-card",
+      "dir": "dashboard",
+      "out": "ae-assets/svg/dashboard/dashboard__spectral-card.svg"
+    },
+    {
+      "slug": "desktop__desktop-window-chrome",
+      "dir": "desktop",
+      "out": "ae-assets/svg/desktop/desktop__desktop-window-chrome.svg"
+    }
+  ],
+  "failed": [
+    {
+      "slug": "ai__agent-execution-chain",
+      "file": "components/ai/agent-execution-chain.tsx",
+      "reason": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "slug": "ai__agent-orchestration-panel",
+      "file": "components/ai/agent-orchestration-panel.tsx",
+      "reason": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "slug": "ai__checkpoint-confirm",
+      "file": "components/ai/checkpoint-confirm.tsx",
+      "reason": "Cannot read properties of undefined (reading 'consequences')"
+    },
+    {
+      "slug": "ai__citation-card",
+      "file": "components/ai/citation-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'url')"
+    },
+    {
+      "slug": "ai__clarify-card",
+      "file": "components/ai/clarify-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'title')"
+    },
+    {
+      "slug": "ai-copilot__copilot-sender",
+      "file": "components/ai/copilot/copilot-sender.tsx",
+      "reason": "Cannot read properties of undefined (reading 'trim')"
+    },
+    {
+      "slug": "ai__day-task-manager",
+      "file": "components/ai/day-task-manager.tsx",
+      "reason": "Invalid time value"
+    },
+    {
+      "slug": "ai__decision-card",
+      "file": "components/ai/decision-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'type')"
+    },
+    {
+      "slug": "ai__device-control-card",
+      "file": "components/ai/device-control-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'device')"
+    },
+    {
+      "slug": "ai__device-forge-card",
+      "file": "components/ai/device-forge-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'status')"
+    },
+    {
+      "slug": "ai__diagnosis-card",
+      "file": "components/ai/diagnosis-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'category')"
+    },
+    {
+      "slug": "ai__dynamic-model-selector",
+      "file": "components/ai/dynamic-model-selector.tsx",
+      "reason": "Cannot read properties of undefined (reading 'includes')"
+    },
+    {
+      "slug": "ai__message-with-report",
+      "file": "components/ai/message-with-report.tsx",
+      "reason": "Cannot read properties of undefined (reading 'match')"
+    },
+    {
+      "slug": "ai__my-space-sidebar-panel",
+      "file": "components/ai/my-space-sidebar-panel.tsx",
+      "reason": "items is not iterable"
+    },
+    {
+      "slug": "ai__plan-approval-card",
+      "file": "components/ai/plan-approval-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'title')"
+    },
+    {
+      "slug": "ai__report-renderer",
+      "file": "components/ai/report-renderer.tsx",
+      "reason": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "slug": "ai__schedule-card",
+      "file": "components/ai/schedule-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'title')"
+    },
+    {
+      "slug": "ai__skill-forge-card",
+      "file": "components/ai/skill-forge-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'matchTests')"
+    },
+    {
+      "slug": "ai__svg-card",
+      "file": "components/ai/svg-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'replace')"
+    },
+    {
+      "slug": "animate-ui-primitives-animate__slot",
+      "file": "components/animate-ui/primitives/animate/slot.tsx",
+      "reason": "Cannot read properties of undefined (reading 'displayName')"
+    },
+    {
+      "slug": "root__architecture-diagram",
+      "file": "components/architecture-diagram.tsx",
+      "reason": "ArrowRightLeft is not defined"
+    },
+    {
+      "slug": "automation__canvas-bottom-toolbar",
+      "file": "components/automation/canvas-bottom-toolbar.tsx",
+      "reason": "[React Flow]: Seems like you have not used zustand provider as an ancestor. Help: https://reactflow.dev/error#001"
+    },
+    {
+      "slug": "blog__onlyoffice-viewer",
+      "file": "components/blog/onlyoffice-viewer.tsx",
+      "reason": "Cannot read properties of undefined (reading 'replace')"
+    },
+    {
+      "slug": "root__chart-renderer",
+      "file": "components/chart-renderer.tsx",
+      "reason": "Cannot read properties of undefined (reading 'type')"
+    },
+    {
+      "slug": "charts__heatmap-grid",
+      "file": "components/charts/heatmap-grid.tsx",
+      "reason": "Cannot read properties of undefined (reading 'map')"
+    },
+    {
+      "slug": "charts__sparkline",
+      "file": "components/charts/sparkline.tsx",
+      "reason": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "slug": "charts__spectral-chart",
+      "file": "components/charts/spectral-chart.tsx",
+      "reason": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "slug": "chat__changelog-card",
+      "file": "components/chat/changelog-card.tsx",
+      "reason": "Cannot read properties of undefined (reading 'version')"
+    },
+    {
+      "slug": "chat__create-group-dialog",
+      "file": "components/chat/create-group-dialog.tsx",
+      "reason": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "slug": "chat__create-organization-dialog",
+      "file": "components/chat/create-organization-dialog.tsx",
+      "reason": "Cannot read properties of undefined (reading 'forEach')"
+    },
+    {
+      "slug": "dashboard-ios-style__humidity-widget",
+      "file": "components/dashboard/ios-style/humidity-widget.tsx",
+      "reason": "Cannot read properties of undefined (reading 'toFixed')"
+    },
+    {
+      "slug": "dashboard-ios-style__light-widget",
+      "file": "components/dashboard/ios-style/light-widget.tsx",
+      "reason": "Cannot read properties of undefined (reading 'toFixed')"
+    },
+    {
+      "slug": "dashboard-ios-style__nutrient-widget",
+      "file": "components/dashboard/ios-style/nutrient-widget.tsx",
+      "reason": "Cannot read properties of undefined (reading 'low')"
+    },
+    {
+      "slug": "dashboard-ios-style__soil-widget",
+      "file": "components/dashboard/ios-style/soil-widget.tsx",
+      "reason": "Cannot read properties of undefined (reading 'toFixed')"
+    },
+    {
+      "slug": "dashboard-ios-style__temperature-widget",
+      "file": "components/dashboard/ios-style/temperature-widget.tsx",
+      "reason": "Cannot read properties of undefined (reading 'toFixed')"
+    },
+    {
+      "slug": "dashboard-ios-style__weather-effects",
+      "file": "components/dashboard/ios-style/weather-effects.tsx",
+      "reason": "Cannot read properties of undefined (reading 'toLowerCase')"
+    },
+    {
+      "slug": "dashboard-ios-style__weather-visualizations",
+      "file": "components/dashboard/ios-style/weather-visualizations.tsx",
+      "reason": "Cannot read properties of undefined (reading 'toUpperCase')"
+    },
+    {
+      "slug": "dashboard-ios-style__weather-widget",
+      "file": "components/dashboard/ios-style/weather-widget.tsx",
+      "reason": "Cannot read properties of undefined (reading 'includes')"
+    },
+    {
+      "slug": "device__enhanced-device-feedback",
+      "file": "components/device/enhanced-device-feedback.tsx",
+      "reason": "Cannot read properties of undefined (reading 'success')"
+    }
+  ],
+  "empty": []
+}

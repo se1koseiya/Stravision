@@ -299,7 +299,7 @@ export async function initDB(): Promise<void> {
           name TEXT NOT NULL,
           description TEXT,
           parent_id BIGINT,
-          color TEXT DEFAULT '#1677ff',
+          color TEXT DEFAULT '#059669',
           icon TEXT DEFAULT 'folder',
           sort_order INTEGER DEFAULT 0,
           is_archived INTEGER DEFAULT 0,
@@ -329,7 +329,7 @@ export async function initDB(): Promise<void> {
           id BIGSERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL,
           name TEXT NOT NULL,
-          color TEXT DEFAULT '#1677ff',
+          color TEXT DEFAULT '#059669',
           usage_count INTEGER DEFAULT 0,
           created_at BIGINT NOT NULL,
           UNIQUE(user_id, name)
@@ -511,7 +511,7 @@ export async function initDB(): Promise<void> {
           publish_topic TEXT,
           node_id TEXT,
           icon TEXT DEFAULT 'Cpu',
-          color TEXT DEFAULT '#1677ff',
+          color TEXT DEFAULT '#059669',
           config JSONB DEFAULT '{}',
           is_critical BOOLEAN DEFAULT FALSE,
           is_enabled BOOLEAN DEFAULT TRUE,
@@ -524,6 +524,36 @@ export async function initDB(): Promise<void> {
           id BIGSERIAL PRIMARY KEY,
           device_id BIGINT NOT NULL,
           metrics JSONB NOT NULL,
+          created_at BIGINT NOT NULL
+        )`,
+        // ========== 通用硬件接入（Universal Device Access） ==========
+        // 接入连接：一个连接 = 一个外部系统/网关（MQTT broker、HTTP 服务、Modbus 设备），
+        // 一台连接可承载多台设备。凭证单独放 secrets（API 只回掩码，不回原文）。
+        `CREATE TABLE IF NOT EXISTS device_connections (
+          id BIGSERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          protocol TEXT NOT NULL,
+          description TEXT,
+          config JSONB NOT NULL DEFAULT '{}',
+          secrets JSONB NOT NULL DEFAULT '{}',
+          is_enabled BOOLEAN DEFAULT TRUE,
+          allow_private_network BOOLEAN DEFAULT FALSE,
+          owner_id INTEGER,
+          last_ok_at BIGINT,
+          last_error TEXT,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`,
+        // 通用属性历史：任意设备、任意指标都能落库（替代 sensor_readings 的固定列）
+        `CREATE TABLE IF NOT EXISTS device_property_values (
+          id BIGSERIAL PRIMARY KEY,
+          device_id BIGINT NOT NULL,
+          property_key TEXT NOT NULL,
+          value_num DOUBLE PRECISION,
+          value_text TEXT,
+          value_bool BOOLEAN,
+          quality TEXT DEFAULT 'good',
+          raw JSONB,
           created_at BIGINT NOT NULL
         )`
       ]
@@ -553,6 +583,37 @@ export async function initDB(): Promise<void> {
         try { await p.query(stmt) } catch (e: any) {
           // 已添加或类型冲突忽略（IF NOT EXISTS 已经处理大部分）
         }
+      }
+
+      // ── 通用硬件接入：devices 表平滑升级 ──────────────────────────────
+      // access_mode: 'legacy' = 走内置专属硬件链路（mqtt-service 的 node 映射）；
+      //              'generic' = 走 lib/devices 通用接入层（协议适配器 + 物模型）。
+      // 老数据默认 legacy，行为与升级前完全一致。
+      const deviceAlterStatements = [
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS access_mode TEXT DEFAULT 'legacy'`,
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS connection_id BIGINT`,
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS protocol TEXT`,
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS external_id TEXT`,
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS thing_model JSONB`,
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS ingest_key TEXT`,
+        `ALTER TABLE devices ADD COLUMN IF NOT EXISTS last_seen_at BIGINT`,
+      ]
+      for (const stmt of deviceAlterStatements) {
+        try { await p.query(stmt) } catch (e: any) {
+          console.warn('[DB] device column alter skipped:', e?.message)
+        }
+      }
+      // 放宽 devices.type 的 CHECK：通用设备不再被 4 种专属类型限制
+      try {
+        await p.query(`ALTER TABLE devices DROP CONSTRAINT IF EXISTS devices_type_check`)
+        await p.query(
+          `ALTER TABLE devices ADD CONSTRAINT devices_type_check
+           CHECK (type IN ('relay', 'sensor', 'camera', 'stepper',
+                           'generic', 'switch', 'actuator', 'meter', 'gateway'))`
+        )
+      } catch (e: any) {
+        // 并发启动时可能已被另一个进程建好，忽略重复约束
+        if (e?.code !== '42710') console.warn('[DB] devices type check skipped:', e?.message)
       }
 
       const indexStatements = [
@@ -618,7 +679,16 @@ export async function initDB(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS idx_kb_yjs_doc_item ON kb_yjs_documents(item_id)",
         // ========== 设备注册表索引 ==========
         "CREATE INDEX IF NOT EXISTS idx_devices_type_enabled ON devices(type, is_enabled, sort_order)",
-        "CREATE INDEX IF NOT EXISTS idx_device_sensor_data_device_time ON device_sensor_data(device_id, created_at DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_device_sensor_data_device_time ON device_sensor_data(device_id, created_at DESC)",
+        // ========== 通用硬件接入索引 ==========
+        "CREATE INDEX IF NOT EXISTS idx_devices_connection ON devices(connection_id)",
+        // 同一连接下外部设备 ID 唯一：防止重复接入同一台第三方设备
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_devices_connection_external ON devices(connection_id, external_id) WHERE connection_id IS NOT NULL AND external_id IS NOT NULL",
+        // 上报凭证唯一：HTTP 入口靠它定位设备
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_devices_ingest_key ON devices(ingest_key) WHERE ingest_key IS NOT NULL",
+        // 属性查询主索引：最新值 / 时间区间都走它
+        "CREATE INDEX IF NOT EXISTS idx_dpv_device_key_time ON device_property_values(device_id, property_key, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_dpv_time ON device_property_values(created_at DESC)"
       ]
 
       for (const statement of indexStatements) {
@@ -768,6 +838,51 @@ export async function initDB(): Promise<void> {
         console.error('Error creating changelog_entries:', error.message)
       }
 
+      // ===== 桌面端授权码（签发记录 + 设备激活记录） =====
+      // 授权码由管理后台签发，桌面端首次启动联网激活；服务端持 Ed25519 私钥对「租约」
+      // （含码 / 设备指纹 / 授权到期时间）签名，桌面端内置公钥验签 ——
+      // 租约是不可伪造的离线凭据，断网时凭它在宽限期内继续可用。
+      // 详见 docs/DESKTOP_LICENSE.md。
+      try {
+        await p.query(`CREATE TABLE IF NOT EXISTS desktop_licenses (
+          id BIGSERIAL PRIMARY KEY,
+          code TEXT NOT NULL UNIQUE,
+          label TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'active',
+          kind TEXT NOT NULL DEFAULT 'online',
+          max_activations INTEGER NOT NULL DEFAULT 1,
+          expires_at BIGINT,
+          grace_days INTEGER,
+          created_by BIGINT,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL
+        )`)
+        await p.query(`CREATE TABLE IF NOT EXISTS desktop_license_activations (
+          id BIGSERIAL PRIMARY KEY,
+          license_id BIGINT NOT NULL,
+          device_id TEXT NOT NULL,
+          device_name TEXT DEFAULT '',
+          platform TEXT DEFAULT '',
+          app_version TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'active',
+          ip TEXT DEFAULT '',
+          activated_at BIGINT NOT NULL,
+          last_seen_at BIGINT NOT NULL
+        )`)
+        await p.query("CREATE INDEX IF NOT EXISTS idx_dl_licenses_status ON desktop_licenses(status, created_at DESC)")
+        await p.query("CREATE INDEX IF NOT EXISTS idx_dl_licenses_code ON desktop_licenses(code)")
+        // 同一授权码 + 同一设备指纹只保留一行（重复激活走 upsert 刷新 last_seen_at）
+        await p.query("CREATE UNIQUE INDEX IF NOT EXISTS uq_dl_act_license_device ON desktop_license_activations(license_id, device_id)")
+        await p.query("CREATE INDEX IF NOT EXISTS idx_dl_act_license ON desktop_license_activations(license_id, status)")
+        await p.query("CREATE INDEX IF NOT EXISTS idx_dl_act_device ON desktop_license_activations(device_id)")
+        // 兼容已建库：kind（online/offline）与 grace_days（离线宽限天数）是后续追加的列。
+        // 老库的 CREATE TABLE IF NOT EXISTS 不会补列，必须显式 ALTER。
+        await p.query("ALTER TABLE desktop_licenses ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'online'")
+        await p.query("ALTER TABLE desktop_licenses ADD COLUMN IF NOT EXISTS grace_days INTEGER")
+      } catch (error: any) {
+        console.error('Error creating desktop_licenses:', error.message)
+      }
+
       try {
         await p.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0")
       } catch (error: any) {
@@ -873,6 +988,8 @@ export async function initDB(): Promise<void> {
   await ensureKbCollaborationTables()
   // 增量 migration：确保组织架构相关表存在
   await ensureOrganizationTables()
+  // 增量 migration：确保视觉诊断「病历」相关表存在
+  await ensureMedicalRecordTables()
   return
 }
 
@@ -1040,6 +1157,106 @@ async function ensureOrganizationTables(): Promise<void> {
   }
 
   organizationTablesEnsured = true
+}
+
+// 是否已确保视觉诊断「病历」相关 2 张表存在（进程内缓存，hot-reload 后会重置）
+let medicalRecordTablesEnsured = false
+
+/**
+ * 视觉诊断「病历沉淀」表。
+ *
+ * 设计要点：
+ * 1. `archive_key` 是**幂等键**（`${sessionId}:${messageId}`）—— 诊断卡在渲染/重挂载、
+ *    用户刷新页面、同一消息被重复解析时都可能触发自动入档，唯一约束保证只落一条。
+ * 2. `payload` 存完整 `DiagnosisResult` 快照（JSONB）—— 病历要能「原样回放」当时的诊断，
+ *    不能依赖将来可能变形的实时数据结构；同时把常查字段（病名/严重度/作物）冗余成列以便筛选。
+ * 3. `diagnosis_followups` 是复诊时间轴：每次回填疗效追加一行，用 `stage` 记录第几次复诊，
+ *    `efficacy` 是疗效分档（好转/稳定/恶化/痊愈），用于画病程曲线与算治愈率。
+ */
+async function ensureMedicalRecordTables(): Promise<void> {
+  if (medicalRecordTablesEnsured) return
+  const p = getPool()
+
+  const tables = [
+    `CREATE TABLE IF NOT EXISTS diagnosis_records (
+      id BIGSERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      archive_key TEXT NOT NULL,
+      session_id TEXT,
+      message_id TEXT,
+      crop TEXT,
+      disease_name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'unknown',
+      confidence NUMERIC(4,3),
+      severity TEXT NOT NULL DEFAULT 'none',
+      affected_parts JSONB NOT NULL DEFAULT '[]'::jsonb,
+      summary TEXT,
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      image_thumbnail TEXT,
+      note TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      treated_at BIGINT,
+      resolved_at BIGINT,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      UNIQUE(user_id, archive_key)
+    )`,
+    `CREATE TABLE IF NOT EXISTS diagnosis_followups (
+      id BIGSERIAL PRIMARY KEY,
+      record_id BIGINT NOT NULL,
+      user_id INTEGER NOT NULL,
+      stage INTEGER NOT NULL DEFAULT 1,
+      efficacy TEXT NOT NULL DEFAULT 'stable',
+      severity TEXT,
+      note TEXT,
+      image_thumbnail TEXT,
+      payload JSONB,
+      created_at BIGINT NOT NULL
+    )`
+  ]
+
+  for (const sql of tables) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      if (error.code !== '42P07') {
+        console.error('[ensureMedicalRecordTables] error:', error.message)
+      }
+    }
+  }
+
+  // 🚨 增量列迁移：`CREATE TABLE IF NOT EXISTS` 对**已存在**的表是空操作，
+  //    所以给老表加列必须显式 ALTER（IF NOT EXISTS 保证可重复执行）。
+  //    note = 病历备注（AI 或用户补的"已打药 / 雨后复发"之类），与诊断快照分列存储。
+  const columnMigrations = [
+    "ALTER TABLE diagnosis_records ADD COLUMN IF NOT EXISTS note TEXT",
+  ]
+  for (const sql of columnMigrations) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      console.error('[ensureMedicalRecordTables] migrate error:', error.message)
+    }
+  }
+
+  const indexes = [
+    "CREATE INDEX IF NOT EXISTS idx_diagnosis_records_user_created ON diagnosis_records(user_id, created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_diagnosis_records_user_status ON diagnosis_records(user_id, status)",
+    "CREATE INDEX IF NOT EXISTS idx_diagnosis_records_user_disease ON diagnosis_records(user_id, disease_name)",
+    "CREATE INDEX IF NOT EXISTS idx_diagnosis_followups_record ON diagnosis_followups(record_id, created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_diagnosis_followups_user ON diagnosis_followups(user_id, created_at DESC)"
+  ]
+  for (const sql of indexes) {
+    try {
+      await p.query(sql)
+    } catch (error: any) {
+      if (error.code !== '42P07') {
+        console.error('[ensureMedicalRecordTables] index error:', error.message)
+      }
+    }
+  }
+
+  medicalRecordTablesEnsured = true
 }
 
 export async function query<T>(sql: string, params: any[] = []): Promise<T[]> {

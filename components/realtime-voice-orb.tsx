@@ -56,9 +56,9 @@ interface RealtimeVoiceOrbProps {
 function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean }) {
   const cardBase = isUser
     ? "bg-white/15 border-white/25"
-    : "bg-slate-50 border-slate-200";
-  const titleColor = isUser ? "text-white/95" : "text-slate-800";
-  const subColor = isUser ? "text-white/65" : "text-slate-500";
+    : "bg-zinc-50 border-zinc-200";
+  const titleColor = isUser ? "text-white/95" : "text-zinc-800";
+  const subColor = isUser ? "text-white/65" : "text-zinc-500";
 
   if (command.action === "toggle_relay") {
     const deviceName = DEVICE_NAMES[String(command.device)] || `设备${command.device}`;
@@ -74,15 +74,15 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
 
     const iconBg = isUser
       ? isOn ? "bg-green-400/20 text-green-300" : "bg-white/10 text-white/60"
-      : isOn ? "bg-green-50 text-green-600" : "bg-slate-100 text-slate-400";
+      : isOn ? "bg-green-50 text-green-600" : "bg-zinc-100 text-zinc-400";
     const dotColor = isOn
       ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"
-      : isUser ? "bg-white/40" : "bg-slate-300";
+      : isUser ? "bg-white/40" : "bg-zinc-300";
 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <Icon size={18} strokeWidth={1.75} />
+          <Icon size={18} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>{deviceName}</div>
@@ -98,7 +98,7 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <IconLight size={18} strokeWidth={1.75} />
+          <IconLight size={18} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>RGB氛围灯</div>
@@ -118,11 +118,11 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
   if (command.action === "control_camera" || command.action === "reset_camera") {
     const isReset = command.action === "reset_camera";
     const direction = isReset ? "复位居中" : command.direction === 1 ? "左转" : command.direction === 2 ? "右转" : "停止";
-    const iconBg = isUser ? "bg-blue-400/20 text-blue-300" : "bg-blue-50 text-blue-500";
+    const iconBg = isUser ? "bg-emerald-400/20 text-emerald-300" : "bg-emerald-50 text-emerald-500";
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <IconVideo size={18} strokeWidth={1.75} />
+          <IconVideo size={18} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>摄像头云台</div>
@@ -137,7 +137,7 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <IconCalendar size={18} strokeWidth={1.75} />
+          <IconCalendar size={18} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>定时任务已创建</div>
@@ -150,11 +150,11 @@ function CommandCard({ command, isUser }: { command: AICommand; isUser: boolean 
   if (command.action === "navigate") {
     const pageName = PAGE_NAMES[command.page] || command.page;
     const iconBg = isUser ? "bg-indigo-400/20 text-indigo-300" : "bg-indigo-50 text-indigo-500";
-    const arrowColor = isUser ? "text-white/40" : "text-slate-400";
+    const arrowColor = isUser ? "text-white/40" : "text-zinc-400";
     return (
       <div className={cn("mt-2.5 flex items-center gap-3 p-2.5 rounded-xl border shadow-sm overflow-hidden", cardBase)}>
         <div className={cn("flex items-center justify-center w-9 h-9 rounded-full shrink-0", iconBg)}>
-          <IconNavigation size={18} strokeWidth={1.75} />
+          <IconNavigation size={18} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
           <div className={cn("text-[13px] font-medium truncate", titleColor)}>页面跳转</div>
@@ -332,7 +332,7 @@ export function RealtimeVoiceOrb({
         whileTap={{ scale: 0.95 }}
       >
         {/* Orb Background */}
-        <div className="absolute inset-0 rounded-full shadow-2xl">
+        <div className="absolute inset-0 rounded-full shadow-lg">
           <BerryOrb size={`${size}px`} isActive={isActive} expression={orbExpression} className="w-full h-full" />
         </div>
 
@@ -361,7 +361,7 @@ export function RealtimeVoiceOrb({
             className={cn(
               "absolute inset-0 rounded-full border-2",
               status === "listening" && "border-red-400/50",
-              status === "processing" && "border-blue-400/50",
+              status === "processing" && "border-emerald-400/50",
               status === "speaking" && "border-green-400/50"
             )}
             initial={{ scale: 1, opacity: 0.5 }}
@@ -386,7 +386,7 @@ export function RealtimeVoiceOrb({
               className={cn(
                 "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-md shadow-sm border",
                 status === "listening" && "bg-red-100/80 text-red-600 border-red-200",
-                status === "processing" && "bg-blue-100/80 text-blue-600 border-blue-200",
+                status === "processing" && "bg-emerald-100/80 text-emerald-600 border-emerald-200",
                 status === "speaking" && "bg-green-100/80 text-green-600 border-green-200",
                 status === "connecting" && "bg-yellow-100/80 text-yellow-600 border-yellow-200",
                 status === "error" && "bg-red-100/90 text-red-700 border-red-300"
@@ -440,10 +440,10 @@ export function RealtimeVoiceOrb({
                 >
                   <div
                     className={cn(
-                      "relative max-w-[85%] px-4 py-2.5 rounded-2xl border shadow-md",
+                      "relative max-w-[85%] px-4 py-2.5 rounded-2xl border shadow-sm",
                       isUser
-                        ? "bg-[#1677ff] border-[#1677ff] text-white rounded-br-md shadow-[#1677ff]/15"
-                        : "bg-white border-slate-200/80 text-slate-800 rounded-bl-md shadow-slate-300/30"
+                        ? "bg-[#059669] border-[#059669] text-white rounded-br-md shadow-[#059669]/15"
+                        : "bg-white border-zinc-200/80 text-zinc-800 rounded-bl-md shadow-zinc-300/30"
                     )}
                   >
                     <div className="text-[14px] leading-relaxed break-words whitespace-pre-wrap font-normal tracking-normal">
@@ -477,10 +477,10 @@ export function RealtimeVoiceOrb({
               >
                 <div
                   className={cn(
-                    "relative max-w-[85%] px-4 py-2.5 rounded-2xl border shadow-md",
+                    "relative max-w-[85%] px-4 py-2.5 rounded-2xl border shadow-sm",
                     isUserSpeaking
-                      ? "bg-[#1677ff] border-[#1677ff] text-white rounded-br-md shadow-[#1677ff]/15"
-                      : "bg-white border-slate-200/80 text-slate-800 rounded-bl-md shadow-slate-300/30"
+                      ? "bg-[#059669] border-[#059669] text-white rounded-br-md shadow-[#059669]/15"
+                      : "bg-white border-zinc-200/80 text-zinc-800 rounded-bl-md shadow-zinc-300/30"
                   )}
                 >
                   <div className="text-[14px] leading-relaxed break-words whitespace-pre-wrap font-normal tracking-normal flex items-end gap-1">
@@ -490,7 +490,7 @@ export function RealtimeVoiceOrb({
                         <div className="w-full">
                           <span>{streamText}</span>
                           {!isUserSpeaking && (
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500 animate-pulse mb-0.5 ml-0.5" />
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-500 animate-pulse mb-0.5 ml-0.5" />
                           )}
                           {streamCommands.length > 0 && (
                             <div className="mt-1">

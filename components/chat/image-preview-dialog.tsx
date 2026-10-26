@@ -44,8 +44,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
           position: "relative",
           borderRadius: 12,
           overflow: "hidden"
-        },
-        content: { padding: 0, background: "transparent" }
+        }
       }}
       style={{ top: "5vh" }}
     >
@@ -56,7 +55,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
             <Button
               type="text"
               shape="circle"
-              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              className="!h-10 !w-10 !rounded-full !bg-br-surface/10 hover:!bg-br-surface/20 !text-white"
               icon={<IconZoomOut className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleZoomOut}
             />
@@ -65,7 +64,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
             <Button
               type="text"
               shape="circle"
-              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              className="!h-10 !w-10 !rounded-full !bg-br-surface/10 hover:!bg-br-surface/20 !text-white"
               icon={<IconZoomIn className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleZoomIn}
             />
@@ -74,7 +73,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
             <Button
               type="text"
               shape="circle"
-              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              className="!h-10 !w-10 !rounded-full !bg-br-surface/10 hover:!bg-br-surface/20 !text-white"
               icon={<IconDownload className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={handleDownload}
             />
@@ -83,7 +82,7 @@ export function ImagePreviewDialog({ open, onOpenChange, imageUrl }: ImagePrevie
             <Button
               type="text"
               shape="circle"
-              className="!h-10 !w-10 !rounded-full !bg-white/10 hover:!bg-white/20 !text-white"
+              className="!h-10 !w-10 !rounded-full !bg-br-surface/10 hover:!bg-br-surface/20 !text-white"
               icon={<IconClose className="h-5 w-5" strokeWidth={ICON_STROKE} />}
               onClick={() => onOpenChange(false)}
             />

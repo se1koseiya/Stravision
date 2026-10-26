@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { APP_VERSION_TAG } from "@/lib/app-meta"
 
 const loaders = [
   "/ip/loader1.png",
@@ -95,7 +96,7 @@ export function LoadingScreen({ onFinished }: { onFinished: () => void }) {
                 alt="Loading..." 
                 width={320} 
                 height={320}
-                className="object-contain drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                className="object-contain drop-shadow-[0_0_20px_rgba(0,148,86,0.3)]"
                 priority
              />
           </motion.div>
@@ -111,7 +112,7 @@ export function LoadingScreen({ onFinished }: { onFinished: () => void }) {
         
         <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden relative">
           <motion.div 
-            className="absolute top-0 left-0 h-full bg-primary shadow-[0_0_15px_#10b981]"
+            className="absolute top-0 left-0 h-full bg-primary shadow-[0_0_15px_#059669]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
           />
@@ -122,10 +123,10 @@ export function LoadingScreen({ onFinished }: { onFinished: () => void }) {
           />
         </div>
         
-        <div className="flex justify-between w-full text-[10px] font-mono text-primary/30 uppercase tracking-[0.2em]">
+        <div className="flex justify-between w-full text-[11px] font-mono text-primary/30 uppercase tracking-[0.2em]">
           <span>Loading Assets</span>
           <span>Stravision IOT</span>
-          <span>v2.4.0</span>
+          <span>{APP_VERSION_TAG}</span>
         </div>
       </div>
 

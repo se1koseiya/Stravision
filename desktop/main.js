@@ -23,7 +23,7 @@ require('./lib/spawn-asar-fix').apply();
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, session, shell, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, session, shell, ipcMain, dialog, Menu } = require('electron');
 
 const config = require('./lib/config');
 const logger = require('./lib/logger');
@@ -33,8 +33,29 @@ const postgres = require('./lib/postgres');
 const mqtt = require('./lib/mqtt');
 const servers = require('./lib/servers');
 const aiProvider = require('./lib/ai-provider');
+const webSearch = require('./lib/web-search');
 const settings = require('./lib/settings');
 const notify = require('./lib/notify');
+const license = require('./lib/license');
+
+/**
+ * 静态 UI 页面目录（splash / activate 的 html）。
+ *
+ * ⚠️ 2026-10-07：首启向导**不再**是这里的文件 —— 它改成了 Next 路由 /desktop-setup
+ *   （见 app/desktop-setup/page.tsx），由 setupWindow 用 loadURL 打开，不走 file://。
+ *   之所以能这么改：向导跑在 bootstrap 第 8 步，此时 Next 已就绪（见下方 bootstrap 步骤 6/7/8）；
+ *   而 splash（最早）与 activate（第 1 步授权关卡）都早于 Next，必须保持静态。
+ *
+ * 🚨 这两个静态页打包态**不能**用 `__dirname` 拼：本机 electron-builder 打出的 app.asar 里，
+ *   文件路径是 Windows 反斜杠形态（`\ui\activate.html`）。
+ *   Node 的 require 对它容错（所以主进程代码照常加载，问题很隐蔽），
+ *   但 Chromium 的 file:// 不做转换 → `loadFile` 恒报 ERR_FILE_NOT_FOUND，
+ *   激活窗口 / splash 一个都打不开（已激活的老机器走不到这些界面，所以一直没暴露）。
+ *   打包一律走 `<resources>/ui`（由 extraResources 从 desktop/ui 拷贝），绕开 asar 虚拟文件系统。
+ */
+function uiDir() {
+  return app.isPackaged ? path.join(process.resourcesPath, 'ui') : path.join(__dirname, 'ui');
+}
 
 /* ------------------------------------------------------------------ */
 /* 全局渲染层诊断                                                       */
@@ -55,7 +76,19 @@ logger.info('app', `desktop v${app.getVersion()} electron=${process.versions.ele
 const WINDOW = {
   width: 1440,
   height: 940,
-  minWidth: 1024,
+  /**
+   * 🚨 最小宽度 1024 → 1280。
+   *
+   * 起因：主窗口改成自绘标题栏后，− □ ✕ 由页面顶栏承载。而顶栏本身是"零余量"布局 ——
+   * 中段那条导航胶囊自己就占 727px（wrapper 771px），三段实测 1024 下合计 1115px，
+   * 本来就横向溢出（改了之前头像与"聊天"就已经被裁）。
+   * 实测：1024 时三个控制键落在 x=963/1009/1055 —— **关闭按钮被窗口右边缘裁掉一截**，
+   * 用户点不到关闭；1280 时左侧段 214px、右侧段 214px，全部落回窗内、控制键完整可见。
+   *
+   * 也就是说窗口功能键内联的前提是"顶栏装得下"，1280 是能让这条链完整成立的下限。
+   * 若要调回更小值，必须先让顶栏中段可收缩（PageNavigation 的胶囊需要跟着改）。
+   */
+  minWidth: 1280,
   minHeight: 700,
 };
 
@@ -76,6 +109,9 @@ let splashWindow = null;
 let setupWindow = null;
 /** 配置向导的完成回调：由 IPC 保存成功 / 跳过 / 窗口关闭三处触发 */
 let setupFinish = null;
+let activateWindow = null;
+/** 激活界面的完成回调：激活成功 / 用户关闭窗口两处触发 */
+let activateFinish = null;
 /** 'first-run'（首启，允许跳过） | 'settings'（应用内手动打开） */
 let setupMode = 'first-run';
 let shuttingDown = false;
@@ -133,7 +169,7 @@ function createSplashWindow() {
     if (lastStatus) splashWindow.webContents.send('bootstrap:status', lastStatus);
   });
 
-  splashWindow.loadFile(path.join(__dirname, 'ui', 'splash.html'));
+  splashWindow.loadFile(path.join(uiDir(), 'splash.html'));
   splashWindow.once('ready-to-show', () => splashWindow.show());
 }
 
@@ -144,7 +180,58 @@ function closeSplashWindow() {
   splashWindow = null;
 }
 
+/**
+ * 窗口「玻璃壳」能力探测（2026-10-22，2026-10-23 两次改判）
+ *
+ * ── 到底要什么 ──
+ *   用户要的是**沉浸光感的模糊感**：窗口背后那层桌面要被「糊」掉再透上来，
+ *   不是一块透明玻璃（能数清壁纸上的每一条线）。
+ *
+ * ── 三种能力的实测差异（本机 Win11 26200 + Electron 44，黑白条纹垫底，
+ *    沿窗口中线采 240 点算亮度标准差 —— 糊 = 方差趋零，没糊 = 方差保留）──
+ *   · transparent:true    stdev ≈ 30.5  → 条纹原样透上来，**一点都没糊**（只有透明）
+ *   · mica                stdev ≈ 0     → 糊成纯色 #F6F6F6，但它糊的是「壁纸主色调」，
+ *                                          根本不是窗口背后那块内容，等于没有信息
+ *   · acrylic             stdev ≈ 0.4   → **真模糊**：窗口背后的内容被 DWM 采样 + 高斯模糊
+ *   ⇒ 要模糊感，Windows 上只有 acrylic 这一条路。
+ *
+ * ── 代价 ──
+ *   · acrylic 带一层系统 tint（亮色偏白、暗色偏黑），所以画布 alpha 不能给太高，
+ *     否则 tint 被盖死、看不出「磨砂」（默认值见 app/globals.css 的 --glass-a）；
+ *   · DWM 每帧重采样 → 拖动/滚动比 mica 贵，笔记本离电时更明显；
+ *     但这是"要模糊"必须付的账，mica 省电却给不了模糊。
+ *   · acrylic 与 transparent 互斥：同时给会直接丢掉材质，所以这里**不能**再带 transparent。
+ *
+ *   macOS 走 vibrancy（系统原生毛玻璃，同样是真模糊，不需要改）。
+ *
+ * 结果经环境变量传给 preload，再由页面读 window.stravisionDesktop.glassShell：
+ * 页面据此写 <html data-glass-shell="on">（画布 token 半透明）与 data-imv-scene="on"。
+ */
+function detectGlassShell() {
+  const platform = process.platform
+  if (platform === 'darwin') {
+    return {
+      enabled: true,
+      reason: 'macos:vibrancy',
+      windowOptions: { vibrancy: 'under-window', visualEffectState: 'active', transparent: true },
+    }
+  }
+  if (platform !== 'win32') return { enabled: false, reason: `${platform}:unsupported`, windowOptions: {} }
+
+  /* Windows 11 22H2+ 用 acrylic（真模糊）；21H2 也支持。
+     Windows 10 没有 system backdrop（DWMWA_SYSTEMBACKDROP_TYPE 是 Win11 才有的），
+     这里按 build 号守住 —— 拿不到材质时宁可回到实色，也不要做成一个"看起来漏了"的窗。 */
+  const build = Number(String(require('node:os').release()).split('.')[2] || 0)
+  if (build >= 22000) return { enabled: true, reason: `win11:${build}:acrylic`, windowOptions: { backgroundMaterial: 'acrylic' } }
+  return { enabled: false, reason: `win10:${build}:no-backdrop`, windowOptions: {} }
+}
+
 async function openMainWindow(url) {
+  const glassShell = detectGlassShell()
+  /* preload 与主进程不同进程，环境变量是最短的传递路径（窗口创建前写入即可） */
+  process.env.STRAVISION_GLASS_SHELL = glassShell.enabled ? '1' : ''
+  logger.info('window', `glass-shell=${glassShell.enabled ? 'on' : 'off'} (${glassShell.reason})`)
+
   mainWindow = new BrowserWindow({
     width: WINDOW.width,
     height: WINDOW.height,
@@ -152,8 +239,29 @@ async function openMainWindow(url) {
     minHeight: WINDOW.minHeight,
     show: false,
     title: 'Stravision',
-    backgroundColor: '#ffffff',
-    autoHideMenuBar: true,
+    /* 玻璃壳启用时**完全不写 backgroundColor**：让系统材质自己拥有窗口背景。
+       以前这里写 '#00000000'，但 Electron 文档明确「只有 transparent:true 时 backgroundColor
+       的 alpha 才生效」，acrylic 又不能带 transparent —— 这条路径纯属靠运气，正式写法是别碰它。
+       未启用时保持原来的白底（启动那一下不会闪黑）。 */
+    ...(glassShell.enabled ? {} : { backgroundColor: '#ffffff' }),
+    ...glassShell.windowOptions,
+    /**
+     * 🚨 无边框（自绘标题栏）。
+     *
+     * 原来这里是系统原生标题栏 + `autoHideMenuBar: true`：
+     *   - 原生标题栏那排「编辑/窗口/帮助/关于」其实来自 Electron 的**默认**
+     *     application menu（我们从未调用 `Menu.setApplicationMenu`，于是它被自动挂上），
+     *     `autoHideMenuBar` 只是把它藏起来，按 Alt 就会在窗口顶部冒出来 ——
+     *     和页面自己的顶栏是两套视觉语言，割裂感很明显。
+     *   - 现在整个窗口 chrome 交给页面：菜单与 − □ ✕ 由
+     *     `components/desktop/desktop-window-chrome.tsx` 自绘，
+     *     拖拽区由 PageHeader / 全局兜底层声明 `-webkit-app-region: drag`。
+     *
+     * 相应地 `configureApplicationMenu()` 会把原生菜单整份摘掉
+     * （macOS 例外：系统顶栏菜单不占窗口空间，但整份置空会让 Cmd+C/V/Q 失效，
+     *   故只保留一份极简菜单维持标准快捷键）。
+     */
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -197,6 +305,22 @@ async function openMainWindow(url) {
     }
   });
 
+  /**
+   * 窗口状态回推 —— 自绘标题栏的「最大化 ⇄ 还原」按钮图标必须跟着**系统**状态走：
+   * 用户双击标题栏、Win+↑、把窗口拖到屏幕边缘做 Aero Snap 时都不经过我们的按钮，
+   * 只听按钮点击的话图标会和真实状态不一致。
+   */
+  const pushWindowState = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send('desktop:window-state', {
+      maximized: mainWindow.isMaximized(),
+      fullscreen: mainWindow.isFullScreen(),
+    });
+  };
+  for (const evt of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'restore']) {
+    mainWindow.on(evt, pushWindowState);
+  }
+
   await mainWindow.loadURL(`${url}/login`);
 }
 
@@ -220,13 +344,17 @@ function openSetupWindow({ allowSkip = true } = {}) {
 
   return new Promise((resolve) => {
     setupWindow = new BrowserWindow({
-      width: 460,
-      height: 680, // AI 步骤含「已配置供应商」管理区（adminUI 融合），620 装不下
+      // 分栏版式（左品牌面板 300 + 右内容区）：必须是宽扁比例，
+      // 竖长条会把左面板压到 175px 塞不下插画与大标题。
+      // 660 高在 1280×720 屏上仍留 60px 余量；内容区自身可滚动。
+      width: 940,
+      height: 660,
       frame: false,
       resizable: false,
       maximizable: false,
       show: false,
-      backgroundColor: '#ffffff',
+      // 与页面底色一致（#f7f7f9），避免加载那一帧先闪一下纯白
+      backgroundColor: '#f7f7f9',
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
@@ -274,12 +402,22 @@ function openSetupWindow({ allowSkip = true } = {}) {
       if (setupFinish) setupFinish(allowSkip ? 'skipped' : 'closed');
     });
 
-    // 通过 query 告知页面来源：首启向导允许"稍后配置"，应用内打开的向导不写跳过标记。
-    // 页面据此决定按钮文案与是否展示"立即重启"（首启时服务已起，改 env 同样要重启）。
-    setupWindow.loadFile(path.join(__dirname, 'ui', 'setup.html'), {
-      query: { mode: allowSkip ? 'first-run' : 'settings' },
-    }).catch((err) => {
-      logger.error('setup', `向导 loadFile 失败: ${err?.message ?? err}`);
+    // 🚨 向导是**应用内路由**（app/desktop-setup/page.tsx），不是静态页 ——
+    //    它在 bootstrap 第 8 步打开，此时 Next 已经拉起并通过健康检查（步骤 6/7），
+    //    所以可以直接 loadURL 到本地服务；页面因此能复用 Tailwind、项目组件与
+    //    AI 助手那套极光背景，而不用维护一份手抄设计系统的独立 HTML。
+    //    ⚠️ 改成静态页会退回「每次调样式都要重抄一遍 token」的老问题，别回退。
+    const nextPort = state.ports && state.ports.next;
+    if (!nextPort) {
+      logger.error('setup', '向导无法加载：Next 端口未就绪（bootstrap 未走到第 6 步）');
+      setupFinish('closed');
+      return;
+    }
+    // 用 query 告知页面来源：首启向导允许"稍后配置"，应用内打开的向导不写跳过标记。
+    const setupUrl = new URL('/desktop-setup', `http://127.0.0.1:${nextPort}`);
+    setupUrl.searchParams.set('mode', setupMode);
+    setupWindow.loadURL(setupUrl.toString()).catch((err) => {
+      logger.error('setup', `向导 loadURL 失败: ${err?.message ?? err}`);
     });
     setupWindow.once('ready-to-show', () => {
       logger.info('setup', '向导窗口 ready-to-show → show()');
@@ -294,6 +432,171 @@ function openSetupWindow({ allowSkip = true } = {}) {
       }
     }, 2500);
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* 授权激活界面                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 授权激活窗口。
+ *
+ * 出现时机（bootstrap 里的授权关卡）：
+ *   - 本机从未激活；
+ *   - 本地授权已损坏 / 与本机不匹配；
+ *   - 授权已到期，或超过离线宽限期；
+ *   - 服务端明确拒绝（被停用 / 被后台解绑）。
+ *
+ * 用户关闭窗口 = 放弃激活 → bootstrap 中止并退出应用：
+ * 授权是"能不能用"的前置条件，没有可降级的中间态。
+ *
+ * @returns {Promise<'activated'|'closed'|'already-open'>}
+ */
+function openActivateWindow() {
+  if (activateWindow && !activateWindow.isDestroyed()) {
+    activateWindow.show();
+    activateWindow.focus();
+    return Promise.resolve('already-open');
+  }
+
+  logger.info('license', '打开授权激活窗口');
+
+  return new Promise((resolve) => {
+    activateWindow = new BrowserWindow({
+      // 与首启向导同一套分栏版式，窗口尺寸保持一致
+      width: 940,
+      height: 660,
+      frame: false,
+      resizable: false,
+      maximizable: false,
+      show: false,
+      backgroundColor: '#ffffff',
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    activateWindow.webContents.on('did-fail-load', (_event, code, desc, url) => {
+      logger.error('license', `激活界面加载失败 code=${code} desc=${desc} url=${url}`);
+    });
+    activateWindow.webContents.on('render-process-gone', (_event, details) => {
+      logger.error('license', `激活界面渲染进程退出 reason=${details?.reason} exitCode=${details?.exitCode}`);
+    });
+
+    let settled = false;
+    activateFinish = (result) => {
+      if (settled) return;
+      settled = true;
+      activateFinish = null;
+      if (activateWindow && !activateWindow.isDestroyed()) activateWindow.close();
+      activateWindow = null;
+      resolve(result);
+    };
+
+    // 直接关窗 = 放弃激活（不是"稍后再说"：没有授权就没有可用的应用）
+    activateWindow.on('closed', () => {
+      if (activateFinish) activateFinish('closed');
+    });
+
+    activateWindow.loadFile(path.join(uiDir(), 'activate.html')).catch((err) => {
+      logger.error('license', `激活界面 loadFile 失败: ${err?.message ?? err}`);
+    });
+    activateWindow.once('ready-to-show', () => activateWindow.show());
+    // 与配置向导同款兜底：ready-to-show 偶发不触发时不留下隐形窗口
+    setTimeout(() => {
+      if (activateWindow && !activateWindow.isDestroyed() && !activateWindow.isVisible()) {
+        logger.warn('license', 'ready-to-show 未触发，兜底强制 show()');
+        activateWindow.show();
+      }
+    }, 2500);
+  });
+}
+
+/**
+ * 授权关卡。
+ *
+ * 取舍说明：
+ *   - 本地租约有效就先放行，**不**用联网结果阻塞启动
+ *     （客户机房常年断网，不能一断网就用不了）；
+ *   - 放行后异步心跳：服务端明确拒绝（403/404）时作废本地授权，
+ *     下次启动会重新要求激活；网络不可达则什么都不做，由离线宽限期兜底。
+ *
+ * @returns {Promise<boolean>} 是否允许继续启动
+ */
+/** 运行期定时复检句柄（避免重复注册） */
+let revocationTimer = null;
+
+/**
+ * 运行期每 6 小时核对一次吊销清单 —— 客户不重启也能在半天内收到作废。
+ * 命中就弹窗说明并退出；拉不到（断网）什么都不做，由 evaluate 的 overdue 窗口兜底。
+ */
+function startRevocationTimer() {
+  if (revocationTimer) return;
+  revocationTimer = setInterval(async () => {
+    try {
+      const result = await license.checkRevocation();
+      if (result.hit) {
+        logger.warn('license', '本机授权已被管理员作废，提示后退出');
+        dialog
+          .showMessageBox({
+            type: 'warning',
+            buttons: ['退出'],
+            defaultId: 0,
+            title: '授权已作废',
+            message: '该授权已被管理员作废',
+            detail: '如需继续使用，请联系管理员重新签发授权码。',
+          })
+          .then(() => app.quit())
+          .catch(() => app.quit());
+      }
+    } catch (err) {
+      logger.warn('license', `运行期吊销复检异常：${err.message}`);
+    }
+  }, license.RECHECK_INTERVAL);
+  // 不阻止应用退出
+  if (revocationTimer.unref) revocationTimer.unref();
+}
+
+async function ensureLicensed() {
+  // ① 启动即核对一次吊销清单（只有租约带 rl 才真的联网；失败不阻塞启动）
+  try {
+    const rev = await license.checkRevocation();
+    if (rev.hit) logger.warn('license', '本机授权码已在吊销清单中');
+    else if (rev.offline) logger.warn('license', `吊销清单暂不可达：${rev.error}`);
+  } catch (err) {
+    logger.warn('license', `启动期吊销复检异常：${err.message}`);
+  }
+
+  const current = license.evaluate();
+
+  if (current.ok) {
+    logger.info('license', `本地授权有效（${current.status}）`);
+    startRevocationTimer();
+    if (current.status === 'active') {
+      license
+        .heartbeat()
+        .then((result) => {
+          if (!result.ok && result.fatal) {
+            logger.warn('license', `服务端拒绝当前授权，作废本地凭据：${result.error}`);
+            license.clear();
+          }
+        })
+        .catch((err) => logger.warn('license', `心跳异常：${err.message}`));
+    }
+    return true;
+  }
+
+  logger.warn('license', `需要激活：${current.status} / ${current.message}`);
+  const result = await openActivateWindow();
+  if (result !== 'activated') {
+    logger.warn('license', '用户放弃激活，退出应用');
+    return false;
+  }
+  const after = license.evaluate();
+  logger.info('license', `激活完成，当前状态 ${after.status}`);
+  return after.ok;
 }
 
 /** 深比较两个配置片段是否等价（用于判断是否需要提示重启） */
@@ -377,6 +680,10 @@ function buildServerEnv({ ports, secretKeys, appSettings, mqttPort, dataRoot }) 
     // 会直接堵死注册与登录。此处显式关闭。
     CAP_ENABLED: 'false',
 
+    // FFmpeg 绝对路径 + 目录入 PATH：服务端 lib/media/ffmpeg.ts 优先读这个变量，
+    // 避免它去逐个猜路径（用户机器上通常没有 FFmpeg）。
+    ...config.getFfmpegEnv(),
+
     ...config.DESKTOP_ENV,
   };
 
@@ -423,6 +730,16 @@ async function bootstrap() {
       secretKeys.INTERNAL_API_SECRET = appSettings.secrets.internalApiSecret;
     }
 
+    // 3.5 授权关卡。刻意放在数据库之前：
+    //     没有授权就没必要初始化 PG / 拉起服务，也避免未授权用户
+    //     在磁盘上留下一整套数据目录。未通过则直接退出应用。
+    status('正在校验授权…', 12);
+    if (!(await ensureLicensed())) {
+      pushStatus({ text: '未完成激活', progress: 100, error: '本机尚未完成授权激活' });
+      app.quit();
+      return;
+    }
+
     // 4. 内嵌数据库
     status('正在初始化本地数据库…', 18);
     await postgres.start({ dataDir: config.getPgDataDir(), port: ports.postgres });
@@ -455,6 +772,16 @@ async function bootstrap() {
     if (!state.serversStarted) {
       status('正在启动应用服务…', 55);
       const env = buildServerEnv({ ports, secretKeys, appSettings, mqttPort, dataRoot });
+      // FFmpeg 缺失会让「实时视频监控 / AI 抓帧」整条链路不可用，属于上线前必须暴露的问题，
+      // 不静默：写进桌面端日志（%APPDATA%/Stravision/logs）便于售后排查。
+      if (env.STRAVISION_FFMPEG_PATH) {
+        logger.info('ffmpeg', `已内置 FFmpeg：${env.STRAVISION_FFMPEG_PATH}`);
+      } else {
+        logger.warn(
+          'ffmpeg',
+          `未找到内置 FFmpeg（${config.getFfmpegRoot()}），RTMP 实时视频与 AI 抓帧将不可用；请检查安装包是否包含 resources/ffmpeg`,
+        );
+      }
       servers.startAll({
         serverRoot: build.root,
         env,
@@ -476,7 +803,24 @@ async function bootstrap() {
     await servers.waitForPort(ports.ws, { timeoutMs: 30000, label: 'ws-voice' });
     await servers.waitForPort(ports.yjs, { timeoutMs: 30000, label: 'yjs' });
 
-    // 8. 首启 AI 助手配置。
+    // 8. 联网搜索开箱即用。
+    //    用户群体不看 API Key，所以这里静默把 webSearchConfig 配好：
+    //    授权服务器换 key → 内置应急 key → 内置本地引擎（永远成功）。
+    //    已由 admin / 用户手动配置过则原样尊重，不覆盖。
+    //    放在 AI 向导之前：用户即使跳导向导，联网搜索也是可用的。
+    status('正在配置联网搜索…', 82);
+    try {
+      const ws = await webSearch.ensureWebSearch(build.root);
+      logger.info(
+        'web-search',
+        `联网搜索就绪 protocol=${ws.protocol} source=${ws.source}${ws.changed ? '（本次已写入）' : ''}`,
+      );
+    } catch (err) {
+      // 配置失败不阻断启动：最差情况是沿用已有配置，聊天与设备功能均不受影响
+      logger.warn('web-search', `联网搜索自动配置失败，沿用现有配置：${err.message}`);
+    }
+
+    // 9. 首启 AI 助手配置。
     //    桌面端不预置任何供应商凭据（构建时已重置为空调），若用户不填 Key，
     //    AI 对话 / 自动化 / 知识库检索全部返回 "No AI provider configured"。
     //    因此首次启动主动引导；用户可跳过，跳过状态持久化，之后只在应用内设置页改。
@@ -490,7 +834,7 @@ async function bootstrap() {
       }
     }
 
-    // 9. 打开主界面
+    // 10. 打开主界面
     status('正在加载界面…', 95);
     state.backendUrl = `http://127.0.0.1:${ports.next}`;
     await openMainWindow(state.backendUrl);
@@ -532,6 +876,62 @@ function registerIpc() {
     if (state.fatalNotice) state.fatalNotice = null;
     await bootstrap();
     return { ok: !state.fatalNotice };
+  });
+
+  /* ---- 授权码 ---- */
+
+  /** 激活界面用：设备指纹 + 当前授权状态 */
+  ipcMain.handle('desktop:license-info', () => {
+    const current = license.evaluate();
+    return {
+      deviceId: license.getDeviceId(),
+      deviceName: license.getDeviceName(),
+      serverUrl: license.serverUrl(),
+      status: current.status,
+      message: current.message,
+      code: current.code ?? null,
+      label: current.label ?? null,
+      offline: current.offline === true,
+      expiresAt: current.expiresAt ?? null,
+      daysLeft: current.daysLeft ?? null,
+      graceDays: current.graceDays ?? license.GRACE_DAYS,
+      graceDaysLeft: current.graceDaysLeft ?? null,
+      revokedAt: current.revokedAt ?? null,
+      revalidation: current.revalidation ?? null,
+    };
+  });
+
+  /** 提交授权码：成功后关窗，让 bootstrap 继续往下走 */
+  ipcMain.handle('desktop:license-activate', async (_event, code) => {
+    try {
+      const result = await license.activate(code);
+      if (result.ok && activateFinish) activateFinish('activated');
+      return result;
+    } catch (err) {
+      logger.warn('license', `激活请求异常：${err.message}`);
+      return { ok: false, error: '无法连接授权服务器，请检查网络后重试' };
+    }
+  });
+
+  /**
+   * 导入离线授权串：纯本地验签，不发任何网络请求。
+   * 服务器停机 / 到期 / 域名失效都不影响这条路径 —— 这是"服务器没了也能发授权"的保底通道。
+   */
+  ipcMain.handle('desktop:license-activate-offline', (_event, blob) => {
+    try {
+      const result = license.activateOffline(blob);
+      if (result.ok && activateFinish) activateFinish('activated');
+      return result;
+    } catch (err) {
+      logger.warn('license', `离线授权导入异常：${err.message}`);
+      return { ok: false, error: '离线授权串解析失败，请确认复制完整' };
+    }
+  });
+
+  /** 放弃激活 → 关窗，bootstrap 随即退出应用 */
+  ipcMain.handle('desktop:license-quit', () => {
+    if (activateFinish) activateFinish('closed');
+    else app.quit();
   });
 
   /* ---- 本地服务配置向导（AI / MQTT / 语音 / 自定义 env） ---- */
@@ -761,6 +1161,99 @@ function registerIpc() {
     }, 0);
     return { ok: true };
   });
+
+  /* ---- 自绘标题栏：窗口功能键 ---------------------------------------- */
+  /* 主窗口 frame:false 之后，最小化/最大化/关闭/编辑类动作全部由页面自绘的
+     标题栏发起（见 components/desktop/desktop-window-chrome.tsx）。
+     这里只做"命令 → Electron API"的映射，不掺任何业务判断。              */
+
+  const WINDOW_COMMANDS = {
+    minimize: (win) => win.minimize(),
+    'toggle-maximize': (win) => (win.isMaximized() ? win.unmaximize() : win.maximize()),
+    close: (win) => win.close(),
+    'toggle-fullscreen': (win) => win.setFullScreen(!win.isFullScreen()),
+    reload: (win) => win.webContents.reload(),
+    'toggle-devtools': (win) => win.webContents.toggleDevTools(),
+    // 编辑类：走 webContents 的原生编辑命令。
+    // 🚨 摘掉原生菜单后，Ctrl+C/V/X/A/Z 在输入框里照常可用（Chromium 内建处理），
+    //    但「编辑」菜单**条目本身**需要显式落到这些命令上，否则点了没反应。
+    undo: (win) => win.webContents.undo(),
+    redo: (win) => win.webContents.redo(),
+    cut: (win) => win.webContents.cut(),
+    copy: (win) => win.webContents.copy(),
+    paste: (win) => win.webContents.paste(),
+    'select-all': (win) => win.webContents.selectAll(),
+  };
+
+  /**
+   * 窗口功能键统一入口（白名单命令，不接受任意方法名）。
+   * @returns {{ok:boolean, error?:string, maximized?:boolean, fullscreen?:boolean}}
+   */
+  ipcMain.handle('desktop:window-command', (event, command) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    if (!win || win.isDestroyed()) return { ok: false, error: 'no-window' };
+
+    const run = WINDOW_COMMANDS[String(command)];
+    if (!run) {
+      logger.warn('window', `未知窗口命令: ${command}`);
+      return { ok: false, error: `unknown-command:${command}` };
+    }
+    try {
+      run(win);
+    } catch (err) {
+      logger.error('window', `${command} 失败: ${err && err.message}`);
+      return { ok: false, error: err && err.message };
+    }
+    return { ok: true, maximized: win.isMaximized(), fullscreen: win.isFullScreen() };
+  });
+
+  /** 读取当前窗口状态：自绘标题栏首帧同步「最大化 ⇄ 还原」图标用 */
+  ipcMain.handle('desktop:window-get-state', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+    if (!win || win.isDestroyed()) return { maximized: false, fullscreen: false };
+    return { maximized: win.isMaximized(), fullscreen: win.isFullScreen() };
+  });
+
+  /** 应用信息（「关于」面板：版本 / Electron / 平台 / 系统产品名） */
+  ipcMain.handle('desktop:app-info', () => ({
+    name: app.getName(),
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    platform: process.platform,
+    arch: process.arch,
+    osName: getOsProductName(),
+  }));
+}
+
+/**
+ * 操作系统展示名（「关于」面板的「运行平台」行）。
+ *
+ * 🚨 为什么不用 `reg query` 读注册表 ProductName：
+ * 那要拉起子进程，而子进程在受管/加固环境下可能被黑名单拦截
+ * （本机就拦过 reg.exe），且 spawn 默认 stdio 还有 EBUSY 的坑。
+ * `process.getSystemVersion()` 是 Electron 原生 API，零子进程、零权限，
+ * 配一张 NT 内核号→产品名的映射表就够用；映射不到时直接回显内核号，
+ * 信息量仍大于只写 "Windows"。
+ */
+function getOsProductName() {
+  const os = require('node:os');
+  if (process.platform !== 'win32') {
+    return `${os.type()} ${os.release()}`;
+  }
+  // getSystemVersion 只在 Electron 运行时存在；纯 node 下退回 os.release()
+  const ver =
+    typeof process.getSystemVersion === 'function' ? process.getSystemVersion() : os.release();
+  const major = String(ver).split('.')[2]; // 10.0.<build> → build 号才是版本判据
+  const build = Number(major);
+  let label = 'Windows';
+  if (build >= 22000) label = 'Windows 11';
+  else if (build >= 10240) label = 'Windows 10';
+  else if (build >= 9600) label = 'Windows 8.1';
+  else if (build >= 9200) label = 'Windows 8';
+  else if (build >= 7601) label = 'Windows 7';
+  return build ? `${label} (${ver})` : 'Windows';
 }
 
 /* ------------------------------------------------------------------ */
@@ -882,6 +1375,44 @@ async function shutdown() {
 }
 
 /* ------------------------------------------------------------------ */
+/* 应用菜单（原生）                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 原生 application menu 的处置。
+ *
+ * 背景：Electron 在**没有**调用 `Menu.setApplicationMenu()` 时会自动挂一份默认菜单，
+ * 于是窗口顶部凭空多出一排「编辑/窗口/帮助/关于」——它不是我们设计的任何东西，
+ * 只是框架的兜底，和页面自己的顶栏是两套视觉语言。主窗口已改为 `frame: false`，
+ * 这排菜单在页面自绘标题栏里重建（含最小化/最大化/关闭），所以这里整份摘掉。
+ *
+ * macOS 例外：系统顶栏菜单不占窗口空间，也就不属于"要内联掉的原生控件"；
+ * 而整份置空会让 Cmd+C / Cmd+V / Cmd+Q / Cmd+H 等标准快捷键全部失效
+ * （macOS 的编辑快捷键依赖菜单项的 accelerator）。故只保留极简三组，
+ * 视觉上由系统接管，功能上保持标准行为。
+ */
+function configureApplicationMenu() {
+  try {
+    if (process.platform === 'darwin') {
+      Menu.setApplicationMenu(
+        Menu.buildFromTemplate([
+          { role: 'appMenu' },
+          { role: 'editMenu' },
+          { role: 'windowMenu' },
+        ])
+      );
+      logger.info('app', 'macOS：保留极简原生菜单（维持标准快捷键）');
+    } else {
+      Menu.setApplicationMenu(null);
+      logger.info('app', '已摘除 Electron 默认菜单（窗口功能键改为页面自绘）');
+    }
+  } catch (err) {
+    // 菜单不是可用性必需项：失败只记日志，绝不能让启动流程挂掉
+    logger.warn('app', `设置应用菜单失败（忽略）: ${err && err.message}`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* 生命周期                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -912,6 +1443,8 @@ function main() {
     });
 
     configurePermissions();
+    // 原生菜单必须早于任何窗口创建：菜单条是窗口级 chrome，晚于窗口设置会先闪一下
+    configureApplicationMenu();
     registerIpc();
     initAutoUpdater();
     createSplashWindow();

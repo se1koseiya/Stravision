@@ -15,7 +15,7 @@ import {
   Tag as AntTag,
   Typography,
 } from "antd";
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/feedback";
 import { IconDelete, IconEdit, IconHistory, IconPlus } from "@/components/icon";
 
 const { Text } = Typography;
@@ -50,7 +50,7 @@ interface FormState {
 }
 
 const TAG_META: Record<ChangelogItem["tag"], { label: string; color: string }> = {
-  new: { label: "新增", color: "#009456" },
+  new: { label: "新增", color: "#059669" },
   improve: { label: "改进", color: "#B54708" },
   fix: { label: "修复", color: "#D92D20" },
 };
@@ -209,7 +209,7 @@ export function ChangelogManager() {
     <Card
       title={
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconHistory style={{ color: "#009456" }} />
+          <IconHistory style={{ color: "#059669" }} />
           更新日志管理
         </span>
       }
@@ -280,7 +280,7 @@ export function ChangelogManager() {
                 </Space>
               </div>
               {entry.summary && (
-                <div style={{ marginTop: 6, fontSize: 12, color: "#6B7280" }}>{entry.summary}</div>
+                <div style={{ marginTop: 6, fontSize: 12, color: "#71717A" }}>{entry.summary}</div>
               )}
               <div style={{ marginTop: 6, fontSize: 12, color: "#8F959E" }}>
                 {entry.items.length} 条内容

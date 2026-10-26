@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button, Input, Table, Modal, Tag, Space, Typography, Card } from "antd"
 import type { ColumnsType } from "antd/es/table"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { ImageCropper } from "./image-cropper"
 import { IconCheckOne, IconDelete, IconEarth, IconEdit, IconFire, IconLayoutTwo, IconLock, IconPicture, IconPlus, IconRefresh, IconSearch } from "@/components/icon";
 
@@ -119,7 +119,7 @@ export function MCPMarketManager() {
     }
     if (error || !icon) {
       const firstLetter = name.charAt(0).toUpperCase()
-      const color = "#1677ff"
+      const color = "#059669"
       return (
         <div
           style={{
@@ -151,7 +151,7 @@ export function MCPMarketManager() {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
-      render: (priority: number) => <Text strong style={{ color: "#1677ff" }}>#{priority}</Text>,
+      render: (priority: number) => <Text strong style={{ color: "#059669" }}>#{priority}</Text>,
     },
     {
       title: "Icon",
@@ -174,7 +174,7 @@ export function MCPMarketManager() {
       render: (displayName: string, record) => (
         <Space>
           <Text>{displayName}</Text>
-          {record.official && <IconCheckOne style={{ color: "#1677ff" }} />}
+          {record.official && <IconCheckOne style={{ color: "#059669" }} />}
         </Space>
       ),
     },
@@ -370,7 +370,7 @@ export function MCPMarketManager() {
                     flex: 1,
                     height: 32,
                     borderRadius: 6,
-                    backgroundColor: "#F2F3F5",
+                    backgroundColor: "#F4F4F5",
                     border: "1px solid #EDEEEF",
                     display: "flex",
                     alignItems: "center",
@@ -426,7 +426,7 @@ export function MCPMarketManager() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Text strong style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <IconFire style={{ color: "#1677ff" }} />
+              <IconFire style={{ color: "#059669" }} />
               推荐 Prompt
               <span style={{ fontSize: 10, color: "#8F959E", fontWeight: 400 }}>（插件详情页打开时自动加载）</span>
             </Text>
@@ -458,7 +458,7 @@ export function MCPMarketManager() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Text style={{ color: "#1677ff" }}>Default Env Vars (JSON Object)</Text>
+            <Text style={{ color: "#059669" }}>Default Env Vars (JSON Object)</Text>
             <Input.TextArea
               placeholder='{"API_KEY": ""}'
               style={{ fontFamily: "monospace", fontSize: 12, height: 96 }}
@@ -467,7 +467,7 @@ export function MCPMarketManager() {
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "12px 16px", borderRadius: 6, border: "1px solid #EDEEEF", backgroundColor: "#F7F8FA" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "12px 16px", borderRadius: 6, border: "1px solid #EDEEEF", backgroundColor: "#FAFAFA" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="checkbox"

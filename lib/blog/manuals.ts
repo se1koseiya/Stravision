@@ -60,28 +60,76 @@ function extractFirstBlockQuote(md: string): string | undefined {
   return m?.[1];
 }
 
-/** 提取首个段落作为摘要 */
+/**
+ * 提取首个「真正的正文段落」作为摘要。
+ *
+ * 旧实现只看「第一个非标题行」，但本仓的手册正文结构普遍是
+ * `# 标题` → `> 版本/适用对象` → `***` → `## 目录` → TOC 链接列表 → 正文，
+ * 于是摘要会被抓成 `***` 或一整段 `1. [xxx](#anchor)` 目录，卡片上非常难看。
+ * 这里改成按「段落块」扫描：遇到标题/引用/分隔线/表格/代码块就收尾当前块，
+ * 块不合格则丢弃继续找下一块。
+ */
 function extractExcerpt(md: string): string {
-  // 跳过标题、引用、代码块、空行，取第一段
   const lines = md.split("\n");
   let inCodeBlock = false;
-  let paragraph = "";
-  for (const line of lines) {
-    if (line.startsWith("```")) {
+  let block: string[] = [];
+
+  /** 收尾当前段落；目录 / 纯符号 / 太短 / 引出句都判为不合格返回 null */
+  const flush = (): string | null => {
+    if (block.length === 0) return null;
+    const text = block.join(" ").trim();
+    block = [];
+    if (!text) return null;
+    // 纯链接列表 = 目录（`1. [标题](#锚点)` / `- [标题](url)`）
+    if (/^(?:([-*+]|\d+[.)])\s+\[[^\]]*\]\([^)]*\)\s*)+$/.test(text)) {
+      return null;
+    }
+    const plain = text
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/[*_`~$]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    // 表头分隔线、纯符号行都不算正文
+    if (!/[\u4e00-\u9fa5a-zA-Z0-9]/.test(plain)) return null;
+    if (plain.length < 20) return null;
+    // 以冒号收尾的是「引出下文」的句子，单独当摘要读起来是断的
+    if (/[:：]$/.test(plain)) return null;
+    // 带文件路径 + 扩展名的多是「代码位置在 xxx」这类实现说明，不是文档摘要
+    if (/[\w./-]+\.(?:tsx?|jsx?|mjs|cjs|py|md|json|prisma|ya?ml)\b/.test(plain)) {
+      return null;
+    }
+    return plain.slice(0, 220);
+  };
+
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, "");
+    if (line.trimStart().startsWith("```")) {
+      if (!inCodeBlock) {
+        const hit = flush();
+        if (hit) return hit;
+      }
       inCodeBlock = !inCodeBlock;
       continue;
     }
     if (inCodeBlock) continue;
-    if (line.startsWith("#")) continue;
-    if (line.startsWith(">")) continue;
-    if (line.startsWith("---")) continue;
-    if (line.trim() === "") {
-      if (paragraph) break;
+
+    const trimmed = line.trim();
+    if (
+      trimmed === "" ||
+      trimmed.startsWith("#") ||
+      trimmed.startsWith(">") ||
+      trimmed.startsWith("|") ||
+      /^[*_=-]{3,}$/.test(trimmed)
+    ) {
+      const hit = flush();
+      if (hit) return hit;
       continue;
     }
-    paragraph += line + " ";
+    block.push(trimmed);
   }
-  return paragraph.trim().slice(0, 220);
+
+  return flush() ?? "";
 }
 
 /** 提取目录 (## 与 ###) */
@@ -232,7 +280,7 @@ export async function listManuals(): Promise<ManualMeta[]> {
     let toc: ManualTocItem[] = [];
     let wordCount = 0;
     let excerpt = doc.description;
-    let updatedAt = doc.updatedAt;
+    let updatedAt: string | undefined = doc.updatedAt;
 
     if (doc.fileType === "md" || doc.fileType === "zip") {
       // 读取 md/zip 文档的正文提取 toc

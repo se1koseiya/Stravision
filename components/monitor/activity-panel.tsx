@@ -115,22 +115,22 @@ export function ActivityPanel() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-muted-foreground dark:text-muted-foreground font-medium">操作日志</h3>
+      <div className="flex items-center justify-between mb-3 shrink-0">
+        <h3 className="mon-group-title text-zinc-500 dark:text-zinc-400">操作日志</h3>
         <button
           onClick={() => setShowAllLogs(!showAllLogs)}
-          className="text-xs text-muted-foreground hover:text-muted-foreground dark:hover:text-gray-300 transition-colors"
+          className="dc-ctrl--press dc-ctrl--sm text-xs text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
         >
           {showAllLogs ? "按日期筛选" : "显示全部"}
         </button>
       </div>
-      <div className="text-xs text-muted-foreground mb-6">
+      <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-4 shrink-0">
         {showAllLogs ? "显示所有日志" : format(selectedDate, "yyyy年M月d日", { locale: zhCN })}
       </div>
       
       {/* Calendar Strip - 只在非"显示全部"模式下显示 */}
       {!showAllLogs && (
-        <div className="flex justify-between mb-8 text-center">
+        <div className="flex justify-between mb-5 text-center shrink-0">
           {weekDays.map((day) => {
             const isSelected = isSameDay(day, selectedDate)
             const isToday = isSameDay(day, new Date())
@@ -139,68 +139,63 @@ export function ActivityPanel() {
               <div 
                 key={day.toISOString()} 
                 className={cn(
-                  "flex flex-col gap-1 cursor-pointer transition-all hover:scale-110",
-                  isSelected ? "text-foreground font-bold" : "text-muted-foreground"
+                  "dc-ctrl--press dc-ctrl--sm flex flex-col gap-1 cursor-pointer transition-colors",
+                  isSelected ? "text-zinc-900 dark:text-zinc-100 font-bold" : "text-zinc-400 dark:text-zinc-500"
                 )}
                 onClick={() => setSelectedDate(day)}
               >
                 <span className="text-xs">{format(day, "d")}</span>
-                <span className="text-[10px]">周{WEEKDAY_CN[day.getDay()]}</span>
+                <span className="text-[11px]">周{WEEKDAY_CN[day.getDay()]}</span>
+                {/* 选中/今天标记也是「元素」（1×1 点），不是填充块 */}
                 {isSelected && <div className="h-1 w-1 bg-primary rounded-full mx-auto mt-1" />}
-                {!isSelected && isToday && <div className="h-1 w-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-1" />}
+                {!isSelected && isToday && <div className="h-1 w-1 bg-zinc-300 dark:bg-zinc-600 rounded-full mx-auto mt-1" />}
               </div>
             )
           })}
         </div>
       )}
 
-      {/* Timeline */}
-      <div className="space-y-6 relative pl-4 border-l-2 border-dashed border-border dark:border-white/10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        {logs.map((log, index) => (
-          <div key={log.id} className="relative pl-6 animate-in slide-in-from-bottom-2 fade-in duration-500" style={{ animationDelay: `${index * 100}ms` }}>
-            <div className={cn(
-              "absolute -left-[21px] top-1 h-3 w-3 rounded-full ring-4 ring-white dark:ring-slate-900 transition-colors",
-              log.status === "success" ? "bg-slate-900 dark:bg-emerald-400" : 
-              log.status === "warning" ? "bg-gray-300 dark:bg-yellow-400" : "bg-red-400"
-            )} />
-            <div className="text-xs text-muted-foreground font-mono mb-1">{log.time}</div>
-            <div className={cn(
-              "p-4 rounded-2xl rounded-tl-none transition-colors",
-              log.status === "success" ? "bg-[#E0E7FF] dark:bg-indigo-500/20" : "bg-muted dark:bg-slate-800/50"
-            )}>
-              <div className={cn(
-                "font-bold mb-1",
-                log.status === "success" ? "text-[#4338CA] dark:text-indigo-300" : "text-gray-900 dark:text-gray-200"
-              )}>
-                {log.device}
-              </div>
-              <div className={cn(
-                "text-sm",
-                log.status === "success" ? "text-[#6366F1] dark:text-indigo-200/70" : "text-muted-foreground dark:text-muted-foreground"
-              )}>
-                {log.action}
-              </div>
-              {log.status === "success" && (
-                <div className="mt-3 h-1 w-full bg-white/50 dark:bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#4338CA] dark:bg-indigo-400 w-full animate-progress-indeterminate" />
-                </div>
-              )}
+      {/* Timeline
+          ——「一层容器」原则：日志每条**不再**是一张带填充色的圆角卡。
+          以前是 卡片(32) → 日记卡(16, 靛蓝底) → 进度条，三层圆角矩形套在一起；
+          现在改成一条 1px 竖 hairline + 状态圆点 + 三段文字层级（时间 / 设备 / 动作），
+          状态只由圆点颜色承载 —— 这正是 HDS「用分隔线与字阶立层级、不用色块」的做法。
+          另外：圆点不再用 ring 遮线（ring 是 box-shadow，在玻璃上会留一圈实心圆盘），
+          1px 细线从圆点背后穿过本来就看不出来，不需要遮。 */}
+      <div className="relative flex-1 overflow-y-auto pr-1 custom-scrollbar pl-4 min-h-0">
+        <div className="absolute left-[3px] top-1.5 bottom-1.5 w-px bg-zinc-900/8 dark:bg-white/10" aria-hidden />
+        <div className="space-y-5">
+          {logs.map((log, index) => (
+            <div
+              key={log.id}
+              className="relative animate-in fade-in duration-500"
+              style={{ animationDelay: `${index * 60}ms` }}
+            >
+              <span className={cn(
+                "absolute -left-4 top-[5px] h-[7px] w-[7px] rounded-full",
+                log.status === "success" ? "bg-primary"
+                  : log.status === "warning" ? "bg-amber-400"
+                  : "bg-red-500"
+              )} />
+              <div className="text-[11px] font-mono text-zinc-400 dark:text-zinc-500 tabular-nums">{log.time}</div>
+              <div className="mt-0.5 text-sm font-semibold text-zinc-800 dark:text-zinc-100 leading-snug">{log.device}</div>
+              <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{log.action}</div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
         {logs.length === 0 && (
           <div className="text-center py-8">
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-xs text-muted-foreground">加载活动记录</span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">加载活动记录</span>
               </div>
             ) : (
-              <span className="text-xs text-muted-foreground">无活动记录</span>
+              <span className="text-xs text-zinc-400 dark:text-zinc-500">无活动记录</span>
             )}
           </div>
         )}

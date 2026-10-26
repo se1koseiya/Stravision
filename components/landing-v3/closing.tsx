@@ -9,7 +9,7 @@ import { IconArrowRightUp, IconCheck } from "@/components/icon";
 const { Title, Text, Paragraph } = Typography;
 
 /* 浅底上可读的绿：只用于细线条与小图标（Loomy 的主题色不铺大面积） */
-const GREEN_INK = L.navHover; // #009456
+const GREEN_INK = L.navHover; // #059669
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 28 },
@@ -96,7 +96,7 @@ export function Faq() {
           >
             选择适合的方案
           </Title>
-          <Paragraph className="mt-3 !mb-0 !text-[15px]" style={{ color: L.muted }}>
+          <Paragraph className="mt-3 !mb-0 !text-[14px]" style={{ color: L.muted }}>
             支持月付 / 年付，按需选择适合你的方案
           </Paragraph>
         </motion.div>
@@ -116,7 +116,7 @@ export function Faq() {
               }
             >
               <span
-                className="w-fit rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+                className="w-fit rounded-full px-2.5 py-1 text-[12px] font-semibold"
                 style={
                   plan.highlight
                     ? { background: L.mint, color: GREEN_INK }
@@ -127,7 +127,7 @@ export function Faq() {
               </span>
 
               <div className="mt-4 flex items-baseline gap-1.5">
-                <span className="text-[28px] font-bold tracking-tight" style={{ color: L.ink }}>
+                <span className="text-[24px] font-bold tracking-tight" style={{ color: L.ink }}>
                   {plan.price}
                 </span>
                 {plan.priceUnit && (
@@ -180,11 +180,11 @@ export function Faq() {
         <motion.div {...fadeUp(0.18)} className="mt-10 flex justify-center">
           <Link
             href="/subscription"
-            className="inline-flex h-12 items-center gap-2.5 rounded-full pl-5 pr-6 text-[15px] font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
+            className="inline-flex h-12 items-center gap-2.5 rounded-full pl-5 pr-6 text-[14px] font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
             style={{ background: L.neutral950, color: L.surface }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="size-6 rounded-md" />
+            <img src="/logo.png" alt="" className="size-6 rounded-lg" />
             查看完整套餐
             <IconArrowRightUp className="size-4" />
           </Link>
@@ -276,7 +276,7 @@ export function Closing() {
               <div className="mt-9 flex flex-wrap gap-3">
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
+                  className="inline-flex h-12 items-center gap-2 rounded-full px-7 text-[14px] font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
                   style={{ background: L.neutral950, color: L.surface }}
                 >
                   进入控制台
@@ -284,7 +284,7 @@ export function Closing() {
                 </Link>
                 <Link
                   href="/subscription"
-                  className="inline-flex h-12 items-center rounded-full border bg-white/70 px-7 text-[15px] font-semibold backdrop-blur transition-all hover:bg-white active:scale-[0.97]"
+                  className="inline-flex h-12 items-center rounded-full border bg-white/70 px-7 text-[14px] font-semibold backdrop-blur transition-all hover:bg-white active:scale-[0.97]"
                   style={{ borderColor: "rgba(34,34,34,0.16)", color: L.ink }}
                 >
                   查看订阅方案
@@ -333,7 +333,7 @@ export function Closing() {
                     <li key={l.label}>
                       <a
                         href={l.href}
-                        className="text-[13.5px] transition-colors hover:text-[#222222]"
+                        className="text-[13px] transition-colors hover:text-[#222222]"
                         style={{ color: L.muted }}
                       >
                         {l.label}

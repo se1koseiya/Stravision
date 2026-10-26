@@ -34,11 +34,11 @@ const VARIANTS = {
     iconColor: "text-emerald-400"
   },
   blue: {
-    bg: "bg-blue-950/20 hover:bg-blue-900/30",
-    border: "border-blue-500/10 hover:border-blue-500/20",
-    glow: "from-blue-500/20 via-transparent to-transparent",
-    iconBg: "bg-blue-500/10",
-    iconColor: "text-blue-400"
+    bg: "bg-emerald-950/20 hover:bg-emerald-900/30",
+    border: "border-emerald-500/10 hover:border-emerald-500/20",
+    glow: "from-emerald-500/20 via-transparent to-transparent",
+    iconBg: "bg-emerald-500/10",
+    iconColor: "text-emerald-400"
   },
   rose: {
     bg: "bg-rose-950/20 hover:bg-rose-900/30",
@@ -76,7 +76,7 @@ export function BentoCard({
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: delay * 0.1, ease: "circOut" }}
       className={cn(
-        "group relative overflow-hidden rounded-3xl p-6 backdrop-blur-xl transition-all duration-500",
+        "group relative overflow-hidden rounded-2xl p-6 backdrop-blur-xl transition-all duration-500",
         "shadow-[0_8px_32px_rgba(0,0,0,0.12)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.24)] hover:-translate-y-1",
         "border",
         styles.bg,
@@ -88,7 +88,7 @@ export function BentoCard({
     >
       {/* Dynamic Glow Effect */}
       <div className={cn(
-        "absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0 bg-gradient-to-br blur-2xl",
+        "absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0 bg-gradient-to-br blur-2xl",
         styles.glow
       )} />
 

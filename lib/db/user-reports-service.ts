@@ -36,6 +36,18 @@ export interface ListUserReportsOptions {
 }
 
 /**
+ * pg 驱动会把 BIGINT 列（id / created_at）以字符串返回（避免 int64 精度丢失），
+ * 统一归一为 number，否则前端 new Date("1758512345678") 得到 Invalid Date，显示 NaN-NaN-NaN NaN:NaN。
+ */
+function mapReportRow(row: UserReport): UserReport {
+  return {
+    ...row,
+    id: Number(row.id),
+    created_at: Number(row.created_at)
+  }
+}
+
+/**
  * 创建一条简报。若同 user + 同 title + source 在 5 秒内已存在相同 title（去抖），返回已有记录 id。
  */
 export async function createUserReport(input: CreateUserReportInput): Promise<number> {
@@ -84,20 +96,15 @@ export async function listUserReports(
 ): Promise<UserReport[]> {
   await initDB()
   const limit = Math.min(Math.max(options.limit || 50, 1), 200)
-  if (options.onlyFavorite) {
-    return query<UserReport>(
-      `SELECT * FROM user_reports
+  const sql = options.onlyFavorite
+    ? `SELECT * FROM user_reports
        WHERE user_id = $1 AND is_favorite = 1
-       ORDER BY created_at DESC LIMIT $2`,
-      [userId, limit]
-    )
-  }
-  return query<UserReport>(
-    `SELECT * FROM user_reports
+       ORDER BY created_at DESC LIMIT $2`
+    : `SELECT * FROM user_reports
      WHERE user_id = $1
-     ORDER BY created_at DESC LIMIT $2`,
-    [userId, limit]
-  )
+     ORDER BY created_at DESC LIMIT $2`
+  const rows = await query<UserReport>(sql, [userId, limit])
+  return rows.map(mapReportRow)
 }
 
 /**
@@ -109,12 +116,13 @@ export async function listUserReportsSince(
   limit = 20
 ): Promise<UserReport[]> {
   await initDB()
-  return query<UserReport>(
+  const rows = await query<UserReport>(
     `SELECT * FROM user_reports
      WHERE user_id = $1 AND created_at > $2
      ORDER BY created_at DESC LIMIT $3`,
     [userId, since, limit]
   )
+  return rows.map(mapReportRow)
 }
 
 /**
@@ -159,5 +167,5 @@ export async function getUserReport(userId: number, reportId: number): Promise<U
     `SELECT * FROM user_reports WHERE id = $1 AND user_id = $2`,
     [reportId, userId]
   )
-  return row || null
+  return row ? mapReportRow(row) : null
 }

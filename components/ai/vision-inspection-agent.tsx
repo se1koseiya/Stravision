@@ -126,7 +126,7 @@ function VisionInspectionAgentImpl({
       style={{ maxWidth: 640, margin: "12px auto" }}
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconCamera style={{ color: "#1677ff" }} />
+          <IconCamera style={{ color: "#059669" }} />
           <Text strong>视觉巡检</Text>
           {isActive && !isDone && (
             <Tag color="processing" style={{ marginInlineStart: 4 }}>
@@ -145,7 +145,7 @@ function VisionInspectionAgentImpl({
           type="circle"
           percent={progress}
           size={40}
-          strokeColor="#1677ff"
+          strokeColor="#059669"
           format={(p) => `${p}%`}
         />
       }
@@ -237,7 +237,7 @@ function VisionInspectionAgentImpl({
                 ? "rgba(82, 196, 26, 0.08)"
                 : isAnalyzing
                   ? "rgba(114, 46, 209, 0.08)"
-                  : "rgba(22, 119, 255, 0.08)",
+                  : "rgba(0,148,86, 0.08)",
             }}
           >
             <Text
@@ -245,10 +245,10 @@ function VisionInspectionAgentImpl({
               style={{
                 fontSize: 12,
                 color: isDone
-                  ? "#52c41a"
+                  ? "#059669"
                   : isAnalyzing
-                    ? "#722ed1"
-                    : "#1677ff",
+                    ? "#059669"
+                    : "#059669",
               }}
             >
               {isDone ? <IconCheckOne style={{ marginInlineEnd: 6 }} /> : <IconLoading style={{ marginInlineEnd: 6 }} />}

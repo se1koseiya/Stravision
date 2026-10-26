@@ -9,7 +9,11 @@ import { Bubble, Conversations, Prompts, Sender, ThoughtChain } from "@ant-desig
 import type { BubbleListProps } from "@ant-design/x";
 import XMarkdown from "@ant-design/x-markdown";
 import BerryOrb from "@/components/smoothui/berry-orb";
-import { IconBrain, IconCalendar, IconCamera, IconChartLine, IconCheckOne, IconCompass, IconCpu, IconDatabaseNetwork, IconEdit, IconFileSearch, IconFolderOpen, IconLayoutTwo, IconListCheckbox, IconMagic, IconMicrophone, IconRouter } from "@/components/icon";
+import { IconBrain, IconCalendar, IconCamera, IconChartLine, IconCheckOne, IconCompass, IconCpu, IconDatabaseNetwork, IconEdit, IconFileSearch, IconFolderOpen, IconLayoutTwo, IconListCheckbox, IconMagic, IconMicrophone, IconRouter, IconSearch, IconShare } from "@/components/icon";
+import { ChatBubbleList, type ChatBubbleListProps } from "@/app/ai-assistant/_components/chat-bubble-list";
+import { ChatSenderInput } from "@/app/ai-assistant/_components/chat-sender-input";
+import type { AgentStep } from "@/app/ai-assistant/_components/agent-thought-chain";
+import type { Message } from "@/app/ai-assistant/types";
 
 /* ------------------------------------------------------------
    莙小智 · 原生 ai-assistant 对话复刻（落地页 Hero 用）
@@ -22,10 +26,10 @@ import { IconBrain, IconCalendar, IconCamera, IconChartLine, IconCheckOne, IconC
 
 const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
   ssr: false,
-  loading: () => <div className="h-56 w-full animate-pulse rounded-xl bg-slate-100 dark:bg-white/[0.06]" />,
+  loading: () => <div className="h-56 w-full animate-pulse rounded-xl bg-zinc-100 dark:bg-white/[0.06]" />,
 })
 
-const CardSkeleton = () => <div className="my-3 h-44 animate-pulse rounded-lg bg-slate-100 dark:bg-white/[0.06]" />
+const CardSkeleton = () => <div className="my-3 h-44 animate-pulse rounded-lg bg-zinc-100 dark:bg-white/[0.06]" />
 
 /* ---- ai-assistant 同款业务卡片（@ant-design/x-card A2UI 渲染） ---- */
 
@@ -53,7 +57,7 @@ const StreamingTail: React.FC<{ content?: string }> = ({ content = "▋" }) => {
       style={{
         display: "inline-block",
         animation: "blink 1s steps(2, start) infinite",
-        color: "#10b981",
+        color: "#059669",
         fontWeight: "bold",
       }}
     >
@@ -149,7 +153,7 @@ function MessageBody({ m }: { m: ChatMsg }) {
       {m.chain && chainItems.length > 0 && (
         <ThoughtChain
           items={chainItems}
-          className="[&_.ant-thought-chain-item]:!text-[12px] [&_.ant-thought-chain-item-content]:!text-[11.5px] [&_.ant-thought-chain-item-title]:!font-semibold"
+          className="[&_.ant-thought-chain-item]:!text-[12px] [&_.ant-thought-chain-item-content]:!text-[12px] [&_.ant-thought-chain-item-title]:!font-semibold"
         />
       )}
       {parts.map((p, i) => {
@@ -163,7 +167,7 @@ function MessageBody({ m }: { m: ChatMsg }) {
           )
         if (p.type === "chart")
           return (
-            <div key={i} className="h-[230px] w-full overflow-hidden rounded-xl border border-slate-100 bg-white dark:border-white/[0.08] dark:bg-[#1A1F1B]">
+            <div key={i} className="h-[230px] w-full overflow-hidden rounded-xl border border-zinc-100 bg-white dark:border-white/[0.08] dark:bg-[#1A1F1B]">
               <ChartRenderer options={JSON.parse(p.text)} style={{ height: "100%", width: "100%" }} />
             </div>
           )
@@ -216,7 +220,7 @@ const GROWTH_CHAIN: ChainStep[] = [
 
 const GROWTH_CONTENT = `把本茬和上一茬同期的单果重曲线放在一起看，结论很清晰：
 
-<CHART type="line">{"tooltip":{"trigger":"axis"},"legend":{"data":["本茬","上一茬"],"bottom":0,"textStyle":{"fontSize":11}},"grid":{"top":20,"left":36,"right":12,"bottom":44},"xAxis":{"type":"category","boundaryGap":false,"data":["08-31","09-01","09-02","09-03","09-04","09-05","09-06"],"axisLabel":{"fontSize":10}},"yAxis":{"type":"value","name":"单果重 (g)","nameTextStyle":{"fontSize":10},"axisLabel":{"fontSize":10}},"series":[{"name":"本茬","type":"line","smooth":true,"symbolSize":4,"data":[6.2,8.1,10.4,12.9,15.6,18.2,21.0],"areaStyle":{"opacity":0.12},"itemStyle":{"color":"#10b981"}},{"name":"上一茬","type":"line","smooth":true,"symbolSize":4,"lineStyle":{"type":"dashed"},"data":[5.8,7.4,9.2,11.5,13.8,16.0,18.4],"itemStyle":{"color":"#94a3b8"}}]}</CHART>
+<CHART type="line">{"tooltip":{"trigger":"axis"},"legend":{"data":["本茬","上一茬"],"bottom":0,"textStyle":{"fontSize":11}},"grid":{"top":20,"left":36,"right":12,"bottom":44},"xAxis":{"type":"category","boundaryGap":false,"data":["08-31","09-01","09-02","09-03","09-04","09-05","09-06"],"axisLabel":{"fontSize":10}},"yAxis":{"type":"value","name":"单果重 (g)","nameTextStyle":{"fontSize":10},"axisLabel":{"fontSize":10}},"series":[{"name":"本茬","type":"line","smooth":true,"symbolSize":4,"data":[6.2,8.1,10.4,12.9,15.6,18.2,21.0],"areaStyle":{"opacity":0.12},"itemStyle":{"color":"#059669"}},{"name":"上一茬","type":"line","smooth":true,"symbolSize":4,"lineStyle":{"type":"dashed"},"data":[5.8,7.4,9.2,11.5,13.8,16.0,18.4],"itemStyle":{"color":"#a1a1aa"}}]}</CHART>
 
 - 本茬单果重 **领先约 2.6g**，节奏提前 4 天
 - 均匀度比上一茬高 **9%**，和你上周调整的补光时段吻合
@@ -439,8 +443,8 @@ export function HeroChat() {
       // 发送者名称 + 时间 + 正文，通过字号/字重/颜色建立层级
       header: (
         <div className="flex items-baseline gap-2">
-          <span className="text-[12.5px] font-semibold leading-none text-slate-800 dark:text-[#D6DAD6]">莓小智</span>
-          <span className="text-[10.5px] leading-none text-slate-400 dark:text-[#79817B]">{DEMO_TIME}</span>
+          <span className="text-[13px] font-semibold leading-none text-zinc-800 dark:text-[#D6DAD6]">莓小智</span>
+          <span className="text-[11px] leading-none text-zinc-400 dark:text-[#79817B]">{DEMO_TIME}</span>
         </div>
       ),
     },
@@ -460,7 +464,7 @@ export function HeroChat() {
       locale={zhCN}
       theme={{
         algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: { colorPrimary: "#10b981", borderRadius: 10 },
+        token: { colorPrimary: "#059669", borderRadius: 10 },
       }}
     >
       <style>{`
@@ -471,98 +475,39 @@ export function HeroChat() {
         .landing-bubble-in .ant-bubble-avatar { animation: orbFloat 3.2s ease-in-out infinite; }
       `}</style>
 
-      {/* 无边界线：仅靠阴影与背景色区分层次；鼠标放上来即触发自动交互演示 */}
-      <div
-        onMouseEnter={startAutoDemo}
-        className="overflow-hidden rounded-2xl bg-white shadow-[0_32px_80px_-20px_rgba(15,23,42,0.28)] transition-transform duration-300 ease-out hover:-translate-x-2 dark:bg-[#121713]"
-      >
-        {/* 窗口顶栏：仅交通灯 + 侧栏开关（同参考图，无地址栏） */}
-        <div className="flex h-10 items-center gap-2 px-4">
-          <span className="size-2.5 rounded-full bg-[#FF5F57]" />
-          <span className="size-2.5 rounded-full bg-[#FEBC2E]" />
-          <span className="size-2.5 rounded-full bg-[#28C840]" />
-          <IconLayoutTwo className="ml-3 size-3.5 text-slate-300" />
-        </div>
-
-        <div className="flex h-[560px] lg:h-[620px]">
-          {/* ===== 侧栏 ===== */}
-          <div className="hidden w-44 shrink-0 flex-col bg-slate-50/70 p-2.5 sm:flex dark:bg-[#161B17]">
-            <div className="flex items-center justify-between px-1.5 pb-2 pt-1">
-              <Typography.Text strong style={{ fontSize: 16 }}>
-                莓小智
-              </Typography.Text>
-              <Button type="text" size="small" icon={<IconEdit className="size-3" />} aria-label="新建对话" />
+      {/* 与 /ai-assistant 同款：侧栏 + 对话顶栏 + ChatBubbleList + ChatSenderInput。 */}
+      <div onMouseEnter={startAutoDemo} className="overflow-hidden rounded-2xl bg-[#F7F7F8] shadow-[0_32px_80px_-20px_rgba(15,23,42,0.22)] dark:bg-[#121713]">
+        <div className="flex h-[680px]">
+          <aside className="hidden w-[240px] shrink-0 flex-col p-3 sm:flex">
+            <div className="flex h-12 items-center px-2">
+              <span className="text-[20px] font-bold tracking-tight">莓小智</span>
+              <span className="ml-auto flex gap-1 text-zinc-400"><IconSearch className="size-4" /><IconLayoutTwo className="size-4" /></span>
             </div>
-
-            <Button block icon={<IconEdit className="size-3.5" />}>
-              新建对话
-            </Button>
-
-            <Menu
-              mode="inline"
-              selectable={false}
-              items={MENU_ITEMS}
-              inlineCollapsed={false}
-              style={{ borderInlineEnd: "none", background: "transparent", fontSize: 12 }}
-              className="landing-hero-menu"
-            />
-
-            <Typography.Text type="secondary" style={{ fontSize: 10.5, padding: "4px 6px 2px" }}>
-              今天
-            </Typography.Text>
-            <Conversations
-              items={CONVERSATION_ITEMS}
-              activeKey={activeKey}
-              onActiveChange={setActiveKey}
-              className="min-h-0 flex-1 [&_.ant-conversations-item]:!py-1.5 [&_.ant-conversations-item]:!text-[12px]"
-            />
-          </div>
-
-          {/* ===== 对话区 ===== */}
-          <div className="flex min-w-0 flex-1 flex-col p-3.5">
-            <Bubble.List
-              items={messages.map((m) => ({
-                key: m.key,
-                role: m.role,
-                content: m.role === "ai" ? <MessageBody m={m} /> : m.content,
-              }))}
-              role={roles}
-              autoScroll
-              className="landing-bubble-in min-h-0 flex-1 [&_.ant-bubble-content]:!text-[13px] [&_.ant-bubble-content-filled]:!bg-[#eef0f2] [&_.ant-bubble-content-filled]:dark:!bg-[#1C221E] [&_.ant-bubble-content-filled]:!text-slate-800 [&_.ant-bubble-content-filled]:dark:!text-[#D6DAD6] [&_.ant-bubble-content-outlined]:!border-transparent [&_.ant-bubble-content-outlined]:!bg-transparent [&_.ant-bubble-content-outlined]:!text-slate-600 [&_.ant-bubble-content-outlined]:dark:!text-[#9BA39E] [&_.ant-bubble-content-outlined]:!shadow-none"
-            />
-
-            <Prompts
-              items={PROMPTS}
-              onItemClick={(info) => send(String(info?.data?.label ?? ""))}
-              vertical={false}
-              wrap
-              className="!pb-2 [&_.ant-prompts-item]:!rounded-full [&_.ant-prompts-item]:!border-slate-200 [&_.ant-prompts-item]:dark:!border-[#2A2F2B] [&_.ant-prompts-item]:!py-1 [&_.ant-prompts-item-label]:!text-[11.5px] [&_.ant-prompts-item-icon]:!text-emerald-600"
-            />
-
-            <Sender
-              value={inputVal}
-              onChange={(v) => setInputVal(v)}
-              onSubmit={(message) => {
-                send(message);
-                setInputVal("");
-              }}
-              placeholder="输入问题…（@ 引用文件）"
-              loading={busy}
-              footer={() => (
-                <div className="flex items-center gap-2 px-0.5 pb-1">
-                  <Tag style={{ fontSize: 10.5, marginInlineEnd: 0, borderRadius: 999 }}>
-                    莓小智 · GLM
-                  </Tag>
-                  <Typography.Text type="secondary" style={{ fontSize: 10.5 }}>
-                    自动 · 联网 · 知识库
-                  </Typography.Text>
-                  <span className="ml-auto flex items-center">
-                    <IconMicrophone className="size-4 cursor-pointer text-slate-300 transition-colors hover:text-slate-500 dark:text-[#4B4F4C] dark:hover:text-[#79817B]" />
-                  </span>
-                </div>
-              )}
-            />
-          </div>
+            <Button block icon={<IconEdit className="size-3.5" />} className="!mt-2 !h-10 !justify-start !bg-white !text-left dark:!bg-[#1E2220]">新建对话</Button>
+            <Menu mode="inline" selectable={false} items={MENU_ITEMS} style={{ borderInlineEnd: "none", background: "transparent", fontSize: 12 }} className="landing-hero-menu !mt-3" />
+            <Typography.Text type="secondary" style={{ fontSize: 11, padding: "12px 8px 6px" }}>最近对话</Typography.Text>
+            <Conversations items={CONVERSATION_ITEMS} activeKey={activeKey} onActiveChange={setActiveKey} className="min-h-0 flex-1 [&_.ant-conversations-item]:!py-2 [&_.ant-conversations-item]:!text-[12px]" />
+          </aside>
+          <main className="m-3 ml-0 flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-white dark:bg-[#111413]">
+            <header className="flex h-16 shrink-0 items-center border-b border-zinc-100 px-5 dark:border-white/[0.07]">
+              <div><div className="text-[14px] font-semibold">3 号棚湿度偏高怎么处理</div><div className="mt-1 text-[11px] text-zinc-400">莓小智 · 已连接大棚上下文</div></div>
+              <span className="ml-auto flex gap-4 text-zinc-400"><IconSearch className="size-4" /><IconShare className="size-4" /></span>
+            </header>
+            <div className="min-h-0 flex-1 px-5 pt-4">
+              <ChatBubbleList
+                messages={messages.map((m): Message => ({ role: m.role === "ai" ? "assistant" : "user", content: m.content }))}
+                isLoading={busy}
+                agentSteps={(messages.findLast((m) => m.role === "ai" && m.chain)?.chain ?? []).map((s, i): AgentStep => ({ id: `demo-${i}`, kind: "task", title: s.title, detail: s.description, status: i < (messages.findLast((m) => m.role === "ai")?.chainVisible ?? 0) ? "completed" : "pending" }))}
+                agentStatus={busy ? "正在分析大棚环境" : ""}
+                rendererProps={{ deviceData: null, autoExecuteCommands: false, assistantMode: "request", enableReasoning: false, onOpenStudio: () => {}, onExecuteCommand: async () => {}, onRetryCommand: () => {}, onSendMessage: send, onSetInput: setInputVal }}
+                darkMode={dark}
+              />
+            </div>
+            <div className="shrink-0 px-4 pb-3">
+              <ChatSenderInput input={inputVal} setInput={setInputVal} onSend={(text) => { send(text); setInputVal(""); }} isLoading={busy} attachments={[]} onSelectFiles={() => {}} onRemoveAttachment={() => {}} onPaste={() => {}} enableReasoning={false} setEnableReasoning={() => {}} enablePlanning={false} setEnablePlanning={() => {}} enableSearch={false} setEnableSearch={() => {}} availableTools={[]} onCancel={() => {}} darkMode={dark} approvalMode="request" setApprovalMode={() => {}} toolbarMode="minimal" />
+              <div className="pt-2 text-center text-[10px] text-zinc-400">内容由 AI 生成，请结合实际情况判断</div>
+            </div>
+          </main>
         </div>
       </div>
     </ConfigProvider>

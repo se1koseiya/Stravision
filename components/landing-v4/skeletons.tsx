@@ -16,7 +16,7 @@ function Bar({ className = "", style }: { className?: string; style?: React.CSSP
   return (
     <div
       aria-hidden
-      className={`animate-pulse rounded-full bg-slate-200/90 dark:bg-white/[0.08] ${className}`}
+      className={`animate-pulse rounded-full bg-zinc-200/90 dark:bg-white/[0.08] ${className}`}
       style={style}
     />
   );
@@ -27,7 +27,7 @@ function Disc({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={`size-[30px] shrink-0 animate-pulse rounded-full bg-slate-200/90 dark:bg-white/[0.08] ${className}`}
+      className={`size-[30px] shrink-0 animate-pulse rounded-full bg-zinc-200/90 dark:bg-white/[0.08] ${className}`}
     />
   );
 }
@@ -111,10 +111,10 @@ export function HeroChatSkeleton() {
 
       <div className="flex h-[34rem]">
         {/* 侧栏（与真窗口一致：sm 起显示） */}
-        <div className="hidden w-44 shrink-0 flex-col gap-2.5 border-r border-slate-100 bg-slate-50/70 p-2.5 sm:flex dark:border-white/[0.05] dark:bg-[#161B17]">
+        <div className="hidden w-44 shrink-0 flex-col gap-2.5 border-r border-zinc-100 bg-zinc-50/70 p-2.5 sm:flex dark:border-white/[0.05] dark:bg-[#161B17]">
           <div className="flex items-center justify-between px-1.5 pb-1 pt-1">
-            <Bar className="h-4 w-14 rounded-md" />
-            <Bar className="size-6 rounded-md" />
+            <Bar className="h-4 w-14 rounded-lg" />
+            <Bar className="size-6 rounded-lg" />
           </div>
           <Bar className="h-8 w-full rounded-[10px]" />
           {Array.from({ length: 4 }).map((_, i) => (
@@ -140,13 +140,13 @@ export function HeroChatSkeleton() {
             {["w-28", "w-24", "w-32", "w-20"].map((w, i) => (
               <div
                 key={i}
-                className={`h-6 ${w} animate-pulse rounded-full border border-slate-200 bg-white dark:border-[#2A2F2B] dark:bg-transparent`}
+                className={`h-6 ${w} animate-pulse rounded-full border border-zinc-200 bg-white dark:border-[#2A2F2B] dark:bg-transparent`}
               />
             ))}
           </div>
 
           {/* 输入条 */}
-          <div className="rounded-[14px] border border-slate-200 p-2.5 dark:border-[#2A2F2B]">
+          <div className="rounded-[14px] border border-zinc-200 p-2.5 dark:border-[#2A2F2B]">
             <Bar className="h-3 w-[55%] opacity-60" />
           </div>
         </div>
@@ -172,7 +172,7 @@ function HeadingSkeleton({ center = false }: { center?: boolean }) {
 export function HeroSkeleton() {
   return (
     <div className="flex min-h-[46rem] flex-col justify-center px-6 pb-24 pt-40">
-      <div className="mx-auto grid w-full max-w-[80rem] items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
+      <div className="mx-auto grid w-full max-w-[1400px] items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
         <div className="space-y-4">
           <HeadingSkeleton />
           <Bar className="h-3 w-[85%] opacity-70" />
@@ -182,7 +182,7 @@ export function HeroSkeleton() {
             <Bar className="h-11 w-32 rounded-full opacity-70" />
           </div>
         </div>
-        <div className="h-[30rem] rounded-2xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/[0.06] dark:bg-[#121713]">
+        <div className="h-[30rem] rounded-2xl border border-zinc-100 bg-zinc-50/60 p-4 dark:border-white/[0.06] dark:bg-[#121713]">
           <div className="flex h-full flex-col gap-3">
             <div className="flex gap-1.5">
               <span className="size-2.5 rounded-full bg-[#FF5F57]" />
@@ -190,12 +190,12 @@ export function HeroSkeleton() {
               <span className="size-2.5 rounded-full bg-[#28C840]" />
             </div>
             <div className="grid flex-1 grid-cols-[10rem_1fr] gap-3 overflow-hidden">
-              <div className="space-y-2 rounded-xl bg-slate-100/80 p-2.5 dark:bg-[#161B17]">
+              <div className="space-y-2 rounded-xl bg-zinc-100/80 p-2.5 dark:bg-[#161B17]">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Bar key={i} className="h-6 w-full rounded-lg opacity-80" />
                 ))}
               </div>
-              <div className="space-y-3 rounded-xl border border-slate-100 p-4 dark:border-white/[0.05]">
+              <div className="space-y-3 rounded-xl border border-zinc-100 p-4 dark:border-white/[0.05]">
                 <UserRow width="44%" />
                 <AiRow chainRows={3} lines={2} />
                 <UserRow width="36%" />
@@ -212,18 +212,18 @@ export function HeroSkeleton() {
 export function BentoSkeleton() {
   return (
     <div className="px-6 py-24">
-      <div className="mx-auto max-w-[80rem]">
+      <div className="mx-auto max-w-[1400px]">
         <HeadingSkeleton />
         <div className="mt-12 grid gap-4 lg:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="min-h-[16rem] rounded-3xl border border-slate-100 p-6 dark:border-white/[0.06]"
+              className="min-h-[16rem] rounded-2xl border border-zinc-100 p-6 dark:border-white/[0.06]"
             >
               <div className="flex h-full flex-col justify-between gap-4">
                 <div className="space-y-2.5">
                   <Bar className="h-3 w-16" />
-                  <Bar className="h-5 w-40 rounded-md" />
+                  <Bar className="h-5 w-40 rounded-lg" />
                   <Bar className="h-3 w-[80%] opacity-70" />
                 </div>
                 <Bar className="h-20 w-full rounded-2xl opacity-70" />
@@ -240,10 +240,10 @@ export function BentoSkeleton() {
 export function ScenariosSkeleton() {
   return (
     <div className="px-6 pb-36 pt-24">
-      <div className="mx-auto max-w-[80rem]">
+      <div className="mx-auto max-w-[1400px]">
         <HeadingSkeleton />
         <div className="mt-12 flex gap-4">
-          <div className="h-44 flex-[2] rounded-3xl bg-[#7DE9AC]/70 p-5">
+          <div className="h-44 flex-[2] rounded-2xl bg-[#6EE7B7]/70 p-5">
             <div className="flex items-start gap-4">
               <Bar className="size-24 rounded-2xl bg-white/70" />
               <div className="flex-1 space-y-2.5 pt-1">
@@ -256,18 +256,18 @@ export function ScenariosSkeleton() {
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className="flex h-44 flex-1 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-100 dark:border-white/[0.06]"
+              className="flex h-44 flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-100 dark:border-white/[0.06]"
             >
               <Bar className="size-16 rounded-2xl" />
-              <Bar className="h-5 w-20 rounded-md" />
+              <Bar className="h-5 w-20 rounded-lg" />
             </div>
           ))}
         </div>
 
-        <div className="mt-8 grid gap-12 rounded-[1.75rem] border border-slate-100 bg-[#ECFDF2]/60 p-12 dark:border-white/[0.06] dark:bg-[#12241A]/60 lg:grid-cols-[442fr_692fr]">
+        <div className="mt-8 grid gap-12 rounded-[1.75rem] border border-zinc-100 bg-[#ECFDF2]/60 p-12 dark:border-white/[0.06] dark:bg-[#12241A]/60 lg:grid-cols-[442fr_692fr]">
           <div className="space-y-4">
             <Bar className="h-3 w-20" />
-            <Bar className="h-6 w-56 rounded-md" />
+            <Bar className="h-6 w-56 rounded-lg" />
             <div className="space-y-4 pt-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
@@ -280,7 +280,7 @@ export function ScenariosSkeleton() {
               ))}
             </div>
           </div>
-          <div className="h-[24rem] rounded-t-3xl border border-slate-100 bg-white/80 p-6 dark:border-white/[0.06] dark:bg-[#121713]">
+          <div className="h-[24rem] rounded-t-3xl border border-zinc-100 bg-white/80 p-6 dark:border-white/[0.06] dark:bg-[#121713]">
             <DemoChatSkeleton />
           </div>
         </div>
@@ -293,11 +293,11 @@ export function ScenariosSkeleton() {
 export function ChatDemoSkeleton() {
   return (
     <div className="px-6 py-28">
-      <div className="mx-auto max-w-[80rem]">
+      <div className="mx-auto max-w-[1400px]">
         <div className="max-w-[40rem]">
           <HeadingSkeleton />
         </div>
-        <div className="mt-10 rounded-[1.75rem] border border-slate-100 bg-[#FAFFFB] p-8 dark:border-white/[0.06] dark:bg-[#121713]">
+        <div className="mt-10 rounded-[1.75rem] border border-zinc-100 bg-[#FAFFFB] p-8 dark:border-white/[0.06] dark:bg-[#121713]">
           <HeroChatSkeleton />
         </div>
       </div>
@@ -308,19 +308,19 @@ export function ChatDemoSkeleton() {
 /** 平台区：绿底 + 四张白卡 */
 export function PlatformsSkeleton() {
   return (
-    <div className="bg-[#7DE9AC] px-6 py-24 dark:bg-[#53BD83]">
-      <div className="mx-auto max-w-[80rem]">
+    <div className="bg-[#6EE7B7] px-6 py-24 dark:bg-[#53BD83]">
+      <div className="mx-auto max-w-[1400px]">
         <div className="space-y-3">
           <Bar className="h-3 w-24 bg-white/70" />
           <Bar className="h-8 w-[26rem] max-w-full rounded-lg bg-white/80" />
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="min-h-[13rem] rounded-3xl bg-[#E6FDEE] p-6">
+            <div key={i} className="min-h-[13rem] rounded-2xl bg-[#ECFDF5] p-6">
               <div className="flex h-full flex-col justify-between gap-4">
-                <Bar className="size-10 rounded-xl bg-[#009456]/15" />
+                <Bar className="size-10 rounded-xl bg-[#059669]/15" />
                 <div className="space-y-2">
-                  <Bar className="h-4 w-24 rounded-md bg-[#12291D]/20" />
+                  <Bar className="h-4 w-24 rounded-lg bg-[#12291D]/20" />
                   <Bar className="h-3 w-[85%] bg-[#12291D]/10" />
                 </div>
               </div>
@@ -336,13 +336,13 @@ export function PlatformsSkeleton() {
 export function VoicesSkeleton() {
   return (
     <div className="px-6 py-28">
-      <div className="mx-auto max-w-[80rem]">
+      <div className="mx-auto max-w-[1400px]">
         <HeadingSkeleton center />
         <div className="mx-auto mt-14 flex max-w-[52rem] flex-col gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-4 self-center rounded-full border border-slate-100 bg-white py-3 pe-4 ps-3 shadow-sm dark:border-white/[0.06] dark:bg-[#191E1A]"
+              className="flex items-center gap-4 self-center rounded-full border border-zinc-100 bg-white py-3 pe-4 ps-3 shadow-sm dark:border-white/[0.06] dark:bg-[#191E1A]"
               style={{ width: `${88 - i * 8}%` }}
             >
               <Bar className="size-10 shrink-0 rounded-full" />
@@ -362,16 +362,16 @@ export function VoicesSkeleton() {
 export function PricingSkeleton() {
   return (
     <div className="px-6 py-28">
-      <div className="mx-auto max-w-[80rem]">
+      <div className="mx-auto max-w-[1400px]">
         <HeadingSkeleton center />
         <div className="mt-14 grid gap-4 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="min-h-[24rem] rounded-3xl border border-slate-100 p-7 dark:border-white/[0.06] dark:bg-[#151916]"
+              className="min-h-[24rem] rounded-2xl border border-zinc-100 p-7 dark:border-white/[0.06] dark:bg-[#151916]"
             >
               <div className="flex h-full flex-col gap-4">
-                <Bar className="h-4 w-20 rounded-md" />
+                <Bar className="h-4 w-20 rounded-lg" />
                 <Bar className="h-9 w-32 rounded-lg" />
                 <div className="flex-1 space-y-2.5 pt-2">
                   {Array.from({ length: 4 }).map((_, j) => (
@@ -413,7 +413,7 @@ export function FooterSkeleton() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Bar className="size-8 rounded-[10px]" />
-            <Bar className="h-4 w-12 rounded-md" />
+            <Bar className="h-4 w-12 rounded-lg" />
           </div>
           <Bar className="h-2.5 w-[80%] opacity-60" />
         </div>

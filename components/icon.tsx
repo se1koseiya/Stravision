@@ -1,19 +1,53 @@
 "use client";
 
 /**
- * 统一图标入口（全站图标基础设施）— 🦌 lucide-react 版
+ * 统一图标入口（全站图标基础设施）— 🔷 100% HarmonyOS Symbol，**无兜底**
  *
- * 迁移记录（2026-09-19）：从 @icon-park/react 全量迁移到 lucide-react。
- * 原因：IconPark 描边在 14–20px 渲染下偏细、转角 miter 偏尖，用户明确要求
- * 换成 lucide 的圆润中等笔画（strokeLinecap/linejoin 均为 round）。
+ * 迁移记录：
+ * - 2026-09-19：从 @icon-park/react 全量迁移到 lucide-react（IconPark 描边在
+ *   14–20px 偏细、转角 miter 偏尖）。
+ * - 2026-09-25：图标主体切换到 **HarmonyOS Symbol**（华为 HarmonyOS 主题图标库，
+ *   https://developer.huawei.com/consumer/cn/design/harmonyos-symbol/）。
+ * - 2026-09-25（二轮）：**取消 lucide 兜底**。首轮把 197 个图标换成 HarmonyOS，
+ *   51 个「HarmonyOS 没有对应图标」的概念仍回退 lucide —— 结果是同一屏里
+ *   描边（lucide 2px round）与填充轮廓（HarmonyOS）两套画风混排，观感割裂。
+ *   现改为：51 个概念全部重映射到**语义最接近的 HarmonyOS 字形**
+ *   （哪怕语义略松，也要保证全站只有一套画风），248/248 全部命中。
  *
- * 设计要点：
- * - 单一数据源：所有图标来自 `lucide-react`（ISC License）
- * - **API 完全向后兼容**：保留了原先 239 个具名导出的名字与 props，
- *   因此 ~230 个调用方文件（`import { IconX } from "@/components/icon"`）零改动。
- * - `size` 同时支持 number / string（lucide 要求 number，内部做兜底转换）
- * - 统一包一层 `<span style={{display:'inline-flex', lineHeight:0}}>`，
+ * ── 图标来源（唯一来源）────────────────────────────────────────────
+ * `HARMONY_SYMBOL_ICON_MAP[图标名]` → `HARMONY_SYMBOL_PATHS[字形名]` → 渲染字形。
+ * 字形数据见 `@/components/harmonyos-symbol-data`（自动生成，wght=400）。
+ * 未命中时**不再回退任何第三方图标库**，而是渲染醒目的占位方框并在 dev 报错
+ * （见 {@link createMissingIcon}）—— 目的是让"漏映射"当场暴露，而不是静默换画风。
+ * 运行时自检清单见 {@link UNMAPPED_ICONS}（现应恒为空数组）。
+ *
+ * 🚨 因此 `createIcon(_base, displayName)` 的第二个参数 `displayName` 是**分发键**，
+ *    它必须严格等于 `HARMONY_SYMBOL_ICON_MAP` 里的项目图标名（如 `"IconHome"`）。
+ *    新增/改动图标时别写错，否则会渲染成占位方框。
+ *
+ * ── 设计要点 ──────────────────────────────────────────────────────
+ * - **API 完全向后兼容**：248 个具名导出的名字与 props 不变，
+ *   ~230 个调用方文件（`import { IconX } from "@/components/icon"`）零改动。
+ * - `size` 同时支持 number / string（内部做兜底转换）
+ * - 统一包一层 `<span style={{display:'inline-flex', lineHeight:0, verticalAlign:'middle'}}>`，
  *   避免 inline SVG 撑高行盒（与迁移前行为一致）
+ * - 🚨 `verticalAlign: 'middle'` 是**图标与文字对齐的关键**，勿删：
+ *   行内（非 flex 行）使用时，span 的基线 = 图标底边，`baseline` 会让图标压在文字基线上
+ *   → 图标视觉上偏高 3–6.5px。实测（`_calib2.mjs`，40 组 图标尺寸×字号 组合）：
+ *     baseline → |Δ| 均值 3.31 / 峰值 6.50；middle → 0.87 / 1.45，且 **Δ 与图标尺寸无关**
+ *     （-0.22em 等长度值会随图标尺寸漂移，均值 1.39，故不用）。
+ *   在 flex/grid 容器里 `vertical-align` 会被忽略，因此对已有的 `flex items-center` 行零影响。
+ *   `style` 在最后合并，调用方仍可用 `style={{verticalAlign:'baseline'}}` 显式覆盖。
+ * - 🚨 外层 span 恒带 `data-icon`（2026-10-22）：globals.css 用
+ *   `[data-icon]:has(+ span|a|b|…)` 命中「图标紧跟文字」的行，再给 1/8 自身高度的
+ *   光学下移 —— flex 行里 vertical-align 失效，这是唯一一处能把「图标中心」
+ *   拉到「文字视觉中心」的钩子。**别删这个属性**，删了全站图标又会偏高 2px。
+ *   纯图标按钮（后面没有文字兄弟）天然不命中，保持几何居中。
+ * - ⚠️ **`strokeWidth` 对图标无效**：HarmonyOS Symbol 是**填充轮廓**
+ *   （外轮廓 + 反向内轮廓形成镂空），不是描边图形，没有"线宽"概念 ——
+ *   其粗细由字体 `wght` 轴决定，本文件统一使用官方 Regular（400），
+ *   经与原 lucide `strokeWidth=2` 的同尺寸对照实测，两者视觉权重基本一致。
+ *   签名保留（被解构后丢弃）仅为了不影响 ~230 个既有调用方传参。
  * - `theme` / `spin` 为 IconPark 时代的历史 props，保留签名不再使用：
  *   `spin` 映射为 CSS 旋转动画；`theme` 忽略。
  *
@@ -24,37 +58,40 @@
  * <IconSearch size={20} />
  * ```
  *
- * @see https://lucide.dev/icons/
+ * @see https://developer.huawei.com/consumer/cn/design/harmonyos-symbol/
  */
 
-import * as Lucide from "lucide-react";
 import * as React from "react";
+
+import {
+  HARMONY_SYMBOL_ICON_MAP,
+  HARMONY_SYMBOL_PATHS,
+  HARMONY_SYMBOL_TRANSFORM,
+} from "@/components/harmonyos-symbol-data";
 
 export type IconTheme = "outline" | "filled" | "two-tone" | "multi-color";
 
 /**
- * 全局描边宽度（lucide 24×24 grid 下的取值）。
+ * 历史遗留的「全局描边宽度」常量。
  *
- * lucide 官方默认值是 2，在 24px 显示时视觉正常；本项目图标普遍以
- * 14–20px 渲染，此时 2/24 换算到屏幕约 1.4–1.7px，属于"中等偏细"。
- *
- * 取值 2 即 lucide 官方默认（也是 shadcn new-york 风格的基准），
- * 配合 lucide 天然的 round 端点/转角，观感圆润清晰。
- * 若某处需要更细/更粗，单独传 strokeWidth 覆盖。
+ * ⚠️ **对当前图标已完全无效**：HarmonyOS Symbol 是填充轮廓，没有线宽概念，
+ *    `strokeWidth` 会被 {@link createSymbolIcon} 解构后丢弃。
+ *    保留导出只是为了让旧代码 `import { DEFAULT_STROKE_WIDTH }` 不报错，
+ *    数值仍是当年 lucide 的官方默认值 2。
  */
 export const DEFAULT_STROKE_WIDTH = 2;
 
-/** lucide 图标的尺寸基准 viewBox 为 24×24 */
-const LUCIDE_BASE_SIZE = 24;
+/** 图标 viewBox 尺寸基准（HarmonyOS Symbol 设计盒 1:1，映射后同样落在 24×24） */
+const ICON_BASE_SIZE = 24;
 
 export interface IconProps extends Omit<React.SVGProps<SVGSVGElement>, "size" | "color" | "ref"> {
   /** 尺寸（px），默认 16。字符串会按 px 解析，解析失败回退 16 */
   size?: number | string;
   /** 颜色，默认 currentColor（继承父级文字颜色） */
   color?: string | string[];
-  /** @deprecated IconPark 时代的主题参数，迁移到 lucide 后无效，保留仅为兼容旧调用 */
+  /** @deprecated IconPark 时代的主题参数，现在无效，保留仅为兼容旧调用 */
   theme?: IconTheme;
-  /** 描边宽度，默认 {@link DEFAULT_STROKE_WIDTH} */
+  /** @deprecated 填充轮廓图标没有线宽，传了也会被忽略 */
   strokeWidth?: number;
   /** 是否旋转动画 */
   spin?: boolean;
@@ -62,7 +99,9 @@ export interface IconProps extends Omit<React.SVGProps<SVGSVGElement>, "size" | 
   style?: React.CSSProperties;
 }
 
-/** 把 size（可能是 "16px" / "1.2em" / 16）归一化成 lucide 需要的数字 */
+/**
+ * 把 size（可能是 `"16px"` / `"1.2em"` / `16`）归一化成 svg 的 width/height 数字。
+ */
 function normalizeSize(size: number | string | undefined): number {
   if (typeof size === "number") return Number.isFinite(size) ? size : 16;
   if (typeof size === "string") {
@@ -72,24 +111,57 @@ function normalizeSize(size: number | string | undefined): number {
   return 16;
 }
 
-type LucideComponent = React.ComponentType<Record<string, unknown>>;
+/** 外层 span 的公共样式（行盒不撑高 + 光学对齐 + 旋转动画），详见文件头注释 */
+function outerSpanStyle(
+  spin: boolean | undefined,
+  style: React.CSSProperties | undefined
+): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 0,
+    // 行内使用时的光学对齐（详见文件头注释）；flex 容器内会被忽略
+    verticalAlign: "middle",
+    ...(spin ? { animation: "stravision-icon-spin 1s linear infinite" } : null),
+    ...style,
+  };
+}
 
 /**
- * 把 lucide 原始组件包成统一 API 的图标组件。
+ * 内层 svg 的尺寸约束。
  *
- * 关键转换（IconPark → lucide 语义差异）：
- * - IconPark 用 `fill` 上色且图标是「填充式」；lucide 是纯描边图标，颜色走
- *   `stroke`，同时把 `fill` 设为 `none`，否则会渲染出实心黑块。
- * - `spin` → CSS `animation: spin 1s linear infinite`。
+ * 🚨 保持正方形：调用方常用 className="size-3"/"w-3.5 h-3.5" 给外层盒子定尺寸，
+ * 而 svg 仍是 size 指定的 16px。svg 作为 flex item 默认会被**只压主轴**，
+ * 于是出现 12×16 这类被纵向拉伸的畸形图标（实测 device-control / subscription /
+ * my-mcp 等多处）。flexShrink:0 先禁止非等比压缩，再用 max-width/height:100%
+ * 做**等比**收窄，使图标最终等于外层盒子声明的尺寸（size-3 → 12×12）。
  */
-export function createIcon(Base: LucideComponent, displayName: string) {
+const INNER_SVG_STYLE: React.CSSProperties = {
+  flexShrink: 0,
+  maxWidth: "100%",
+  maxHeight: "100%",
+};
+
+/**
+ * 把 HarmonyOS Symbol 字形（字体单位路径 d）包成统一 API 的图标组件。
+ *
+ * 渲染要点：
+ * - 字形是**填充轮廓** → `fill={color}`；镂空靠 `fill-rule="nonzero"` +
+ *   字体自身的反向内轮廓，与 HarmonyOS 系统内渲染完全一致。
+ * - 路径保留字体原始整数坐标，靠 `<g transform>` 映射到 24×24 viewBox，
+ *   无损且体积最小（见 `harmonyos-symbol-data.ts` 头部说明）。
+ * - `strokeWidth` 对符号图标无意义（无描边概念），在此剔除，避免透传到 DOM。
+ */
+function createSymbolIcon(pathData: string, symbolName: string, displayName: string) {
   const Wrapped = React.forwardRef<HTMLSpanElement, IconProps>(function Icon(
     {
       size = 16,
       color = "currentColor",
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       theme: _theme,
-      strokeWidth = DEFAULT_STROKE_WIDTH,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      strokeWidth: _strokeWidth,
       spin,
       className,
       style,
@@ -98,37 +170,24 @@ export function createIcon(Base: LucideComponent, displayName: string) {
     ref
   ) {
     const px = normalizeSize(size);
-    const stroke = Array.isArray(color) ? color[0] : color;
+    const fill = Array.isArray(color) ? color[0] : color;
 
     return (
-      <span
-        ref={ref}
-        className={className}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          lineHeight: 0,
-          ...(spin
-            ? { animation: "stravision-icon-spin 1s linear infinite" }
-            : null),
-          ...style,
-        }}
-      >
-        <Base
-          size={px}
-          color={stroke}
-          stroke={stroke}
-          fill="none"
-          strokeWidth={strokeWidth}
-          absoluteStrokeWidth={false}
-          // lucide 的圆润端点/转角：与 IconPark 的圆角风格意图一致
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <span ref={ref} className={className} style={outerSpanStyle(spin, style)} data-icon="">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox={`0 0 ${ICON_BASE_SIZE} ${ICON_BASE_SIZE}`}
           width={px}
           height={px}
+          fill={fill}
+          style={INNER_SVG_STYLE}
           {...rest}
-        />
+        >
+          {/* 字形坐标为字体单位（upem=1000），仅在 group 上做一次坐标变换 */}
+          <g transform={HARMONY_SYMBOL_TRANSFORM}>
+            <path d={pathData} fillRule="nonzero" />
+          </g>
+        </svg>
       </span>
     );
   });
@@ -137,818 +196,621 @@ export function createIcon(Base: LucideComponent, displayName: string) {
 }
 
 /**
- * 由 lucide 原生 `__iconNode` 数据（`["path"|"circle"|…, attrs]` 元组数组）直接构造图标组件，
- * 再走 {@link createIcon} 包装。用于「lucide 有个近似图标、但需要微调某几笔」的场景 ——
- * 不必新建 .tsx 组件文件，也不必从外部引入 path 字符串。
+ * 未映射图标的占位渲染 —— **不再回退第三方图标库**（见文件头「取消 lucide 兜底」）。
  *
- * `defaultProps` 会与原节点属性合并（同 key 以节点自身为准），可用来覆盖某个 `<path>` 的 d。
+ * 全站 248 个图标名都已命中 HarmonyOS Symbol，正常情况永不触发；只有
+ * `scripts/harmonyos-symbol/generate.mjs` 的 `PROJECT_TO_SYMBOL` 漏了某个新图标名
+ * 而数据未重新生成时才会出现。此时渲染一个**虚线方框**（跟随 currentColor），
+ * 让问题在 UI 上肉眼可见、在 dev 控制台报错，而不是静默换成另一种画风。
  */
-function createIconFromLucideNode(
-  node: [string, Record<string, string | number>][],
-  displayName: string,
-  defaultProps: Record<string, string | number> = {}
-) {
-  const Base: LucideComponent = (props: Record<string, unknown>) =>
-    React.createElement(
-      "svg",
-      {
-        xmlns: "http://www.w3.org/2000/svg",
-        viewBox: `0 0 ${LUCIDE_BASE_SIZE} ${LUCIDE_BASE_SIZE}`,
-        ...props,
-      },
-      node.map(([tag, attrs], i) =>
-        React.createElement(tag, { key: i, ...defaultProps, ...attrs })
-      )
+function createMissingIcon(displayName: string) {
+  const Wrapped = React.forwardRef<HTMLSpanElement, IconProps>(function Icon(
+    {
+      size = 16,
+      // 这些 props 不适用于纯 SVG 透传（color/strokeWidth 是自定义类型），
+      // 必须解构掉，否则 `...rest` 展开到 <svg> 会触发 TS2322。
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      color: _color,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      theme: _theme,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      strokeWidth: _strokeWidth,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      spin: _spin,
+      className,
+      style,
+      ...rest
+    },
+    ref
+  ) {
+    const px = normalizeSize(size);
+
+    return (
+      <span ref={ref} className={className} style={outerSpanStyle(false, style)} data-icon="">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox={`0 0 ${ICON_BASE_SIZE} ${ICON_BASE_SIZE}`}
+          width={px}
+          height={px}
+          fill="none"
+          style={INNER_SVG_STYLE}
+          {...rest}
+        >
+          <rect
+            x="2.75"
+            y="2.75"
+            width="18.5"
+            height="18.5"
+            rx="3"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeDasharray="4 3"
+          />
+        </svg>
+      </span>
     );
-  return createIcon(Base, displayName);
+  });
+  Wrapped.displayName = displayName;
+  return Wrapped;
 }
 
 /**
- * 「圆角方气泡 + 右下尾巴 + 右上角**外侧**加号」的图标数据。
+ * 图标工厂 —— 全站唯一的图标创建入口。
  *
- * 取 lucide `message-square-plus` 的官方气泡 path 原样保留，仅把其内部的
- * 加号（`M12 8v6` / `M9 11h6`）换成右上角外挂加号（`M19 2v6` / `M16 5h6`）。
- * 气泡 path 与 `message-square` / `message-square-dashed` 同源，并排不掉线宽。
+ * 🚨 `displayName` 是**分发键**，必须严格等于项目图标名（如 `"IconHome"`）：
+ *   命中 {@link HARMONY_SYMBOL_ICON_MAP} → HarmonyOS Symbol 字形；
+ *   未命中 → 占位方框 + dev 报错（**无第三方兜底**）。
+ *
  */
-const MESSAGE_SQUARE_PLUS_OUTSIDE_NODE: [string, Record<string, string | number>][] = [
-  [
-    "path",
-    {
-      d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
-    },
-  ],
-  ["path", { d: "M19 2v6" }],
-  ["path", { d: "M16 5h6" }],
-];
+export function createIcon(displayName: string) {
+  const symbolName = HARMONY_SYMBOL_ICON_MAP[displayName];
+  const pathData = symbolName ? HARMONY_SYMBOL_PATHS[symbolName] : undefined;
+  if (pathData) return createSymbolIcon(pathData, symbolName, displayName);
+
+  if (process.env.NODE_ENV !== "production") {
+    console.error(
+      `[icon] 「${displayName}」没有 HarmonyOS Symbol 映射 —— 请在 ` +
+        `scripts/harmonyos-symbol/generate.mjs 的 PROJECT_TO_SYMBOL 里补上对应字形名，` +
+        `再重新生成 components/harmonyos-symbol-data.ts。`
+    );
+  }
+  return createMissingIcon(displayName);
+}
 
 /**
- * IconPark 名字 → lucide 名字 的映射表。
+ * 全部图标名清单（单一事实来源）。
  *
- * 仅需列出「名字不完全相同」的条目；同名项由生成脚本自动直通。
- * 共 239 个图标，其中 111 个同名直通、128 个经此表映射。
+ * 每个名字都必须能在 `harmonyos-symbol-data.ts` 的 `HARMONY_SYMBOL_ICON_MAP`
+ * 里查到字形，否则渲染成占位方框（见 {@link createMissingIcon}）。
+ * 名字由 `scripts/harmonyos-symbol/generate.mjs` 的 `PROJECT_TO_SYMBOL` 驱动，
+ * 两边必须一致 —— 新增图标请先补 PROJECT_TO_SYMBOL 再重新生成数据。
  */
-const LUCIDE_NAME_MAP: Record<string, string> = {
-  // ---- 导航 / 布局 ----
-  LayoutTwo: "PanelLeft",
-  HamburgerButton: "Menu",
-  Left: "ChevronLeft",
-  Right: "ChevronRight",
-  Up: "ChevronUp",
-  Down: "ChevronDown",
-  ArrowRightUp: "ArrowUpRight",
-  ArrowCircleUp: "CircleArrowUp",
-  Sort: "ArrowUpDown",
-  Exchange: "ArrowLeftRight",
-  Drag: "GripVertical",
-  FullScreen: "Maximize",
-  FullScreenOne: "Maximize2",
-  OffScreen: "Minimize",
-  OffScreenOne: "Minimize2",
-  Ipad: "Tablet",
+export const ICON_EXPORT_NAMES = [
+  "IconHome",
+  "IconLayoutTwo",
+  "IconSidebarPanel",
+  "IconHamburgerButton",
+  "IconLeft",
+  "IconRight",
+  "IconUp",
+  "IconDown",
+  "IconArrowLeft",
+  "IconArrowRight",
+  "IconArrowUp",
+  "IconArrowUpSolid",
+  "IconArrowDown",
+  "IconArrowRightUp",
+  "IconArrowCircleUp",
+  "IconSort",
+  "IconExchange",
+  "IconDrag",
+  "IconFullScreen",
+  "IconFullScreenOne",
+  "IconOffScreen",
+  "IconOffScreenOne",
+  "IconMonitor",
+  "IconIpad",
+  "IconPhone",
+  "IconLaptop",
+  "IconPlus",
+  "IconMinus",
+  "IconClose",
+  "IconCloseOne",
+  "IconCheck",
+  "IconCheckOne",
+  "IconCheckCorrect",
+  "IconCopy",
+  "IconEdit",
+  "IconDelete",
+  "IconRotate",
+  "IconTool",
+  "IconSave",
+  "IconDownload",
+  "IconUpload",
+  "IconShare",
+  "IconSend",
+  "IconSearch",
+  "IconFilter",
+  "IconRefresh",
+  "IconUndo",
+  "IconRedo",
+  "IconPin",
+  "IconLink",
+  "IconLinkOut",
+  "IconLinkIn",
+  "IconUnlink",
+  "IconPreviewOpen",
+  "IconPreviewClose",
+  "IconLock",
+  "IconUnlock",
+  "IconKey",
+  "IconPower",
+  "IconPencil",
+  "IconScan",
+  "IconScanCode",
+  "IconZoomIn",
+  "IconZoomOut",
+  "IconExport",
+  "IconClickTap",
+  "IconPlusCross",
+  "IconSquareSmall",
+  "IconAttention",
+  "IconCaution",
+  "IconInfo",
+  "IconHelp",
+  "IconLoading",
+  "IconCloseRemind",
+  "IconRemind",
+  "IconRemindDisable",
+  "IconShield",
+  "IconShieldCheck",
+  "IconCertificate",
+  "IconTrophy",
+  "IconStar",
+  "IconFileText",
+  "IconFileCode",
+  "IconFileAddition",
+  "IconFileEditing",
+  "IconFileSearch",
+  "IconFilePdf",
+  "IconFilePpt",
+  "IconFileWord",
+  "IconFileZip",
+  "IconFolder",
+  "IconFolderOpen",
+  "IconFolderPlus",
+  "IconFolderMinus",
+  "IconFolderSettings",
+  "IconFolderUpload",
+  "IconBook",
+  "IconBookOne",
+  "IconBookOpen",
+  "IconBookmark",
+  "IconBookshelf",
+  "IconNotebook",
+  "IconList",
+  "IconListTwo",
+  "IconListCheckbox",
+  "IconColumn",
+  "IconGridFour",
+  "IconBox",
+  "IconPaperclip",
+  "IconUser",
+  "IconPeoples",
+  "IconAddUser",
+  "IconPeopleDelete",
+  "IconComment",
+  "IconComments",
+  "IconCommentAdd",
+  "IconCommentDashed",
+  "IconMail",
+  "IconPhoneOff",
+  "IconMicrophone",
+  "IconVoiceOff",
+  "IconAnnouncement",
+  "IconInbox",
+  "IconCustomer",
+  "IconChartHistogram",
+  "IconChartLine",
+  "IconChartPie",
+  "IconTrendingUp",
+  "IconTrendingDown",
+  "IconDashboard",
+  "IconDatabaseNetwork",
+  "IconServer",
+  "IconCloudStorage",
+  "IconHardDisk",
+  "IconCpu",
+  "IconTime",
+  "IconTimer",
+  "IconCalendar",
+  "IconHistory",
+  "IconAlarmClock",
+  "IconSchedule",
+  "IconCamera",
+  "IconVideo",
+  "IconVideoOne",
+  "IconVideocamera",
+  "IconPicture",
+  "IconMusic",
+  "IconWifi",
+  "IconCloseWifi",
+  "IconSignal",
+  "IconApi",
+  "IconRouter",
+  "IconNavigation",
+  "IconLocalPin",
+  "IconMapDraw",
+  "IconEarth",
+  "IconGlobe",
+  "IconCompass",
+  "IconTarget",
+  "IconAiming",
+  "IconLightning",
+  "IconThunderbolt",
+  "IconFire",
+  "IconWater",
+  "IconWind",
+  "IconThermometer",
+  "IconSun",
+  "IconMoon",
+  "IconLeaf",
+  "IconTree",
+  "IconSeedling",
+  "IconExperiment",
+  "IconMedicineChest",
+  "IconCloudy",
+  "IconCloudyNight",
+  "IconFog",
+  "IconLightRain",
+  "IconHeavyRain",
+  "IconSnow",
+  "IconSunny",
+  "IconThunderstorm",
+  "IconSetting",
+  "IconSettingOne",
+  "IconSettingTwo",
+  "IconSwitch",
+  "IconBackgroundColor",
+  "IconLight",
+  "IconMagic",
+  "IconMagicWand",
+  "IconEmotionHappy",
+  "IconCrown",
+  "IconHexagonOne",
+  "IconRound",
+  "IconRoundCaliper",
+  "IconSquare",
+  "IconDot",
+  "IconCd",
+  "IconRocket",
+  "IconBrain",
+  "IconRobot",
+  "IconCode",
+  "IconTerminal",
+  "IconBug",
+  "IconGithub",
+  "IconGithubOne",
+  "IconTwitter",
+  "IconLogout",
+  "IconCompression",
+  "IconHandUp",
+  "IconQuote",
+  "IconBill",
+  "IconWallet",
+  "IconDollar",
+  "IconCurrency",
+  "IconTag",
+  "IconTicket",
+  "IconBriefcase",
+  "IconBuildingFour",
+  "IconShop",
+  "IconDegreeHat",
+  "IconTranslate",
+  "IconFingerprint",
+  "IconApplicationOne",
+  "IconConnect",
+  "IconFan",
+  "IconHashtagKey",
+  "IconHeadphoneSound",
+  "IconHeart",
+  "IconHtmlFive",
+  "IconLayers",
+  "IconMerge",
+  "IconMore",
+  "IconNetworkTree",
+  "IconPause",
+  "IconPlay",
+  "IconPlayOne",
+  "IconRadio",
+  "IconScissors",
+  "IconSunrise",
+  "IconSunset",
+  "IconVolumeMute",
+  "IconVolumeNotice",
+  "IconWaves",
+  "IconZip",
+  "IconEdit3",
+  "IconWand",
+  "IconPocket",
+  "IconVolumeOff",
+  "IconCloudUpload",
+] as const;
 
-  // ---- 操作 ----
-  Close: "X",
-  CloseOne: "X",
-  CheckOne: "Check",
-  CheckCorrect: "CircleCheck",
-  Edit: "Pencil",
-  Save: "Save",
-  Export: "FileOutput",
-  LinkIn: "LogIn",
-  LinkOut: "ExternalLink",
-  PreviewOpen: "Eye",
-  PreviewClose: "EyeOff",
-  Key: "KeyRound",
-  ScanCode: "ScanLine",
-  ClickTap: "MousePointerClick",
-  PlusCross: "Plus",
-
-  // ---- 状态提示 ----
-  Attention: "TriangleAlert",
-  Caution: "TriangleAlert",
-  Help: "CircleHelp",
-  Loading: "LoaderCircle",
-  CloseRemind: "BellOff",
-  Remind: "Bell",
-  RemindDisable: "BellOff",
-  Certificate: "Award",
-  Shield: "ShieldCheck",
-
-  // ---- 内容 / 文件 ----
-  FileAddition: "FilePlus",
-  FileEditing: "FilePen",
-  FilePdf: "FileType",
-  FilePpt: "Presentation",
-  FileWord: "FileType",
-  FileZip: "FileArchive",
-  FolderSettings: "FolderCog",
-  FolderUpload: "FolderUp",
-  BookOne: "BookMarked",
-  Bookshelf: "Library",
-  Edit3: "Pencil",
-
-  // ---- 通讯 / 人员 ----
-  AddUser: "UserPlus",
-  Peoples: "Users",
-  PeopleDelete: "UserMinus",
-  Customer: "UserRound",
-  Announcement: "Megaphone",
-  Comment: "MessageSquare",
-  Comments: "MessagesSquare",
-  CommentAdd: "MessageSquarePlus",
-  Inbox: "Inbox",
-  Mail: "Mail",
-  PhoneOff: "PhoneOff",
-  Microphone: "Mic",
-  VoiceOff: "MicOff",
-
-  // ---- 数据 / 图表 ----
-  ChartHistogram: "ChartColumn",
-  ChartLine: "ChartLine",
-  Dashboard: "LayoutDashboard",
-  DatabaseNetwork: "Database",
-  CloudStorage: "CloudUpload",
-  HardDisk: "HardDrive",
-  Cpu: "Cpu",
-
-  // ---- 时间 ----
-  Time: "Clock",
-  Timer: "Timer",
-  AlarmClock: "AlarmClock",
-  Schedule: "CalendarClock",
-
-  // ---- 设备 / 地理 ----
-  Videocamera: "Video",
-  VideoOne: "Video",
-  Picture: "Image",
-  Wifi: "Wifi",
-  CloseWifi: "WifiOff",
-  Api: "Webhook",
-  Router: "Router",
-  Navigation: "Navigation",
-  LocalPin: "MapPin",
-  MapDraw: "Map",
-  Earth: "Earth",
-  Globe: "Globe",
-  Compass: "Compass",
-  Target: "Target",
-  Aiming: "Crosshair",
-  Lightning: "Zap",
-  Thunderbolt: "Zap",
-  Fire: "Flame",
-  Water: "Droplet",
-  Wind: "Wind",
-  Thermometer: "Thermometer",
-  Sun: "Sun",
-  Moon: "Moon",
-  Leaf: "Leaf",
-  Tree: "TreePine",
-  Seedling: "Sprout",
-  Experiment: "FlaskConical",
-  MedicineChest: "BriefcaseMedical",
-
-  // ---- 天气（lucide 有完整天气图标族）----
-  Cloudy: "Cloud",
-  CloudyNight: "CloudMoon",
-  Fog: "CloudFog",
-  LightRain: "CloudDrizzle",
-  HeavyRain: "CloudRainWind",
-  Snow: "CloudSnow",
-  Sunny: "SunMedium",
-  Thunderstorm: "CloudLightning",
-
-  // ---- 外观 / 主题 ----
-  Setting: "Settings",
-  SettingOne: "Settings",
-  SettingTwo: "Settings2",
-  Switch: "ArrowLeftRight",
-  BackgroundColor: "PaintBucket",
-  Light: "Lightbulb",
-  Magic: "Sparkles",
-  MagicWand: "Wand2",
-  EmotionHappy: "Smile",
-  Round: "Circle",
-  RoundCaliper: "CircleDot",
-  SquareSmall: "Square",
-  Dot: "Dot",
-  Cd: "Disc",
-
-  // ---- 商业 / 其它 ----
-  Bill: "Receipt",
-  Dollar: "DollarSign",
-  Currency: "CircleDollarSign",
-  Shop: "Store",
-  Briefcase: "Briefcase",
-  BuildingFour: "Building2",
-  DegreeHat: "GraduationCap",
-  Translate: "Languages",
-  Fingerprint: "Fingerprint",
-  HashtagKey: "Hash",
-  HeadphoneSound: "Headphones",
-  VolumeMute: "VolumeX",
-  VolumeNotice: "Volume2",
-  NetworkTree: "Network",
-  Connect: "Cable",
-  Layers: "Layers",
-  Merge: "Merge",
-  More: "Ellipsis",
-  ApplicationOne: "LayoutGrid",
-  Column: "Columns2",
-  GridFour: "Grid2x2",
-  ListTwo: "List",
-  ListCheckbox: "ListChecks",
-  Compression: "Minimize2",
-  GithubOne: "Github",
-  HtmlFive: "FileCode",
-  HexagonOne: "Hexagon",
-  Tool: "Wrench",
-  Robot: "Bot",
-  Wand: "Wand",
-  Zip: "FileArchive",
-  Waves: "Waves",
-  Pocket: "Pocket",
-  Trophy: "Trophy",
-  Star: "Star",
-  Heart: "Heart",
-  Bookmark: "Bookmark",
-  Quote: "Quote",
-  Ticket: "Ticket",
-  Wallet: "Wallet",
-  Tag: "Tag",
-  Rocket: "Rocket",
-  Brain: "Brain",
-  Code: "Code",
-  Terminal: "Terminal",
-  Bug: "Bug",
-  Github: "Github",
-  Twitter: "Twitter",
-  Logout: "LogOut",
-  HandUp: "Hand",
-  Scissors: "Scissors",
-  PlayOne: "Play",
-  Radio: "Radio",
-  Music: "Music",
-  Video: "Video",
-  Pause: "Pause",
-  VolumeOff: "VolumeX",
-
-  // ---- 云存储 / 备份（用于知识库备份等语义，保留 CloudStorage 名）----
-  CloudUpload: "CloudUpload",
-};
-
-/**
- * 全部已适配图标（语义分组）。
- *
- * 注意：这里的值是 **lucide 组件**，最终由 `createIcon` 统一包装。
- * 下方 `export const IconXxx` 段落按字母序稳定输出（由映射表 + Icons 对象生成）。
- */
-export const Icons = {
-  // ---- 导航 / 布局 ----
-  IconHome: Lucide.House,
-  IconLayoutTwo: Lucide.PanelLeft,
-  IconHamburgerButton: Lucide.Menu,
-  IconLeft: Lucide.ChevronLeft,
-  IconRight: Lucide.ChevronRight,
-  IconUp: Lucide.ChevronUp,
-  IconDown: Lucide.ChevronDown,
-  IconArrowLeft: Lucide.ArrowLeft,
-  IconArrowRight: Lucide.ArrowRight,
-  IconArrowUp: Lucide.ArrowUp,
-  /** 实心圆底向上的箭头 — 发送按钮（参照对话产品的实心发送按钮） */
-  IconArrowUpSolid: Lucide.ArrowUp,
-  IconArrowDown: Lucide.ArrowDown,
-  IconArrowRightUp: Lucide.ArrowUpRight,
-  IconArrowCircleUp: Lucide.CircleArrowUp,
-  IconSort: Lucide.ArrowUpDown,
-  IconExchange: Lucide.ArrowLeftRight,
-  IconDrag: Lucide.GripVertical,
-  IconFullScreen: Lucide.Maximize,
-  IconFullScreenOne: Lucide.Maximize2,
-  IconOffScreen: Lucide.Minimize,
-  IconOffScreenOne: Lucide.Minimize2,
-  IconMonitor: Lucide.Monitor,
-  IconIpad: Lucide.Tablet,
-  IconPhone: Lucide.Smartphone,
-  IconLaptop: Lucide.Laptop,
-
-  // ---- 操作 ----
-  IconPlus: Lucide.Plus,
-  IconMinus: Lucide.Minus,
-  IconClose: Lucide.X,
-  IconCloseOne: Lucide.X,
-  IconCheck: Lucide.Check,
-  IconCheckOne: Lucide.Check,
-  IconCheckCorrect: Lucide.CircleCheck,
-  IconCopy: Lucide.Copy,
-  IconEdit: Lucide.Pencil,
-  IconDelete: Lucide.Trash2,
-  IconRotate: Lucide.RotateCw,
-  IconTool: Lucide.Wrench,
-  IconSave: Lucide.Save,
-  IconDownload: Lucide.Download,
-  IconUpload: Lucide.Upload,
-  IconShare: Lucide.Share2,
-  IconSend: Lucide.Send,
-  IconSearch: Lucide.Search,
-  IconFilter: Lucide.Funnel,
-  IconRefresh: Lucide.RefreshCw,
-  IconUndo: Lucide.Undo2,
-  IconRedo: Lucide.Redo2,
-  IconPin: Lucide.Pin,
-  IconLink: Lucide.Link,
-  IconLinkOut: Lucide.ExternalLink,
-  IconLinkIn: Lucide.LogIn,
-  IconUnlink: Lucide.Unlink,
-  IconPreviewOpen: Lucide.Eye,
-  IconPreviewClose: Lucide.EyeOff,
-  IconLock: Lucide.Lock,
-  IconUnlock: Lucide.LockOpen,
-  IconKey: Lucide.KeyRound,
-  IconPower: Lucide.Power,
-  IconPencil: Lucide.Pencil,
-  IconScan: Lucide.Scan,
-  IconScanCode: Lucide.ScanLine,
-  IconZoomIn: Lucide.ZoomIn,
-  IconZoomOut: Lucide.ZoomOut,
-  IconExport: Lucide.FileOutput,
-  IconClickTap: Lucide.MousePointerClick,
-  IconPlusCross: Lucide.Plus,
-  IconSquareSmall: Lucide.Square,
-
-  // ---- 状态提示 ----
-  IconAttention: Lucide.TriangleAlert,
-  IconCaution: Lucide.TriangleAlert,
-  IconInfo: Lucide.Info,
-  IconHelp: Lucide.CircleHelp,
-  IconLoading: Lucide.LoaderCircle,
-  IconCloseRemind: Lucide.BellOff,
-  IconRemind: Lucide.Bell,
-  IconRemindDisable: Lucide.BellOff,
-  IconShield: Lucide.ShieldCheck,
-  /** 盾牌 + 勾 — 「完全访问权限」模式标识（参照对话产品） */
-  IconShieldCheck: Lucide.ShieldCheck,
-  IconCertificate: Lucide.Award,
-  IconTrophy: Lucide.Trophy,
-  IconStar: Lucide.Star,
-
-  // ---- 内容 / 文件 ----
-  IconFileText: Lucide.FileText,
-  IconFileCode: Lucide.FileCode,
-  IconFileAddition: Lucide.FilePlus,
-  IconFileEditing: Lucide.FilePen,
-  IconFileSearch: Lucide.FileSearch,
-  IconFilePdf: Lucide.FileType,
-  IconFilePpt: Lucide.Presentation,
-  IconFileWord: Lucide.FileType,
-  IconFileZip: Lucide.FileArchive,
-  IconFolder: Lucide.Folder,
-  IconFolderOpen: Lucide.FolderOpen,
-  IconFolderPlus: Lucide.FolderPlus,
-  IconFolderMinus: Lucide.FolderMinus,
-  IconFolderSettings: Lucide.FolderCog,
-  IconFolderUpload: Lucide.FolderUp,
-  IconBook: Lucide.Book,
-  IconBookOne: Lucide.BookMarked,
-  IconBookOpen: Lucide.BookOpen,
-  IconBookmark: Lucide.Bookmark,
-  IconBookshelf: Lucide.Library,
-  IconNotebook: Lucide.Notebook,
-  IconList: Lucide.List,
-  IconListTwo: Lucide.List,
-  IconListCheckbox: Lucide.ListChecks,
-  IconColumn: Lucide.Columns2,
-  IconGridFour: Lucide.Grid2x2,
-  IconBox: Lucide.Package,
-  IconPaperclip: Lucide.Paperclip,
-
-  // ---- 通讯 / 人员 ----
-  IconUser: Lucide.User,
-  IconPeoples: Lucide.Users,
-  IconAddUser: Lucide.UserPlus,
-  IconPeopleDelete: Lucide.UserMinus,
-  IconComment: Lucide.MessageSquare,
-  IconComments: Lucide.MessagesSquare,
-  /**
-   * 「气泡 + 加号」= 新建对话。
-   *
-   * 说明：lucide 的 `MessageSquarePlus` 把加号画在气泡**内部**（`M12 8v6` / `M9 11h6`），
-   * 而 Qwen / ChatGPT 侧栏那款是**圆角方气泡 + 右下尾巴 + 右上角外侧加号**。
-   * 这里保持气泡 path 原样（`M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202…z`），
-   * 只把内部加号替换成右上角外挂加号（`M19 2v6` / `M16 5h6`），
-   * 造型与参考一致，且仍走 lucide 网格 —— 不引入外来 path 源。
-   *
-   * 与 `IconCommentDashed`（临时对话）同排并置时，两者气泡轮廓/线宽完全同源，不会一粗一细。
-   */
-  IconCommentAdd: createIconFromLucideNode(MESSAGE_SQUARE_PLUS_OUTSIDE_NODE, "IconCommentAdd"),
-  IconCommentDashed: Lucide.MessageSquareDashed,
-  IconMail: Lucide.Mail,
-  IconPhoneOff: Lucide.PhoneOff,
-  IconMicrophone: Lucide.Mic,
-  IconVoiceOff: Lucide.MicOff,
-  IconAnnouncement: Lucide.Megaphone,
-  IconInbox: Lucide.Inbox,
-  IconCustomer: Lucide.UserRound,
-
-  // ---- 数据 / 图表 ----
-  IconChartHistogram: Lucide.ChartColumn,
-  IconChartLine: Lucide.ChartLine,
-  IconChartPie: Lucide.ChartPie,
-  IconTrendingUp: Lucide.TrendingUp,
-  IconTrendingDown: Lucide.TrendingDown,
-  IconDashboard: Lucide.LayoutDashboard,
-  IconDatabaseNetwork: Lucide.Database,
-  IconServer: Lucide.Server,
-  IconCloudStorage: Lucide.CloudUpload,
-  IconHardDisk: Lucide.HardDrive,
-  IconCpu: Lucide.Cpu,
-
-  // ---- 时间 ----
-  IconTime: Lucide.Clock,
-  IconTimer: Lucide.Timer,
-  IconCalendar: Lucide.Calendar,
-  IconHistory: Lucide.History,
-  IconAlarmClock: Lucide.Clock,
-  IconSchedule: Lucide.CalendarClock,
-
-  // ---- 设备 / 地理 ----
-  IconCamera: Lucide.Camera,
-  IconVideo: Lucide.Video,
-  IconVideoOne: Lucide.Video,
-  IconVideocamera: Lucide.Video,
-  IconPicture: Lucide.Image,
-  IconMusic: Lucide.Music,
-  IconWifi: Lucide.Wifi,
-  IconCloseWifi: Lucide.WifiOff,
-  IconSignal: Lucide.Signal,
-  IconApi: Lucide.Webhook,
-  IconRouter: Lucide.Router,
-  IconNavigation: Lucide.Navigation,
-  IconLocalPin: Lucide.MapPin,
-  IconMapDraw: Lucide.Map,
-  IconEarth: Lucide.Earth,
-  IconGlobe: Lucide.Globe,
-  IconCompass: Lucide.Compass,
-  IconTarget: Lucide.Target,
-  IconAiming: Lucide.Crosshair,
-  IconLightning: Lucide.Zap,
-  IconThunderbolt: Lucide.Zap,
-  IconFire: Lucide.Flame,
-  IconWater: Lucide.Droplet,
-  IconWind: Lucide.Wind,
-  IconThermometer: Lucide.Thermometer,
-  IconSun: Lucide.Sun,
-  IconMoon: Lucide.Moon,
-  IconLeaf: Lucide.Leaf,
-  IconTree: Lucide.TreePine,
-  IconSeedling: Lucide.Sprout,
-  IconExperiment: Lucide.FlaskConical,
-  IconMedicineChest: Lucide.BriefcaseMedical,
-
-  // ---- 天气 ----
-  IconCloudy: Lucide.Cloud,
-  IconCloudyNight: Lucide.CloudMoon,
-  IconFog: Lucide.CloudFog,
-  IconLightRain: Lucide.CloudDrizzle,
-  IconHeavyRain: Lucide.CloudRainWind,
-  IconSnow: Lucide.CloudSnow,
-  IconSunny: Lucide.SunMedium,
-  IconThunderstorm: Lucide.CloudLightning,
-
-  // ---- 外观 / 主题 ----
-  IconSetting: Lucide.Settings,
-  IconSettingOne: Lucide.Settings,
-  IconSettingTwo: Lucide.Settings2,
-  IconSwitch: Lucide.ArrowLeftRight,
-  IconBackgroundColor: Lucide.PaintBucket,
-  IconLight: Lucide.Lightbulb,
-  IconMagic: Lucide.Sparkles,
-  IconMagicWand: Lucide.Wand2,
-  IconEmotionHappy: Lucide.Smile,
-  IconCrown: Lucide.Crown,
-  IconHexagonOne: Lucide.Hexagon,
-  IconRound: Lucide.Circle,
-  IconRoundCaliper: Lucide.CircleDot,
-  IconSquare: Lucide.Square,
-  IconDot: Lucide.Dot,
-  IconCd: Lucide.Disc,
-  IconRocket: Lucide.Rocket,
-  IconBrain: Lucide.Brain,
-  IconRobot: Lucide.Bot,
-  IconCode: Lucide.Code,
-  IconTerminal: Lucide.Terminal,
-  IconBug: Lucide.Bug,
-  IconGithub: Lucide.Github,
-  IconGithubOne: Lucide.Github,
-  IconTwitter: Lucide.Twitter,
-  IconLogout: Lucide.LogOut,
-  IconCompression: Lucide.Minimize2,
-  IconHandUp: Lucide.Hand,
-  IconQuote: Lucide.Quote,
-
-  // ---- 商业 / 其它 ----
-  IconBill: Lucide.Receipt,
-  IconWallet: Lucide.Wallet,
-  IconDollar: Lucide.DollarSign,
-  IconCurrency: Lucide.CircleDollarSign,
-  IconTag: Lucide.Tag,
-  IconTicket: Lucide.Ticket,
-  IconBriefcase: Lucide.Briefcase,
-  IconBuildingFour: Lucide.Building2,
-  IconShop: Lucide.Store,
-  IconDegreeHat: Lucide.GraduationCap,
-  IconTranslate: Lucide.Languages,
-  IconFingerprint: Lucide.Fingerprint,
-  IconApplicationOne: Lucide.LayoutGrid,
-  IconConnect: Lucide.Cable,
-  IconFan: Lucide.Fan,
-  IconHashtagKey: Lucide.Hash,
-  IconHeadphoneSound: Lucide.Headphones,
-  IconHeart: Lucide.Heart,
-  IconHtmlFive: Lucide.FileCode,
-  IconLayers: Lucide.Layers,
-  IconMerge: Lucide.Merge,
-  IconMore: Lucide.Ellipsis,
-  IconNetworkTree: Lucide.Network,
-  IconPause: Lucide.Pause,
-  IconPlay: Lucide.Play,
-  IconPlayOne: Lucide.Play,
-  IconRadio: Lucide.Radio,
-  IconScissors: Lucide.Scissors,
-  IconSunrise: Lucide.Sunrise,
-  IconSunset: Lucide.Sunset,
-  IconVolumeMute: Lucide.VolumeX,
-  IconVolumeNotice: Lucide.Volume2,
-  IconWaves: Lucide.Waves,
-  IconZip: Lucide.FileArchive,
-
-  // ---- 兼容别名（历史遗留名，保持导出不报错）----
-  IconEdit3: Lucide.Pencil,
-  IconWand: Lucide.Wand,
-  IconPocket: Lucide.Pocket,
-  IconVolumeOff: Lucide.VolumeX,
-  IconCloudUpload: Lucide.CloudUpload,
-} as const;
-
-export type IconName = keyof typeof Icons;
+export type IconName = (typeof ICON_EXPORT_NAMES)[number];
 
 /** 全部图标名清单（便于调试 / 遍历） */
-export const ICON_NAMES = Object.keys(Icons) as IconName[];
+export const ICON_NAMES: readonly IconName[] = ICON_EXPORT_NAMES;
 
-/** IconPark 名 → lucide 名 的只读映射（供外部工具/迁移脚本查询） */
-export const ICON_PARK_TO_LUCIDE = LUCIDE_NAME_MAP;
+/**
+ * 未命中 HarmonyOS Symbol 映射的图标名清单 —— **现应恒为空数组**。
+ *
+ * 取消 lucide 兜底后，这里不再是"预期兜底清单"，而是**回归哨兵**：
+ * 一旦非空，说明 `scripts/harmonyos-symbol/generate.mjs` 的 `PROJECT_TO_SYMBOL`
+ * 与 `components/icon.tsx` 的导出名单脱节（漏了一项没映射），需要补映射并重新生成数据。
+ * 验收脚本 `_probe_harmonyos_icons.cjs` 会断言它为空。
+ */
+export const UNMAPPED_ICONS: readonly IconName[] = ICON_EXPORT_NAMES.filter(
+  (name) => !HARMONY_SYMBOL_PATHS[HARMONY_SYMBOL_ICON_MAP[name] ?? ""]
+);
 
-/** lucide 基准网格，供需要换算描边的场景使用 */
-export const ICON_BASE_SIZE = LUCIDE_BASE_SIZE;
+/** 项目图标名 → 实际使用 HarmonyOS Symbol 字形名（仅命中项） */
+export const HARMONY_ICON_USAGE: Record<string, string> = Object.fromEntries(
+  ICON_EXPORT_NAMES
+    .filter((name) => HARMONY_SYMBOL_PATHS[HARMONY_SYMBOL_ICON_MAP[name] ?? ""])
+    .map((name) => [name, HARMONY_SYMBOL_ICON_MAP[name]])
+);
 
 // ────────────────────────────────────────────────────────────────
-// 具名导出（与迁移前 239 个名字 1:1 对应，保证调用方零改动）
+// 具名导出（248 个名字与迁移前 1:1 对应，保证调用方零改动）
 // ────────────────────────────────────────────────────────────────
 
-export const IconAddUser = createIcon(Icons.IconAddUser as unknown as LucideComponent, "IconAddUser");
-export const IconAiming = createIcon(Icons.IconAiming as unknown as LucideComponent, "IconAiming");
-export const IconAlarmClock = createIcon(Icons.IconAlarmClock as unknown as LucideComponent, "IconAlarmClock");
-export const IconAnnouncement = createIcon(Icons.IconAnnouncement as unknown as LucideComponent, "IconAnnouncement");
-export const IconApi = createIcon(Icons.IconApi as unknown as LucideComponent, "IconApi");
-export const IconApplicationOne = createIcon(Icons.IconApplicationOne as unknown as LucideComponent, "IconApplicationOne");
-export const IconArrowCircleUp = createIcon(Icons.IconArrowCircleUp as unknown as LucideComponent, "IconArrowCircleUp");
-export const IconArrowDown = createIcon(Icons.IconArrowDown as unknown as LucideComponent, "IconArrowDown");
-export const IconArrowLeft = createIcon(Icons.IconArrowLeft as unknown as LucideComponent, "IconArrowLeft");
-export const IconArrowRight = createIcon(Icons.IconArrowRight as unknown as LucideComponent, "IconArrowRight");
-export const IconArrowRightUp = createIcon(Icons.IconArrowRightUp as unknown as LucideComponent, "IconArrowRightUp");
-export const IconArrowUp = createIcon(Icons.IconArrowUp as unknown as LucideComponent, "IconArrowUp");
-export const IconArrowUpSolid = createIcon(Icons.IconArrowUpSolid as unknown as LucideComponent, "IconArrowUpSolid");
-export const IconAttention = createIcon(Icons.IconAttention as unknown as LucideComponent, "IconAttention");
-export const IconBackgroundColor = createIcon(Icons.IconBackgroundColor as unknown as LucideComponent, "IconBackgroundColor");
-export const IconBill = createIcon(Icons.IconBill as unknown as LucideComponent, "IconBill");
-export const IconBook = createIcon(Icons.IconBook as unknown as LucideComponent, "IconBook");
-export const IconBookOne = createIcon(Icons.IconBookOne as unknown as LucideComponent, "IconBookOne");
-export const IconBookOpen = createIcon(Icons.IconBookOpen as unknown as LucideComponent, "IconBookOpen");
-export const IconBookmark = createIcon(Icons.IconBookmark as unknown as LucideComponent, "IconBookmark");
-export const IconBookshelf = createIcon(Icons.IconBookshelf as unknown as LucideComponent, "IconBookshelf");
-export const IconBox = createIcon(Icons.IconBox as unknown as LucideComponent, "IconBox");
-export const IconBrain = createIcon(Icons.IconBrain as unknown as LucideComponent, "IconBrain");
-export const IconBriefcase = createIcon(Icons.IconBriefcase as unknown as LucideComponent, "IconBriefcase");
-export const IconBug = createIcon(Icons.IconBug as unknown as LucideComponent, "IconBug");
-export const IconBuildingFour = createIcon(Icons.IconBuildingFour as unknown as LucideComponent, "IconBuildingFour");
-export const IconCalendar = createIcon(Icons.IconCalendar as unknown as LucideComponent, "IconCalendar");
-export const IconCamera = createIcon(Icons.IconCamera as unknown as LucideComponent, "IconCamera");
-export const IconCaution = createIcon(Icons.IconCaution as unknown as LucideComponent, "IconCaution");
-export const IconCd = createIcon(Icons.IconCd as unknown as LucideComponent, "IconCd");
-export const IconCertificate = createIcon(Icons.IconCertificate as unknown as LucideComponent, "IconCertificate");
-export const IconChartHistogram = createIcon(Icons.IconChartHistogram as unknown as LucideComponent, "IconChartHistogram");
-export const IconChartLine = createIcon(Icons.IconChartLine as unknown as LucideComponent, "IconChartLine");
-export const IconChartPie = createIcon(Icons.IconChartPie as unknown as LucideComponent, "IconChartPie");
-export const IconCheck = createIcon(Icons.IconCheck as unknown as LucideComponent, "IconCheck");
-export const IconCheckCorrect = createIcon(Icons.IconCheckCorrect as unknown as LucideComponent, "IconCheckCorrect");
-export const IconCheckOne = createIcon(Icons.IconCheckOne as unknown as LucideComponent, "IconCheckOne");
-export const IconClickTap = createIcon(Icons.IconClickTap as unknown as LucideComponent, "IconClickTap");
-export const IconClose = createIcon(Icons.IconClose as unknown as LucideComponent, "IconClose");
-export const IconCloseOne = createIcon(Icons.IconCloseOne as unknown as LucideComponent, "IconCloseOne");
-export const IconCloseRemind = createIcon(Icons.IconCloseRemind as unknown as LucideComponent, "IconCloseRemind");
-export const IconCloseWifi = createIcon(Icons.IconCloseWifi as unknown as LucideComponent, "IconCloseWifi");
-export const IconCloudStorage = createIcon(Icons.IconCloudStorage as unknown as LucideComponent, "IconCloudStorage");
-export const IconCloudUpload = createIcon(Icons.IconCloudUpload as unknown as LucideComponent, "IconCloudUpload");
-export const IconCloudy = createIcon(Icons.IconCloudy as unknown as LucideComponent, "IconCloudy");
-export const IconCloudyNight = createIcon(Icons.IconCloudyNight as unknown as LucideComponent, "IconCloudyNight");
-export const IconCode = createIcon(Icons.IconCode as unknown as LucideComponent, "IconCode");
-export const IconColumn = createIcon(Icons.IconColumn as unknown as LucideComponent, "IconColumn");
-export const IconComment = createIcon(Icons.IconComment as unknown as LucideComponent, "IconComment");
-export const IconCommentAdd = Icons.IconCommentAdd;
-export const IconComments = createIcon(Icons.IconComments as unknown as LucideComponent, "IconComments");
-export const IconCommentDashed = createIcon(Icons.IconCommentDashed as unknown as LucideComponent, "IconCommentDashed");
-export const IconCompass = createIcon(Icons.IconCompass as unknown as LucideComponent, "IconCompass");
-export const IconCompression = createIcon(Icons.IconCompression as unknown as LucideComponent, "IconCompression");
-export const IconConnect = createIcon(Icons.IconConnect as unknown as LucideComponent, "IconConnect");
-export const IconCopy = createIcon(Icons.IconCopy as unknown as LucideComponent, "IconCopy");
-export const IconCpu = createIcon(Icons.IconCpu as unknown as LucideComponent, "IconCpu");
-export const IconCrown = createIcon(Icons.IconCrown as unknown as LucideComponent, "IconCrown");
-export const IconCurrency = createIcon(Icons.IconCurrency as unknown as LucideComponent, "IconCurrency");
-export const IconCustomer = createIcon(Icons.IconCustomer as unknown as LucideComponent, "IconCustomer");
-export const IconDashboard = createIcon(Icons.IconDashboard as unknown as LucideComponent, "IconDashboard");
-export const IconDatabaseNetwork = createIcon(Icons.IconDatabaseNetwork as unknown as LucideComponent, "IconDatabaseNetwork");
-export const IconDegreeHat = createIcon(Icons.IconDegreeHat as unknown as LucideComponent, "IconDegreeHat");
-export const IconDelete = createIcon(Icons.IconDelete as unknown as LucideComponent, "IconDelete");
-export const IconDollar = createIcon(Icons.IconDollar as unknown as LucideComponent, "IconDollar");
-export const IconDot = createIcon(Icons.IconDot as unknown as LucideComponent, "IconDot");
-export const IconDown = createIcon(Icons.IconDown as unknown as LucideComponent, "IconDown");
-export const IconDownload = createIcon(Icons.IconDownload as unknown as LucideComponent, "IconDownload");
-export const IconDrag = createIcon(Icons.IconDrag as unknown as LucideComponent, "IconDrag");
-export const IconEarth = createIcon(Icons.IconEarth as unknown as LucideComponent, "IconEarth");
-export const IconEdit = createIcon(Icons.IconEdit as unknown as LucideComponent, "IconEdit");
-export const IconEdit3 = createIcon(Icons.IconEdit3 as unknown as LucideComponent, "IconEdit3");
-export const IconEmotionHappy = createIcon(Icons.IconEmotionHappy as unknown as LucideComponent, "IconEmotionHappy");
-export const IconExchange = createIcon(Icons.IconExchange as unknown as LucideComponent, "IconExchange");
-export const IconExperiment = createIcon(Icons.IconExperiment as unknown as LucideComponent, "IconExperiment");
-export const IconExport = createIcon(Icons.IconExport as unknown as LucideComponent, "IconExport");
-export const IconFan = createIcon(Icons.IconFan as unknown as LucideComponent, "IconFan");
-export const IconFileAddition = createIcon(Icons.IconFileAddition as unknown as LucideComponent, "IconFileAddition");
-export const IconFileCode = createIcon(Icons.IconFileCode as unknown as LucideComponent, "IconFileCode");
-export const IconFileEditing = createIcon(Icons.IconFileEditing as unknown as LucideComponent, "IconFileEditing");
-export const IconFilePdf = createIcon(Icons.IconFilePdf as unknown as LucideComponent, "IconFilePdf");
-export const IconFilePpt = createIcon(Icons.IconFilePpt as unknown as LucideComponent, "IconFilePpt");
-export const IconFileSearch = createIcon(Icons.IconFileSearch as unknown as LucideComponent, "IconFileSearch");
-export const IconFileText = createIcon(Icons.IconFileText as unknown as LucideComponent, "IconFileText");
-export const IconFileWord = createIcon(Icons.IconFileWord as unknown as LucideComponent, "IconFileWord");
-export const IconFileZip = createIcon(Icons.IconFileZip as unknown as LucideComponent, "IconFileZip");
-export const IconFilter = createIcon(Icons.IconFilter as unknown as LucideComponent, "IconFilter");
-export const IconFingerprint = createIcon(Icons.IconFingerprint as unknown as LucideComponent, "IconFingerprint");
-export const IconFire = createIcon(Icons.IconFire as unknown as LucideComponent, "IconFire");
-export const IconFog = createIcon(Icons.IconFog as unknown as LucideComponent, "IconFog");
-export const IconFolder = createIcon(Icons.IconFolder as unknown as LucideComponent, "IconFolder");
-export const IconFolderMinus = createIcon(Icons.IconFolderMinus as unknown as LucideComponent, "IconFolderMinus");
-export const IconFolderOpen = createIcon(Icons.IconFolderOpen as unknown as LucideComponent, "IconFolderOpen");
-export const IconFolderPlus = createIcon(Icons.IconFolderPlus as unknown as LucideComponent, "IconFolderPlus");
-export const IconFolderSettings = createIcon(Icons.IconFolderSettings as unknown as LucideComponent, "IconFolderSettings");
-export const IconFolderUpload = createIcon(Icons.IconFolderUpload as unknown as LucideComponent, "IconFolderUpload");
-export const IconFullScreen = createIcon(Icons.IconFullScreen as unknown as LucideComponent, "IconFullScreen");
-export const IconFullScreenOne = createIcon(Icons.IconFullScreenOne as unknown as LucideComponent, "IconFullScreenOne");
-export const IconGithub = createIcon(Icons.IconGithub as unknown as LucideComponent, "IconGithub");
-export const IconGithubOne = createIcon(Icons.IconGithubOne as unknown as LucideComponent, "IconGithubOne");
-export const IconGlobe = createIcon(Icons.IconGlobe as unknown as LucideComponent, "IconGlobe");
-export const IconGridFour = createIcon(Icons.IconGridFour as unknown as LucideComponent, "IconGridFour");
-export const IconHamburgerButton = createIcon(Icons.IconHamburgerButton as unknown as LucideComponent, "IconHamburgerButton");
-export const IconHandUp = createIcon(Icons.IconHandUp as unknown as LucideComponent, "IconHandUp");
-export const IconHardDisk = createIcon(Icons.IconHardDisk as unknown as LucideComponent, "IconHardDisk");
-export const IconHashtagKey = createIcon(Icons.IconHashtagKey as unknown as LucideComponent, "IconHashtagKey");
-export const IconHeadphoneSound = createIcon(Icons.IconHeadphoneSound as unknown as LucideComponent, "IconHeadphoneSound");
-export const IconHeart = createIcon(Icons.IconHeart as unknown as LucideComponent, "IconHeart");
-export const IconHeavyRain = createIcon(Icons.IconHeavyRain as unknown as LucideComponent, "IconHeavyRain");
-export const IconHelp = createIcon(Icons.IconHelp as unknown as LucideComponent, "IconHelp");
-export const IconHexagonOne = createIcon(Icons.IconHexagonOne as unknown as LucideComponent, "IconHexagonOne");
-export const IconHistory = createIcon(Icons.IconHistory as unknown as LucideComponent, "IconHistory");
-export const IconHome = createIcon(Icons.IconHome as unknown as LucideComponent, "IconHome");
-export const IconHtmlFive = createIcon(Icons.IconHtmlFive as unknown as LucideComponent, "IconHtmlFive");
-export const IconInbox = createIcon(Icons.IconInbox as unknown as LucideComponent, "IconInbox");
-export const IconInfo = createIcon(Icons.IconInfo as unknown as LucideComponent, "IconInfo");
-export const IconIpad = createIcon(Icons.IconIpad as unknown as LucideComponent, "IconIpad");
-export const IconKey = createIcon(Icons.IconKey as unknown as LucideComponent, "IconKey");
-export const IconLaptop = createIcon(Icons.IconLaptop as unknown as LucideComponent, "IconLaptop");
-export const IconLayers = createIcon(Icons.IconLayers as unknown as LucideComponent, "IconLayers");
-export const IconLayoutTwo = createIcon(Icons.IconLayoutTwo as unknown as LucideComponent, "IconLayoutTwo");
-export const IconLeaf = createIcon(Icons.IconLeaf as unknown as LucideComponent, "IconLeaf");
-export const IconLeft = createIcon(Icons.IconLeft as unknown as LucideComponent, "IconLeft");
-export const IconLight = createIcon(Icons.IconLight as unknown as LucideComponent, "IconLight");
-export const IconLightning = createIcon(Icons.IconLightning as unknown as LucideComponent, "IconLightning");
-export const IconLightRain = createIcon(Icons.IconLightRain as unknown as LucideComponent, "IconLightRain");
-export const IconLink = createIcon(Icons.IconLink as unknown as LucideComponent, "IconLink");
-export const IconLinkIn = createIcon(Icons.IconLinkIn as unknown as LucideComponent, "IconLinkIn");
-export const IconLinkOut = createIcon(Icons.IconLinkOut as unknown as LucideComponent, "IconLinkOut");
-export const IconList = createIcon(Icons.IconList as unknown as LucideComponent, "IconList");
-export const IconListCheckbox = createIcon(Icons.IconListCheckbox as unknown as LucideComponent, "IconListCheckbox");
-export const IconListTwo = createIcon(Icons.IconListTwo as unknown as LucideComponent, "IconListTwo");
-export const IconLoading = createIcon(Icons.IconLoading as unknown as LucideComponent, "IconLoading");
-export const IconLocalPin = createIcon(Icons.IconLocalPin as unknown as LucideComponent, "IconLocalPin");
-export const IconLock = createIcon(Icons.IconLock as unknown as LucideComponent, "IconLock");
-export const IconLogout = createIcon(Icons.IconLogout as unknown as LucideComponent, "IconLogout");
-export const IconMagic = createIcon(Icons.IconMagic as unknown as LucideComponent, "IconMagic");
-export const IconMagicWand = createIcon(Icons.IconMagicWand as unknown as LucideComponent, "IconMagicWand");
-export const IconMail = createIcon(Icons.IconMail as unknown as LucideComponent, "IconMail");
-export const IconMapDraw = createIcon(Icons.IconMapDraw as unknown as LucideComponent, "IconMapDraw");
-export const IconMedicineChest = createIcon(Icons.IconMedicineChest as unknown as LucideComponent, "IconMedicineChest");
-export const IconMerge = createIcon(Icons.IconMerge as unknown as LucideComponent, "IconMerge");
-export const IconMicrophone = createIcon(Icons.IconMicrophone as unknown as LucideComponent, "IconMicrophone");
-export const IconMinus = createIcon(Icons.IconMinus as unknown as LucideComponent, "IconMinus");
-export const IconMonitor = createIcon(Icons.IconMonitor as unknown as LucideComponent, "IconMonitor");
-export const IconMoon = createIcon(Icons.IconMoon as unknown as LucideComponent, "IconMoon");
-export const IconMore = createIcon(Lucide.ChevronDown as unknown as LucideComponent, "IconMore");
-export const IconMusic = createIcon(Icons.IconMusic as unknown as LucideComponent, "IconMusic");
-export const IconNavigation = createIcon(Icons.IconNavigation as unknown as LucideComponent, "IconNavigation");
-export const IconNetworkTree = createIcon(Icons.IconNetworkTree as unknown as LucideComponent, "IconNetworkTree");
-export const IconNotebook = createIcon(Icons.IconNotebook as unknown as LucideComponent, "IconNotebook");
-export const IconOffScreen = createIcon(Icons.IconOffScreen as unknown as LucideComponent, "IconOffScreen");
-export const IconOffScreenOne = createIcon(Icons.IconOffScreenOne as unknown as LucideComponent, "IconOffScreenOne");
-export const IconPaperclip = createIcon(Icons.IconPaperclip as unknown as LucideComponent, "IconPaperclip");
-export const IconPause = createIcon(Icons.IconPause as unknown as LucideComponent, "IconPause");
-export const IconPencil = createIcon(Icons.IconPencil as unknown as LucideComponent, "IconPencil");
-export const IconPeopleDelete = createIcon(Icons.IconPeopleDelete as unknown as LucideComponent, "IconPeopleDelete");
-export const IconPeoples = createIcon(Icons.IconPeoples as unknown as LucideComponent, "IconPeoples");
-export const IconPhone = createIcon(Icons.IconPhone as unknown as LucideComponent, "IconPhone");
-export const IconPhoneOff = createIcon(Icons.IconPhoneOff as unknown as LucideComponent, "IconPhoneOff");
-export const IconPicture = createIcon(Icons.IconPicture as unknown as LucideComponent, "IconPicture");
-export const IconPin = createIcon(Icons.IconPin as unknown as LucideComponent, "IconPin");
-export const IconPlay = createIcon(Icons.IconPlay as unknown as LucideComponent, "IconPlay");
-export const IconPlayOne = createIcon(Icons.IconPlayOne as unknown as LucideComponent, "IconPlayOne");
-export const IconPlus = createIcon(Icons.IconPlus as unknown as LucideComponent, "IconPlus");
-export const IconPlusCross = createIcon(Icons.IconPlusCross as unknown as LucideComponent, "IconPlusCross");
-export const IconPocket = createIcon(Icons.IconPocket as unknown as LucideComponent, "IconPocket");
-export const IconPower = createIcon(Icons.IconPower as unknown as LucideComponent, "IconPower");
-export const IconPreviewClose = createIcon(Icons.IconPreviewClose as unknown as LucideComponent, "IconPreviewClose");
-export const IconPreviewOpen = createIcon(Icons.IconPreviewOpen as unknown as LucideComponent, "IconPreviewOpen");
-export const IconQuote = createIcon(Icons.IconQuote as unknown as LucideComponent, "IconQuote");
-export const IconRadio = createIcon(Icons.IconRadio as unknown as LucideComponent, "IconRadio");
-export const IconRedo = createIcon(Icons.IconRedo as unknown as LucideComponent, "IconRedo");
-export const IconRefresh = createIcon(Icons.IconRefresh as unknown as LucideComponent, "IconRefresh");
-export const IconRemind = createIcon(Icons.IconRemind as unknown as LucideComponent, "IconRemind");
-export const IconRemindDisable = createIcon(Icons.IconRemindDisable as unknown as LucideComponent, "IconRemindDisable");
-export const IconRight = createIcon(Icons.IconRight as unknown as LucideComponent, "IconRight");
-export const IconRobot = createIcon(Icons.IconRobot as unknown as LucideComponent, "IconRobot");
-export const IconRocket = createIcon(Icons.IconRocket as unknown as LucideComponent, "IconRocket");
-export const IconRotate = createIcon(Icons.IconRotate as unknown as LucideComponent, "IconRotate");
-export const IconRound = createIcon(Icons.IconRound as unknown as LucideComponent, "IconRound");
-export const IconRoundCaliper = createIcon(Icons.IconRoundCaliper as unknown as LucideComponent, "IconRoundCaliper");
-export const IconRouter = createIcon(Icons.IconRouter as unknown as LucideComponent, "IconRouter");
-export const IconSave = createIcon(Icons.IconSave as unknown as LucideComponent, "IconSave");
-export const IconScan = createIcon(Icons.IconScan as unknown as LucideComponent, "IconScan");
-export const IconScanCode = createIcon(Icons.IconScanCode as unknown as LucideComponent, "IconScanCode");
-export const IconSchedule = createIcon(Icons.IconSchedule as unknown as LucideComponent, "IconSchedule");
-export const IconScissors = createIcon(Icons.IconScissors as unknown as LucideComponent, "IconScissors");
-export const IconSearch = createIcon(Icons.IconSearch as unknown as LucideComponent, "IconSearch");
-export const IconSeedling = createIcon(Icons.IconSeedling as unknown as LucideComponent, "IconSeedling");
-export const IconSend = createIcon(Icons.IconSend as unknown as LucideComponent, "IconSend");
-export const IconServer = createIcon(Icons.IconServer as unknown as LucideComponent, "IconServer");
-export const IconSetting = createIcon(Icons.IconSetting as unknown as LucideComponent, "IconSetting");
-export const IconSettingOne = createIcon(Icons.IconSettingOne as unknown as LucideComponent, "IconSettingOne");
-export const IconSettingTwo = createIcon(Icons.IconSettingTwo as unknown as LucideComponent, "IconSettingTwo");
-export const IconShare = createIcon(Icons.IconShare as unknown as LucideComponent, "IconShare");
-export const IconShield = createIcon(Icons.IconShield as unknown as LucideComponent, "IconShield");
-export const IconShieldCheck = createIcon(Icons.IconShieldCheck as unknown as LucideComponent, "IconShieldCheck");
-export const IconShop = createIcon(Icons.IconShop as unknown as LucideComponent, "IconShop");
-export const IconSignal = createIcon(Icons.IconSignal as unknown as LucideComponent, "IconSignal");
-export const IconSnow = createIcon(Icons.IconSnow as unknown as LucideComponent, "IconSnow");
-export const IconSort = createIcon(Icons.IconSort as unknown as LucideComponent, "IconSort");
-export const IconSquare = createIcon(Icons.IconSquare as unknown as LucideComponent, "IconSquare");
-export const IconSquareSmall = createIcon(Icons.IconSquareSmall as unknown as LucideComponent, "IconSquareSmall");
-export const IconStar = createIcon(Icons.IconStar as unknown as LucideComponent, "IconStar");
-export const IconSun = createIcon(Icons.IconSun as unknown as LucideComponent, "IconSun");
-export const IconSunny = createIcon(Icons.IconSunny as unknown as LucideComponent, "IconSunny");
-export const IconSunrise = createIcon(Icons.IconSunrise as unknown as LucideComponent, "IconSunrise");
-export const IconSunset = createIcon(Icons.IconSunset as unknown as LucideComponent, "IconSunset");
-export const IconSwitch = createIcon(Icons.IconSwitch as unknown as LucideComponent, "IconSwitch");
-export const IconTag = createIcon(Icons.IconTag as unknown as LucideComponent, "IconTag");
-export const IconTarget = createIcon(Icons.IconTarget as unknown as LucideComponent, "IconTarget");
-export const IconTerminal = createIcon(Icons.IconTerminal as unknown as LucideComponent, "IconTerminal");
-export const IconThermometer = createIcon(Icons.IconThermometer as unknown as LucideComponent, "IconThermometer");
-export const IconThunderbolt = createIcon(Icons.IconThunderbolt as unknown as LucideComponent, "IconThunderbolt");
-export const IconThunderstorm = createIcon(Icons.IconThunderstorm as unknown as LucideComponent, "IconThunderstorm");
-export const IconTicket = createIcon(Icons.IconTicket as unknown as LucideComponent, "IconTicket");
-export const IconTime = createIcon(Icons.IconTime as unknown as LucideComponent, "IconTime");
-export const IconTimer = createIcon(Icons.IconTimer as unknown as LucideComponent, "IconTimer");
-export const IconTool = createIcon(Icons.IconTool as unknown as LucideComponent, "IconTool");
-export const IconTranslate = createIcon(Icons.IconTranslate as unknown as LucideComponent, "IconTranslate");
-export const IconTree = createIcon(Icons.IconTree as unknown as LucideComponent, "IconTree");
-export const IconTrendingDown = createIcon(Icons.IconTrendingDown as unknown as LucideComponent, "IconTrendingDown");
-export const IconTrendingUp = createIcon(Icons.IconTrendingUp as unknown as LucideComponent, "IconTrendingUp");
-export const IconTrophy = createIcon(Icons.IconTrophy as unknown as LucideComponent, "IconTrophy");
-export const IconTwitter = createIcon(Icons.IconTwitter as unknown as LucideComponent, "IconTwitter");
-export const IconUndo = createIcon(Icons.IconUndo as unknown as LucideComponent, "IconUndo");
-export const IconUnlink = createIcon(Icons.IconUnlink as unknown as LucideComponent, "IconUnlink");
-export const IconUnlock = createIcon(Icons.IconUnlock as unknown as LucideComponent, "IconUnlock");
-export const IconUp = createIcon(Icons.IconUp as unknown as LucideComponent, "IconUp");
-export const IconUpload = createIcon(Icons.IconUpload as unknown as LucideComponent, "IconUpload");
-export const IconUser = createIcon(Icons.IconUser as unknown as LucideComponent, "IconUser");
-export const IconVideo = createIcon(Icons.IconVideo as unknown as LucideComponent, "IconVideo");
-export const IconVideoOne = createIcon(Icons.IconVideoOne as unknown as LucideComponent, "IconVideoOne");
-export const IconVideocamera = createIcon(Icons.IconVideocamera as unknown as LucideComponent, "IconVideocamera");
-export const IconVoiceOff = createIcon(Icons.IconVoiceOff as unknown as LucideComponent, "IconVoiceOff");
-export const IconVolumeMute = createIcon(Icons.IconVolumeMute as unknown as LucideComponent, "IconVolumeMute");
-export const IconVolumeNotice = createIcon(Icons.IconVolumeNotice as unknown as LucideComponent, "IconVolumeNotice");
-export const IconVolumeOff = createIcon(Icons.IconVolumeOff as unknown as LucideComponent, "IconVolumeOff");
-export const IconWallet = createIcon(Icons.IconWallet as unknown as LucideComponent, "IconWallet");
-export const IconWand = createIcon(Icons.IconWand as unknown as LucideComponent, "IconWand");
-export const IconWater = createIcon(Icons.IconWater as unknown as LucideComponent, "IconWater");
-export const IconWaves = createIcon(Icons.IconWaves as unknown as LucideComponent, "IconWaves");
-export const IconWifi = createIcon(Icons.IconWifi as unknown as LucideComponent, "IconWifi");
-export const IconWind = createIcon(Icons.IconWind as unknown as LucideComponent, "IconWind");
-export const IconZip = createIcon(Icons.IconZip as unknown as LucideComponent, "IconZip");
-export const IconZoomIn = createIcon(Icons.IconZoomIn as unknown as LucideComponent, "IconZoomIn");
-export const IconZoomOut = createIcon(Icons.IconZoomOut as unknown as LucideComponent, "IconZoomOut");
+export const IconAddUser = createIcon("IconAddUser");
+export const IconAiming = createIcon("IconAiming");
+export const IconAlarmClock = createIcon("IconAlarmClock");
+export const IconAnnouncement = createIcon("IconAnnouncement");
+export const IconApi = createIcon("IconApi");
+export const IconApplicationOne = createIcon("IconApplicationOne");
+export const IconArrowCircleUp = createIcon("IconArrowCircleUp");
+export const IconArrowDown = createIcon("IconArrowDown");
+export const IconArrowLeft = createIcon("IconArrowLeft");
+export const IconArrowRight = createIcon("IconArrowRight");
+export const IconArrowRightUp = createIcon("IconArrowRightUp");
+export const IconArrowUp = createIcon("IconArrowUp");
+export const IconArrowUpSolid = createIcon("IconArrowUpSolid");
+export const IconAttention = createIcon("IconAttention");
+export const IconBackgroundColor = createIcon("IconBackgroundColor");
+export const IconBill = createIcon("IconBill");
+export const IconBook = createIcon("IconBook");
+export const IconBookOne = createIcon("IconBookOne");
+export const IconBookOpen = createIcon("IconBookOpen");
+export const IconBookmark = createIcon("IconBookmark");
+export const IconBookshelf = createIcon("IconBookshelf");
+export const IconBox = createIcon("IconBox");
+export const IconBrain = createIcon("IconBrain");
+export const IconBriefcase = createIcon("IconBriefcase");
+export const IconBug = createIcon("IconBug");
+export const IconBuildingFour = createIcon("IconBuildingFour");
+export const IconCalendar = createIcon("IconCalendar");
+export const IconCamera = createIcon("IconCamera");
+export const IconCaution = createIcon("IconCaution");
+export const IconCd = createIcon("IconCd");
+export const IconCertificate = createIcon("IconCertificate");
+export const IconChartHistogram = createIcon("IconChartHistogram");
+export const IconChartLine = createIcon("IconChartLine");
+export const IconChartPie = createIcon("IconChartPie");
+export const IconCheck = createIcon("IconCheck");
+export const IconCheckCorrect = createIcon("IconCheckCorrect");
+export const IconCheckOne = createIcon("IconCheckOne");
+export const IconClickTap = createIcon("IconClickTap");
+export const IconClose = createIcon("IconClose");
+export const IconCloseOne = createIcon("IconCloseOne");
+export const IconCloseRemind = createIcon("IconCloseRemind");
+export const IconCloseWifi = createIcon("IconCloseWifi");
+export const IconCloudStorage = createIcon("IconCloudStorage");
+export const IconCloudUpload = createIcon("IconCloudUpload");
+export const IconCloudy = createIcon("IconCloudy");
+export const IconCloudyNight = createIcon("IconCloudyNight");
+export const IconCode = createIcon("IconCode");
+export const IconColumn = createIcon("IconColumn");
+export const IconComment = createIcon("IconComment");
+export const IconCommentAdd = createIcon("IconCommentAdd");
+export const IconComments = createIcon("IconComments");
+export const IconCommentDashed = createIcon("IconCommentDashed");
+export const IconCompass = createIcon("IconCompass");
+export const IconCompression = createIcon("IconCompression");
+export const IconConnect = createIcon("IconConnect");
+export const IconCopy = createIcon("IconCopy");
+export const IconCpu = createIcon("IconCpu");
+export const IconCrown = createIcon("IconCrown");
+export const IconCurrency = createIcon("IconCurrency");
+export const IconCustomer = createIcon("IconCustomer");
+export const IconDashboard = createIcon("IconDashboard");
+export const IconDatabaseNetwork = createIcon("IconDatabaseNetwork");
+export const IconDegreeHat = createIcon("IconDegreeHat");
+export const IconDelete = createIcon("IconDelete");
+export const IconDollar = createIcon("IconDollar");
+export const IconDot = createIcon("IconDot");
+export const IconDown = createIcon("IconDown");
+export const IconDownload = createIcon("IconDownload");
+export const IconDrag = createIcon("IconDrag");
+export const IconEarth = createIcon("IconEarth");
+export const IconEdit = createIcon("IconEdit");
+export const IconEdit3 = createIcon("IconEdit3");
+export const IconEmotionHappy = createIcon("IconEmotionHappy");
+export const IconExchange = createIcon("IconExchange");
+export const IconExperiment = createIcon("IconExperiment");
+export const IconExport = createIcon("IconExport");
+export const IconFan = createIcon("IconFan");
+export const IconFileAddition = createIcon("IconFileAddition");
+export const IconFileCode = createIcon("IconFileCode");
+export const IconFileEditing = createIcon("IconFileEditing");
+export const IconFilePdf = createIcon("IconFilePdf");
+export const IconFilePpt = createIcon("IconFilePpt");
+export const IconFileSearch = createIcon("IconFileSearch");
+export const IconFileText = createIcon("IconFileText");
+export const IconFileWord = createIcon("IconFileWord");
+export const IconFileZip = createIcon("IconFileZip");
+export const IconFilter = createIcon("IconFilter");
+export const IconFingerprint = createIcon("IconFingerprint");
+export const IconFire = createIcon("IconFire");
+export const IconFog = createIcon("IconFog");
+export const IconFolder = createIcon("IconFolder");
+export const IconFolderMinus = createIcon("IconFolderMinus");
+export const IconFolderOpen = createIcon("IconFolderOpen");
+export const IconFolderPlus = createIcon("IconFolderPlus");
+export const IconFolderSettings = createIcon("IconFolderSettings");
+export const IconFolderUpload = createIcon("IconFolderUpload");
+export const IconFullScreen = createIcon("IconFullScreen");
+export const IconFullScreenOne = createIcon("IconFullScreenOne");
+export const IconGithub = createIcon("IconGithub");
+export const IconGithubOne = createIcon("IconGithubOne");
+export const IconGlobe = createIcon("IconGlobe");
+export const IconGridFour = createIcon("IconGridFour");
+export const IconHamburgerButton = createIcon("IconHamburgerButton");
+export const IconHandUp = createIcon("IconHandUp");
+export const IconHardDisk = createIcon("IconHardDisk");
+export const IconHashtagKey = createIcon("IconHashtagKey");
+export const IconHeadphoneSound = createIcon("IconHeadphoneSound");
+export const IconHeart = createIcon("IconHeart");
+export const IconHeavyRain = createIcon("IconHeavyRain");
+export const IconHelp = createIcon("IconHelp");
+export const IconHexagonOne = createIcon("IconHexagonOne");
+export const IconHistory = createIcon("IconHistory");
+export const IconHome = createIcon("IconHome");
+export const IconHtmlFive = createIcon("IconHtmlFive");
+export const IconInbox = createIcon("IconInbox");
+export const IconInfo = createIcon("IconInfo");
+export const IconIpad = createIcon("IconIpad");
+export const IconKey = createIcon("IconKey");
+export const IconLaptop = createIcon("IconLaptop");
+export const IconLayers = createIcon("IconLayers");
+export const IconLayoutTwo = createIcon("IconLayoutTwo");
+export const IconLeaf = createIcon("IconLeaf");
+export const IconLeft = createIcon("IconLeft");
+export const IconLight = createIcon("IconLight");
+export const IconLightning = createIcon("IconLightning");
+export const IconLightRain = createIcon("IconLightRain");
+export const IconLink = createIcon("IconLink");
+export const IconLinkIn = createIcon("IconLinkIn");
+export const IconLinkOut = createIcon("IconLinkOut");
+export const IconList = createIcon("IconList");
+export const IconListCheckbox = createIcon("IconListCheckbox");
+export const IconListTwo = createIcon("IconListTwo");
+export const IconLoading = createIcon("IconLoading");
+export const IconLocalPin = createIcon("IconLocalPin");
+export const IconLock = createIcon("IconLock");
+export const IconLogout = createIcon("IconLogout");
+export const IconMagic = createIcon("IconMagic");
+export const IconMagicWand = createIcon("IconMagicWand");
+export const IconMail = createIcon("IconMail");
+export const IconMapDraw = createIcon("IconMapDraw");
+export const IconMedicineChest = createIcon("IconMedicineChest");
+export const IconMerge = createIcon("IconMerge");
+export const IconMicrophone = createIcon("IconMicrophone");
+export const IconMinus = createIcon("IconMinus");
+export const IconMonitor = createIcon("IconMonitor");
+export const IconMoon = createIcon("IconMoon");
+export const IconMore = createIcon("IconMore");
+export const IconMusic = createIcon("IconMusic");
+export const IconNavigation = createIcon("IconNavigation");
+export const IconNetworkTree = createIcon("IconNetworkTree");
+export const IconNotebook = createIcon("IconNotebook");
+export const IconOffScreen = createIcon("IconOffScreen");
+export const IconOffScreenOne = createIcon("IconOffScreenOne");
+export const IconPaperclip = createIcon("IconPaperclip");
+export const IconPause = createIcon("IconPause");
+export const IconPencil = createIcon("IconPencil");
+export const IconPeopleDelete = createIcon("IconPeopleDelete");
+export const IconPeoples = createIcon("IconPeoples");
+export const IconPhone = createIcon("IconPhone");
+export const IconPhoneOff = createIcon("IconPhoneOff");
+export const IconPicture = createIcon("IconPicture");
+export const IconPin = createIcon("IconPin");
+export const IconPlay = createIcon("IconPlay");
+export const IconPlayOne = createIcon("IconPlayOne");
+export const IconPlus = createIcon("IconPlus");
+export const IconPlusCross = createIcon("IconPlusCross");
+export const IconPocket = createIcon("IconPocket");
+export const IconPower = createIcon("IconPower");
+export const IconPreviewClose = createIcon("IconPreviewClose");
+export const IconPreviewOpen = createIcon("IconPreviewOpen");
+export const IconQuote = createIcon("IconQuote");
+export const IconRadio = createIcon("IconRadio");
+export const IconRedo = createIcon("IconRedo");
+export const IconRefresh = createIcon("IconRefresh");
+export const IconRemind = createIcon("IconRemind");
+export const IconRemindDisable = createIcon("IconRemindDisable");
+export const IconRight = createIcon("IconRight");
+export const IconRobot = createIcon("IconRobot");
+export const IconRocket = createIcon("IconRocket");
+export const IconRotate = createIcon("IconRotate");
+export const IconRound = createIcon("IconRound");
+export const IconRoundCaliper = createIcon("IconRoundCaliper");
+export const IconRouter = createIcon("IconRouter");
+export const IconSave = createIcon("IconSave");
+export const IconScan = createIcon("IconScan");
+export const IconScanCode = createIcon("IconScanCode");
+export const IconSchedule = createIcon("IconSchedule");
+export const IconScissors = createIcon("IconScissors");
+export const IconSearch = createIcon("IconSearch");
+export const IconSeedling = createIcon("IconSeedling");
+export const IconSend = createIcon("IconSend");
+export const IconServer = createIcon("IconServer");
+export const IconSetting = createIcon("IconSetting");
+export const IconSettingOne = createIcon("IconSettingOne");
+export const IconSettingTwo = createIcon("IconSettingTwo");
+export const IconShare = createIcon("IconShare");
+export const IconShield = createIcon("IconShield");
+export const IconShieldCheck = createIcon("IconShieldCheck");
+export const IconShop = createIcon("IconShop");
+export const IconSidebarPanel = createIcon("IconSidebarPanel");
+export const IconSignal = createIcon("IconSignal");
+export const IconSnow = createIcon("IconSnow");
+export const IconSort = createIcon("IconSort");
+export const IconSquare = createIcon("IconSquare");
+export const IconSquareSmall = createIcon("IconSquareSmall");
+export const IconStar = createIcon("IconStar");
+export const IconSun = createIcon("IconSun");
+export const IconSunny = createIcon("IconSunny");
+export const IconSunrise = createIcon("IconSunrise");
+export const IconSunset = createIcon("IconSunset");
+export const IconSwitch = createIcon("IconSwitch");
+export const IconTag = createIcon("IconTag");
+export const IconTarget = createIcon("IconTarget");
+export const IconTerminal = createIcon("IconTerminal");
+export const IconThermometer = createIcon("IconThermometer");
+export const IconThunderbolt = createIcon("IconThunderbolt");
+export const IconThunderstorm = createIcon("IconThunderstorm");
+export const IconTicket = createIcon("IconTicket");
+export const IconTime = createIcon("IconTime");
+export const IconTimer = createIcon("IconTimer");
+export const IconTool = createIcon("IconTool");
+export const IconTranslate = createIcon("IconTranslate");
+export const IconTree = createIcon("IconTree");
+export const IconTrendingDown = createIcon("IconTrendingDown");
+export const IconTrendingUp = createIcon("IconTrendingUp");
+export const IconTrophy = createIcon("IconTrophy");
+export const IconTwitter = createIcon("IconTwitter");
+export const IconUndo = createIcon("IconUndo");
+export const IconUnlink = createIcon("IconUnlink");
+export const IconUnlock = createIcon("IconUnlock");
+export const IconUp = createIcon("IconUp");
+export const IconUpload = createIcon("IconUpload");
+export const IconUser = createIcon("IconUser");
+export const IconVideo = createIcon("IconVideo");
+export const IconVideoOne = createIcon("IconVideoOne");
+export const IconVideocamera = createIcon("IconVideocamera");
+export const IconVoiceOff = createIcon("IconVoiceOff");
+export const IconVolumeMute = createIcon("IconVolumeMute");
+export const IconVolumeNotice = createIcon("IconVolumeNotice");
+export const IconVolumeOff = createIcon("IconVolumeOff");
+export const IconWallet = createIcon("IconWallet");
+export const IconWand = createIcon("IconWand");
+export const IconWater = createIcon("IconWater");
+export const IconWaves = createIcon("IconWaves");
+export const IconWifi = createIcon("IconWifi");
+export const IconWind = createIcon("IconWind");
+export const IconZip = createIcon("IconZip");
+export const IconZoomIn = createIcon("IconZoomIn");
+export const IconZoomOut = createIcon("IconZoomOut");

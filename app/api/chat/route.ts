@@ -9,6 +9,7 @@ export async function GET() {
 import { generateMemoryEnhancedPrompt, extractPreferencesFromMessage } from '@/lib/ai/memory-prompt-enhancer'
 import { getPersonaPrompt } from '@/lib/ai/persona-system'
 import { resolveProvider, normalizeOpenAIChatCompletionsUrl, readProvidersConfig, resolveDefaultModelId } from '@/lib/ai/provider-resolver'
+import { adaptChatRequestBody, toUpstreamMessage, downgradeAssistantImages } from '@/lib/ai/provider-body-adapter'
 import { learnFromConversation } from '@/lib/ai/auto-learning-service'
 import { extractMemoriesFromConversation, persistMemories } from '@/lib/ai/memory-extraction-service'
 import { getUserMemoryForPrompt, writeUserMemory, getMemoryKeyLabel } from '@/lib/ai/user-memory-file-service'
@@ -19,7 +20,7 @@ import { getSummarizationConfig, STEPPER } from '@/lib/constants'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserAiQuota, reserveAiUsage, refundAiUsage } from '@/lib/db/ai-quota-service'
 import { checkCreditAllowance, settleCredits, estimateTokens, getCreditsConfig } from '@/lib/db/credit-service'
-import { getMCPToolDefinitions } from '@/lib/mcp/mcp-tool-definitions'
+import { getMCPToolDefinitions, getMCPServerIdByToolName, getToolIndexEntries, TOOL_INDEX_LOADER_NAME, getClientToolDefinitions, isClientSideTool } from '@/lib/mcp/mcp-tool-definitions'
 import { executeMCPToolCall } from '@/lib/mcp/mcp-tool-executor'
 import { isMultimodal } from '@/lib/mcp/builtin-device-control'
 import { initSessionTaskList, clearSessionTaskList, getSessionTaskList } from '@/lib/mcp/builtin-agent-tasks'
@@ -28,9 +29,59 @@ import type { AgentContext } from '@/lib/ai/agent-orchestrator/types'
 import { getRelevantSkillsContentCached } from '@/lib/ai/skill-router-cached'
 import { executeToolCallsSmart } from '@/lib/ai/parallel-tool-executor'
 import { waitForUserInput, cancelPendingUserInput } from '@/lib/ai/pending-user-input'
+import { waitForClientToolResult, cancelPendingClientToolsForSession } from '@/lib/ai/pending-client-tool'
 import { getCachedResponse, cacheResponse } from '@/lib/ai/response-cache'
 import { IS_DESKTOP_APP } from '@/lib/desktop-mode'
-import { generateCompactSystemPrompt, filterDisabledFeatures, type AIFeatureConfig } from '@/lib/ai/prompt-templates'
+import { generateCompactSystemPrompt, filterDisabledFeatures, MCP_TOOLS_INSTRUCTION_COMPACT, type AIFeatureConfig } from '@/lib/ai/prompt-templates'
+// 🍓 GrokBot 显式表情协议：AI 在回复开头输出 <EMO:id/>，前端据此切换头像表情
+import { ORB_EXPRESSION_PROMPT } from '@/lib/ai/orb-expression'
+// 🧠 上下文工程层：统一装配 / 预算 / 工具结果截断 / 历史分级压缩 / 埋点
+import {
+  buildContext,
+  buildContextBudget,
+  getInputBudget,
+  compactToolResult,
+  compactMultimodalMetadata,
+  summarizeCompactions,
+  planCompression,
+  stringifyMessages as stringifyCtxMessages,
+  extractPastMemory,
+  buildSummaryPrompt,
+  normalizeSummary,
+  buildCompressedMessages,
+  buildCompressionNoticeMessage,
+  buildTelemetry,
+  logContextTelemetry,
+  categorizeContext,
+  estimateMessagesTokens,
+  estimateContextTokens,
+  // 用户可自定义的上下文偏好（设置 → 助理设置 → 上下文与压缩）
+  contextBudgetOverride,
+  compressionConfigFrom,
+  compressionTriggerTokens,
+  DEFAULT_USER_CONTEXT_PREFS,
+  type CompactionResult,
+  type AssembledContext,
+  type ContextCarveOut,
+  type UserContextPrefs,
+} from '@/lib/ai/context'
+import { getUserContextPrefs } from '@/lib/db/context-prefs-service'
+// 🎛️ Agent 运行预算 / 阈值唯一来源（轮数上限、各段超时、keep-alive、摘要阈值、计划模式屏蔽集）
+//    别名导入以保持本文件内既有引用名不变 —— 语义与改造前逐字一致，只是数值不再就地硬编码。
+import {
+  AGENT_MAX_ITERATIONS as MAX_AGENT_ITERATIONS,
+  AGENT_LLM_TIMEOUT_MS,
+  AGENT_STREAM_IDLE_TIMEOUT_MS,
+  AGENT_FORCE_FINAL_TIMEOUT_MS,
+  AGENT_KEEPALIVE_INTERVAL_MS,
+  AGENT_GRAND_SUMMARY_THRESHOLD_CHARS as GRAND_SUMMARY_THRESHOLD,
+  PLAN_MODE_BLOCKED_TOOLS,
+  CONFIRMATION_REQUIRED_TOOLS,
+  HITL_USER_INPUT_TIMEOUT_MS,
+} from '@/lib/ai/agent-budget'
+// 🛑 高风险工具「执行前确认」的文案与裁决令牌唯一源
+//    （名单本身仍取自 agent-budget 的 CONFIRMATION_REQUIRED_TOOLS，见上方 import）
+import { buildToolConfirmText, isToolConfirmApproved } from '@/lib/ai/tool-confirmation'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
@@ -60,14 +111,77 @@ export async function POST(req: Request) {
     }
     userId = user.id as number
 
+    // 🔌 HITL 挂起的生命周期信号（2026-10-14）：客户端断开 → 立刻释放挂起，
+    //    不再空占 5 分钟（CHECKPOINT/CLARIFY）/ 2 分钟（前端工具）。
+    //    ⚠️ 只在「此刻仍未中止」时才采用：若运行环境下 req.signal 在进入 handler 时
+    //    就已经是 aborted（历史上见过 request 被上游提前中断的情形），拿它去判挂起
+    //    生死会把正常等待直接判成「已断线」。那种情况退化为既有路径
+    //    （ReadableStream.cancel() 里统一清理）。
+    const hitlSignal = req.signal && !req.signal.aborted ? req.signal : undefined
+
     await initDB()
     
     // 读取 AI 功能配置
     const aiFeatures = await getAIFeaturesConfig()
     console.log('[Chat API] AI Features Config:', aiFeatures ? 'Loaded' : 'Using defaults')
     
-    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt: rawSystemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId, persona, enablePlanning, voiceMode, customModels } =
+    const { messages, apiKey: rawApiKey, apiUrl: rawApiUrl, model, systemPrompt: rawSystemPrompt, enableSearch, enableReasoning, deviceData, weatherData, mcpConfigs, mandatorySkillsEnabled, deviceOnline, lockedCollectionId, persona, enablePlanning, voiceMode, customModels, clientCapabilities, toolConfirmation: rawToolConfirmation, documents: rawDocuments, sessionId: rawConversationId } =
       await req.json()
+
+    /**
+     * 🎛️ 高风险工具的**执行前确认**（2026-10-14 用户：「设备启停 / 删除 / 自动化部署等
+     * 高风险操作，不要输出卡片让用户点，改成在 sender 上方出现确认」）。
+     *
+     * 启用条件 = 前端在请求体里**显式声明** `toolConfirmation: true`
+     * （主 AI 助手仅在 `approvalMode === 'request'` 时传）。声明后：
+     * 命中 `CONFIRMATION_REQUIRED_TOOLS` 的工具**不直接执行** —— 先推 SSE
+     * `tool_confirmation_required`，前端在 sender 上方浮出确认条，用户点「执行」
+     * （回 `APPROVE`）才真正下发，点「忽略」（回 `REJECT`）则把"用户拒绝执行"
+     * 作为工具结果交回 AI，让它换方案或收尾。
+     *
+     * ⚠️ 为什么不直接按 `approvalMode === 'request'` 判定：Copilot 侧栏也传
+     *    `approvalMode: 'request'`，但它**没有**这条确认 UI，一启用就会挂到 5 分钟超时。
+     *    所以以「前端是否声明拥有确认条」为准 —— 与 clientCapabilities 同一套思路，
+     *    未声明的调用方行为完全不变。
+     */
+    const asksToolConfirmation = rawToolConfirmation === true
+
+    /**
+     * 📎 本轮用户上传的文档。
+     *
+     * 前端走 `/api/documents/upload` 落盘后，把 fileId 随消息一起带上来 ——
+     * 不内联 base64（一份 5MB 的 PPT 转 base64 就会把请求体和上下文一起打爆）。
+     * 这里只做归一与数量限制，真正的解析发生在 `document_read` 工具里（按需、可分段）。
+     */
+    const attachedDocuments: Array<{ fileId: string; fileName: string; format: string; sizeText?: string }> =
+      Array.isArray(rawDocuments)
+        ? rawDocuments
+            .filter((d: any) => d && typeof d.fileId === 'string' && d.fileId.length >= 32)
+            .slice(0, 10)
+            .map((d: any) => ({
+              fileId: String(d.fileId),
+              fileName: String(d.fileName || '未命名文件'),
+              format: String(d.format || '').toLowerCase(),
+              sizeText: typeof d.sizeText === 'string' ? d.sizeText : undefined,
+            }))
+        : []
+
+    /** 前端会话 id（按会话查文件用；不是 orchestrator 的内部 id） */
+    const conversationId = typeof rawConversationId === 'string' && rawConversationId.trim()
+      ? rawConversationId.trim()
+      : undefined
+
+    if (attachedDocuments.length) {
+      console.log(`[Chat] attached documents: ${attachedDocuments.map(d => `${d.fileName}(${d.format})`).join(', ')}`)
+    }
+
+    // 🔥 前端能力声明：某些工具只能在浏览器里执行（如「修改画布」），
+    // 由调用方（Copilot 侧栏）在请求体里声明自己支持哪些前端能力，
+    // 后端据此决定是否把对应的前端工具注入 tools —— 未声明的请求完全看不到这些工具，
+    // 从根本上避免主 AI 助手误调用一个没人执行的工具而白等超时。
+    const declaredCapabilities: string[] = Array.isArray(clientCapabilities)
+      ? clientCapabilities.map((c: unknown) => String(c))
+      : []
 
     // 语音助手模式：限制回复长度，避免 TTS 合成时间过长（不影响文字对话）
     const VOICE_MAX_TOKENS = 300
@@ -370,6 +484,7 @@ export async function POST(req: Request) {
       //     —— enableVisionInspection===false 时禁用视觉类，enableDeviceControl===false 时一并禁用全部
       const basicDeviceTools = new Set(['toggle_relay', 'set_led', 'control_camera', 'reset_camera'])
       const visionDeviceTools = new Set(['take_camera_snapshot', 'move_camera_and_look'])
+      const automationStrategyTools = new Set(['automation_strategy_list', 'automation_strategy_detail', 'automation_strategy_create', 'automation_strategy_update', 'automation_strategy_delete'])
       const deviceControlDisabled = aiFeatures.enableDeviceControl === false
       const visionDisabled = aiFeatures.enableVisionInspection === false || deviceControlDisabled
 
@@ -377,12 +492,37 @@ export async function POST(req: Request) {
         const name = tool.function.name
         if (name === 'ask_user_question' && aiFeatures.enableClarify === false) return false
         if ((name === 'cron_create' || name === 'cron_list' || name === 'cron_delete') && aiFeatures.enableScheduleTask === false) return false
+        if (automationStrategyTools.has(name) && aiFeatures.enableAutomationStrategy === false) return false
         if (basicDeviceTools.has(name) && deviceControlDisabled) return false
         if (visionDeviceTools.has(name) && visionDisabled) return false
         return true
       })
     }
-    
+
+    // 🔥 前端工具（client tool）：按调用方声明的能力注入。
+    // 特点：① 只能在浏览器里执行（改的是编辑器本地 state）② 不走 lazy-load，
+    // 直接随 tools 全量下发 —— 因为它必须「立刻可用」（用户说改画布时不该再多一轮 load_tool_schema）。
+    const clientToolDefs = getClientToolDefinitions(declaredCapabilities)
+    if (clientToolDefs.length > 0) {
+      mcpToolDefs = [...mcpToolDefs, ...clientToolDefs]
+      console.log(`[MCP] Client-side tools enabled: ${clientToolDefs.map(t => t.function.name).join(', ')} (capabilities=${declaredCapabilities.join(',')})`)
+    }
+
+    // 🔥 工具清单（名字 + 一句话用途）：系统提示词里只放这份清单，
+    // 完整参数定义由 load_tool_schema 按需加载 —— 实测每请求省约 10k token 的工具 schema。
+    // 用 mcpToolDefs 过滤，保证清单与 feature 开关（设备控制/自动化策略等）一致。
+    const toolIndexEntries = getToolIndexEntries(mcpConfigs || [])
+      .filter(e => mcpToolDefs.some(t => t.function.name === e.name))
+      // 🔥 前端工具也进「可用工具」清单：模型据此知道自己能直接改画布。
+      // （schema 已随 tools 全量下发，这里只是名字+用途的可见性，成本可忽略）
+      .concat(
+        clientToolDefs.map(t => ({
+          name: t.function.name,
+          summary: (t.function.description || '').split(/[。；\n]/)[0].slice(0, 60),
+        }))
+      )
+    const toolIndexLoaderDef = mcpToolDefs.find(t => t.function.name === TOOL_INDEX_LOADER_NAME)
+
     const lastUserMessageObj = messages.slice().reverse().find((m: any) => m.role === 'user')
     const lastUserContent = lastUserMessageObj?.content
     const lastUserText = typeof lastUserContent === 'string' ? lastUserContent : 
@@ -565,20 +705,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // Heuristic: 仅当消息看起来需要工具时才进行 Preflight 检查
-    // 这大大提高了普通聊天的响应速度 (避免了双重请求延迟)
-    const toolKeywords = ["搜索", "查", "找", "天气", "设备", "任务", "监控", "search", "find", "weather", "device", "task", "monitor", "img", "image", "图片", "画", "draw", "analyse", "分析", "帮我", "怎么", "如何", "调", "计", "方案", "种植", "专家", "建议", "指标", "环境", "水", "肥", "温", "光", "湿度", "二氧化碳", "CO2", "标准", "作物", "草莓", "大棚", "温室", "NDVI", "光谱", "病", "害", "获取", "抓取", "bilibili", "视频", "链接", "网站", "网页", "历史", "趋势", "变化", "过去", "昨天", "最近", "一周", "几天", "几个小时", "土壤", "氮磷钾", "肥力", "检索", "查询", "查查", "说说", "告诉我", "学习", "研究", "诊断", "判断", "规范", "指南", "管理标准", "最新", "近期", "现在", "当前", "今天", "网上", "互联网", "资料", "信息", "调控", "参数", "巡检", "我叫", "我是", "你可以叫我", "喊我", "称呼我", "叫我", "记住", "记着", "别忘了", "别忘", "我改名", "你记错", "记错", "我姓", "我的名字"]
-    const hasToolKeyword = toolKeywords.some(k => lastUserText.toLowerCase().includes(k))
-    const hasToolMention = /@[a-zA-Z0-9_\u4e00-\u9fa5]+/.test(lastUserText)
-    const hasToolImage = Array.isArray(lastUserContent) && lastUserContent.some((c:any) => c.type === 'image_url')
-    
-    const shouldPreflight = mcpToolDefs.length > 0 && (hasToolKeyword || hasToolMention || hasToolImage)
+    // 🔥 工具路由决策（2026-09-20 重构）：不再用硬编码关键词表猜"这句话要不要工具"。
+    // 旧实现要求命中关键词（搜索/查/天气/设备…）才进 Agent Loop，否则走无 tools 的普通分支。
+    // 问题是关键词表永远补不完：像"看看自动化策略有几条"一个词都不命中，模型拿不到任何
+    // 工具定义，只能在正文里"宣称调用 automation_strategy_list"，用户直接看到裸工具名。
+    // 现在改为：只要有可用工具就进 Agent Loop，**由模型自己读工具描述决定要不要调用** ——
+    // 不需要工具时它会直接回答，行为与原来一致，唯一代价是请求体多带一份工具定义。
+    const shouldPreflight = mcpToolDefs.length > 0
 
     // 检查用户消息是否包含 @工具名 的强制调用指令
     let forcedToolPrompt = ""
     if (mcpToolDefs.length > 0) {
         console.log('[MCP] Enabled function calling tools:', mcpToolDefs.map(t => t.function.name))
-        console.log(`[MCP] Heuristic check: keyword=${hasToolKeyword}, mention=${hasToolMention}, image=${hasToolImage} => shouldPreflight=${shouldPreflight}`)
+        console.log(`[MCP] Agent Loop enabled: hasTools=${mcpToolDefs.length > 0} => shouldPreflight=${shouldPreflight}`)
         
         if (typeof lastUserContent === 'string') {
              // 提取 @xxx 模式
@@ -898,10 +1037,19 @@ ${memoryMd}
 
     const reportInstructionFull = `
 
+【交付物边界 - 先判类型，再决定格式（最高优先级）】
+- **报告类交付物**：仅当用户明确要"报告 / 日报 / 周报 / 月报 / 分析报告 / 导出报告"时，
+  才使用 [REPORT:标题] … [/REPORT] 包裹，走报告卡。
+- **代码类交付物**：用户要"写代码 / 写页面 / 写组件 / 写脚本 / 写接口 / 写 SQL / 写配置"时，
+  一律用带语言标识的 Markdown 代码块输出（例如 \`\`\`html / \`\`\`ts / \`\`\`python / \`\`\`sql），
+  **禁止**用 [REPORT:] 包裹，**禁止**把代码放进报告卡。
+- 代码要能被用户直接复制和下载，所以给完整、可直接运行的代码，不要只给片段或省略号。
+- 判断依据是用户的意图，不是"内容里有没有 HTML"：HTML 页面/组件是代码产物，不是报告。
+
 【报告生成能力 - 创意排版设计】
 你现在具备生成精美HTML报告的能力。当用户请求"生成报告"、"导出报告"、"分析报告"时：
 
-**🚨 关键规则：HTML代码必须用 [REPORT:标题] 标签包裹！**
+**🚨 关键规则：报告 HTML 必须用 [REPORT:标题] 标签包裹（代码产物除外，见上方交付物边界）！**
 
 **🚨 严格输出顺序与闭合规则（最高优先级）：**
 1. **先说明，后报告**：必须先输出所有的文本解释、额度提醒等内容，最后才能输出 [REPORT:标题] 标签及其包裹的 HTML 报告！HTML 报告必须是你的回复的**最后一个内容**！
@@ -933,9 +1081,10 @@ ${memoryMd}
 [/REPORT]
 
 **❌ 禁止的做法：**
-- ❌ 直接输出HTML代码而不用 [REPORT:] 标签包裹
-- ❌ 使用 markdown 代码块包裹 HTML 代码
-- ❌ 在REPORT标签外显示HTML代码
+- ❌ 把用户要的代码（页面/组件/脚本）用 [REPORT:] 包裹 —— 那是代码产物，必须用代码块交付
+- ❌ 直接输出报告 HTML 而不用 [REPORT:] 标签包裹
+- ❌ 使用 markdown 代码块包裹报告 HTML 代码
+- ❌ 在REPORT标签外显示报告 HTML 代码
 - ❌ 忘记输出 <REPORT_GENERATING> 标记
 
 **🎨 设计原则：**
@@ -965,7 +1114,7 @@ ${memoryMd}
   <!-- 关键指标卡片组 -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
     <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 4px solid #10b981;">
-      <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">温度</div>
+      <div style="font-size: 14px; color: #71717a; margin-bottom: 8px;">温度</div>
       <div style="font-size: 32px; font-weight: 700; color: #10b981; margin-bottom: 5px;">22°C</div>
       <div style="font-size: 12px; color: #10b981;">✓ 正常范围</div>
     </div>
@@ -973,12 +1122,12 @@ ${memoryMd}
 
   <!-- 详细内容区域 -->
   <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px;">
-    <h2 style="color: #1f2937; font-size: 22px; margin: 0 0 20px 0;">📈 数据分析</h2>
-    <div style="line-height: 1.8; color: #4b5563;">详细内容</div>
+    <h2 style="color: #27272a; font-size: 22px; margin: 0 0 20px 0;">📈 数据分析</h2>
+    <div style="line-height: 1.8; color: #52525b;">详细内容</div>
   </div>
 
   <!-- 页脚 -->
-  <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px;">
+  <div style="text-align: center; color: #a1a1aa; font-size: 12px; margin-top: 30px;">
     <p style="margin: 0;">莓小智·莓界智慧农业平台</p>
   </div>
 </div>
@@ -986,14 +1135,20 @@ ${memoryMd}
 
 **🎯 不同主题的配色建议：**
 - **环境监测报告**：绿色系 (#10b981, #059669)
-- **设备状态报告**：蓝色系 (#3b82f6, #2563eb)
-- **警告/异常报告**：橙红色系 (#f59e0b, #ef4444)
-- **数据分析报告**：紫色系 (#8b5cf6, #7c3aed)
+- **设备状态报告**：蓝色系 (#52525b, #52525b)
+- **警告/异常报告**：橙红色系 (#71717a, #ef4444)
+- **数据分析报告**：紫色系 (#52525b, #3f3f46)
 
 记住：HTML必须用 [REPORT:标题] 和 [/REPORT] 包裹，不要使用代码块！
 `
 
     const reportInstructionShort = `
+
+【交付物边界（先判类型，再决定格式）】
+- 用户要"报告/日报/周报/分析报告/导出"→ 走 [REPORT:标题]…[/REPORT] 报告卡。
+- 用户要"写代码/页面/组件/脚本/接口/SQL/配置"→ 用带语言标识的 Markdown 代码块（\`\`\`html / \`\`\`ts 等），
+  **禁止**用 [REPORT:] 包裹，也给完整可运行、可直接复制下载的代码。
+- 依据是用户意图，不是"内容里有没有 HTML"。
 
 【报告生成能力】
 你具备生成HTML报告的能力。当用户请求"生成报告"、"导出报告"时：
@@ -1008,15 +1163,114 @@ ${memoryMd}
 当用户询问你的能力、功能、可以做什么等问题时，插入 <CAPABILITIES/> 标签展示功能卡片，可简短补充说明，无需详细列举功能。
 `
 
-    // 静态/动态分层（仿 Claude Code SystemPromptBuilder 设计）：
-    // - 静态段（可被 Prompt Cache 命中）：身份+技能+记忆+知识库+报告指令+能力说明
+    // 静态/动态分层（长上下文提示词分层的通用做法）：
+    // - 静态段（可被 Prompt Cache 命中）：身份+技能+记忆+知识库+报告指令+能力说明+表情协议
     // - 动态段（每次请求变化，放末尾利用 Recency 效应增强 AI 注意力）：环境上下文+强制工具提示
-    const staticBasePrompt = enhancedSystemPrompt + (needsReportInstruction ? reportInstructionFull : reportInstructionShort) + capabilitiesInstructionText
+    const staticBasePrompt = enhancedSystemPrompt + (needsReportInstruction ? reportInstructionFull : reportInstructionShort) + capabilitiesInstructionText + '\n\n' + ORB_EXPRESSION_PROMPT
     // 🔥 用户手动启用计划模式时，附加引导：直接调研后 exit_plan_mode，无需先 enter_plan_mode
     const planModeHint = enablePlanning
       ? `\n\n【用户已手动启用计划模式】\n你已处于计划模式中（系统已自动屏蔽有副作用的工具）。请直接进行调研和信息收集，完成后调用 exit_plan_mode 工具提交计划，无需先调用 enter_plan_mode。`
       : ''
-    const dynamicSuffix = contextInfo + forcedToolPrompt + planModeHint
+    // 注：原 `dynamicSuffix = contextInfo + forcedToolPrompt + planModeHint` 已移除 ——
+    // 这三段现在由 assembleSystemPrompt 交给上下文工程层按段位统一排布（见下）。
+
+    /**
+     * 🧠 上下文工程层：统一装配 system prompt。
+     *
+     * 重构前：三个协议分支（DashScope 兼容 / DashScope 原生 / OpenAI 兼容）各自
+     * 重复一遍 `generateCompactSystemPrompt(...) + '\n\n' + dynamicSuffix + mcpInstallationHint`，
+     * 参数完全一致，任何改动都要同步三处（已埋下漂移风险）。
+     *
+     * 重构后：三个分支共用本函数。装配顺序交由 buildContext 统一决定
+     * （identity → pinned → working → volatile），并顺带获得 token 预算裁剪与埋点。
+     *
+     * 兼容性：`basePrompt` 传的就是完整的 staticBasePrompt，因此最终 systemPrompt
+     * 与旧逻辑语义等价（只是强制拼成 `\n\n` 分隔，且超预算段会被降级）。
+     */
+    // 保留最近一次装配结果：SSE 的 `context_usage` 事件要用它做**分项明细**
+    // （各段 token 已在 buildContext 里算好，这里再算一遍就等于两套口径）
+    let lastAssembledContext: AssembledContext | null = null
+
+    /**
+     * 🎛️ 用户自定义的上下文偏好（设置 → 助理设置 → 上下文与压缩）。
+     *
+     * 取一次、复用到三处，保证「预算 / 装配 / 压缩 / 上报」口径完全一致：
+     *   - buildContext(...).budget       → system prompt 各段位的裁剪上限
+     *   - planCompression(..., config, budgetOverride) → 什么时候触发压缩
+     *   - emitContextUsage() 的 windowTokens / inputBudgetTokens / 压缩触发线
+     * 读不到（未登录异常 / 表不存在）时回落默认 —— 与改造前行为逐字一致。
+     */
+    const ctxPrefs: UserContextPrefs = await getUserContextPrefs(user.id as number).catch(
+      () => DEFAULT_USER_CONTEXT_PREFS,
+    )
+    const ctxCompressionConfig = compressionConfigFrom(ctxPrefs)
+    /**
+     * 惰性求值：`effectiveModel` 在下方「智能模式」分支里会被重算成具体模型，
+     * 这里每次调用都取当下值，避免拿旧模型窗口去算预算（否则 auto 模式下预算会偏）。
+     */
+    const ctxBudgetOf = () => contextBudgetOverride(effectiveModel, ctxPrefs)
+
+    const assembleSystemPrompt = (opts: {
+      basePrompt: string
+      enableDeviceControl: boolean
+      enableReasoning: boolean
+      mcpToolNames: Array<string | { name: string; summary: string }>
+      contextCompressed: boolean
+      includeScheduleTaskDetail?: boolean
+    }): string => {      const compactSystemPrompt = generateCompactSystemPrompt({
+        basePrompt: opts.basePrompt,
+        enableDeviceControl: opts.enableDeviceControl,
+        enableReasoning: opts.enableReasoning,
+        mcpToolNames: opts.mcpToolNames,
+        contextCompressed: opts.contextCompressed,
+        aiFeatures: aiFeatures,
+        includeScheduleTaskDetail: opts.includeScheduleTaskDetail,
+      })
+
+      const assembled = buildContext({
+        modelId: effectiveModel,
+        // 用户自定义的上下文容量（上限）→ 各段位的裁剪份额随之收敛
+        budget: ctxBudgetOf(),
+        basePrompt: compactSystemPrompt,
+        // 静态段（可缓存前缀）：身份 + 技能 + 记忆 + 知识库已在 basePrompt 内，
+        // 这里只把「明确独立成块」的部分再单独声明，便于埋点区分占比。
+        forcedTool: forcedToolPrompt || undefined,
+        planMode: planModeHint || undefined,
+        mcpHint: mcpInstallationHint || undefined,
+        envSnapshot: contextInfo || undefined,
+        // 本轮附件清单：放在 volatile 段（每轮都变，不能进缓存前缀）。
+        // 只给「有哪些文件 + file_id」，正文由 document_read 按需读取 ——
+        // 把文档正文塞进系统提示会让每一轮都重复计费，且大文档根本装不下。
+        extra: attachedDocuments.length
+          ? [
+              {
+                id: 'attached-documents',
+                tier: 'volatile' as const,
+                stability: 'volatile' as const,
+                content: [
+                  '【本轮用户上传的文件】',
+                  ...attachedDocuments.map(
+                    d => `- ${d.fileName}（${d.format.toUpperCase()}${d.sizeText ? '，' + d.sizeText : ''}）file_id=${d.fileId}`,
+                  ),
+                  '',
+                  '用户很可能在问这些文件的内容。回答前先用 document_read 传 file_id 读取（需要看图时加 include_images: true）；',
+                  '不要凭文件名猜测内容，也不要编造 file_id。',
+                ].join('\n'),
+              },
+            ]
+          : undefined,
+      })
+      lastAssembledContext = assembled
+
+      // 埋点：一行日志回答「这一轮上下文各部分占多少 token」
+      try {
+        logContextTelemetry(buildTelemetry(`chat:${effectiveModel}`, assembled))
+      } catch (e) {
+        console.warn('[Context] telemetry failed:', e)
+      }
+
+      return assembled.systemPrompt
+    }
 
     // 检测是否使用DashScope API
     // 优先使用已解析的提供商类型，其次回退到 URL/模型名启发式判断
@@ -1033,82 +1287,83 @@ ${memoryMd}
     let userMessages = [...messages];
     let contextCompressed = false;
     let contextUpdateEvent: any = null;
-    
+
     // === 自动上下文总结与压缩 (Auto Context Compression) ===
-    const stringifyContent = (content: any) => typeof content === 'string' ? content : JSON.stringify(content)
-    const stringifyMessages = (msgs: any[]) => msgs.map(m => m.role + stringifyContent(m.content)).join('\n')
-    
-    // 🔥 智能压缩 v2 阈值策略
-    const MAX_CHAR_COUNT = 60000 // 触发压缩的字符数阈值（约 20k tokens，适配 128k+ 上下文窗口）
-    const GRAND_SUMMARY_THRESHOLD = 12000 // 旧摘要超过此长度时要求深度精简
-    const MIN_KEEP_RECENT = 4 // 至少保留最近 N 轮对话不压缩
-    const MIN_HISTORY_TO_COMPRESS = 800 // 历史片段至少 N 字符才值得压缩
-    
-    // 找出之前的记忆标记
-    let existingMemoryIndex = userMessages.findIndex(m => stringifyContent(m.content).includes('<PAST_MEMORY>'))
-    let existingMemoryText = ""
+    // 🧠 上下文工程层重构（2026-10-09）：
+    //   旧实现的三宗罪 → 新实现的对应改造
+    //     ① 阈值写死 60000 **字符数**，与真实 token 脱钩
+    //        → 改为「估算 token > 输入预算 × 0.6」，阈值随模型窗口自适应
+    //     ② 除最近 4 条外全部历史一次性压成一段 JSON，中段细节不可逆丢失
+    //        → 改为「近段 6 条原文保留 + 更早部分结构化摘要」的分级保留
+    //     ③ 旧摘要过长只"提示"深度压缩，无硬保证
+    //        → 保留 merge 语义，并在压缩后校验是否落到目标占比
+    //     GRAND_SUMMARY_THRESHOLD 已上移到 lib/ai/agent-budget.ts（import 别名）
+
+    // 找出之前的记忆标记（协议不变：<PAST_MEMORY>…</PAST_MEMORY>）
+    const pastMemory = extractPastMemory(userMessages)
+    let existingMemoryText = pastMemory?.text ?? ''
     let nonMemoryMessages = [...userMessages]
-    
-    if (existingMemoryIndex !== -1) {
-       const match = stringifyContent(userMessages[existingMemoryIndex].content).match(/<PAST_MEMORY>([\s\S]*?)<\/PAST_MEMORY>/)
-       existingMemoryText = match ? match[1] : ""
-       nonMemoryMessages.splice(existingMemoryIndex, 1)
+    if (pastMemory) {
+      nonMemoryMessages.splice(pastMemory.index, 1)
     }
+    const existingMemoryTokens = estimateContextTokens(existingMemoryText)
 
-    const currentOverflowCount = stringifyMessages(nonMemoryMessages).length
-    // 🔥 智能压缩 v2：按"对"边界保留最近对话（user + assistant 各 1 算 1 轮）
-    const historyToSummarize = nonMemoryMessages.slice(0, Math.max(0, nonMemoryMessages.length - MIN_KEEP_RECENT))
-    const historyToSummarizeLength = stringifyMessages(historyToSummarize).length
+    // 按 token 预算规划压缩（近段保留 / 待压缩分段）
+    // 🎛️ 触发阈值与窗口都来自用户自定义偏好（未设置时 = DEFAULT_COMPRESSION + 模型窗口）
+    const compressPlan = planCompression(
+      nonMemoryMessages,
+      effectiveModel,
+      existingMemoryTokens,
+      ctxCompressionConfig,
+      ctxBudgetOf(),
+    )
+    const currentOverflowCount = compressPlan.currentTokens
+    const historyToSummarize = compressPlan.toCompress
+    const _compressStart = Date.now()
+    /** 压缩失败原因（非 null 时经 SSE 明确告知前端，避免「不明不白」） */
+    let compressionFailure: string | null = null
 
-    if (
-      currentOverflowCount > MAX_CHAR_COUNT &&
-      nonMemoryMessages.length > MIN_KEEP_RECENT + 1 &&
-      historyToSummarizeLength > MIN_HISTORY_TO_COMPRESS
-    ) {
-       console.log(`[Chat API] Context overflow (${currentOverflowCount}), summarizing ${historyToSummarizeLength} chars of history...`)
+    if (compressPlan.needed) {
+       console.log(
+         `[Chat API] Context overflow: ${currentOverflowCount} tokens > trigger ${compressPlan.triggerTokens} ` +
+         `(budget ${compressPlan.budgetTokens}), summarizing ${historyToSummarize.length} messages...`,
+       )
 
-       const recentMessages = nonMemoryMessages.slice(nonMemoryMessages.length - MIN_KEEP_RECENT)
-       
+       const recentMessages = compressPlan.recent
+
        try {
            const summarizeConfig = getSummarizationConfig()
-           const summarizeTargetUrl = summarizeConfig.url
-           const summarizeKey = summarizeConfig.apiKey || process.env.SYSTEM_OPENAI_API_KEY || apiKey
-           
+           /**
+            * 🚨 摘要端点必须与**当前请求的 provider** 一致（2026-10-11 实测踩到）：
+            * 默认配置把摘要硬编码成 `dashscope + qwen-plus`，但用户可能用 DeepSeek 等
+            * 别的 key —— key 与端点不匹配必然 401，压缩于是「静默失败」：
+            * 历史没被整理、上下文照样超预算，用户只感觉到「卡了一下，什么都没发生」。
+            *
+            * 规则：显式配置了 SUMMARIZATION_API_URL / SUMMARIZATION_API_KEY 时尊重用户配置；
+            * 否则跟随本轮请求解析出的 provider（同一个 key / 同一套 OpenAI 兼容端点）。
+            */
+           const hasExplicitSummarizer =
+             !!process.env.SUMMARIZATION_API_URL || !!process.env.SUMMARIZATION_API_KEY
+           const summarizeTargetUrl = hasExplicitSummarizer ? summarizeConfig.url : targetUrl
+           const summarizeModel = hasExplicitSummarizer
+             ? summarizeConfig.model
+             : (effectiveModel || summarizeConfig.model)
+           const summarizeKey = hasExplicitSummarizer
+             ? (summarizeConfig.apiKey || process.env.SYSTEM_OPENAI_API_KEY || apiKey)
+             : apiKey
+
            // 多级总结逻辑：基于滑动窗口 + 增量更新 + 结构化 JSON 输出
            let summaryPrompt = ""
            let summaryInput = ""
 
-           // 🔥 智能压缩 v2：统一要求输出结构化 JSON，便于前端卡片化渲染
-           const STRUCTURED_OUTPUT_SPEC = `【输出格式 - 严格 JSON】
-你必须输出**严格的 JSON 对象**（不要 Markdown 代码块包裹，不要其他任何文字），结构如下：
-{
-  "timeframe": "对话时间范围（简短描述）",
-  "user_intent": "用户当前主要意图（1 句话）",
-  "key_facts": ["核心事实 1", "核心事实 2", ...],
-  "actions_taken": ["AI 已执行的行动 1", ...],
-  "decisions": ["关键决策或结论 1", ...],
-  "pending_tasks": ["待办事项 1", ...],
-  "current_state": "当前状态/进展的简短描述"
-}
-要求：
-- 每个数组最多 4 项，每项 ≤ 30 字
-- 客观陈述，去除寒暄和重复内容
-- 保留具体设备/任务名/参数等关键信息
-- 若某类无内容，输出空数组`
-
            if (!existingMemoryText) {
                // 第一级：首次总结
-               summaryPrompt = `你是一个对话历史压缩专家，擅长从冗长对话中提取结构化记忆。${STRUCTURED_OUTPUT_SPEC}`
-               summaryInput = "请压缩以下对话记录：\n" + stringifyMessages(historyToSummarize)
+               summaryPrompt = buildSummaryPrompt(false)
+               summaryInput = "请压缩以下对话记录：\n" + stringifyCtxMessages(historyToSummarize)
            } else {
                // 第二级：增量合并
-               summaryPrompt = `你是一个对话记忆合并优化专家，需要将旧记忆与新对话合并为最新结构化记忆。${STRUCTURED_OUTPUT_SPEC}`
-               summaryInput = `【旧的历史记忆摘要】\n${existingMemoryText}\n\n【新增的对话记录】\n${stringifyMessages(historyToSummarize)}`
-
-               // 第三级：旧摘要过大时要求深度精简
-               if (existingMemoryText.length > GRAND_SUMMARY_THRESHOLD) {
-                   summaryPrompt += "\n警告：旧摘要冗长，请在合并时深度压缩去重，整体缩减 40% 以上。"
-               }
+               summaryPrompt = buildSummaryPrompt(true, existingMemoryText.length > GRAND_SUMMARY_THRESHOLD)
+               summaryInput = `【旧的历史记忆摘要】\n${existingMemoryText}\n\n【新增的对话记录】\n${stringifyCtxMessages(historyToSummarize)}`
            }
 
            const summarizeRes = await fetch(summarizeTargetUrl, {
@@ -1118,7 +1373,7 @@ ${memoryMd}
                   "Authorization": `Bearer ${summarizeKey}`
                },
                body: JSON.stringify({
-                  model: summarizeConfig.model,
+                  model: summarizeModel,
                   messages: [
                       { role: "system", content: summaryPrompt },
                       { role: "user", content: summaryInput }
@@ -1132,42 +1387,47 @@ ${memoryMd}
                const summarizeData = await summarizeRes.json()
                const rawSummary = summarizeData.choices?.[0]?.message?.content
                if (rawSummary) {
-                   // 🔥 智能压缩 v2：尝试解析结构化 JSON，失败则回退为纯文本
-                   let normalizedSummary: string
-                   try {
-                       const parsed = JSON.parse(rawSummary)
-                       if (parsed && typeof parsed === 'object') {
-                           // 校验关键字段，缺失时补空
-                           const safe = {
-                               timeframe: typeof parsed.timeframe === 'string' ? parsed.timeframe : '历史对话',
-                               user_intent: typeof parsed.user_intent === 'string' ? parsed.user_intent : '',
-                               key_facts: Array.isArray(parsed.key_facts) ? parsed.key_facts.slice(0, 4) : [],
-                               actions_taken: Array.isArray(parsed.actions_taken) ? parsed.actions_taken.slice(0, 4) : [],
-                               decisions: Array.isArray(parsed.decisions) ? parsed.decisions.slice(0, 4) : [],
-                               pending_tasks: Array.isArray(parsed.pending_tasks) ? parsed.pending_tasks.slice(0, 4) : [],
-                               current_state: typeof parsed.current_state === 'string' ? parsed.current_state : ''
-                           }
-                           normalizedSummary = JSON.stringify(safe)
-                       } else {
-                           normalizedSummary = rawSummary
-                       }
-                   } catch {
-                       // LLM 没严格按 JSON 输出时，尝试抽取首个 JSON 块
-                       const jsonMatch = rawSummary.match(/\{[\s\S]*\}/)
-                       normalizedSummary = jsonMatch ? jsonMatch[0] : rawSummary
-                   }
+                   // 规范化结构化 JSON（失败回退纯文本 / 抽取首个 JSON 块）
+                   const normalizedSummary = normalizeSummary(rawSummary)
 
-                   userMessages = [
-                       { role: "assistant", content: `[系统消息：为了节省上下文长度，早期的历史已被提炼如下]\n<PAST_MEMORY>\n${normalizedSummary}\n</PAST_MEMORY>` },
-                       ...recentMessages
-                   ]
+                   // 近段原文保留 + 记忆摘要置前（<PAST_MEMORY> 协议不变）
+                   const compressed = buildCompressedMessages(normalizedSummary, recentMessages)
+                   const afterTokens = estimateMessagesTokens(compressed)
+
+                   /**
+                    * 👀 让压缩「可见」（2026-10-11 用户：「压缩过程怎么没给用户看」）：
+                    * 在摘要前插一条带真实计量的提示消息，前端渲染成「已整理上下文」卡片。
+                    * 用户因此知道：因为用量到了多少、折了几条、保留了几条。
+                    * 这条消息随会话持久化 —— 回看历史时能定位到压缩发生的位置。
+                    */
+                   const notice = buildCompressionNoticeMessage({
+                     beforeTokens: currentOverflowCount,
+                     afterTokens,
+                     foldedMessages: historyToSummarize.length,
+                     keptMessages: recentMessages.length,
+                     triggerTokens: compressPlan.triggerTokens,
+                     inputBudgetTokens: compressPlan.budgetTokens,
+                     triggerRatio: ctxCompressionConfig.triggerRatio,
+                     windowTokens: buildContextBudget(effectiveModel, ctxBudgetOf()).windowTokens,
+                     at: Date.now(),
+                   })
+                   userMessages = [notice, ...compressed]
                    contextCompressed = true;
                    // 准备发送给前端的同步事件，让前端也更新它的 messages 状态
                    contextUpdateEvent = { type: "context_update", messages: userMessages }
-                   console.log(`[Chat API] Incremental summarization complete. New context length: ${stringifyMessages(userMessages).length}`)
+                   console.log(
+                     `[Chat API] Incremental summarization complete: ${currentOverflowCount} → ${afterTokens} tokens ` +
+                     `(kept ${recentMessages.length} recent messages verbatim, ${Date.now() - _compressStart}ms)`,
+                   )
                 }
+           } else {
+               // 🚨 摘要调用失败不能静默：否则用户只看到「卡了一下，历史没变、也没人说为什么」。
+               // 记录原因，稍后经 SSE 明确告知（不伪造成功、也不悄悄吞掉）。
+               compressionFailure = `摘要服务返回 ${summarizeRes.status}`
+               console.error(`[Chat API] Summarization failed: ${compressionFailure} (${summarizeTargetUrl})`)
            }
        } catch (err) {
+           compressionFailure = err instanceof Error ? err.message : String(err)
            console.error("[Chat API] Failed to summarize history", err)
        }
     }
@@ -1176,6 +1436,21 @@ ${memoryMd}
     let fullMessages: any[] = []
     let requestBody: any = {}
     // let targetUrl = apiUrl || "" // Already set above
+    /**
+     * 🚨 只此一处、且必须早于 `hasImageContent`（2026-10-16 修）。
+     *
+     * 摄像头快照投递会把画面作为一条 **assistant** 消息写进历史（见 lib/ai/camera-snapshot.ts），
+     * 历史每轮原样回传上游 → 上游拒绝 assistant 带图：
+     *   `Image in assistant message is not supported`（400 invalid_request_error）
+     * 用户侧表现 = 发出第二句话就「请检查网络或 AI 服务状态后重试」。
+     *
+     * 放在这里（而不是各厂商分支里）的原因：下面 DashScope 兼容模式曾有一份
+     * 只覆盖自己分支的同类过滤（见其 `sanitizedMessages`），其余分支（通用 OpenAI /
+     * DashScope 原生）全裸奔 —— 收敛到 userMessages 组装后这一个点，所有分支同时受保护，
+     * 且 `hasImageContent` 自然不再把 assistant 的图误认成「用户发了图」。
+     */
+    userMessages = downgradeAssistantImages(userMessages)
+
     const hasImageContent = Array.isArray(userMessages) && userMessages.some((m: any) => {
       const c = m?.content
       if (Array.isArray(c)) return c.some((x: any) => x?.type === "image_url" || x?.image_url || x?.image)
@@ -1278,12 +1553,31 @@ ${memoryMd}
     const shouldEnableReasoning = !!enableReasoning && isReasoningModel
 
     if (hasImageContent && !isLocal) {
-      if (!isVLMModel) {
-        // 如果用户发了图但选了纯文本模型，强制切换到视觉模型
-        effectiveModel = 'qwen-vl-plus'
-      } else if (useCompatibleMode && /qwen3-vl/.test(modelLower)) {
-        // 兼容性处理
-        effectiveModel = 'qwen-vl-plus'
+      const needsSwap = !isVLMModel || (useCompatibleMode && /qwen3-vl/.test(modelLower))
+      if (needsSwap) {
+        // 用户在对话里发了图，但当前模型不支持视觉（或该 qwen3-vl 在兼容模式下走不通）
+        // → 换成 admin 配置里优先级最高的视觉模型。
+        // ⛔ 不要写死任何模型名：写死会让「后台换了视觉模型」在这里失效，
+        //    也会让用户在设置里配的供应商被忽略。配置读不出来就保留原模型，
+        //    让上游如实报错，也好过静默换成一个可能没买的模型。
+        try {
+          const vCfg = await readProvidersConfig()
+          const vm = vCfg.providers
+            .filter(p => p.enabled)
+            ?.flatMap(p => p.models.filter(m => m.enabled && m.supportsVision).map(m => ({ ...m, _priority: p.priority ?? 999 })))
+            ?.sort((a, b) => a._priority - b._priority)
+            ?.find(m => !useCompatibleMode || !/qwen3-vl/.test(String(m.id).toLowerCase()))
+            ?? vCfg.providers
+              .filter(p => p.enabled)
+              ?.flatMap(p => p.models.filter(m => m.enabled && m.supportsVision).map(m => ({ ...m, _priority: p.priority ?? 999 })))
+              ?.sort((a, b) => a._priority - b._priority)?.[0]
+          if (vm?.id) {
+            console.log(`[Chat API] image content but model "${effectiveModel}" has no vision → switched to "${vm.id}"`)
+            effectiveModel = vm.id
+          }
+        } catch {
+          console.warn(`[Chat API] failed to resolve a vision model for image content, keeping "${effectiveModel}"`)
+        }
       }
     }
 
@@ -1330,21 +1624,20 @@ ${memoryMd}
 
       const contextCompressedInstruction = contextCompressed ? `\n\n⚠️ 历史已压缩，请在回复开头输出 \`<CONTEXT_COMPRESSED/>\` 标签\n` : ""
 
-      // 使用精简的系统提示词以减少Token消耗
-      const compactSystemPrompt = generateCompactSystemPrompt({
+      // 使用精简的系统提示词以减少Token消耗（统一走上下文工程层装配）
+      const compactSystemPrompt = assembleSystemPrompt({
         basePrompt: staticBasePrompt,
         enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
         enableReasoning: shouldEnableReasoning,
-        mcpToolNames: mcpToolDefs.map(t => t.function.name),
+        mcpToolNames: toolIndexEntries,
         contextCompressed: contextCompressed,
-        aiFeatures: aiFeatures,
         includeScheduleTaskDetail: needsFullScheduleDetail
       });
 
       fullMessages = [
         {
           role: "system",
-          content: compactSystemPrompt + '\n\n' + dynamicSuffix + mcpInstallationHint,
+          content: compactSystemPrompt,
         },
         ...finalMessages,
       ]
@@ -1368,16 +1661,15 @@ ${memoryMd}
       // DashScope 原生API格式
       const contextCompressedInstruction = contextCompressed ? `\n\n⚠️ 历史已压缩，请在回复开头输出 \`<CONTEXT_COMPRESSED/>\` 标签\n` : ""
       
-      // 使用精简的系统提示词
-      const systemMessage = generateCompactSystemPrompt({
+      // 使用精简的系统提示词（统一走上下文工程层装配）
+      const systemMessage = assembleSystemPrompt({
         basePrompt: staticBasePrompt,
         enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
         enableReasoning: shouldEnableReasoning,
-        mcpToolNames: mcpToolDefs.map(t => t.function.name),
+        mcpToolNames: toolIndexEntries,
         contextCompressed: contextCompressed,
-        aiFeatures: aiFeatures,
         includeScheduleTaskDetail: needsFullScheduleDetail
-      }) + '\n\n' + dynamicSuffix + mcpInstallationHint;
+      });
 
       // 转换消息格式：OpenAI format -> DashScope format
       // OpenAI: { type: "image_url", image_url: { url: "..." } } -> DashScope: { image: "..." }
@@ -1419,21 +1711,20 @@ ${memoryMd}
       // OpenAI 兼容模式
       const contextCompressedInstruction = contextCompressed ? `\n\n⚠️ 历史已压缩，请在回复开头输出 \`<CONTEXT_COMPRESSED/>\` 标签\n` : ""
       
-      // 使用精简的系统提示词
-      const compactSystemPrompt = generateCompactSystemPrompt({
+      // 使用精简的系统提示词（统一走上下文工程层装配）
+      const compactSystemPrompt = assembleSystemPrompt({
         basePrompt: staticBasePrompt,
         enableDeviceControl: mandatorySkillsEnabled !== false && isDeviceOnline,
         enableReasoning: shouldEnableReasoning,
-        mcpToolNames: mcpToolDefs.map(t => t.function.name),
+        mcpToolNames: toolIndexEntries,
         contextCompressed: contextCompressed,
-        aiFeatures: aiFeatures,
         includeScheduleTaskDetail: needsFullScheduleDetail
       });
 
       fullMessages = [
         {
           role: "system",
-          content: compactSystemPrompt + '\n\n' + dynamicSuffix + mcpInstallationHint,
+          content: compactSystemPrompt,
         },
         ...userMessages,
       ]
@@ -1463,6 +1754,16 @@ ${memoryMd}
         requestBody.max_tokens = VOICE_MAX_TOKENS
       }
     }
+
+    // 🔥 厂商参数适配（2026-10-01）：Kimi/Moonshot 把 temperature 等采样参数钉死，
+    // 通用请求体里写死的 temperature: 0.7 会被上游 400 invalid_request_error 拒绝。
+    // 这里按目标端点/模型统一清洗，覆盖后续所有下发路径（agent loop / 最终回答 / 单次请求
+    // 都是从这里 spread 出去的）。
+    requestBody = adaptChatRequestBody(requestBody, {
+      baseUrl: targetUrl,
+      model: effectiveModel,
+      enableReasoning: shouldEnableReasoning,
+    })
 
     // === 响应缓存：对可缓存的只读/知识类查询直接返回缓存，跳过 AI 调用 ===
     // 仅缓存纯文本查询（排除控制指令、实时数据等），命中后以合成 SSE 流返回
@@ -1508,10 +1809,61 @@ ${memoryMd}
       headers["Authorization"] = `Bearer ${apiKey}`
     }
 
+    // === 提取用户本轮发送的图片（供视觉类工具使用）===
+    // 为什么不在工具里回传 base64：真实模型无法把几 MB 的 dataURL 原样抄进工具参数，
+    // 硬要它传会导致参数截断/幻觉。由服务端从消息里取，模型只需发起调用即可。
+    // 取「最后一条 user 消息」的图片 —— 多轮对话里用户可能先发了旧图再追问，
+    // 但诊断应针对最近一次上传的那张。
+    // 新增：顺手记录「最后一条用户消息」是否自带图片。
+    // 追问场景（用户发完图后又说"我要病害部位图/这里标一下"）不该重新发图，
+    // 所以取图要往前回溯；但"是否预加载诊断工具"仍以本轮是否真发了图为判据。
+    let lastUserMessageHasImage = false
+    const latestUserImages: string[] = (() => {
+      const all = fullMessages as any[]
+      // 回溯窗口：只看最近 12 条，避免把十几轮前的旧图当成"当前这张"
+      const floor = Math.max(0, all.length - 12)
+      for (let i = all.length - 1; i >= floor; i--) {
+        const m: any = all[i]
+        if (!m || m.role !== 'user') continue
+        const c = m.content
+        const urls: string[] = []
+        const push = (v: unknown) => {
+          if (typeof v !== 'string') return
+          // 标准 OpenAI Vision 结构在数组里；也兼容后端已展平为字符串的场景
+          if (v.startsWith('data:image/') || /^https?:\/\//i.test(v)) urls.push(v)
+        }
+        if (Array.isArray(c)) {
+          for (const part of c) {
+            if (!part) continue
+            if (part.type === 'image_url') push(part?.image_url?.url)
+            else if (part.type === 'image') push(part?.image ?? part?.source?.data)
+            else if (typeof part === 'string') push(part)
+          }
+        } else if (typeof c === 'string') {
+          // 兜底：极少数历史记录把 dataURL 直接塞进字符串
+          const re = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g
+          for (const hit of c.match(re) || []) urls.push(hit)
+        }
+        if (urls.length > 0) {
+          if (i === all.length - 1 || !all.slice(i + 1).some((x: any) => x?.role === 'user')) {
+            // 该图属于"最后一条用户消息"
+            lastUserMessageHasImage = true
+          }
+          return urls
+        }
+      }
+      return []
+    })()
+    if (latestUserImages.length > 0) {
+      console.log(
+        `[Chat] usable image(s) for vision tools: ${latestUserImages.length} ` +
+          `(belongs to latest user message: ${lastUserMessageHasImage})`,
+      )
+    }
+
     // === Multi-Round Agent Loop (真正的多轮 ReAct Loop) ===
     // 标准 Agent 标准流程：Query → LLM → [Thinking+Action+ActionInput] → Tool → Observation → 循环 → Final Answer
-    // 最多允许 MAX_AGENT_ITERATIONS 轮工具调用，防止无限循环
-    const MAX_AGENT_ITERATIONS = 5
+    // 最多允许 MAX_AGENT_ITERATIONS 轮工具调用，防止无限循环（值见 lib/ai/agent-budget.ts）
     const preflightHeaders = { ...headers }
     delete preflightHeaders["X-DashScope-SSE"]
 
@@ -1524,7 +1876,7 @@ ${memoryMd}
           // Keep-Alive ping to prevent gateway timeouts during long tool chains
           const keepAlive = setInterval(() => {
             try { controller.enqueue(encoder.encode(": keep-alive\n\n")) } catch { clearInterval(keepAlive) }
-          }, 5000)
+          }, AGENT_KEEPALIVE_INTERVAL_MS)
 
           // === 初始化 Agent 编排器 ===
           const sessionId = `session-${user.id}-${Date.now()}`;
@@ -1545,6 +1897,26 @@ ${memoryMd}
             weatherData,
             mcpConfigs,
             appUrl,
+            // 用户本轮发的图片：透传给视觉类工具（diagnose_plant_image），
+            // 避免要求模型把 base64 原样回传到工具参数里
+            userImages: latestUserImages,
+            // 本轮上传的文档：让 document_read 不带参时能直接回答"本轮有哪些文件"
+            userDocuments: attachedDocuments.length ? attachedDocuments : undefined,
+            // 前端会话 id：按会话列历史文件时用（sessionId 是每轮新建的 orchestrator 实例 id）
+            conversationId,
+            // 用户当前选择的模型：视觉类工具必须用它，不能被网关自己的视觉模型覆盖
+            userModel: effectiveModel,
+            // 工具侧的「正在做什么」一句话 → 前端执行过程里实时换文案
+            // （如视觉诊断的"正在识别病害并定位病灶区域…"）
+            onStage: (text: string) => {
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `tool-stage-${Date.now()}`, object: 'chat.completion.chunk',
+                  created: Date.now(), model: effectiveModel,
+                  agent_status: { text, phase: 'tool_stage', iteration: 0 },
+                })}\n\n`))
+              } catch { /* 流已关闭，忽略 */ }
+            },
             // 对话式深度研究：deep_research 各阶段进度实时推到前端思维链
             onProgress: (stage: string, detail?: string) => {
               try {
@@ -1559,7 +1931,79 @@ ${memoryMd}
 
           console.log(`[Orchestrator] Initialized for user ${user.id}, session ${sessionId}`);
 
+          /**
+           * 🧮 上下文容量上报（2026-10-10 用户：「让用户能看见当前对话的上下文窗口容量」）
+           *
+           * 口径与上下文工程层**完全一致**，不复用第二套估算：
+           *   windowTokens      模型上下文窗口（buildContextBudget → resolveModelWindow）
+           *   reservedForOutput 预留给模型输出的 token
+           *   inputBudgetTokens 真正可用于输入的预算（窗口 − 输出预留 − 安全余量）
+           *   usedTokens        本轮真正下发的 system prompt + 历史消息的估算 token
+           *
+           * 每轮 agent 迭代开头都会重发一次：工具结果回灌会让 fullMessages 变长，
+           * 前端指示器因此能反映「越聊越满」的真实趋势，而不是只看到首轮的静态快照。
+           */
+          const emitContextUsage = () => {
+            try {
+              const bud = buildContextBudget(effectiveModel, ctxBudgetOf())
+              const usedTokens = estimateMessagesTokens(fullMessages)
+              // 分项明细：system 的各段直接取装配结果（不在前端或这里二次估算），
+              // 「对话消息」= 总量 − system，含历史消息与工具结果。
+              const systemTokens = lastAssembledContext?.totalTokens ?? 0
+              // 技能文档 / 工具清单在拼装时被写进了 base-prompt（同属 system 类）。
+              // 这里按**同一份文本**再估一次，只用于把它俩从「系统提示词」里划出来展示，
+              // 不改动 prompt 本身 —— 对模型行为零影响。
+              const carveOuts: ContextCarveOut[] = []
+              const skillTokens = estimateContextTokens(skillContent || '')
+              if (skillTokens > 0) carveOuts.push({ key: 'skill', tokens: skillTokens })
+              if (toolIndexEntries.length > 0) {
+                try {
+                  carveOuts.push({
+                    key: 'tools',
+                    tokens: estimateContextTokens(MCP_TOOLS_INSTRUCTION_COMPACT(toolIndexEntries)),
+                  })
+                } catch { /* 工具清单渲染失败不影响主流程 */ }
+              }
+              const breakdown = lastAssembledContext
+                ? categorizeContext(lastAssembledContext, Math.max(0, usedTokens - systemTokens), carveOuts)
+                : []
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'context_usage',
+                model: effectiveModel || 'auto',
+                usedTokens,
+                windowTokens: bud.windowTokens,
+                reservedForOutput: bud.reservedForOutput,
+                inputBudgetTokens: getInputBudget(bud),
+                compressed: contextCompressed,
+                breakdown,
+                // 🎛️ 用户自定义偏好（设置 → 助理设置 → 上下文与压缩）：
+                // 指示器据此画出「压缩触发线」，并说明当前容量是自定义还是跟随模型
+                windowIsCustom: ctxPrefs.windowTokens != null,
+                compressionTriggerRatio: ctxPrefs.compressionTriggerRatio,
+                compressionTriggerTokens: compressionTriggerTokens(effectiveModel, ctxPrefs),
+              })}\n\n`))
+            } catch { /* 流已关闭，忽略 */ }
+          }
+
           try {
+            // 0. 上报上下文容量（前端 footer 的「已用 / 窗口」指示器）
+            emitContextUsage()
+
+            /**
+             * 0'. 上下文整理失败也要有回声。
+             * 失败时服务端**不会**压缩（不伪造成功），但若一声不吭，用户只会觉得
+             * 「卡了一下、历史没变、也没人说为什么」—— 同样属于「不明不白」。
+             * 这里明确告知原因，并给出可操作建议（调大容量 / 减少附件）。
+             */
+            if (compressionFailure) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'context_compress_failed',
+                reason: compressionFailure,
+                beforeTokens: currentOverflowCount,
+                triggerTokens: compressPlan.triggerTokens,
+              })}\n\n`))
+            }
+
             // 0. 发送上下文同步事件 (如果发生压缩)
             if (contextUpdateEvent) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(contextUpdateEvent)}\n\n`))
@@ -1593,28 +2037,127 @@ ${memoryMd}
             }
             // 🔥 旧版 JSON 设备控制兜底：每次请求最多接管一次，避免模型反复输出旧格式导致循环执行
             let legacyJsonFallbackUsed = false
+            // 🧠 上下文工程层：本请求内工具结果的截断记录（用于埋点汇总）
+            const roundCompactions: Array<{ toolName: string } & CompactionResult> = []
+            // 🔥 文本工具调用意图兜底：每轮最多接管一次，避免模型反复在正文声称调工具
+            let toolNameFallbackUsed = false
+            // 🔥 按需加载（省 token）：默认只把 load_tool_schema 交给模型，
+            // 其余工具的完整 schema 等模型主动 load_tool_schema 之后再并入 tools。
+            const loadedToolNames = new Set<string>()
+            // 🔥 例外：涉及图片诊断时，直接把视觉诊断工具的 schema 预置进首轮 tools。
+            // 否则模型要先调 load_tool_schema 再调诊断，白白多一轮往返；更糟的是
+            // 非视觉模型很容易在第一轮就直接开答，诊断卡片/遮罩图永远不会出现。
+            // 判据：① 本轮消息自带图片；或 ② 有可回溯的原图 且 用户这轮在问"图/遮罩/标注/病害"这类
+            // —— 后者覆盖"发完图后追问『我要病害部位图』"这种没有新图的场景。
+            const latestUserText = (() => {
+              const all = fullMessages as any[]
+              for (let i = all.length - 1; i >= 0; i--) {
+                if (all[i]?.role !== 'user') continue
+                const c = all[i].content
+                if (typeof c === 'string') return c
+                if (Array.isArray(c)) {
+                  return c
+                    .map((p: any) => (typeof p === 'string' ? p : p?.text || ''))
+                    .join(' ')
+                }
+                return ''
+              }
+              return ''
+            })()
+            const imageTopicHint = /图|遮罩|标注|部位|哪(里|儿)|病害|病斑|症状|诊断|虫|霉|枯|斑/.test(latestUserText)
+            if (latestUserImages.length > 0 && (lastUserMessageHasImage || imageTopicHint)) {
+              loadedToolNames.add('diagnose_plant_image')
+              console.log(
+                `[Agent Loop] preloading diagnose_plant_image (newImage=${lastUserMessageHasImage}, topicHint=${imageTopicHint})`,
+              )
+            }
+
+            // 🩺 病历类提问：预加载病历查询工具。
+            // 与上面的视觉预加载同一套路 —— 懒加载索引虽然能兜住，但"我得过几次病 / 上次那病好了吗"
+            // 这类问题模型常直接凭记忆作答（≈编造），不会先去 load_tool_schema。
+            // 两个工具一起加载：拿到 id 后几乎必然要点开详情，省一次工具加载往返。
+            const medicalTopicHint = /病历|病史|档案|得过|治好了|痊愈|治愈率|复诊|复查|疗效|上次(那|这)|之前(那|这)/.test(latestUserText)
+            if (medicalTopicHint) {
+              loadedToolNames.add('query_medical_records')
+              loadedToolNames.add('get_medical_record')
+              console.log('[Agent Loop] preloading medical record tools (topicHint=true)')
+            }
+
+            // ✏️ 病历「写」意图：只有同时命中"病历语境 + 动作动词"才加载写工具。
+            // 🚨 故意不与只读工具同批加载 —— 否则"我这茬得过几次病"也会把删除工具暴露给模型，
+            //    凭空抬高误删风险。写工具只在用户真的要动手时才出现。
+            const medicalWriteHint =
+              medicalTopicHint &&
+              /(删除|删掉|删了|移除|清掉|去掉|改一下|修改|改成|改为|纠正|更正|标记|设为|归档|恢复|撤回|撤销)/.test(
+                latestUserText
+              )
+            if (medicalWriteHint) {
+              loadedToolNames.add('update_medical_record')
+              loadedToolNames.add('delete_medical_record')
+              console.log('[Agent Loop] preloading medical record WRITE tools (writeHint=true)')
+            }
+
+            // 📷 摄像头「想看画面」意图：预加载截图工具。
+            // 用户说"给我看看棚里/作物长什么样/拍张照"时，模型需要的是**立刻能抓帧**，
+            // 而不是先 load_tool_schema 再抓 —— 那多一次往返，还容易让模型在第一轮
+            // 直接用文字描述（编造画面）蒙混过去。
+            // 门禁沿用 mcpToolDefs：视觉巡检被管理员禁用（enableVisionInspection=false）
+            // 或设备控制被禁用时，这两个工具压根不在 mcpToolDefs 里，这里自然不会命中。
+            const cameraTopicHint =
+              /摄像头|监控|实时画面|画面|拍照|拍个|拍张|拍一下|照片|截图|抓拍|截个图|长势|长什么样|啥样|什么样|看看(棚|大棚|温室|作物|草莓|苗|植物|花|果)|看一下(棚|大棚|温室|作物|草莓|苗|植物|画面)/.test(
+                latestUserText
+              )
+            const cameraToolAvailable = mcpToolDefs.some(t => t.function.name === 'take_camera_snapshot')
+            if (cameraTopicHint && cameraToolAvailable && isDeviceOnline && mandatorySkillsEnabled !== false) {
+              loadedToolNames.add('take_camera_snapshot')
+              // 云台组合工具一起给：用户说"看看那边/左边那株"时，模型一次调用就能"移动+观察"
+              loadedToolNames.add('move_camera_and_look')
+              console.log('[Agent Loop] preloading camera snapshot tools (cameraTopicHint=true)')
+            }
 
             while (iteration < MAX_AGENT_ITERATIONS) {
               iteration++
               console.log(`[Agent Loop] Iteration ${iteration}/${MAX_AGENT_ITERATIONS}`)
 
-              const cleanMessages = (fullMessages as any[]).map((m: any) => {
-                const { role, content, name, tool_calls, tool_call_id } = m
-                const clean: any = { role, content }
-                if (name) clean.name = name
-                if (tool_calls) clean.tool_calls = tool_calls
-                if (tool_call_id) clean.tool_call_id = tool_call_id
-                return clean
-              })
+              // 上一轮回灌了工具结果 → 上下文变长，重报一次容量（首轮已在流开头报过）
+              if (iteration > 1) emitContextUsage()
+
+              // 上游请求体字段白名单唯一源 = toUpstreamMessage（含 thinking 模式的推理字段回传）
+              const cleanMessages = (fullMessages as any[]).map(toUpstreamMessage)
 
               // 🔥 计划模式下屏蔽有副作用的工具（只保留调研类工具）
-              const PLAN_MODE_BLOCKED_TOOLS = new Set([
-                'toggle_relay', 'set_led', 'control_camera', 'reset_camera',
-                'cron_create', 'task_create', 'task_update',
-              ])
-              const effectiveTools = planMode
-                ? mcpToolDefs.filter(t => !PLAN_MODE_BLOCKED_TOOLS.has(t.function.name))
-                : mcpToolDefs
+              //    集合已上移到 lib/ai/agent-budget.ts 的 TOOL_RISK_REGISTRY（按工具登记 → 派生）
+              // 本轮实际暴露给模型的工具 = 已加载的工具 + 元工具 load_tool_schema
+              // 🔥 前端工具不参与懒加载：能力已声明即全量暴露（见上方 clientToolDefs 注释）
+              let effectiveTools = [
+                ...mcpToolDefs.filter(t => loadedToolNames.has(t.function.name)),
+              ]
+              if (toolIndexLoaderDef) effectiveTools.push(toolIndexLoaderDef)
+              for (const ct of clientToolDefs) {
+                if (!effectiveTools.some((t: any) => t.function.name === ct.function.name)) {
+                  effectiveTools.push(ct)
+                }
+              }
+              if (planMode) {
+                effectiveTools = effectiveTools.filter(t => !PLAN_MODE_BLOCKED_TOOLS.has(t.function.name))
+              }
+              console.log(
+                `[Agent Loop] Round ${iteration} tools exposed:`,
+                effectiveTools.length,
+                `(${effectiveTools.map(t => t.function.name).join(', ') || 'none'})`
+              )
+
+              // 🌱 前端状态提示：首字出现前让用户看到"正在挑选工具"，避免界面空白
+              try {
+                const statusText = iteration === 1
+                  ? '莓小智正在挑选工具…'
+                  : '莓小智正在分析工具结果…'
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  id: `agent-status-${Date.now()}`, object: 'chat.completion.chunk',
+                  created: Date.now(), model: effectiveModel,
+                  agent_status: { text: statusText, phase: 'selecting_tool', iteration },
+                })}\n\n`))
+              } catch { /* 流已关闭，忽略 */ }
 
               const loopBody = {
                 ...requestBody,
@@ -1629,7 +2172,7 @@ ${memoryMd}
               const _llmReqStart = Date.now()
               // LLM 调用超时保护：90s 无响应则中止（流式场景需较长阈值）
               const llmTimeoutController = new AbortController()
-              const llmTimeoutId = setTimeout(() => llmTimeoutController.abort(), 90000)
+              const llmTimeoutId = setTimeout(() => llmTimeoutController.abort(), AGENT_LLM_TIMEOUT_MS)
 
               let loopRes: Response
               try {
@@ -1663,9 +2206,22 @@ ${memoryMd}
               clearTimeout(llmTimeoutId)
 
               if (!loopRes.ok) {
+                // 🔥 诊断增强（2026-10-04）：上游非 2xx 时把**上游返回的错误正文**也读出来。
+                // 之前只报 "LLM 返回错误状态 403"，用户与开发者都无从判断是
+                // key 无权限 / 模型未开通 / 参数不被接受 —— 只能靠猜。
+                // 这里只读错误响应体（不是流），并做长度截断，避免日志被刷爆。
+                let upstreamDetail = ''
+                try {
+                  upstreamDetail = (await loopRes.text()).slice(0, 600)
+                } catch { /* 响应体不可读，忽略 */ }
                 console.warn(`[Agent Loop] LLM call failed (status ${loopRes.status}), breaking loop`)
+                console.warn(
+                  `[Agent Loop] upstream=${(() => { try { return new URL(targetUrl).host } catch { return targetUrl } })()} ` +
+                  `model=${effectiveModel} round=${iteration} detail=${upstreamDetail}`
+                )
                 loopExitedAbnormally = true
-                abnormalExitReason = `LLM 返回错误状态 ${loopRes.status}（第 ${iteration} 轮）`
+                abnormalExitReason = `LLM 返回错误状态 ${loopRes.status}（第 ${iteration} 轮）` +
+                  (upstreamDetail ? `：${upstreamDetail.slice(0, 200)}` : '')
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   id: `llm-error-${Date.now()}`,
                   object: "chat.completion.chunk",
@@ -1697,6 +2253,19 @@ ${memoryMd}
               let accumulatedContent = ""
               let agentRoundOutput = ""
               let _ttftLogged = false
+              /**
+               * 🧠 thinking 模式：本轮 LLM 流式返回的推理增量。
+               *
+               * 上游契约（DeepSeek thinking 模式 / Kimi K3）：多轮对话与工具调用时，
+               * assistant 消息必须把 API 返回的 `reasoning_content` **原样回传**，
+               * 否则下一轮请求会被直接拒掉：
+               *   400 invalid_request_error
+               *   "The `reasoning_content` in the thinking mode must be passed back to the API."
+               * 之前只累积 `delta.content`，推理字段在回灌时丢失 → 工具链跑到第 N 轮必炸。
+               */
+              let roundReasoning = ""
+              /** 实际收到推理增量时用的字段名（厂商不同：reasoning_content / reasoning） */
+              let roundReasoningField = 'reasoning_content'
 
               while (true) {
                 // 超时保护：防止 LLM 返回 200 但 body 流卡住导致 Agent Loop 无限阻塞
@@ -1704,7 +2273,7 @@ ${memoryMd}
                 const readResult = await Promise.race([
                   reader.read(),
                   new Promise<{ done: true; value: undefined }>((resolve) =>
-                    setTimeout(() => resolve({ done: true, value: undefined }), 90000)
+                    setTimeout(() => resolve({ done: true, value: undefined }), AGENT_STREAM_IDLE_TIMEOUT_MS)
                   ),
                 ])
                 const { done, value } = readResult
@@ -1729,6 +2298,15 @@ ${memoryMd}
                       const json = JSON.parse(trimmed.slice(6))
                       trackUsage(json.usage)
                       const delta = json.choices?.[0]?.delta
+                      
+                      // 🧠 thinking 模式：累积推理增量（见上方 roundReasoning 注释）。
+                      // 只累积、不推给前端 —— 展示层行为保持改造前不变。
+                      const reasoningDelta = delta?.reasoning_content ?? delta?.reasoning
+                      if (typeof reasoningDelta === 'string' && reasoningDelta) {
+                        roundReasoning += reasoningDelta
+                        roundReasoningField =
+                          typeof delta.reasoning_content === 'string' ? 'reasoning_content' : 'reasoning'
+                      }
                       
                       // 检查 tool_calls
                       if (delta?.tool_calls) {
@@ -1777,6 +2355,16 @@ ${memoryMd}
                   }
                 }
               }
+
+              /**
+               * 🧠 把本轮的推理内容挂回 assistant 消息（thinking 模式上游契约）。
+               *
+               * 只在**本轮真的收到推理增量**时才附加：非 thinking 模型不会凭空多出字段，
+               * 也就不会把未知参数塞给不认识它的上游（OpenAI 等会直接拒绝未知字段）。
+               * 回灌到全量历史后，由 `toUpstreamMessage` 统一带进上游请求体。
+               */
+              const attachRoundReasoning = (msg: Record<string, any>) =>
+                roundReasoning ? { ...msg, [roundReasoningField]: roundReasoning } : msg
 
               // 📋 TASK_LIST 初始化：AI 首次输出 <TASK_LIST> 标签时，把任务列表存入 session 注册表
               // 后续 AI 调用 update_task 工具时会从注册表读取并增量更新，不再需要重复输出标签
@@ -1842,14 +2430,17 @@ ${memoryMd}
                     'checkpoint',
                     checkpointTitle,
                     5 * 60 * 1000,
+                    hitlSignal,
                   )
                   console.log(`[Agent Loop] CHECKPOINT resolved, continuing with user reply`)
 
                   // 把 AI 的 checkpoint 消息存入上下文（保留语义连贯性）
-                  fullMessages.push({
-                    role: "assistant",
-                    content: accumulatedContent,
-                  })
+                  fullMessages.push(
+                    attachRoundReasoning({
+                      role: "assistant",
+                      content: accumulatedContent,
+                    })
+                  )
                   // 把用户回复作为 user 消息推入上下文，AI 下一轮迭代就能看到
                   fullMessages.push({
                     role: "user",
@@ -1925,13 +2516,16 @@ ${memoryMd}
                     'clarify',
                     clarifyTitle,
                     5 * 60 * 1000,
+                    hitlSignal,
                   )
                   console.log(`[Agent Loop] CLARIFY resolved, continuing with user reply`)
 
-                  fullMessages.push({
-                    role: "assistant",
-                    content: accumulatedContent,
-                  })
+                  fullMessages.push(
+                    attachRoundReasoning({
+                      role: "assistant",
+                      content: accumulatedContent,
+                    })
+                  )
                   fullMessages.push({
                     role: "user",
                     content: userReply,
@@ -1967,17 +2561,39 @@ ${memoryMd}
 
               if (hasToolCalls) {
                 const toolCalls = currentToolCalls.filter(Boolean)
+
+                // 🔥 按需加载：本轮调用了 load_tool_schema 的话，把申请的工具并入下一轮 tools
+                for (const tc of toolCalls) {
+                  if (tc?.function?.name === TOOL_INDEX_LOADER_NAME) {
+                    try {
+                      const a = JSON.parse(tc.function.arguments || '{}')
+                      const wanted = Array.isArray(a?.tool_names) ? a.tool_names : [a?.tool_names]
+                      for (const n of wanted) {
+                        const nm = String(n || '').trim()
+                        if (nm) loadedToolNames.add(nm)
+                      }
+                      console.log('[Agent Loop] load_tool_schema requested:', [...loadedToolNames])
+                    } catch { /* 参数解析失败由工具自身返回错误 */ }
+                  }
+                }
                 console.log(`[Agent Loop] Round ${iteration} - Tool calls:`, toolCalls.map((t: any) => t.function.name))
                 
                 // 将 AI 回复（含可能的 content 和 tool_calls）存入上下文
                 // 🔥 Bug 修复：content 必须是字符串，不能用 null。
                 // DashScope 兼容模式要求 assistant 消息带 tool_calls 时 content 为字符串，
                 // null 会导致第 2 轮 LLM 调用返回 400
-                fullMessages.push({
-                  role: "assistant",
-                  content: accumulatedContent || "",
-                  tool_calls: toolCalls
-                })
+                // 🧠 Bug 修复（2026-10-16）：thinking 模式下必须把本轮的 `reasoning_content` 一起回灌。
+                // 上游契约（DeepSeek thinking 模式 / Kimi K3）明确要求「带 tool_calls 的 assistant
+                // 消息原样回传」，此前只回 content + tool_calls，于是工具链跑到后续轮次必被拒：
+                //   400 invalid_request_error: The `reasoning_content` in the thinking mode
+                //   must be passed back to the API.（表现为「LLM 返回错误状态 400（第 N 轮）」）
+                fullMessages.push(
+                  attachRoundReasoning({
+                    role: "assistant",
+                    content: accumulatedContent || "",
+                    tool_calls: toolCalls
+                  })
+                )
 
                 // 通知前端
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -2024,26 +2640,222 @@ ${memoryMd}
                   });
                 }
 
-                // 并行执行工具（带进度回调）
-                const toolResults = await executeToolCallsSmart(
-                  toolCallObjects,
-                  orchestrator,
-                  agentContext,
-                  (completed, total, currentTool) => {
-                    // 发送进度更新到前端
+                // 🔥 前端工具（client tool）与远端/内置工具分流：
+                // 前端工具改的是浏览器里的实时状态（如画布节点图），服务端执行不到，
+                // 处理方式是 推 SSE client_tool_call → 浏览器执行 → POST 回传结果。
+                const clientToolCalls = toolCallObjects.filter(tc => isClientSideTool(tc.name))
+                const serverToolCalls = toolCallObjects.filter(tc => !isClientSideTool(tc.name))
+
+                // 🔥 服务端工具「开始」通知（2026-09-25）
+                // 背景：设备控制类工具在**服务端**执行，浏览器只收到最终 tool_result，
+                // 于是"正在控制设备"这段时间没有任何前端信号 —— 用户所在页面的流光
+                // 只能等做完才亮一下，等于没有过程感。
+                // 这里在真正执行前逐个推 SSE `tool_call`，与稍后的 `tool_result` 成对，
+                // 让前端能形成「亮起 → 完成」两段节奏（见 components/ai/copilot/use-copilot-chat.ts）。
+                // 兼容性：只新增事件名。Copilot 侧栏解析 `data.tool_call`；
+                // 主助手页只解析 `data.tool_calls`（复数，LLM delta）/ `data.tool_result`，不受影响。
+                const toolResults = new Map<string, any>()
+
+                /** 推「工具开始」信号（与稍后的 tool_result 成对，驱动前端流光） */
+                const emitToolCallStart = (tc: { id: string; name: string; arguments?: any }) => {
+                  try {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                      id: `tool-progress-${Date.now()}`,
-                      object: "chat.completion.chunk",
+                      id: `tool-call-${tc.id}`,
+                      object: 'chat.completion.chunk',
                       created: Date.now(),
                       model: effectiveModel,
-                      tool_progress: {
-                        completed,
-                        total,
-                        current: currentTool
-                      }
-                    })}\n\n`));
+                      tool_call: {
+                        id: tc.id,
+                        name: tc.name,
+                        arguments: tc.arguments || {},
+                      },
+                    })}\n\n`))
+                  } catch { /* 流已关闭，忽略 */ }
+                }
+
+                /** 并行执行一批服务端工具（带进度回调） */
+                const runServerTools = async (batch: typeof serverToolCalls) => {
+                  if (batch.length === 0) return
+                  const serverResults = await executeToolCallsSmart(
+                    batch,
+                    orchestrator,
+                    agentContext,
+                    (completed, total, currentTool) => {
+                      // 发送进度更新到前端
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        id: `tool-progress-${Date.now()}`,
+                        object: "chat.completion.chunk",
+                        created: Date.now(),
+                        model: effectiveModel,
+                        tool_progress: {
+                          completed,
+                          total,
+                          current: currentTool
+                        }
+                      })}\n\n`));
+                    }
+                  );
+                  for (const [k, v] of serverResults.entries()) toolResults.set(k, v)
+                }
+
+                // 🛑 高风险工具的执行前确认（2026-10-14 用户：「改成在 sender 上方出现确认」）
+                //
+                // 触发条件：**请求体显式声明** `toolConfirmation: true`
+                //   （= 当前前端确实挂了确认胶囊 UI）。刻意不按 approvalMode 判定 ——
+                //   Copilot 侧栏同样传 `approvalMode:'request'` 但没有确认 UI，
+                //   若按模式判定会在那边挂到 5 分钟超时。同 `clientCapabilities` 的思路。
+                //
+                // 流程：命中 CONFIRMATION_REQUIRED_TOOLS 的工具**不直接执行** →
+                //   推 `tool_confirmation_required` → 同一 SSE 连接内 await 挂起 →
+                //   用户裁决到达（或超时）→ 推 `tool_confirmation_resolved` →
+                //   同意才真正执行；拒绝/超时写一条「用户拒绝」的工具结果交回模型
+                //   （**不中断** Agent Loop，让模型有机会换方案或收尾）。
+                const needsToolConfirmation = (tc: { name: string }) =>
+                  asksToolConfirmation && CONFIRMATION_REQUIRED_TOOLS.has(tc.name)
+                const confirmToolCalls = serverToolCalls.filter(needsToolConfirmation)
+                const immediateToolCalls = serverToolCalls.filter((tc) => !needsToolConfirmation(tc))
+
+                // ① 无需确认的：照旧直接执行（行为与改造前逐字一致）
+                for (const tc of immediateToolCalls) emitToolCallStart(tc)
+                await runServerTools(immediateToolCalls)
+
+                /**
+                 * 🛑 挂起等用户裁决：推 `tool_confirmation_required` → await →
+                 * 推 `tool_confirmation_resolved`，返回是否获批。
+                 *
+                 * 拿不到批准（拒绝 / 超时 / 连接断开）一律返回 false —— **安全默认是不执行**。
+                 */
+                const requestToolConfirmation = async (tc: {
+                  id: string
+                  name: string
+                  arguments?: any
+                }): Promise<boolean> => {
+                  const confirmId = `toolconfirm-${tc.id}`
+                  const confirmText = buildToolConfirmText(tc.name, tc.arguments, accumulatedContent)
+                  console.log(`[Agent Loop] Tool confirmation required: ${tc.name} (id=${confirmId})`)
+
+                  try {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `tool-confirm-required-${Date.now()}`,
+                      object: 'chat.completion.chunk',
+                      created: Date.now(),
+                      model: effectiveModel,
+                      tool_confirmation_required: {
+                        id: confirmId,
+                        tool_call_id: tc.id,
+                        tool_name: tc.name,
+                        text: confirmText,
+                        arguments: tc.arguments || {},
+                        timeout_ms: HITL_USER_INPUT_TIMEOUT_MS,
+                      },
+                    })}\n\n`))
+                  } catch { /* 流已关闭，忽略 */ }
+
+                  let approved = false
+                  try {
+                    const reply = await waitForUserInput(
+                      sessionId,
+                      confirmId,
+                      'tool_confirm',
+                      confirmText,
+                      HITL_USER_INPUT_TIMEOUT_MS,
+                      hitlSignal,
+                    )
+                    approved = isToolConfirmApproved(reply)
+                    console.log(
+                      `[Agent Loop] Tool confirmation ${tc.name} → ${approved ? 'APPROVED' : 'REJECTED'}`
+                    )
+                  } catch (err: any) {
+                    // 超时 / 被新挂起点取代 / 流被中断 —— 安全默认：**不执行**
+                    console.warn(`[Agent Loop] Tool confirmation ${tc.name} wait failed: ${err?.message}`)
                   }
-                );
+
+                  try {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `tool-confirm-resolved-${Date.now()}`,
+                      object: 'chat.completion.chunk',
+                      created: Date.now(),
+                      model: effectiveModel,
+                      tool_confirmation_resolved: {
+                        id: confirmId,
+                        tool_call_id: tc.id,
+                        tool_name: tc.name,
+                        approved,
+                      },
+                    })}\n\n`))
+                  } catch { /* 流已关闭，忽略 */ }
+
+                  return approved
+                }
+
+                /** 未获批准时的统一文案与工具结果（交回模型，让它换方案而不是中断循环） */
+                const REJECTED_TOOL_RESULT = {
+                  success: false,
+                  // ⚠️ `rejected_by_user` 必须放进 `data` 里：下方通用回灌路径取的是
+                  //    `result.data`（失败时只额外补一个 error），放在顶层会被丢掉。
+                  data: { rejected_by_user: true },
+                  error:
+                    '用户拒绝执行此操作，指令已取消。请勿重试同一动作，改为说明情况或提出替代方案。',
+                }
+
+                // ② 需确认的**服务端**工具：逐个挂起。刻意**串行** —— 一次只问一件事，
+                //    否则几个确认条同时浮出、用户点哪个都难以对应。
+                for (const tc of confirmToolCalls) {
+                  if (await requestToolConfirmation(tc)) {
+                    // 只有此刻才亮起「正在控制设备」，然后真正执行
+                    emitToolCallStart(tc)
+                    await runServerTools([tc])
+                  } else {
+                    toolResults.set(tc.id, REJECTED_TOOL_RESULT)
+                  }
+                }
+
+                // ===== 前端工具：逐个人工往返（前端工具天然有顺序语义，且要做动效）=====
+                for (const tc of clientToolCalls) {
+                  // 🛑 **前端工具里也有不可逆操作**（`automation_canvas_apply` = 把画布
+                  //    真正部署到设备），所以确认判定不能只挂在服务端分支上 —— 这里对
+                  //    clientToolCalls 复用同一条确认条。判据仍然只有登记表一个来源。
+                  if (needsToolConfirmation(tc)) {
+                    if (await requestToolConfirmation(tc)) {
+                      emitToolCallStart(tc)
+                    } else {
+                      toolResults.set(tc.id, REJECTED_TOOL_RESULT)
+                      continue
+                    }
+                  }
+
+                  const clientToolId = `ct-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+                  console.log(`[Agent Loop] Client tool → browser: ${tc.name} (id=${clientToolId})`)
+
+                  try {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `client-tool-call-${clientToolId}`,
+                      object: 'chat.completion.chunk',
+                      created: Date.now(),
+                      model: effectiveModel,
+                      client_tool_call: {
+                        id: clientToolId,
+                        name: tc.name,
+                        arguments: tc.arguments || {},
+                      },
+                    })}\n\n`))
+                  } catch { /* 流已关闭，忽略 */ }
+
+                  try {
+                    const raw = await waitForClientToolResult(clientToolId, sessionId, tc.name, undefined, hitlSignal)
+                    toolResults.set(tc.id, { success: true, data: raw })
+                  } catch (err: any) {
+                    const reason = err?.message || 'unknown'
+                    console.warn(`[Agent Loop] Client tool ${tc.name} not completed: ${reason}`)
+                    toolResults.set(tc.id, {
+                      success: false,
+                      error:
+                        reason.includes('timeout')
+                          ? '浏览器端执行超时（页面可能已关闭或未打开画布编辑器）'
+                          : `前端执行失败：${reason}`,
+                    })
+                  }
+                }
 
                 // 处理结果并添加到消息历史
                 let hasClarifyAction = false
@@ -2064,6 +2876,85 @@ ${memoryMd}
                       role: 'tool',
                       tool_call_id: toolCallId,
                       content: JSON.stringify({ success: true, message: '已向用户展示澄清表单，等待用户回复。请基于用户回复继续处理。' })
+                    });
+                    continue
+                  }
+
+                  // 🔥 检测视觉诊断结果：转换为 <DIAGNOSIS> 标签注入 content，
+                  // 触发前端渲染「诊断卡片 + 病害部位遮罩图」。
+                  // 之所以要这一层：诊断结论由服务端工具产出（不是模型手写），
+                  // 但前端渲染协议仍是标签 —— 由路由统一注入，
+                  // 这样无论模型后续写多少散文，卡片都必定出现。
+                  if (result.success && result.data?._agent_action === 'diagnosis') {
+                    const d = result.data?.diagnosis_data
+                    if (d) {
+                      const tag = `\n<DIAGNOSIS>${JSON.stringify(d)}</DIAGNOSIS>`
+                      accumulatedContent += tag
+                      // 🔥 必须显式推给前端：accumulatedContent 只是后端上下文账本，
+                      //    前端消息体是由一条条 delta 拼出来的，不 enqueue 就等于没发过。
+                      const chunkSize = 200
+                      for (let i = 0; i < tag.length; i += chunkSize) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                          id: `diagnosis-tag-${Date.now()}-${i}`, object: "chat.completion.chunk",
+                          created: Date.now(), model: effectiveModel,
+                          choices: [{ delta: { content: tag.slice(i, i + chunkSize) }, index: 0, finish_reason: null }],
+                        })}\n\n`))
+                        await new Promise(r => setTimeout(r, 5))
+                      }
+                      console.log('[Agent Loop] diagnose_plant_image → DIAGNOSIS tag injected')
+                    } else {
+                      console.warn('[Agent Loop] diagnose_plant_image returned no diagnosis_data')
+                    }
+
+                    // 🚨 补发 tool_result（2026-10-04 修）：
+                    //    本分支下方 `continue` 会跳过「通用 tool_result 推送」那段代码，
+                    //    导致前端**永远收不到这个工具的 tool_result**。后果：
+                    //      ① 思维链里「调用 diagnose_plant_image」这步卡在 active 不收敛，
+                    //         用户看到的就是"任务执行中 · 1 步"一直转，好像没等出图就结束了；
+                    //      ② 任何依赖 tool_result 的消费方（Copilot 侧栏、工具步骤时长统计）拿不到回执。
+                    //    这里按通用路径同样的结构补一条；diagnosis_data 不再重复塞一遍
+                    //    （它已经通过 <DIAGNOSIS> 标签送到前端了），只给摘要 + 定位数量。
+                    try {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        id: `tool-result-${Date.now()}`,
+                        object: "chat.completion.chunk",
+                        created: Date.now(),
+                        model: effectiveModel,
+                        tool_result: {
+                          name: toolCall.function.name,
+                          args: (() => { try { return JSON.parse(toolCall.function.arguments || '{}') } catch { return {} } })(),
+                          result: {
+                            success: true,
+                            summary: result.data?.summary || '诊断完成',
+                            diseaseName: d?.diseaseName,
+                            severity: d?.severity,
+                            confidence: d?.confidence,
+                            imageCount: result.data?.imageCount,
+                            detections: result.data?.detections,
+                            degraded: result.data?.degraded,
+                            model: result.data?.model,
+                            requestedModel: result.data?.requestedModel,
+                            _ui: 'diagnosis',
+                          },
+                        },
+                      })}\n\n`))
+                    } catch { /* 流已关闭，忽略 */ }
+
+                    // 🔒 诊断成功后把工具从「本轮已加载」里摘掉，避免第 2 轮再被调用一次。
+                    //    实测：默认下一轮仍暴露 diagnose_plant_image，模型看到对话里还有图，
+                    //    会再调一遍 —— 每次多花 ~10s（视觉推理）并可能产出重复的诊断卡。
+                    //    下一轮用户再发新图时，路由会在请求入口重新预加载（见 preloading 分支）。
+                    loadedToolNames.delete('diagnose_plant_image')
+
+                    // tool 结果只回一句摘要，避免整坨 JSON 进入模型上下文
+                    fullMessages.push({
+                      role: 'tool',
+                      tool_call_id: toolCallId,
+                      content: JSON.stringify({
+                        success: true,
+                        summary: result.data?.summary || '诊断完成',
+                        note: '诊断卡片与原图病害遮罩图已展示给用户，请基于 summary 用中文简要总结并给出下一步操作建议，不要重复输出诊断 JSON。',
+                      })
                     });
                     continue
                   }
@@ -2138,14 +3029,21 @@ ${memoryMd}
                   // 添加到消息历史（供下一轮 LLM 推理）
                   // 多模态消息仅当当前模型支持视觉时才发送 image_url，否则降级为纯文本
                   // 避免非 VLM 模型（如 deepseek-v3）因不支持 image_url 报错中断 Agent Loop
+                  //
+                  // 🧠 上下文工程层：所有回灌进上下文的结果都要过一遍分级截断 ——
+                  //   此前是 `JSON.stringify(toolData)` 原样塞入、无任何上限，
+                  //   一次「查 7 天历史」就能把整坨数据留在上下文里陪跑到对话结束。
                   if (multimodal && mmImages.length > 0 && isVLMModel) {
                     // OpenAI Vision 多模态 tool 消息格式：content 为数组，含 text + image_url
-                    // 把元数据 JSON 作为 text 部分，便于模型检索结构化字段
+                    // metadata 走压缩（summary 已含关键信息，整坨 JSON 没必要）
                     const metaWithoutMm = { ...toolData }
                     delete metaWithoutMm._multimodal
-                    const textPart = `${mmSummary}\n\n[metadata]\n${JSON.stringify(metaWithoutMm)}`
+                    const mm = compactMultimodalMetadata(mmSummary, metaWithoutMm, {
+                      toolName: toolCall.function.name,
+                    })
+                    roundCompactions.push({ toolName: toolCall.function.name, ...mm.compaction })
                     const contentParts: any[] = [
-                      { type: 'text', text: textPart }
+                      { type: 'text', text: mm.text }
                     ]
                     for (const img of mmImages) {
                       contentParts.push({
@@ -2162,19 +3060,28 @@ ${memoryMd}
                     // 非 VLM 模型降级：只发文本摘要 + 提示模型无法看图
                     const metaWithoutMm = { ...toolData }
                     delete metaWithoutMm._multimodal
+                    const mm = compactToolResult(metaWithoutMm, { toolName: toolCall.function.name })
+                    if (mm.compacted) roundCompactions.push({ toolName: toolCall.function.name, ...mm })
                     fullMessages.push({
                       role: 'tool',
                       tool_call_id: toolCallId,
                       content: JSON.stringify({
-                        ...metaWithoutMm,
+                        ...(mm.content as object),
                         _note: `当前模型不支持视觉输入，已抓取 ${mmImages.length} 张图片但无法让模型查看。图片已转发给用户。请基于摘要 "${mmSummary}" 回答用户。`
                       })
                     });
                   } else {
+                    const cr = compactToolResult(toolData, { toolName: toolCall.function.name })
+                    if (cr.compacted) {
+                      roundCompactions.push({ toolName: toolCall.function.name, ...cr })
+                      console.log(
+                        `[Context] tool "${toolCall.function.name}" compacted (${cr.level}): ${cr.beforeTokens} → ${cr.afterTokens} tokens`,
+                      )
+                    }
                     fullMessages.push({
                       role: 'tool',
                       tool_call_id: toolCallId,
-                      content: JSON.stringify(toolData)
+                      content: JSON.stringify(cr.content)
                     });
                   }
                 }
@@ -2220,13 +3127,16 @@ ${memoryMd}
                       'clarify',
                       'ask_user_question 工具触发',
                       5 * 60 * 1000,
+                      hitlSignal,
                     )
                     console.log(`[Agent Loop] CLARIFY (via tool_call) resolved, continuing`)
 
-                    fullMessages.push({
-                      role: "assistant",
-                      content: accumulatedContent || "",
-                    })
+                    fullMessages.push(
+                      attachRoundReasoning({
+                        role: "assistant",
+                        content: accumulatedContent || "",
+                      })
+                    )
                     fullMessages.push({
                       role: "user",
                       content: userReply,
@@ -2285,6 +3195,97 @@ ${memoryMd}
                 lastRoundHadToolCalls = true
                 continue
               } else {
+                // 🔥 兜底执行：模型在正文/思考中声称要调用某工具（如"我调用 automation_strategy_list"），
+                // 但本轮并未产生真实 tool_call —— 常见于 DeepSeek 等把调用意图写进 reasoning
+                // 而 content 只输出过渡前导语的模型。此时把工具名提取出来合成真实调用并执行，
+                // 避免"说了要查但没查"的假执行。
+                if (!toolNameFallbackUsed && !planMode && iteration < MAX_AGENT_ITERATIONS) {
+                  const intentRe = /(?:调用|使用|执行|call|invoke|use)[\s:：，,]*([a-z][a-z0-9_]{2,})/g
+                  const mentioned = new Set<string>()
+                  let im: RegExpExecArray | null
+                  while ((im = intentRe.exec(accumulatedContent)) !== null) {
+                    mentioned.add(im[1])
+                  }
+                  // 只接管"本轮实际注入给模型"的工具，避免误触发未启用的能力
+                  const effectiveToolNames = new Set(effectiveTools.map((t: any) => t.function.name))
+                  const targetTool = Array.from(mentioned).find(name =>
+                    effectiveToolNames.has(name) && getMCPServerIdByToolName(name)
+                  )
+                  if (targetTool) {
+                    toolNameFallbackUsed = true
+                    console.log(`[Agent Loop] Round ${iteration} - Text-mentioned tool call without real tool_call, synthesizing call for: ${targetTool}`)
+
+                    const syntheticToolCalls = [{
+                      id: `text-fallback-${Date.now()}`,
+                      type: 'function',
+                      function: { name: targetTool, arguments: '{}' }
+                    }]
+
+                    fullMessages.push(
+                      attachRoundReasoning({
+                        role: 'assistant',
+                        content: accumulatedContent || '',
+                        tool_calls: syntheticToolCalls
+                      })
+                    )
+
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      id: `tool-status-${Date.now()}`, object: 'chat.completion.chunk',
+                      created: Date.now(), model: effectiveModel,
+                      tool_calls: syntheticToolCalls,
+                      agent_iteration: iteration
+                    })}\n\n`))
+
+                    const toolResults = await executeToolCallsSmart(
+                      [{ id: syntheticToolCalls[0].id, name: targetTool, arguments: {}, timestamp: Date.now() }],
+                      orchestrator,
+                      agentContext,
+                      (completed, total, currentTool) => {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                          id: `tool-progress-${Date.now()}`,
+                          object: 'chat.completion.chunk',
+                          created: Date.now(),
+                          model: effectiveModel,
+                          tool_progress: { completed, total, current: currentTool }
+                        })}\n\n`))
+                      }
+                    )
+
+                    for (const [toolCallId, result] of toolResults.entries()) {
+                      const toolData = result.success
+                        ? result.data
+                        : {
+                            ...(result.data ?? {}),
+                            error: result.error || result.data?.error || '工具执行失败（未提供错误信息）',
+                          }
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        id: `tool-result-${Date.now()}`,
+                        object: 'chat.completion.chunk',
+                        created: Date.now(),
+                        model: effectiveModel,
+                        tool_result: { name: targetTool, args: {}, result: toolData }
+                      })}\n\n`))
+                      // 🧠 上下文工程层：兜底路径同样要走分级截断（此处原为原样 JSON）
+                      const cr1 = compactToolResult(toolData, { toolName: targetTool })
+                      if (cr1.compacted) roundCompactions.push({ toolName: targetTool, ...cr1 })
+                      fullMessages.push({
+                        role: 'tool',
+                        tool_call_id: toolCallId,
+                        content: JSON.stringify(cr1.content)
+                      })
+                    }
+
+                    fullMessages.push({
+                      role: 'system',
+                      content: `上方 tool 消息是 ${targetTool} 的真实执行结果。请基于该结果向用户如实汇报。如需传参的工具请通过原生 tool_call 调用，不要再只在正文里声称调用。`
+                    })
+
+                    requestBody = { ...requestBody, messages: fullMessages }
+                    lastRoundHadToolCalls = true
+                    continue
+                  }
+                }
+
                 // 🔥 兜底执行：模型输出了旧版 JSON 设备控制指令而非原生 tool_call
                 // （常见于历史会话污染或模型 function calling 依从性差）。
                 // 旧的"前端解析 JSON 执行"链路已移除，若服务端不接管，指令将无人执行，
@@ -2303,11 +3304,13 @@ ${memoryMd}
                       function: { name: c.name, arguments: JSON.stringify(c.arguments) }
                     }))
 
-                    fullMessages.push({
-                      role: 'assistant',
-                      content: accumulatedContent || '',
-                      tool_calls: syntheticToolCalls
-                    })
+                    fullMessages.push(
+                      attachRoundReasoning({
+                        role: 'assistant',
+                        content: accumulatedContent || '',
+                        tool_calls: syntheticToolCalls
+                      })
+                    )
 
                     // 通知前端（与原生 tool_call 一致的事件格式）
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -2360,10 +3363,13 @@ ${memoryMd}
                           result: toolData
                         }
                       })}\n\n`))
+                      // 🧠 上下文工程层：设备控制兜底路径同样走分级截断
+                      const cr2 = compactToolResult(toolData, { toolName: toolCall.function.name })
+                      if (cr2.compacted) roundCompactions.push({ toolName: toolCall.function.name, ...cr2 })
                       fullMessages.push({
                         role: 'tool',
                         tool_call_id: toolCallId,
-                        content: JSON.stringify(toolData)
+                        content: JSON.stringify(cr2.content)
                       })
                     }
 
@@ -2395,7 +3401,7 @@ ${memoryMd}
                   console.warn(`[Agent Loop] Round ${iteration} - Incomplete text after tool call (${trimmedContent.length} chars, short=${isShortTransition}, colon=${endsWithColon}, leadIn=${hasLeadInPhrase}), treating as transition.`)
                   // 🔥 Bug 修复：注入 system nudge 强制模型基于工具结果生成完整回答，
                   // 而不是再次输出"我来查询/先拉取"之类的引导语
-                  fullMessages.push({ role: "assistant", content: accumulatedContent || "" })
+                  fullMessages.push(attachRoundReasoning({ role: "assistant", content: accumulatedContent || "" }))
                   fullMessages.push({
                     role: 'system',
                     content: '你刚才说了引导性话语但没有给出实质回答。请立即基于已获取的工具结果，为用户生成完整、具体的最终回答，不要再输出"我来查询/先拉取"之类的引导语，也不要再次调用工具。'
@@ -2409,7 +3415,7 @@ ${memoryMd}
                 }
 
                 // 正常情况：无工具调用 + 累积内容是真正的最终回答
-                fullMessages.push({ role: "assistant", content: accumulatedContent })
+                fullMessages.push(attachRoundReasoning({ role: "assistant", content: accumulatedContent }))
                 lastRoundHadToolCalls = false
 
                 // 边缘情况：AI 调用完工具后返回空内容（既无 tool_calls 也无文本）
@@ -2491,6 +3497,18 @@ ${memoryMd}
               }
             }
 
+            // 🧠 上下文工程层埋点：本轮 agent loop 的工具结果截断汇总
+            // 回答「工具结果到底吃掉了多少上下文」——此前这个数字完全不可见。
+            try {
+              const tc = summarizeCompactions(roundCompactions)
+              if (tc && tc.compactedTools.length > 0) {
+                console.log(
+                  `[Context] agent loop tool results: ${tc.beforeTokens} → ${tc.afterTokens} tokens ` +
+                  `(saved ${tc.beforeTokens - tc.afterTokens}, compacted: ${tc.compactedTools.join(', ')})`,
+                )
+              }
+            } catch { /* 埋点失败不影响主流程 */ }
+
             // === 强制最终回答：循环因达到最大迭代次数 或 LLM 异常提前退出，
             // 且最后一轮有 tool_calls（或被判为未完成的前导语），AI 没有机会生成最终总结
             // → 强制做一次不带 tools 的 LLM 调用，让 AI 基于工具结果输出最终回答
@@ -2504,14 +3522,9 @@ ${memoryMd}
               console.log(`[Agent Loop] ⚠️ Forcing final summary due to ${triggerReason}, lastRoundHadToolCalls=${lastRoundHadToolCalls}`)
 
               // 构造最终回答请求：不带 tools，强制 AI 生成文本总结
-              const finalMessages = (fullMessages as any[]).map((m: any) => {
-                const { role, content, name, tool_calls, tool_call_id } = m
-                const clean: any = { role, content }
-                if (name) clean.name = name
-                if (tool_calls) clean.tool_calls = tool_calls
-                if (tool_call_id) clean.tool_call_id = tool_call_id
-                return clean
-              })
+              // （字段白名单唯一源 = toUpstreamMessage：历史里的推理字段必须一并带上，
+              //   否则 thinking 模式上游会把这次请求当作"丢掉了 reasoning_content"直接 400）
+              const finalMessages = (fullMessages as any[]).map(toUpstreamMessage)
 
               // 在消息末尾添加系统提示，要求 AI 基于已有工具结果生成最终回答
               finalMessages.push({
@@ -2529,7 +3542,7 @@ ${memoryMd}
 
               try {
                 const finalTimeoutController = new AbortController()
-                const finalTimeoutId = setTimeout(() => finalTimeoutController.abort(), 60000)
+                const finalTimeoutId = setTimeout(() => finalTimeoutController.abort(), AGENT_FORCE_FINAL_TIMEOUT_MS)
                 const finalRes = await fetch(targetUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
@@ -2543,6 +3556,9 @@ ${memoryMd}
                   const finalDecoder = new TextDecoder()
                   let finalBuffer = ""
                   let finalAccumulated = ""
+                  // 🧠 与主循环同理：这一轮的推理增量也要留在 assistant 消息上（thinking 模式回传契约）
+                  let finalReasoning = ""
+                  let finalReasoningField = 'reasoning_content'
 
                   while (true) {
                     const { done, value } = await finalReader.read()
@@ -2560,6 +3576,12 @@ ${memoryMd}
                           const json = JSON.parse(trimmed.slice(6))
                           trackUsage(json.usage)
                           const delta = json.choices?.[0]?.delta
+                          const finalReasoningDelta = delta?.reasoning_content ?? delta?.reasoning
+                          if (typeof finalReasoningDelta === 'string' && finalReasoningDelta) {
+                            finalReasoning += finalReasoningDelta
+                            finalReasoningField =
+                              typeof delta.reasoning_content === 'string' ? 'reasoning_content' : 'reasoning'
+                          }
                           if (delta?.content) {
                             finalAccumulated += delta.content
                             agentOutputText += delta.content
@@ -2579,7 +3601,11 @@ ${memoryMd}
                     }
                   }
 
-                  fullMessages.push({ role: "assistant", content: finalAccumulated })
+                  fullMessages.push({
+                    role: "assistant",
+                    content: finalAccumulated,
+                    ...(finalReasoning ? { [finalReasoningField]: finalReasoning } : {}),
+                  })
                   console.log(`[Agent Loop] ✅ Forced final summary generated (${finalAccumulated.length} chars)`)
                 } else {
                   console.warn(`[Agent Loop] Forced final summary failed (status ${finalRes.status})`)
@@ -2627,6 +3653,9 @@ ${memoryMd}
             // 防止悬挂的 promise 阻塞下一次对话
             cancelPendingUserInput(sessionId, 'stream_closed')
 
+            // 🔥 清理挂起的前端工具（画布等），避免浏览器已关闭时 promise 永久悬挂
+            cancelPendingClientToolsForSession(sessionId, 'stream_closed')
+
             // 🔥 清理 session 的 task list（防止下一次对话复用旧任务列表）
             clearSessionTaskList(sessionId)
 
@@ -2643,6 +3672,9 @@ ${memoryMd}
 
             // 🔥 异常路径也要清理挂起的用户输入
             cancelPendingUserInput(sessionId, 'stream_error')
+
+            // 🔥 异常路径也要清理挂起的前端工具
+            cancelPendingClientToolsForSession(sessionId, 'stream_error')
 
             // 🔥 异常路径也要清理 task list
             clearSessionTaskList(sessionId)
@@ -2677,14 +3709,8 @@ ${memoryMd}
     }
 
     if (requestBody.messages) {
-        requestBody.messages = requestBody.messages.map((m: any) => {
-            const { role, content, name, tool_calls, tool_call_id } = m
-            const cleanMsg: any = { role, content }
-            if (name) cleanMsg.name = name
-            if (tool_calls) cleanMsg.tool_calls = tool_calls
-            if (tool_call_id) cleanMsg.tool_call_id = tool_call_id
-            return cleanMsg
-        })
+        // 字段白名单唯一源 = toUpstreamMessage（含 thinking 模式的推理字段原样回传）
+        requestBody.messages = requestBody.messages.map(toUpstreamMessage)
     }
 
     const response = await fetch(targetUrl, {

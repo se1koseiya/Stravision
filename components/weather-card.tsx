@@ -29,13 +29,13 @@ const TOKENS = {
 
 // 配色方案
 const THEME = {
-  primary: "#1677ff",
-  success: "#52c41a",
-  warning: "#faad14",
-  error: "#ff4d4f",
+  primary: "#059669",
+  success: "#059669",
+  warning: "#52525B",
+  error: "#DC2626",
   textPrimary: "#1f1f1f",
-  textSecondary: "#8c8c8c",
-  border: "#f0f0f0",
+  textSecondary: "#8f959e",
+  border: "#F4F4F5",
   background: "#fafafa",
 }
 
@@ -89,11 +89,11 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
     const weatherType = type || (weatherData?.current ? getWeatherType(weatherData.current.condition.code) : "cloudy")
 
     const configs = {
-      sunny: { icon: <IconSun />, color: "#faad14", bg: "#fff7e6" },
-      cloudy: { icon: <IconCloudy />, color: "#8c8c8c", bg: "#fafafa" },
-      rainy: { icon: <IconLightRain />, color: "#1677ff", bg: "#e6f7ff" },
-      snowy: { icon: <IconSnow />, color: "#69b1ff", bg: "#f0f5ff" },
-      foggy: { icon: <IconFog />, color: "#bfbfbf", bg: "#f5f5f5" },
+      sunny: { icon: <IconSun />, color: "#52525B", bg: "#fafafa" },
+      cloudy: { icon: <IconCloudy />, color: "#8f959e", bg: "#fafafa" },
+      rainy: { icon: <IconLightRain />, color: "#059669", bg: "#e6f7ff" },
+      snowy: { icon: <IconSnow />, color: "#34D399", bg: "#f0f5ff" },
+      foggy: { icon: <IconFog />, color: "#b4b2a9", bg: "#f4f4f5" },
     }
 
     return configs[weatherType]

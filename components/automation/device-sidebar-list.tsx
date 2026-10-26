@@ -16,8 +16,8 @@ export function DeviceSidebarList() {
       id: "fan",
       name: "通风风扇",
       icon: IconWind,
-      color: "text-blue-500",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
       isActive: deviceData?.relay6 === 1,
       value: null
     },
@@ -61,7 +61,7 @@ export function DeviceSidebarList() {
       name: "空气湿度",
       value: deviceData ? `${deviceData.humidity}%` : "--",
       icon: IconWater,
-      color: "text-blue-500"
+      color: "text-emerald-500"
     },
     {
       name: "CO2 浓度",
@@ -126,8 +126,8 @@ export function DeviceSidebarList() {
         </div>
       </div>
       
-      <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 text-xs text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
-        <IconChartLine className="w-4 h-4 mb-2" />
+      <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+        <IconChartLine className="w-4 h-4 mr-1.5" />
         提示：此面板仅展示实时状态，如需控制设备请使用 Automation Action 节点。
       </div>
     </div>

@@ -5,10 +5,10 @@
    oklch → hex 精确换算，不是凭感觉调的：
 
      --landing-ink        oklch(.252 0 0)               → #222222
-     --landing-muted      oklch(.52  0 0)               → #696969
+     --landing-muted      oklch(.52  0 0)               → #646A73
      --landing-surface    oklch(1 0 0)                  → #FFFFFF
-     --landing-accent     oklch(.853 .133 157.3)        → #7DE9AC
-     --landing-accent-strong oklch(.773 .15 157.7)      → #4ED18F
+     --landing-accent     oklch(.853 .133 157.3)        → #6EE7B7
+     --landing-accent-strong oklch(.773 .15 157.7)      → #059669
      --landing-mint       oklch(.959 .045 157.1)        → #DAFBE6
      --landing-hero-mint  oklch(.9425 .0533 164.7)      → #CCF8E3
      --landing-cyan       oklch(.973 .028 206.8)        → #E2FCFF
@@ -16,7 +16,7 @@
      --landing-chip       oklch(.977 .057 158.1)        → #D8FFE9
      --landing-glow-solid oklch(.8886 .1997 152.855)    → #53FF98
      --brand-primary      oklch(.8348 .1302 160.908)    → #72E3AD
-     --brand-secondary    oklch(.6231 .188 259.815)     → #3B82F6
+     --brand-secondary    oklch(.6231 .188 259.815)     → #059669
      --hero-static-yellow oklch(.96 .17 105)            → #FFF85E
      --hero-static-green  oklch(.90 .18 151)            → #75FF9F
      --color-emerald-300  oklch(.845 .143 164.978)      → #5EE9B5
@@ -182,9 +182,9 @@ export const fadeUp = (delay = 0) => ({
 
 /** @deprecated 旧令牌，保留仅为兼容；新代码请用 L / L_MIX */
 export const BRAND = {
-  green: "#7DE9AC",
-  greenDeep: "#4ED18F",
-  greenInk: "#009456",
+  green: "#6EE7B7",
+  greenDeep: "#059669",
+  greenInk: "#059669",
   tint: "#E6FCEE",
   tintStrong: "#5EE9B5",
 } as const;
@@ -192,7 +192,7 @@ export const BRAND = {
 /** @deprecated 旧令牌，保留仅为兼容；新代码请用 L / L_MIX */
 export const NEUTRAL = {
   ink: "#222222",
-  ink2: "#696969",
+  ink2: "#646A73",
   ink3: "#A9A9A9",
   line: "rgba(34,34,34,0.10)",
 } as const;
@@ -206,6 +206,7 @@ export const GLOW_BLOBS = HERO_GLOWS.map((g, i) => ({
 export const NAV_LINKS = [
   { href: "/", label: "主页" },
   { href: "/mcp-store", label: "技能广场" },
+  { href: "/whats-new", label: "新功能" },
   { href: "/changelog", label: "更新日志" },
   { href: "/docs", label: "产品文档" },
 ] as const;

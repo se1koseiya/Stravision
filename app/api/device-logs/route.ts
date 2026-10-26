@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initDB, query, queryOne } from "@/lib/db/database"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {

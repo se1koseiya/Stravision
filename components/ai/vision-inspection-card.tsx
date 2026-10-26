@@ -1,7 +1,8 @@
 "use client"
 
+import { useFeedback } from "@/lib/ui/feedback"
 import React, { useState, useCallback, useEffect, useRef } from 'react'
-import { App, Button, Card, Segmented, Space, Tag, Tooltip, Typography } from 'antd'
+import { Button, Card, Segmented, Space, Tag, Tooltip, Typography } from "antd"
 import dynamic from 'next/dynamic'
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { IconCamera, IconDelete, IconLeft, IconPause, IconPower, IconRight, IconScan, IconSend } from "@/components/icon";
@@ -36,7 +37,7 @@ export function VisionInspectionCard({
   onCameraControl,
   className,
 }: VisionInspectionCardProps) {
-  const { message } = App.useApp()
+  const { message } = useFeedback()
 
   // 状态
   const [isActive, setIsActive] = useState(false)
@@ -218,9 +219,9 @@ export function VisionInspectionCard({
             display: 'inline-block',
             background: cam.available
               ? selectedCameraId === cam.id
-                ? '#1677ff'
-                : '#52c41a'
-              : '#d9d9d9',
+                ? '#059669'
+                : '#059669'
+              : '#d4d4d8',
           }}
         />
         {cam.name}

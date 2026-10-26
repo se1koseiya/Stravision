@@ -102,15 +102,30 @@ export function useWeatherVideo(
  * arrives after initial page load and `condition` changes, the browser
  * would otherwise NOT reload a video whose <source> src attribute was
  * mutated. A key change forces a clean unmount/mount cycle.
+ *
+ * ══ 2026-10-04 改版：视频从「背景主体」降级为「动态纹理」══
+ * 旧实现把不透明实拍视频直接铺在卡上，再盖一层 0.4 黑 —— 结果是
+ * **天空色相板完全失效**：同一场雨和晴天的卡片看起来一模一样（实测截图确认）。
+ * 视频是「实拍纹理」，色相与我们的天气色板毫无关系；让它当底色主体，
+ * 等于把「这张卡是什么天气」这个最关键的信息交给了随机素材。
+ *
+ * 现在：视频只提供**动态感**，色相与明度仍由 weather-sky 的色相板说了算 ——
+ *   ① 视频整体降到低透明度（像材质里透出的一点纹理）
+ *   ② 用色相板的**最深一档**做一层染色覆盖，等于把视频「染」成当前天气的颜色
+ *   ③ 顶部再压一层同色相的上缘受光，与天空层的受光方向一致
+ * 这样晴是蓝紫、雨是青蓝、雷是深紫、雪是冷灰 —— 视频只在同色相内提供动态。
  */
 export function WeatherVideoBackground({
   src,
   overlayOpacity = 0.4,
   overlayColor = '0,0,0',
+  /** 色相板最深一档：用于把视频染成当前天气色。缺省则退化为中性黑覆盖 */
+  tintDeep,
 }: {
   src: string
   overlayOpacity?: number
   overlayColor?: string
+  tintDeep?: string
 }) {
   if (!src) return null
 
@@ -134,13 +149,17 @@ export function WeatherVideoBackground({
           height: 'auto',
           transform: 'translate(-50%, -50%)',
           objectFit: 'cover',
+          // 降级为纹理：只留一点动态，画面主体交给色相板
+          opacity: 0.38,
         }}
       />
-      {/* Dark overlay for readability */}
+      {/* 用天气色染色（而非纯黑）—— 视频因此「属于」这个天气，而不是盖住它 */}
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: `linear-gradient(135deg, rgba(${overlayColor},${overlayOpacity + 0.15}) 0%, rgba(${overlayColor},${overlayOpacity}) 100%)`,
+        background: tintDeep
+          ? `linear-gradient(160deg, ${tintDeep}E6 0%, ${tintDeep}F2 100%)`
+          : `linear-gradient(135deg, rgba(${overlayColor},${overlayOpacity + 0.15}) 0%, rgba(${overlayColor},${overlayOpacity}) 100%)`,
       }} />
     </div>
   )

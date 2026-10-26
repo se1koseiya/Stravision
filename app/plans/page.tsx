@@ -97,7 +97,7 @@ export default function PlansPage() {
         </div>
       </nav>
 
-      <main className="pt-32 pb-20 px-4 sm:px-8 md:px-12 max-w-7xl mx-auto">
+      <main className="pt-32 pb-20 px-4 sm:px-8 md:px-12 max-w-[1400px] mx-auto">
         
         {/* Header Section */}
         <motion.div 
@@ -139,7 +139,7 @@ export default function PlansPage() {
                   )}
                 >
                   按年付费
-                  <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-none font-bold">
+                  <span className="text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-none font-bold">
                     -20%
                   </span>
                 </button>
@@ -240,9 +240,9 @@ export default function PlansPage() {
                             className={cn(
                               "text-5xl font-extrabold tracking-tighter bg-clip-text text-transparent",
                               isPro
-                                ? "bg-[linear-gradient(135deg,#a78bfa,#60a5fa,#c4b5fd)]"
+                                ? "bg-[linear-gradient(135deg,#a1a1aa,#71717a,#c4b5fd)]"
                                 : isEnterprise
-                                  ? "bg-[linear-gradient(135deg,#fbbf24,#fde68a,#f59e0b)]"
+                                  ? "bg-[linear-gradient(135deg,#a1a1aa,#fde68a,#52525B)]"
                                   : "bg-[linear-gradient(135deg,#e4e4e7,#a1a1aa)]"
                             )}
                           >
@@ -267,8 +267,11 @@ export default function PlansPage() {
                     <div className="relative flex flex-col gap-3 flex-grow">
                       {plan.features.map((feature, i) => (
                         <div key={i} className="flex items-start gap-2.5 text-xs leading-tight">
+                          {/* mt-0.5 会把 16px 圆形徽标整体下推 2px，实测图标中心比文字
+                              大写高中心低 2.3~3.5px（三张卡共 17 处）。items-start 已让
+                              徽标顶边与首行行盒顶对齐，徽标 16px ≈ 行盒 15px，居中即对齐。 */}
                           <div
-                            className="mt-0.5 shrink-0 flex items-center justify-center w-4 h-4 rounded-full"
+                            className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full"
                             style={{
                               background: isPro
                                 ? "rgba(151,90,244,0.2)"

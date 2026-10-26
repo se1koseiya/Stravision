@@ -42,7 +42,7 @@ interface DecisionCardProps {
 }
 
 const typeLabels: Record<string, { label: string; color: string }> = {
-  control: { label: '设备控制', color: 'bg-[#1677ff]/10 text-[#1677ff] border-[#1677ff]/20' },
+  control: { label: '设备控制', color: 'bg-[#059669]/10 text-[#059669] border-[#059669]/20' },
   recommendation: { label: '操作建议', color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900' },
   diagnosis: { label: '问题诊断', color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900' },
   prediction: { label: '趋势预判', color: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900' },
@@ -60,20 +60,20 @@ export function DecisionCard({ data, className }: DecisionCardProps) {
     )}>
       {/* 头部 */}
       <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800">
-        <IconCompass size={14} className="text-zinc-500 shrink-0" strokeWidth={1.75} />
+        <IconCompass size={14} className="text-zinc-500 shrink-0" strokeWidth={2} />
         <span className="text-xs font-medium">AI 决策依据</span>
-        <span className={cn("text-[10px] px-1.5 py-0.5 rounded border", typeMeta.color)}>
+        <span className={cn("text-[11px] px-1.5 py-0.5 rounded border", typeMeta.color)}>
           {typeMeta.label}
         </span>
         {confidencePct !== null && (
-          <span className="ml-auto text-[10px] text-zinc-500">置信度 {confidencePct}%</span>
+          <span className="ml-auto text-[11px] text-zinc-500">置信度 {confidencePct}%</span>
         )}
       </div>
 
       <div className="px-3 py-2.5 space-y-2.5">
         {/* WHY */}
         <div className="flex items-start gap-2">
-          <span className="text-[10px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">WHY</span>
+          <span className="text-[11px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">WHY</span>
           <div className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed flex-1">
             {data.why}
           </div>
@@ -81,7 +81,7 @@ export function DecisionCard({ data, className }: DecisionCardProps) {
 
         {/* WHAT */}
         <div className="flex items-start gap-2">
-          <span className="text-[10px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">WHAT</span>
+          <span className="text-[11px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">WHAT</span>
           <div className="text-xs text-zinc-900 dark:text-zinc-100 leading-relaxed flex-1 font-medium">
             {data.what}
           </div>
@@ -90,7 +90,7 @@ export function DecisionCard({ data, className }: DecisionCardProps) {
         {/* EVIDENCE */}
         {data.evidence && data.evidence.length > 0 && (
           <div className="flex items-start gap-2">
-            <span className="text-[10px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">证据</span>
+            <span className="text-[11px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">证据</span>
             <div className="flex-1 grid grid-cols-2 gap-1">
               {data.evidence.map((ev, i) => (
                 <div key={i} className="text-[11px] rounded bg-zinc-50 dark:bg-zinc-800/60 px-1.5 py-1">
@@ -99,7 +99,7 @@ export function DecisionCard({ data, className }: DecisionCardProps) {
                     {ev.value}
                     {ev.reference && <span className="text-zinc-400 ml-1">/ {ev.reference}</span>}
                   </div>
-                  {ev.source && <div className="text-[10px] text-zinc-400 mt-0.5">来源：{ev.source}</div>}
+                  {ev.source && <div className="text-[11px] text-zinc-400 mt-0.5">来源：{ev.source}</div>}
                 </div>
               ))}
             </div>
@@ -109,7 +109,7 @@ export function DecisionCard({ data, className }: DecisionCardProps) {
         {/* 备选方案 */}
         {data.alternatives && data.alternatives.length > 0 && (
           <div className="flex items-start gap-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
-            <span className="text-[10px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">备选</span>
+            <span className="text-[11px] font-medium text-zinc-400 mt-0.5 w-7 shrink-0">备选</span>
             <div className="text-[11px] text-zinc-500 leading-relaxed flex-1">
               {data.alternatives.map((alt, i) => (
                 <div key={i} className="line-through decoration-zinc-300 dark:decoration-zinc-600">

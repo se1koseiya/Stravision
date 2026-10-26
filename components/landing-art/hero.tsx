@@ -61,7 +61,7 @@ export function Hero() {
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           >
             <div
-              className="w-[130vw] h-[130vw] max-w-[1600px] max-h-[1600px]"
+              className="w-[130vw] h-[130vw] max-w-[1400px] max-h-[1600px]"
               style={{
                 background:
                   "radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 38%, transparent 65%)",
@@ -81,8 +81,8 @@ export function Hero() {
             </div>
             <div className="hidden sm:flex items-center gap-3">
               <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#1677ff] opacity-60 animate-ping" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-[#1677ff]" />
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#059669] opacity-60 animate-ping" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-[#059669]" />
               </span>
               <span className="font-mono text-[11px] tracking-[0.3em] text-white/45 uppercase">System Online</span>
             </div>
@@ -159,7 +159,7 @@ export function Hero() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 1.05, ease: EASE as any }}
-                className="mt-5 text-[15px] sm:text-[17px] leading-[1.7] text-white/55 max-w-[460px]"
+                className="mt-5 text-[14px] sm:text-[16px] leading-[1.7] text-white/55 max-w-[460px]"
               >
                 一个会思考、会提问、会规划的 AI 农事伙伴——
                 把复杂的决策，变成一次自然的对话。
@@ -174,12 +174,12 @@ export function Hero() {
               >
                 <MagneticButton
                   href="/dashboard"
-                  className="group inline-flex items-center bg-white text-black px-8 py-4 text-[12px] tracking-[0.2em] uppercase transition-colors duration-300 hover:bg-[#1677ff] hover:text-white"
+                  className="group inline-flex items-center bg-white text-black px-8 py-4 text-[12px] tracking-[0.2em] uppercase transition-colors duration-300 hover:bg-[#059669] hover:text-white"
                 >
                   进入莓界
                   <IconArrowRightUp
                     className="w-4 h-4 ml-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                    strokeWidth={1.75}
+                    strokeWidth={2}
                   />
                 </MagneticButton>
                 <Link
@@ -210,7 +210,7 @@ export function Hero() {
             className="absolute bottom-0 left-0 right-0"
           >
             <div className="flex flex-col items-center gap-3 pb-6">
-              <span className="font-mono text-[10px] tracking-[0.35em] text-white/30 uppercase">
+              <span className="font-mono text-[11px] tracking-[0.35em] text-white/30 uppercase">
                 Scroll to begin
               </span>
               <span className="block w-px h-10 bg-gradient-to-b from-white/30 to-transparent" />
@@ -231,7 +231,7 @@ export function Hero() {
                 ].map((w) => (
                   <span
                     key={w}
-                    className="font-mono text-[10px] tracking-[0.35em] text-white/25 uppercase mx-6"
+                    className="font-mono text-[11px] tracking-[0.35em] text-white/25 uppercase mx-6"
                   >
                     {w}
                   </span>
@@ -251,7 +251,7 @@ export function Hero() {
 export function Nav() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 mix-blend-difference">
-      <div className="grid grid-cols-3 items-center max-w-[1600px] mx-auto px-6 lg:px-10 py-5">
+      <div className="grid grid-cols-3 items-center max-w-[1400px] mx-auto px-6 lg:px-10 py-5">
         <Link
           href="/"
           data-cursor="hover"
@@ -261,7 +261,7 @@ export function Nav() {
           <span className="text-[13px] tracking-[0.22em] font-medium uppercase">
             Berry&nbsp;Realm
           </span>
-          <span className="hidden sm:inline font-mono text-[10px] tracking-[0.3em] text-white/50 ml-1">
+          <span className="hidden sm:inline font-mono text-[11px] tracking-[0.3em] text-white/50 ml-1">
             / v4.0
           </span>
         </Link>

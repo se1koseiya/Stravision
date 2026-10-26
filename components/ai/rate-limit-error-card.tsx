@@ -105,7 +105,7 @@ export function RateLimitErrorCard({
             <IconCaution
               size={16}
               color={BERRY_THEME.status.error}
-              strokeWidth={1.75}
+              strokeWidth={2}
               style={{ flexShrink: 0 }}
             />
             <Text
@@ -191,7 +191,7 @@ export function RateLimitErrorCard({
               textAlign: 'left',
             }}
           >
-            {rawOpen ? <IconUp size={12} strokeWidth={1.75} /> : <IconDown size={12} strokeWidth={1.75} />}
+            {rawOpen ? <IconUp size={12} strokeWidth={2} /> : <IconDown size={12} strokeWidth={2} />}
             <span>查看原始错误信息</span>
           </button>
           {rawOpen && (

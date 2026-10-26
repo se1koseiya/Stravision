@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { ReactNode, useState, useRef } from "react"
+import { ReactNode, useRef } from "react"
 import { Flex } from "antd"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
@@ -43,7 +43,22 @@ export function IOSWidgetCard({
 
   const { isElderFriendlyMode } = useElderFriendly()
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const [isHovered, setIsHovered] = useState(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  /* —— 按压点光源的坐标（HDS 六特性 ④）——
+     光晕位置 = 触点位置，所以按下那一刻把触点换算成百分比写进 --imv-gx/--imv-gy。
+     ① 为什么写 inline 自定义属性而不是 setState：这两个值每按一次才变一次，且**不参与渲染**
+        （CSS 直接读），进 state 只会让整张卡白重渲染一次；
+     ② 为什么不用 React 的 style prop：那样每次重渲染都会重写变量、把用户按下的值冲掉。
+        自定义属性只在事件里命令式写入，React 不碰它。 */
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = rootRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    if (!r.width || !r.height) return
+    el.style.setProperty("--imv-gx", `${((e.clientX - r.left) / r.width) * 100}%`)
+    el.style.setProperty("--imv-gy", `${((e.clientY - r.top) / r.height) * 100}%`)
+  }
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (isEditing) return;
@@ -69,32 +84,40 @@ export function IOSWidgetCard({
 
   const padding = size === 'small' ? 14 : size === 'large' ? 20 : 16
 
-  // Subtle, clean shadow — reference fitness dashboard
-  const baseShadow = isEditing
-    ? 'none'
-    : isHovered
-      ? '0 4px 16px rgba(0,0,0,0.06), 0 12px 32px -8px rgba(0,0,0,0.08)'
-      : '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px -4px rgba(0,0,0,0.05)'
-
-  const tintGlow = tint && !isEditing && isHovered
-    ? `, 0 8px 24px -6px ${tint}20`
-    : ''
+  /* —— 沉浸光感材质（HDS 组件材质）——
+     ⚠️ 卡面不能再走内联实色 + 内联阴影：**内联样式优先级高于任何 CSS 类**，
+        留着 background/boxShadow 的内联值，材质就永远不生效（改了等于没改）。
+        所以材质/描边/阴影统一交给 .ios-widget（HDS REGULAR 档，定义见
+        components/dashboard/ios-style/widget-material.ts 的 DASHBOARD_MATERIAL_CSS
+        + components/device/material-css.ts），这里只做两件事：
+          ① 保留 borderRadius（几何不属于材质）；
+          ② 把「每个小组件的色彩身份」以 --w-tint 传下去（自定义属性不是内联"属性"，
+             CSS 里的 box-shadow 可以读到它 → 彩色光晕仍然只在 hover 出现）。
+     ⚠️ 按压**只上光、不上缩放**：小组件是可拖拽网格的单元，transform 要留给拖拽手势。
+        所以光晕走独立的 .ios-widget-glow 子层（:::active 触发），卡片本体不参与 transform
+        —— 与 device-control 的 ImmersiveCard（缩放 + 光晕）有意区别。 */
+  const tintStyle = tint
+    ? ({ "--w-tint": `${tint}20` } as React.CSSProperties)
+    : undefined
 
   return (
     <div
+      ref={rootRef}
       className={cn(
-        "relative w-full h-full overflow-hidden select-none transition-all duration-200 ease-out",
-        isEditing && "animate-jiggle cursor-pointer",
+        // .dc-mat + .dc-mat--regular = HDS 沉浸光感材质本体（REGULAR 档：内容区卡片）。
+        // 材质数值来自 components/device/material-css.ts，本组件不写任何 --mat-* 数值。
+        "dc-mat dc-mat--regular ios-widget relative w-full h-full overflow-hidden select-none transition-all duration-200 ease-out",
+        isEditing && "animate-jiggle cursor-pointer ios-widget--editing",
         className
       )}
       style={{
         borderRadius: 18,
-        background: A.surface,
-        boxShadow: baseShadow + tintGlow,
-        border: `1px solid var(--berry-card-border)`,
+        ...tintStyle,
       }}
-      onMouseEnter={() => !isEditing && setIsHovered(true)}
-      onMouseLeave={() => { setIsHovered(false); handleTouchEnd(); }}
+      /* hover 阴影由 CSS :hover 驱动（不再用 state：每次进出都 setState 会让整张卡重渲染，
+         而且内联阴影会盖掉 CSS 里的材质阴影） */
+      onPointerDown={handlePointerDown}
+      onMouseLeave={handleTouchEnd}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -112,6 +135,11 @@ export function IOSWidgetCard({
           animation: jiggle 0.3s infinite ease-in-out;
         }
       `}</style>
+
+      {/* 按压点光源层：静止态 opacity:0（看不见），:active 时才亮一下。
+          亮/暗两套光色在 DASHBOARD_MATERIAL_CSS 里给（亮底必须换成中性灰光，
+          纯白在近白画布上等于没做）。 */}
+      <div className="ios-widget-glow" aria-hidden />
 
       {isEditing && (
         <div

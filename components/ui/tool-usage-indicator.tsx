@@ -82,19 +82,19 @@ export default function ToolUsageIndicator({
         }
       case 'loading':
         return {
-          bg: 'bg-blue-50/80 dark:bg-blue-950/20',
-          border: 'border-blue-200/60 dark:border-blue-800/40',
-          text: 'text-blue-700 dark:text-blue-400',
-          icon: 'text-blue-600 dark:text-blue-500',
-          iconBg: 'bg-blue-100 dark:bg-blue-900/30'
+          bg: 'bg-emerald-50/80 dark:bg-emerald-950/20',
+          border: 'border-emerald-200/60 dark:border-emerald-800/40',
+          text: 'text-emerald-700 dark:text-emerald-400',
+          icon: 'text-emerald-600 dark:text-emerald-500',
+          iconBg: 'bg-emerald-100 dark:bg-emerald-900/30'
         }
       default:
         return {
-          bg: 'bg-slate-50/80 dark:bg-slate-950/20',
-          border: 'border-slate-200/60 dark:border-slate-800/40',
-          text: 'text-slate-700 dark:text-slate-400',
-          icon: 'text-slate-600 dark:text-slate-500',
-          iconBg: 'bg-slate-100 dark:bg-slate-900/30'
+          bg: 'bg-zinc-50/80 dark:bg-zinc-950/20',
+          border: 'border-zinc-200/60 dark:border-zinc-800/40',
+          text: 'text-zinc-700 dark:text-zinc-400',
+          icon: 'text-zinc-600 dark:text-zinc-500',
+          iconBg: 'bg-zinc-100 dark:bg-zinc-900/30'
         }
     }
   }
@@ -102,7 +102,7 @@ export default function ToolUsageIndicator({
   const styles = getStatusStyles()
   
   return (
-    <div className={`rounded-xl border ${styles.border} ${styles.bg} backdrop-blur-sm transition-all duration-200 hover:shadow-md ${className}`}>
+    <div className={`rounded-xl border ${styles.border} ${styles.bg} backdrop-blur-sm transition-all duration-200 hover:shadow-sm ${className}`}>
       <div 
         className={`flex items-center gap-3 p-3 cursor-pointer ${details ? 'hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
         onClick={() => details && setIsExpanded(!isExpanded)}

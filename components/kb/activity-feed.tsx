@@ -16,13 +16,12 @@
  *   - 时间线渲染（lucide icon + 用户头像 + 动作描述 + 时间）
  */
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useEffect, useRef, useCallback } from "react"
-import {
-  Avatar, Tooltip, Empty, Spin, Tabs, Tag, Button
-} from "antd"
-import { App as AntApp } from "antd"
+import { Avatar, Tooltip, Empty, Spin, Tabs, Tag, Button } from "antd"
 import { cn } from "@/lib/utils"
 import { IconAddUser, IconChartLine, IconCheckCorrect, IconCrown, IconDelete, IconDownload, IconEdit, IconFileAddition, IconFileEditing, IconFileText, IconFolderMinus, IconFolderPlus, IconFolderSettings, IconHistory, IconPeopleDelete, IconPreviewOpen, IconRefresh, IconShare, IconShield, IconUpload } from "@/components/icon";
+import { EmptyState } from "@/components/illustration"
 
 // ===== 类型 =====
 interface KbOperationLog {
@@ -66,85 +65,85 @@ interface ActionConfig {
 
 const ACTION_CONFIG: Record<string, ActionConfig> = {
   create_collection: {
-    icon: IconFolderPlus, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconFolderPlus, color: "#059669", bg: "rgba(0,148,86,0.10)",
     label: (l) => `创建了知识库「${l.collection_name || "未命名"}」`
   },
   update_collection: {
-    icon: IconFolderSettings, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconFolderSettings, color: "#059669", bg: "rgba(0,148,86,0.10)",
     label: (l) => `更新了知识库「${l.collection_name || "未命名"}」`
   },
   delete_collection: {
-    icon: IconFolderMinus, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
+    icon: IconFolderMinus, color: "#DC2626", bg: "rgba(255,77,79,0.10)",
     label: (l) => `删除了知识库「${l.collection_name || "未命名"}」`
   },
   create_item: {
-    icon: IconFileAddition, color: "#52c41a", bg: "rgba(82,196,26,0.10)",
+    icon: IconFileAddition, color: "#059669", bg: "rgba(82,196,26,0.10)",
     label: (l) => l.collection_name
       ? `在「${l.collection_name}」创建了文档「${l.item_title || "未命名"}」`
       : `创建了文档「${l.item_title || "未命名"}」`
   },
   update_item: {
-    icon: IconFileEditing, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
+    icon: IconFileEditing, color: "#52525B", bg: "rgba(250,140,22,0.10)",
     label: (l) => `编辑了文档「${l.item_title || "未命名"}」`
   },
   delete_item: {
-    icon: IconDelete, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
+    icon: IconDelete, color: "#DC2626", bg: "rgba(255,77,79,0.10)",
     label: (l) => `删除了文档「${l.item_title || "未命名"}」`
   },
   restore_version: {
-    icon: IconHistory, color: "#722ed1", bg: "rgba(114,46,209,0.10)",
+    icon: IconHistory, color: "#059669", bg: "rgba(114,46,209,0.10)",
     label: (l) => `恢复了文档「${l.item_title || "未命名"}」的版本`
   },
   invite_user: {
-    icon: IconAddUser, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconAddUser, color: "#059669", bg: "rgba(0,148,86,0.10)",
     label: (l) => l.collection_name
       ? `邀请了用户加入「${l.collection_name}」`
       : `发送了协作邀请`
   },
   accept_invitation: {
-    icon: IconCheckCorrect, color: "#52c41a", bg: "rgba(82,196,26,0.10)",
+    icon: IconCheckCorrect, color: "#059669", bg: "rgba(82,196,26,0.10)",
     label: (l) => l.collection_name
       ? `接受了邀请，加入「${l.collection_name}」`
       : `接受了协作邀请`
   },
   reject_invitation: {
-    icon: IconPeopleDelete, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
+    icon: IconPeopleDelete, color: "#52525B", bg: "rgba(250,140,22,0.10)",
     label: (l) => `拒绝了加入「${l.collection_name || "知识库"}」的邀请`
   },
   cancel_invitation: {
-    icon: IconPeopleDelete, color: "#8c8c8c", bg: "rgba(140,140,140,0.10)",
+    icon: IconPeopleDelete, color: "#8f959e", bg: "rgba(140,140,140,0.10)",
     label: () => `取消了协作邀请`
   },
   update_role: {
-    icon: IconShield, color: "#fa8c16", bg: "rgba(250,140,22,0.10)",
+    icon: IconShield, color: "#52525B", bg: "rgba(250,140,22,0.10)",
     label: (l) => l.collection_name
       ? `变更了「${l.collection_name}」的协作者角色`
       : `变更了协作者角色`
   },
   remove_collaborator: {
-    icon: IconPeopleDelete, color: "#ff4d4f", bg: "rgba(255,77,79,0.10)",
+    icon: IconPeopleDelete, color: "#DC2626", bg: "rgba(255,77,79,0.10)",
     label: (l) => l.collection_name
       ? `移除了「${l.collection_name}」的协作者`
       : `移除了协作者`
   },
   edit_document: {
-    icon: IconEdit, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconEdit, color: "#059669", bg: "rgba(0,148,86,0.10)",
     label: (l) => `编辑了文档「${l.item_title || "未命名"}」`
   },
   export_document: {
-    icon: IconDownload, color: "#08979c", bg: "rgba(8,151,156,0.10)",
+    icon: IconDownload, color: "#52525B", bg: "rgba(8,151,156,0.10)",
     label: (l) => `导出了文档「${l.item_title || "未命名"}」`
   },
   import_document: {
-    icon: IconUpload, color: "#722ed1", bg: "rgba(114,46,209,0.10)",
+    icon: IconUpload, color: "#059669", bg: "rgba(114,46,209,0.10)",
     label: (l) => `从 Word 文档导入了「${l.item_title || "未命名"}」`
   },
   share: {
-    icon: IconShare, color: "#1677ff", bg: "rgba(22,119,255,0.10)",
+    icon: IconShare, color: "#059669", bg: "rgba(0,148,86,0.10)",
     label: (l) => `分享了文档「${l.item_title || "未命名"}」`
   },
   view: {
-    icon: IconPreviewOpen, color: "#8c8c8c", bg: "rgba(140,140,140,0.10)",
+    icon: IconPreviewOpen, color: "#8f959e", bg: "rgba(140,140,140,0.10)",
     label: (l) => `查看了文档「${l.item_title || "未命名"}」`
   }
 }
@@ -195,7 +194,7 @@ export default function ActivityFeed({
   className,
   onItemCountChange
 }: ActivityFeedProps) {
-  const { message } = AntApp.useApp()
+  const { message } = useFeedback()
   const [logs, setLogs] = useState<KbOperationLog[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -307,17 +306,17 @@ export default function ActivityFeed({
       style={{ height }}
     >
       {showHeader && (
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-2 text-[13px]">
-            <span className="text-gray-500 dark:text-zinc-500">共</span>
-            <span className="font-semibold text-[15px] text-[#1677ff]">{total}</span>
-            <span className="text-gray-500 dark:text-zinc-500">条活动</span>
+            <span className="text-zinc-500 dark:text-zinc-500">共</span>
+            <span className="font-semibold text-[14px] text-[#059669]">{total}</span>
+            <span className="text-zinc-500 dark:text-zinc-500">条活动</span>
             {sseConnected && (
               <>
-                <span className="text-gray-300 dark:text-zinc-700">·</span>
-                <span className="flex items-center gap-1 text-[11px] text-[#52c41a]">
+                <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                <span className="flex items-center gap-1 text-[11px] text-[#059669]">
                   <span
-                    className="w-1.5 h-1.5 rounded-full bg-[#52c41a] inline-block"
+                    className="w-1.5 h-1.5 rounded-full bg-[#059669] inline-block"
                     style={{ boxShadow: "0 0 0 3px rgba(82,196,26,0.18)" }}
                   />
                   实时
@@ -338,7 +337,7 @@ export default function ActivityFeed({
       )}
 
       {showFilter && (
-        <div className="px-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="px-4 border-b border-zinc-100 dark:border-zinc-800">
           <Tabs
             activeKey={filter}
             onChange={(k) => setFilter(k)}
@@ -363,17 +362,17 @@ export default function ActivityFeed({
                     <Icon
                       size={12}
                       strokeWidth={active ? 2.2 : 1.6}
-                      style={{ color: active ? "#1677ff" : "rgba(0,0,0,0.45)" }}
+                      style={{ color: active ? "#059669" : "rgba(0,0,0,0.45)" }}
                     />
                     <span>{t.label}</span>
                     {count > 0 && (
                       <span
-                        className="rounded-full inline-flex items-center justify-center text-[10px] font-medium"
+                        className="rounded-full inline-flex items-center justify-center text-[11px] font-medium"
                         style={{
                           minWidth: 16,
                           height: 16,
                           padding: "0 5px",
-                          background: active ? "#1677ff" : "rgba(0,0,0,0.06)",
+                          background: active ? "#059669" : "rgba(0,0,0,0.06)",
                           color: active ? "#fff" : "rgba(0,0,0,0.55)"
                         }}
                       >
@@ -394,23 +393,24 @@ export default function ActivityFeed({
             <Spin />
           </div>
         ) : filteredLogs.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="暂无活动"
-            className="!my-12"
+          <EmptyState
+            illustration="empty-list"
+            illustrationWidth={180}
+            title="暂无活动"
+            description="知识库的创建、编辑与协作动态会实时出现在这里"
           />
         ) : (
           <div className="relative pl-3 pr-2 py-2">
             {/* 时间线竖线 */}
             <div
-              className="absolute left-[18px] top-4 bottom-4 w-px bg-gray-200 dark:bg-zinc-700"
+              className="absolute left-[18px] top-4 bottom-4 w-px bg-zinc-200 dark:bg-zinc-700"
               aria-hidden
             />
             <div className="space-y-0.5">
               {filteredLogs.map((log) => {
                 const cfg = ACTION_CONFIG[log.action] || {
                   icon: IconChartLine,
-                  color: "#8c8c8c",
+                  color: "#8f959e",
                   bg: "rgba(140,140,140,0.10)",
                   label: (l: KbOperationLog) => `执行了操作：${l.action}`
                 }
@@ -427,7 +427,7 @@ export default function ActivityFeed({
                 return (
                   <div
                     key={log.id}
-                    className="relative flex items-start gap-2.5 pl-1 pr-2 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                    className="relative flex items-start gap-2.5 pl-1 pr-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                   >
                     {/* 时间线圆点（带动作色） */}
                     <span
@@ -444,20 +444,20 @@ export default function ActivityFeed({
                     {/* 内容 */}
                     <div className="flex-1 min-w-0">
                       {/* 主行：动作描述 + 时间（右对齐） */}
-                      <div className="flex items-center gap-1.5 text-[12.5px] leading-snug">
-                        <span className="font-medium text-gray-900 dark:text-zinc-100 shrink-0">
+                      <div className="flex items-center gap-1.5 text-[13px] leading-snug">
+                        <span className="font-medium text-zinc-900 dark:text-zinc-100 shrink-0">
                           {log.username || "未知用户"}
                         </span>
-                        <span className="text-gray-500 dark:text-zinc-500">·</span>
-                        <span className="text-gray-500 dark:text-zinc-500 shrink-0">
+                        <span className="text-zinc-500 dark:text-zinc-500">·</span>
+                        <span className="text-zinc-500 dark:text-zinc-500 shrink-0">
                           {timeAgo(log.created_at)}
                         </span>
                         {roleText && (
                           <>
-                            <span className="text-gray-300 dark:text-zinc-700">·</span>
+                            <span className="text-zinc-300 dark:text-zinc-700">·</span>
                             <span
-                              className="h-[16px] px-1.5 rounded text-[10px] font-medium inline-flex items-center"
-                              style={{ background: "rgba(22,119,255,0.10)", color: "#1677ff" }}
+                              className="h-[16px] px-1.5 rounded text-[11px] font-medium inline-flex items-center"
+                              style={{ background: "rgba(0,148,86,0.10)", color: "#059669" }}
                             >
                               {roleText}
                             </span>
@@ -465,7 +465,7 @@ export default function ActivityFeed({
                         )}
                       </div>
                       {/* 副行：动作描述（带动作色关键词） */}
-                      <div className="text-[12.5px] text-gray-700 dark:text-zinc-300 mt-0.5 leading-snug truncate">
+                      <div className="text-[13px] text-zinc-700 dark:text-zinc-300 mt-0.5 leading-snug truncate">
                         {cfg.label(log)}
                       </div>
                     </div>
@@ -478,7 +478,7 @@ export default function ActivityFeed({
       </div>
 
       {!loading && hasMore && filteredLogs.length > 0 && (
-        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800">
+        <div className="px-4 py-3 border-t border-zinc-100 dark:border-zinc-800">
           <Button
             block
             type="default"

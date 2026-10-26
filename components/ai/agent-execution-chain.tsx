@@ -50,7 +50,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         color: "text-emerald-600 dark:text-emerald-400",
         bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
         borderColor: "border-emerald-200 dark:border-emerald-500/20",
-        glow: "shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]",
+        glow: "shadow-[0_0_15px_rgba(0,148,86,0.3)] dark:shadow-[0_0_15px_rgba(0,148,86,0.4)]",
         icon: IconLightning,
       }
     case "validator":
@@ -77,7 +77,7 @@ const getAgentRoleConfig = (role?: AgentRole) => {
         color: "text-emerald-600 dark:text-emerald-400",
         bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
         borderColor: "border-emerald-200 dark:border-emerald-500/20",
-        glow: "shadow-[0_0_15px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]",
+        glow: "shadow-[0_0_15px_rgba(0,148,86,0.3)] dark:shadow-[0_0_15px_rgba(0,148,86,0.4)]",
         icon: IconCpu,
       }
   }
@@ -162,14 +162,18 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
   return (
     <div className={cn("w-full my-4", className)}>
       {/* Header with controls */}
-      <div className="mb-4 px-4 py-3 rounded-2xl bg-white/80 dark:bg-black/20 backdrop-blur-xl border border-zinc-200 dark:border-white/5 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] relative overflow-hidden transition-colors">
+      {/* HDS 沉浸光感 · 卡片档：bg-white/80 + backdrop-blur-xl + border/shadow → .dc-mat--neutral
+          （纯白画布上叠白会失去轮廓 → 中性灰膜；内部 .absolute 氛围渐变层挂在本卡上，
+            故 relative / overflow-hidden 必须保留，只替换外观类。）
+          ⚠️ 卡本身不可点（控件在卡内 header 里）→ 不加 dc-ctrl--press。 */}
+      <div className="mb-4 px-4 py-3 rounded-2xl dc-mat dc-mat--regular dc-mat--neutral relative overflow-hidden transition-colors">
         {/* Subtle glow background */}
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-cyan-500/5 dark:from-emerald-500/10 dark:via-transparent dark:to-cyan-500/5 pointer-events-none" />
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3 text-sm">
             {hasMultipleAgents ? (
               <>
-                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors">
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(0,148,86,0.2)] transition-colors">
                   <IconCpu className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="font-medium text-zinc-800 dark:text-zinc-100 tracking-wide transition-colors">
@@ -182,7 +186,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
               </>
             ) : (
               <>
-                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-colors">
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 shadow-sm dark:shadow-[0_0_10px_rgba(0,148,86,0.2)] transition-colors">
                   <IconBrain className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="font-medium text-zinc-800 dark:text-zinc-100 tracking-wide transition-colors">
@@ -201,9 +205,9 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
             <button
               onClick={() => setAutoCollapse(!autoCollapse)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border",
                 autoCollapse 
-                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_10px_rgba(16,185,129,0.15)]" 
+                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_10px_rgba(0,148,86,0.15)]" 
                   : "bg-zinc-100 text-zinc-500 border-zinc-200 hover:bg-zinc-200 hover:text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-white/5 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
               )}
               title={autoCollapse ? "已启用自动折叠" : "点击启用自动折叠"}
@@ -265,13 +269,13 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                        layoutId={`dot-${step.id}`}
                        className={cn(
                          "size-6 rounded-full flex items-center justify-center border",
-                         roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor} ${roleConfig.glow}` : "bg-emerald-100 text-emerald-600 border-emerald-200 shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                         roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor} ${roleConfig.glow}` : "bg-emerald-100 text-emerald-600 border-emerald-200 shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 dark:shadow-[0_0_15px_rgba(0,148,86,0.4)]"
                        )}
                        animate={{ 
                          boxShadow: [
-                           roleConfig ? roleConfig.glow.replace('15px', '5px') : "0 0 5px rgba(16,185,129,0.2)", 
-                           roleConfig ? roleConfig.glow.replace('15px', '25px') : "0 0 20px rgba(16,185,129,0.5)", 
-                           roleConfig ? roleConfig.glow.replace('15px', '5px') : "0 0 5px rgba(16,185,129,0.2)"
+                           roleConfig ? roleConfig.glow.replace('15px', '5px') : "0 0 5px rgba(0,148,86,0.2)", 
+                           roleConfig ? roleConfig.glow.replace('15px', '25px') : "0 0 20px rgba(0,148,86,0.5)", 
+                           roleConfig ? roleConfig.glow.replace('15px', '5px') : "0 0 5px rgba(0,148,86,0.2)"
                          ] 
                        }}
                        transition={{ duration: 2, repeat: Infinity }}
@@ -332,7 +336,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className={cn(
-                          "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border flex items-center",
+                          "px-2 py-0.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border flex items-center",
                           roleConfig.bgColor,
                           roleConfig.color,
                           roleConfig.borderColor
@@ -353,7 +357,7 @@ export function AgentExecutionChain({ steps, className, isActive, autoCollapse: 
                         <motion.span 
                           initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
                           className={cn(
-                            "ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-tighter border inline-flex items-center",
+                            "ml-2 px-1.5 py-0.5 rounded text-[11px] uppercase tracking-tighter border inline-flex items-center",
                             roleConfig ? `${roleConfig.bgColor} ${roleConfig.color} ${roleConfig.borderColor}` : "bg-emerald-100 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
                           )}
                         >

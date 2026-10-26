@@ -10,13 +10,13 @@
  *   - 右：InvitationList（待处理邀请）
  */
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useCallback } from "react"
 import Image from "next/image"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { App as AntApp } from "antd"
 import ActivityFeed from "@/components/kb/activity-feed"
 import InvitationList from "@/components/kb/invitation-list"
 import type { UserPublic } from "@/lib/db/user-service"
@@ -28,7 +28,7 @@ interface ActivityPageClientProps {
 }
 
 export default function ActivityPageClient({ user }: ActivityPageClientProps) {
-  const { message } = AntApp.useApp()
+  const { message } = useFeedback()
   const [activityCount, setActivityCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
 
@@ -67,7 +67,7 @@ export default function ActivityPageClient({ user }: ActivityPageClientProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="size-9 text-zinc-500 hover:text-[#1677ff]"
+            className="size-9 text-zinc-500 hover:text-[#059669]"
             title="通知"
           >
             <IconRemind className="size-4" />
@@ -82,12 +82,12 @@ export default function ActivityPageClient({ user }: ActivityPageClientProps) {
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <span className="h-px w-6 bg-[#1677ff]/40" />
-                <span className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#1677ff]">
+                <span className="h-px w-6 bg-[#059669]/40" />
+                <span className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#059669]">
                   Activity Feed
                 </span>
               </div>
-              <h1 className="text-3xl md:text-[40px] font-semibold tracking-tight leading-tight">
+              <h1 className="text-3xl md:text-[32px] font-semibold tracking-tight leading-tight">
                 活动动态
               </h1>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 max-w-xl">
@@ -97,13 +97,13 @@ export default function ActivityPageClient({ user }: ActivityPageClientProps) {
 
             <div className="flex items-center gap-4 md:gap-6 pb-1">
               <StatCard
-                icon={<IconChartLine size={16} className="text-[#1677ff]" />}
+                icon={<IconChartLine size={16} className="text-[#059669]" />}
                 label="可见活动"
                 value={activityCount}
               />
               <Divider />
               <StatCard
-                icon={<IconMail size={16} className="text-[#fa8c16]" />}
+                icon={<IconMail size={16} className="text-[#52525B]" />}
                 label="待处理邀请"
                 value={pendingCount}
               />
@@ -168,7 +168,7 @@ function StatCard({
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="size-9 rounded-full bg-[#1677ff]/8 flex items-center justify-center">
+      <div className="size-9 rounded-full bg-[#059669]/8 flex items-center justify-center">
         {icon}
       </div>
       <div>

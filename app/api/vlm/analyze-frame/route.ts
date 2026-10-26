@@ -1,157 +1,113 @@
+/**
+ * 生长巡检分析端点（已重构）
+ *
+ * POST /api/vlm/analyze-frame
+ *
+ * ── 本次重构做了什么 ──
+ * 改造前本文件自己解析 apiKey/apiUrl（兜底到环境变量）、硬编码默认模型 `qwen3-vl-plus`、
+ * 自建 fetch。这违反了项目铁律「AI 辅助接口必须复用主对话模型链路」——
+ * 后果是用户在设置里换的视觉模型不生效、自带 Key 不被识别。
+ *
+ * 现在改为调用 `lib/ai/vision/vision-gateway.ts` 的 `callVisionModel()`，
+ * 与病虫害诊断端点共用同一条「选模型 → 解析凭据 → 适配请求体 → 超时 → 抽文本」链路。
+ *
+ * ── 契约保持向后兼容 ──
+ * 入参：{ imageData, model?, apiKey?, apiUrl? }
+ * 出参：{ success: true, result: PlantAnalysisResult, tokenUsage } | { error }
+ * 调用方 `lib/utils/plant-analysis-helper.ts` 无需改动。
+ *
+ * ⚠️ 语义边界：本端点回答「长到哪个阶段、整体健康度多少」，是**巡检评分**。
+ * 病虫害诊断（"这是什么病、依据、怎么治"）请走 `/api/vision/diagnose`。
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
-import { getDefaultVLMModel, PLANT_DIAGNOSIS_PROMPT_COMPACT } from '@/lib/vlm-prompts'
+import { PLANT_DIAGNOSIS_PROMPT_COMPACT } from '@/lib/vlm-prompts'
 import type { PlantAnalysisResult } from '@/lib/types/plant-growth-types'
 import { getHealthStatus } from '@/lib/types/plant-growth-types'
 import { getCurrentUser } from '@/lib/auth'
+import { callVisionModel, extractJsonObject } from '@/lib/ai/vision/vision-gateway'
+
+export const runtime = 'nodejs'
+export const maxDuration = 120
+
+const SYSTEM_PROMPT = `你是草莓植株生长状态分析助手。输出必须是纯 JSON 对象，不得包含任何解释文字、markdown 代码块或前后缀。看不清时按可见信息保守估计，不要编造。`
 
 export async function POST(req: NextRequest) {
     try {
         const user = await getCurrentUser()
         if (!user) return NextResponse.json({ error: '未登录' }, { status: 401 })
-        const body = await req.json()
-        const { imageData, model } = body
-        let { apiKey, apiUrl } = body
 
-        // Fallback to environment variables if not provided in request
-        if (!apiKey) {
-            apiKey = process.env.SYSTEM_OPENAI_API_KEY || process.env.DASHSCOPE_API_KEY
+        const body = await req.json().catch(() => null)
+        if (!body || typeof body !== 'object') {
+            return NextResponse.json({ error: '请求体格式错误' }, { status: 400 })
         }
 
-        if (!apiUrl && process.env.SYSTEM_OPENAI_BASE_URL) {
-            apiUrl = process.env.SYSTEM_OPENAI_BASE_URL
+        const { imageData, model, apiKey, apiUrl } = body as {
+            imageData?: string
+            model?: string
+            apiKey?: string
+            apiUrl?: string
         }
 
-        if (!imageData) {
-            return NextResponse.json(
-                { error: 'Missing image data' },
-                { status: 400 }
-            )
+        if (!imageData || typeof imageData !== 'string') {
+            return NextResponse.json({ error: 'Missing image data' }, { status: 400 })
         }
 
-        if (!apiKey) {
-            return NextResponse.json(
-                { error: 'Missing API key. Please configure in AI settings or environment variables.' },
-                { status: 400 }
-            )
-        }
-
-        // Use provided model or default to qwen3-vl-plus
-        const vlmModel = model || getDefaultVLMModel()
-
-        // Determine API endpoint
-        const isDashScope = apiUrl?.includes('dashscope.aliyuncs.com') || vlmModel.startsWith('qwen')
-        const isCompatibleMode = apiUrl?.includes('compatible-mode/v1') ?? false
-
-        let targetUrl = apiUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-
-        // Ensure URL ends with /chat/completions for compatible mode
-        if (isDashScope && isCompatibleMode && /\/v1$/.test(targetUrl)) {
-            targetUrl = `${targetUrl}/chat/completions`
-        }
-
-        // Prepare messages for VLM
-        const messages = [
-            {
-                role: 'user',
-                content: [
-                    {
-                        type: 'image_url',
-                        image_url: {
-                            url: imageData
-                        }
-                    },
-                    {
-                        type: 'text',
-                        text: PLANT_DIAGNOSIS_PROMPT_COMPACT
-                    }
-                ]
-            }
-        ]
-
-        // Call VLM API
-        const response = await fetch(targetUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: vlmModel,
-                messages: messages,
-                temperature: 0.1, // Low temperature for consistent diagnosis
-                max_tokens: 500
-            })
+        // 统一的视觉调用链路（模型与凭据由网关按用户配置解析，不再本文件硬编码）
+        const call = await callVisionModel({
+            images: [imageData],
+            systemPrompt: SYSTEM_PROMPT,
+            userPrompt: PLANT_DIAGNOSIS_PROMPT_COMPACT,
+            model,
+            apiKey,
+            apiUrl,
+            temperature: 0.1, // 低温度保证诊断结果稳定复现
+            maxTokens: 800,
         })
 
-        if (!response.ok) {
-            const errorText = await response.text()
-            console.error('VLM API Error:', errorText)
-            return NextResponse.json(
-                { error: `VLM API Error: ${response.status} - ${errorText}` },
-                { status: response.status }
-            )
+        if (!call.ok || !call.text) {
+            console.error('[vlm/analyze-frame] 网关调用失败:', call.errorKind, call.error)
+            return NextResponse.json({ error: call.error || 'VLM 调用失败' }, { status: 502 })
         }
 
-        const data = await response.json()
-
-        // Extract content from response
-        let content = ''
-        if (isDashScope && !isCompatibleMode) {
-            content = data.output?.choices?.[0]?.message?.content || data.output?.text || ''
-        } else {
-            content = data.choices?.[0]?.message?.content || ''
-        }
-
-        // Parse JSON response from VLM
-        let analysisData: any
-        try {
-            // Try to extract JSON from the content
-            const jsonMatch = content.match(/\{[\s\S]*\}/)
-            if (jsonMatch) {
-                analysisData = JSON.parse(jsonMatch[0])
-            } else {
-                throw new Error('No JSON found in response')
-            }
-        } catch (parseError) {
-            console.error('Failed to parse VLM response:', content)
+        // 解析结构化 JSON（括号平衡扫描，容忍 ```json 围栏与前后缀文本）
+        const analysisData = extractJsonObject(call.text)
+        if (!analysisData) {
+            console.error('[vlm/analyze-frame] 无法解析响应:', call.text.slice(0, 300))
             return NextResponse.json(
                 { error: 'Failed to parse VLM response. Please try again.' },
-                { status: 500 }
+                { status: 500 },
             )
         }
 
-        // Validate and construct result
+        // 校验并构造结果（与重构前行为保持一致，保证摄像头巡检不回归）
+        const healthScore =
+            typeof analysisData.healthScore === 'number' ? analysisData.healthScore : 75
+
         const result: PlantAnalysisResult = {
-            stage: analysisData.stage || 3,
-            healthScore: analysisData.healthScore || 75,
-            healthStatus: getHealthStatus(analysisData.healthScore || 75),
+            stage: typeof analysisData.stage === 'number' ? analysisData.stage : 3,
+            healthScore,
+            healthStatus: getHealthStatus(healthScore),
             issues: Array.isArray(analysisData.issues) ? analysisData.issues : [],
             recommendations: Array.isArray(analysisData.recommendations) ? analysisData.recommendations : [],
-            confidence: 0.8, // We could calculate this based on response quality
+            confidence: 0.8,
             timestamp: Date.now(),
-            heatmap: Array.isArray(analysisData.heatmap) && analysisData.heatmap.length === 6
-                ? analysisData.heatmap
-                : [75, 75, 75, 75, 75, 75] // Default values
-        }
-
-        // Get token usage if available
-        const tokenUsage = {
-            input: data.usage?.prompt_tokens || 0,
-            output: data.usage?.completion_tokens || 0,
-            total: data.usage?.total_tokens || 0
+            heatmap:
+                Array.isArray(analysisData.heatmap) && analysisData.heatmap.length === 6
+                    ? analysisData.heatmap
+                    : [75, 75, 75, 75, 75, 75],
         }
 
         return NextResponse.json({
             success: true,
             result,
-            tokenUsage
+            tokenUsage: call.usage || { input: 0, output: 0, total: 0 },
         })
-
     } catch (error: any) {
-        console.error('VLM Analysis Error:', error)
+        console.error('[vlm/analyze-frame] 未预期错误:', error)
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
-            { status: 500 }
+            { error: error?.message || 'Internal server error' },
+            { status: 500 },
         )
     }
 }

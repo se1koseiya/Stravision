@@ -3,13 +3,14 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { EmptyState } from "@/components/illustration"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { SkillStore } from "@/components/ai/skill-store"
 import { MCPStoreContent } from "@/components/mcp/mcp-store-content"
 import { KBStoreContent, CollectionDetailModal } from "@/components/kb/kb-store-content"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +54,7 @@ function ManageItemIcon({ icon, name, darkMode }: { icon: string; name: string; 
     return (
       <span className={cn(
         "font-bold text-sm",
-        darkMode ? "text-zinc-400" : "text-blue-600"
+        darkMode ? "text-zinc-400" : "text-emerald-600"
       )} style={{ color: !darkMode ? BERRY_THEME.primary : undefined }}>{name.charAt(0)}</span>
     )
   }
@@ -327,7 +328,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
         "fixed z-[150] flex flex-col font-sans overflow-hidden",
         "top-3 right-3 bottom-3",
         sidebarOpen ? "left-[272px]" : "left-3",
-        isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900",
+        isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900",
         closing && "pointer-events-none"
       )}
       style={{ borderRadius: 12 }}
@@ -345,7 +346,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 onClick={onExpandSidebar}
                 className={cn(
                   "size-9 rounded-xl flex items-center justify-center transition-colors",
-                  isDark ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"
+                  isDark ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200" : "hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900"
                 )}
                 title="展开侧边栏"
               >
@@ -357,7 +358,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 onClick={onNewChat}
                 className={cn(
                   "size-9 rounded-xl flex items-center justify-center transition-colors",
-                  isDark ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"
+                  isDark ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200" : "hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900"
                 )}
                 title="新建对话"
               >
@@ -374,23 +375,23 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
               onClick={() => setViewMode("browse")}
               className={cn(
                 "font-medium transition-colors",
-                isDark ? "text-zinc-500 hover:text-zinc-200" : "text-gray-500 hover:text-gray-900"
+                isDark ? "text-zinc-500 hover:text-zinc-200" : "text-zinc-500 hover:text-zinc-900"
               )}
             >
               插件
             </button>
-            <IconRight size={14} className={isDark ? "text-zinc-600" : "text-gray-300"} />
-            <span className={cn("font-semibold", isDark ? "text-zinc-100" : "text-gray-900")}>管理</span>
+            <IconRight size={14} className={isDark ? "text-zinc-600" : "text-zinc-300"} />
+            <span className={cn("font-semibold", isDark ? "text-zinc-100" : "text-zinc-900")}>管理</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-zinc-100/80 p-1 rounded-xl">
             <button
               onClick={() => { setActiveTab("plugins"); setSearchQuery("") }}
               className={cn(
                 "px-5 py-1.5 rounded-lg text-xs font-bold transition-all",
                 activeTab === "plugins"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               插件
@@ -400,8 +401,8 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
               className={cn(
                 "px-5 py-1.5 rounded-lg text-xs font-bold transition-all",
                 activeTab === "skills"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               技能
@@ -411,8 +412,8 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
               className={cn(
                 "px-5 py-1.5 rounded-lg text-xs font-bold transition-all",
                 activeTab === "knowledge"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               知识库
@@ -427,8 +428,8 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             className={cn(
               "flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold transition-colors",
               viewMode === "manage"
-                ? (isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-gray-900 text-white border-gray-900")
-                : (isDark ? "bg-zinc-800/60 hover:bg-zinc-700 border-zinc-700/50 text-zinc-400" : "bg-gray-100/60 hover:bg-gray-200 border-gray-200/50 text-gray-600")
+                ? (isDark ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-900 text-white border-zinc-900")
+                : (isDark ? "bg-zinc-800/60 hover:bg-zinc-700 border-zinc-700/50 text-zinc-400" : "bg-zinc-100/60 hover:bg-zinc-200 border-zinc-200/50 text-zinc-600")
             )}
           >
             <IconSetting size={13} />
@@ -441,7 +442,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 "flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold transition-colors outline-none",
                 isDark
                   ? "bg-zinc-800/60 hover:bg-zinc-700 border-zinc-700/50 text-zinc-400"
-                  : "bg-gray-100/60 hover:bg-gray-200 border-gray-200/50 text-gray-600"
+                  : "bg-zinc-100/60 hover:bg-zinc-200 border-zinc-200/50 text-zinc-600"
               )}>
                 <span>创建</span>
                 <IconDown size={13} />
@@ -449,26 +450,26 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} className={cn(
               "w-44 p-1.5 rounded-xl",
-              isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200 shadow-lg"
+              isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-zinc-200 shadow-lg"
             )}>
               <DropdownMenuItem
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer",
-                  isDark ? "text-zinc-200 hover:bg-zinc-800 focus:bg-zinc-800" : "text-gray-700 hover:bg-gray-100 focus:bg-gray-100"
+                  isDark ? "text-zinc-200 hover:bg-zinc-800 focus:bg-zinc-800" : "text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100"
                 )}
                 onSelect={() => toast("创建插件功能开发中...")}
               >
-                <IconGridFour size={16} className={isDark ? "text-zinc-400" : "text-gray-400"} />
+                <IconGridFour size={16} className={isDark ? "text-zinc-400" : "text-zinc-400"} />
                 <span>创建插件</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer",
-                  isDark ? "text-zinc-200 hover:bg-zinc-800 focus:bg-zinc-800" : "text-gray-700 hover:bg-gray-100 focus:bg-gray-100"
+                  isDark ? "text-zinc-200 hover:bg-zinc-800 focus:bg-zinc-800" : "text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100"
                 )}
                 onSelect={() => toast("创建技能功能开发中...")}
               >
-                <IconBox size={16} className={isDark ? "text-zinc-400" : "text-gray-400"} />
+                <IconBox size={16} className={isDark ? "text-zinc-400" : "text-zinc-400"} />
                 <span>创建技能</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -476,16 +477,16 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
 
           <button className={cn(
             "size-9 rounded-xl flex items-center justify-center transition-colors",
-            isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-gray-100 text-gray-400 hover:text-gray-700"
+            isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
           )}>
             <IconMore size={16} />
           </button>
-          <div className={cn("w-px h-5", isDark ? "bg-zinc-800" : "bg-gray-200")} />
+          <div className={cn("w-px h-5", isDark ? "bg-zinc-800" : "bg-zinc-200")} />
           <button
             onClick={handleClose}
             className={cn(
               "size-9 rounded-xl flex items-center justify-center transition-colors",
-              isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200" : "hover:bg-gray-100 text-gray-400 hover:text-gray-900"
+              isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200" : "hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900"
             )}
             title="关闭"
           >
@@ -502,7 +503,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
             {/* 工具栏：Tab + 搜索 */}
             <div className={cn(
               "flex items-center justify-between px-6 py-4 shrink-0 border-b",
-              isDark ? "border-zinc-800/60 bg-zinc-950/30" : "border-gray-200/80 bg-blue-50/30"
+              isDark ? "border-zinc-800/60 bg-zinc-950/30" : "border-zinc-200/80 bg-emerald-50/30"
             )}>
               {/* Tab 栏 */}
               <div className="flex items-center gap-1">
@@ -513,17 +514,17 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                     className={cn(
                       "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all",
                       manageTab === tab.key
-                        ? (isDark ? "bg-zinc-100 text-zinc-900" : "bg-white text-blue-600 shadow-sm border border-blue-200/60")
-                        : (isDark ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40" : "text-gray-500 hover:text-gray-700 hover:bg-white/60")
+                        ? (isDark ? "bg-zinc-100 text-zinc-900" : "bg-white text-emerald-600 shadow-sm border border-emerald-200/60")
+                        : (isDark ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40" : "text-zinc-500 hover:text-zinc-700 hover:bg-white/60")
                     )}
                     style={{ borderRadius: BERRY_THEME.radius.sm }}
                   >
                     <span>{tab.label}</span>
                     <span className={cn(
-                      "text-[10px] leading-none px-1.5 py-0.5",
+                      "text-[11px] leading-none px-1.5 py-0.5",
                       manageTab === tab.key
-                        ? (isDark ? "bg-zinc-200 text-zinc-600" : "bg-blue-50 text-blue-500")
-                        : (isDark ? "bg-zinc-800/60 text-zinc-600" : "bg-gray-200/60 text-gray-400")
+                        ? (isDark ? "bg-zinc-200 text-zinc-600" : "bg-emerald-50 text-emerald-500")
+                        : (isDark ? "bg-zinc-800/60 text-zinc-600" : "bg-zinc-200/60 text-zinc-400")
                     )} style={{ borderRadius: 6 }}>
                       {tab.count}
                     </span>
@@ -535,7 +536,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
               <div className="relative w-56">
                 <IconSearch className={cn(
                   "absolute left-3 top-1/2 -translate-y-1/2 size-3.5",
-                  isDark ? "text-zinc-500" : "text-gray-400"
+                  isDark ? "text-zinc-500" : "text-zinc-400"
                 )} />
                 <input
                   type="text"
@@ -546,7 +547,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                     "w-full border pl-9 pr-3 py-1.5 text-xs transition-colors focus:outline-none focus:ring-2",
                     isDark
                       ? "bg-zinc-900 border-zinc-800 text-zinc-300 placeholder-zinc-600 focus:border-zinc-700"
-                      : "bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:border-blue-300"
+                      : "bg-white border-zinc-200 text-zinc-700 placeholder-zinc-400 focus:border-emerald-300"
                   )}
                   style={{ borderRadius: BERRY_THEME.radius.sm, boxShadow: 'none' }}
                 />
@@ -559,19 +560,19 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                 {loadingManage && (
                   <div className={cn(
                     "text-center py-20 text-sm font-medium",
-                    isDark ? "text-zinc-600" : "text-gray-400"
+                    isDark ? "text-zinc-600" : "text-zinc-400"
                   )}>
                     加载中...
                   </div>
                 )}
 
                 {!loadingManage && filteredManageItems.length === 0 && (
-                  <div className={cn(
-                    "text-center py-20 text-sm",
-                    isDark ? "text-zinc-600" : "text-gray-400"
-                  )}>
-                    暂无{manageTabs.find(t => t.key === manageTab)?.label || ""}项目
-                  </div>
+                  <EmptyState
+                    illustration="empty-list"
+                    illustrationWidth={170}
+                    title={`暂无${manageTabs.find(t => t.key === manageTab)?.label || ""}项目`}
+                    description="创建或导入后，内容会出现在这里。"
+                  />
                 )}
 
                 {!loadingManage && filteredManageItems.map(item => (
@@ -579,7 +580,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                     key={item.id}
                     className={cn(
                       "group flex items-center gap-4 px-4 py-3 border transition-colors shadow-sm",
-                      isDark ? "bg-zinc-900/40 hover:bg-zinc-900/80 border-zinc-800/60" : "bg-white hover:bg-blue-50/40 border-gray-200/60"
+                      isDark ? "bg-zinc-900/40 hover:bg-zinc-900/80 border-zinc-800/60" : "bg-white hover:bg-emerald-50/40 border-zinc-200/60"
                     )}
                     style={{ borderRadius: BERRY_THEME.radius.md }}
                   >
@@ -587,7 +588,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                     <div
                       className={cn(
                         "size-10 flex items-center justify-center shrink-0 overflow-hidden",
-                        isDark ? "bg-zinc-800" : "bg-blue-50"
+                        isDark ? "bg-zinc-800" : "bg-emerald-50"
                       )}
                       style={{ borderRadius: BERRY_THEME.radius.sm }}
                     >
@@ -598,15 +599,15 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                       ) : (
                         <span className={cn(
                           "font-bold text-sm",
-                          isDark ? "text-zinc-400" : "text-blue-600"
+                          isDark ? "text-zinc-400" : "text-emerald-600"
                         )} style={{ color: !isDark ? BERRY_THEME.primary : undefined }}>{item.name.charAt(0)}</span>
                       )}
                     </div>
 
                     {/* 信息 */}
                     <div className="flex-1 min-w-0">
-                      <div className={cn("font-semibold text-sm", isDark ? "text-zinc-200" : "text-gray-900")}>{item.name}</div>
-                      <div className={cn("text-xs truncate max-w-[480px] mt-0.5", isDark ? "text-zinc-500" : "text-gray-400")}>{item.description}</div>
+                      <div className={cn("font-semibold text-sm", isDark ? "text-zinc-200" : "text-zinc-900")}>{item.name}</div>
+                      <div className={cn("text-xs truncate max-w-[480px] mt-0.5", isDark ? "text-zinc-500" : "text-zinc-400")}>{item.description}</div>
                     </div>
 
                     {/* 操作区 */}
@@ -615,7 +616,7 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                     )}>
                       <button className={cn(
                         "size-7 flex items-center justify-center transition-colors",
-                        isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                        isDark ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300" : "hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600"
                       )} style={{ borderRadius: BERRY_THEME.radius.sm }}>
                         <IconMore size={14} />
                       </button>
@@ -626,8 +627,8 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
                       checked={item.enabled}
                       onCheckedChange={(checked) => updateItemEnabled(item.id, checked)}
                       className={cn(
-                        "data-[state=checked]:bg-blue-500",
-                        isDark ? "data-[state=unchecked]:bg-zinc-700" : "data-[state=unchecked]:bg-gray-300"
+                        "data-[state=checked]:bg-emerald-500",
+                        isDark ? "data-[state=unchecked]:bg-zinc-700" : "data-[state=unchecked]:bg-zinc-300"
                       )}
                     />
                   </div>
@@ -729,9 +730,9 @@ export function UnifiedExplore({ onClose, darkMode = false, sidebarOpen = true, 
           <div
             key="kb-modal-loading"
             className="absolute inset-0 z-30 flex items-center justify-center"
-            style={{ background: isDark ? "rgba(9,9,11,0.6)" : "rgba(255,255,255,0.6)", backdropFilter: "blur(3px)" }}
+            style={{ background: isDark ? "rgba(9,9,11,0.6)" : "rgba(255,255,255,0.6)", backdropFilter: "blur(calc(3px * var(--dc-mat-scale, 1)))" }}
           >
-            <div className="size-8 rounded-full border-2 border-gray-200 border-t-blue-600 animate-spin" />
+            <div className="size-8 rounded-full border-2 border-zinc-200 border-t-blue-600 animate-spin" />
           </div>
         )}
       </AnimatePresence>

@@ -29,6 +29,11 @@ export interface CreditConfig {
   plusMonthlyQuota: number
   /** Pro 月度积分额度（默认 300） */
   proMonthlyQuota: number
+  /**
+   * 全局积分倍率（审计用；admin 配置在 ai-providers-config.json 的 creditConfig 下）。
+   * 只写入 ai_credit_logs.global_multiplier 作为对账依据 —— 模型倍率已并入 modelRate。
+   */
+  globalMultiplier?: number
 }
 
 export const DEFAULT_CREDIT_CONFIG: CreditConfig = {
@@ -75,6 +80,8 @@ export async function getCreditsConfig(): Promise<CreditConfig> {
       tokensPerCredit: numOr(raw.tokensPerCredit, DEFAULT_CREDIT_CONFIG.tokensPerCredit),
       plusMonthlyQuota: numOr(raw.plusMonthlyQuota, DEFAULT_CREDIT_CONFIG.plusMonthlyQuota),
       proMonthlyQuota: numOr(raw.proMonthlyQuota, DEFAULT_CREDIT_CONFIG.proMonthlyQuota),
+      // 全局倍率回传（写 ai_credit_logs.global_multiplier 用）；未配置时按 1
+      globalMultiplier: raw.globalMultiplier === undefined ? 1 : numOr(raw.globalMultiplier, 1),
     }
   } catch {
     return { ...DEFAULT_CREDIT_CONFIG }
@@ -334,10 +341,29 @@ export async function settleCredits(
     )
 
     // 消耗日志
+    // 🚨 这里原先叠了**两个**缺陷，导致 ai_credit_logs 从未成功写入过任何一行
+    //    （实测线上表 count(*) = 0，而 UPDATE users 那半截已经执行了 —— 月度额度照扣、
+    //     扣费明细全丢，出问题根本没法对账）：
+    //      ① INSERT 列了 8 列（…model_rate, global_multiplier, estimated）但只传 7 个值，
+    //         漏了 global_multiplier → Postgres 08P01
+    //         `绑定消息提供了7个参数，但是已准备好语句"" 要求8个参数`；
+    //      ② created_at 建表时是 `BIGINT NOT NULL` **且没有 DEFAULT**，
+    //         而 INSERT 里压根没给它 —— 补上参数后会变成 23502 not-null 违约。
+    //    两个错误都被下方 catch 吞成一行 "[Credits] settle failed" 日志。
     await execute(
-      `INSERT INTO ai_credit_logs (user_id, model_id, input_tokens, output_tokens, credits, model_rate, global_multiplier, estimated)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [userId, modelId, inputTokens, outputTokens, credits, modelRate, estimated ? 1 : 0]
+      `INSERT INTO ai_credit_logs (user_id, model_id, input_tokens, output_tokens, credits, model_rate, global_multiplier, estimated, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        userId,
+        modelId,
+        inputTokens,
+        outputTokens,
+        credits,
+        modelRate,
+        config.globalMultiplier ?? 1,
+        estimated ? 1 : 0,
+        Date.now(),
+      ]
     )
   } catch (e) {
     // 结算失败不阻塞响应，但要留痕

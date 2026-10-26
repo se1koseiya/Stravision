@@ -1,7 +1,7 @@
 "use client"
 
 import { memo } from "react"
-import { Avatar, Button, Dropdown, Divider, Tooltip } from "antd"
+import { Avatar, Button, Dropdown, Tooltip } from "antd"
 import { cn } from "@/lib/utils"
 import type { ChatGroup, ChatGroupMember, ChatTarget, ChatUser } from "@/lib/chat/chat-types"
 import { IconCloseRemind, IconComments, IconCrown, IconDelete, IconDown, IconLogout, IconMore, IconPeopleDelete, IconSearch, IconShield, IconVolumeMute, IconVolumeNotice } from "@/components/icon";
@@ -49,7 +49,7 @@ function ChatInfoPanelInner({
 }: ChatInfoPanelProps) {
   if (!target) {
     return (
-      <div className="w-full h-full bg-white flex items-center justify-center text-[13px] text-[rgba(0,0,0,0.3)]">
+      <div className="w-full h-full bg-br-surface flex items-center justify-center text-[13px] text-br-text-3">
         选择一个联系人开始聊天
       </div>
     )
@@ -61,10 +61,12 @@ function ChatInfoPanelInner({
 
   const avatarUrl = isDirect ? friend?.avatar_url : group?.avatar_url
   const displayName = isDirect ? friend?.username : group?.name
-  const signature = isDirect ? (friend?.signature || "还没想好要写什么...") : `${groupMembers.length} 位成员`
+  /* 副标题：私聊显示邮箱（唯一稳定有值的身份信息），群聊显示成员数。
+     原来显示朋友的 signature，但那个字段后端从来没有返回过。 */
+  const subtitle = isDirect ? (friend?.email || "好友") : `${groupMembers.length} 位成员`
 
-  const avatarBg = isDirect ? "#e6f4ff" : "#fff7e6"
-  const avatarTextColor = isDirect ? "#1677ff" : "#fa8c16"
+  const avatarBg = isDirect ? "var(--br-brand-soft)" : "var(--br-surface-3)"
+  const avatarTextColor = isDirect ? "var(--br-brand-ink)" : "var(--br-text-2)"
 
   // 三点菜单
   const moreMenuItems = isDirect && friend
@@ -88,15 +90,15 @@ function ChatInfoPanelInner({
       : []
 
   return (
-    <div className="w-full h-full bg-white flex flex-col">
+    <div className="w-full h-full bg-br-surface flex flex-col">
       {/* 顶栏 56px：仅在消息模式侧滑面板（有onClose）时显示，与聊天顶栏齐平 */}
       {onClose && (
-        <div className="h-14 shrink-0 flex items-center justify-between px-5 border-b border-black/[0.06]">
-          <span className="text-[15px] font-medium text-[rgba(0,0,0,0.88)]">详情</span>
+        <div className="h-14 shrink-0 flex items-center justify-between px-5">
+          <span className="text-[14px] font-medium text-br-text-1">详情</span>
           <div className="flex items-center gap-2">
             {isDirect && friend && (
               <Dropdown menu={{ items: moreMenuItems }} trigger={["click"]} placement="bottomRight">
-                <button className="flex items-center gap-1 p-0.5 rounded-full hover:bg-black/[0.04] transition-colors">
+                <button className="flex items-center gap-1 p-0.5 rounded-full hover:bg-br-surface-3 transition-colors">
                   <Avatar
                     size={36}
                     src={avatarUrl || undefined}
@@ -105,13 +107,13 @@ function ChatInfoPanelInner({
                   >
                     {displayName?.[0]?.toUpperCase()}
                   </Avatar>
-                  <IconDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)]" />
+                  <IconDown size={14} strokeWidth={ICON_STROKE} className="text-br-text-3" />
                 </button>
               </Dropdown>
             )}
             {!isDirect && group && (
               <Dropdown menu={{ items: moreMenuItems }} trigger={["click"]} placement="bottomRight">
-                <button className="flex items-center gap-1 p-0.5 rounded-full hover:bg-black/[0.04] transition-colors">
+                <button className="flex items-center gap-1 p-0.5 rounded-full hover:bg-br-surface-3 transition-colors">
                   <Avatar
                     size={36}
                     src={avatarUrl || undefined}
@@ -120,7 +122,7 @@ function ChatInfoPanelInner({
                   >
                     {displayName?.[0]?.toUpperCase()}
                   </Avatar>
-                  <IconDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)]" />
+                  <IconDown size={14} strokeWidth={ICON_STROKE} className="text-br-text-3" />
                 </button>
               </Dropdown>
             )}
@@ -133,13 +135,13 @@ function ChatInfoPanelInner({
         {/* 三点菜单（右对齐） - 通讯录模式时顶部更宽间距 */}
         <div className={cn("flex justify-end px-4 pb-1", onClose ? "pt-3" : "pt-5")}>
           <Tooltip title="更多">
-            <button className="size-9 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.5)] hover:text-[rgba(0,0,0,0.8)] hover:bg-black/[0.04] transition-colors">
+            <button className="size-9 flex items-center justify-center rounded-full text-br-text-3 hover:text-br-text-1 hover:bg-br-surface-3 transition-colors">
               <IconMore size={20} strokeWidth={ICON_STROKE} />
             </button>
           </Tooltip>
         </div>
 
-        {/* 头像 + 名字 + 签名 */}
+        {/* 头像 + 名字 + 副标题 */}
         <div className="flex flex-col items-center px-6 pb-5">
           <Avatar
             size={90}
@@ -150,25 +152,27 @@ function ChatInfoPanelInner({
             {displayName?.[0]?.toUpperCase()}
           </Avatar>
           <h3
-            className="mt-4 text-[20px] text-[rgba(0,0,0,0.88)] leading-none"
+            className="mt-4 text-[20px] text-br-text-1 leading-none"
             style={{ fontWeight: 500 }}
           >
             {displayName}
           </h3>
-          <p className="mt-2 text-[14px] text-[rgba(0,0,0,0.4)] text-center leading-snug">
-            {signature}
+          <p className="mt-2 text-[14px] text-br-text-3 text-center leading-snug">
+            {subtitle}
           </p>
         </div>
 
-        <Divider className="!my-1 !mx-6 !border-black/[0.06]" />
+        <div className="h-5" />
 
-        {/* 信息字段（标签在上，值在下，左对齐 - 图3风格） */}
+        {/* 信息字段（标签在上，值在下，左对齐 - 图3风格）
+            ⚠️ 2026-10-22：这里原来还读 phone / birthday / region / signature，
+               但这四个字段 users 表里根本不存在 —— 类型检查一直报错、界面永远空白。
+               现在只展示真实有值的三项：邮箱 / UID / 身份。 */}
         {isDirect && friend && (
           <div className="px-6 py-4 space-y-4">
-            {friend.phone && <InfoRow label="手机号" value={friend.phone} />}
-            {friend.birthday && <InfoRow label="生日" value={friend.birthday} />}
-            {friend.region && <InfoRow label="地区" value={friend.region} />}
             {friend.email && <InfoRow label="邮箱" value={friend.email} />}
+            {friend.uid && <InfoRow label="UID" value={friend.uid} />}
+            <InfoRow label="身份" value={roleLabel(friend.role)} />
           </div>
         )}
 
@@ -188,8 +192,7 @@ function ChatInfoPanelInner({
             <Button
               type="primary"
               size="large"
-              className="!h-11 !w-[220px] !rounded-lg !font-medium !border-0 !shadow-sm"
-              style={{ background: "linear-gradient(135deg, #1677ff 0%, #4cabff 100%)" }}
+              className="!h-11 !w-[220px] !rounded-lg !font-medium !border-0 !shadow-br-sm !bg-br-brand hover:!bg-br-brand-hover"
               icon={<IconComments size={16} strokeWidth={ICON_STROKE} />}
               onClick={() => {
                 onSwitchToChat(friend)
@@ -207,11 +210,23 @@ function ChatInfoPanelInner({
 
 /* ========== 信息行（图3风格：标签灰在上，值黑在下） ========== */
 
+/** 账号身份的中文展示（users.role 的取值是英文枚举） */
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "超级管理员",
+  admin: "管理员",
+  user: "普通用户",
+  guest: "访客",
+}
+function roleLabel(role?: string) {
+  if (!role) return "普通用户"
+  return ROLE_LABELS[role] || role
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[14px] text-[rgba(0,0,0,0.45)]">{label}</span>
-      <span className="text-[18px] text-[rgba(0,0,0,0.88)]">{value}</span>
+      <span className="text-[14px] text-br-text-3">{label}</span>
+      <span className="text-[18px] text-br-text-1">{value}</span>
     </div>
   )
 }
@@ -234,10 +249,10 @@ function GroupMembersPanel({
   return (
     <div className="px-4 py-3">
       <div className="flex items-center justify-between mb-2 px-2">
-        <span className="text-[13px] text-[rgba(0,0,0,0.55)]" style={{ fontWeight: 500 }}>
+        <span className="text-[13px] text-br-text-2" style={{ fontWeight: 500 }}>
           群成员
         </span>
-        <span className="text-[12px] text-[rgba(0,0,0,0.35)]">{members.length}</span>
+        <span className="text-[12px] text-br-text-3">{members.length}</span>
       </div>
       <div className="max-h-[200px] overflow-y-auto space-y-0.5" data-lenis-prevent>
         {members.map(m => {
@@ -247,18 +262,18 @@ function GroupMembersPanel({
           return (
             <div
               key={m.user_id}
-              className="group/member flex items-center gap-2.5 p-1.5 rounded-md hover:bg-black/[0.03]"
+              className="group/member flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-br-surface-3"
             >
               <Avatar
                 size={32}
                 src={m.user.avatar_url || undefined}
-                style={{ backgroundColor: "#e6f4ff", color: "#1677ff" }}
+                style={{ backgroundColor: "var(--br-brand-soft)", color: "var(--br-brand-ink)" }}
               >
                 {m.user.username[0]?.toUpperCase()}
               </Avatar>
-              <span className="flex-1 text-[14px] text-[rgba(0,0,0,0.88)] truncate" style={{ fontWeight: 400 }}>
+              <span className="flex-1 text-[14px] text-br-text-1 truncate" style={{ fontWeight: 400 }}>
                 {m.user.username}
-                {m.role === "owner" && <IconCrown size={12} className="inline ml-1 text-[#fa8c16]" />}
+                {m.role === "owner" && <IconCrown size={12} className="inline ml-1 text-br-text-2" />}
               </span>
               <div className="flex gap-0.5 opacity-0 group-hover/member:opacity-100 transition-opacity">
                 {canAct && (
@@ -266,8 +281,8 @@ function GroupMembersPanel({
                     <Tooltip title={m.is_muted ? "解除禁言" : "禁言"}>
                       <button
                         onClick={() => onToggleMute(group.id, m.user_id, !m.is_muted)}
-                        className={cn("size-7 rounded-full flex items-center justify-center hover:bg-black/[0.06]",
-                          m.is_muted ? "text-red-500" : "text-[rgba(0,0,0,0.45)]"
+                        className={cn("size-7 rounded-full flex items-center justify-center hover:bg-br-surface-4",
+                          m.is_muted ? "text-red-500" : "text-br-text-3"
                         )}
                       >
                         {m.is_muted
@@ -278,7 +293,7 @@ function GroupMembersPanel({
                     <Tooltip title="移出群组">
                       <button
                         onClick={() => onKickMember(group.id, m.user_id)}
-                        className="size-7 rounded-full flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-red-500 hover:bg-black/[0.06]"
+                        className="size-7 rounded-full flex items-center justify-center text-br-text-3 hover:text-red-500 hover:bg-br-surface-4"
                       >
                         <IconLogout size={14} strokeWidth={ICON_STROKE} />
                       </button>

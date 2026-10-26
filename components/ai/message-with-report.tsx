@@ -40,7 +40,7 @@ const STEPS = [
  * 2. 渲染层：XCard.Box（统一入口）
  * 3. 协议层：A2UI v0.9 commands + berry-realm-catalog-v1
  *
- * 颜色统一 BERRY_THEME.primary (#1677ff)，与 AI 助手主对话流一致
+ * 颜色统一 BERRY_THEME.primary (#059669)，与 AI 助手主对话流一致
  */
 function PremiumReportLoader({ reportTitle = "分析报告", htmlContent = "", isComplete = false, onCancel }: PremiumReportLoaderProps) {
   const cleanHtml = htmlContent.trim()

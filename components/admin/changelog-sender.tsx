@@ -3,14 +3,15 @@
 
 import { useState, useRef } from "react"
 import { Card, Input, Button, Typography } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
+import { APP_VERSION_TAG } from "@/lib/app-meta"
 import Image from "next/image"
 import { IconDelete, IconEdit, IconLoading, IconPlus, IconRefresh, IconRocket, IconSave, IconUpload } from "@/components/icon";
 
 const { Text } = Typography
 
 export function ChangelogSender() {
-  const [version, setVersion] = useState("v2.5.0")
+  const [version, setVersion] = useState(APP_VERSION_TAG)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [title, setTitle] = useState("系统更新公告：MCP 工具与智能托管优化")
   const [imageUrl, setImageUrl] = useState("")
@@ -203,7 +204,7 @@ export function ChangelogSender() {
     <Card 
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IconRocket style={{ color: '#1677ff' }} />
+          <IconRocket style={{ color: '#059669' }} />
           发布更新日志
         </span>
       }
@@ -213,7 +214,7 @@ export function ChangelogSender() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
                 <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>版本号 (Version)</Text>
-                <Input placeholder="v1.0.0" value={version} onChange={(e) => setVersion(e.target.value)} />
+                <Input placeholder={APP_VERSION_TAG} value={version} onChange={(e) => setVersion(e.target.value)} />
             </div>
             <div>
                 <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>发布日期 (Date)</Text>
@@ -277,9 +278,9 @@ export function ChangelogSender() {
         </div>
 
         <div style={{ paddingTop: 8 }}>
-            {renderList("新功能 (Features)", <IconRocket style={{ color: '#1677ff' }} />, features, setFeatures, "新增了...")}
-            {renderList("优化改进 (Improvements)", <IconEdit style={{ color: '#FA8C16' }} />, improvements, setImprovements, "优化了...")}
-            {renderList("问题修复 (Fixes)", <IconRefresh style={{ color: '#F5222D' }} />, fixes, setFixes, "修复了...")}
+            {renderList("新功能 (Features)", <IconRocket style={{ color: '#059669' }} />, features, setFeatures, "新增了...")}
+            {renderList("优化改进 (Improvements)", <IconEdit style={{ color: '#52525B' }} />, improvements, setImprovements, "优化了...")}
+            {renderList("问题修复 (Fixes)", <IconRefresh style={{ color: '#DC2626' }} />, fixes, setFixes, "修复了...")}
         </div>
 
         <div style={{ paddingTop: 16, borderTop: '1px dashed #EDEEEF' }}>

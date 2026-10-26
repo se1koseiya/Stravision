@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/feedback";
 import type {
   ChatMessage,
   DeviceCommand,
@@ -72,6 +72,9 @@ export function useVoiceOmni(
   // statusRef 保存最新 status，避免 ws.onclose 等回调中闭包过期问题
   const statusRef = useRef<VoiceStatus>("idle");
   const wsRef = useRef<WebSocket | null>(null);
+  /** 静音：丢弃上行麦克风音频（通话 UI 的静音钮），下行播放不受影响 */
+  const mutedRef = useRef(false);
+  const [muted, setMuted] = useState(false);
   const audioPlayerRef = useRef<AudioPlayer | null>(null);
   const audioCaptureRef = useRef<AudioCapture | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,6 +263,8 @@ export function useVoiceOmni(
           // binaryMode=false: OpenAI/DashScope realtime 协议要求 JSON+base64，
           // 不能用二进制帧（否则音频数据为空，识别全错）
           const capture = new AudioCapture((data) => {
+            // 静音时丢弃上行音频（通话条上的静音按钮）
+            if (mutedRef.current) return;
             if (wsRef.current?.readyState === WebSocket.OPEN) {
               wsRef.current.send(
                 JSON.stringify({
@@ -669,6 +674,8 @@ export function useVoiceOmni(
       toggleConnection: async () => {},
       interrupt: () => {},
       refreshQuota: async () => null,
+      muted: false,
+      setMuted: () => {},
     };
   }
 
@@ -684,5 +691,7 @@ export function useVoiceOmni(
     toggleConnection,
     interrupt,
     refreshQuota,
+    muted,
+    setMuted,
   };
 }

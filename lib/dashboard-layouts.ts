@@ -19,7 +19,7 @@ export const WIDGET_DIMENSIONS = {
 
 // 预定义的组件配置
 export const WIDGET_CONFIGS: WidgetConfig[] = [
-  { id: 'ai-insight', size: 'large', component: 'AIInsightWidget', title: 'AI智能洞察', priority: 5 },
+  { id: 'heatmap', size: 'large', component: 'HeatmapWidget', title: '环境时段热力图', priority: 5 },
   { id: 'temperature', size: 'medium', component: 'TemperatureWidget', title: '温度监测', priority: 4 },
   { id: 'humidity', size: 'medium', component: 'HumidityWidget', title: '湿度监测', priority: 4 },
   { id: 'weather', size: 'medium', component: 'WeatherWidget', title: '天气状况', priority: 3 },
@@ -42,7 +42,7 @@ export const LAYOUT_PRESETS = {
     name: '默认视图',
     description: '平衡显示所有重要数据',
     layout: [
-      { i: 'ai-insight', x: 0, y: 0, w: 4, h: 4 },      // 大：AI洞察
+      { i: 'heatmap', x: 0, y: 0, w: 4, h: 4 },      // 大：环境时段热力图
       { i: 'temperature', x: 4, y: 0, w: 4, h: 2 },     // 中：温度
       { i: 'humidity', x: 8, y: 0, w: 4, h: 2 },        // 中：湿度
       { i: 'weather', x: 4, y: 2, w: 4, h: 2 },         // 中：天气
@@ -74,7 +74,7 @@ export const LAYOUT_PRESETS = {
       { i: 'phosphorus', x: 8, y: 2, w: 2, h: 2 },      // 小：磷
       { i: 'potassium', x: 10, y: 2, w: 2, h: 2 },      // 小：钾
       { i: 'soil', x: 0, y: 4, w: 4, h: 2 },            // 中：土壤
-      { i: 'ai-insight', x: 4, y: 4, w: 4, h: 4 },      // 大：AI洞察
+      { i: 'heatmap', x: 4, y: 4, w: 4, h: 4 },      // 大：环境时段热力图
       { i: 'spectral', x: 8, y: 4, w: 4, h: 4 },        // 大：光谱
       { i: 'membership', x: 0, y: 6, w: 4, h: 2 },       // 中：会员
       { i: 'weather-forecast', x: 4, y: 8, w: 4, h: 4 }  // 大：天气预报
@@ -86,7 +86,7 @@ export const LAYOUT_PRESETS = {
     name: '数据优先',
     description: '突出显示关键数据分析',
     layout: [
-      { i: 'ai-insight', x: 0, y: 0, w: 4, h: 4 },      // 大：AI洞察
+      { i: 'heatmap', x: 0, y: 0, w: 4, h: 4 },      // 大：环境时段热力图
       { i: 'spectral', x: 4, y: 0, w: 4, h: 4 },        // 大：光谱
       { i: 'temperature', x: 8, y: 0, w: 4, h: 2 },     // 中：温度
       { i: 'humidity', x: 8, y: 2, w: 4, h: 2 },        // 中：湿度
@@ -112,7 +112,7 @@ export const LAYOUT_PRESETS = {
       { i: 'humidity', x: 4, y: 0, w: 4, h: 2 },        // 中：湿度
       { i: 'weather', x: 8, y: 0, w: 4, h: 2 },         // 中：天气
       { i: 'soil', x: 0, y: 2, w: 4, h: 2 },            // 中：土壤
-      { i: 'ai-insight', x: 4, y: 2, w: 4, h: 4 },      // 大：AI洞察
+      { i: 'heatmap', x: 4, y: 2, w: 4, h: 4 },      // 大：环境时段热力图
       { i: 'spectral', x: 8, y: 2, w: 4, h: 4 },        // 大：光谱
       { i: 'light', x: 0, y: 4, w: 2, h: 2 },           // 小：光照
       { i: 'co2', x: 2, y: 4, w: 2, h: 2 },             // 小：CO2
@@ -135,7 +135,7 @@ export const LAYOUT_PRESETS = {
       { i: 'weather', x: 8, y: 0, w: 4, h: 2 },         // 中：天气
       { i: 'light', x: 0, y: 2, w: 2, h: 2 },           // 小：光照
       { i: 'co2', x: 2, y: 2, w: 2, h: 2 },             // 小：CO2
-      { i: 'ai-insight', x: 4, y: 2, w: 4, h: 4 },      // 大：AI洞察
+      { i: 'heatmap', x: 4, y: 2, w: 4, h: 4 },      // 大：环境时段热力图
       { i: 'spectral', x: 8, y: 2, w: 4, h: 4 },        // 大：光谱
       { i: 'soil', x: 0, y: 4, w: 4, h: 2 },            // 中：土壤
       { i: 'fertility', x: 0, y: 6, w: 2, h: 2 },       // 小：肥力
@@ -157,7 +157,7 @@ export const LAYOUT_PRESETS = {
       { i: 'nitrogen', x: 6, y: 0, w: 2, h: 2 },        // 小：氮
       { i: 'phosphorus', x: 8, y: 0, w: 2, h: 2 },      // 小：磷
       { i: 'potassium', x: 10, y: 0, w: 2, h: 2 },      // 小：钾
-      { i: 'ai-insight', x: 0, y: 2, w: 4, h: 4 },      // 大：AI洞察
+      { i: 'heatmap', x: 0, y: 2, w: 4, h: 4 },      // 大：环境时段热力图
       { i: 'spectral', x: 4, y: 2, w: 4, h: 4 },        // 大：光谱
       { i: 'temperature', x: 8, y: 2, w: 4, h: 2 },     // 中：温度
       { i: 'humidity', x: 8, y: 4, w: 4, h: 2 },        // 中：湿度

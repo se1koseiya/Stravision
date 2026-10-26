@@ -22,6 +22,7 @@ import { getGreenhouseCameraUrls } from '@/lib/db/settings-service'
 import { DEVICE_NAMES, DEVICE_IDS, STEPPER, RELAY_DEVICE_RANGE } from '@/lib/constants'
 import { listDevices, getDevice, deleteDevice } from '@/lib/db/device-registry-service'
 import { spawn } from 'node:child_process'
+import { resolveFfmpegBinary, FFMPEG_MISSING_HINT } from '@/lib/media/ffmpeg'
 
 // === 类型定义 ===
 
@@ -156,18 +157,40 @@ export async function waitRelayState(
 }
 
 /**
- * 用 ffmpeg 从 RTSP/HTTP 视频流抓取一帧
+ * RTSP / RTSPS 才需要 `-rtsp_transport`。
  *
- * 返回 base64 编码的 JPEG。需要服务器安装 ffmpeg。
+ * 🚨 该参数属于 RTSP 解复用器专有选项：一旦无条件传给 `rtmp://`（或 http 流），
+ * ffmpeg 会在打开输入前直接报 `Option rtsp_transport not found.` + `Option not found`
+ * 并以 **code 1** 退出 —— 表现为「摄像头画面调不出来 / 直播流没接通」，
+ * 但监控页 `/api/stream-rtmp`（不传该参数）却完全正常。
  */
-export async function captureCameraFrame(
+export function isRtspUrl(url: string): boolean {
+  return /^rtsps?:\/\//i.test(url.trim())
+}
+
+/**
+ * 输入侧参数（放在 `-i` 之前）按协议择一。
+ *
+ * ⛔ 别再把 `-rtsp_transport tcp` 写死：它是 RTSP 解复用器专有选项，
+ * 传给 `rtmp://` 会让 ffmpeg 在打开输入前就 `Option not found` 秒退（code 1）。
+ */
+export function buildCameraInputArgs(url: string, timeoutMs: number = 15000): string[] {
+  return isRtspUrl(url)
+    ? ['-rtsp_transport', 'tcp']
+    : ['-rw_timeout', String(Math.max(1, Math.floor(timeoutMs)) * 1000)]
+}
+
+/** 单次 ffmpeg 抓帧（写 stdout 管道，返回 JPEG 字节） */
+function spawnFfmpegFrame(
+  binPath: string,
+  inputArgs: string[],
   cameraUrl: string,
-  timeoutMs: number = 15000
-): Promise<{ base64: string; mime_type: string }> {
+  timeoutMs: number,
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const args = [
       '-y',
-      '-rtsp_transport', 'tcp',
+      ...inputArgs,
       '-i', cameraUrl,
       '-frames:v', '1',
       '-q:v', '3',
@@ -175,7 +198,10 @@ export async function captureCameraFrame(
       '-an',
       '-'
     ]
-    const ffmpeg = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const ffmpeg = spawn(binPath, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
     const chunks: Buffer[] = []
     let stderrData = ''
 
@@ -189,19 +215,52 @@ export async function captureCameraFrame(
 
     ffmpeg.on('error', (err) => {
       clearTimeout(timer)
-      reject(new Error(`ffmpeg spawn failed: ${err.message}. Is ffmpeg installed and on PATH?`))
+      reject(new Error(`ffmpeg spawn failed: ${err.message}（bin=${binPath}）`))
     })
 
     ffmpeg.on('close', (code) => {
       clearTimeout(timer)
       if (code === 0 && chunks.length > 0) {
-        const buf = Buffer.concat(chunks)
-        resolve({ base64: buf.toString('base64'), mime_type: 'image/jpeg' })
+        resolve(Buffer.concat(chunks))
       } else {
         reject(new Error(`ffmpeg exited with code ${code}. stderr: ${stderrData.slice(-500)}`))
       }
     })
   })
+}
+
+/**
+ * 用 ffmpeg 从 RTSP/RTMP/HTTP 视频流抓取一帧
+ *
+ * 返回 base64 编码的 JPEG。
+ * 可执行文件走 lib/media/ffmpeg 的统一探测（桌面端会用安装包内置的 FFmpeg，
+ * 不再依赖用户机器上装过 FFmpeg 或 PATH 配置）。
+ */
+export async function captureCameraFrame(
+  cameraUrl: string,
+  timeoutMs: number = 15000
+): Promise<{ base64: string; mime_type: string }> {
+  const bin = resolveFfmpegBinary()
+  if (!bin) throw new Error(FFMPEG_MISSING_HINT)
+
+  // 输入侧选项按协议择一：RTSP 协商 TCP；其余协议只加读超时（避免流卡死时干等）。
+  const inputArgs = buildCameraInputArgs(cameraUrl, timeoutMs)
+
+  let buf: Buffer
+  try {
+    buf = await spawnFfmpegFrame(bin.path, inputArgs, cameraUrl, timeoutMs)
+  } catch (e: any) {
+    // 🚨 兜底：某些 ffmpeg 构建 / 协议不接受输入侧选项时会「Option not found」秒退。
+    // 此时退化到最小参数重试一次，避免整个抓帧能力被一个可选开关废掉。
+    if (/option .*not found|option not found/i.test(String(e?.message))) {
+      console.warn(`[Camera] 输入参数被 ffmpeg 拒绝，退化到最小参数重试：${e.message}`)
+      buf = await spawnFfmpegFrame(bin.path, [], cameraUrl, timeoutMs)
+    } else {
+      throw e
+    }
+  }
+
+  return { base64: buf.toString('base64'), mime_type: 'image/jpeg' }
 }
 
 // === 权限与参数校验 ===

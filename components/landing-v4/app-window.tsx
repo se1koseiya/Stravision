@@ -46,7 +46,7 @@ export function AppWindow({ className }: { className?: string }) {
         theme={{ algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm }}
       >
         <div className="mx-auto w-full max-w-[1060px]">
-        <div className="overflow-hidden rounded-[16px] border border-black/[0.07] bg-[#f7f8fa] shadow-[0_48px_110px_-48px_rgba(15,23,42,0.5)] dark:border-white/[0.08] dark:bg-[#141714] dark:shadow-[0_48px_110px_-48px_rgba(0,0,0,0.8)]">
+        <div className="overflow-hidden rounded-[16px] border border-black/[0.07] bg-[#fafafa] shadow-[0_48px_110px_-48px_rgba(15,23,42,0.5)] dark:border-white/[0.08] dark:bg-[#141714] dark:shadow-[0_48px_110px_-48px_rgba(0,0,0,0.8)]">
           {/* 顶栏：窗口圆点 + 通知 */}
           <div className="flex h-12 items-center gap-3 border-b border-black/[0.055] bg-white px-4 dark:border-white/[0.08] dark:bg-[#191C1A]">
             <span className="flex items-center gap-1.5">
@@ -66,7 +66,7 @@ export function AppWindow({ className }: { className?: string }) {
             {/* ===== 侧栏（照搬 ai-assistant 真实侧栏） ===== */}
             <aside className="hidden w-[260px] shrink-0 flex-col sm:flex">
               <div className="flex items-center px-4 pb-3.5 pt-[18px]">
-                <span className="text-[22px] font-bold tracking-tight text-zinc-900 dark:text-[#E4EEE9]">莓小智</span>
+                <span className="text-[20px] font-bold tracking-tight text-zinc-900 dark:text-[#E4EEE9]">莓小智</span>
                 <div className="flex-1" />
                 <span className="flex size-8 items-center justify-center rounded-lg text-zinc-500 dark:text-[#9BA39E]">
                   <IconSearch className="size-4" />
@@ -93,10 +93,10 @@ export function AppWindow({ className }: { className?: string }) {
                     className="flex cursor-pointer select-none items-center gap-[7px] px-1 text-zinc-600 dark:text-[#9BA39E]"
                     style={{ paddingTop: i === 0 ? 10 : 8, paddingBottom: 6 }}
                   >
-                    <n.icon className="size-[15px]" strokeWidth={1.5} />
+                    <n.icon className="size-[15px]" strokeWidth={2} />
                     <span className="text-[13px] font-medium text-zinc-700 dark:text-[#D6DAD6]">{n.label}</span>
                     {n.badge != null && (
-                      <span className="flex h-4 min-w-4 items-center justify-center rounded-lg bg-zinc-100 px-[5px] text-[10px] leading-4 text-zinc-400 dark:bg-[#2A2F2D] dark:text-[#9BA39E]">
+                      <span className="flex h-4 min-w-4 items-center justify-center rounded-lg bg-zinc-100 px-[5px] text-[11px] leading-4 text-zinc-400 dark:bg-[#2A2F2D] dark:text-[#9BA39E]">
                         {n.badge}
                       </span>
                     )}
@@ -114,11 +114,11 @@ export function AppWindow({ className }: { className?: string }) {
               </div>
 
               {/* 用户区 */}
-              <div className="flex items-center gap-2.5 rounded-[10px] bg-[#f5f5f5] p-2.5 mx-2 mb-2.5 dark:bg-[#1E2220]">
+              <div className="flex items-center gap-2.5 rounded-[10px] bg-[#f4f4f5] p-2.5 mx-2 mb-2.5 dark:bg-[#1E2220]">
                 <Avatar
                   size={32}
                   src="/images/user_default_avatar/avatar1.png"
-                  className="!bg-[#e6f4ff] !text-[14px] !text-[#1677ff]"
+                  className="!bg-[#ECFDF5] !text-[14px] !text-[#059669]"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-medium leading-tight text-zinc-700 dark:text-[#E4EEE9]">

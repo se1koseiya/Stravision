@@ -11,7 +11,9 @@
  */
 
 import { useState, useEffect, useCallback } from "react"
-import { Avatar, Button, Empty, Spin, Tag, Tabs, message as antdMessage } from "antd"
+import { Avatar, Button, Empty, Spin, Tag, Tabs } from "antd"
+
+import { toast } from "@/lib/ui/feedback"
 import type { CSSProperties } from "react"
 import { IconBook, IconCheck, IconClose, IconInbox, IconMail, IconRight, IconTime } from "@/components/icon";
 
@@ -44,20 +46,20 @@ interface InvitationListProps {
 
 // AntD 颜色 token
 const COLOR = {
-  primary: "#1677ff",
-  primaryBg: "rgba(22,119,255,0.06)",
-  primaryBorder: "rgba(22,119,255,0.20)",
+  primary: "#059669",
+  primaryBg: "rgba(0,148,86,0.06)",
+  primaryBorder: "rgba(0,148,86,0.20)",
   text: "rgba(0,0,0,0.88)",
   secondary: "rgba(0,0,0,0.65)",
   tertiary: "rgba(0,0,0,0.45)",
   quaternary: "rgba(0,0,0,0.25)",
-  divider: "#f0f0f0",
+  divider: "#F4F4F5",
   fillHover: "#fafafa",
   fillQuaternary: "rgba(0,0,0,0.02)",
   bgContainer: "#ffffff",
-  success: "#52c41a",
-  warning: "#faad14",
-  error: "#ff4d4f"
+  success: "#059669",
+  warning: "#52525B",
+  error: "#DC2626"
 }
 
 const ROLE_COLOR: Record<string, string> = {
@@ -165,7 +167,7 @@ export default function InvitationList({
         }
         throw new Error(data.error || `HTTP ${res.status}`)
       }
-      antdMessage.success("已接受邀请")
+      toast.success("已接受邀请")
       refresh()
       onInvitationChange?.()
       // 通知侧边栏/活动流等组件刷新协作集合列表
@@ -173,7 +175,7 @@ export default function InvitationList({
         window.dispatchEvent(new CustomEvent("kb:collaboration-changed"))
       }
     } catch (e: any) {
-      antdMessage.error(`接受失败：${e.message}`, 6)
+      toast.error(`接受失败：${e.message}`, { duration: 6000 })
     } finally {
       setRespondingFor(id, false)
     }
@@ -198,14 +200,14 @@ export default function InvitationList({
         }
         throw new Error(data.error || `HTTP ${res.status}`)
       }
-      antdMessage.success("已拒绝邀请")
+      toast.success("已拒绝邀请")
       refresh()
       onInvitationChange?.()
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("kb:collaboration-changed"))
       }
     } catch (e: any) {
-      antdMessage.error(`拒绝失败：${e.message}`, 6)
+      toast.error(`拒绝失败：${e.message}`, { duration: 6000 })
     } finally {
       setRespondingFor(id, false)
     }

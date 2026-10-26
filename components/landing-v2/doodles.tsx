@@ -6,7 +6,7 @@
    · strokeLinecap: round，无完美几何
    ============================================================ */
 
-const INK = "#2B3122";
+const INK = "#18181B";
 const BERRY = "#A63A3D";
 
 type DoodleProps = {
@@ -136,7 +136,7 @@ export function WobblyRule({ className, stroke = INK }: DoodleProps) {
 }
 
 /** 撕纸边缘（区块分隔，fill 填入下一块背景色） */
-export function TornEdge({ className, fill = "#F4EFE3", flip = false }: { className?: string; fill?: string; flip?: boolean }) {
+export function TornEdge({ className, fill = "#F4F4F5", flip = false }: { className?: string; fill?: string; flip?: boolean }) {
   return (
     <svg
       viewBox="0 0 1440 44"
@@ -164,7 +164,8 @@ export function TapeStrip({ className }: { className?: string }) {
         boxShadow: "0 1px 3px rgba(43,49,34,0.15)",
         borderLeft: "1px dashed rgba(43,49,34,0.12)",
         borderRight: "1px dashed rgba(43,49,34,0.12)",
-        backdropFilter: "blur(1px)",
+        /* 装饰纸片也跟随全站「材质厚度」档位 */
+        backdropFilter: "blur(calc(1px * var(--dc-mat-scale, 1)))",
       }}
     />
   );

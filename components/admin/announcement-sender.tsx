@@ -3,7 +3,7 @@
 
 import { useState } from "react"
 import { Card, Input, Button } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconCustomer, IconLoading, IconSend } from "@/components/icon";
 
 const { TextArea } = Input
@@ -46,7 +46,7 @@ export function AnnouncementSender() {
     <Card
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <IconCustomer style={{ color: '#1677ff' }} />
+          <IconCustomer style={{ color: '#059669' }} />
           发布系统公告
         </div>
       }

@@ -83,7 +83,7 @@ export function WidgetTrendChart({ type, color, unit = "", className, showToggle
             <div className="flex-1 w-full min-h-0 relative" style={{ marginTop: showToggle ? 18 : 0 }}>
                 {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <IconLoading className="h-4 w-4 animate-spin" style={{ color: A.labelQuaternary }} strokeWidth={1.75} />
+                        <IconLoading className="h-4 w-4 animate-spin" style={{ color: A.labelQuaternary }} strokeWidth={2} />
                     </div>
                 )}
                 {chartData.length > 0 && (

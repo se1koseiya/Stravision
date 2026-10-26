@@ -220,7 +220,7 @@ export default function LoginPage() {
           id="email"
           type="email"
           placeholder="账户邮箱"
-          className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F]"
+          className="h-12 rounded-[10px] border-[#e4e4e7] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#059669]/60 focus-visible:border-[#059669]"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -229,7 +229,7 @@ export default function LoginPage() {
             id="password"
             type="password"
             placeholder="密码"
-            className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F] pr-16"
+            className="h-12 rounded-[10px] border-[#e4e4e7] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#059669]/60 focus-visible:border-[#059669] pr-16"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onSubmit()}
@@ -238,7 +238,7 @@ export default function LoginPage() {
           {DESKTOP_CAPABILITIES.emailRecovery && (
             <Link
               href="/forgot-password"
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#999] transition-colors hover:text-[#009456]"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-medium text-[#999] transition-colors hover:text-[#059669]"
             >
               忘记密码？
             </Link>
@@ -273,7 +273,7 @@ export default function LoginPage() {
       </AnimatePresence>
 
       <Button
-        className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[15px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
+        className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[14px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
         onClick={onSubmit}
         disabled={loading}
       >
@@ -293,7 +293,7 @@ export default function LoginPage() {
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
-          className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] transition-colors checked:border-[#009456] checked:bg-[#009456] bg-no-repeat bg-center"
+          className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] transition-colors checked:border-[#059669] checked:bg-[#059669] bg-no-repeat bg-center"
           style={
             agreed
               ? { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.7 5.3a1 1 0 0 1 0 1.4l-4.5 4.5a1 1 0 0 1-1.4 0L4.3 8.7a1 1 0 0 1 1.4-1.4l1.8 1.8 3.8-3.8a1 1 0 0 1 1.4 0z'/%3E%3C/svg%3E\")" }
@@ -302,8 +302,8 @@ export default function LoginPage() {
         />
         <span>
           阅读并同意
-          <Link href="/terms" className="mx-0.5 text-[#009456] hover:underline">《用户协议》</Link>
-          <Link href="/privacy" className="mx-0.5 text-[#009456] hover:underline">《隐私政策》</Link>
+          <Link href="/terms" className="mx-0.5 text-[#059669] hover:underline">《用户协议》</Link>
+          <Link href="/privacy" className="mx-0.5 text-[#059669] hover:underline">《隐私政策》</Link>
           ，未注册的账户登录后将自动注册
         </span>
       </label>
@@ -320,14 +320,14 @@ export default function LoginPage() {
         <>
           <div className="flex items-center justify-center gap-4 py-4">
             <div className="h-px flex-1 bg-[#eeeeee]" />
-            <span className="text-[10px] font-medium uppercase tracking-widest text-[#bbb]">或使用</span>
+            <span className="text-[11px] font-medium uppercase tracking-widest text-[#bbb]">或使用</span>
             <div className="h-px flex-1 bg-[#eeeeee]" />
           </div>
 
           <div className="flex gap-3">
             <Button
               variant="outline"
-              className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+              className="h-11 flex-1 rounded-[10px] border-[#e4e4e7] bg-white text-[#555] transition-all hover:bg-[#f7f7f8] hover:text-black"
               onClick={() => window.location.href = "/api/auth/alipay/login"}
             >
               <Image src="/alipay.svg" alt="Alipay" width={16} height={16} className="mr-1.5 h-4 w-4 opacity-80" />
@@ -335,7 +335,7 @@ export default function LoginPage() {
             </Button>
             <Button
               variant="outline"
-              className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+              className="h-11 flex-1 rounded-[10px] border-[#e4e4e7] bg-white text-[#555] transition-all hover:bg-[#f7f7f8] hover:text-black"
               onClick={() => window.location.href = "/api/auth/qq/login"}
             >
               <svg className="mr-1.5 h-4 w-4 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
@@ -349,14 +349,14 @@ export default function LoginPage() {
 
       <p className="pt-4 text-center text-xs font-medium text-[#999]">
         还没有账户？{" "}
-        <Link href="/register" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#009456]">
+        <Link href="/register" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#059669]">
           立即注册
         </Link>
       </p>
 
       {/* Warning / Verification Dialog（Radix portal，渲染在 body 层，嵌套位置不影响呈现） */}
       <Dialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
-        <DialogContent className="sm:max-w-md bg-white border-[#e5e5e0] text-[#1a1a1a] shadow-2xl rounded-2xl">
+        <DialogContent className="sm:max-w-md bg-white border-[#e5e5e0] text-[#1a1a1a] shadow-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
               <span className="relative flex h-3 w-3">

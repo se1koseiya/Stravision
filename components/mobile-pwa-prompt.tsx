@@ -64,64 +64,64 @@ export function MobilePwaPrompt() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-[101] p-4 pb-8"
           >
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-2xl border border-black/5 dark:border-white/10 relative overflow-hidden">
+            <div className="bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-lg border border-black/5 dark:border-white/10 relative overflow-hidden">
               {/* Close Button */}
               <button 
                 onClick={handleDismiss}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
-                <IconClose className="w-5 h-5 text-slate-400" />
+                <IconClose className="w-5 h-5 text-zinc-400" />
               </button>
 
               <div className="flex flex-col items-center text-center space-y-4">
                 {/* Icon */}
-                <div className="w-16 h-16 bg-white rounded-[1.2rem] shadow-md border border-slate-100 dark:border-slate-800 p-1 mb-2">
+                <div className="w-16 h-16 bg-white rounded-[1.2rem] shadow-sm border border-zinc-100 dark:border-zinc-800 p-1 mb-2">
                     <img src="/logo.png" alt="App Icon" className="w-full h-full object-contain rounded-[0.8rem]" />
                 </div>
 
                 <div className="space-y-1">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
                     添加到主屏幕
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-[260px] mx-auto leading-relaxed">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-[260px] mx-auto leading-relaxed">
                     为了获得最佳的全屏体验，请将 Stravision 添加到您的主屏幕。
                   </p>
                 </div>
 
                 {/* Steps */}
-                <div className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 mt-2 text-left space-y-3 border border-slate-100 dark:border-white/5">
+                <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 mt-2 text-left space-y-3 border border-zinc-100 dark:border-white/5">
                   {platform === 'ios' ? (
                     <>
-                      <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">1</span>
-                        <span>点击浏览器底部的 <IconShare className="w-4 h-4 inline mx-1 text-blue-500" /> 分享按钮</span>
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-bold shrink-0">1</span>
+                        <span>点击浏览器底部的 <IconShare className="w-4 h-4 inline mx-1 text-emerald-500" /> 分享按钮</span>
                       </div>
-                      <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 ml-3" />
-                      <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">2</span>
+                      <div className="w-px h-3 bg-zinc-200 dark:bg-zinc-700 ml-3" />
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-bold shrink-0">2</span>
                         <span>向下滑动并选择 <span className="font-bold">"添加到主屏幕"</span></span>
                       </div>
-                      <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 ml-3" />
-                      <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">3</span>
-                        <span>点击右上角的 <span className="font-bold text-blue-500">添加</span> 即可完成</span>
+                      <div className="w-px h-3 bg-zinc-200 dark:bg-zinc-700 ml-3" />
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-bold shrink-0">3</span>
+                        <span>点击右上角的 <span className="font-bold text-emerald-500">添加</span> 即可完成</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">1</span>
-                        <span>点击浏览器右上角的 <IconMore className="w-4 h-4 inline mx-1 text-slate-500" /> 菜单按钮</span>
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-bold shrink-0">1</span>
+                        <span>点击浏览器右上角的 <IconMore className="w-4 h-4 inline mx-1 text-zinc-500" /> 菜单按钮</span>
                       </div>
-                      <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 ml-3" />
-                      <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">2</span>
+                      <div className="w-px h-3 bg-zinc-200 dark:bg-zinc-700 ml-3" />
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-bold shrink-0">2</span>
                         <span>选择 <span className="font-bold">"安装应用"</span> 或 <span className="font-bold">"添加到主屏幕"</span></span>
                       </div>
-                      <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 ml-3" />
-                      <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs font-bold shrink-0">3</span>
-                        <span>点击 <span className="font-bold text-blue-500">安装</span> 即可完成</span>
+                      <div className="w-px h-3 bg-zinc-200 dark:bg-zinc-700 ml-3" />
+                      <div className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs font-bold shrink-0">3</span>
+                        <span>点击 <span className="font-bold text-emerald-500">安装</span> 即可完成</span>
                       </div>
                     </>
                   )}
@@ -130,7 +130,7 @@ export function MobilePwaPrompt() {
                 <Button 
                   variant="ghost" 
                   onClick={handleDismiss}
-                  className="w-full rounded-xl h-12 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-white/5"
+                  className="w-full rounded-xl h-12 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:hover:bg-white/5"
                 >
                   暂不添加
                 </Button>
@@ -138,7 +138,7 @@ export function MobilePwaPrompt() {
               
               {/* Arrow pointing to share button (approximate position for iOS) */}
               {platform === 'ios' && (
-                <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-6 h-6 bg-white dark:bg-slate-900 rotate-45 border-r border-b border-black/5 dark:border-white/10 hidden md:hidden" />
+                <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-6 h-6 bg-white dark:bg-zinc-900 rotate-45 border-r border-b border-black/5 dark:border-white/10 hidden md:hidden" />
               )}
               {/* Arrow for Android (top right) - usually not easy to point to, so omitting */}
             </div>

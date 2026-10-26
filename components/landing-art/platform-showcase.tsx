@@ -38,13 +38,13 @@ export function PlatformShowcase() {
           {screenshots.map((shot, index) => (
             <div 
               key={index}
-              className="relative flex-shrink-0 w-[80vw] md:w-[60vw] aspect-video rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-[#0a0a0a] group"
+              className="relative flex-shrink-0 w-[80vw] md:w-[60vw] aspect-video rounded-xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-[#0A0A0A] group"
             >
               <Image
                 src={shot.src}
                 alt={shot.title}
                 fill
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
                 quality={90}
               />
               

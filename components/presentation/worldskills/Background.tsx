@@ -21,7 +21,7 @@ export const StoryBackground = ({ mode = "default" }: BackgroundProps) => {
       )}>
         {/* Top Center Light Source */}
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[80vw] h-[40vw] bg-white/[0.03] blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-blue-900/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-emerald-900/10 blur-[150px] rounded-full" />
       </div>
 
       {/* Mode: Crisis (Red Alert - But Elegant) */}

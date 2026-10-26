@@ -108,7 +108,7 @@ function StepPreview({ step, direction }: { step: Step; direction: 1 | -1 }) {
   return (
     <motion.div
       {...slideInOut(direction)}
-      className="relative h-full w-full   overflow-hidden rounded-sm rounded-rb-lg rounded-tl-xl ring-2 ring-black/10 dark:ring-black/10 dark:ring-offset-black ring-offset-8"
+      className="relative h-full w-full   overflow-hidden rounded-lg rounded-rb-lg rounded-tl-xl ring-2 ring-black/10 dark:ring-black/10 dark:ring-offset-black ring-offset-8"
     >
       {step.media ? (
         <div className="relative bg-black h-full w-full">

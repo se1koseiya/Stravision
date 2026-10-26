@@ -92,7 +92,7 @@ export default function ChartRenderer({ options, style, className }: ChartRender
           xField={xField}
           yField={yField}
           shape="smooth"
-          point={{ style: { fill: '#1677ff', r: 3 } }}
+          point={{ style: { fill: '#059669', r: 3 } }}
           autoFit
         />
       </div>

@@ -31,20 +31,20 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
       case 'toggle_relay':
         const deviceName = input?.deviceName || `设备${input?.device}`
         let icon = IconPower
-        let color = 'text-blue-500 dark:text-blue-400'
-        let accentColor = 'bg-blue-500'
-        let bgGradient = 'from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/5'
+        let color = 'text-emerald-500 dark:text-emerald-400'
+        let accentColor = 'bg-emerald-500'
+        let bgGradient = 'from-emerald-500/5 to-cyan-500/5 dark:from-emerald-500/10 dark:to-cyan-500/5'
         
         if (deviceName.includes('风扇')) {
           icon = IconFan
           color = 'text-cyan-500 dark:text-cyan-400'
           accentColor = 'bg-cyan-500'
-          bgGradient = 'from-cyan-500/5 to-blue-500/5 dark:from-cyan-500/10 dark:to-blue-500/5'
+          bgGradient = 'from-cyan-500/5 to-emerald-500/5 dark:from-cyan-500/10 dark:to-emerald-500/5'
         } else if (deviceName.includes('水泵')) {
           icon = IconWater
-          color = 'text-blue-500 dark:text-blue-400'
-          accentColor = 'bg-blue-500'
-          bgGradient = 'from-blue-500/5 to-indigo-500/5 dark:from-blue-500/10 dark:to-indigo-500/5'
+          color = 'text-emerald-500 dark:text-emerald-400'
+          accentColor = 'bg-emerald-500'
+          bgGradient = 'from-emerald-500/5 to-indigo-500/5 dark:from-emerald-500/10 dark:to-indigo-500/5'
         } else if (deviceName.includes('补光灯')) {
           icon = IconLight
           color = 'text-amber-500 dark:text-amber-400'
@@ -90,10 +90,10 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "relative rounded-3xl overflow-hidden transition-all duration-500",
+        "relative rounded-2xl overflow-hidden transition-all duration-500",
         "bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-950",
         "border border-zinc-200/50 dark:border-white/5",
-        "shadow-2xl shadow-black/5 dark:shadow-black/20",
+        "shadow-lg shadow-black/5 dark:shadow-black/20",
         className
       )}
     >
@@ -107,7 +107,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
       <div className="absolute top-6 right-6 z-10">
         <div className={cn(
           "size-3 rounded-full shadow-lg",
-          isExecuting && "bg-blue-500 animate-pulse shadow-blue-500/50",
+          isExecuting && "bg-emerald-500 animate-pulse shadow-emerald-500/50",
           isSuccess && "bg-primary shadow-emerald-500/50",
           isError && "bg-red-500 shadow-red-500/50"
         )} />
@@ -141,9 +141,9 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                 "size-32 rounded-full flex items-center justify-center",
                 "bg-white/80 dark:bg-gradient-to-br dark:from-white/10 dark:to-white/5",
                 "border border-zinc-200 dark:border-white/10",
-                "backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/20"
+                "backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20"
               )}>
-                <Icon className={cn("size-16", deviceInfo.color)} strokeWidth={1.5} />
+                <Icon className={cn("size-16", deviceInfo.color)} strokeWidth={2} />
               </div>
               
               {/* Status Badge */}
@@ -151,7 +151,7 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="absolute -bottom-2 -right-2 size-10 rounded-full bg-blue-500 flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
+                  className="absolute -bottom-2 -right-2 size-10 rounded-full bg-emerald-500 flex items-center justify-center border-4 border-zinc-100 dark:border-zinc-900 shadow-lg"
                 >
                   <IconLoading className="size-5 text-white" />
                 </motion.div>
@@ -219,13 +219,13 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
               {/* B Channel */}
               <div className="rounded-2xl bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-3 backdrop-blur-sm shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="size-2 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50" />
+                  <div className="size-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
                   <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Blue</span>
                 </div>
                 <div className="text-2xl font-bold text-zinc-900 dark:text-white">{input.b}</div>
                 <div className="mt-2 h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                   <div 
-                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                     style={{ width: `${(input.b / 255) * 100}%` }}
                   />
                 </div>
@@ -292,18 +292,18 @@ export function DeviceControlDisplay({ toolName, input, result, className }: Dev
               "rounded-2xl p-4 backdrop-blur-sm border shadow-sm",
               isSuccess && "bg-primary/10 dark:bg-primary/20 border-primary/20 dark:border-primary/30",
               isError && "bg-red-500/10 dark:bg-red-500/20 border-red-500/20 dark:border-red-500/30",
-              isExecuting && "bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/20 dark:border-blue-500/30"
+              isExecuting && "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20 dark:border-emerald-500/30"
             )}
           >
             <div className="flex items-center gap-3">
-              {isExecuting && <IconLoading className="size-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0" />}
+              {isExecuting && <IconLoading className="size-4 text-emerald-600 dark:text-emerald-400 animate-spin flex-shrink-0" />}
               {isSuccess && <IconCheckOne className="size-4 text-primary dark:text-emerald-400 flex-shrink-0" />}
               {isError && <IconCloseOne className="size-4 text-red-600 dark:text-red-400 flex-shrink-0" />}
               <p className={cn(
                 "text-sm font-medium",
                 isSuccess && "text-emerald-700 dark:text-emerald-300",
                 isError && "text-red-700 dark:text-red-300",
-                isExecuting && "text-blue-700 dark:text-blue-300"
+                isExecuting && "text-emerald-700 dark:text-emerald-300"
               )}>
                 {result.message}
               </p>

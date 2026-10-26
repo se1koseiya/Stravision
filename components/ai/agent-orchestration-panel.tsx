@@ -24,8 +24,8 @@ interface AgentOrchestrationPanelProps {
 const AGENT_CONFIG = {
   planner: {
     icon: IconBrain,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
     label: '规划',
   },
   executor: {
@@ -90,7 +90,7 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
             <IconRobot className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
             {isActive && (
               <motion.div
-                className="absolute -inset-1 bg-blue-500/20 rounded-full"
+                className="absolute -inset-1 bg-emerald-500/20 rounded-full"
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
@@ -125,7 +125,7 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
       <div className="px-4 pb-2">
         <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+            className="h-full bg-gradient-to-r from-emerald-500 to-purple-500"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5 }}
@@ -158,7 +158,7 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
                     transition={{ delay: index * 0.1 }}
                     className={cn(
                       "flex items-start gap-3 p-3 rounded-xl transition-all",
-                      isActive && "bg-blue-50/50 dark:bg-blue-900/10 ring-1 ring-blue-500/20",
+                      isActive && "bg-emerald-50/50 dark:bg-emerald-900/10 ring-1 ring-emerald-500/20",
                       isCompleted && "opacity-60"
                     )}
                   >
@@ -197,9 +197,9 @@ export function AgentOrchestrationPanel({ steps, isActive, className }: AgentOrc
                       
                       {isActive && (
                         <div className="flex items-center gap-1 mt-2">
-                          <div className="w-1 h-1 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-1 h-1 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-1 h-1 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                       )}
                     </div>

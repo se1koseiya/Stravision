@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/ui/feedback'
 
 export interface ControlCommand {
   type: 'relay' | 'led' | 'stepper' | 'stepper_reset' | 'stepper_preset'

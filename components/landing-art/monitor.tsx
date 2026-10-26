@@ -39,7 +39,7 @@ function BrowserWindow({ children }: { children: React.ReactNode }) {
   return (
     <div className="w-full mx-auto group relative">
       {/* 极光边缘发光特效 - 清新透亮版 */}
-      <div className="absolute -inset-[2px] bg-gradient-to-r from-emerald-300/40 via-teal-200/40 to-blue-300/40 rounded-[2rem] blur-xl opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute -inset-[2px] bg-gradient-to-r from-emerald-300/40 via-teal-200/40 to-emerald-300/40 rounded-[2rem] blur-xl opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
 
       <div className="relative rounded-[2rem] bg-white/70 backdrop-blur-3xl border border-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-500 ring-1 ring-black/5">
 
@@ -60,7 +60,7 @@ function BrowserWindow({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Content Area - Scrollable Fake Window */}
-        <div className="bg-[#f8fafc] relative z-0 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ height: 'min(calc(100vh - 8rem), 800px)' }}>
+        <div className="bg-[#fafafa] relative z-0 overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ height: 'min(calc(100vh - 8rem), 800px)' }}>
           {children}
         </div>
       </div>
@@ -129,7 +129,7 @@ export function Monitor() {
   const handleSendMessage = (msg: string) => console.log("Sending command:", msg)
 
   return (
-    <section ref={containerRef} className="relative h-[150vh] bg-gradient-to-b from-[#F2F2F0] via-white to-slate-50">
+    <section ref={containerRef} className="relative h-[150vh] bg-gradient-to-b from-[#F2F2F0] via-white to-zinc-50">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
 
         {/* ================= LAYER 1: THE WHITE WORLD ================= */}
@@ -173,7 +173,7 @@ export function Monitor() {
             className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center"
             style={{ perspective: '1200px' }}
           >
-            <div className="relative w-full h-full max-w-[1600px] mx-auto" style={{ transformStyle: 'preserve-3d' }}>
+            <div className="relative w-full h-full max-w-[1400px] mx-auto" style={{ transformStyle: 'preserve-3d' }}>
               {floatCards.map((card, i) => (
                 <motion.div
                   key={i}

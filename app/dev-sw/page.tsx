@@ -10,7 +10,7 @@ export default function DevSwPage() {
         .ai-assistant-page svg[width="12"] { stroke-width: 2; }
       `}</style>
       <IconCompass size={16} strokeWidth={2} />
-      <IconFileText size={14} strokeWidth={1.5} />
+      <IconFileText size={14} strokeWidth={2} />
       <IconDown size={12} strokeWidth={2} />
     </div>
   )

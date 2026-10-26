@@ -15,10 +15,10 @@ import {
 } from "./weather-visualizations"
 import { WeatherEffects } from "./weather-effects"
 import { useWeatherVideo, WeatherVideoBackground } from "./weather-video"
+import { getSkyRamp, skyGradient } from "./weather-sky"
 import { IconDashboard, IconLocalPin, IconNavigation, IconPreviewOpen, IconThermometer, IconWater, IconWind } from "@/components/icon";
 
 const A = BERRY_THEME.apple
-const WC = A.widgetColors.weather
 const ICON_STROKE = 1.75
 
 interface WeatherWidgetProps {
@@ -40,16 +40,11 @@ interface WeatherWidgetProps {
   onLongPress?: (e: React.TouchEvent | React.MouseEvent, id: string) => void
 }
 
-function getGradient(condition: string): [string, string, string] {
-  const c = condition.toLowerCase()
-  if (c.includes('thunder') || c.includes('雷')) return ['#3730a3', '#4338ca', '#6366f1']
-  if (c.includes('snow') || c.includes('雪')) return ['#7dd3fc', '#bae6fd', '#e0f2fe']
-  if (c.includes('rain') || c.includes('drizzle') || c.includes('雨')) return ['#1e40af', '#3b82f6', '#60a5fa']
-  if (c.includes('cloud') || c.includes('overcast') || c.includes('阴') || c.includes('多云')) return ['#475569', '#64748b', '#94a3b8']
-  if (c.includes('fog') || c.includes('mist') || c.includes('雾')) return ['#64748b', '#94a3b8', '#cbd5e1']
-  // Clear/sunny — warm sunset gradient
-  return ['#0ea5e9', '#38bdf8', '#7dd3fc']
-}
+/**
+ * 天气色相板已抽到 ./weather-sky（唯一来源）。
+ * ⚠️ 原先这里也有一份 getGradient，与 weather-forecast-widget.tsx 那份**内容不一致**，
+ *    且同样把「小雨」写成 #1e40af → #059669 的蓝绿对撞。现在两处都读 weather-sky。
+ */
 
 function generateHourlyData(temp: number, condition: string, windSpeed: number, windDir: number | string): HourlyData[] {
   const hours: HourlyData[] = []
@@ -99,7 +94,8 @@ export function WeatherWidget({
   const WeatherIcon = config.icon
   const isSmall = size === 'small'
   const isLarge = size === 'large'
-  const gradient = getGradient(condition)
+  // 与 7 日预报卡同一色相板（weather-sky 唯一来源）—— 同一场天气在两张卡上必须是同一个颜色
+  const ramp = getSkyRamp(condition, isNight)
 
   const heroSize = isElderFriendlyMode
     ? (isSmall ? 32 : isLarge ? 52 : 44)
@@ -115,30 +111,27 @@ export function WeatherWidget({
   // Randomly use weather video background (80% chance)
   const video = useWeatherVideo(condition, 0.8)
 
-  // ─── Gradient / video background with decorative elements ───
+  // ─── Sky background with light direction ───
+  /* 与 7 日预报卡同构：同色相天空 + 上缘受光 + 地平线柔光 + 一枚光源光斑。
+     旧版那两个白色模糊球只是"随便加点装饰"，在同色相画面里反而成了脏点。 */
   const gradientBg = (
-    <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', overflow: 'hidden', background: `linear-gradient(145deg, ${gradient[0]} 0%, ${gradient[1]} 50%, ${gradient[2]} 100%)` }}>
-      {video.enabled && <WeatherVideoBackground src={video.src} overlayOpacity={0.4} />}
-      {/* Decorative blurred orbs */}
+    <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', overflow: 'hidden', background: skyGradient(ramp) }}>
+      {video.enabled && <WeatherVideoBackground src={video.src} overlayOpacity={0.6} tintDeep={ramp.stops[2]} />}
       <div style={{
-        position: 'absolute',
-        top: isLarge ? -40 : -20,
-        right: isLarge ? -30 : -15,
-        width: isLarge ? 160 : 90,
-        height: isLarge ? 160 : 90,
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.12)',
-        filter: 'blur(20px)',
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,.04) 28%, transparent 56%)',
       }} />
       <div style={{
-        position: 'absolute',
-        bottom: isLarge ? -30 : -15,
-        left: isLarge ? -20 : -10,
-        width: isLarge ? 120 : 70,
-        height: isLarge ? 120 : 70,
+        position: 'absolute', left: '-10%', right: '-10%', bottom: '-6%', height: '56%',
+        background: `radial-gradient(58% 100% at 50% 100%, ${ramp.stops[2]} 0%, transparent 72%)`,
+        opacity: 0.48,
+      }} />
+      <div style={{
+        position: 'absolute', top: isLarge ? -40 : -22, right: isLarge ? -30 : -16,
+        width: isLarge ? 170 : 100, height: isLarge ? 170 : 100,
         borderRadius: '50%',
-        background: 'rgba(255,255,255,0.08)',
-        filter: 'blur(16px)',
+        background: `radial-gradient(circle, ${ramp.accent} 0%, transparent 68%)`,
+        opacity: 0.20, filter: 'blur(10px)',
       }} />
       {!video.enabled && <WeatherEffects condition={condition} reduced={isSmall} />}
     </div>
@@ -156,11 +149,11 @@ export function WeatherWidget({
         onRemove={onRemove}
         onContextMenu={onContextMenu}
         onLongPress={onLongPress}
-        tint={WC.accent}
+        tint={ramp.accent}
       >
         <Flex vertical justify="space-between" style={{ height: '100%' }}>
           <Flex align="center" justify="space-between">
-            <WeatherIcon size={20} strokeWidth={1.5} color="rgba(255,255,255,0.9)" />
+            <WeatherIcon size={20} strokeWidth={2} color="rgba(255,255,255,0.9)" />
             <Flex align="center" gap={3}>
               <WidgetWindArrow direction={windDirection} size={11} color="rgba(255,255,255,0.7)" strokeWidth={2} />
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.7)', fontVariantNumeric: 'tabular-nums' }}>
@@ -226,13 +219,13 @@ export function WeatherWidget({
         onRemove={onRemove}
         onContextMenu={onContextMenu}
         onLongPress={onLongPress}
-        tint={WC.accent}
+        tint={ramp.accent}
       >
         <Flex vertical justify="space-between" style={{ height: '100%' }}>
           {/* Top: icon + condition + location */}
           <Flex align="center" justify="space-between">
             <Flex align="center" gap={6}>
-              <WeatherIcon size={18} strokeWidth={1.5} color="rgba(255,255,255,0.9)" />
+              <WeatherIcon size={18} strokeWidth={2} color="rgba(255,255,255,0.9)" />
               <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{condition}</span>
             </Flex>
             {location && (
@@ -301,7 +294,7 @@ export function WeatherWidget({
       onRemove={onRemove}
       onContextMenu={onContextMenu}
       onLongPress={onLongPress}
-      tint={WC.accent}
+      tint={ramp.accent}
     >
       <Flex vertical justify="space-between" style={{ height: '100%' }}>
         {/* Top row: current conditions + wind rose */}
@@ -309,7 +302,7 @@ export function WeatherWidget({
           {/* Left: main temp */}
           <Flex vertical gap={4} style={{ flex: 1 }}>
             <Flex align="center" gap={8}>
-              <WeatherIcon size={26} strokeWidth={1.5} color="rgba(255,255,255,0.95)" />
+              <WeatherIcon size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />
               <Flex vertical gap={1}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1 }}>{condition}</span>
                 {location && (

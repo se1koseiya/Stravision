@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Input, Card, Tag, Button, Select, Typography, Spin } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import type { AIProvider, ProviderModel } from "./ai-providers-manager"
 import { IconCheckOne, IconCloudStorage, IconEarth, IconFilter, IconFire, IconPreviewOpen, IconRobot, IconSearch, IconStar, IconThunderbolt } from "@/components/icon";
 
@@ -41,7 +41,7 @@ function ModelCard({
   return (
     <Card
       style={{
-        border: `1px solid ${hovered ? '#1677ff' : '#EDEEEF'}`,
+        border: `1px solid ${hovered ? '#059669' : '#EDEEEF'}`,
         opacity: !providerEnabled || !model.enabled ? 0.5 : 1,
         cursor: !providerEnabled ? "not-allowed" : "pointer",
         overflow: "hidden",
@@ -60,8 +60,8 @@ function ModelCard({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#F2F3F5",
-            color: model.enabled ? "#1677ff" : "#8F959E",
+            backgroundColor: "#F4F4F5",
+            color: model.enabled ? "#059669" : "#8F959E",
           }}>
             {getModelIcon(model.icon)}
           </div>
@@ -69,12 +69,12 @@ function ModelCard({
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Text strong style={{
                 fontSize: 14,
-                color: model.enabled ? "#1F2329" : "#8F959E",
+                color: model.enabled ? "#18181B" : "#8F959E",
               }}>
                 {model.name}
               </Text>
               {model.enabled ? (
-                <IconCheckOne style={{ color: "#52C41A", fontSize: 14 }} />
+                <IconCheckOne style={{ color: "#059669", fontSize: 14 }} />
               ) : (
                 <div style={{
                   width: 14,
@@ -225,7 +225,7 @@ export function ModelMarketplace() {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* 头部统计 */}
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1F2329", letterSpacing: "-0.025em", margin: 0 }}>AI 模型市场</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#18181B", letterSpacing: "-0.025em", margin: 0 }}>AI 模型市场</h2>
         <p style={{ fontSize: 14, color: "#8F959E", marginTop: 4 }}>
           浏览所有已配置提供商的可用模型，共 {stats.total} 个模型（{stats.enabled} 个启用中）
         </p>
@@ -244,7 +244,7 @@ export function ModelMarketplace() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ color: s.color }}>{s.icon}</div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#1F2329" }}>{s.value}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#18181B" }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: "#8F959E" }}>{s.label}</div>
               </div>
             </div>
@@ -364,13 +364,13 @@ export function ModelMarketplace() {
                 <span style={{ fontWeight: 500, color: "#646A73", minWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.name}
                 </span>
-                <div style={{ flex: 1, height: 8, backgroundColor: "#F2F3F5", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ flex: 1, height: 8, backgroundColor: "#F4F4F5", borderRadius: 4, overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%",
                       borderRadius: 4,
                       transition: "all 0.5s",
-                      backgroundColor: "#1677ff",
+                      backgroundColor: "#059669",
                       width: `${(p.models.length / Math.max(1, stats.total)) * 100}%`,
                     }}
                   />

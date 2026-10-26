@@ -14,6 +14,7 @@
  *   - 显示待处理邀请列表（可取消）
  */
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useEffect, useCallback, useRef } from "react"
 import {
   Avatar, Button, Modal, Input, Select, Empty, Spin, Tag,
@@ -84,11 +85,11 @@ function roleLabel(role: string): string {
 }
 
 function roleColor(role: string): string {
-  if (role === "owner") return "#fa8c16"
-  if (role === "admin") return "#1677ff"
-  if (role === "editor") return "#52c41a"
-  if (role === "viewer") return "#8c8c8c"
-  return "#8c8c8c"
+  if (role === "owner") return "#52525B"
+  if (role === "admin") return "#059669"
+  if (role === "editor") return "#059669"
+  if (role === "viewer") return "#8f959e"
+  return "#8f959e"
 }
 
 function roleIcon(role: string) {
@@ -106,7 +107,9 @@ export default function CollaboratorsPanel({
   className,
   onInvitationChange
 }: CollaboratorsPanelProps) {
-  const { message, modal } = AntApp.useApp()
+  const { modal } = AntApp.useApp()
+
+  const { message } = useFeedback()
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
@@ -315,7 +318,7 @@ export default function CollaboratorsPanel({
       {/* 待处理邀请：分组区（无分割线，靠背景 + 间距区分） */}
       {invitations.length > 0 && (
         <div className="mb-3 pb-3">
-          <div className="text-[11px] text-[#fa8c16] mb-1.5 flex items-center gap-1 font-medium">
+          <div className="text-[11px] text-[#52525B] mb-1.5 flex items-center gap-1 font-medium">
             <IconMail size={11} />
             <span>待处理邀请 · {invitations.length}</span>
           </div>
@@ -323,24 +326,24 @@ export default function CollaboratorsPanel({
             {invitations.map((inv) => (
               <div
                 key={inv.id}
-                className="flex items-center gap-2.5 px-2 py-1.5 rounded bg-white dark:bg-gray-900"
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded bg-white dark:bg-zinc-900"
               >
                 <Avatar size={24} src={inv.invitee_avatar || undefined}>
                   {(inv.invitee_name || "?").slice(0, 1).toUpperCase()}
                 </Avatar>
                 <div className="flex-1 min-w-0 flex items-center gap-1.5 text-[12px]">
                   <span className="font-medium truncate">{inv.invitee_name || "未知用户"}</span>
-                  <span className="text-gray-300 dark:text-zinc-700">·</span>
-                  <span style={{ color: "#fa8c16" }}>{roleLabel(inv.role)}</span>
-                  <span className="text-gray-300 dark:text-zinc-700">·</span>
-                  <span className="text-gray-500 dark:text-zinc-500">{timeAgo(inv.created_at)}</span>
+                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                  <span style={{ color: "#52525B" }}>{roleLabel(inv.role)}</span>
+                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                  <span className="text-zinc-500 dark:text-zinc-500">{timeAgo(inv.created_at)}</span>
                 </div>
                 {canManage && (
                   <Button
                     size="small"
                     type="text"
                     onClick={() => handleCancelInvitation(inv.id)}
-                    style={{ borderRadius: 4, height: 22, fontSize: 11, padding: "0 6px", color: "#ff4d4f" }}
+                    style={{ borderRadius: 4, height: 22, fontSize: 11, padding: "0 6px", color: "#DC2626" }}
                   >
                     撤销
                   </Button>
@@ -367,29 +370,29 @@ export default function CollaboratorsPanel({
               return (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
                 >
                   <Avatar size={28} src={c.avatar_url || undefined}>
                     {(c.username || "?").slice(0, 1).toUpperCase()}
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 text-[12.5px] leading-tight">
+                    <div className="flex items-center gap-1.5 text-[13px] leading-tight">
                       <span className="font-medium truncate">{c.username || "未知用户"}</span>
                       {isSelf && (
-                        <span className="text-[10px] text-gray-400">（你）</span>
+                        <span className="text-[11px] text-zinc-400">（你）</span>
                       )}
                     </div>
-                    <div className="text-[10.5px] text-gray-500 dark:text-zinc-500 truncate leading-tight mt-0.5">
+                    <div className="text-[11px] text-zinc-500 dark:text-zinc-500 truncate leading-tight mt-0.5">
                       {c.email}
                     </div>
                   </div>
                   <span
-                    className="inline-flex items-center gap-0.5 h-[18px] px-1.5 rounded text-[10.5px] font-medium shrink-0"
+                    className="inline-flex items-center gap-0.5 h-[18px] px-1.5 rounded text-[11px] font-medium shrink-0"
                     style={(() => {
                       const map: Record<string, { bg: string; color: string }> = {
-                        owner:   { bg: "rgba(250,140,22,0.10)", color: "#fa8c16" },
-                        admin:   { bg: "rgba(22,119,255,0.10)", color: "#1677ff" },
-                        editor:  { bg: "rgba(82,196,26,0.10)",  color: "#52c41a" },
+                        owner:   { bg: "rgba(250,140,22,0.10)", color: "#52525B" },
+                        admin:   { bg: "rgba(0,148,86,0.10)", color: "#059669" },
+                        editor:  { bg: "rgba(82,196,26,0.10)",  color: "#059669" },
                         viewer:  { bg: "rgba(0,0,0,0.06)",      color: "rgba(0,0,0,0.55)" }
                       }
                       const s = map[c.role] || map.viewer
@@ -464,7 +467,7 @@ export default function CollaboratorsPanel({
         <div className="space-y-4 py-2">
           {/* 用户选择（下拉列表 + 远程搜索） */}
           <div>
-            <div className="text-[12px] text-gray-600 dark:text-gray-400 mb-1">
+            <div className="text-[12px] text-zinc-600 dark:text-zinc-400 mb-1">
               选择用户（按邮箱、UID 或用户名搜索）
             </div>
             <Select
@@ -495,11 +498,11 @@ export default function CollaboratorsPanel({
                     <Spin size="small" />
                   </div>
                 ) : searchQuery ? (
-                  <div className="py-3 text-center text-[12px] text-gray-400">
+                  <div className="py-3 text-center text-[12px] text-zinc-400">
                     无匹配用户
                   </div>
                 ) : (
-                  <div className="py-3 text-center text-[12px] text-gray-400">
+                  <div className="py-3 text-center text-[12px] text-zinc-400">
                     输入至少 2 个字符开始搜索
                   </div>
                 )
@@ -514,7 +517,7 @@ export default function CollaboratorsPanel({
                       <div className="text-[13px] font-medium truncate">
                         {u.username}
                       </div>
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                         {u.email} · {u.uid}
                       </div>
                     </div>
@@ -527,7 +530,7 @@ export default function CollaboratorsPanel({
               style={{ width: "100%" }}
             />
             {selectedUser && (
-              <div className="mt-2 text-[12px] text-[#1677ff] flex items-center gap-1">
+              <div className="mt-2 text-[12px] text-[#059669] flex items-center gap-1">
                 <span>已选择：</span>
                 <span className="font-medium">{selectedUser.username}</span>
                 <Button
@@ -546,7 +549,7 @@ export default function CollaboratorsPanel({
 
           {/* 角色 */}
           <div>
-            <div className="text-[12px] text-gray-600 dark:text-gray-400 mb-1">
+            <div className="text-[12px] text-zinc-600 dark:text-zinc-400 mb-1">
               角色
             </div>
             <Select
@@ -555,7 +558,7 @@ export default function CollaboratorsPanel({
               options={ROLE_OPTIONS}
               className="w-full"
             />
-            <div className="text-[11px] text-gray-400 mt-1">
+            <div className="text-[11px] text-zinc-400 mt-1">
               {inviteRole === "admin" && "管理员：可邀请/移除其他协作者，可编辑所有文档"}
               {inviteRole === "editor" && "编辑者：可创建/编辑文档，不能管理协作者"}
               {inviteRole === "viewer" && "查看者：只能查看，不能编辑"}
@@ -564,7 +567,7 @@ export default function CollaboratorsPanel({
 
           {/* 留言 */}
           <div>
-            <div className="text-[12px] text-gray-600 dark:text-gray-400 mb-1">
+            <div className="text-[12px] text-zinc-600 dark:text-zinc-400 mb-1">
               邀请留言（可选）
             </div>
             <Input.TextArea

@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Card, Button, Typography, Flex, Form, InputNumber, Input, Select, Switch } from "antd"
+import { Card, Button, Typography, Flex, Form, InputNumber, Input, Select, Switch, ConfigProvider } from "antd"
+import { useTheme } from "next-themes"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { antdScopeTheme } from "@/lib/theme/antd-scope-theme"
 import { IconCheckOne } from "@/components/icon";
 
 const { Text, Paragraph } = Typography
@@ -90,6 +92,8 @@ export function CheckpointConfirm({
   isResolved = false,
   resolvedOptionId,
 }: CheckpointConfirmProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   const [selectedId, setSelectedId] = useState<string | undefined>(resolvedOptionId)
   const [form] = Form.useForm()
   const consequences = data.consequences || {}
@@ -164,202 +168,215 @@ export function CheckpointConfirm({
   }
 
   return (
-    <Card
-      size="small"
-      style={{
-        background: "#fff",
-        border: "1px solid #f0f0f0",
-        borderRadius: 10,
-        boxShadow: "none",
-        opacity: isResolved ? 0.7 : 1,
-      }}
-      styles={{ body: { padding: 16 } }}
-    >
-      {/* 头部：标题 + 类型小字 */}
-      <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 6 }}>
-        <Text strong style={{ fontSize: 14, color: "#262626" }}>
-          {data.title || "确认信息"}
-        </Text>
-        <Text style={{ fontSize: 11, color: "#bfbfbf" }}>
-          {TYPE_LABEL[data.type] || "确认"}
-        </Text>
-      </Flex>
+    <ConfigProvider theme={antdScopeTheme(isDark)}>
+      <Card
+        size="small"
+        /* HDS 沉浸光感 · 卡片档（2026-09-27）：外观交材质统一给。
+           旧写法 inline background:#fff / border / boxShadow 会整块盖掉材质的
+           低 alpha 底与 backdrop-filter → 卡片变成一块死白，光感全无。已移除，
+           只保留材质不接管的 borderRadius 与 resolved 态 opacity。 */
+        className="dc-mat dc-mat--regular dc-mat--neutral transition-colors"
+        style={{
+          borderRadius: 10,
+          opacity: isResolved ? 0.86 : 1,
+          transition: "opacity .2s ease",
+        }}
+        styles={{ body: { padding: 16 } }}
+      >
+        {/* 头部：标题 + 类型小字 */}
+        <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 6 }}>
+          <Text strong className="!text-zinc-800 dark:!text-zinc-100" style={{ fontSize: 14 }}>
+            {data.title || "确认信息"}
+          </Text>
+          <Text className="!text-zinc-400 dark:!text-zinc-500" style={{ fontSize: 11 }}>
+            {TYPE_LABEL[data.type] || "确认"}
+          </Text>
+        </Flex>
 
-      {/* 描述 */}
-      {data.description && (
-        <Paragraph
-          style={{
-            fontSize: 13,
-            color: "#8c8c8c",
-            marginBottom: 12,
-            lineHeight: 1.6,
-          }}
-        >
-          {data.description}
-        </Paragraph>
-      )}
+        {/* 描述 */}
+        {data.description && (
+          <Paragraph
+            className="text-zinc-500 dark:text-zinc-400"
+            style={{
+              fontSize: 13,
+              marginBottom: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            {data.description}
+          </Paragraph>
+        )}
 
-      {/* 当前操作 */}
-      {data.current_operation && (
-        <div
-          style={{
-            padding: "8px 10px",
-            background: "#fafafa",
-            borderRadius: 6,
-            border: "1px solid #f0f0f0",
-            marginBottom: 12,
-          }}
-        >
-          <Text style={{ fontSize: 11, color: "#8c8c8c" }}>即将执行</Text>
-          <div style={{ fontSize: 13, color: "#262626", marginTop: 2 }}>
-            {data.current_operation}
+        {/* 当前操作 */}
+        {data.current_operation && (
+          <div
+            className="bg-zinc-100/70 dark:bg-white/[0.05] border border-zinc-200/70 dark:border-white/10"
+            style={{
+              padding: "8px 10px",
+              borderRadius: 6,
+              marginBottom: 12,
+            }}
+          >
+            <Text className="!text-zinc-500 dark:!text-zinc-400" style={{ fontSize: 11 }}>即将执行</Text>
+            <div className="text-zinc-800 dark:text-zinc-100" style={{ fontSize: 13, marginTop: 2 }}>
+              {data.current_operation}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 缺失参数（仅 missing_info 类型且未提供 param_fields 时展示纯文本列表） */}
-      {data.type === "missing_info" && data.missing_params && data.missing_params.length > 0 && !hasForm && (
-        <div style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, color: "#595959" }}>缺失参数：</Text>
-          <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
-            {data.missing_params.map((p, i) => (
-              <li key={i} style={{ fontSize: 12, color: "#8c8c8c", lineHeight: 1.8 }}>{p}</li>
+        {/* 缺失参数（仅 missing_info 类型且未提供 param_fields 时展示纯文本列表） */}
+        {data.type === "missing_info" && data.missing_params && data.missing_params.length > 0 && !hasForm && (
+          <div style={{ marginBottom: 12 }}>
+            <Text className="!text-zinc-600 dark:!text-zinc-300" style={{ fontSize: 12 }}>缺失参数：</Text>
+            <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+              {data.missing_params.map((p, i) => (
+                <li key={i} className="text-zinc-500 dark:text-zinc-400" style={{ fontSize: 12, lineHeight: 1.8 }}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 参数表单 */}
+        {hasForm && (
+          <Form
+            form={form}
+            layout="vertical"
+            size="small"
+            disabled={isResolved}
+            style={{ marginBottom: 12 }}
+          >
+            {paramFields.map((field) => (
+              <Form.Item
+                key={field.key}
+                name={field.key}
+                label={
+                  <span className="text-zinc-800 dark:text-zinc-200" style={{ fontSize: 12 }}>
+                    {field.label}
+                    {field.unit && (
+                      <Text className="!text-zinc-400 dark:!text-zinc-500" style={{ fontSize: 11, marginLeft: 4, fontWeight: 400 }}>
+                        （{field.unit}）
+                      </Text>
+                    )}
+                  </span>
+                }
+                rules={field.required ? [{ required: true, message: `请填写${field.label}` }] : []}
+                help={field.help ? <span className="text-zinc-400 dark:text-zinc-500" style={{ fontSize: 11 }}>{field.help}</span> : undefined}
+                style={{ marginBottom: 12 }}
+              >
+                {renderField(field)}
+              </Form.Item>
             ))}
-          </ul>
-        </div>
-      )}
+          </Form>
+        )}
 
-      {/* 参数表单 */}
-      {hasForm && (
-        <Form
-          form={form}
-          layout="vertical"
-          size="small"
-          disabled={isResolved}
-          style={{ marginBottom: 12 }}
-        >
-          {paramFields.map((field) => (
-            <Form.Item
-              key={field.key}
-              name={field.key}
-              label={
-                <span style={{ fontSize: 12, color: "#262626" }}>
-                  {field.label}
-                  {field.unit && (
-                    <Text style={{ fontSize: 11, color: "#bfbfbf", marginLeft: 4, fontWeight: 400 }}>
-                      （{field.unit}）
+        {/* 后果评估（极简：仅可逆性 + 恢复成本，单行文字）*/}
+        {(consequences.reversibility || consequences.recovery_cost) && (
+          <div className="text-zinc-400 dark:text-zinc-500" style={{ marginBottom: 12, fontSize: 11 }}>
+            {consequences.reversibility && (
+              <span style={{ marginRight: 12 }}>
+                {REVERSIBILITY_LABEL[consequences.reversibility]}
+              </span>
+            )}
+            {consequences.recovery_cost && (
+              <span>{RECOVERY_COST_LABEL[consequences.recovery_cost]}</span>
+            )}
+          </div>
+        )}
+
+        {/* 选项按钮 */}
+        <Flex vertical gap={8}>
+          {options.map((opt) => {
+            const isSelected = selectedId === opt.id
+            const isCancel = opt.id === "CANCEL"
+            const isDisabled = isResolved && !isSelected
+
+            return (
+              <Button
+                key={opt.id}
+                block
+                disabled={isDisabled}
+                onClick={() => handleChoose(opt.id)}
+                className={
+                  isSelected
+                    ? "!border-emerald-500 dark:!border-emerald-400 !bg-emerald-50 dark:!bg-emerald-500/15"
+                    : "!border-zinc-200 dark:!border-white/10 !bg-white/60 dark:!bg-white/[0.06] hover:!border-zinc-300 dark:hover:!border-white/20"
+                }
+                style={{
+                  height: "auto",
+                  padding: "9px 12px",
+                  textAlign: "left",
+                  borderRadius: 8,
+                  opacity: isDisabled ? 0.5 : 1,
+                }}
+                type="text"
+              >
+                <Flex align="center" justify="space-between" gap={8}>
+                  <Flex vertical gap={0} style={{ minWidth: 0, flex: 1 }}>
+                    <Text
+                      className={
+                        isCancel
+                          ? "!text-red-500 dark:!text-red-400"
+                          : isSelected
+                            ? "!text-emerald-700 dark:!text-emerald-300"
+                            : "!text-zinc-800 dark:!text-zinc-100"
+                      }
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 400,
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                    {opt.description && (
+                      <Text className="!text-zinc-400 dark:!text-zinc-500" style={{ fontSize: 11, lineHeight: 1.4 }}>
+                        {opt.description}
+                      </Text>
+                    )}
+                  </Flex>
+                  {opt.recommended && !isSelected && (
+                    <Text className="!text-emerald-600 dark:!text-emerald-400" style={{ fontSize: 11, flexShrink: 0 }}>
+                      推荐
                     </Text>
                   )}
-                </span>
-              }
-              rules={field.required ? [{ required: true, message: `请填写${field.label}` }] : []}
-              help={field.help ? <span style={{ fontSize: 11, color: "#bfbfbf" }}>{field.help}</span> : undefined}
-              style={{ marginBottom: 12 }}
-            >
-              {renderField(field)}
-            </Form.Item>
-          ))}
-        </Form>
-      )}
-
-      {/* 后果评估（极简：仅可逆性 + 恢复成本，单行文字）*/}
-      {(consequences.reversibility || consequences.recovery_cost) && (
-        <div style={{ marginBottom: 12, fontSize: 11, color: "#bfbfbf" }}>
-          {consequences.reversibility && (
-            <span style={{ marginRight: 12 }}>
-              {REVERSIBILITY_LABEL[consequences.reversibility]}
-            </span>
-          )}
-          {consequences.recovery_cost && (
-            <span>{RECOVERY_COST_LABEL[consequences.recovery_cost]}</span>
-          )}
-        </div>
-      )}
-
-      {/* 选项按钮 */}
-      <Flex vertical gap={8}>
-        {options.map((opt) => {
-          const isSelected = selectedId === opt.id
-          const isCancel = opt.id === "CANCEL"
-          const isDisabled = isResolved && !isSelected
-
-          return (
-            <Button
-              key={opt.id}
-              block
-              disabled={isDisabled}
-              onClick={() => handleChoose(opt.id)}
-              style={{
-                height: "auto",
-                padding: "9px 12px",
-                textAlign: "left",
-                borderRadius: 8,
-                border: `1px solid ${isSelected ? BERRY_THEME.primary : "#f0f0f0"}`,
-                background: isSelected ? BERRY_THEME.primaryLight : "#fff",
-                opacity: isDisabled ? 0.5 : 1,
-              }}
-              type="text"
-            >
-              <Flex align="center" justify="space-between" gap={8}>
-                <Flex vertical gap={0} style={{ minWidth: 0, flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 400,
-                      color: isCancel ? BERRY_THEME.status.error : "#262626",
-                    }}
-                  >
-                    {opt.label}
-                  </Text>
-                  {opt.description && (
-                    <Text style={{ fontSize: 11, color: "#bfbfbf", lineHeight: 1.4 }}>
-                      {opt.description}
-                    </Text>
+                  {isSelected && (
+                    <IconCheckOne
+                      size={14}
+                      strokeWidth={ICON_STROKE}
+                      color={BERRY_THEME.primary}
+                      style={{ flexShrink: 0 }}
+                    />
                   )}
                 </Flex>
-                {opt.recommended && !isSelected && (
-                  <Text style={{ fontSize: 11, color: BERRY_THEME.primary, flexShrink: 0 }}>
-                    推荐
-                  </Text>
-                )}
-                {isSelected && (
-                  <IconCheckOne
-                    size={14}
-                    strokeWidth={ICON_STROKE}
-                    color={BERRY_THEME.primary}
-                    style={{ flexShrink: 0 }}
-                  />
-                )}
-              </Flex>
-            </Button>
-          )
-        })}
-      </Flex>
+              </Button>
+            )
+          })}
+        </Flex>
 
-      {/* 已决状态提示 */}
-      {isResolved && selectedId && (
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 11,
-            color: "#bfbfbf",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <IconCheckOne size={12} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
-          <span>已确认：{options.find((o) => o.id === selectedId)?.label || selectedId}</span>
-        </div>
-      )}
+        {/* 已决状态提示 */}
+        {isResolved && selectedId && (
+          <div
+            className="text-zinc-400 dark:text-zinc-500"
+            style={{
+              marginTop: 10,
+              fontSize: 11,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <IconCheckOne size={12} strokeWidth={ICON_STROKE} color={BERRY_THEME.status.success} />
+            <span>已确认：{options.find((o) => o.id === selectedId)?.label || selectedId}</span>
+          </div>
+        )}
 
-      {/* 关联任务 */}
-      {data.task_list_ref && (
-        <div style={{ marginTop: 8, fontSize: 11, color: "#d9d9d9" }}>
-          关联任务：{data.task_list_ref}
-        </div>
-      )}
-    </Card>
+        {/* 关联任务 */}
+        {data.task_list_ref && (
+          <div className="text-zinc-300 dark:text-zinc-600" style={{ marginTop: 8, fontSize: 11 }}>
+            关联任务：{data.task_list_ref}
+          </div>
+        )}
+      </Card>
+    </ConfigProvider>
   )
 }
 

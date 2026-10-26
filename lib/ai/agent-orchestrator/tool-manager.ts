@@ -11,6 +11,14 @@
 
 import { ToolCall, ToolResult, Action } from './types';
 import { executeMCPToolCall, type AgentToolContext } from '@/lib/mcp/mcp-tool-executor';
+// 超时 / 重试 / 禁重试集合的唯一来源（lib/ai/agent-budget.ts）
+import {
+  TOOL_DEFAULT_TIMEOUT_MS,
+  TOOL_MAX_RETRIES,
+  TOOL_RETRY_DELAY_MS,
+  TOOL_TIMEOUT_OVERRIDES,
+  NO_RETRY_TOOLS,
+} from '../agent-budget';
 
 export interface ToolExecutionConfig {
   maxRetries: number;
@@ -20,59 +28,11 @@ export interface ToolExecutionConfig {
 }
 
 export const DEFAULT_TOOL_CONFIG: ToolExecutionConfig = {
-  maxRetries: 2,
-  retryDelay: 1000,
-  timeout: 60000,
+  maxRetries: TOOL_MAX_RETRIES,
+  retryDelay: TOOL_RETRY_DELAY_MS,
+  timeout: TOOL_DEFAULT_TIMEOUT_MS,
   enableLogging: true
 };
-
-/**
- * 按工具名覆盖超时配置
- *
- * 设备控制类工具涉及物理动作（电机移动/摄像头抓帧），需要更长超时：
- * - 电机满程 700mm 约 30-40s，加上轮询稳定时间需 90s+
- * - ffmpeg 抓帧最长 15s，但加上移动+组合操作需 120s
- * - 继电器/LED 近乎瞬时，给 10s 足够
- */
-const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {
-  // 设备控制（builtin-device-control）
-  toggle_relay: 10000,          // 继电器动作 + 状态确认
-  set_led: 8000,                // LED 设置 + 短暂等待
-  control_camera: 90000,        // 电机移动 + 位置稳定轮询
-  reset_camera: 90000,          // 电机复位 + 位置稳定轮询
-  take_camera_snapshot: 20000,  // ffmpeg 抓帧
-  move_camera_and_look: 120000, // 移动 + 截图组合
-  // 任务管理（builtin-agent-tasks）
-  update_task: 5000,            // 内存操作，应快速响应
-  // 深度研究（builtin-deep-research）：多轮 LLM + 搜索 + 抓正文，实测 1-3 分钟，给足 8 分钟
-  deep_research: 480000,
-  web_search: 30000,            // 单次联网检索应快速返回，卡住 30s 即视为失败
-  // 技能工坊（builtin-skill-forge）：分析→生成→彩排→评分多轮 LLM，最坏再跑 1 轮自动修订。
-  // 管线内部有 300s 总预算兜底（到点收敛输出草稿），外层给 7 分钟防止被默认 60s 打断。
-  // 注意：必须大于管线预算，否则预算还没兜住就被这里判超时。
-  create_skill_from_doc: 480000,
-  refine_skill: 480000,
-};
-
-/**
- * 设备控制类工具集合
- *
- * 这些工具禁止自动重试 —— MQTT 命令可能已经发出并执行，
- * 重试会导致重复发送指令（如重复开关继电器、重复移动电机）。
- */
-const NO_RETRY_TOOLS = new Set([
-  'toggle_relay', 'set_led', 'control_camera', 'reset_camera',
-  'take_camera_snapshot', 'move_camera_and_look',
-  // update_task 也禁止重试：状态变更已生效，重试会重复触发自动推进逻辑
-  'update_task',
-  // deep_research 禁止重试：Promise.race 超时不会取消后台执行，
-  // 研究可能在超时后仍完成入库，重试会导致重复研究 + 重复入库
-  'deep_research',
-  // 技能工坊禁止重试：同理，Promise.race 超时不取消后台管线，
-  // 重试会导致整条锻造管线重跑（多次 LLM 调用 + 可能重复注册技能）
-  'create_skill_from_doc',
-  'refine_skill',
-]);
 
 /**
  * 获取工具的超时时间（优先使用 override，否则用传入 config，最后用默认值）

@@ -163,13 +163,13 @@ export function FeatureAnnouncementDialog({
                     >
                         <button
                             onClick={handleClose}
-                            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-slate-700 hover:text-black transition-colors backdrop-blur-md"
+                            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-zinc-700 hover:text-black transition-colors backdrop-blur-md"
                         >
                             <IconClose className="w-4 h-4" />
                         </button>
 
                         {/* Media Area */}
-                        <div className="relative w-full h-[320px] bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="relative w-full h-[320px] bg-zinc-50 flex items-center justify-center overflow-hidden shrink-0">
                             <AnimatePresence custom={direction} mode="wait">
                                 <motion.div
                                     key={currentFeature.id}
@@ -243,10 +243,10 @@ export function FeatureAnnouncementDialog({
                                         transition={{ duration: 0.3, ease: "easeInOut" }}
                                         className="flex flex-col h-full"
                                     >
-                                        <h2 className="text-[24px] font-bold text-slate-900 tracking-tight leading-snug mb-3">
+                                        <h2 className="text-[24px] font-bold text-zinc-900 tracking-tight leading-snug mb-3">
                                             {currentFeature.title}
                                         </h2>
-                                        <p className="text-[15px] text-slate-500 leading-relaxed mb-6">
+                                        <p className="text-[14px] text-zinc-500 leading-relaxed mb-6">
                                             {currentFeature.description}
                                         </p>
                                     </motion.div>
@@ -264,7 +264,7 @@ export function FeatureAnnouncementDialog({
                                                     "h-1.5 rounded-full transition-all duration-300",
                                                     idx === currentIndex
                                                         ? "w-4 bg-[#1c1c1c]"
-                                                        : "w-1.5 bg-slate-200"
+                                                        : "w-1.5 bg-zinc-200"
                                                 )}
                                             />
                                         ))}
@@ -274,7 +274,7 @@ export function FeatureAnnouncementDialog({
                                     {!isFirst && features.length > 1 && (
                                         <button
                                             onClick={handlePrev}
-                                            className="px-4 py-2.5 rounded-[12px] text-slate-600 font-medium hover:bg-slate-100 transition-colors text-[14px] flex items-center justify-center"
+                                            className="px-4 py-2.5 rounded-[12px] text-zinc-600 font-medium hover:bg-zinc-100 transition-colors text-[14px] flex items-center justify-center"
                                         >
                                             <IconLeft className="w-4 h-4 mr-1" /> 上一个
                                         </button>
@@ -282,7 +282,7 @@ export function FeatureAnnouncementDialog({
 
                                     <button
                                         onClick={handleNext}
-                                        className="px-7 py-2.5 rounded-[12px] bg-[#1c1c1c] hover:bg-black text-white font-medium shadow-md shadow-black/10 transition-all active:scale-95 text-[15px] flex items-center justify-center min-w-[120px]"
+                                        className="px-7 py-2.5 rounded-[12px] bg-[#1c1c1c] hover:bg-black text-white font-medium shadow-sm shadow-black/10 transition-all active:scale-95 text-[14px] flex items-center justify-center min-w-[120px]"
                                     >
                                         {isLast ? "知道了" : (
                                             <>

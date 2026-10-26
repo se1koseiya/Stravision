@@ -22,3 +22,16 @@ Stravision (莓界) is an intelligent agriculture IoT platform that integrates:
 
 The name "Stravision" and the brand "莓界" are trademarks of the Stravision Team.
 This License does not grant permission to use the trademarks without prior authorization.
+
+---
+
+Third-party binaries bundled in the desktop installer (resources/ffmpeg/):
+
+- FFmpeg (https://ffmpeg.org), static build "ffmpeg version 6.1.1-essentials_build-www.gyan.dev"
+  Licensed under the GNU General Public License v3 (see resources/ffmpeg/<platform>/LICENSE.txt).
+  It is distributed as an unmodified, separate executable invoked via command line for
+  RTMP → HTTP-FLV live-camera transcoding and AI camera frame capture. Corresponding source
+  code is available from https://ffmpeg.org/download.html and https://www.gyan.dev/ffmpeg/builds/.
+  Builds are fetched by scripts/desktop/fetch-ffmpeg.mjs; an LGPL build can be substituted by
+  pointing DESKTOP_FFMPEG_MIRROR / STRAVISION_FFMPEG_PATH at it.
+

@@ -14,7 +14,7 @@ import { IconArrowRightUp, IconClose, IconHamburgerButton, IconMoon, IconSun } f
    滚动后：收成悬浮胶囊 —— 高 4.5rem、宽 min(100% - 10rem, 80rem)、
           圆角 1.25rem、backdrop-blur(1.25rem) saturate(1.12)、
           bg 白 78%、box-shadow 0 0.75rem 2.5rem rgba(0,0,0,.12) + 内高光
-   链接：14px / 中等字重 / 灰 #696969，hover 浅底 + 转墨色
+   链接：14px / 中等字重 / 灰 #646A73，hover 浅底 + 转墨色
    CTA ：emerald-300 底墨字胶囊（h-11 px-6），hover 上移 2px + 变亮 + 阴影
    菜单组绝对居中（left-1/2），不随左右两列宽度漂移；固定 gap-1 均分间距
    ------------------------------------------------------------ */

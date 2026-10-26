@@ -176,8 +176,8 @@ export default function KbOnlyOfficeEditor({
           }}
         >
           <div style={{ textAlign: "center", padding: "0 24px", maxWidth: 420 }}>
-            <IconFileText style={{ fontSize: 34, color: "#bfbfbf" }} />
-            <div style={{ marginTop: 14, fontSize: 14, color: "#595959" }}>{fileName}</div>
+            <IconFileText style={{ fontSize: 34, color: "#b4b2a9" }} />
+            <div style={{ marginTop: 14, fontSize: 14, color: "#52525B" }}>{fileName}</div>
             <div style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.7, color: "#8F959E" }}>
               在线编辑需要独立的文档服务，本地桌面模式不可用。
               请下载后使用本机 Office 打开，或把内容整理为 Markdown 文档以获得内置编辑能力。
@@ -278,7 +278,7 @@ export default function KbOnlyOfficeEditor({
             }}
           >
             <Alert
-              message="OnlyOffice 不可用"
+              title="OnlyOffice 不可用"
               description={`${error}。OnlyOffice Document Server 可能未启动，请使用下载功能查看文档。`}
               type="warning"
               showIcon

@@ -1,0 +1,254 @@
+/* ------------------------------------------------------------
+   文档详情页（/docs/[slug]）正文排版
+   ─────────────────────────────────────────────────────────────
+   2026-10-21：详情页从 /blog/[slug] 迁移到 /docs/[slug]，同时把原来
+   1:1000+ 行的 blog.css（飞书风）换成这套与落地页 v4 同一语言的排版。
+
+   约定：
+     · 颜色一律取自 globals.css 的 --lg-* 令牌，深色模式整组自动切换，
+       不需要写 .dark 覆盖块
+     · 只做「正文」排版，页面外壳（导航 / 目录 / 页脚）由组件用内联 style 完成
+     · ⚠️ 这里是普通 CSS 文件，被 app/docs/[slug]/manual-reader.tsx import；
+       不要在文件里写 <style> 或模板字符串
+   ------------------------------------------------------------ */
+
+.manual-prose {
+  color: var(--lg-ink);
+  font-size: 1rem;
+  line-height: 1.85;
+  word-break: break-word;
+}
+
+/* ---------- 标题 ---------- */
+.manual-prose h1,
+.manual-prose h2,
+.manual-prose h3,
+.manual-prose h4,
+.manual-prose h5,
+.manual-prose h6 {
+  color: var(--lg-ink);
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.35;
+  scroll-margin-top: 7rem;
+}
+
+.manual-prose h1 {
+  font-size: 1.85rem;
+  margin: 2.6rem 0 1rem;
+}
+
+.manual-prose h2 {
+  font-size: 1.45rem;
+  margin: 3rem 0 1rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--lg-hairline);
+}
+
+/* 正文第一个 h1 通常就是文档标题本身（manifest 的 title 已经在页头渲染过），
+   直接展示会出现「标题重影」，这里隐藏掉；作者自己加的 h1 不在首位，不受影响。 */
+.manual-prose > h1:first-child {
+  display: none;
+}
+
+.manual-prose h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.manual-prose h3 {
+  font-size: 1.16rem;
+  margin: 2rem 0 0.7rem;
+}
+
+.manual-prose h4 {
+  font-size: 1.02rem;
+  margin: 1.6rem 0 0.6rem;
+}
+
+.manual-prose h5,
+.manual-prose h6 {
+  font-size: 0.95rem;
+  margin: 1.4rem 0 0.5rem;
+  color: var(--lg-muted);
+}
+
+/* ---------- 段落 / 列表 ---------- */
+.manual-prose p {
+  margin: 0 0 1rem;
+}
+
+.manual-prose ul,
+.manual-prose ol {
+  margin: 0 0 1.1rem;
+  padding-left: 1.35rem;
+}
+
+.manual-prose li {
+  margin: 0.32rem 0;
+}
+
+.manual-prose li > ul,
+.manual-prose li > ol {
+  margin: 0.32rem 0 0.4rem;
+}
+
+.manual-prose li::marker {
+  color: var(--lg-green-ink);
+}
+
+/* ---------- 链接 ---------- */
+.manual-prose a {
+  color: var(--lg-green-ink);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--lg-green-ink) 34%, transparent);
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+
+.manual-prose a:hover {
+  border-bottom-color: var(--lg-green-ink);
+}
+
+/* ---------- 强调 ---------- */
+.manual-prose strong {
+  font-weight: 700;
+  color: var(--lg-ink);
+}
+
+.manual-prose em {
+  font-style: italic;
+}
+
+.manual-prose mark {
+  background: color-mix(in srgb, var(--lg-emerald300) 42%, transparent);
+  color: var(--lg-ink);
+  padding: 0 0.2em;
+  border-radius: 0.25rem;
+}
+
+/* ---------- 引用块 ---------- */
+.manual-prose blockquote {
+  margin: 1.3rem 0;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--lg-accent-strong);
+  border-radius: 0 0.85rem 0.85rem 0;
+  background: var(--lg-mint);
+  color: var(--lg-desc);
+}
+
+.manual-prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.manual-prose blockquote p {
+  margin: 0 0 0.5rem;
+}
+
+/* ---------- 行内代码 ---------- */
+.manual-prose code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 0.875em;
+  padding: 0.14em 0.4em;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--lg-ink) 7%, transparent);
+  color: var(--lg-ink);
+}
+
+/* ---------- 代码块 ---------- */
+.manual-prose pre {
+  margin: 1.3rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--lg-hairline);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--lg-ink) 4%, var(--lg-surface));
+  overflow-x: auto;
+  line-height: 1.7;
+}
+
+.manual-prose pre code {
+  padding: 0;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--lg-ink);
+}
+
+/* ---------- 表格（宽表横向滚动，不撑破正文列） ---------- */
+.manual-prose table {
+  display: block;
+  width: 100%;
+  margin: 1.4rem 0;
+  border-collapse: collapse;
+  overflow-x: auto;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.manual-prose thead th {
+  text-align: left;
+  font-weight: 700;
+  color: var(--lg-ink);
+  background: color-mix(in srgb, var(--lg-ink) 4%, transparent);
+  white-space: nowrap;
+}
+
+.manual-prose th,
+.manual-prose td {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--lg-hairline);
+  vertical-align: top;
+}
+
+.manual-prose tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--lg-ink) 2%, transparent);
+}
+
+/* ---------- 图片 ---------- */
+.manual-prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.4rem auto;
+  border-radius: 1rem;
+  border: 1px solid var(--lg-hairline);
+}
+
+/* ---------- 分隔线 ---------- */
+.manual-prose hr {
+  margin: 2.4rem 0;
+  border: 0;
+  border-top: 1px solid var(--lg-hairline);
+}
+
+/* ---------- 任务列表（GFM） ---------- */
+.manual-prose input[type="checkbox"] {
+  margin-right: 0.4rem;
+  accent-color: var(--lg-accent-strong);
+}
+
+/* ---------- 正文里的脚注 / 小字 ---------- */
+.manual-prose small {
+  color: var(--lg-muted);
+}
+
+/* ---------- 移动端收紧 ---------- */
+@media (max-width: 640px) {
+  .manual-prose {
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  .manual-prose h2 {
+    font-size: 1.3rem;
+    margin-top: 2.4rem;
+  }
+
+  .manual-prose h3 {
+    font-size: 1.08rem;
+  }
+
+  .manual-prose pre {
+    border-radius: 0.75rem;
+    padding: 0.85rem 0.9rem;
+  }
+}

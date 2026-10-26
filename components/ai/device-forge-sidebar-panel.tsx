@@ -111,7 +111,7 @@ export function DeviceForgeSidebarPanel({ onSendMessage }: DeviceForgeSidebarPan
         <Alert
           type="error"
           showIcon
-          message={<span style={{ fontSize: 13 }}>{card.error || '设备接入配置生成失败'}</span>}
+          title={<span style={{ fontSize: 13 }}>{card.error || '设备接入配置生成失败'}</span>}
         />
       ) : (
         <Flex vertical gap={16}>
@@ -163,13 +163,13 @@ export function DeviceForgeSidebarPanel({ onSendMessage }: DeviceForgeSidebarPan
             </Flex>
           )}
           {installStatus === 'error' && installError && (
-            <Alert type="error" showIcon message={<span style={{ fontSize: 12.5 }}>{installError}</span>} />
+            <Alert type="error" showIcon title={<span style={{ fontSize: 12.5 }}>{installError}</span>} />
           )}
           {done && (
             <Alert
               type="success"
               showIcon
-              message={
+              title={
                 <span style={{ fontSize: 12.5, lineHeight: 1.7 }}>
                   设备「{installedDevice?.name}」已装入平台。到 设备控制 / 监控 / 数据看板 页面查看新设备卡片
                   {card.draft?.type === 'sensor' ? '（MQTT 订阅已生效，收到上报数据后出数）' : ''}。

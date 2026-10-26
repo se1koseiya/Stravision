@@ -10,11 +10,11 @@ const { Title, Text } = Typography;
 
 /* ------------------------------------------------------------
    「专为每一类种植者量身解决问题」
-   配色已对齐 Loomy：墨色 #222 / 次级 #696969 / 薄荷绿系，
+   配色已对齐 Loomy：墨色 #222 / 次级 #646A73 / 薄荷绿系，
    选中态用 1px 主题色细边框 + 中性图标文字，不用实心色块。
    ------------------------------------------------------------ */
 
-const GREEN_INK = L.navHover; // #009456 —— 浅底上可读的绿，仅用于细线条与小图标
+const GREEN_INK = L.navHover; // #059669 —— 浅底上可读的绿，仅用于细线条与小图标
 
 const PERSONAS = [
   {
@@ -211,7 +211,7 @@ export function Personas() {
                   <Flex align="center" gap={20}>
                     <PersonaAvatar persona={persona} i={i} size={84} />
                     <div className="min-w-0">
-                      <div className="text-[22px] font-bold tracking-tight" style={{ color: L.ink }}>
+                      <div className="text-[20px] font-bold tracking-tight" style={{ color: L.ink }}>
                         {persona.title}
                       </div>
                       <Text className="!text-[13px] !font-medium" style={{ color: "rgba(34,34,34,0.66)" }}>
@@ -363,7 +363,7 @@ export function Personas() {
                   <Alert
                     showIcon
                     icon={<IconThunderbolt style={{ color: GREEN_INK }} />}
-                    message={
+                    title={
                       <Text className="!text-[12px]" style={{ color: L.ink }}>
                         {p.mock.foot}
                       </Text>

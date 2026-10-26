@@ -209,7 +209,7 @@ export function AgentWorkflowBuilder() {
                         exit={{ opacity: 0, y: -20 }}
                         className="group"
                       >
-                        <Card className="hover:shadow-md transition-shadow">
+                        <Card className="hover:shadow-sm transition-shadow">
                           <CardContent className="p-4">
                             <div className="flex items-start gap-3">
                               {/* 拖拽手柄 */}

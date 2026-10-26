@@ -23,14 +23,14 @@ interface MetricMeta {
 }
 
 const METRICS: MetricMeta[] = [
-  { id: "m1", title: "空气温度", key: "temperature", unit: "°C", icon: IconThermometer, color: "#f97316" },
-  { id: "m2", title: "空气湿度", key: "humidity", unit: "%", icon: IconWater, color: "#3b82f6" },
-  { id: "m3", title: "光照强度", key: "light", unit: "Lux", icon: IconSun, color: "#f59e0b" },
+  { id: "m1", title: "空气温度", key: "temperature", unit: "°C", icon: IconThermometer, color: "#52525b" },
+  { id: "m2", title: "空气湿度", key: "humidity", unit: "%", icon: IconWater, color: "#059669" },
+  { id: "m3", title: "光照强度", key: "light", unit: "Lux", icon: IconSun, color: "#52525B" },
   { id: "m4", title: "CO2 浓度", key: "co2", unit: "ppm", icon: IconWind, color: BERRY_THEME.primary },
-  { id: "m5", title: "土壤温度", key: "earth_temp", unit: "°C", icon: IconThermometer, color: "#f43f5e" },
-  { id: "m6", title: "土壤水分", key: "earth_water", unit: "%", icon: IconWaves, color: "#06b6d4", precision: 1 },
-  { id: "m7", title: "土壤 EC", key: "earth_ec", unit: "μS/cm", icon: IconLightning, color: "#a855f7" },
-  { id: "m8", title: "综合肥力(N)", key: "earth_n", unit: "mg/kg", icon: IconSeedling, color: "#6366f1" },
+  { id: "m5", title: "土壤温度", key: "earth_temp", unit: "°C", icon: IconThermometer, color: "#71717a" },
+  { id: "m6", title: "土壤水分", key: "earth_water", unit: "%", icon: IconWaves, color: "#52525b", precision: 1 },
+  { id: "m7", title: "土壤 EC", key: "earth_ec", unit: "μS/cm", icon: IconLightning, color: "#71717a" },
+  { id: "m8", title: "综合肥力(N)", key: "earth_n", unit: "mg/kg", icon: IconSeedling, color: "#52525b" },
 ]
 
 /**
@@ -44,7 +44,7 @@ const METRICS: MetricMeta[] = [
  * - 4×2 数据栅格，移动端 2×4，桌面端 4×2
  * - Header 左侧标题 + 右侧设备状态指示
  * - 单元格：icon + 标题（小字） + 大数值 + 单位
- * - 颜色统一 BERRY_THEME.primary (#1677ff)，与 AI 助手主对话流一致
+ * - 颜色统一 BERRY_THEME.primary (#059669)，与 AI 助手主对话流一致
  */
 export function DeviceBentoGrid() {
   const { deviceData, connectionStatus } = useDeviceData()

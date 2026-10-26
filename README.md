@@ -1,840 +1,261 @@
-<div align="center">
+<!-- README_SYNC: source=working-tree; updated=2026-10-27 -->
 
-# Stravision · 莓界
-
-### 智慧农业物联网 + 大模型 一体化平台
-
-<p>
-  <a href="https://opensource.org/licenses/Apache-2.0">
-    <img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge" />
-  </a>
-  <a href="https://nextjs.org/">
-    <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js&logoColor=white" />
-  </a>
-  <a href="https://www.typescriptlang.org/">
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-  </a>
-  <a href="https://ant.design/">
-    <img alt="Ant Design" src="https://img.shields.io/badge/Ant%20Design-6-1677ff?style=for-the-badge&logo=antdesign&logoColor=white" />
-  </a>
-  <a href="https://www.prisma.io/">
-    <img alt="Prisma" src="https://img.shields.io/badge/Prisma-7-2D3748?style=for-the-badge&logo=prisma&logoColor=white" />
-  </a>
-  <a href="https://www.docker.com/">
-    <img alt="Docker" src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
-  </a>
+<p align="center">
+  简体中文 · <a href="./README_EN.md">English</a>
 </p>
 
-<p>
-  <img alt="Stravision Banner" src="public/changelogimage/ai助手UI.png" width="92%" />
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hero-dark.webp">
+    <img src="assets/readme/hero-light.webp" width="100%" alt="莓界 Stravision：设施农业 AIoT 平台">
+  </picture>
 </p>
 
-<p>
-  <strong>感知 · 决策 · 控制 · 协同</strong><br/>
-  为现代设施农业构建的「闭环式」智能管控平台
+**面向设施农业的 AIoT 平台。传感器读数直接驱动设备动作，AI 是执行链上的一个环节，不是聊天窗口。**
+
+<p align="center">
+  如果这个项目对你有用，点一个 Star 收藏它，也让更多做设施农业的开发者看到。
 </p>
 
-<p>
-  <a href="#快速开始"><strong>快速开始</strong></a> ·
-  <a href="#核心能力"><strong>核心能力</strong></a> ·
-  <a href="#技术架构"><strong>技术架构</strong></a> ·
-  <a href="#项目结构"><strong>项目结构</strong></a> ·
-  <a href="PROJECT_HANDOVER.md"><strong>开发文档</strong></a>
+<p align="center">
+  <a href="https://github.com/AcutaCM/BerryRealm-NewGen-AIOT-Platform/stargazers"><img src="https://img.shields.io/github/stars/AcutaCM/BerryRealm-NewGen-AIOT-Platform?style=flat-square&color=059669" alt="GitHub stars"></a>
+  <img src="https://img.shields.io/badge/version-5.2.7-059669?style=flat-square" alt="version 5.2.7">
+  <img src="https://img.shields.io/badge/Node.js-22%2B-059669?style=flat-square" alt="Node.js 22+">
+  <img src="https://img.shields.io/badge/Next.js-16.1.6-059669?style=flat-square" alt="Next.js 16.1.6">
+  <img src="https://img.shields.io/badge/PostgreSQL-16%20%7C%2018-059669?style=flat-square" alt="PostgreSQL 16 or 18">
+  <img src="https://img.shields.io/badge/License-Apache--2.0-059669?style=flat-square" alt="Apache-2.0">
+  <a href="https://github.com/AcutaCM/BerryRealm-NewGen-AIOT-Platform/commits"><img src="https://img.shields.io/github/last-commit/AcutaCM/BerryRealm-NewGen-AIOT-Platform?style=flat-square&color=059669" alt="last commit"></a>
 </p>
 
-</div>
+- **桌面端一体化交付。** PostgreSQL、MQTT broker、Next.js 应用、语音服务与协同服务打包进同一个安装包，端口只绑回环，出厂即单机可跑。
+- **AI 直接执行物理动作。** 59 个内置工具覆盖设备、视觉、数据、病历与文档；继电器 10 秒、云台 90 秒、抓帧 20 秒各自独立超时，拿到的是设备确认后的状态。
+- **无 ORM。** `pg` 手写 SQL，建表交给启动钩子执行 56 条幂等 `CREATE TABLE IF NOT EXISTS`，升级只加不减。
+- **可完全离线。** 模型指向园区内网的 OpenAI 兼容服务时，视觉诊断与多轮对话整条链路不出公网。
 
----
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd01-dark.webp">
+    <img src="assets/readme/hd01-light.webp" width="100%" alt="数据到动作之间缺一段">
+  </picture>
+</p>
 
-## 项目简介
+设施农业的数据链路通常断在三处：读数只用于展示，不参与判断；调控策略保存在个人经验里，人一走就失传；从发现异常到设备真正动作，中间靠打电话。
 
-**Stravision（莓界）** 是一套面向草莓及设施农业场景的综合智能物联网管理平台。平台深度融合 **物联网（IoT）** 与 **大语言模型（LLM）** 技术，构建「感知 → 分析 → 决策 → 控制」全链路闭环，推动农业生产向 **标准化、无人化、智能化** 转型。
+本项目针对的正是这三段。读数落库后同时进入规则引擎与模型上下文，同一份数据两处可用；策略沉淀成可视化规则节点，可改、可复用、可版本化；AI 通过工具下发指令，并读取设备确认后的状态，而不是发出即视为完成。
 
-> 平台代号 **莓小智（Berry Smart）** —— 既是 7×24 小时在线的农业专家，也是听得懂、看得见、会思考的智能管家。
-
-官方网站：[https://stravision.site/](https://stravision.site/)
-
----
-
-## 核心能力
-
-### 1. 全栈环境感知与可视化监控
-
-通过多模态传感器网络与高清摄像头，对温室大棚进行 7×24 小时实时监测：
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd02-dark.webp">
+    <img src="assets/readme/hd02-light.webp" width="100%" alt="真实运行画面">
+  </picture>
+</p>
 
-| 维度 | 能力 |
-| --- | --- |
-| 基础环境 | 空气温湿度、光照强度、CO₂ 浓度 |
-| 土壤状况 | 土壤温湿度、EC 电导率、pH 值、氮磷钾 |
-| 视觉巡检 | 摄像头云台（PTZ）控制 + VLM 视觉分析（病虫害 / 生长状态识别）|
-| 数据可视化 | 可拖拽仪表盘、历史趋势图、多维度数据分析 |
-
-### 2. 智能决策与自动化控制
-
-基于专家模型与实时环境数据，自动执行精准调控策略：
-
-- **自动化规则引擎**：基于 ReactFlow 可视化编排，支持条件触发、设备联动、定时任务
-- **设备联动**：无缝对接水泵、风机、补光灯、遮阳网、卷膜机、步进电机云台
-- **远程控制**：Web 端 + 移动端 PWA，随时随地手动接管
-- **边缘容灾**：关键控制逻辑可下沉至边缘网关，断网不断控
-
-### 3. AI 农业助手 · 莓小智
-
-内置基于大模型的智能助手，覆盖对话、问答、设备控制、任务调度全场景：
-
-- **病害诊断**：上传作物照片，AI 识别病虫害并给出防治建议
-- **种植咨询**：实时问答，解答种植过程中的技术难题
-- **语音交互**：纯 Omni 实时多模态架构，支持打断、低延迟、自然对话
-- **工具调用**：标准 Function Calling，封装 `task_create` / `cron_create` / `ask_user_question` 等工具
-- **计划模式**：Plan Mode 调研 → 提交 → 审批 → 执行，复杂任务可观测可回滚
-- **多 Persona**：专家 / 助手 / 朋友等多种角色，响应风格差异化
-
-#### AI 助手创新架构
-
-`app/ai-assistant` 是平台的核心交互入口，采用「**分层 Agent 编排 + SSE 流式 + 结构化渲染**」的设计，下面从整体架构与单次对话数据流两个维度展开。
-
----
-
-**整体分层架构**
-
-```mermaid
-flowchart TB
-    subgraph UX["前端展示层 app/ai-assistant"]
-        A1["page.tsx 主页面"]
-        A2["agent-thought-chain 思考链"]
-        A3["dynamic-task-planner 任务规划"]
-        A4["chat-message-renderer 消息渲染"]
-        A5["memory-summary-card 记忆摘要"]
-        A6["working-indicator 工作指示"]
-    end
-
-    subgraph API["API 层 /api/chat"]
-        B1["SSE 流式输出"]
-        B2["智能过滤裸 JSON"]
-        B3["配额管理 reserve/refund"]
-        B4["Agent Context 组装"]
-        B5["await 用户输入 Checkpoint"]
-    end
-
-    subgraph ORCH["Agent 编排层 lib/ai/agent-orchestrator"]
-        C1["Orchestrator 编排器"]
-        C2["ToolManager 工具管理器<br/>重试 / 超时 / 指数退避"]
-        C3["MemoryManager 三层记忆<br/>STM / WM / LTM"]
-        C4["Monitor 监控<br/>异常检测 / 告警"]
-    end
+以下均为产品真实运行截图，未做视觉重绘，数字与报错原样保留。
 
-    subgraph TOOL["工具系统 lib/mcp"]
-        D1["builtin-device-control 设备控制"]
-        D2["builtin-agent-tasks 任务清单"]
-        D3["Parallel Executor 并行执行"]
-        D4["MCP 工具定义 / 执行器"]
-    end
+**仪表盘。**一屏看完今天：温度、湿度、光照、CO₂、氮磷钾、土壤、光谱、时段热力图，天气和待办挂在最上面。偏冷、干燥、贫瘠直接标在卡片上，不用自己对着阈值心算；传感器不对劲，数字就原样在那儿摆着。
 
-    subgraph PROMPT["提示词系统"]
-        F1["persona-system 多角色"]
-        F2["prompt-templates 精简模板"]
-        F3["skill-system 技能路由 V2"]
-    end
+<p align="center">
+  <img src="assets/readme/proof-dashboard.webp" width="100%" alt="仪表盘：环境指标卡片、天气、热力图与光谱">
+</p>
 
-    subgraph MEM["记忆与学习"]
-        E1["memory-prompt-enhancer 记忆增强"]
-        E2["auto-learning-service 自动学习"]
-        E3["agent-memory-service 持久化"]
-    end
+**孪生监控。**大棚的三维场景本身就是监控面板：摄像头、传感器、风机、补光灯都是能点的热点，设备在线状态与电量挂在左边，操作日志实时滚在右边。
 
-    A1 -->|发起对话| B1
-    B1 --> B4
-    B4 --> C1
-    C1 --> C2
-    C1 --> C3
-    C1 --> C4
-    C2 --> TOOL
-    C3 --> MEM
-    C1 --> PROMPT
-    B1 -->|SSE 文本| A4
-    B1 -->|SSE 事件| A2
-    B1 -->|SSE 工具| A3
-    B1 -->|SSE 记忆| A5
-```
+<p align="center">
+  <img src="assets/readme/proof-monitor.webp" width="100%" alt="三维孪生监控：大棚场景、设备热点、操作日志">
+</p>
 
----
+**设备控制。**9 台设备的总览：在线 / 离线、告警条数、今日操作一目了然。继电器卡片远程开关，RGB 补光灯调色盘配四条滑杆，改完「更新 LED 亮度」即同步；右侧顺手挂着天气与温室环境参数。
 
-**单次对话数据流**
+<p align="center">
+  <img src="assets/readme/proof-devices.webp" width="100%" alt="设备控制页：设备总览、继电器开关与 RGB 调色">
+</p>
 
-```mermaid
-sequenceDiagram
-    participant U as 用户
-    participant F as 前端页面
-    participant API as /api/chat
-    participant ORCH as Agent 编排器
-    participant TOOL as 工具系统
-    participant LLM as 大模型
-    participant MEM as 记忆 / 学习
+以上是平台本体。下面是重头戏——AI 怎么在这套东西上动手。
 
-    U->>F: 发送消息（文字 / 图片）
-    F->>API: 发起流式请求
-    API->>ORCH: 组装 Agent Context
-    ORCH->>MEM: 读取记忆 / 偏好 / 设备模式
-    MEM-->>ORCH: 记忆摘要
-    ORCH->>LLM: system prompt + 历史 + 工具定义
-    LLM-->>ORCH: 流式生成（思考 / 文本）
-    ORCH-->>API: 检测到工具调用指令
-    API->>TOOL: 执行工具（并行 / 串行）
-    TOOL-->>API: 返回物理动作真实结果
-    API->>LLM: 回填结果，继续生成
-    LLM-->>API: 最终回答
-    API-->>F: SSE 流式推送（文本 / 事件 / 工具）
-    F-->>U: 结构化渲染（思考链 / 任务 / 引用）
-    ORCH->>MEM: 自动学习，沉淀偏好与策略
-```
-
----
-
-**1. Agent 编排器与工具调用框架**
-
-`app/ai-assistant` 后端的核心由一套 **Agent 编排器**（[`lib/ai/agent-orchestrator/`](file:///c:/Users/24121/Documents/stravision/meijie/berry-realm-v4.0/lib/ai/agent-orchestrator)）驱动，统一管理工具调用、记忆与执行监控；`orchestrator.ts` 持有多名子管理者，`global-manager.ts` 提供全局会话管理。
-
-- **容错工具调用**（`tool-manager.ts`）：指数退避重试（默认 2 次）、超时控制（默认 60s）、执行日志
-- **按工具差异化超时**：设备类工具涉及物理动作，单独覆盖超时——继电器 10s、LED 8s、电机云台 90s、摄像头抓帧 20s、移动+截图组合 120s，避免统一超时误杀长任务
-- **并行工具执行**（`parallel-tool-executor.ts`）：解析工具依赖图，无依赖的独立工具并行执行，实测 3 个独立工具延迟从 12~15s 降至 4~6s
-- **设备控制原生工具化**：`toggle_relay` / `set_led` / `control_camera` / `take_camera_snapshot` / `move_camera_and_look` 均为原生工具调用，工具阻塞等待物理动作完成并返回 `confirmed` / `stable` 真实状态，严禁裸 JSON 输出
+**设备启停。**输入「现在哪些设备开着呢？关闭它」，模型先取工具 schema，两轮调用 `toggle_relay`，最后停在「设备启停 · 关闭『7』继电器」等你点执行。指令发出不算完，设备回读确认才算关了。
 
-**2. 流式响应与结构化解耦**
-
-`/api/chat` 以 **SSE 流式**逐 token 推送，前端按事件类型解耦渲染：
-
-- **智能 JSON 过滤**（`filterBareTaskListJson`）：拦截 AI 误输出的裸露 `<TASK_LIST>` JSON，避免污染界面，同时保留正确包裹的合法结构
-- **结构化渲染组件**：思考链（`agent-thought-chain`，基于 Ant Design X ThoughtChain）、动态任务规划（`dynamic-task-planner`）、工作指示（`working-indicator`）、AI 动作摘要（`ai-action-summary`）、记忆摘要卡（`memory-summary-card`）——AI 的「思考 → 行动 → 结果」全程可观测
-
-**3. 记忆与自动学习**
-
-- **三层记忆**（`memory-manager.ts`）：短期记忆（STM，滑动窗口记录最近动作/观察）、工作记忆（WM，当前目标/子目标/挂起动作）、长期记忆（LTM，用户偏好/设备模式/成功策略）
-- **记忆增强**（`memory-prompt-enhancer.ts`）：将记忆摘要注入系统提示词，让 AI 具备上下文感知
-- **自动学习**（`auto-learning-service.ts`）：从对话与设备动作中自动提取偏好、识别设备使用模式（昼夜周期/天气响应/手动覆盖）、沉淀成功策略，并持久化到 `agent-memory-service`
-
-**4. 技能路由系统（Skill Router V2）**
-
-基于模块化技能系统（[`lib/ai/skill-system/`](file:///c:/Users/24121/Documents/stravision/meijie/berry-realm-v4.0/lib/ai/skill-system)），按用户消息语义匹配技能并注入提示词，支持**内置技能 + 磁盘技能 + 数据库技能**三级来源，配合 `skill-router-cached` 做结果缓存，让 AI 按需调用领域能力。
-
-**5. Persona 多角色差异化**
-
-内置 `expert`（种植专家）、`friendly`（新手向导）、`engineer`（技术工程师）三种 Persona，每种拥有专属的 system prompt 增量、决策偏好、语气约束与 few-shot 示范，回复风格在开头即可感知差异。
-
-**6. 多 Provider 与多模态**
-
-- **多 Provider 解析**（`provider-resolver.ts`）：按模型 ID 动态解析 baseUrl / apiKey / model，支持 OpenAI / 通义千问 / DashScope 灵活切换，缺省回退到配置的默认模型
-- **多模态输入**：消息支持图片 / 文件附件（dataURL 内联），可调用摄像头抓帧 + VLM 视觉分析，实现"看图说话"式巡检
-
-**7. 交互与并发控制**
-
-- **等待用户输入**（`pending-user-input.ts`）：Agent Loop 输出 `<CHECKPOINT>` / `<CLARIFY>` 时挂起等待，前端渲染表单，用户提交后经 `/api/chat/respond` 回传并继续迭代；同一会话同一时间只允许一个挂起点
-- **配额管理**（`ai-quota-service`）：发送前 `reserveAiUsage` 预占、异常时 `refundAiUsage` 回退，按时长/次数/会员档位（free / pro / plus）精细控制
-- **响应缓存**（`response-cache.ts`）：对可缓存请求命中缓存，降低延迟与成本
-
-### 4. 实时通信与语音助手
-
-- **WebSocket 服务**：独立 `ws-server.js`，承载语音流、设备事件、协同光标
-- **实时多模态**：纯 Omni 架构，端到端语音对话，VAD 静音检测（Silero WASM）
-- **浏览器原生 ASR**：可选 SpeechRecognition API，零成本、零延迟、国内推荐 Edge
-- **多 Provider 适配**：OpenAI / 通义千问 / DashScope，TTS / ASR / Omni 灵活切换
-- **企业级安全**：Omni API Key 采用 AES-256-GCM 加密存储，仅管理员可配置
-
-### 5. 组织化协作
-
-- **组织 / 温室层级**：管理员创建组织、邀请成员、分配设备控制权限
-- **双向同步**：邀请进组织自动建立好友关系并授予 `deviceControl`，移除组织自动回收
-- **角色体系**：`super_admin` / `admin` / `user` 三级权限，敏感操作严格鉴权
-
----
-
-## 技术架构
-
-Stravision 采用现代化的前后端分离架构，确保高性能、可扩展与易维护。
-
-### 前端（Frontend）
-
-| 类别 | 技术选型 |
-| --- | --- |
-| 框架 | Next.js 16（App Router）+ React 19 |
-| 语言 | TypeScript 5 |
-| UI 组件库 | Ant Design 6 + Radix UI + Shadcn UI |
-| 设计协议 | A2UI（Berry Protocol）|
-| 图标 | lucide-react（strokeWidth 1.75，Trae Work 风格）|
-| 可视化 | ECharts、Recharts、@ant-design/plots、React-Three-Fiber |
-| 流程编排 | ReactFlow（@xyflow/react）|
-| 动效 | Framer Motion、GSAP、Lenis |
-| 状态管理 | Zustand、React Context |
-
-### 后端（Backend）
-
-| 类别 | 技术选型 |
-| --- | --- |
-| API | Next.js API Routes + Server Actions |
-| 数据库 | PostgreSQL + Prisma 7 ORM |
-| 实时通信 | WebSocket（ws）+ SSE |
-| 物联网协议 | MQTT（设备通信）|
-| AI 集成 | OpenAI SDK、Vercel AI SDK、DashScope |
-| 文档处理 | mammoth、docx、jspdf、xlsx |
-| 安全 | AES-256-GCM、bcrypt、JWT、SSRF Guard、HTML Sanitize |
-
-### 部署与运维（DevOps）
-
-| 类别 | 技术选型 |
-| --- | --- |
-| 容器化 | Docker + Docker Compose |
-| 反向代理 | Nginx（含维护页）|
-| CI 构建 | 低内存构建脚本（`build-low-memory.sh` / `.ps1`）|
-| 代码混淆 | javascript-obfuscator / webpack-obfuscator |
-| 监控 | 自定义日志 + 健康检查 + 速率限制 |
-
----
-
-## 快速开始
-
-你可以在任何AGENT类产品中粘贴以下提示词来快速安装
- **一、本机测试环境(DEV SERVER)** 
-
-```
-请帮我在本机安装并运行一个开源项目：BerryRealm（莓界）智慧农业 AIoT 平台。
-
-【项目信息】
-- 仓库：https://github.com/AcutaCM/BerryRealm-NewGen-AIOT-Platform.git
-- 技术栈：Next.js 16（App Router）+ React 19 + TypeScript、Ant Design 6、Prisma 7 + PostgreSQL、MQTT、WebSocket
-- 包管理器：pnpm（packageManager 为 pnpm@10.30.1）
-- 数据库：PostgreSQL 14+（可通过 Docker 启动）
-
-【目标】
-在本地完成可运行的开发环境，访问 http://localhost:3000 能正常打开应用。
-
-【请按以下步骤执行，并逐项确认】
-1. 环境检查：确认本机已安装 Node.js（v20+）、pnpm（v10+）、Docker 与 Docker Compose。
-   若缺失，先给出对应系统的安装命令并执行。
-2. 克隆仓库到本地合适目录，并 cd 进入项目根目录。
-3. 执行 pnpm install 安装依赖（如遇网络问题，可配置 pnpm 使用 npmmirror 镜像）。
-4. 复制环境变量模板：cp .env.example .env
-   然后编辑 .env，至少配置：
-   - JWT_SECRET（用 openssl rand -hex 48 生成）
-   - DATABASE_URL（指向本地 PostgreSQL，格式 postgresql://postgres:密码@localhost:5432/berry_realm）
-   - POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
-   - AI 相关：DASHSCOPE_API_KEY、SYSTEM_OPENAI_API_KEY、SYSTEM_OPENAI_BASE_URL（可先留空，但需说明）
-5. 启动数据库：若本机没有 PostgreSQL，用 Docker 启动一个（docker compose up -d db 或 docker run 一个 postgres:16 容器），
-   确保 DATABASE_URL 能连通。
-6. 执行数据库迁移：npx prisma migrate dev
-7. 启动服务：
-   - 终端 A：pnpm dev（Next.js 前端，默认 3000 端口）
-   - 终端 B：pnpm dev:ws（WebSocket 服务，语音/协同）
-8. 验证：打开 http://localhost:3000 ，确认页面正常渲染、无控制台报错。
-
-【注意事项】
-- 每步执行前先向用户说明将要做什么；失败时读取报错并自动分析修复，不要盲目重试。
-- 不要使用 tsc 做类型检查；以实际运行是否成功为准。
-- 项目使用 middleware/proxy 相关文件按现状保留，不要改动。
-- 完成后给出一份简短的安装结果说明（已装版本、启动方式、访问地址、还缺哪些可选配置）。
-```
-
- **二、云服务器安装提示词** 
-
-```
-请帮我在一台云服务器上部署并运行开源项目：BerryRealm（莓界）智慧农业 AIoT 平台。
-
-【项目信息】
-- 仓库：https://github.com/AcutaCM/BerryRealm-NewGen-AIOT-Platform.git
-- 技术栈：Next.js 16 + React 19 + TypeScript、Ant Design 6、Prisma 7 + PostgreSQL、MQTT、WebSocket
-- 部署方式：Docker Compose 一键编排（docker-compose.yml），包含 web / db / yjs-ws / onlyoffice / nginx 五个服务
-- 服务器建议：Ubuntu 22.04，内存 ≥ 4GB（因为 Next.js 构建需要约 3GB 内存）
-
-【目标】
-在云服务器上完成生产部署，能通过域名（HTTPS）访问应用，且服务开机自启。
-
-【请按以下步骤执行，并逐项确认】
-1. 系统准备：确认是 Ubuntu 22.04；更新系统（apt update && apt upgrade）。
-2. 安装 Docker 与 Docker Compose 插件（docker-ce + docker-compose-plugin）。
-   - 配置 Docker 国内镜像加速（写入 /etc/docker/daemon.json 的 registry-mirrors，例如 daocloud 地址）。
-   - 设置 systemctl enable docker 开机自启。
-3. 安装必要工具：git、openssl、curl。
-4. 克隆仓库到服务器（如 ~/berry-realm），cd 进入。
-5. 复制环境变量：cp .env.example .env，并编辑 .env 填入生产配置：
-   - JWT_SECRET、INTERNAL_API_SECRET（openssl rand 生成）
-   - POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
-   - DATABASE_URL=postgresql://postgres:密码@db:5432/stravision（容器内 host 固定为 db）
-   - MQTT_HOST / MQTT_PORT / MQTT_USERNAME / MQTT_PASSWORD
-   - DASHSCOPE_API_KEY、SYSTEM_OPENAI_API_KEY、SYSTEM_OPENAI_BASE_URL
-   - WEATHER_API_KEY
-   - APP_URL 与 NEXT_PUBLIC_APP_URL 设为生产域名（https://你 的域名）
-   - ONLYOFFICE_JWT_SECRET（生产必须设置非空值）
-6. 域名的域名解析已指向服务器公网 IP（提醒用户确认）；准备 HTTPS 证书：
-   - 将证书放到 nginx/certs/，文件名与 nginx/nginx.conf 中一致（stravision.site_bundle.crt / stravision.site.key）。
-   - 若无证书，可用 certbot 通过 Let's Encrypt 签发，或先用一键脚本生成自签证书占位。
-7. 构建并启动：
-   - 推荐运行仓库内的 ./deploy.sh（自动清理缓存、构建并 up -d）。
-   - 或手动执行：docker compose build --no-cache && docker compose up -d。
-   - 因仓库较大且含媒体资源，构建时间较长，请耐心等待并监控进度。
-8. 初始化数据库：docker compose exec web npx prisma migrate deploy
-9. 配置防火墙/安全组：放行 80、443、22 端口（云控制台安全组 + 服务器 ufw）。
-   再次提醒用户确认云厂商安全组已放行这些端口。
-10. 验证部署：
-    - docker compose ps 确认所有容器 Up。
-    - curl http://localhost/api/health 应返回正常。
-    - 浏览器访问 https://你 的域名 确认页面可打开、HTTPS 正常。
-    - docker compose logs -f web 确认无致命错误。
-
-【注意事项】
-- 构建时若内存不足导致 OOM，改用 build-low-memory.sh 或调大 NODE_OPTIONS=--max-old-space-size，并确保 ≥4GB 内存。
-- 每步执行前告知用户；失败时读取报错并分析修复。
-- 不要修改 docker-compose.yml / nginx.conf 的既有结构。
-- 提醒用户：仓库中两个超大天气视频（lightrain.mp4、snow.mp4）已从 git 移除，如需完整天气背景功能需另行用 LFS 或压缩后补充。
-- 完成后输出一份部署摘要：访问地址、容器状态、日志位置、备份建议（每日 pg_dump）。
-```
-
-### 前置要求
-
-- **Node.js** v18+（推荐 v20）
-- **pnpm** v10+（包管理器）
-- **Docker & Docker Compose**（用于 PostgreSQL 等基础设施）
-- **PostgreSQL** v14+（可选，亦可通过 Docker 启动）
-
-### 安装步骤(建议您结合AGENT安装）
-
-1. **克隆仓库**
-
-   ```bash
-   git clone https://github.com/your-username/Stravision-IOT-PlatForm.git
-   cd Stravision-IOT-PlatForm
-   ```
-
-2. **安装依赖**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **配置环境变量**
-
-   ```bash
-   cp .env.example .env
-   # 编辑 .env，填入数据库连接、AI API Key、MQTT Broker 等配置
-   ```
-
-4. **启动数据库与基础设施**
-
-   方式A:
-   ```bash
-   docker-compose up -d
-   ```
-   方式B：
-下载PostgreSQL，并且在.env.local文件中配置数据库地址
-
-5. **数据库迁移**
-
-   ```bash
-   npx prisma migrate dev
-   ```
-
-6. **启动开发服务器**
-
-   ```bash
-   pnpm dev          # 启动 Next.js 前端（默认 3000 端口）
-   pnpm dev:ws       # 另开终端启动 WebSocket 服务（语音 / 协同）
-   ```
-
-   访问 [http://localhost:3000](http://localhost:3000) 即可查看运行中的应用。
-
-### 生产部署
+<p align="center">
+  <img src="assets/readme/proof-device.webp" width="100%" alt="工具执行链：load_tool_schema → 两次 toggle_relay，等待确认关闭 7 号继电器">
+</p>
+
+**病虫害诊断。**一张草莓照片，12.4 秒给出白粉病、重度约 88%、3 处病斑。结论之外是叶片表现、病斑特征、颜色边界三类依据，逐条对着图讲；摘果、通风、用药五步排在后面。
+
+<p align="center">
+  <img src="assets/readme/proof-diagnosis.webp" width="100%" alt="诊断卡：白粉病约 88%，附五步处置建议">
+</p>
+
+**病斑标在你自己的照片上。**点「查看标注」，轮廓直接画进原图：3 处病斑，85% / 88% / 80% 各带置信度，可切回原图、可下载。不是另画一张示意图交差。
+
+<p align="center">
+  <img src="assets/readme/proof-mask.webp" width="100%" alt="遮罩图：3 处病斑轮廓标注在用户照片上，含置信度">
+</p>
+
+**病历档案。**诊断一出结论就自动入档——病名、严重度、发病部位、缩略图和当时的完整诊断快照都留着，两个月后也能回放当时看到了什么。治完了在面板回填复诊：痊愈 / 好转 / 无变化 / 恶化四选一，补张照片写句备注，状态自己往前走，病程曲线跟着长出来。
+
+<p align="center">
+  <img src="assets/readme/proof-records.webp" width="100%" alt="病历面板：统计总览、病历详情与复诊回填">
+</p>
+
+**AI 翻的是真档案。**问「我这茬草莓得过几次病」，它调工具查真实病历再回答：#67 白粉病、重度 88%、首诊 10-24、复诊 0 次——然后直说「所以暂时还没有治愈率可算」，不给你编个数字。说「标记为已痊愈」，状态从待处置改成已解决，备注写上「用户确认已痊愈」，改了什么当场念给你听。
+
+<p align="center">
+  <img src="assets/readme/proof-record-chat.webp" width="100%" alt="AI 调用病历工具回答病史，并如实说明暂无治愈率">
+</p>
+
+**画布直改。**说一句「创建一个自定义策略」，AI 问清触发条件和执行动作，把触发器、判断分支、执行节点直接画进你打开的流程图——`automation_canvas_apply` 落图，底部那条「莓小智正在修改画布」就是它在动手。改完专门提醒：还没保存，满意点「保存」，不满意 Ctrl+Z。
+
+<p align="center">
+  <img src="assets/readme/proof-canvas.webp" width="100%" alt="画布直改：automation_canvas_apply 调用中，节点实时落到流程图">
+</p>
+
+**三种画法。**判断流程画成示意图，症状对比画成科普插画，病斑标注画回你的照片。Mermaid 出流程图（可下载），`<ILLU>` 出扁平插画，诊断定位出遮罩图——该用哪个用哪个，不拿一张新图糊弄「把我照片上的病斑圈出来」。
+
+<p align="center">
+  <img src="assets/readme/proof-draw-flow.webp" width="100%" alt="示意图卡片：白粉病早期判断流程">
+  <img src="assets/readme/proof-draw-illu.webp" width="100%" alt="插画卡片：健康叶片与白粉病早期对比">
+</p>
+
+**文稿生成。**「把现有的数据做成 PPT 报告」→ 调 8 个工具，58.6 KB 的 pptx，右侧直接翻封面、图表页、要点页；顺手指出土壤湿度最新记录是 25 天前的 2.8%、氮磷钾全为 0，是传感器异常不是真值。Word 同理：13 KB、8 个章节，目录和表格排好，下载就能用。
+
+<p align="center">
+  <img src="assets/readme/proof-ppt.webp" width="100%" alt="PPT 生成：8 个工具调用，产物预览与数据问题提醒">
+  <img src="assets/readme/proof-docx.webp" width="100%" alt="Word 生成：8 章节报告，含目录与表格">
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd03-dark.webp">
+    <img src="assets/readme/hd03-light.webp" width="100%" alt="感知、决策、执行">
+  </picture>
+</p>
+
+**感知**　空气温湿度、光照、CO₂；土壤温湿度、EC、pH、氮磷钾；11 通道光谱；摄像头画面与云台步进（0–700 mm、定时抓帧）。
+
+**决策**　可视化规则编排（触发 / 条件 / 动作 / AI 决策节点）、定时任务、AI 主动巡检；59 个内置工具、计划模式、三种人格、三层记忆、语音实时对话；规则图可由 AI 直接改，诊断结论自动进病历。
+
+**执行**　4 路继电器（水泵、风机、补光）、4 路 LED、步进云台。每条指令都回读 `confirmed` 状态。
+
+**留存**　可拖拽仪表盘、历史趋势、热力图、光谱分析、AI 简报；病历档案（诊断沉淀、复诊病程、治愈率）；知识库（向量检索、版本、权限）、多人实时协同、Office 在线编辑、文稿读写改。
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd04-dark.webp">
+    <img src="assets/readme/hd04-light.webp" width="100%" alt="三种部署形态">
+  </picture>
+</p>
+
+主要交付形态是桌面应用而非服务器。单机安装后数据库、消息代理、应用、语音与协同全部运行在这台机器上，端口只绑回环。
+
+- **本地一体化**（主形态）· Electron 外壳 + 内置 PostgreSQL 5433 + 内置 MQTT 11883 + 应用 3000 + 语音 3002 + 协同 1234。
+- **云端集中**（可选）· 多园区统一管理、远程运维，7 个容器：nginx 443 / web / db 5432 / yjs-ws 1234 / onlyoffice 8080 / cap / valkey 6379。
+- **开发模式** · PostgreSQL + Node 22 + pnpm，`pnpm dev` 起在 3000。
+
+两种正式形态共用同一套业务代码与数据模型，差异只在进程编排、数据位置和授权方式。
+
+断网时监控、历史、设备控制、自动化、告警照常可用；协同降级到局域网；视觉诊断与对话取决于模型来源——指向园区内网的 OpenAI 兼容服务即可整条链路离线，只有联网检索不可用。
+
+桌面安装包需要授权码（Ed25519 离线验签，未激活停留在激活界面）。自行构建走开发模式，或按 [docs/DESKTOP.md](docs/DESKTOP.md) 打包。
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd05-dark.webp">
+    <img src="assets/readme/hd05-light.webp" width="100%" alt="对话与工具执行链">
+  </picture>
+</p>
+
+对话请求走 `/api/chat` 的 SSE 流：装配系统提示、历史、记忆与工具定义（按预算裁剪）→ 模型流式输出（可能夹带工具调用）→ 无依赖的工具并行执行 → 结果压缩后回灌 → 进入下一轮。单轮上限 5 次迭代，超预算强制收口。
+
+四条约束写在代码里，不是文档里的承诺：
+
+- **物理动作必须回读。** 继电器 10 秒、云台 90 秒、抓帧 20 秒各自独立超时；返回的是设备确认后的状态，不是「已发送」。
+- **该停就停。** 需要补充信息或确认危险操作时挂起等答复，同一会话同时只允许一个挂起点。
+- **压缩必须可见。** 上下文被压缩时在对话中插入标记，失败也明确报出，不静默丢弃历史。
+- **记忆分三层。** 短期（最近动作）、工作（当前目标）、长期（偏好、设备模式、成功策略），长期记忆可读可写。
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/ai-arch-dark.svg">
+    <img src="assets/readme/ai-arch.svg" width="100%" alt="AI 子系统架构：请求准入、上下文装配、模型推理、工具执行、结果与落库五阶段主链路，含回灌回环（≤5 轮），以及上下文来源、工具落地面与登记表约束">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd06-dark.webp">
+    <img src="assets/readme/hd06-light.webp" width="100%" alt="技术栈">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/icons-dark.svg">
+    <img src="assets/readme/icons.svg" width="100%" alt="Next.js、React、TypeScript、Ant Design、Tailwind CSS、React Flow、three.js、Framer Motion、PostgreSQL、Node.js、MQTT、Electron">
+  </picture>
+</p>
+
+- **前端** Next.js 16.1.6（App Router）· React 19.2.2 · TypeScript 5 · Ant Design 6.3.5 与 Ant Design X 2.8 · Tailwind CSS 4 · React Flow 12.10 · Framer Motion 11 · three.js
+- **后端** Node.js 22 · PostgreSQL 16/18（`pg` 手写 SQL，无 ORM）· MQTT 5 + `aedes` 内置 broker · Valkey（非强依赖）
+- **AI** OpenAI 兼容协议 · `openai` 6 + Vercel AI SDK 5 · 视觉大模型 · 端到端语音 + Silero VAD · 本地 ASR（sherpa-onnx）
+- **桌面** Electron 44 · electron-builder 26 · embedded-postgres 18 · Ed25519 授权 · electron-updater
+- **质量** Vitest + Testing Library + fast-check（29 个测试文件）· Playwright 驱动真实浏览器的界面验收（145 个脚本）
+
+不用 ORM 是刻意的：物联网场景每条上报都要写库，映射层带来额外开销，连接池行为也不易控制。`schema` 只声明数据源，不参与运行；建表由启动钩子执行 56 条幂等 `CREATE TABLE IF NOT EXISTS`，升级只加不减。
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd07-dark.webp">
+    <img src="assets/readme/hd07-light.webp" width="100%" alt="快速开始">
+  </picture>
+</p>
+
+需要 Node 22+、pnpm 10+，以及一个可连通的 PostgreSQL。
 
 ```bash
-# 低内存环境构建
-pnpm build            # 或 ./build-low-memory.sh
+git clone https://github.com/AcutaCM/BerryRealm-NewGen-AIOT-Platform.git
+cd BerryRealm-NewGen-AIOT-Platform
+pnpm install
 
-# 启动前端 + WS 服务
-pnpm start:all
-
-# Docker 一键部署
-docker-compose -f docker-compose.yml up -d
+cp .env.example .env      # 改 DATABASE_URL，JWT_SECRET 用 openssl rand -hex 48 生成
+pnpm dev                  # → http://localhost:3000
+pnpm dev:ws               # 另开终端：语音与协同长连接
 ```
 
----
+不需要迁移命令。首次 `pnpm dev` 时启动钩子自动建表、写入默认 9 台设备、装载定时任务；表已存在则跳过。AI 变量可以留空，界面会提示模型不可用，其余功能照常。
 
-## 项目结构
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hd08-dark.webp">
+    <img src="assets/readme/hd08-light.webp" width="100%" alt="边界与已知限制">
+  </picture>
+</p>
 
-```text
-berry-realm-v4.0/
-├── app/                          # Next.js 应用主目录（App Router）
-│   ├── (mobile)/                 # 移动端 PWA 路由
-│   ├── api/                      # 后端 API 接口
-│   │   ├── admin/                # 管理后台 API（用户 / 模型 / MCP / 文档）
-│   │   ├── ai/                   # AI 助手 API（对话 / 定时 / 监控 / 记忆 / 人设）
-│   │   ├── auth/                 # 认证（登录 / 注册 / OAuth / 邮箱）
-│   │   ├── chat/                 # 即时通讯（直聊 / 群聊 / 上传 / SSE）
-│   │   ├── devices/              # 设备控制与历史
-│   │   ├── direct-messages/      # 私信
-│   │   ├── friends/              # 好友系统
-│   │   ├── groups/               # 群组管理
-│   │   ├── knowledge/            # 知识库（条目 / 标签 / 搜索 / 统计）
-│   │   ├── mqtt/                 # MQTT 设备控制与模拟
-│   │   ├── organizations/        # 组织管理
-│   │   ├── scheduler/            # 定时任务调度
-│   │   ├── voice/                # 语音配置
-│   │   └── ...
-│   ├── ai-assistant/             # AI 助手页面
-│   ├── dashboard/                # 数据仪表板
-│   ├── monitor/                  # 实时监控
-│   ├── device-control/           # 设备控制台
-│   ├── automation/               # 自动化策略编辑器
-│   ├── chat/                     # 即时通讯页面
-│   ├── blog/                     # 文档库（Blog）
-│   ├── admin/                    # 管理后台
-│   └── ...
-├── components/                   # UI 组件库
-│   ├── admin/                    # 管理后台组件
-│   ├── ai/                       # AI 助手组件（卡片 / 推理 / 工具 / 引用）
-│   ├── chat/                     # 聊天组件（消息项 / 窗口 / 侧栏）
-│   ├── ui/                       # 基础 UI（Shadcn + Berry XCard）
-│   └── ...
-├── hooks/                        # 业务 Hooks（聊天 / 联系人 / 录音）
-├── lib/                          # 工具函数与共享逻辑
-│   ├── ai/                       # AI 核心（Provider / RAG / Prompt / 调度 / 技能路由）
-│   ├── db/                       # 数据库服务层（Prisma + 业务服务）
-│   ├── voice/                    # 语音模块（VAD / Omni / 配置）
-│   ├── xiaozhi/                  # 莓小智客户端（实时 / 音频 / 命令）
-│   ├── mcp/                      # MCP 工具系统
-│   ├── automation/               # 自动化引擎
-│   ├── security/                 # 安全（SSRF / HTML 净化）
-│   └── ...
-├── server/                       # 独立 WebSocket 服务（ws-server.js）
-├── prisma/                       # Prisma Schema 与迁移
-├── public/                       # 静态资源（3D 模型 / VAD WASM / 视频 / 图标）
-├── docs/                         # 项目文档
-├── nginx/                        # Nginx 配置与维护页
-├── docker-compose.yml            # Docker 编排
-├── Dockerfile                    # 生产构建镜像
-└── ...
-```
+属于本系统的：传感器数据的接收、存储与分析；指令下发与状态确认；视觉识别与诊断建议；大模型编排、工具调度与上下文管理。
 
----
+不属于本系统的：传感器固件与采集电路；继电器、电机驱动器的电气实现；农药处方与农事作业执行；模型的训练与微调。
 
-## 关键模块速查
+已知限制：
 
-| 模块 | 入口文件 | 说明 |
-| --- | --- | --- |
-| AI 助手 | `app/ai-assistant/page.tsx` | 莓小智主界面，集成定时任务 / 我的空间 |
-| 即时通讯 | `app/chat/page.tsx` + `components/chat/` | 70%/560px 气泡、72px 头像带环、信息卡片 |
-| 语音助手 | `lib/voice/` + `lib/xiaozhi/` + `server/ws-server.js` | 纯 Omni 多模态，VAD + ASR + TTS |
-| 自动化引擎 | `lib/automation/engine.ts` + `app/automation/editor/` | ReactFlow 可视化规则编排 |
-| 设备控制 | `app/device-control/` + `lib/mqtt-service.ts` | MQTT 协议，远程 + 联动 |
-| 定时任务 | `lib/scheduler/runner.ts` + `lib/ai/ai-cron-service.ts` | Cron + AI 定时洞察 |
-| MCP 工具 | `lib/mcp/` + `app/api/mcp/` | Model Context Protocol 工具系统 |
-| 管理后台 | `app/admin/` + `app/api/admin/` | 用户 / 模型 / 文档 / MCP 管理 |
+- 诊断结果只是基于图像的初步判断，不能替代农技员，界面上也如此标注。
+- 强传染性许可证的视觉框架未进入产品链路（AGPL 的 YOLO 系目标检测），视觉走通用 VLM 加协议适配。
+- 未做微服务拆分：领域边界清楚，但当前团队与部署环境不支持那份运维复杂度，采用「单体 + 独立长连接进程」。
+- 三个巨型文件待拆：AI 助手主界面 7,495 行、对话接口 4,025 行、设备控制台 3,828 行。
 
----
+## 文档
 
-## 文档导航
+- [TECHNICAL_MANUAL.md](TECHNICAL_MANUAL.md)：环境、架构、AI 链路、部署，20 章
+- [docs/DESKTOP.md](docs/DESKTOP.md)：桌面端打包、签名与授权
+- [docs/MQTT_DEVELOPMENT_MANUAL.md](docs/MQTT_DEVELOPMENT_MANUAL.md)：设备接入
+- [docs/SKILL_SYSTEM_GUIDE.md](docs/SKILL_SYSTEM_GUIDE.md)：技能系统
+- 其余见 [docs/](docs)
 
-| 文档 | 说明 |
-| --- | --- |
-| [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md) | 项目交接与全套开发文档（架构 / 数据库 / 部署）|
-| [USER_MANUAL.md](USER_MANUAL.md) | 用户层操作手册 |
-| [ADMIN_UI_MANUAL.md](ADMIN_UI_MANUAL.md) | 管理后台操作手册 |
-| [RELEASE_NOTES.md](RELEASE_NOTES.md) | 版本发布说明 |
-| [changelog.md](changelog.md) | 详细变更日志 |
-| [docs/CAP_SETUP.md](docs/CAP_SETUP.md) | Capacitor 移动端打包 |
-| [docs/MQTT_DEVELOPMENT_MANUAL.md](docs/MQTT_DEVELOPMENT_MANUAL.md) | MQTT 设备开发手册 |
-| [docs/SKILL_SYSTEM_GUIDE.md](docs/SKILL_SYSTEM_GUIDE.md) | Skill 技能系统指南 |
+## 参与
 
----
-
-## 设计规范
-
-- **设计协议**：A2UI（Berry Protocol）
-- **配色**：Ant Design 主色 `#1677ff`，纯白底，避免橙色渐变
-- **图标**：统一使用 `lucide-react` 线性图标，`strokeWidth=1.75`（Trae Work 风格），禁止使用 emoji 作为图标
-- **圆角**：消息气泡 20px 大圆角，卡片 12px，按钮 8px
-- **响应式**：桌面 / 平板 / 移动端三档适配，移动端自动隐藏侧栏
-- **主题**：纯白光主题，对话区无阴影
-
----
-
-## 安全与合规
-
-- **认证**：JWT + bcrypt，OAuth（QQ / 支付宝）+ 邮箱验证
-- **授权**：三级角色（super_admin / admin / user），组织级 RBAC
-- **加密**：Omni API Key 采用 AES-256-GCM 加密存储，GET 接口仅返回脱敏状态
-- **防护**：SSRF Guard、HTML 净化、速率限制（聊天 / 设备接口豁免）
-- **数据隔离**：所有 API 经 `getCurrentUser` 校验，按 `user_id` 严格隔离
-
----
-
-## 部署与运维
-
-### 架构总览
-
-本项目采用 **Docker Compose 一键编排**，容器组成如下（`docker-compose.yml`）：
-
-| 服务 | 镜像 / 构建 | 端口 | 职责 |
-| --- | --- | --- | --- |
-| `web` | 本地构建（多阶段 Dockerfile）| 3000 / 3002 | Next.js 应用 + 语音 WebSocket 服务 |
-| `db` | `postgres:16-alpine` | 5432（内网）| PostgreSQL 主数据库 |
-| `yjs-ws` | 本地构建 | 1234（内网）| 文档实时协同 WebSocket |
-| `onlyoffice` | `onlyoffice/documentserver:8.2` | 8080→80 | Office 文档在线编辑 |
-| `nginx` | `nginx:alpine` | 80 / 443 | 反向代理 / TLS / 静态资源缓存 |
-
-所有容器处于同一 `app-network` 网桥，`web` 通过 `depends_on: db` 保证启动顺序。
-
-### 一、Docker 部署（推荐）
-
-> 也可直接运行仓库内的一键脚本 `./deploy.sh`（自动清理缓存、构建并启动）。
-
-**前置要求**
-
-- 服务器已安装 **Docker** 与 **Docker Compose**（`docker compose` v2）
-- 已安装 **openssl**（用于自动生成自签证书，仅用于非 HTTPS 场景）
-- 服务器内存 ≥ 4GB（构建时 Next.js 需要约 3GB 内存，见下）
-
-**完整步骤**
-
-```bash
-# 1. 克隆仓库
-git clone <your-repo-url>
-cd berry-realm-v4.0
-
-# 2. 准备环境变量
-cp .env.example .env
-```
-
-**3. 编辑 `.env`，至少配置以下必填项**（其余可按需留空）：
-
-```bash
-# 基础
-JWT_SECRET=            # openssl rand -hex 48 生成
-INTERNAL_API_SECRET=   # openssl rand -hex 32 生成
-
-# 数据库
-POSTGRES_DB=stravision
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=      # 强密码
-# 注意：容器内 DATABASE_URL 的 host 固定为 db，密码与上面一致
-DATABASE_URL=postgresql://postgres:你的密码@db:5432/stravision
-
-# MQTT（IoT 设备通信）
-MQTT_HOST=              # 你的 MQTT Broker 地址
-MQTT_PORT=8883
-MQTT_USERNAME=
-MQTT_PASSWORD=
-
-# AI
-DASHSCOPE_API_KEY=      # 阿里云 DashScope Key
-SYSTEM_OPENAI_API_KEY=  # OpenAI 兼容端点 Key
-SYSTEM_OPENAI_BASE_URL= # OpenAI 兼容端点 base URL
-
-# 天气
-WEATHER_API_KEY=
-
-# 应用地址（生产改为你的域名）
-APP_URL=https://your-domain.com
-NEXT_PUBLIC_APP_URL=https://your-domain.com
-```
-
-**4. 准备 Nginx 证书**
-
-将你的 HTTPS 证书放入 `nginx/certs/`，文件名需与 [nginx.conf](file:///c:/Users/24121/Documents/stravision/meijie/berry-realm-v4.0/nginx/nginx.conf) 中一致（默认 `stravision.site.crt` / `stravision.site.key`）。若仅用 HTTP（80 端口），可跳过，`deploy.sh` 会自动生成自签证书占位。
-
-**5. 构建并启动**
-
-```bash
-# 方式一：一键脚本（自动 down+清理+build+up）
-./deploy.sh
-
-# 方式二：手动执行
-docker compose build --no-cache
-docker compose up -d
-```
-
-**6. 首次初始化数据库**
-
-```bash
-# 进入 web 容器执行迁移
-docker compose exec web npx prisma migrate deploy
-```
-
-**7. 验证**
-
-```bash
-docker compose ps                 # 查看容器状态
-curl http://localhost/api/health  # 健康检查（应返回 200）
-docker compose logs -f web        # 查看应用日志
-```
-
-**8. 常用运维命令**
-
-```bash
-docker compose logs -f            # 跟踪所有服务日志
-docker compose restart web        # 重启应用
-docker compose down               # 停止（保留数据卷）
-docker compose down -v            # ⚠️ 停止并删除数据卷（数据将丢失）
-docker compose pull               # 拉取镜像更新
-```
-
-### 二、云服务器环境搭建（阿里云 / 腾讯云 / 华为云）
-
-以**阿里云 ECS（Ubuntu 22.04，2C4G）**为例，其他云厂商步骤一致。
-
-**1. 云主机准备**
-
-- 在控制台购买 ECS，系统镜像选择 **Ubuntu 22.04 LTS**
-- 安全组放行端口：`80`、`443`、`22`（SSH）
-- SSH 登录服务器
-
-**2. 安装 Docker 与 Compose**
-
-```bash
-# 更新系统
-sudo apt update && sudo apt upgrade -y
-
-# 安装依赖
-sudo apt install -y ca-certificates curl gnupg lsb-release git openssl
-
-# 添加 Docker 官方源（国内可用阿里云镜像）
-curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | \
-  sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-  https://mirrors.aliyun.com/docker-ce/linux/ubuntu \
-  $(lsb_release -cs) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# 安装 Docker 与 Compose 插件
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# 配置 Docker 镜像加速（国内必需，否则拉取慢）
-sudo tee /etc/docker/daemon.json <<'EOF'
-{
-  "registry-mirrors": [
-    "https://docker.m.daocloud.io",
-    "https://mirror.ccs.tencentyun.com"
-  ],
-  "log-driver": "json-file",
-  "log-opts": { "max-size": "20m", "max-file": "3" }
-}
-EOF
-
-# 使配置生效并设置开机自启
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-sudo systemctl enable docker
-
-# 将当前用户加入 docker 组（免 sudo）
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-**3. 配置域名与 HTTPS（推荐）**
-
-推荐使用 **Cloudflare** 或云厂商的免费证书：
-
-- 解析域名 A 记录指向服务器公网 IP
-- 将 PEM 证书放入 `nginx/certs/stravision.site_bundle.crt` 与 `stravision.site.key`
-- 生产若用 Nginx 反代 + 免费证书自动续期，可使用 `certbot`：
-
-```bash
-# 先只启动 web 与 nginx 后，用 certbot 签发证书
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot certonly --standalone -d your-domain.com \
-  --agree-tos -m you@email.com --server https://acme-v02.api.letsencrypt.org/directory
-# 将生成的 fullchain 与 privkey 复制到 nginx/certs/
-```
-
-**4. 部署应用**
-
-```bash
-cd ~
-git clone <your-repo-url> berry-realm
-cd berry-realm
-cp .env.example .env
-# 编辑 .env（同上文必填项）
-./deploy.sh
-```
-
-**5. 配置防火墙**
-
-```bash
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-```
-
-**6. 数据备份（重要）**
-
-`docker-compose.yml` 已将 PostgreSQL 数据持久化到命名卷 `pgdata`，上传文件在 `public/uploads/`。建议配置每日备份：
-
-```bash
-# 每日凌晨备份数据库（cron）
-0 2 * * * docker compose -f ~/berry-realm/docker-compose.yml exec -T db \
-  pg_dump -U postgres stravision | gzip > ~/backup/stravision_$(date +\%Y\%m\%d).sql.gz
-```
-
-**7. 常见问题排查**
-
-| 现象 | 排查方向 |
-| --- | --- |
-| 构建 OOM / 卡死 | 内存不足。用 `build-low-memory.sh` 或增大 `NODE_OPTIONS=--max-old-space-size`；确保 ≥4GB |
-| 拉取镜像慢 | 已配置国内镜像加速；`Dockerfile` 已内置 daocloud 源与清华 APT 源 |
-| 502 Bad Gateway | `web` 未就绪。查看 `docker compose logs web`，等待 `pnpm start` 完成 |
-| 语音连接失败 | 确认 443 上 `/ws/voice` WebSocket 代理正常；本地 `localhost` 需走 `ws://` |
-| HTTP 页面 404 | 检查 `nginx/nginx.conf` 中 `server_name` 是否包含你的域名 |
-| 数据库连接失败 | 核对 `.env` 中 `DATABASE_URL` 的 host 是否为 `db`、密码一致 |
-
----
-
-## 部署特性
-
-- **低内存构建**：`build-low-memory.sh` / `.ps1`，适配 1GB 内存服务器
-- **多阶段构建**：`Dockerfile`（开发/构建/运行三阶段分离），内置 daocloud / 清华镜像源
-- **Nginx 反代**：内置维护页、TLS、静态资源 365 天缓存、WebSocket 升级
-- **代码混淆**：生产构建自动启用 `javascript-obfuscator`
-- **健康检查**：`/api/health` 端点 + `HEALTHCHECK` 指令，配合容器编排探活
-- **容器自愈**：`restart: always` + WS 服务崩溃自动重启（`docker-entrypoint.sh`）
-
----
-
-## 贡献指南
-
-欢迎提交 Issue 与 Pull Request。请遵循以下约定：
-
-1. 提交前运行 `pnpm lint` 与 `pnpm test` 确保通过
-2. 遵循现有代码风格与命名约定
-3. UI 改动须遵守 A2UI 设计协议，禁止使用 emoji 作为图标
-4. 涉及安全字段（API Key / Token）须脱敏处理
-5. 提交信息使用约定式提交（`feat:` / `fix:` / `docs:` 等）
-
----
+欢迎 Issue 与 PR。提交前跑通 `pnpm lint` 与 `pnpm test`；UI 改动请使用既有设计令牌，不要引入新的强调色或第三方图标库；密钥类字段一律脱敏。
 
 ## 许可证
 
-本项目采用 [**Apache License 2.0**](LICENSE) 开源许可证。
+源码采用 [Apache License 2.0](LICENSE)。桌面端安装包与授权码体系独立于源码许可，商用前请阅读 [docs/DESKTOP_LICENSE.md](docs/DESKTOP_LICENSE.md)。
 
-```
-Copyright (c) 2026 Stravision Team.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
-
----
-
-<div align="center">
-
-**Stravision · 莓界** —— 对话即决策，感知即守护
-
-<sub>Built with Next.js · Ant Design · Prisma · MQTT · WebSocket · 大模型</sub>
-
-</div>
+<p align="center">
+  <sub><b>Stravision · 莓界</b>　Apache License 2.0　Copyright (c) 2026 Stravision Team</sub>
+</p>

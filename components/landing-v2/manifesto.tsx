@@ -77,7 +77,7 @@ export function Manifesto() {
       <div className="mx-auto grid max-w-[1400px] gap-16 px-6 md:grid-cols-[1.15fr_0.85fr] md:gap-12 md:px-10">
         <div>
           <p
-            className="mb-12 flex items-baseline gap-3 text-[14px] text-[#2B3122]/50"
+            className="mb-12 flex items-baseline gap-3 text-[14px] text-[#18181B]/50"
             style={{ fontFamily: KAI }}
           >
             <span className="text-[#A63A3D]">栽培笔记</span>
@@ -86,7 +86,7 @@ export function Manifesto() {
           </p>
 
           <h2
-            className="text-[clamp(1.8rem,3.8vw,3.1rem)] leading-[1.5] tracking-tight text-[#2B3122]"
+            className="text-[clamp(1.8rem,3.8vw,3.1rem)] leading-[1.5] tracking-tight text-[#18181B]"
             style={{ fontFamily: SERIF }}
           >
             {LINES.map((line, i) => (
@@ -115,7 +115,7 @@ export function Manifesto() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true, margin: "-15%" }}
             transition={{ duration: 1.2, delay: 0.2 }}
-            className="relative mt-14 max-w-[48ch] pl-6 text-[15px] leading-[1.9] text-[#2B3122]/60"
+            className="relative mt-14 max-w-[48ch] pl-6 text-[14px] leading-[1.9] text-[#18181B]/60"
           >
             <span
               aria-hidden
@@ -146,14 +146,14 @@ export function Manifesto() {
               />
             </div>
             <figcaption
-              className="absolute bottom-3 left-4 text-[13px] text-[#2B3122]/60"
+              className="absolute bottom-3 left-4 text-[13px] text-[#18181B]/60"
               style={{ fontFamily: KAI }}
             >
               静物，晨露未干
             </figcaption>
           </motion.figure>
 
-          <ScribbleUnderline className="absolute bottom-4 right-6 w-32 -rotate-6 opacity-40" stroke="#2B3122" />
+          <ScribbleUnderline className="absolute bottom-4 right-6 w-32 -rotate-6 opacity-40" stroke="#18181B" />
         </div>
       </div>
     </section>

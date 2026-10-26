@@ -1,7 +1,8 @@
 "use client"
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useEffect, useState } from "react"
-import { Empty, theme, Switch, Dropdown, App } from "antd"
+import { Empty, theme, Switch, Dropdown } from "antd"
 import type { MenuProps } from "antd"
 import { ManualTaskCreateModal } from "@/components/ai/manual-task-create-modal"
 import { DEVICE_IDS } from "@/lib/constants"
@@ -120,7 +121,7 @@ function ScheduleTaskCard({
   onChanged: () => void
 }) {
   const { token } = theme.useToken()
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const [active, setActive] = useState(task.is_active === 1)
   const [busy, setBusy] = useState<"toggle" | "run" | "delete" | null>(null)
   const [editing, setEditing] = useState(false)

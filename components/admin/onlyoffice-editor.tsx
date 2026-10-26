@@ -13,8 +13,9 @@
  *   <OnlyOfficeEditor slug="user-manual" mode="edit" onClose={() => setOpen(false)} />
  */
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useEffect, useRef, useState, useId } from "react"
-import { Modal, Spin, App, Button, Space, Typography, Alert } from "antd"
+import { Modal, Spin, Button, Space, Typography, Alert } from "antd"
 import { IconClose, IconEdit, IconPreviewOpen, IconRefresh } from "@/components/icon";
 
 const { Text } = Typography
@@ -73,7 +74,7 @@ export function OnlyOfficeEditor({
   mode?: "edit" | "view"
   onClose?: () => void
 }) {
-  const { message } = App.useApp()
+  const { message } = useFeedback()
 
   // 唯一容器 ID（移除 useId 中的冒号，避免选择器问题）
   const rawId = useId()
@@ -289,7 +290,7 @@ export function OnlyOfficeEditor({
           <Alert
             type="error"
             showIcon
-            message="OnlyOffice 编辑器加载失败"
+            title="OnlyOffice 编辑器加载失败"
             description={error}
             style={{ maxWidth: 480, width: "100%" }}
           />

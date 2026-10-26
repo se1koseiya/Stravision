@@ -21,23 +21,39 @@ const logger = require('./logger');
 /** 需要重定向的可写目录（相对 serverRoot） */
 const WRITABLE_DIRS = ['data', 'public/uploads', 'docs'];
 
-function copyDirSync(from, to) {
+/**
+ * 把随包目录里「目标侧缺失」的条目补齐 —— **只补不覆盖**。
+ *
+ * 🚨 不能用「目标为空才整目录复制」的老语义（2026-10-27 语音模型丢失事故）：
+ *   老用户升级时 target 早就非空（ai-providers-config.json 等），
+ *   旧逻辑整段跳过 → 新版本新增的随包资源（那一版是 240MB 的 ASR 模型）
+ *   只留在 data.__bundled__ 里，运行期 cwd/data 看不到，功能整块变灰。
+ *
+ *   用户已有文件一律保留（用户改动优先），所以补齐是幂等且安全的。
+ *
+ * @returns {{ copied: number, skipped: number }}
+ */
+function syncMissingFiles(from, to, stats) {
   fs.mkdirSync(to, { recursive: true });
   for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
     const src = path.join(from, entry.name);
     const dst = path.join(to, entry.name);
-    if (entry.isDirectory()) copyDirSync(src, dst);
-    else if (entry.isFile()) fs.copyFileSync(src, dst);
-  }
-}
 
-/** 目标目录是否为空（不存在或没有条目） */
-function isEmptyDir(dir) {
-  try {
-    return fs.readdirSync(dir).length === 0;
-  } catch {
-    return true;
+    if (entry.isDirectory()) {
+      syncMissingFiles(src, dst, stats);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+
+    if (fs.existsSync(dst)) {
+      stats.skipped++;
+      continue; // 用户侧已有 → 不动（避免随包默认值覆盖用户配置）
+    }
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.copyFileSync(src, dst);
+    stats.copied++;
   }
+  return stats;
 }
 
 function createLink(target, linkPath) {
@@ -65,12 +81,16 @@ function linkOne(serverRoot, dataRoot, rel) {
   }
 
   if (sourceStat && sourceStat.isDirectory()) {
-    // 随包附带的初始数据（如默认 data/*.json 配置）：首次运行时迁移到 userData，
+    // 随包附带的初始数据（如默认 data/*.json 配置）：迁移到 userData，
     // 保留默认配置，之后用户改动只落在 userData 侧。
-    if (isEmptyDir(target)) {
-      logger.info('links', `迁移随包初始数据 ${rel} → userData`);
-      copyDirSync(source, target);
+    // 🚨 必须「补齐缺失」而非「目标为空才全量复制」：升级场景下 target 非空，
+    //    全量复制会整段跳过，新版本新增的随包资源就永远进不了运行期目录。
+    const stats = { copied: 0, skipped: 0 };
+    syncMissingFiles(source, target, stats);
+    if (stats.copied) {
+      logger.info('links', `补齐随包资源 ${rel} → userData（新增 ${stats.copied}，已存在 ${stats.skipped}）`);
     }
+
     const backup = `${source}.__bundled__`;
     try {
       if (fs.existsSync(backup)) fs.rmSync(backup, { recursive: true, force: true });

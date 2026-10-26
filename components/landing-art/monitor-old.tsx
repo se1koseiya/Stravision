@@ -42,7 +42,7 @@ function IndustrialCard({ children, className, delay = 0 }: { children: ReactNod
       className={cn("perspective-1000 group relative", className)}
     >
       <GlassCard 
-        className="h-full w-full bg-[#0a0a0a]/80 border-white/10 p-6 overflow-hidden transition-all duration-300 group-hover:border-emerald-500/50"
+        className="h-full w-full bg-[#0A0A0A]/80 border-white/10 p-6 overflow-hidden transition-all duration-300 group-hover:border-emerald-500/50"
         style={{ transform: "translateZ(20px)" }}
         hoverEffect={false}
       >
@@ -75,7 +75,7 @@ export function Monitor() {
 
   return (
     <section className="min-h-screen w-full flex items-center justify-center px-4 md:px-24 py-24 relative">
-      <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-16 items-start">
+      <div className="w-full max-w-[1400px] mx-auto flex flex-col md:flex-row gap-16 items-start">
         
         {/* Left Side: Typography & Description */}
         <div className="flex-1 space-y-12 sticky top-24">
@@ -129,7 +129,7 @@ export function Monitor() {
                 <h3 className="text-lg font-jinbuti font-bold tracking-wide">温度</h3>
                 <span className="text-xs text-emerald-500/60 font-jinbuti">传感器ID: T-2049</span>
               </div>
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]" />
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#059669]" />
             </div>
             
             <div className="flex items-end gap-4">
@@ -157,14 +157,14 @@ export function Monitor() {
           <IndustrialCard delay={0.2}>
              <div className="flex justify-between items-start mb-4">
                 <h3 className="text-sm font-jinbuti font-bold tracking-wide text-white/80">湿度</h3>
-                <span className="text-[10px] text-white/40 font-jinbuti">H-102</span>
+                <span className="text-[11px] text-white/40 font-jinbuti">H-102</span>
              </div>
              <div className="relative w-full aspect-square flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.1)" strokeWidth="8" fill="none" />
                   <motion.circle 
                     cx="50" cy="50" r="40" 
-                    stroke="#10b981" 
+                    stroke="#059669" 
                     strokeWidth="8" 
                     fill="none" 
                     strokeDasharray="251.2"
@@ -176,7 +176,7 @@ export function Monitor() {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center flex-col">
                   <span className="text-3xl font-jinbuti font-bold">62%</span>
-                  <span className="text-[10px] text-white/40 font-jinbuti">最佳</span>
+                  <span className="text-[11px] text-white/40 font-jinbuti">最佳</span>
                 </div>
              </div>
           </IndustrialCard>
@@ -185,7 +185,7 @@ export function Monitor() {
           <IndustrialCard delay={0.4}>
              <div className="flex justify-between items-start mb-4">
                 <h3 className="text-sm font-jinbuti font-bold tracking-wide text-white/80">二氧化碳浓度</h3>
-                <span className="text-[10px] text-white/40 font-jinbuti">C-882</span>
+                <span className="text-[11px] text-white/40 font-jinbuti">C-882</span>
              </div>
              <div className="space-y-4 mt-8">
                <div className="flex justify-between text-xs font-jinbuti">

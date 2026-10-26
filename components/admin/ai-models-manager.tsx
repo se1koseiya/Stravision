@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button, Input, Switch, Card, Select, Modal, Typography, Spin, Form } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconDelete, IconEdit, IconPlus, IconRefresh, IconSave } from "@/components/icon";
 
 const { Text } = Typography
@@ -196,7 +196,7 @@ export function AIModelsManager() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 'bold', color: '#1F2329', margin: 0 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 'bold', color: '#18181B', margin: 0 }}>
             AI 模型管理
           </h3>
           <p style={{ fontSize: 12, color: '#8F959E', marginTop: 4 }}>
@@ -278,13 +278,13 @@ export function AIModelsManager() {
                     
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Text strong style={{ fontSize: 13, color: '#1F2329' }}>
+                        <Text strong style={{ fontSize: 13, color: '#18181B' }}>
                           {model.name}
                         </Text>
                         <code style={{
                           fontSize: 11,
                           color: '#646A73',
-                          backgroundColor: '#F2F3F5',
+                          backgroundColor: '#F4F4F5',
                           padding: '2px 6px',
                           borderRadius: 4,
                           fontFamily: 'monospace'

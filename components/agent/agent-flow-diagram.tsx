@@ -76,10 +76,10 @@ export function AgentFlowDiagram() {
       ctx.lineTo(toNode.x + 60, toNode.y);
       
       if (edge.active) {
-        ctx.strokeStyle = '#3b82f6';
+        ctx.strokeStyle = '#059669';
         ctx.lineWidth = 2;
       } else {
-        ctx.strokeStyle = '#e5e7eb';
+        ctx.strokeStyle = '#e4e4e7';
         ctx.lineWidth = 1;
       }
       
@@ -100,7 +100,7 @@ export function AgentFlowDiagram() {
         toNode.y - arrowSize * Math.sin(angle + Math.PI / 6)
       );
       ctx.closePath();
-      ctx.fillStyle = edge.active ? '#3b82f6' : '#e5e7eb';
+      ctx.fillStyle = edge.active ? '#059669' : '#e4e4e7';
       ctx.fill();
     });
   }, [nodes, edges]);
@@ -108,7 +108,7 @@ export function AgentFlowDiagram() {
   const getNodeColor = (status: FlowNode['status']) => {
     switch (status) {
       case 'pending': return 'bg-muted border-border';
-      case 'active': return 'bg-blue-100 border-blue-500 ring-2 ring-blue-200';
+      case 'active': return 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-200';
       case 'completed': return 'bg-green-100 border-green-500';
       case 'failed': return 'bg-red-100 border-red-500';
     }
@@ -161,7 +161,7 @@ export function AgentFlowDiagram() {
                 <p className="text-xs font-medium text-center">{node.name}</p>
                 {node.status === 'active' && (
                   <div className="flex justify-center mt-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                   </div>
                 )}
               </div>

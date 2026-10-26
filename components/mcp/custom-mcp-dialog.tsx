@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconClose, IconHelp, IconPlus } from "@/components/icon";
 
 interface CustomMCPDialogProps {
@@ -25,7 +25,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
     description: "",
     category: "development",
     icon: "",
-    iconBg: "bg-blue-500",
+    iconBg: "bg-emerald-500",
     provider: "",
     command: "npx",
     args: "",
@@ -119,7 +119,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
       description: "",
       category: "development",
       icon: "",
-      iconBg: "bg-blue-500",
+      iconBg: "bg-emerald-500",
       provider: "",
       command: "npx",
       args: "",
@@ -240,7 +240,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0A0A0A] border-white/10 text-white">
-                    <SelectItem value="bg-blue-500">蓝色</SelectItem>
+                    <SelectItem value="bg-emerald-500">蓝色</SelectItem>
                     <SelectItem value="bg-green-500">绿色</SelectItem>
                     <SelectItem value="bg-primary">祖母绿</SelectItem>
                     <SelectItem value="bg-red-500">红色</SelectItem>
@@ -248,7 +248,7 @@ export function CustomMCPDialog({ open, onOpenChange, onSave }: CustomMCPDialogP
                     <SelectItem value="bg-purple-500">紫色</SelectItem>
                     <SelectItem value="bg-pink-500">粉色</SelectItem>
                     <SelectItem value="bg-indigo-500">靛蓝</SelectItem>
-                    <SelectItem value="bg-gray-500">灰色</SelectItem>
+                    <SelectItem value="bg-zinc-500">灰色</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

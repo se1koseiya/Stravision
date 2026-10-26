@@ -32,14 +32,14 @@ export function ConsciousPrompt() {
                 <button
                   onClick={() => handleInteraction("now")}
                   onMouseEnter={() => setState("watching")}
-                  className="text-muted-foreground hover:text-white transition-all duration-700 text-lg tracking-[0.2em]"
+                  className="text-muted-foreground hover:text-white transition-all duration-500 text-lg tracking-[0.2em]"
                 >
                   现在
                 </button>
                 <button
                   onClick={() => handleInteraction("wait")}
                   onMouseEnter={() => setState("waiting")}
-                  className="text-muted-foreground hover:text-white transition-all duration-700 text-lg tracking-[0.2em]"
+                  className="text-muted-foreground hover:text-white transition-all duration-500 text-lg tracking-[0.2em]"
                 >
                   等等
                 </button>

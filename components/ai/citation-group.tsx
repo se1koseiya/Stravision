@@ -27,19 +27,19 @@ export function CitationGroup({ sources }: CitationGroupProps) {
       <Sheet open={open} onOpenChange={setOpen}>
         <button 
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 dark:from-emerald-950/30 dark:to-teal-950/30 dark:hover:from-emerald-900/40 dark:hover:to-teal-900/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-full pl-1.5 pr-4 py-1.5 transition-all cursor-pointer group select-none outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 hover:shadow-md hover:shadow-emerald-100/50 dark:hover:shadow-emerald-900/20"
+          className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 dark:from-emerald-950/30 dark:to-teal-950/30 dark:hover:from-emerald-900/40 dark:hover:to-teal-900/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-full pl-1.5 pr-4 py-1.5 transition-all cursor-pointer group select-none outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 hover:shadow-sm hover:shadow-emerald-100/50 dark:hover:shadow-emerald-900/20"
         >
           <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
             {sources.slice(0, 3).map((s, i) => (
               <div 
                 key={i} 
-                className="size-6 rounded-full bg-gradient-to-br from-primary to-teal-600 border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[10px] font-bold text-white shadow-sm shrink-0 relative z-10"
+                className="size-6 rounded-full bg-gradient-to-br from-primary to-teal-600 border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[11px] font-bold text-white shadow-sm shrink-0 relative z-10"
               >
                 {s.number}
               </div>
             ))}
             {sources.length > 3 && (
-              <div className="size-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[9px] font-bold text-white shrink-0 relative z-20">
+              <div className="size-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[11px] font-bold text-white shrink-0 relative z-20">
                 +{sources.length - 3}
               </div>
             )}

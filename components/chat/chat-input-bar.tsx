@@ -3,6 +3,7 @@
 import { memo, useRef, useState, useCallback, useEffect } from "react"
 import { Tooltip } from "antd"
 import { cn } from "@/lib/utils"
+import { captureScreen } from "@/app/ai-assistant/_utils/screenshot"
 import { IconClose, IconEmotionHappy, IconPaperclip, IconPhone, IconScissors, IconVideo } from "@/components/icon";
 
 export interface SendMessageFn {
@@ -63,57 +64,6 @@ const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
   },
 ]
 
-/* ========== 截图工具 ========== */
-
-async function captureScreenshot(): Promise<File | null> {
-  try {
-    if (!navigator.mediaDevices?.getDisplayMedia) {
-      alert("当前浏览器不支持截图功能，请使用 Chrome / Edge 浏览器")
-      return null
-    }
-
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { cursor: "always" } as MediaTrackConstraints,
-      audio: false,
-    })
-
-    const track = stream.getVideoTracks()[0]
-    const video = document.createElement("video")
-    video.srcObject = stream
-    video.muted = true
-
-    await new Promise<void>((resolve) => {
-      video.onloadedmetadata = () => {
-        video.play().then(() => resolve())
-      }
-    })
-
-    // 等待一帧确保画面就绪
-    await new Promise((r) => requestAnimationFrame(r))
-    await new Promise((r) => setTimeout(r, 200))
-
-    const canvas = document.createElement("canvas")
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return null
-    ctx.drawImage(video, 0, 0)
-
-    track.stop()
-    stream.getTracks().forEach((t) => t.stop())
-
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), "image/png")
-    )
-    if (!blob) return null
-
-    return new File([blob], `screenshot-${Date.now()}.png`, { type: "image/png" })
-  } catch (e) {
-    // 用户取消或权限拒绝
-    return null
-  }
-}
-
 /* ========== 主组件 ========== */
 
 function ChatInputBarInner({
@@ -170,6 +120,23 @@ function ChatInputBarInner({
     e.target.value = ""
   }
 
+  /**
+   * 粘贴发图（2026-10-22）：截图后直接 Ctrl+V 是最常用的发图方式，
+   * 旧实现只能点回形针选文件。这里抓 clipboard 里的 file 型 item。
+   */
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.kind !== "file") continue
+      const file = item.getAsFile()
+      if (!file) continue
+      e.preventDefault()
+      onSend({ file })
+      return
+    }
+  }
+
   // 在光标位置插入 emoji（无依赖，稳定引用）
   const insertEmoji = useCallback((emoji: string) => {
     const el = textareaRef.current
@@ -208,14 +175,15 @@ function ChatInputBarInner({
     }
   }, [emojiOpen])
 
-  // 截图
+  // 截图（实现收敛到 app/ai-assistant/_utils/screenshot.ts，与工作台侧栏同源）
   const handleScreenshot = useCallback(async () => {
     setCapturing(true)
-    const file = await captureScreenshot()
+    const res = await captureScreen()
     setCapturing(false)
-    if (file) {
-      onSend({ file })
-    }
+    if (res.ok) onSend({ file: res.file })
+    else if (res.reason === "unsupported") alert("当前浏览器不支持截图功能，请使用 Chrome / Edge 浏览器")
+    else if (res.reason === "failed") alert("截图失败，请重试")
+    // cancelled：用户自己取消的，静默
   }, [onSend])
 
   const toggleRecording = () => {
@@ -227,12 +195,12 @@ function ChatInputBarInner({
   }
 
   return (
-    <div className="shrink-0 bg-white border-t border-black/[0.06] relative">
+    <div className="shrink-0 bg-br-surface-2 relative">
       {/* Emoji 浮动面板 */}
       {emojiOpen && (
         <div
           ref={emojiPanelRef}
-          className="absolute bottom-full left-4 mb-2 z-50 bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-black/[0.06] p-2"
+          className="absolute bottom-full left-4 mb-2 z-50 bg-br-surface rounded-xl shadow-br-lg border border-br-line p-2"
         >
           {/* Emoji 网格 */}
           <div className="w-[340px] h-[200px] overflow-y-auto px-1" data-lenis-prevent>
@@ -242,7 +210,7 @@ function ChatInputBarInner({
                   key={`${emoji}-${i}`}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => insertEmoji(emoji)}
-                  className="size-9 flex items-center justify-center rounded-lg hover:bg-black/[0.06] transition-colors text-[20px] leading-none"
+                  className="size-9 flex items-center justify-center rounded-lg hover:bg-br-surface-4 transition-colors text-[20px] leading-none"
                 >
                   {emoji}
                 </button>
@@ -250,16 +218,16 @@ function ChatInputBarInner({
             </div>
           </div>
           {/* 分类标签 */}
-          <div className="flex items-center gap-1 border-t border-black/[0.06] pt-1.5 mt-1">
+          <div className="flex items-center gap-1 pt-2 mt-1">
             {EMOJI_CATEGORIES.map((cat, i) => (
               <button
                 key={cat.label}
                 onClick={() => setEmojiCategory(i)}
                 className={cn(
-                  "px-2 py-1 rounded-md text-[12px] transition-colors",
+                  "px-2 py-1 rounded-lg text-[12px] transition-colors",
                   emojiCategory === i
-                    ? "bg-[#e6f4ff] text-[#1677ff]"
-                    : "text-[rgba(0,0,0,0.5)] hover:bg-black/[0.04]"
+                    ? "bg-br-brand-soft text-br-brand-ink"
+                    : "text-br-text-3 hover:bg-br-surface-3"
                 )}
               >
                 {cat.label}
@@ -311,22 +279,22 @@ function ChatInputBarInner({
       {/* 输入区 */}
       <div className="px-4 pt-1.5 pb-3">
         {isRecording ? (
-          <div className="flex items-center gap-3 h-10 px-3 rounded-lg bg-[#f5f5f5]">
-            <span className="flex items-center gap-1.5 text-[#ff4d4f] text-[13px]">
-              <span className="size-2 rounded-full bg-[#ff4d4f] animate-pulse" />
+          <div className="flex items-center gap-3 h-10 px-3 rounded-lg bg-br-surface-3">
+            <span className="flex items-center gap-1.5 text-br-danger text-[13px]">
+              <span className="size-2 rounded-full bg-br-danger animate-pulse" />
               录音中...
             </span>
             <button
               onClick={onCancelRecording}
-              className="ml-auto size-7 flex items-center justify-center rounded-full hover:bg-black/[0.06] text-[rgba(0,0,0,0.45)]"
+              className="ml-auto size-7 flex items-center justify-center rounded-full hover:bg-br-surface-4 text-br-text-3"
             >
               <IconClose size={16} />
             </button>
             <button
               onClick={toggleRecording}
-              className="size-7 flex items-center justify-center rounded-full bg-[#ff4d4f] text-white"
+              className="size-7 flex items-center justify-center rounded-full bg-br-danger text-white"
             >
-              <span className="size-2.5 rounded-full bg-white" />
+              <span className="size-2.5 rounded-full bg-br-surface" />
             </button>
           </div>
         ) : (
@@ -335,9 +303,10 @@ function ChatInputBarInner({
             value={text}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="输入消息..."
+            onPaste={handlePaste}
+            placeholder="输入消息…（Enter 发送，Shift+Enter 换行，可直接粘贴图片）"
             rows={1}
-            className="w-full resize-none bg-transparent border-0 outline-none text-[14px] text-[rgba(0,0,0,0.88)] placeholder:text-[rgba(0,0,0,0.3)] leading-6 py-1 max-h-[120px]"
+            className="w-full resize-none bg-transparent border-0 outline-none text-[14px] text-br-text-1 placeholder:text-br-text-3 leading-6 py-1 max-h-[120px]"
           />
         )}
       </div>
@@ -364,8 +333,8 @@ function ToolIconButton({
         className={cn(
           "size-8 flex items-center justify-center rounded-full transition-colors",
           active
-            ? "text-[#1677ff] bg-[#e6f4ff]"
-            : "text-[rgba(0,0,0,0.55)] hover:text-[rgba(0,0,0,0.8)] hover:bg-black/[0.04]",
+            ? "text-br-brand-ink bg-br-brand-soft"
+            : "text-br-text-2 hover:text-br-text-1 hover:bg-br-surface-3",
           loading && "opacity-50 cursor-wait"
         )}
       >

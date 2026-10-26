@@ -12,7 +12,7 @@ const IP_IMAGES = {
 const DBNode = ({ icon, title, desc, type, className }: { icon: any, title: string, desc: string, type: string, className?: string }) => {
   return (
     <div className={cn(
-        "relative group flex flex-col p-6 rounded-2xl border transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.2)]",
+        "relative group flex flex-col p-6 rounded-2xl border transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_0_30px_-10px_rgba(0,148,86,0.2)]",
         "border-zinc-800 bg-black/40 backdrop-blur-md hover:border-primary/30",
         className
     )}>
@@ -23,7 +23,7 @@ const DBNode = ({ icon, title, desc, type, className }: { icon: any, title: stri
            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
                {icon}
            </div>
-           <span className="text-[10px] font-mono uppercase tracking-widest text-primary/50 border border-primary/10 px-2 py-1 rounded bg-primary/5">
+           <span className="text-[11px] font-mono uppercase tracking-widest text-primary/50 border border-primary/10 px-2 py-1 rounded bg-primary/5">
                {type}
            </span>
        </div>
@@ -68,7 +68,7 @@ export function DatabaseArchitectureDiagram() {
               src={IP_IMAGES.main} 
               alt="Database Guardian" 
               fill 
-              className="object-contain drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+              className="object-contain drop-shadow-[0_0_30px_rgba(0,148,86,0.3)]"
           />
       </motion.div>
 

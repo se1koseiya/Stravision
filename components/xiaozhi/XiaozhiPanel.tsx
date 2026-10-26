@@ -69,8 +69,10 @@ export function XiaozhiPanel({
           className={cn(
             "fixed bottom-[110px] right-8 w-[380px] h-[520px] z-50 flex flex-col overflow-hidden",
             "rounded-[32px] border border-white/20 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)]",
-            "bg-white/10 dark:bg-black/30 backdrop-blur-[40px] saturate-150"
+            "bg-white/10 dark:bg-black/30 dc-gblur saturate-150"
           )}
+          /* 模糊值走 --gblur → 由 material-css.ts 的 .dc-gblur 乘上全站「材质厚度」档位 */
+          style={{ "--gblur": "40px" } as React.CSSProperties}
         >
           {/* Header - Vision Pro Style */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
@@ -83,7 +85,7 @@ export function XiaozhiPanel({
               </div>
               <div>
                 <h3 className="font-semibold text-white/90 text-base leading-tight">莓小智</h3>
-                <p className="text-[10px] font-medium text-white/50 tracking-wide uppercase">AI Assistant</p>
+                <p className="text-[11px] font-medium text-white/50 tracking-wide uppercase">AI Assistant</p>
               </div>
             </div>
             <Button 
@@ -157,7 +159,7 @@ export function XiaozhiPanel({
                   "text-xs font-medium px-3 py-1 rounded-full backdrop-blur-md transition-colors duration-500",
                   status === 'listening' ? "bg-red-500/20 text-red-200 border border-red-500/30" :
                   status === 'speaking' ? "bg-green-500/20 text-green-200 border border-green-500/30" :
-                  status === 'processing' ? "bg-blue-500/20 text-blue-200 border border-blue-500/30" :
+                  status === 'processing' ? "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30" :
                   "bg-white/10 text-white/50 border border-white/5"
                 )}>
                   {status === 'listening' && "正在聆听..."}

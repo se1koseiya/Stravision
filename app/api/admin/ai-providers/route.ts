@@ -43,13 +43,13 @@ export interface WebSearchConfig {
   enabled: boolean
   /** 搜索用的 provider id（不限类型；直存 Key 或 anysearch 免 Key 时可留空） */
   providerId: string
-  /** 搜索协议：zhipu = 智谱 Web Search 兼容端点（默认）；exa = Exa 官方 API；anysearch = AnySearch MCP（免 Key 匿名可用） */
-  protocol?: 'zhipu' | 'exa' | 'anysearch'
-  /** 直存 API Key（Exa/AnySearch 等免 provider 协议；anysearch 可不填）。GET 回显脱敏值，PATCH 缺省时保留原值。exaApiKey 为旧字段兼容 */
+  /** 搜索协议：zhipu = 智谱 Web Search 兼容端点（默认）；exa = Exa 官方 API；anysearch = AnySearch MCP（免 Key 匿名可用）；local = 内置本地引擎（零 Key 零外部服务，桌面端默认） */
+  protocol?: 'zhipu' | 'exa' | 'anysearch' | 'local'
+  /** 直存 API Key（Exa/AnySearch 等免 provider 协议；anysearch / local 可不填）。GET 回显脱敏值，PATCH 缺省时保留原值。exaApiKey 为旧字段兼容 */
   apiKey?: string
   /** @deprecated 旧版 Exa 独立 Key 字段，仅兼容读取 */
   exaApiKey?: string
-  /** 智谱：search_std / search_pro / search_pro_sogou / search_pro_quark；Exa：auto / neural / keyword；anysearch 无引擎概念 */
+  /** 智谱：search_std / search_pro / search_pro_sogou / search_pro_quark；Exa：auto / neural / keyword；local：bing / so360 / ddg（留空=并发全部）；anysearch 无引擎概念 */
   engine?: string
   /** 默认返回条数 */
   defaultCount?: number
@@ -58,7 +58,14 @@ export interface WebSearchConfig {
 export interface AIProvider {
   id: string                    // 唯一标识，如 "dashscope", "openai", "xiaomi-mimo", "zhipu-glm"
   name: string                  // 显示名称，如 "阿里云百炼 (DashScope)", "OpenAI", "小米 MIMO", "智谱 GLM (BigModel)"
-  type: 'openai' | 'dashscope' | 'custom' | 'glm'   // API 协议类型，glm = 智谱 BigModel（OpenAI 兼容但 URL 路径为 /api/paas/v4）
+  /**
+   * API 协议类型：
+   * - openai/dashscope：标准 OpenAI 兼容（dashscope 兼容模式走 /compatible-mode/v1）
+   * - glm：智谱 BigModel（OpenAI 兼容但 URL 路径为 /api/paas/v4）
+   * - moonshot：Kimi 月之暗面（OpenAI 兼容，但采样参数被上游钉死，
+   *   请求体需经 lib/ai/provider-body-adapter.ts 清洗，否则 400）
+   */
+  type: 'openai' | 'dashscope' | 'custom' | 'glm' | 'moonshot'
   baseUrl: string               // API 基础 URL（不含 /chat/completions）
   apiKey: string                // API Key
   models: ProviderModel[]       // 该提供商下的模型列表
@@ -263,6 +270,9 @@ export async function POST(request: NextRequest) {
         enabled: m.enabled !== false,
         supportsVision: !!m.supportsVision,
         supportsReasoning: !!m.supportsReasoning,
+        // 🚨 2026-10-01 修复：此前漏了这一项 —— 用户在「添加服务商」弹窗里勾了「知识库」，
+        //    保存后却被静默丢弃（PUT 走 spread 合并所以编辑时没暴露）。
+        supportsEmbedding: !!m.supportsEmbedding,
         maxTokens: m.maxTokens,
         contextWindow: m.contextWindow,
         rateMultiplier: typeof m.rateMultiplier === 'number' && m.rateMultiplier > 0 ? m.rateMultiplier : undefined,
@@ -450,9 +460,17 @@ export async function PATCH(request: NextRequest) {
         const nextKey =
           wsc.apiKey === undefined ? (prevKey || undefined) : (String(wsc.apiKey).trim() || undefined)
         const providerId = String(wsc.providerId || '')
-        const protocol = wsc.protocol === 'exa' ? 'exa' : wsc.protocol === 'anysearch' ? 'anysearch' : 'zhipu'
-        // anysearch 免 Key 匿名可用，enabled 下无 provider 无 Key 也合法；其余协议需要 provider 或 Key 二选一
-        if (wsc.enabled && !providerId && !nextKey && protocol !== 'anysearch') {
+        const protocol =
+          wsc.protocol === 'exa'
+            ? 'exa'
+            : wsc.protocol === 'anysearch'
+              ? 'anysearch'
+              : wsc.protocol === 'local'
+                ? 'local'
+                : 'zhipu'
+        // anysearch 免 Key 匿名可用、local 进程内聚合，enabled 下无 provider 无 Key 也合法；
+        // 其余协议需要 provider 或 Key 二选一
+        if (wsc.enabled && !providerId && !nextKey && protocol !== 'anysearch' && protocol !== 'local') {
           return NextResponse.json({ error: 'webSearchConfig.enabled 为 true 时需要提供 providerId 或直存 API Key' }, { status: 400 })
         }
         const count = Number(wsc.defaultCount)
@@ -464,7 +482,8 @@ export async function PATCH(request: NextRequest) {
           engine: protocol === 'anysearch' ? undefined : (wsc.engine ? String(wsc.engine) : undefined),
           defaultCount: Number.isFinite(count) && count > 0 ? Math.min(Math.floor(count), 50) : undefined
         }
-        if (config.webSearchConfig.enabled && providerId) {
+        // 内置本地引擎不绑定 provider，跳过存在性校验
+        if (config.webSearchConfig.enabled && providerId && protocol !== 'local') {
           const p = config.providers.find(x => x.id === config.webSearchConfig!.providerId)
           if (!p) {
             return NextResponse.json({ error: `Provider "${config.webSearchConfig.providerId}" 不存在` }, { status: 400 })

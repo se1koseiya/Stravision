@@ -1,5 +1,24 @@
 "use client"
 
+/**
+ * 轻提示（toast）宿主 —— **右下角**，与顶部居中的全局提示（antd message）分屏。
+ *
+ * ── 2026-10-21 位置迁移 ──
+ *   原先 `position="top-center"`，与 antd `message` 抢同一块屏幕位置、样式却完全不同：
+ *   同一个操作里两个都触发时，用户会在顶部居中看到两条长得不一样的提示叠在一起。
+ *   现在职责切开（见 `lib/ui/feedback.ts` 文件头）：
+ *     · toast    → 右下角，操作级即时反馈（复制、保存、开关、校验）
+ *     · message  → 顶部居中，系统级 / 跨页面事件（登录、网络、权限、后台任务）
+ *
+ *   ⚠️ 右下角有两处已被占用，offset 必须让它俩：
+ *     · Copilot 莓果球：52px 直径、距底/右各 16 → 占到 bottom 68
+ *       （`components/ai/copilot/copilot-berry.tsx#COPILOT_FAB`，只有部分页面挂）
+ *     · 移动端底部导航：`bottom-8` + 内边距 → 占到 bottom 约 92
+ *   所以桌面 bottom=80、移动端 bottom=96（叠 safe-area），否则 toast 会直接压住它们。
+ *
+ * ⛔ 别再改回 top-center：那样 message / toast 又会撞在一起。
+ */
+
 import { Toaster } from "sonner"
 import { useEffect, useState } from "react"
 
@@ -17,13 +36,17 @@ export function ToasterWrapper() {
       <style jsx global>{`
         /* === 简洁通知 === */
 
+        /* === 轻提示（右下角） ===
+           刻意比「全局提示」小一号：它只是角落里说一句就走，不该抢占注意力。
+           尺寸口径：min 240 / max 380，内衬 10×14，字号 13。 */
+
         [data-sonner-toast] {
           background: #fff !important;
           border: 1px solid rgba(0,0,0,0.06) !important;
           border-radius: 12px !important;
-          padding: 12px 16px !important;
-          min-width: 280px !important;
-          max-width: 420px !important;
+          padding: 10px 14px !important;
+          min-width: 240px !important;
+          max-width: 380px !important;
           box-shadow:
             0 4px 24px rgba(0,0,0,0.08),
             0 1px 3px rgba(0,0,0,0.04) !important;
@@ -69,16 +92,16 @@ export function ToasterWrapper() {
 
         /* 标题 */
         [data-sonner-toast] [data-title] {
-          color: #1e293b !important;
-          font-size: 13.5px !important;
+          color: #27272a !important;
+          font-size: 13px !important;
           font-weight: 500 !important;
           line-height: 1.4 !important;
         }
 
         /* 描述 */
         [data-sonner-toast] [data-description] {
-          color: #64748b !important;
-          font-size: 12.5px !important;
+          color: #71717a !important;
+          font-size: 12px !important;
           line-height: 1.4 !important;
           margin-top: 2px !important;
         }
@@ -88,7 +111,7 @@ export function ToasterWrapper() {
           background: none !important;
           border: none !important;
           border-radius: 6px !important;
-          color: #94a3b8 !important;
+          color: #a1a1aa !important;
           width: 22px !important;
           height: 22px !important;
           margin: 0 0 0 auto !important;
@@ -99,32 +122,32 @@ export function ToasterWrapper() {
         }
         [data-sonner-toast] [data-close-button]:hover {
           background: rgba(0,0,0,0.05) !important;
-          color: #475569 !important;
+          color: #52525B !important;
         }
 
         /* 操作按钮 */
         [data-sonner-toast] [data-button] {
-          background: #f1f5f9 !important;
-          border: 1px solid #e2e8f0 !important;
+          background: #f4f4f5 !important;
+          border: 1px solid #e4e4e7 !important;
           border-radius: 8px !important;
-          color: #334155 !important;
+          color: #3F3F46 !important;
           font-size: 12px !important;
           font-weight: 500 !important;
           padding: 5px 12px !important;
           margin-top: 6px !important;
         }
         [data-sonner-toast] [data-button]:hover {
-          background: #e2e8f0 !important;
+          background: #e4e4e7 !important;
         }
 
         /* 进度条 */
         [data-sonner-toast] [data-loading-bar] {
-          background: #e2e8f0 !important;
+          background: #e4e4e7 !important;
           height: 2px !important;
           bottom: 0 !important;
         }
         [data-sonner-toast] [data-loading-bar] > div {
-          background: #10b981 !important;
+          background: #059669 !important;
         }
 
         @keyframes sonner-spin { to { transform: rotate(360deg); } }
@@ -168,9 +191,12 @@ export function ToasterWrapper() {
         }
       `}</style>
       <Toaster
-        position="top-center"
+        position="bottom-right"
+        /* 让位给右下角既有浮层：桌面 = 莓果球（占到 68），移动端 = 底部导航（占到约 92） */
+        offset={{ bottom: 80, right: 16 }}
+        mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)", right: 12 }}
         closeButton
-        gap={12}
+        gap={10}
         toastOptions={{
           style: {
             background: 'transparent',
@@ -180,32 +206,32 @@ export function ToasterWrapper() {
         icons={{
           success: (
             <svg width={18} height={18} fill="none" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="8" stroke="#10b981" strokeWidth="1.8" />
-              <path d="M7 10l2.5 2.5L13 8" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="10" cy="10" r="8" stroke="#059669" strokeWidth="1.8" />
+              <path d="M7 10l2.5 2.5L13 8" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           ),
           error: (
             <svg width={18} height={18} fill="none" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="8" stroke="#ef4444" strokeWidth="1.8" />
-              <path d="M7.5 7.5l5 5M12.5 7.5l-5 5" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="10" cy="10" r="8" stroke="#DC2626" strokeWidth="1.8" />
+              <path d="M7.5 7.5l5 5M12.5 7.5l-5 5" stroke="#DC2626" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           ),
           warning: (
             <svg width={18} height={18} fill="none" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.8" />
-              <path d="M10 6v5M10 13v.5" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="10" cy="10" r="8" stroke="#52525B" strokeWidth="1.8" />
+              <path d="M10 6v5M10 13v.5" stroke="#52525B" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           ),
           info: (
             <svg width={18} height={18} fill="none" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="8" stroke="#3b82f6" strokeWidth="1.8" />
-              <path d="M10 6v5M10 13v.5" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="10" cy="10" r="8" stroke="#059669" strokeWidth="1.8" />
+              <path d="M10 6v5M10 13v.5" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           ),
           loading: (
             <svg width={18} height={18} fill="none" viewBox="0 0 24 24" style={{ animation: 'sonner-spin 1s linear infinite' }}>
-              <circle cx="12" cy="12" r="9" stroke="#cbd5e1" strokeWidth="2.2" opacity={0.6} />
-              <path d="M12 3a9 9 0 0 1 9 9" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" />
+              <circle cx="12" cy="12" r="9" stroke="#d4d4d8" strokeWidth="2.2" opacity={0.6} />
+              <path d="M12 3a9 9 0 0 1 9 9" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" />
             </svg>
           ),
         }}

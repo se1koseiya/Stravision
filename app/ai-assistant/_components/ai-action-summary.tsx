@@ -45,31 +45,31 @@ export function AIActionSummaryCard({ summary, className }: AIActionSummaryCardP
   const statusConfig = {
     running: {
       icon: IconLoading,
-      iconClass: "text-[#1677ff] animate-spin",
+      iconClass: "text-[#059669] animate-spin",
       label: "任务执行中",
-      labelClass: "text-[#1677ff]",
-      barClass: "bg-[#1677ff]",
+      labelClass: "text-[#059669]",
+      barClass: "bg-[#059669]",
     },
     completed: {
       icon: IconCheckOne,
-      iconClass: "text-[#52c41a]",
+      iconClass: "text-[#059669]",
       label: taskPlanProgress ? `任务完成 · ${taskPlanProgress}` : "任务完成",
-      labelClass: "text-[#52c41a]",
-      barClass: "bg-[#52c41a]",
+      labelClass: "text-[#059669]",
+      barClass: "bg-[#059669]",
     },
     stopped: {
       icon: IconPause,
-      iconClass: "text-[#8c8c8c]",
+      iconClass: "text-[#8f959e]",
       label: "任务已停止",
-      labelClass: "text-[#595959]",
-      barClass: "bg-[#d9d9d9]",
+      labelClass: "text-[#52525B]",
+      barClass: "bg-[#d4d4d8]",
     },
     error: {
       icon: IconAttention,
-      iconClass: "text-[#ff4d4f]",
+      iconClass: "text-[#DC2626]",
       label: "任务出错",
-      labelClass: "text-[#ff4d4f]",
-      barClass: "bg-[#ff4d4f]",
+      labelClass: "text-[#DC2626]",
+      barClass: "bg-[#DC2626]",
     },
   }[status]
 
@@ -81,7 +81,10 @@ export function AIActionSummaryCard({ summary, className }: AIActionSummaryCardP
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        "mt-2.5 relative flex items-stretch rounded-md overflow-hidden bg-white border border-[#f0f0f0] hover:border-[#d9d9d9] transition-colors",
+        /* 沉浸光感：bg-white + border-[#F4F4F5] → .dc-mat--neutral 中性灰膜（白画布上仍保轮廓）。
+           布局类全保留：mt-2.5 / relative / flex / items-stretch / rounded-lg / overflow-hidden。
+           hover:border-[#d4d4d8] 保留 —— 材质只定边框初始色，Tailwind hover 类仍可覆盖。 */
+        "mt-2.5 relative flex items-stretch rounded-lg overflow-hidden dc-mat dc-mat--regular dc-mat--neutral hover:border-[#d4d4d8] transition-colors",
         className
       )}
     >
@@ -94,7 +97,7 @@ export function AIActionSummaryCard({ summary, className }: AIActionSummaryCardP
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <StatusIcon size={13} className={statusConfig.iconClass} />
           <span
-            className={cn("text-[12.5px] leading-none", statusConfig.labelClass)}
+            className={cn("text-[13px] leading-none", statusConfig.labelClass)}
             style={{ fontWeight: 500 }}
           >
             {statusConfig.label}
@@ -105,7 +108,7 @@ export function AIActionSummaryCard({ summary, className }: AIActionSummaryCardP
         {onOpenStudio && (
           <button
             onClick={onOpenStudio}
-            className="ml-auto flex-shrink-0 text-[#bfbfbf] hover:text-[#595959] transition-colors"
+            className="ml-auto flex-shrink-0 text-[#b4b2a9] hover:text-[#52525B] transition-colors"
             aria-label="在工作室中打开"
             title="在工作室中查看"
           >

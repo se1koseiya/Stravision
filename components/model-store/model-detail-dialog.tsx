@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import type { AIProvider } from "@/app/model-store/page"
@@ -127,10 +127,10 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
 
   // 🔥 Berry 蓝色系渐变（与业务卡片统一）
   const gradients = [
-    "from-blue-500 via-blue-600 to-cyan-500",
-    "from-sky-500 via-blue-600 to-indigo-600",
-    "from-indigo-500 via-blue-600 to-blue-700",
-    "from-blue-400 via-blue-500 to-cyan-600",
+    "from-emerald-500 via-emerald-600 to-cyan-500",
+    "from-sky-500 via-emerald-600 to-indigo-600",
+    "from-indigo-500 via-emerald-600 to-emerald-700",
+    "from-emerald-400 via-emerald-500 to-cyan-600",
   ]
 
   const IconComponent = ({ icon: Icon, className }: { icon: any, className?: string }) => {
@@ -168,7 +168,7 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.95, y: visible ? 0 : 20 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-5xl h-full md:h-[90vh] bg-zinc-50 dark:bg-zinc-950 overflow-hidden shadow-2xl flex flex-col border border-white/5 font-sans"
+            className="relative w-full max-w-5xl h-full md:h-[90vh] bg-zinc-50 dark:bg-zinc-950 overflow-hidden shadow-lg flex flex-col border border-white/5 font-sans"
             style={{ borderRadius: BERRY_THEME.radius.xl }}
           >
             {/* Close Button */}
@@ -195,11 +195,11 @@ export function ModelDetailDialog({ provider, open, onOpenChange, onSave }: Mode
                       <IconComponent icon={provider.icon} className="size-40 ring-8 ring-zinc-50 dark:ring-zinc-950 shrink-0" style={{ borderRadius: BERRY_THEME.radius.lg + 4 }} />
                       <div className="flex-1 pb-4 space-y-4">
                          <div className="flex items-center gap-3 flex-wrap">
-                            <Badge className="bg-white/10 backdrop-blur-md text-white/80 border-white/10 uppercase tracking-widest text-[10px] py-1 px-3">
+                            <Badge className="bg-white/10 backdrop-blur-md text-white/80 border-white/10 uppercase tracking-widest text-[11px] py-1 px-3">
                               {provider.category}
                             </Badge>
                             {provider.official && (
-                              <Badge className="py-1 px-3" style={{ background: `${BERRY_THEME.primary}33`, color: '#bae0ff', borderColor: `${BERRY_THEME.primary}33` }}>
+                              <Badge className="py-1 px-3" style={{ background: `${BERRY_THEME.primary}33`, color: '#B7EBD5', borderColor: `${BERRY_THEME.primary}33` }}>
                                 <IconShield className="size-3.5 mr-1.5" /> 官方推荐
                               </Badge>
                             )}

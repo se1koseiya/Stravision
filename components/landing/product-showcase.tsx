@@ -18,9 +18,9 @@ export function ProductShowcase() {
   return (
     <section ref={containerRef} id="products" className="py-32 px-4 relative overflow-hidden min-h-[150vh]">
       {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto relative z-10 sticky top-20" style={{ perspective: "1000px" }}>
+      <div className="max-w-[1400px] mx-auto relative z-10 sticky top-20" style={{ perspective: "1000px" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -40,17 +40,17 @@ export function ProductShowcase() {
           {/* Browser Mockup */}
           <motion.div
             style={{ rotateX, scale, opacity, y }}
-            className="relative mx-auto max-w-5xl rounded-xl border border-gray-800 bg-[#0A0A0A] shadow-2xl overflow-hidden z-10"
+            className="relative mx-auto max-w-5xl rounded-xl border border-zinc-800 bg-[#0A0A0A] shadow-lg overflow-hidden z-10"
           >
             {/* Browser Header */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800 bg-[#0f0f0f]">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-[#0f0f0f]">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
               </div>
               <div className="flex-1 text-center">
-                <div className="inline-block px-3 py-1 rounded-md bg-card/50 text-xs text-muted-foreground font-mono">
+                <div className="inline-block px-3 py-1 rounded-lg bg-card/50 text-xs text-muted-foreground font-mono">
                   dashboard.stravision.com
                 </div>
               </div>
@@ -71,21 +71,21 @@ export function ProductShowcase() {
               {/* Main Content Mockup */}
               <div className="col-span-2 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="h-32 rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 p-4">
-                      <div className="h-6 w-6 rounded-full bg-blue-500/20 mb-2" />
-                      <div className="h-4 w-20 bg-gray-700/50 rounded mb-2" />
-                      <div className="h-8 w-16 bg-blue-500/20 rounded" />
+                  <div className="h-32 rounded-xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 p-4">
+                      <div className="h-6 w-6 rounded-full bg-emerald-500/20 mb-2" />
+                      <div className="h-4 w-20 bg-zinc-700/50 rounded mb-2" />
+                      <div className="h-8 w-16 bg-emerald-500/20 rounded" />
                   </div>
                   <div className="h-32 rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 p-4">
                       <div className="h-6 w-6 rounded-full bg-purple-500/20 mb-2" />
-                      <div className="h-4 w-20 bg-gray-700/50 rounded mb-2" />
+                      <div className="h-4 w-20 bg-zinc-700/50 rounded mb-2" />
                       <div className="h-8 w-16 bg-purple-500/20 rounded" />
                   </div>
                 </div>
-                <div className="h-64 rounded-xl bg-card/10 border border-gray-800 p-4">
+                <div className="h-64 rounded-xl bg-card/10 border border-zinc-800 p-4">
                   <div className="flex items-end gap-2 h-full pb-4 px-4">
                       {[40, 60, 45, 70, 50, 80, 65, 85, 75, 90, 60, 50].map((h, i) => (
-                          <div key={i} className="flex-1 bg-blue-500/20 rounded-t-sm hover:bg-blue-500/40 transition-colors" style={{ height: `${h}%` }} />
+                          <div key={i} className="flex-1 bg-emerald-500/20 rounded-t-sm hover:bg-emerald-500/40 transition-colors" style={{ height: `${h}%` }} />
                       ))}
                   </div>
                 </div>
@@ -99,16 +99,16 @@ export function ProductShowcase() {
           {/* Mobile Phone Mockup */}
           <motion.div
             style={{ y: useTransform(scrollYProgress, [0, 0.5], [200, -50]), x: "50%", opacity }}
-            className="absolute -bottom-20 right-20 w-[280px] h-[580px] rounded-[3rem] border-8 border-gray-800 bg-[#02040a] shadow-2xl z-20 overflow-hidden hidden md:block"
+            className="absolute -bottom-20 right-20 w-[280px] h-[580px] rounded-[3rem] border-8 border-zinc-800 bg-[#02040a] shadow-lg z-20 overflow-hidden hidden md:block"
           >
              {/* Notch */}
              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-card rounded-b-2xl z-20" />
              
              {/* Mobile Content */}
              <div className="p-4 pt-12 h-full flex flex-col gap-4">
-                <div className="h-20 rounded-2xl bg-blue-500/10 border border-blue-500/20 p-3">
-                   <div className="h-4 w-12 bg-blue-500/20 rounded mb-2" />
-                   <div className="h-8 w-24 bg-gray-700/50 rounded" />
+                <div className="h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3">
+                   <div className="h-4 w-12 bg-emerald-500/20 rounded mb-2" />
+                   <div className="h-8 w-24 bg-zinc-700/50 rounded" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                    <div className="aspect-square rounded-2xl bg-card/30 p-3">
@@ -118,7 +118,7 @@ export function ProductShowcase() {
                       <div className="h-8 w-8 rounded-full bg-green-500/20 mb-2" />
                    </div>
                 </div>
-                <div className="flex-1 rounded-2xl bg-card/10 border border-gray-800 p-3">
+                <div className="flex-1 rounded-2xl bg-card/10 border border-zinc-800 p-3">
                    <div className="space-y-2">
                       {[1, 2, 3, 4].map(i => (
                         <div key={i} className="h-12 w-full bg-card/30 rounded-xl" />

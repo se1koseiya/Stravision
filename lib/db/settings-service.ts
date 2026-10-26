@@ -371,10 +371,7 @@ export interface OmniApiConfig {
   voice: string
 }
 
-/** ASR 工作模式：batch=批量HTTP，realtime=实时WebSocket流式（边说边出字） */
-export type AsrMode = "batch" | "realtime"
-
-/** 完整语音配置（后端存储） */
+/** 完整语音配置（后端存储）。🚨 2026-09-24：asrMode 已退役（纯 Omni 架构无独立 ASR 阶段） */
 export interface VoiceServerConfig {
   architecture: VoiceArchitecture
   /** 引用 AI 提供商 ID（来自 ai-providers-config.json），null=使用环境变量兜底 */
@@ -389,8 +386,6 @@ export interface VoiceServerConfig {
   vad: VadServerConfig
   /** 是否默认朗读 AI 回复 */
   readAloud: boolean
-  /** ASR 模式：batch=批量HTTP（默认），realtime=实时WebSocket流式 */
-  asrMode?: AsrMode
   /** TTS 独立 API Key（AES-256-GCM 密文存储，空表示使用 AI 提供商共享 Key） */
   ttsApiKey?: string
   /** ASR 独立 API Key（AES-256-GCM 密文存储，空表示使用 AI 提供商共享 Key） */
@@ -412,7 +407,6 @@ export interface VoiceKeyStatus {
 export const DEFAULT_VOICE_SERVER_CONFIG: VoiceServerConfig = {
   architecture: "omni",
   providerId: "dashscope",
-  asrMode: "batch",
   tts: {
     providerType: "dashscope",
     endpoint: "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
@@ -482,7 +476,6 @@ function mergeVoiceConfig(saved: Partial<VoiceServerConfig> | null): VoiceServer
   const merged: VoiceServerConfig = {
     architecture: "omni",
     providerId: typeof saved.providerId === "string" ? saved.providerId : (saved.providerId === null ? null : DEFAULT_VOICE_SERVER_CONFIG.providerId),
-    asrMode: saved.asrMode === "realtime" ? "realtime" : "batch",
     tts: { ...DEFAULT_VOICE_SERVER_CONFIG.tts, ...(saved.tts ?? {}) },
     asr: { ...DEFAULT_VOICE_SERVER_CONFIG.asr, ...(saved.asr ?? {}) },
     omni: { ...DEFAULT_VOICE_SERVER_CONFIG.omni, ...(saved.omni ?? {}) },
@@ -635,7 +628,6 @@ export async function getVoiceKeyStatus(scope: "tts" | "asr" | "omni"): Promise<
  */
 export async function getPublicVoiceConfig(): Promise<{
   architecture: VoiceArchitecture
-  asrMode: AsrMode
   providerId: string | null
   tts: TtsApiConfig
   asr: AsrApiConfig
@@ -657,7 +649,6 @@ export async function getPublicVoiceConfig(): Promise<{
   ])
   return {
     architecture: cfg.architecture,
-    asrMode: cfg.asrMode ?? "batch",
     providerId: cfg.providerId,
     tts: cfg.tts,
     asr: cfg.asr,

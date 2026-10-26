@@ -17,7 +17,7 @@ export function DeviceControlOverlay({
     <>
       {/* 渐变模糊发光动效 */}
       <div 
-        className="pointer-events-none fixed inset-0 z-[9998] transition-opacity duration-700 ease-out"
+        className="pointer-events-none fixed inset-0 z-[9998] transition-opacity duration-500 ease-out"
         style={{ opacity: isExecuting ? 1 : 0 }}
       >
         {/* 四边渐变模糊光晕 */}
@@ -25,7 +25,7 @@ export function DeviceControlOverlay({
           className="absolute inset-0"
           style={{
             background: `
-              linear-gradient(to bottom, rgba(16, 185, 129, 0.4) 0%, transparent 15%),
+              linear-gradient(to bottom, rgba(0,148,86, 0.4) 0%, transparent 15%),
               linear-gradient(to top, rgba(139, 92, 246, 0.4) 0%, transparent 15%),
               linear-gradient(to right, rgba(6, 182, 212, 0.35) 0%, transparent 12%),
               linear-gradient(to left, rgba(245, 158, 11, 0.35) 0%, transparent 12%)
@@ -38,7 +38,7 @@ export function DeviceControlOverlay({
         <div
           className="absolute top-0 left-0 w-[400px] h-[400px]"
           style={{
-            background: "radial-gradient(circle at top left, rgba(16, 185, 129, 0.5) 0%, transparent 60%)",
+            background: "radial-gradient(circle at top left, rgba(0,148,86, 0.5) 0%, transparent 60%)",
             filter: "blur(80px)",
             animation: isExecuting ? "cornerPulse 3s ease-in-out infinite" : "none",
           }}
@@ -92,7 +92,7 @@ export function DeviceControlOverlay({
                   border-radius 0.3s ease
                 `,
                 background: "rgba(0, 0, 0, 0.9)",
-                backdropFilter: "blur(20px)",
+                backdropFilter: "blur(calc(20px * var(--dc-mat-scale, 1)))",
                 boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
               }}
             >

@@ -74,7 +74,9 @@ export async function analyzePlantFromVideo(
                 imageData: frameData,
                 apiKey: options.apiKey,
                 apiUrl: options.apiUrl,
-                model: options.model || 'qwen3-vl-plus'
+                // 不传 model 时由视觉网关按 supportsVision 自动挑选
+                // （禁止在此硬编码模型名 —— 见 lib/ai/vision/vision-gateway.ts）
+                model: options.model
             })
         })
 

@@ -33,7 +33,7 @@ import { IconCheckOne } from "@/components/icon";
 /* ---- 流式光标（与 ai-assistant 的 StreamingTail 一致） ---- */
 
 const StreamingTail = ({ content = "▋" }: { content?: string }) => (
-  <span style={{ display: "inline-block", color: "#4ED18F", fontWeight: "bold" }}>
+  <span style={{ display: "inline-block", color: "#059669", fontWeight: "bold" }}>
     {content}
   </span>
 );
@@ -210,8 +210,8 @@ export function DemoChat({
       avatar: <BerryOrb size="30px" theme={dark ? "dark" : "light"} isActive={thinking} />,
       header: (
         <div className="flex items-baseline gap-2">
-          <span className="text-[12px] font-semibold leading-none text-slate-800 dark:text-[#D6DAD6]">莓小智</span>
-          <span className="text-[10px] leading-none text-slate-400 dark:text-[#79817B]">{subtitle}</span>
+          <span className="text-[12px] font-semibold leading-none text-zinc-800 dark:text-[#D6DAD6]">莓小智</span>
+          <span className="text-[11px] leading-none text-zinc-400 dark:text-[#79817B]">{subtitle}</span>
         </div>
       ),
     },
@@ -231,7 +231,14 @@ export function DemoChat({
       role: "ai" as const,
       content: (
         <div className="space-y-2">
-          <AgentThoughtChain steps={steps} isActive={thinking} className="!mt-0 !mb-1" />
+          {/* autoCollapse={false}：演示台要完整看完执行链，
+              ⛔ 不跟随产品对话的"跑完自动折叠"（那是给真实会话让版面用的） */}
+          <AgentThoughtChain
+            steps={steps}
+            isActive={thinking}
+            autoCollapse={false}
+            className="!mt-0 !mb-1"
+          />
 
           {answer ? (
             <div
@@ -242,7 +249,7 @@ export function DemoChat({
                 // 所以段间距要写 [&_.x-markdown>*+*]，写 [&>*+*]（打不到内层）
                 // 或 [&_p]（没有 p 标签）都不生效。
                 answerClassName ??
-                "[&_.x-markdown]:!text-[12.5px] [&_.x-markdown]:!leading-[1.75] [&_.x-markdown>*+*]:!mt-3 [&_strong]:!font-semibold [&_ul]:!pl-[1.1rem] [&_ol]:!pl-[1.2rem] [&_li]:!text-[12.5px] [&_li]:!leading-[1.75] [&_li]:!my-0.5"
+                "[&_.x-markdown]:!text-[13px] [&_.x-markdown]:!leading-[1.75] [&_.x-markdown>*+*]:!mt-3 [&_strong]:!font-semibold [&_ul]:!pl-[1.1rem] [&_ol]:!pl-[1.2rem] [&_li]:!text-[13px] [&_li]:!leading-[1.75] [&_li]:!my-0.5"
               }
             >
               <XMarkdown paragraphTag="div" streaming={streaming}>
@@ -262,7 +269,7 @@ export function DemoChat({
       locale={zhCN}
       theme={{
         algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        token: { colorPrimary: "#4ED18F", borderRadius: 10 },
+        token: { colorPrimary: "#059669", borderRadius: 10 },
       }}
     >
       <style>{`
@@ -274,11 +281,11 @@ export function DemoChat({
         <Bubble.List
           items={items}
           role={roles}
-          className="dr-bubble-in [&_.ant-bubble-content]:!text-[12.5px] [&_.ant-bubble-content-filled]:!bg-[#eef0f2] [&_.ant-bubble-content-filled]:dark:!bg-[#1C221E] [&_.ant-bubble-content-filled]:!text-slate-800 [&_.ant-bubble-content-filled]:dark:!text-[#D6DAD6] [&_.ant-bubble-content-outlined]:!border-transparent [&_.ant-bubble-content-outlined]:!bg-transparent [&_.ant-bubble-content-outlined]:!p-0 [&_.ant-bubble-content-outlined]:!text-slate-600 [&_.ant-bubble-content-outlined]:dark:!text-[#9BA39E] [&_.ant-bubble-content-outlined]:!shadow-none [&_.ant-bubble-avatar]:!me-2"
+          className="dr-bubble-in [&_.ant-bubble-content]:!text-[13px] [&_.ant-bubble-content-filled]:!bg-[#eef0f2] [&_.ant-bubble-content-filled]:dark:!bg-[#1C221E] [&_.ant-bubble-content-filled]:!text-zinc-800 [&_.ant-bubble-content-filled]:dark:!text-[#D6DAD6] [&_.ant-bubble-content-outlined]:!border-transparent [&_.ant-bubble-content-outlined]:!bg-transparent [&_.ant-bubble-content-outlined]:!p-0 [&_.ant-bubble-content-outlined]:!text-zinc-600 [&_.ant-bubble-content-outlined]:dark:!text-[#9BA39E] [&_.ant-bubble-content-outlined]:!shadow-none [&_.ant-bubble-avatar]:!me-2"
         />
 
         {done && trailing ? (
-          <div className="mt-3 flex items-center justify-end gap-1.5 px-1 text-[10.5px] text-slate-400 dark:text-[#79817B]">
+          <div className="mt-3 flex items-center justify-end gap-1.5 px-1 text-[11px] text-zinc-400 dark:text-[#79817B]">
             <IconCheckOne className="size-3 text-emerald-500" />
             {trailing}
           </div>

@@ -20,6 +20,19 @@ export interface AgentContext {
   appUrl?: string;
   /** 长耗时工具（deep_research）的阶段进度回调，chat 路由转发为 SSE 推给前端思维链 */
   onProgress?: (stage: string, detail?: string) => void;
+  /** 工具面向用户的「正在做什么」一句话，chat 路由转成 agent_status SSE 显示在执行过程里 */
+  onStage?: (text: string) => void;
+  /**
+   * 用户本轮消息里携带的图片（dataURL / http(s)）。
+   * 由 /api/chat 从 fullMessages 提取，透传给视觉类工具（diagnose_plant_image），
+   * 避免要求模型把 base64 原样回传到工具参数里。
+   */
+  userImages?: string[];
+  /**
+   * 用户当前选择的模型 id（/api/chat 解析后的 effectiveModel）。
+   * 透传给视觉类工具，保证视觉调用与对话用的是同一个模型。
+   */
+  userModel?: string;
 }
 
 export interface Message {

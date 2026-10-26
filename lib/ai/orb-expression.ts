@@ -189,3 +189,136 @@ export function detectOrbExpression(
   const { top } = analyzeOrbEmotion(text);
   return top ?? fallback;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * 显式表情协议（2026-10-27）
+ *
+ * 背景：上面那套 detectOrbExpression 是**从文本反推**情绪 —— 正则关键词 +
+ * 评分制，注定只能猜。用户要的是「AI 说自己是开心的，GrokBot 就开心」。
+ *
+ * 协议：AI 在回复最开头输出一个 `<EMO:id/>` 标签（id 取 GrokOrbExpression），
+ * 前端剥掉标签、用它直接驱动头像表情；没有标签时**才**回落到文本推断。
+ * 显式协议永远优先 —— 推断只是没有标签时的兜底。
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * 全部合法的表情 id。
+ * 🚨 必须与 `components/smoothui/grok-orb-data.ts` 的 GROK_EXPRESSIONS 逐字一致，
+ *    改一边就要改另一边（那边是姿态动画数据，这边是协议白名单）。
+ */
+export const ORB_EXPRESSION_IDS = [
+  "natural",
+  "happy",
+  "surprised",
+  "focused",
+  "curious",
+  "sleepy",
+  "skeptical",
+  "angry",
+  "confused",
+  "sad",
+  "playful",
+  "shy",
+] as const satisfies readonly GrokOrbExpression[];
+
+const ORB_EXPRESSION_ID_SET: ReadonlySet<string> = new Set(ORB_EXPRESSION_IDS);
+
+/** 运行时白名单判定（模型可能吐出协议外的 id，一律当无效） */
+export function isGrokOrbExpression(value: unknown): value is GrokOrbExpression {
+  return typeof value === "string" && ORB_EXPRESSION_ID_SET.has(value);
+}
+
+/**
+ * 显式表情标签：`<EMO:happy/>`、`<emo:happy>`、`<EMO：happy/>`（中文冒号也认）。
+ * 用 g 标志 + matchAll / replace 都安全（每次调用前手动重置 lastIndex 的场景见 parse）。
+ */
+export const ORB_EXPRESSION_TAG_RE = /<\s*EMO\s*[:：]\s*([a-zA-Z_]+)\s*\/?\s*>/gi;
+
+/**
+ * 流式未闭合的标签尾巴：`<EM` / `<EMO` / `<EMO:hap`。
+ * 只在 streaming 模式下剥离，避免半截标签闪一下又被补全。
+ */
+const ORB_EXPRESSION_TAG_TAIL_RE = /<\s*(?:E|EM|EMO)\s*(?:[:：][a-zA-Z_]*)?\s*$/i;
+
+export interface ParsedOrbExpression {
+  /** 命中的合法表情 id；没有标签、或 id 不在白名单内 → null */
+  expression: GrokOrbExpression | null;
+  /** 剥掉标签后的正文（可直接上屏 / 朗读 / 复制） */
+  text: string;
+}
+
+/**
+ * 解析并剥离表情标签。
+ *
+ * - 同一条消息里出现多个标签时取**第一个合法的**（模型偶尔会重复输出）
+ * - 非法 id（如 `<EMO:excited/>`）照样剥离，但 expression 记 null → 走文本推断，
+ *   避免标签裸露在正文里
+ * - `streaming: true` 时额外剥掉文末未闭合的标签片段
+ */
+export function parseOrbExpressionTag(
+  input: string,
+  opts: { streaming?: boolean } = {}
+): ParsedOrbExpression {
+  const raw = input ?? "";
+  if (!raw || (!raw.includes("<") && !opts.streaming)) {
+    return { expression: null, text: raw };
+  }
+
+  let expression: GrokOrbExpression | null = null;
+  let matched = false;
+
+  ORB_EXPRESSION_TAG_RE.lastIndex = 0;
+  for (const m of raw.matchAll(ORB_EXPRESSION_TAG_RE)) {
+    matched = true;
+    const id = (m[1] ?? "").toLowerCase();
+    if (!expression && isGrokOrbExpression(id)) expression = id;
+  }
+
+  let text = matched ? raw.replace(ORB_EXPRESSION_TAG_RE, "") : raw;
+
+  if (opts.streaming) {
+    const tailStripped = text.replace(ORB_EXPRESSION_TAG_TAIL_RE, "");
+    if (tailStripped !== text) {
+      text = tailStripped;
+      matched = true;
+    }
+  }
+
+  // 标签通常独占首行，剥完会留下空行 → 顺手掐掉开头空白
+  if (matched) text = text.replace(/^[ \t]*\r?\n/, "").replace(/^[ \t]+/, "");
+
+  return { expression, text };
+}
+
+/** 只取正文（等价于 `parseOrbExpressionTag(text, opts).text`） */
+export function stripOrbExpressionTag(input: string, opts: { streaming?: boolean } = {}): string {
+  return parseOrbExpressionTag(input, opts).text;
+}
+
+/** 只取表情 id（不关心正文时用） */
+export function extractOrbExpression(input: string): GrokOrbExpression | null {
+  return parseOrbExpressionTag(input).expression;
+}
+
+/**
+ * 注入 system prompt 的表情协议说明。
+ * 放在静态段（可被 Prompt Cache 命中）：内容恒定，不随请求变化。
+ */
+export const ORB_EXPRESSION_PROMPT = `
+【GrokBot 表情协议（每次回复都必须执行）】
+你的回复**第一行**必须且只能是一个表情标签，格式严格为：<EMO:id/>
+写完标签换行，再写正文。id 只能取下面 12 个之一：
+- natural 自然放松｜happy 开心｜surprised 惊讶｜focused 专注
+- curious 好奇｜sleepy 困倦｜skeptical 怀疑｜angry 生气
+- confused 困惑｜sad 难过｜playful 俏皮｜shy 害羞
+
+规则：
+1. 按本次回复的真实语气挑一个最贴切的，不要每轮都写 natural。
+2. 全文只写一个标签，只出现在最开头；不要在正文中间、结尾或代码块里重复。
+3. 不要解释这个标签，也不要输出 id 的中文名，标签本身对用户不可见（前端会剥掉）。
+4. 调用工具（tool_call）本身不算回复，不需要标签；等真正要给用户说话时再带标签。
+
+示例（正确）：
+<EMO:happy/>
+3 号棚的灌溉任务已完成，土壤含水率回到 62%。
+`.trim();

@@ -31,24 +31,24 @@ export function Metrics() {
     <section ref={ref} className="relative bg-[#F7F5F0] overflow-hidden">
       {/* 顶部章节标记（克制版）*/}
       <div className="pt-32">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-10 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <span className="font-mono text-[11px] tracking-[0.25em] text-[#0A0A0B]/40 uppercase">
+            <span className="font-mono text-[11px] tracking-[0.25em] text-[#09090B]/40 uppercase">
               05 / 数据
             </span>
-            <span className="block w-12 h-px bg-[#0A0A0B]/10" />
-            <span className="font-mono text-[11px] tracking-[0.25em] text-[#0A0A0B]/40 uppercase">
+            <span className="block w-12 h-px bg-[#09090B]/10" />
+            <span className="font-mono text-[11px] tracking-[0.25em] text-[#09090B]/40 uppercase">
               The Numbers
             </span>
           </div>
-          <span className="font-mono text-[11px] tracking-[0.2em] text-[#0A0A0B]/30 uppercase hidden sm:inline">
+          <span className="font-mono text-[11px] tracking-[0.2em] text-[#09090B]/30 uppercase hidden sm:inline">
             source · live sensors
           </span>
         </div>
       </div>
 
       {/* 标题行 */}
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-10 pt-20 sm:pt-28 pb-12">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-10 pt-20 sm:pt-28 pb-12">
         <div className="grid lg:grid-cols-12 gap-8 items-end">
           <motion.h2
             style={{
@@ -60,16 +60,16 @@ export function Metrics() {
             whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             viewport={{ once: true, margin: "-15%" }}
             transition={{ duration: 0.9, ease: EASE as any }}
-            className="lg:col-span-8 font-alimama font-medium text-[#0A0A0B] leading-[0.95]"
+            className="lg:col-span-8 font-alimama font-medium text-[#09090B] leading-[0.95]"
           >
-            用<span style={{ color: "#1677ff" }}>数字</span>说话。
+            用<span style={{ color: "#059669" }}>数字</span>说话。
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="lg:col-span-4 text-[15px] text-[#0A0A0B]/50 leading-[1.7] max-w-[320px]"
+            className="lg:col-span-4 text-[14px] text-[#09090B]/50 leading-[1.7] max-w-[320px]"
           >
             从感知到决策，每一个数字都来自真实传感器与推理链路。
           </motion.p>
@@ -77,15 +77,15 @@ export function Metrics() {
       </div>
 
       {/* 4 列巨数栅格 —— 直角垂直分隔 + 磁性 hover */}
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-10 pb-32 sm:pb-48">
-        <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-l border-[#0A0A0B]/15">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-10 pb-32 sm:pb-48">
+        <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-l border-[#09090B]/15">
           {METRICS.map((m, i) => (
             <MetricCell key={i} metric={m} index={i} total={METRICS.length} />
           ))}
         </div>
 
         {/* 底部落款 */}
-        <div className="mt-10 flex items-center justify-between font-mono text-[10px] tracking-[0.25em] text-[#0A0A0B]/30 uppercase">
+        <div className="mt-10 flex items-center justify-between font-mono text-[11px] tracking-[0.25em] text-[#09090B]/30 uppercase">
           <span>updated · real-time</span>
           <span>fig.06 · metrics</span>
           <span>berry · realm</span>
@@ -151,17 +151,17 @@ function MetricCell({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       data-cursor="hover"
-      className="relative border-r border-b border-[#0A0A0B]/15 p-6 lg:p-10 group transition-colors duration-300 hover:bg-[#0A0A0B]/[0.02] cursor-default overflow-hidden"
+      className="relative border-r border-b border-[#09090B]/15 p-6 lg:p-10 group transition-colors duration-300 hover:bg-[#09090B]/[0.02] cursor-default overflow-hidden"
     >
       {/* 序号 */}
-      <div className="absolute top-4 right-4 font-mono text-[11px] text-[#0A0A0B]/30">
+      <div className="absolute top-4 right-4 font-mono text-[11px] text-[#09090B]/30">
         {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </div>
       {/* 巨数 —— count-up 触发器挂在 wrapper */}
       <motion.div
         ref={countRef as React.RefObject<HTMLDivElement>}
         className="flex items-baseline gap-1 mb-6"
-        animate={{ color: hovered ? "#1677ff" : "#0A0A0B" }}
+        animate={{ color: hovered ? "#059669" : "#09090B" }}
         transition={{ duration: 0.3 }}
       >
         <span
@@ -171,20 +171,20 @@ function MetricCell({
           {value}
         </span>
         <span
-          className="font-mono text-[#1677ff]"
+          className="font-mono text-[#059669]"
           style={{ fontSize: "clamp(18px, 2vw, 28px)" }}
         >
           {metric.unit}
         </span>
       </motion.div>
       {/* 标签 */}
-      <div className="font-mono text-[12px] tracking-[0.2em] text-[#0A0A0B] uppercase mb-2">
+      <div className="font-mono text-[12px] tracking-[0.2em] text-[#09090B] uppercase mb-2">
         {metric.label}
       </div>
-      <div className="text-[14px] text-[#0A0A0B]/45 leading-relaxed">{metric.sub}</div>
+      <div className="text-[14px] text-[#09090B]/45 leading-relaxed">{metric.sub}</div>
       {/* 底部蓝线 hover 延展 */}
       <motion.span
-        className="absolute bottom-0 left-0 h-[2px] bg-[#1677ff]"
+        className="absolute bottom-0 left-0 h-[2px] bg-[#059669]"
         animate={{ width: hovered ? "100%" : "0%" }}
         transition={{ duration: 0.4, ease: EASE as any }}
       />

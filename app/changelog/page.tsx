@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { listPublishedChangelog } from "@/lib/db/changelog-service";
 import { initDB } from "@/lib/db/database";
 import { ChangelogPageClient } from "@/components/landing-v4/changelog-page";
+import type { ChangelogEntryView } from "@/components/landing-v4/changelog";
 
 export const dynamic = "force-dynamic";
 

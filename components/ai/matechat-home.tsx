@@ -3,8 +3,23 @@
 import React, { useState, useRef, useEffect } from "react"
 import { ConfigProvider, theme } from "antd"
 import dynamic from "next/dynamic"
-import { IconArrowUpSolid, IconBrain, IconBug, IconChartLine, IconCheck, IconDown, IconGlobe, IconMore, IconPlus, IconScanCode, IconSeedling, IconShieldCheck } from "@/components/icon";
+import {
+  IconArrowUpSolid,
+  IconBrain,
+  IconCheck,
+  IconDown,
+  IconGlobe,
+  IconMicrophone,
+  IconPlus,
+  IconShieldCheck,
+} from "@/components/icon"
+import { FarmSkillChips, type FarmSkill } from "@/components/ai/farm-skills"
+import { EMERALD_ORB_PALETTE as EMERALD_ORB } from "@/components/smoothui/berry-orb"
 
+/* 招呼语左侧那枚「绿色莓小智球」—— 复用项目自带 BerryOrb，只换 emerald 配色。
+   ⚠️ 色板统一走 `EMERALD_ORB_PALETTE`（berry-orb.tsx 导出）：2026-10-18 之前这里是
+   一份手抄的副本，和 AI 气泡头像各写各的 → 用户看到「一个绿球一个白球」。
+   同一套色必须只有一个来源，别再抄第二遍。 */
 const BerryOrb = dynamic(() => import("@/components/smoothui/berry-orb"), { ssr: false })
 
 interface MateChatHomeProps {
@@ -23,7 +38,20 @@ interface MateChatHomeProps {
   setEnableSearch?: (v: boolean) => void
   /** 当前是否具备联网搜索工具 */
   hasSearchTool?: boolean
-  /** 来源页专属欢迎词（工作台悬浮球 ?from= 带入）；不传用默认招呼语 */
+  /** 语音通话入口（由页面注入；不传则不显示麦克风按钮） */
+  onOpenVoice?: () => void
+  /**
+   * ── 是否自带输入卡（2026-10-01「统一 sender」）────────────────────────────
+   *
+   * `true`（默认，**落地页首屏演示**用）：本组件底部自带一整套输入卡
+   *     （textarea + 工具条 + 权限面板 + 语音/发送），自成闭环。
+   *
+   * `false`（**真实应用 /ai-assistant** 用）：不再自带任何输入框 —— 空态与
+   *     会话态**共用同一份** `ChatSenderInput`（挂在 page.tsx 里、恒在底部），
+   *     从根上杜绝「两个 sender / 两套外观」。此时本组件只负责欢迎区
+   *     （品牌标 + 招呼语 + 推荐问法 + 4 个种植能力入口）。
+   */
+  composer?: boolean
 }
 
 // 权限模式配置 — 与 chat-sender-input 统一
@@ -33,114 +61,36 @@ const APPROVAL_MODES = [
   { key: "full" as const, icon: <IconShieldCheck size={14} />, label: "完全访问权限", desc: "莓小智可自主执行所有工具操作，无需逐一确认" },
 ]
 
-// 快捷指令 — 围绕莓小智的种植管理核心能力
-const QUICK_ACTIONS: { key: string; label: string; prompt: string; icon: React.ReactNode }[] = [
-  {
-    key: "inspect",
-    label: "巡检分析",
-    icon: <IconScanCode size={14} />,
-    prompt: `请基于设备上传的巡检数据，对当前草莓大棚执行一次完整巡检分析，按以下结构输出：
-
-1. 【核心指标速览】当前温度、湿度、CO₂、光照、土壤含水率、NDVI 健康指数，对比标准范围（白天 20-25℃ / 夜间 10-15℃ / 湿度 60-80% / CO₂ 800-1200ppm / 光照 30000-50000lux / NDVI 0.6-0.8），用 ✅/⚠️/❌ 标注每一项。
-2. 【异常定位】找出偏离阈值的指标，定位可能的发生位置（几号棚 / 哪一垄 / 哪个时段）。
-3. 【风险预警】结合近 24h 趋势，预测未来 6-12h 可能放大的问题（如连续高湿 → 白粉病风险、连续高温干旱 → 红蜘蛛风险）。
-4. 【处置建议】按「紧急 / 重要 / 一般」三档给出可执行措施，并标注每项预估耗时与人力。
-5. 【复核点位】列出建议人工复核的 1-3 个具体位置，方便巡检员二次确认。
-
-请开始：`,
-  },
-  {
-    key: "disease",
-    label: "病虫害识别",
-    icon: <IconBug size={14} />,
-    prompt: `请以草莓病虫害专家身份协助识别当前问题。请按以下流程处理：
-
-【第一步：信息采集】请先问我（必要时主动获取）以下信息——
-- 受害部位：叶面 / 叶背 / 果实 / 茎秆 / 根部
-- 症状形态：白粉 / 灰霉 / 褐色斑点 / 凹陷病斑 / 黄化 / 拉丝 / 虫体
-- 受害比例：单株 / 连片 / 整棚
-- 当前环境：温度、湿度、近 7 日天气（连阴/雨/晴）
-- 是否已用药：药名、剂量、上次用药时间
-
-【第二步：诊断】对照以下常见病害做鉴别——
-• 白粉病（叶背白粉，15-25℃ 高湿诱发）
-• 灰霉病（褐色水渍 + 灰霉层，RH>90%）
-• 炭疽病（梭形黑褐病斑，28-32℃ 高温高湿）
-• 红蜘蛛（叶面小白点 + 背面红点 + 结网，干旱环境）
-• 蚜虫（嫩叶皱缩 + 蜜露煤污）
-
-【第三步：方案】按「环境调控 → 物理防治 → 生物天敌 → 化学药剂」优先级输出 4 级方案，明确每项的触发条件、操作方法与安全间隔期（优先绿色防控）。
-
-请先输出第 1 步的信息采集问题清单，等我回复后继续诊断。`,
-  },
-  {
-    key: "env",
-    label: "环境监测",
-    icon: <IconChartLine size={14} />,
-    prompt: `请汇总当前草莓大棚环境监测数据，并生成可直接交给种植户的简报：
-
-【实时数据】
-- 空气温度（℃） / 空气湿度（%）
-- 土壤温度（℃） / 土壤含水率（%）
-- CO₂ 浓度（ppm） / 光照强度（lux） / 累计光合有效辐射 J/cm²
-- 近 1h / 24h / 7d 趋势对比
-
-【分项评估】对每一项指标输出：当前值 | 标准范围 | 偏差 | 评级（优/良/中/差）。
-
-【调控动作清单】仅列出当前需要立即触发的项，格式：
-- [设备名] [动作] [目标值] [建议时长] [预期效果]
-
-【异常告警】用一句大白话告诉种植户"现在该不该担心"——比如"温度 32℃ 已超阈值，建议 10 分钟内开启 1、2 号风机"。
-
-【次日展望】结合近 3 日数据，预测明早 6-10 点可能出现的风险（高湿/低温/光照不足），并给出今夜 22:00-明早 6:00 的预防性调控建议。
-
-请开始汇总：`,
-  },
-  {
-    key: "strategy",
-    label: "种植策略",
-    icon: <IconSeedling size={14} />,
-    prompt: `请以莓小智种植策略师身份，基于当前环境与生育期，给出接下来 7 天的精准调控策略：
-
-【先确认生育期】——如果我还告诉你品种（红颜 / 甜查理 / 章姬 / 圣诞红等），请自行结合品种特性。
-
-【一、环境策略（按生育期）】给出每天的：
-- 白天温度区间、夜间温度区间、湿度区间
-- 通风时段、加湿/除湿触发条件
-- CO₂ 释放窗口与目标浓度
-- 补光时长（如需要）与推荐光谱配比
-  - 营养生长期：蓝光为主（R:50 G:100 B:255）
-  - 花果期：红光为主（R:255 G:100 B:50）
-  - 平衡期：R:200 G:50 B:150
-
-【二、水肥策略】
-- 灌溉频次、每次时长、EC/pH 目标区间
-- 关键生育期重点元素（花期偏磷钾、果实膨大期偏钾）
-
-【三、农事操作】按日期给出 7 天任务表：摘老叶、疏花疏果、授粉、采收、防病节点等。
-
-【四、风险预案】列出本周最可能的 2 类风险及应对 SOP。
-
-请先读取我当前大棚的实时数据，再输出策略。`,
-  },
-  {
-    key: "more",
-    label: "更多",
-    icon: <IconMore size={14} />,
-    prompt: "",
-  },
+// 推荐问法 — 招呼语下方的短句胶囊（对齐参考稿：两行居中、无边框、浅灰底）
+const SUGGESTIONS: { key: string; text: string }[] = [
+  { key: "s1", text: "大棚湿度 90% 要不要放风？" },
+  { key: "s2", text: "白粉病早期怎么判断？" },
+  { key: "s3", text: "草莓花期夜间温度控多少？" },
+  { key: "s4", text: "什么时候该开补光灯？" },
+  { key: "s5", text: "果实着色不匀是什么原因？" },
 ]
 
-export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMode = false, approvalMode = "request", setApprovalMode, enableReasoning = false, setEnableReasoning, enableSearch = false, setEnableSearch, hasSearchTool = true }: MateChatHomeProps) {
+export function MateChatHome({
+  onSendMessage,
+  input,
+  setInput,
+  isLoading,
+  darkMode = false,
+  approvalMode = "request",
+  setApprovalMode,
+  enableReasoning = false,
+  setEnableReasoning,
+  enableSearch = false,
+  setEnableSearch,
+  hasSearchTool = true,
+  onOpenVoice,
+  composer = true,
+}: MateChatHomeProps) {
   const [innerInput, setInnerInput] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const displayValue = input || innerInput
   const [approvalOpen, setApprovalOpen] = useState(false)
-  // 顶部 IP 动图 — 每次页面刷新都换一张（避免 SSR/CSR 水合不一致）
-  const [ipGif, setIpGif] = useState<"eat" | "watch">("eat")
-  useEffect(() => {
-    setIpGif(Math.random() < 0.5 ? "watch" : "eat")
-  }, [])
+  const [focused, setFocused] = useState(false)
 
   // 招呼语：记忆档案里有「称呼」时用名字打招呼（等记忆接口返回或 500ms 超时再开始打字）
   const DEFAULT_GREETING = "莓园今天怎么样？我来帮你打理。"
@@ -182,7 +132,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
         clearInterval(id)
         setTypingDone(true)
       }
-    }, 90)
+    }, 80)
     return () => clearInterval(id)
   }, [greeting, greetingReady])
 
@@ -209,31 +159,111 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
     setInput?.(val)
   }
 
-  // 点击底部快捷指令胶囊：把提示词注入输入框并获得焦点
-  const handleQuickAction = (action: typeof QUICK_ACTIONS[number]) => {
-    if (action.key === "more") {
+  // 点击能力胶囊：把提示词注入输入框并获得焦点
+  //
+  // 🚨 2026-10-01 两轮演进后本组件只负责「自带输入卡」那条路径（composer=true，
+  //    落地页首屏演示窗）。真实应用 /ai-assistant 传 composer={false}，能力胶囊
+  //    已搬进 page.tsx 那份唯一的 ChatSenderInput（用户：「把这些放到 sender」），
+  //    本组件不再渲染它们 —— 所以下面只需处理自带 textarea 的焦点。
+  const focusUnifiedSender = () => {
+    if (composer) {
       inputRef.current?.focus()
-      return
-    }
-    handleChange(action.prompt)
-    requestAnimationFrame(() => {
-      inputRef.current?.focus()
-      // 把光标移到末尾
       const el = inputRef.current
       if (el) {
         const len = el.value.length
         el.setSelectionRange(len, len)
       }
+      return
+    }
+    requestAnimationFrame(() => {
+      const ta = document.querySelector<HTMLTextAreaElement>(".ant-sender textarea")
+      if (!ta) return
+      ta.focus()
+      const len = ta.value.length
+      try { ta.setSelectionRange(len, len) } catch {}
     })
   }
 
-  // 自动调整高度
+  const handleSkillAction = (skill: FarmSkill) => {
+    handleChange(skill.prompt)
+    requestAnimationFrame(focusUnifiedSender)
+  }
+
+  // 推荐问法：直接当作消息发出（参考稿里点了就提问）
+  const handleSuggestion = (text: string) => {
+    if (isLoading) return
+    setInnerInput("")
+    setInput?.("")
+    onSendMessage(text)
+  }
+
   const adjustHeight = () => {
     if (inputRef.current) {
       inputRef.current.style.height = "auto"
-      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + "px"
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 140) + "px"
     }
   }
+
+  /* ---------------- 主题色板 ---------------- */
+  const C = darkMode
+    ? {
+        title: "#fafafa",
+        chipBg: "rgba(255,255,255,0.055)",
+        chipBgHover: "rgba(255,255,255,0.10)",
+        chipText: "#d4d4d8",
+        cardBg: "rgba(22,22,26,0.86)",
+        cardBorder: focused ? "rgba(52,211,153,0.5)" : "rgba(255,255,255,0.10)",
+        cardShadow: focused
+          ? "0 6px 28px rgba(0,0,0,0.45), 0 0 0 3px rgba(5,150,105,0.12)"
+          : "0 6px 24px rgba(0,0,0,0.34)",
+        placeholder: "#6b6b74",
+        toolText: "#a1a1aa",
+        toolHover: "rgba(255,255,255,0.08)",
+        toolOnBg: "rgba(0,148,86,0.20)",
+        divider: "rgba(255,255,255,0.09)",
+        sendOff: "rgba(255,255,255,0.10)",
+        sendOffIcon: "#6b6b74",
+        note: "#6b6b74",
+      }
+    : {
+        title: "#18181b",
+        chipBg: "rgba(24,24,27,0.05)",
+        chipBgHover: "rgba(24,24,27,0.085)",
+        chipText: "#3F3F46",
+        cardBg: "rgba(255,255,255,0.96)",
+        cardBorder: focused ? "rgba(5,150,105,0.42)" : "rgba(24,24,27,0.085)",
+        cardShadow: focused
+          ? "0 10px 30px rgba(15,23,42,0.08), 0 0 0 3px rgba(5,150,105,0.09)"
+          : "0 6px 22px rgba(15,23,42,0.055)",
+        placeholder: "#a1a1aa",
+        toolText: "#52525b",
+        toolHover: "rgba(24,24,27,0.05)",
+        toolOnBg: "rgba(0,148,86,0.10)",
+        divider: "rgba(24,24,27,0.08)",
+        sendOff: "rgba(24,24,27,0.07)",
+        sendOffIcon: "#a1a1aa",
+        note: "#a1a1aa",
+      }
+
+  const ACCENT = darkMode ? "#34D399" : "#059669"
+
+  const pillStyle = (on: boolean): React.CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    height: 30,
+    padding: "5px 9px",
+    borderRadius: 8,
+    border: "none",
+    background: on ? C.toolOnBg : "transparent",
+    color: on ? ACCENT : C.toolText,
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 400,
+    whiteSpace: "nowrap",
+    transition: "background 0.15s, color 0.15s",
+    flexShrink: 0,
+  })
 
   return (
     <ConfigProvider theme={{ algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
@@ -246,14 +276,8 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
           box-shadow: none !important;
         }
         @keyframes approval-panel-in {
-          from {
-            opacity: 0;
-            transform: translateY(-6px) scale(0.97);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+          from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         .approval-panel-animate {
           animation: approval-panel-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -262,107 +286,173 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
           0%, 50% { opacity: 1; }
           50.01%, 100% { opacity: 0; }
         }
+        @keyframes hero-rise {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .hero-rise { animation: hero-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .hero-chip-press:active { transform: scale(0.975); }
       `}</style>
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "stretch",
-        justifyContent: "center",
-        minHeight: "100%",
-        padding: "40px 32px 56px",
-        background: darkMode ? "#09090b" : "#fff",
-      }}>
-        <div style={{ width: "100%", maxWidth: 760, margin: "0 auto" }}>
-          {/* 顶部：招呼语 + 右侧 IP 动图 */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: 18,
-            }}
-          >
-            <h1 style={{
-              margin: 0,
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: -0.3,
-              color: darkMode ? "#fafafa" : "#18181b",
-              lineHeight: 1.35,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              minHeight: 40,
-              minWidth: 0,
-              flex: 1,
-            }}>
-              {typed}
-              {/* 打字光标 — 完成时自动消失 */}
-              <span
-                aria-hidden
-                style={{
-                  display: "inline-block",
-                  width: 2,
-                  height: "1em",
-                  marginLeft: 2,
-                  verticalAlign: "-0.15em",
-                  background: darkMode ? "#fafafa" : "#18181b",
-                  animation: typingDone ? "none" : "type-blink 0.9s steps(1) infinite",
-                  opacity: typingDone ? 0 : 1,
-                }}
-              />
-            </h1>
-            {/* 右侧 IP 形象动图 — 紧贴招呼语末尾 */}
+
+      <div
+        data-hero-root
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+          /* 透出对话区背景层（PixelBlast + 渐变）—— 这里必须是透明 */
+          background: "transparent",
+        }}
+      >
+        {/* ===== 上区：品牌标 + 招呼语 + 推荐问法（在剩余空间里垂直居中） ===== */}
+        <div
+          data-lenis-prevent
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            padding: "40px 24px 20px",
+          }}
+        >
+          {/* 2026-10-14：随对话区加宽（960 → 1120）同步放宽，保持「欢迎区比输入卡
+              略窄一点」的既有收进关系（原 880 : 960，现 1000 : 1120）。 */}
+          <div style={{ width: "100%", maxWidth: 1000, margin: "0 auto" }}>
+            {/* ---- 1. 绿色莓小智球 + 招呼语（居中） ---- */}
             <div
-              aria-hidden
+              data-hero-brand
+              className="hero-rise"
               style={{
-                flexShrink: 0,
-                width: 72,
-                height: 72,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                filter: darkMode ? "brightness(0.95)" : undefined,
+                gap: 10,
+                marginBottom: 26,
               }}
             >
-              <img
-                key={ipGif}
-                src={`/AI-gif/${ipGif}.gif`}
-                alt=""
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                }}
-              />
-            </div>
-          </div>
+              {/* GrokBot 球体：32px + 视觉外扩，实际占位 40。
+                  ⚠️ `variant="orb"` 不能省：BerryOrb 默认形态已改成吉祥物短片，
+                  而短片**不读 palette**（颜色烘焙在视频里）—— 2026-10-18 之前这里
+                  传的是 EMERALD_ORB 想拿绿球，实际渲染出一枚**红色**草莓静态海报
+                  （32px < clipTooSmall 门槛 40，连动画都没有）。
+                  GrokOrbBody 是 SVG + rAF：palette 真正生效、且无任何尺寸门控。 */}
+              <div style={{ flexShrink: 0, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <BerryOrb variant="orb" size="32px" theme={darkMode ? "dark" : "light"} palette={EMERALD_ORB} />
+              </div>
 
-          {/* 输入容器 — 圆角卡片：左侧 +/思考/研究/权限，右侧实心发送按钮 */}
+              {/* 招呼语 —— 「隐形量宽 + 绝对定位覆盖」保证打字时整行不抖动 */}
+              <h1
+                style={{
+                  position: "relative",
+                  margin: 0,
+                  fontSize: 28,
+                  fontWeight: 700,
+                  letterSpacing: -0.3,
+                  lineHeight: 1.35,
+                  color: C.title,
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                }}
+              >
+                <span style={{ visibility: "hidden" }} aria-hidden>{greeting}</span>
+                <span style={{ position: "absolute", inset: 0 }}>
+                  {typed}
+                  <span
+                    aria-hidden
+                    style={{
+                      display: "inline-block",
+                      width: 2,
+                      height: "1em",
+                      marginLeft: 2,
+                      verticalAlign: "-0.15em",
+                      background: C.title,
+                      animation: typingDone ? "none" : "type-blink 0.9s steps(1) infinite",
+                      opacity: typingDone ? 0 : 1,
+                    }}
+                  />
+                </span>
+              </h1>
+            </div>
+
+            {/* ---- 2. 推荐问法（两行居中胶囊） ---- */}
+            <div
+              data-hero-suggestions
+              className="hero-rise"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 10,
+                animationDelay: "0.08s",
+              }}
+            >
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s.key}
+                  onClick={() => handleSuggestion(s.text)}
+                  disabled={isLoading}
+                  className="hero-chip-press"
+                  style={{
+                    padding: "9px 16px",
+                    borderRadius: 999,
+                    border: "none",
+                    background: C.chipBg,
+                    color: C.chipText,
+                    fontSize: 13.5,
+                    fontWeight: 400,
+                    lineHeight: 1.3,
+                    cursor: isLoading ? "not-allowed" : "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "background 0.18s, transform 0.12s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.chipBgHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = C.chipBg }}
+                >
+                  {s.text}
+                </button>
+              ))}
+            </div>
+
+                      </div>
+        </div>
+
+        {/* ===== 下区：输入卡片 + 免责 =====
+             🚨 仅当 composer=true（落地页首屏那台「应用演示窗」）才渲染。
+             真实应用 /ai-assistant 传 composer={false}，输入框由 page.tsx 里
+             那份唯一的 ChatSenderInput 承担 —— 空态/会话态共用同一个实例。 */}
+        {composer && (
+        <>
+        <div
+          style={{
+            flexShrink: 0,
+            width: "100%",
+            /* 2026-10-14：随对话区加宽同步（928 → 1088），与上区 1000 的
+               既有间距关系保持一致。注意：仅落地页演示窗（composer=true）走到，
+               真实 /ai-assistant 由 ChatSenderInput 承担。 */
+            maxWidth: 1088,
+            margin: "0 auto",
+            padding: "0 24px 14px",
+          }}
+        >
           <div
+            data-hero-card
+            className="hero-rise"
             style={{
-              borderRadius: 16,
-              padding: "12px 14px 10px",
-              background: darkMode ? "#16161a" : "#ffffff",
-              border: darkMode ? "1px solid #3A3A3D" : "1px solid #d9dde3",
-              boxShadow: darkMode
-                ? "0 1px 0 rgba(255,255,255,0.04) inset"
-                : "0 1px 2px rgba(15,23,42,0.03)",
+              borderRadius: 18,
+              padding: "14px 16px 10px",
+              background: C.cardBg,
+              border: `1px solid ${C.cardBorder}`,
+              boxShadow: C.cardShadow,
+              backdropFilter: "blur(calc(14px * var(--dc-mat-scale, 1)))",
+              WebkitBackdropFilter: "blur(calc(14px * var(--dc-mat-scale, 1)))",
               transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+              animationDelay: "0.14s",
             }}
-            onFocusCapture={(e) => {
-              e.currentTarget.style.borderColor = darkMode ? "#52525B" : "#bfc6d0"
-              e.currentTarget.style.boxShadow = darkMode
-                ? "0 0 0 3px rgba(255,255,255,0.04)"
-                : "0 0 0 3px rgba(15,23,42,0.035)"
-            }}
-            onBlurCapture={(e) => {
-              e.currentTarget.style.borderColor = darkMode ? "#3A3A3D" : "#d9dde3"
-              e.currentTarget.style.boxShadow = darkMode
-                ? "0 1px 0 rgba(255,255,255,0.04) inset"
-                : "0 1px 2px rgba(15,23,42,0.03)"
-            }}
+            onFocusCapture={() => setFocused(true)}
+            onBlurCapture={() => setFocused(false)}
           >
             {/* 文本输入区 */}
             <textarea
@@ -371,7 +461,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
               value={displayValue}
               onChange={(e) => { handleChange(e.target.value); adjustHeight() }}
               onKeyDown={handleKeyDown}
-              placeholder="输入 / 获取建议，或发送消息开始对话"
+              placeholder="发送消息"
               rows={1}
               style={{
                 width: "100%",
@@ -379,180 +469,131 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                 outline: "none",
                 resize: "none",
                 fontSize: 15,
-                color: darkMode ? "#e4e4e7" : "#374151",
+                color: C.title,
                 background: "transparent",
                 lineHeight: 1.6,
                 fontFamily: "inherit",
-                minHeight: 28,
-                maxHeight: 120,
+                minHeight: 30,
+                maxHeight: 140,
                 overflowY: "auto",
-                padding: "4px 4px 2px",
+                padding: "4px 2px 2px",
               }}
             />
+            <style>{`
+              .home-welcome-textarea::placeholder { color: ${C.placeholder}; }
+            `}</style>
 
-            {/* Footer 行：左侧 +/思考/研究/权限，右侧发送 */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: 6,
-            }}>
-              {/* 左侧功能按钮组 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+            {/* ---- 工具条 ---- */}
+            <div
+              data-hero-toolbar
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                marginTop: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {/* 左：附件 | 思考 / 研究 | 能力胶囊 */}
+              <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", minWidth: 0 }}>
                 <button
                   title="更多选项"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
                     width: 30, height: 30, borderRadius: 8,
                     border: "none", background: "transparent",
-                    cursor: "pointer",
-                    color: darkMode ? "#a1a1aa" : "#6b7280",
-                    flexShrink: 0,
-                    transition: "background 0.15s",
+                    cursor: "pointer", color: C.toolText,
+                    flexShrink: 0, transition: "background 0.15s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.toolHover }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                 >
                   <IconPlus size={16} />
                 </button>
 
-                {/* 思考（深度思考） */}
+                <span style={{ width: 1, height: 16, background: C.divider, margin: "0 6px", flexShrink: 0 }} />
+
                 {setEnableReasoning && (
                   <button
                     onClick={() => setEnableReasoning(!enableReasoning)}
                     title="深度思考：让模型进行更深入的推理"
-                    className="inline-flex items-center gap-1.5"
-                    style={{
-                      marginLeft: 2,
-                      padding: "5px 10px",
-                      borderRadius: 8,
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 13,
-                      fontWeight: 400,
-                      whiteSpace: "nowrap",
-                      background: enableReasoning
-                        ? (darkMode ? "rgba(22,119,255,0.18)" : "rgba(22,119,255,0.10)")
-                        : "transparent",
-                      color: enableReasoning
-                        ? "#1677ff"
-                        : (darkMode ? "#a1a1aa" : "#6b7280"),
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!enableReasoning) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!enableReasoning) e.currentTarget.style.background = "transparent"
-                    }}
+                    style={pillStyle(enableReasoning)}
+                    onMouseEnter={(e) => { if (!enableReasoning) e.currentTarget.style.background = C.toolHover }}
+                    onMouseLeave={(e) => { if (!enableReasoning) e.currentTarget.style.background = "transparent" }}
                   >
-                    <IconBrain size={14} strokeWidth={1.75} />
+                    <IconBrain size={14} strokeWidth={2} />
                     <span>思考</span>
                   </button>
                 )}
 
-                {/* 研究（联网搜索） */}
-                {setEnableSearch && (
+                {setEnableSearch && hasSearchTool && (
                   <button
-                    onClick={() => {
-                      // 内置 web_search / deep_research 工具由服务端无条件注入，无需安装任何 MCP
-                      setEnableSearch(!enableSearch)
-                    }}
+                    onClick={() => setEnableSearch(!enableSearch)}
                     title="联网搜索：让模型检索最新信息"
-                    className="inline-flex items-center gap-1.5"
-                    style={{
-                      padding: "5px 10px",
-                      borderRadius: 8,
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 13,
-                      fontWeight: 400,
-                      whiteSpace: "nowrap",
-                      background: enableSearch
-                        ? (darkMode ? "rgba(22,119,255,0.18)" : "rgba(22,119,255,0.10)")
-                        : "transparent",
-                      color: enableSearch
-                        ? "#1677ff"
-                        : (darkMode ? "#a1a1aa" : "#6b7280"),
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!enableSearch) e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!enableSearch) e.currentTarget.style.background = "transparent"
-                    }}
+                    style={pillStyle(enableSearch)}
+                    onMouseEnter={(e) => { if (!enableSearch) e.currentTarget.style.background = C.toolHover }}
+                    onMouseLeave={(e) => { if (!enableSearch) e.currentTarget.style.background = "transparent" }}
                   >
-                    <IconGlobe size={14} strokeWidth={1.75} />
+                    <IconGlobe size={14} strokeWidth={2} />
                     <span>研究</span>
                   </button>
                 )}
+
+                {/* 种植能力胶囊（4 条）—— 与 /ai-assistant 的 sender 工具条**同源**
+                    （components/ai/farm-skills.tsx 的 FARM_SKILLS + FarmSkillChips），
+                    保证两处提示词永不发散。落地页这张卡够宽，4 条全上、不裁。 */}
+                <FarmSkillChips darkMode={darkMode} disabled={isLoading} onPick={handleSkillAction} />
               </div>
 
-              {/* 右侧：权限模式 + 发送 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                {/* 权限模式入口（点击展开面板） */}
+              {/* 右：权限模式 + 语音 + 发送 */}
+              <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
                 {setApprovalMode && (
                   <div style={{ position: "relative" }}>
                     <button
                       onClick={() => setApprovalOpen(!approvalOpen)}
                       title="应如何批准操作？"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "5px 10px",
-                        borderRadius: 8,
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        color: darkMode ? "#a1a1aa" : "#6b7280",
-                        fontSize: 13,
-                        whiteSpace: "nowrap",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6" }}
+                      style={pillStyle(false)}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = C.toolHover }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                     >
                       <IconShieldCheck size={14} />
                       <span>{currentMode.label}</span>
-                      <IconMore size={12} style={{ opacity: 0.7 }} />
+                      <IconDown size={12} style={{ opacity: 0.65 }} />
                     </button>
+
                     {approvalOpen && (
                       <div
                         className="approval-panel-animate"
                         onMouseDown={(e) => e.preventDefault()}
                         style={{
                           position: "absolute",
-                          top: "calc(100% + 6px)",
+                          bottom: "calc(100% + 8px)",
                           right: 0,
                           zIndex: 1000,
                           width: 320,
                           borderRadius: 16,
                           padding: "16px 12px 10px",
                           background: darkMode ? "#27272a" : "#fff",
-                          border: darkMode ? "1px solid #3f3f46" : "1px solid #e5e7eb",
+                          border: darkMode ? "1px solid #3f3f46" : "1px solid #e4e4e7",
                           boxShadow: darkMode
                             ? "0 20px 50px rgba(0,0,0,0.5)"
                             : "0 10px 40px rgba(0,0,0,0.15)",
-                          transformOrigin: "top right",
+                          transformOrigin: "bottom right",
                         }}
                       >
                         <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 14,
-                          padding: "0 6px",
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          marginBottom: 14, padding: "0 6px",
                         }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 500, color: darkMode ? "#d4d4d8" : "#374151" }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 500, color: darkMode ? "#d4d4d8" : "#3F3F46" }}>
                             应如何批准 BerryZ 操作？
                           </span>
                           <button
                             onClick={() => window.open("#", "_blank")}
                             style={{
                               border: "none", background: "transparent", cursor: "pointer",
-                              fontSize: 12, color: darkMode ? "#a1a1aa" : "#6b7280",
+                              fontSize: 12, color: darkMode ? "#a1a1aa" : "#71717A",
                               textDecoration: "underline",
                             }}
                           >
@@ -566,36 +607,27 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                               key={mode.key}
                               onClick={() => { setApprovalMode(mode.key); setApprovalOpen(false) }}
                               style={{
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: 10,
-                                width: "100%",
-                                padding: "9px 10px",
-                                borderRadius: 10,
+                                display: "flex", alignItems: "flex-start", gap: 10,
+                                width: "100%", padding: "9px 10px", borderRadius: 10,
                                 border: "none",
-                                background: isActive
-                                  ? (darkMode ? "#3f3f46" : "#e5e7eb")
-                                  : "transparent",
-                                cursor: "pointer",
-                                marginBottom: 2,
+                                background: isActive ? (darkMode ? "#3f3f46" : "#e4e4e7") : "transparent",
+                                cursor: "pointer", marginBottom: 2,
                                 transition: "background 0.2s ease",
                               }}
                             >
-                              <span style={{ marginTop: 1.5, flexShrink: 0, color: darkMode ? "#a1a1aa" : "#6b7280" }}>
+                              <span style={{ marginTop: 1.5, flexShrink: 0, color: darkMode ? "#a1a1aa" : "#71717A" }}>
                                 {React.cloneElement(mode.icon as React.ReactElement<any>, { size: 17 })}
                               </span>
                               <div style={{ flex: 1, textAlign: "left" }}>
                                 <div style={{
                                   fontSize: 13.5, fontWeight: 500,
-                                  color: darkMode ? "#e4e4e7" : "#18181b",
-                                  lineHeight: 1.35,
+                                  color: darkMode ? "#e4e4e7" : "#18181b", lineHeight: 1.35,
                                 }}>
                                   {mode.label}
                                 </div>
                                 <div style={{
                                   fontSize: 11.5, marginTop: 2,
-                                  color: darkMode ? "#71717a" : "#6b7280",
-                                  lineHeight: 1.4,
+                                  color: darkMode ? "#71717a" : "#71717A", lineHeight: 1.4,
                                 }}>
                                   {mode.desc}
                                 </div>
@@ -605,11 +637,7 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                                 display: "flex", alignItems: "center", justifyContent: "center",
                                 opacity: isActive ? 1 : 0,
                               }}>
-                                {isActive && (
-                                  <IconCheck size={16} style={{
-                                    color: darkMode ? "#e4e4e7" : "#374151",
-                                  }} />
-                                )}
+                                {isActive && <IconCheck size={16} style={{ color: darkMode ? "#e4e4e7" : "#3F3F46" }} />}
                               </span>
                             </button>
                           )
@@ -619,7 +647,23 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                   </div>
                 )}
 
-                {/* 发送按钮 — 蓝色实心圆形 */}
+                {onOpenVoice && (
+                  <button
+                    onClick={onOpenVoice}
+                    title="语音通话"
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 30, height: 30, borderRadius: 8, border: "none",
+                      background: "transparent", cursor: "pointer",
+                      color: C.toolText, flexShrink: 0, transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = C.toolHover }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+                  >
+                    <IconMicrophone size={16} />
+                  </button>
+                )}
+
                 <button
                   onClick={handleSend}
                   disabled={!displayValue.trim() || isLoading}
@@ -627,14 +671,10 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
                     width: 32, height: 32, borderRadius: "50%",
-                    border: "none",
-                    marginLeft: 6,
-                    flexShrink: 0,
-                    background: displayValue.trim()
-                      ? "#1677ff"
-                      : (darkMode ? "rgba(22,119,255,0.28)" : "#bfd7ff"),
+                    border: "none", marginLeft: 4, flexShrink: 0,
+                    background: displayValue.trim() ? ACCENT : C.sendOff,
                     cursor: displayValue.trim() ? "pointer" : "not-allowed",
-                    color: displayValue.trim() ? "#fff" : "rgba(255,255,255,0.85)",
+                    color: displayValue.trim() ? "#fff" : C.sendOffIcon,
                     transition: "all 0.2s",
                   }}
                 >
@@ -644,52 +684,21 @@ export function MateChatHome({ onSendMessage, input, setInput, isLoading, darkMo
             </div>
           </div>
 
-          {/* 底部：5 个快捷指令胶囊 */}
-          <div style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: 10,
-            marginTop: 22,
-          }}>
-            {QUICK_ACTIONS.map((action) => {
-              const hasDropdown = action.key === "more"
-              return (
-                <button
-                  key={action.key}
-                  onClick={() => handleQuickAction(action)}
-                  className="inline-flex items-center gap-1.5"
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 999,
-border: darkMode ? "1px solid #3A3A3D" : "1px solid #e5e7eb",
-              background: darkMode ? "#16161a" : "#f9fafb",
-              color: darkMode ? "#E4E4E7" : "#4b5563",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "all 0.2s",
+          {/* 免责说明 */}
+          <div
+            style={{
+              marginTop: 10,
+              textAlign: "center",
+              fontSize: 11.5,
+              color: C.note,
+              letterSpacing: 0.2,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = darkMode ? "#27272a" : "#f3f4f6"
-              e.currentTarget.style.borderColor = darkMode ? "#52525B" : "#d1d5db"
-              e.currentTarget.style.transform = "translateY(-1px)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = darkMode ? "#16161a" : "#f9fafb"
-              e.currentTarget.style.borderColor = darkMode ? "#3A3A3D" : "#e5e7eb"
-              e.currentTarget.style.transform = "translateY(0)"
-            }}
-                >
-                  <span style={{ display: "inline-flex", opacity: 0.85 }}>{action.icon}</span>
-                  <span>{action.label}</span>
-                  {hasDropdown && <IconDown size={12} style={{ opacity: 0.7 }} />}
-                </button>
-              )
-            })}
+          >
+            内容由 AI 生成，仅供参考
           </div>
         </div>
+        </>
+        )}
       </div>
     </ConfigProvider>
   )

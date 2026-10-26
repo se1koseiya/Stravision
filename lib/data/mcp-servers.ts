@@ -505,7 +505,7 @@ export const MCP_SERVERS: MCPServer[] = [
     description: "彩云天气 API 集成。提供中国地区实时天气、小时预报、周预报、历史数据和天气预警。",
     category: "agriculture",
     icon: "https://cdn.caiyunapp.com/favicon.ico",
-    iconBg: "bg-blue-400",
+    iconBg: "bg-emerald-400",
     provider: "彩云科技",
     requiresApiKey: true,
     apiKeyUrl: "https://dashboard.caiyunapp.com/",

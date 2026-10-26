@@ -18,7 +18,7 @@ interface BrandedCodeEmailOptions {
 
 /**
  * 生成品牌化验证码邮件 HTML。
- * 视觉对齐 landing-v4 登录卡：白卡 + memory.png 美术头图 + 薄荷绿 #009456 强调色。
+ * 视觉对齐 landing-v4 登录卡：白卡 + memory.png 美术头图 + 薄荷绿 #059669 强调色。
  * 全部使用内联样式 + 基础标签，兼容主流邮件客户端。
  */
 export function buildBrandedCodeEmailHtml(opts: BrandedCodeEmailOptions): string {
@@ -62,8 +62,8 @@ export function buildBrandedCodeEmailHtml(opts: BrandedCodeEmailOptions): string
         <!-- 验证码 -->
         <tr>
           <td style="padding:24px 32px 0;">
-            <div style="background-color:#E6FDEE;border:1px solid #BFEFD6;border-radius:12px;padding:22px 16px;text-align:center;">
-              <span style="font-family:'SF Mono','Roboto Mono','Courier New',monospace;font-size:34px;font-weight:700;color:#009456;letter-spacing:10px;line-height:1;">${code}</span>
+            <div style="background-color:#ECFDF5;border:1px solid #BFEFD6;border-radius:12px;padding:22px 16px;text-align:center;">
+              <span style="font-family:'SF Mono','Roboto Mono','Courier New',monospace;font-size:34px;font-weight:700;color:#059669;letter-spacing:10px;line-height:1;">${code}</span>
             </div>
             <p style="margin:14px 0 0;font-size:12px;color:#A6A6A6;line-height:1.7;text-align:center;">${note}</p>
           </td>
@@ -80,9 +80,9 @@ export function buildBrandedCodeEmailHtml(opts: BrandedCodeEmailOptions): string
               © ${year} 莓界 Berry Realm · AI 驱动的智慧莓园管控平台
             </p>
             <p style="margin:10px 0 0;font-size:12px;line-height:1.7;">
-              <a href="${SITE_URL}" style="color:#009456;text-decoration:none;font-weight:600;">访问官网</a>
+              <a href="${SITE_URL}" style="color:#059669;text-decoration:none;font-weight:600;">访问官网</a>
               <span style="color:#DDDDDD;margin:0 8px;">|</span>
-              <a href="${SITE_URL}/login" style="color:#009456;text-decoration:none;font-weight:600;">前往登录</a>
+              <a href="${SITE_URL}/login" style="color:#059669;text-decoration:none;font-weight:600;">前往登录</a>
             </p>
           </td>
         </tr>
@@ -130,13 +130,13 @@ export const VerificationEmailTemplate: React.FC<VerificationEmailProps> = ({ co
         .code {
           font-size: 36px;
           font-weight: bold;
-          color: #10b981;
+          color: #059669;
           letter-spacing: 8px;
           margin: 30px 0;
           padding: 20px;
           background: #f0fdf4;
           border-radius: 8px;
-          border: 2px dashed #10b981;
+          border: 2px dashed #059669;
         }
         .footer {
           color: rgba(255, 255, 255, 0.8);
@@ -144,7 +144,7 @@ export const VerificationEmailTemplate: React.FC<VerificationEmailProps> = ({ co
           margin-top: 20px;
         }
         .warning {
-          color: #ef4444;
+          color: #DC2626;
           font-size: 14px;
           margin-top: 20px;
         }
@@ -154,10 +154,10 @@ export const VerificationEmailTemplate: React.FC<VerificationEmailProps> = ({ co
       <div className="container">
         <div className="logo">🍓 Stravision</div>
         <div className="content">
-          <h2 style={{ color: '#1f2937', marginTop: 0 }}>验证您的邮箱</h2>
-          <p style={{ color: '#6b7280' }}>感谢您注册 Stravision！请使用以下验证码完成注册：</p>
+          <h2 style={{ color: '#27272a', marginTop: 0 }}>验证您的邮箱</h2>
+          <p style={{ color: '#71717A' }}>感谢您注册 Stravision！请使用以下验证码完成注册：</p>
           <div className="code">{code}</div>
-          <p style={{ color: '#6b7280', fontSize: '14px' }}>
+          <p style={{ color: '#71717A', fontSize: '14px' }}>
             此验证码将在 <strong>10分钟</strong> 后失效
           </p>
           <div className="warning">⚠️ 如果这不是您的操作，请忽略此邮件</div>

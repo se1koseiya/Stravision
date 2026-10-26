@@ -22,7 +22,7 @@ const getRedirectPath = () => {
 
 /** 登录/注册共用的输入框样式（新视觉） */
 const fieldClass =
-  "h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60 focus-visible:border-[#4ED18F]"
+  "h-12 rounded-[10px] border-[#e4e4e7] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:ring-2 focus-visible:ring-[#059669]/60 focus-visible:border-[#059669]"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -206,7 +206,7 @@ export default function RegisterPage() {
         {/* 桌面端提示：本地模式不需要邮箱验证，避免用户误以为注册被卡住 */}
         {!needsEmailCode && (
           <div className="flex items-start gap-2 rounded-[10px] border border-[#e6f4ec] bg-[#f4fbf7] px-3 py-2.5">
-            <IconShield className="mt-[1px] size-3.5 shrink-0 text-[#009456]" />
+            <IconShield className="mt-[1px] size-3.5 shrink-0 text-[#059669]" />
             <p className="text-[11px] leading-relaxed text-[#3f6b57]">
               本地模式：无需邮箱验证码，直接注册即可。本机第一个账号将自动成为管理员。
             </p>
@@ -234,7 +234,7 @@ export default function RegisterPage() {
                   "absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-medium transition-colors",
                   countdown > 0 || sendingCode
                     ? "text-[#bbb]"
-                    : "text-[#009456] hover:underline"
+                    : "text-[#059669] hover:underline"
                 )}
               >
                 {sendingCode ? (
@@ -298,7 +298,7 @@ export default function RegisterPage() {
               </div>
               {codeError && <p className="mt-2 text-center text-[11px] font-medium text-red-500">{codeError}</p>}
               {verificationCode.length === 6 && !codeError && (
-                <div className="mt-2 flex items-center justify-center gap-1 text-[11px] text-[#009456]">
+                <div className="mt-2 flex items-center justify-center gap-1 text-[11px] text-[#059669]">
                   <IconCheckOne className="size-3.5" />
                   验证码已输入
                 </div>
@@ -337,7 +337,7 @@ export default function RegisterPage() {
         </div>
 
         <Button
-          className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[15px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
+          className="mt-5 h-12 w-full rounded-[10px] bg-[#111] text-[14px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
           onClick={onSubmit}
           disabled={loading}
         >
@@ -357,7 +357,7 @@ export default function RegisterPage() {
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] bg-no-repeat bg-center transition-colors checked:border-[#009456] checked:bg-[#009456]"
+            className="mt-0.5 size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[#d4d4d4] bg-no-repeat bg-center transition-colors checked:border-[#059669] checked:bg-[#059669]"
             style={
               agreed
                 ? { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.7 5.3a1 1 0 0 1 0 1.4l-4.5 4.5a1 1 0 0 1-1.4 0L4.3 8.7a1 1 0 0 1 1.4-1.4l1.8 1.8 3.8-3.8a1 1 0 0 1 1.4 0z'/%3E%3C/svg%3E\")" }
@@ -366,9 +366,9 @@ export default function RegisterPage() {
           />
           <span>
             我已阅读并同意
-            <Link href="/terms" target="_blank" className="mx-0.5 text-[#009456] hover:underline">《服务条款》</Link>
+            <Link href="/terms" target="_blank" className="mx-0.5 text-[#059669] hover:underline">《服务条款》</Link>
             和
-            <Link href="/privacy" target="_blank" className="mx-0.5 text-[#009456] hover:underline">《隐私政策》</Link>
+            <Link href="/privacy" target="_blank" className="mx-0.5 text-[#059669] hover:underline">《隐私政策》</Link>
           </span>
         </label>
 
@@ -384,14 +384,14 @@ export default function RegisterPage() {
           <>
             <div className="flex items-center justify-center gap-4 py-4">
               <div className="h-px flex-1 bg-[#eeeeee]" />
-              <span className="text-[10px] font-medium uppercase tracking-widest text-[#bbb]">其他方式</span>
+              <span className="text-[11px] font-medium uppercase tracking-widest text-[#bbb]">其他方式</span>
               <div className="h-px flex-1 bg-[#eeeeee]" />
             </div>
 
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+                className="h-11 flex-1 rounded-[10px] border-[#e4e4e7] bg-white text-[#555] transition-all hover:bg-[#f7f7f8] hover:text-black"
                 onClick={() => window.location.href = "/api/auth/alipay/login"}
               >
                 <Image src="/alipay.svg" alt="Alipay" width={16} height={16} className="mr-1.5 h-4 w-4 opacity-80" />
@@ -399,7 +399,7 @@ export default function RegisterPage() {
               </Button>
               <Button
                 variant="outline"
-                className="h-11 flex-1 rounded-[10px] border-[#e5e5e5] bg-white text-[#555] transition-all hover:bg-[#f7f7f7] hover:text-black"
+                className="h-11 flex-1 rounded-[10px] border-[#e4e4e7] bg-white text-[#555] transition-all hover:bg-[#f7f7f8] hover:text-black"
                 onClick={() => window.location.href = "/api/auth/qq/login"}
               >
                 <svg className="mr-1.5 h-4 w-4 opacity-80" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
@@ -413,7 +413,7 @@ export default function RegisterPage() {
 
         <p className="pt-4 text-center text-xs font-medium text-[#999]">
           已有账户？{" "}
-          <Link href="/login" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#009456]">
+          <Link href="/login" className="font-semibold text-[#111] underline underline-offset-4 transition-all hover:text-[#059669]">
             直接登录
           </Link>
         </p>
@@ -451,20 +451,20 @@ function OTPBox({ index, value, onChange, hasError }: { index: number; value: st
   return (
     <div
       className={cn(
-        "relative flex h-11 w-11 cursor-text items-center justify-center rounded-[10px] border text-[17px] font-semibold text-[#111] transition-all duration-200",
+        "relative flex h-11 w-11 cursor-text items-center justify-center rounded-[10px] border text-[16px] font-semibold text-[#111] transition-all duration-200",
         hasError
           ? "border-red-300 bg-red-50/40"
           : isActive
-            ? "border-[#4ED18F] bg-white ring-2 ring-[#4ED18F]/40"
+            ? "border-[#059669] bg-white ring-2 ring-[#059669]/40"
             : isFilled
-              ? "border-[#e5e5e5] bg-white"
-              : "border-[#e5e5e5] bg-[#fafafa]"
+              ? "border-[#e4e4e7] bg-white"
+              : "border-[#e4e4e7] bg-[#fafafa]"
       )}
       onClick={() => inputRef.current?.focus()}
     >
       {char}
       {isActive && (
-        <div className="h-5 w-[2px] animate-pulse rounded-full bg-[#009456]" />
+        <div className="h-5 w-[2px] animate-pulse rounded-full bg-[#059669]" />
       )}
       <input
         ref={inputRef}

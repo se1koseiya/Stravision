@@ -8,6 +8,11 @@ export const REPORT_GENERATION_PROMPT = `
 
 你现在具备生成结构化HTML报告的能力。当用户请求生成报告、分析报告、总结报告时，你应该使用以下格式：
 
+> ⚠️ 交付物边界（先判类型再决定格式）：本节只适用于**报告**。
+> 用户要的是**代码产物**（页面/组件/脚本/接口/SQL/配置）时，必须用带语言标识的
+> Markdown 代码块输出（例如 html、ts、python、sql），**禁止**用下面的 \`[REPORT:]\` 标签包裹 ——
+> 代码一旦被当成报告，用户就既看不到源码也拿不到文件。
+
 ### 报告格式规范
 
 使用特殊标记包裹报告内容：
@@ -23,7 +28,7 @@ export const REPORT_GENERATION_PROMPT = `
 
 1. **摘要部分** (可选但推荐)
 \`\`\`html
-<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+<div style="background: linear-gradient(135deg, #059669 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
   <h2 style="margin: 0 0 12px 0; color: white; border: none;">📊 报告摘要</h2>
   <p style="margin: 0; font-size: 16px; line-height: 1.6;">简要概述报告的主要发现和结论</p>
 </div>
@@ -59,24 +64,24 @@ export const REPORT_GENERATION_PROMPT = `
 
 5. **重要提示/警告**
 \`\`\`html
-<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<div style="background: #f4f4f5; border-left: 4px solid #52525B; padding: 16px; border-radius: 8px; margin: 16px 0;">
   <p style="margin: 0; color: #92400e; font-weight: 500;">⚠️ 重要提示内容</p>
 </div>
 \`\`\`
 
 6. **状态徽章**
 \`\`\`html
-<span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #d1fae5; color: #065f46;">正常</span>
-<span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #fef3c7; color: #92400e;">警告</span>
+<span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #ecfdf5; color: #065f46;">正常</span>
+<span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #f4f4f5; color: #92400e;">警告</span>
 <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #fee2e2; color: #991b1b;">异常</span>
 \`\`\`
 
 7. **数据卡片**
 \`\`\`html
-<div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #10b981; margin: 16px 0;">
-  <h4 style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">指标名称</h4>
-  <p style="margin: 0; font-size: 28px; font-weight: bold; color: #10b981;">数值</p>
-  <p style="margin: 8px 0 0 0; font-size: 12px; color: #6b7280;">说明文字</p>
+<div style="background: #fafafa; padding: 16px; border-radius: 8px; border-left: 4px solid #059669; margin: 16px 0;">
+  <h4 style="margin: 0 0 8px 0; color: #71717A; font-size: 14px;">指标名称</h4>
+  <p style="margin: 0; font-size: 28px; font-weight: bold; color: #059669;">数值</p>
+  <p style="margin: 8px 0 0 0; font-size: 12px; color: #71717A;">说明文字</p>
 </div>
 \`\`\`
 
@@ -87,16 +92,16 @@ export const REPORT_GENERATION_PROMPT = `
 
 \`\`\`
 [REPORT:今日环境监测报告]
-<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+<div style="background: linear-gradient(135deg, #059669 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
   <h2 style="margin: 0 0 12px 0; color: white; border: none;">📊 报告摘要</h2>
   <p style="margin: 0; font-size: 16px; line-height: 1.6;">今日温室环境整体良好，温度、湿度均在适宜范围内。发现1处需要关注的问题。</p>
 </div>
 
 <h2>🌡️ 温度分析</h2>
-<div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 16px 0;">
-  <h4 style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">平均温度</h4>
-  <p style="margin: 0; font-size: 28px; font-weight: bold; color: #f59e0b;">24.5°C</p>
-  <p style="margin: 8px 0 0 0; font-size: 12px; color: #6b7280;">适宜范围: 18-28°C</p>
+<div style="background: #fafafa; padding: 16px; border-radius: 8px; border-left: 4px solid #52525B; margin: 16px 0;">
+  <h4 style="margin: 0 0 8px 0; color: #71717A; font-size: 14px;">平均温度</h4>
+  <p style="margin: 0; font-size: 28px; font-weight: bold; color: #52525B;">24.5°C</p>
+  <p style="margin: 8px 0 0 0; font-size: 12px; color: #71717A;">适宜范围: 18-28°C</p>
 </div>
 
 <table>
@@ -110,13 +115,13 @@ export const REPORT_GENERATION_PROMPT = `
     <td>00:00-06:00</td>
     <td>22°C</td>
     <td>23°C</td>
-    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #d1fae5; color: #065f46;">正常</span></td>
+    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #ecfdf5; color: #065f46;">正常</span></td>
   </tr>
   <tr>
     <td>06:00-12:00</td>
     <td>23°C</td>
     <td>26°C</td>
-    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #d1fae5; color: #065f46;">正常</span></td>
+    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #ecfdf5; color: #065f46;">正常</span></td>
   </tr>
 </table>
 
@@ -130,7 +135,7 @@ export const REPORT_GENERATION_PROMPT = `
   <li>保持当前湿度水平</li>
 </ul>
 
-<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<div style="background: #f4f4f5; border-left: 4px solid #52525B; padding: 16px; border-radius: 8px; margin: 16px 0;">
   <p style="margin: 0; color: #92400e; font-weight: 500;">⚠️ 明天预计有强降温，请提前做好保温措施！</p>
 </div>
 [/REPORT]
@@ -141,7 +146,7 @@ export const REPORT_GENERATION_PROMPT = `
 
 \`\`\`
 [REPORT:一周数据趋势分析报告]
-<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+<div style="background: linear-gradient(135deg, #059669 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
   <h2 style="margin: 0 0 12px 0; color: white; border: none;">📊 报告摘要</h2>
   <p style="margin: 0; font-size: 16px; line-height: 1.6;">过去一周环境数据整体稳定，温度波动在±2°C范围内，湿度控制良好。</p>
 </div>
@@ -162,7 +167,7 @@ export const REPORT_GENERATION_PROMPT = `
     <td>22°C</td>
     <td>27°C</td>
     <td>1.2</td>
-    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #d1fae5; color: #065f46;">优秀</span></td>
+    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #ecfdf5; color: #065f46;">优秀</span></td>
   </tr>
   <tr>
     <td>湿度</td>
@@ -170,7 +175,7 @@ export const REPORT_GENERATION_PROMPT = `
     <td>65%</td>
     <td>75%</td>
     <td>2.8</td>
-    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #d1fae5; color: #065f46;">良好</span></td>
+    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #ecfdf5; color: #065f46;">良好</span></td>
   </tr>
 </table>
 
@@ -188,7 +193,7 @@ export const REPORT_GENERATION_PROMPT = `
 
 \`\`\`
 [REPORT:设备异常诊断报告]
-<div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+<div style="background: linear-gradient(135deg, #DC2626 0%, #dc2626 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
   <h2 style="margin: 0 0 12px 0; color: white; border: none;">⚠️ 异常警报</h2>
   <p style="margin: 0; font-size: 16px; line-height: 1.6;">检测到温度传感器异常，可能影响温度控制精度。</p>
 </div>
@@ -213,7 +218,7 @@ export const REPORT_GENERATION_PROMPT = `
   </tr>
   <tr>
     <td>严重程度</td>
-    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #fef3c7; color: #92400e;">中等</span></td>
+    <td><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #f4f4f5; color: #92400e;">中等</span></td>
   </tr>
 </table>
 
@@ -225,7 +230,7 @@ export const REPORT_GENERATION_PROMPT = `
   <li>联系技术支持: 400-xxx-xxxx</li>
 </ol>
 
-<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<div style="background: #f4f4f5; border-left: 4px solid #52525B; padding: 16px; border-radius: 8px; margin: 16px 0;">
   <p style="margin: 0; color: #92400e; font-weight: 500;">⚠️ 建议在2小时内处理，避免影响温度控制效果。</p>
 </div>
 [/REPORT]

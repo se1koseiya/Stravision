@@ -106,6 +106,62 @@ const DESKTOP_ENV = {
   STRAVISION_LOCAL_MODE: '1',
 };
 
+/* ------------------------------------------------------------------ */
+/* FFmpeg（RTMP 摄像头预览 / AI 抓帧依赖）                              */
+/* ------------------------------------------------------------------ */
+
+const FFMPEG_BIN = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+const FFMPEG_PLATFORM_KEY = `${process.platform}-${process.arch}`;
+
+/**
+ * FFmpeg 产物根目录。
+ * - 打包后：resources/ffmpeg（electron-builder extraResources，asar 外，可直接 spawn）
+ * - 开发态：仓库 .cache/ffmpeg（scripts/desktop/fetch-ffmpeg.mjs 下载）
+ */
+function getFfmpegRoot() {
+  if (!isDev) {
+    // process.resourcesPath 只在 Electron 运行时存在；异常环境下退化到应用目录，避免抛错
+    const resourcesPath = process.resourcesPath || path.join(__dirname, '..', '..');
+    return path.join(resourcesPath, 'ffmpeg');
+  }
+  return path.join(__dirname, '..', '..', '.cache', 'ffmpeg');
+}
+
+/**
+ * 定位可用的 ffmpeg 可执行文件；找不到返回 null。
+ * 服务端侧的 lib/media/ffmpeg.ts 也会自行探测，这里提前算好并通过环境变量注入，
+ * 让子进程走「显式路径」这条最短路径，同时把目录塞进 PATH 供其它工具复用。
+ */
+function getFfmpegPath() {
+  const candidates = [
+    process.env.STRAVISION_FFMPEG_PATH,
+    path.join(getFfmpegRoot(), FFMPEG_PLATFORM_KEY, FFMPEG_BIN),
+    path.join(getFfmpegRoot(), FFMPEG_BIN),
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+/** 注入给 Next / ws-server 子进程的 FFmpeg 相关环境变量 */
+function getFfmpegEnv() {
+  const binPath = getFfmpegPath();
+  if (!binPath) return {};
+  const dir = path.dirname(binPath);
+  const prevPath = process.env.PATH || '';
+  return {
+    STRAVISION_FFMPEG_PATH: binPath,
+    STRAVISION_FFMPEG_DIR: dir,
+    PATH: prevPath ? `${dir}${path.delimiter}${prevPath}` : dir,
+  };
+}
+
 /**
  * standalone 的服务入口是否存在。
  * 开发模式下若未先执行桌面构建，给出明确指引而不是抛出晦涩错误。
@@ -132,4 +188,7 @@ module.exports = {
   buildDatabaseUrl,
   DESKTOP_ENV,
   checkServerBuild,
+  getFfmpegRoot,
+  getFfmpegPath,
+  getFfmpegEnv,
 };

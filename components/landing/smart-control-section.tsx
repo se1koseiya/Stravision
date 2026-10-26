@@ -16,7 +16,7 @@ export function SmartControlSection() {
 
   return (
     <section ref={containerRef} className="py-32 px-4 relative z-10 overflow-hidden">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         
         {/* Text Content */}
         <motion.div 
@@ -27,7 +27,7 @@ export function SmartControlSection() {
           
           <h2 className="text-4xl md:text-5xl font-bold leading-tight">
             把农场交给 AI，<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-emerald-400">
               让种植更省心
             </span>
           </h2>
@@ -47,7 +47,7 @@ export function SmartControlSection() {
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3">
                 <IconCheckOne className="w-5 h-5 text-green-500" />
-                <span className="text-gray-300">{item}</span>
+                <span className="text-zinc-300">{item}</span>
               </div>
             ))}
           </div>
@@ -57,10 +57,10 @@ export function SmartControlSection() {
         <div className="relative">
           <motion.div 
             style={{ y }}
-            className="relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-3xl p-8 shadow-2xl"
+            className="relative bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-8 shadow-lg"
           >
             {/* Simulation Header */}
-            <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+            <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
               <span className="text-sm text-muted-foreground font-mono">AI_CORE_STATUS</span>
               <span className="flex items-center gap-2 text-xs text-green-400">
                 <span className="relative flex h-2 w-2">
@@ -74,13 +74,13 @@ export function SmartControlSection() {
             {/* Metrics Simulation */}
             <div className="space-y-6">
               {[
-                { label: "温度 (Temperature)", icon: IconWind, color: "text-blue-400", bg: "bg-blue-500" },
+                { label: "温度 (Temperature)", icon: IconWind, color: "text-emerald-400", bg: "bg-emerald-500" },
                 { label: "湿度 (Humidity)", icon: IconWater, color: "text-cyan-400", bg: "bg-cyan-500" },
                 { label: "光照 (Light)", icon: IconSun, color: "text-yellow-400", bg: "bg-yellow-500" },
               ].map((metric, i) => (
                 <div key={i} className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="flex items-center gap-2 text-gray-300">
+                    <span className="flex items-center gap-2 text-zinc-300">
                       <metric.icon className={`w-4 h-4 ${metric.color}`} />
                       {metric.label}
                     </span>
@@ -114,7 +114,7 @@ export function SmartControlSection() {
           
           {/* Decorative Elements */}
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
       </div>
     </section>

@@ -16,11 +16,11 @@ import { motion } from "framer-motion"
  *   - 纯白底 + 左下柠檬黄 / 右上薄荷绿两处柔光斑
  *   - 左上角品牌（/logo.png + 莓界）
  *   - 居中 400px 圆角卡：顶部美术图区（浅绿底 h-44）+ 白色弧形收边
- *   - 卡内：标题（AlimamaShuHeiTi 22px）/ 副标题（13px #999）/ children
+ *   - 卡内：标题（继承全站强调字体栈 22px）/ 副标题（13px #999）/ children
  *
- * 约定：children 里的表单控件统一用 `h-12 rounded-[10px] border-[#e5e5e5]`
- * 细边框（聚焦 `ring-[#4ED18F]/60`）、提交钮 `h-12 rounded-[10px] bg-[#111]`、
- * 链接色 `text-[#009456]`。改外壳或改这套控件语言时，两页会同时生效。
+ * 约定：children 里的表单控件统一用 `h-12 rounded-[10px] border-[#e4e4e7]`
+ * 细边框（聚焦 `ring-[#059669]/60`）、提交钮 `h-12 rounded-[10px] bg-[#111]`、
+ * 链接色 `text-[#059669]`。改外壳或改这套控件语言时，两页会同时生效。
  */
 
 /** 默认顶部美术（与登录页一致） */
@@ -68,8 +68,8 @@ export function AuthCardShell({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="" className="size-8 rounded-[10px] object-cover" />
         <span
-          className="text-[17px] font-extrabold tracking-tight text-[#222]"
-          style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}
+          className="text-[16px] font-extrabold tracking-tight text-[#222]"
+          style={{ fontFamily: "var(--font-ui-strong)" }}
         >
           莓界
         </span>
@@ -102,8 +102,8 @@ export function AuthCardShell({
 
           <div className="px-7 pb-7 pt-4">
             <h1
-              className="text-[22px] font-bold leading-tight text-[#1a1a1a]"
-              style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}
+              className="text-[20px] font-bold leading-tight text-[#1a1a1a]"
+              style={{ fontFamily: "var(--font-ui-strong)" }}
             >
               {title}
             </h1>

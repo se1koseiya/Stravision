@@ -44,7 +44,7 @@ export function Footer() {
     <footer ref={ref} className="relative bg-[#08080A] text-white overflow-hidden">
       {/* 顶部章节标记（克制版）*/}
       <div className="pt-32">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-10 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="font-mono text-[11px] tracking-[0.25em] text-white/40 uppercase">
               06 / 邀请
@@ -66,16 +66,16 @@ export function Footer() {
         className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
       >
         <div
-          className="w-[100vw] h-[100vw] max-w-[1200px] max-h-[1200px]"
+          className="w-[100vw] h-[100vw] max-w-[1400px] max-h-[1200px]"
           style={{
             background:
-              "radial-gradient(circle, rgba(22,119,255,0.14) 0%, transparent 60%)",
+              "radial-gradient(circle, rgba(0,148,86,0.14) 0%, transparent 60%)",
           }}
         />
       </motion.div>
 
       {/* 主 CTA 区 */}
-      <div className="relative z-10 max-w-[1600px] mx-auto px-6 lg:px-10 pt-24 sm:pt-32 pb-20">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-10 pt-24 sm:pt-32 pb-20">
         {/* 引导小标 */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -84,8 +84,8 @@ export function Footer() {
           transition={{ duration: 0.6 }}
           className="flex items-center gap-4 mb-10"
         >
-          <span className="block w-1.5 h-1.5 bg-[#1677ff]" />
-          <span className="font-mono text-[12px] tracking-[0.3em] text-[#1677ff] uppercase">
+          <span className="block w-1.5 h-1.5 bg-[#059669]" />
+          <span className="font-mono text-[12px] tracking-[0.3em] text-[#059669] uppercase">
             — 开始
           </span>
           <span className="flex-1 h-px bg-white/10 max-w-[200px]" />
@@ -141,12 +141,12 @@ export function Footer() {
         >
           <MagneticButton
             href="/dashboard"
-            className="group inline-flex items-center bg-white text-black px-8 py-4 text-[14px] tracking-[0.18em] uppercase transition-colors duration-300 hover:bg-[#1677ff] hover:text-white"
+            className="group inline-flex items-center bg-white text-black px-8 py-4 text-[14px] tracking-[0.18em] uppercase transition-colors duration-300 hover:bg-[#059669] hover:text-white"
           >
             进入莓界
             <IconArrowRightUp
               className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
-              strokeWidth={1.75}
+              strokeWidth={2}
             />
           </MagneticButton>
           <Link
@@ -186,7 +186,7 @@ export function Footer() {
                     data-cursor="hover"
                     className="w-9 h-9 border border-white/15 hover:border-white/40 hover:bg-white/5 flex items-center justify-center text-white/50 hover:text-white transition-all"
                   >
-                    <s.icon className="w-4 h-4" strokeWidth={1.75} />
+                    <s.icon className="w-4 h-4" strokeWidth={2} />
                   </a>
                 ))}
               </div>
@@ -206,7 +206,7 @@ export function Footer() {
                 >
                   <IconArrowRightUp
                     className="w-3 h-3 text-white/20 opacity-0 -translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"
-                    strokeWidth={1.75}
+                    strokeWidth={2}
                   />
                   {l.label}
                 </Link>
@@ -245,7 +245,7 @@ export function Footer() {
               <motion.span
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="block w-1.5 h-1.5 bg-[#1677ff]"
+                className="block w-1.5 h-1.5 bg-[#059669]"
               />
               系统运行正常
             </span>
@@ -271,7 +271,7 @@ function FooterTerm({ children }: { children: React.ReactNode }) {
 function FooterSep() {
   return (
     <span className="inline-flex items-center px-8">
-      <IconPlus className="w-6 h-6 text-[#1677ff]/40" strokeWidth={1.5} />
+      <IconPlus className="w-6 h-6 text-[#059669]/40" strokeWidth={2} />
     </span>
   );
 }

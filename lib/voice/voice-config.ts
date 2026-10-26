@@ -20,13 +20,7 @@ import { z } from "zod";
 export const VoiceArchitectureSchema = z.enum(["omni"]);
 export type VoiceArchitecture = z.infer<typeof VoiceArchitectureSchema>;
 
-/**
- * ASR 模式
- * - batch: 批量识别（录音→上传→HTTP 识别），延迟高但兼容所有 providerType
- * - realtime: 实时流式识别（WebSocket 边说边出字），低延迟，仅 dashscope providerType 支持
- */
-export const AsrModeSchema = z.enum(["batch", "realtime"]);
-export type AsrMode = z.infer<typeof AsrModeSchema>;
+/** ASR 模式已随纯 Omni 架构废弃（ASR+LLM+TTS 一体化，不再有独立识别阶段） */
 
 export const VadConfigSchema = z.object({
   /** 静音判定阈值（RMS 能量 0~1），低于该值视为安静 */
@@ -47,10 +41,10 @@ export type VadConfig = z.infer<typeof VadConfigSchema>;
 export const VoiceConfigSchema = z.object({
   /** 语音架构（默认纯 Omni 一体化低延迟） */
   architecture: VoiceArchitectureSchema.default("omni"),
-  /** ASR 模式：realtime=实时WebSocket流式(默认，低延迟)，batch=批量HTTP(降级) */
-  asrMode: AsrModeSchema.default("realtime"),
   /** TTS 音色（Omni 音色，默认 Tina） */
   voice: z.string().default("Tina"),
+  /** Omni 实时模型名（后端 /api/voice/config 下发，默认 qwen3-omni-flash） */
+  model: z.string().default("qwen3-omni-flash"),
   /** ASR 语言 */
   language: z.string().default("zh-CN"),
   /** ASR 方言（auto 表示自动） */
@@ -109,13 +103,12 @@ export async function fetchBackendVoiceConfig(): Promise<Partial<VoiceConfig>> {
       if (data.architecture === "omni") {
         out.architecture = data.architecture;
       }
-      // ASR 模式：batch=批量HTTP，realtime=实时WebSocket流式（边说边出字）
-      if (data.asrMode === "batch" || data.asrMode === "realtime") {
-        out.asrMode = data.asrMode;
-      }
-      // 纯 Omni 架构：音色取 omni.voice
+      // 纯 Omni 架构：音色取 omni.voice；Omni 模型名取 omni.model（服务端 env 注入）
       if (data.omni?.voice) {
         out.voice = data.omni.voice;
+      }
+      if (data.omni?.model) {
+        out.model = data.omni.model;
       }
       if (data.asr?.defaultLanguage) out.language = data.asr.defaultLanguage;
       if (data.asr?.defaultDialect) out.dialect = data.asr.defaultDialect;
@@ -179,7 +172,6 @@ function safeParse(raw: unknown): VoiceConfig {
   if (parsed.success) return parsed.data;
   // 部分字段非法时仍尽量保留合法字段
   const fallback = VoiceConfigSchema.parse({});
-  if (parsed.success) return parsed.data;
   return fallback;
 }
 
@@ -198,7 +190,7 @@ export function getVoiceConfig(): VoiceConfig {
     const parsed = safeParse(JSON.parse(saved));
     // 迁移旧版配置（configVersion < 9）：默认切到纯 Omni 架构 + 实时 ASR + Tina 音色
     if (!parsed.configVersion || parsed.configVersion < 9) {
-      const migrated = { ...parsed, configVersion: 9, architecture: "omni", asrMode: "realtime" };
+      const migrated = { ...parsed, configVersion: 9, architecture: "omni" } as Record<string, unknown>;
       // Cherry 是旧 TTS 音色，Omni 不支持，迁移到 Tina
       if (parsed.voice === "Cherry" || parsed.voice === "Mochi" || parsed.voice === "Chelsie") {
         migrated.voice = "Tina";

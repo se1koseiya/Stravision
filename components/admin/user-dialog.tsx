@@ -1,25 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import {
-  Modal,
-  Form,
-  Input,
-  Select,
-  Checkbox,
-  Button,
-  Space,
-  Upload,
-  message,
-  Typography,
-  Divider,
-  Row,
-  Col,
-  InputNumber
-} from "antd"
+import { Modal, Form, Input, Select, Checkbox, Button, Space, Upload, Typography, Divider, Row, Col, InputNumber } from "antd"
+
 import type { UploadProps } from "antd"
 import { UserPublic } from "@/lib/db/user-service"
-import { toast } from "sonner"
+// 头像上传的校验/失败全部是「当前对话框内的操作反馈」→ 一律走右下角轻提示（toast）。
+// 原先头像那块用的是 antd message（顶部居中），与同文件提交结果的 toast 形成两套视觉，
+// 同一个对话框里校验在顶部、成功在角落 —— 这就是要收口的那类混乱。
+import { toast } from "@/lib/ui/feedback"
 import { IconPlus, IconUpload } from "@/components/icon";
 
 interface UserDialogProps {
@@ -136,12 +125,12 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
     async beforeUpload(file) {
       const isImage = file.type.startsWith("image/")
       if (!isImage) {
-        message.error("只能上传图片文件")
+        toast.error("只能上传图片文件")
         return false
       }
       const isLt2M = file.size / 1024 / 1024 < 2
       if (!isLt2M) {
-        message.error("图片必须小于 2MB")
+        toast.error("图片必须小于 2MB")
         return false
       }
       const formData = new FormData()
@@ -151,12 +140,12 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
         const data = await res.json()
         if (data.success) {
           form.setFieldValue("avatar_url", data.url)
-          message.success("头像上传成功")
+          toast.success("头像上传成功")
         } else {
-          message.error(data.error || "上传失败")
+          toast.error(data.error || "上传失败")
         }
       } catch {
-        message.error("上传失败，请重试")
+        toast.error("上传失败，请重试")
       }
       return false
     }
@@ -275,7 +264,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
         {user && (
           <div
             style={{
-              background: "#F7F8FA",
+              background: "#FAFAFA",
               borderRadius: 6,
               padding: "8px 12px",
               marginBottom: 8,

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tag, Typography, Descriptions, Tooltip } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { IconBox, IconChartLine, IconCheck, IconClose, IconCopy, IconCpu, IconDownload, IconGlobe, IconInfo, IconLayoutTwo, IconLeaf, IconLightning, IconLinkOut, IconSeedling, IconShield, IconStar, IconTerminal } from "@/components/icon";
@@ -113,7 +113,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
     }
     return (
       <div
-        className={cn(className, "bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0")}
+        className={cn(className, "bg-white border border-zinc-200 overflow-hidden flex items-center justify-center shrink-0")}
         style={{ borderRadius: BERRY_THEME.radius.md, width: size, height: size }}
       >
         <img
@@ -157,7 +157,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
             animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 8, scale: visible ? 1 : 0.98 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.18 }}
-            className="relative w-full max-w-3xl h-full md:h-[80vh] bg-white flex flex-col shadow-2xl border border-gray-200/80 font-sans overflow-hidden"
+            className="relative w-full max-w-3xl h-full md:h-[80vh] bg-white flex flex-col shadow-lg border border-zinc-200/80 font-sans overflow-hidden"
             style={{ borderRadius: BERRY_THEME.radius.lg }}
           >
             {/* 关闭按钮 */}
@@ -209,7 +209,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                     <AppIcon
                       icon={server.icon}
                       name={server.displayName}
-                      className="ring-4 ring-white shadow-md"
+                      className="ring-4 ring-white shadow-sm"
                       size={56}
                     />
                     <div className="flex-1 min-w-0 pt-0.5">
@@ -228,25 +228,25 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                           </Tag>
                         )}
                       </div>
-                      <h2 className="text-[20px] font-semibold leading-tight text-gray-900 mb-1.5 tracking-tight">
+                      <h2 className="text-[20px] font-semibold leading-tight text-zinc-900 mb-1.5 tracking-tight">
                         {server.displayName}
                       </h2>
-                      <div className="flex items-center gap-3 text-[12px] text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-3 text-[12px] text-zinc-500 flex-wrap">
                         <span className="flex items-center gap-1">
                           <IconBox size={12} />
                           {server.provider}
                         </span>
-                        <span className="w-px h-3 bg-gray-200" />
+                        <span className="w-px h-3 bg-zinc-200" />
                         <span className="flex items-center gap-1">
                           <IconChartLine size={12} />
                           {server.popularity.toLocaleString()} 安装
                         </span>
-                        <span className="w-px h-3 bg-gray-200" />
+                        <span className="w-px h-3 bg-zinc-200" />
                         <span className="flex items-center gap-1">
                           <IconCpu size={12} />
                           模型原生支持
                         </span>
-                        <span className="w-px h-3 bg-gray-200" />
+                        <span className="w-px h-3 bg-zinc-200" />
                         <span className="flex items-center gap-1">
                           <IconStar size={12} className="text-amber-500 fill-amber-500" />
                           4.8
@@ -257,8 +257,8 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                 </div>
 
                 {/* 描述 */}
-                <div className="px-6 py-4 border-t border-b border-gray-200">
-                  <Paragraph className="!mb-0 !text-[13px] !leading-relaxed text-gray-700">
+                <div className="px-6 py-4 border-t border-b border-zinc-200">
+                  <Paragraph className="!mb-0 !text-[13px] !leading-relaxed text-zinc-700">
                     {server.description}
                   </Paragraph>
                 </div>
@@ -266,12 +266,12 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                 {/* 主体两栏布局 */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
                   {/* 左：核心功能 + 配置 + 命令 */}
-                  <div className="lg:col-span-2 lg:border-r border-gray-200">
+                  <div className="lg:col-span-2 lg:border-r border-zinc-200">
                     {/* 核心功能 */}
-                    <div className="px-6 py-4 border-b border-gray-200">
+                    <div className="px-6 py-4 border-b border-zinc-200">
                       <div className="flex items-center gap-1.5 mb-3">
-                        <IconLayoutTwo size={13} className="text-gray-500" />
-                        <Text className="!text-[13px] !font-semibold text-gray-900">核心功能</Text>
+                        <IconLayoutTwo size={13} className="text-zinc-500" />
+                        <Text className="!text-[13px] !font-semibold text-zinc-900">核心功能</Text>
                         <Tag className="!m-0" color="default">
                           {server.features.length}
                         </Tag>
@@ -280,13 +280,13 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                         {server.features.map((feature, i) => (
                           <div
                             key={i}
-                            className="flex items-center gap-2.5 px-3 py-2 border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 border border-zinc-200 hover:border-emerald-400 hover:bg-emerald-50/40 transition-colors"
                             style={{ borderRadius: 6 }}
                           >
-                            <div className="size-6 flex items-center justify-center shrink-0 bg-blue-50" style={{ borderRadius: 4 }}>
-                              <IconCheck size={12} className="text-blue-600" strokeWidth={3} />
+                            <div className="size-6 flex items-center justify-center shrink-0 bg-emerald-50" style={{ borderRadius: 4 }}>
+                              <IconCheck size={12} className="text-emerald-600" strokeWidth={3} />
                             </div>
-                            <span className="text-[12px] font-medium text-gray-700">{feature}</span>
+                            <span className="text-[12px] font-medium text-zinc-700">{feature}</span>
                           </div>
                         ))}
                       </div>
@@ -294,11 +294,11 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
 
                     {/* 配置 */}
                     {server.requiresApiKey && server.envVars && (
-                      <div className="px-6 py-4 border-b border-gray-200">
+                      <div className="px-6 py-4 border-b border-zinc-200">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-1.5">
-                            <IconShield size={13} className="text-gray-500" />
-                            <Text className="!text-[13px] !font-semibold text-gray-900">开发配置</Text>
+                            <IconShield size={13} className="text-zinc-500" />
+                            <Text className="!text-[13px] !font-semibold text-zinc-900">开发配置</Text>
                             <Tag color="warning" className="!m-0">必需</Tag>
                           </div>
                           {server.apiKeyUrl && (
@@ -306,7 +306,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                               href={server.apiKeyUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[12px] font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                              className="text-[12px] font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
                             >
                               获取密钥 <IconLinkOut size={11} />
                             </a>
@@ -315,7 +315,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                         <div className="space-y-2.5">
                           {Object.entries(server.envVars).map(([key, defaultValue]) => (
                             <div key={key} className="space-y-1.5">
-                              <Label htmlFor={key} className="text-[12px] font-medium text-gray-700">
+                              <Label htmlFor={key} className="text-[12px] font-medium text-zinc-700">
                                 {key}
                               </Label>
                               <Input
@@ -324,7 +324,7 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                                 placeholder={defaultValue || `请输入 ${key}`}
                                 value={envConfig[key] || ''}
                                 onChange={(e) => setEnvConfig(prev => ({ ...prev, [key]: e.target.value }))}
-                                className="h-8 px-2.5 bg-white border-gray-200 font-mono text-[12px] focus:ring-1 focus:border-blue-400 focus:ring-blue-100"
+                                className="h-8 px-2.5 bg-white border-zinc-200 font-mono text-[12px] focus:ring-1 focus:border-emerald-400 focus:ring-emerald-100"
                                 style={{ borderRadius: 4 }}
                               />
                             </div>
@@ -343,24 +343,24 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                     <div className="px-6 py-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1.5">
-                          <IconTerminal size={13} className="text-gray-500" />
-                          <Text className="!text-[13px] !font-semibold text-gray-900">本地运行</Text>
+                          <IconTerminal size={13} className="text-zinc-500" />
+                          <Text className="!text-[13px] !font-semibold text-zinc-900">本地运行</Text>
                         </div>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={handleCopyCommand}
-                          className="h-7 px-2 text-[11px] text-gray-500 hover:text-blue-600"
+                          className="h-7 px-2 text-[11px] text-zinc-500 hover:text-emerald-600"
                         >
                           {copied ? <IconCheck size={12} className="mr-1" /> : <IconCopy size={12} className="mr-1" />}
                           {copied ? "已复制" : "复制"}
                         </Button>
                       </div>
                       <pre
-                        className="text-[12px] font-mono text-gray-300 bg-gray-900 p-3 overflow-x-auto leading-relaxed"
+                        className="text-[12px] font-mono text-zinc-300 bg-zinc-900 p-3 overflow-x-auto leading-relaxed"
                         style={{ borderRadius: 6 }}
                       >
-                        <span className="text-gray-500 select-none">$ </span>
+                        <span className="text-zinc-500 select-none">$ </span>
                         {server.command} {server.args.join(' ')}
                       </pre>
                     </div>
@@ -368,14 +368,14 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
 
                   {/* 右：元信息 + 提示卡片 */}
                   <div className="flex flex-col">
-                    <div className="px-5 py-4 border-b border-gray-200">
-                      <Text className="!text-[13px] !font-semibold text-gray-900 mb-3 block">工具信息</Text>
+                    <div className="px-5 py-4 border-b border-zinc-200">
+                      <Text className="!text-[13px] !font-semibold text-zinc-900 mb-3 block">工具信息</Text>
                       <Descriptions
                         column={1}
                         size="small"
                         colon={false}
-                        labelStyle={{ color: '#6b7280', fontSize: 12, padding: '4px 0' }}
-                        contentStyle={{ fontSize: 12, fontWeight: 500, color: '#111827', padding: '4px 0' }}
+                        labelStyle={{ color: '#71717A', fontSize: 12, padding: '4px 0' }}
+                        contentStyle={{ fontSize: 12, fontWeight: 500, color: '#18181B', padding: '4px 0' }}
                       >
                         <Descriptions.Item label="开发者">{server.provider}</Descriptions.Item>
                         <Descriptions.Item label="分类">{server.category}</Descriptions.Item>
@@ -386,22 +386,22 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                     </div>
 
                     <div className="px-5 py-4 flex-1 flex flex-col gap-3">
-                      <div className="p-3 bg-blue-50/60 border border-blue-100" style={{ borderRadius: 6 }}>
-                        <div className="flex items-center gap-1.5 text-blue-700 mb-1.5">
+                      <div className="p-3 bg-emerald-50/60 border border-emerald-100" style={{ borderRadius: 6 }}>
+                        <div className="flex items-center gap-1.5 text-emerald-700 mb-1.5">
                           <IconShield size={12} />
                           <span className="text-[12px] font-semibold">安全说明</span>
                         </div>
-                        <p className="text-[11px] leading-relaxed text-gray-600 m-0">
+                        <p className="text-[11px] leading-relaxed text-zinc-600 m-0">
                           此工具在沙箱环境中运行，仅在您授权时访问特定 API 或本地服务。
                         </p>
                       </div>
 
-                      <div className="p-3 bg-gray-50 border border-gray-200" style={{ borderRadius: 6 }}>
-                        <div className="flex items-center gap-1.5 text-gray-700 mb-1.5">
+                      <div className="p-3 bg-zinc-50 border border-zinc-200" style={{ borderRadius: 6 }}>
+                        <div className="flex items-center gap-1.5 text-zinc-700 mb-1.5">
                           <IconLightning size={12} />
                           <span className="text-[12px] font-semibold">使用提示</span>
                         </div>
-                        <p className="text-[11px] leading-relaxed text-gray-600 m-0">
+                        <p className="text-[11px] leading-relaxed text-zinc-600 m-0">
                           安装后可在对话中直接调用，如"查询今日草莓大棚环境数据"。
                         </p>
                       </div>
@@ -413,10 +413,10 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
 
             {/* 底部操作栏：固定 + 圆角匹配 */}
             <div
-              className="px-6 py-3 border-t border-gray-200 bg-white flex items-center justify-between gap-3"
+              className="px-6 py-3 border-t border-zinc-200 bg-white flex items-center justify-between gap-3"
               style={{ borderBottomLeftRadius: BERRY_THEME.radius.lg, borderBottomRightRadius: BERRY_THEME.radius.lg }}
             >
-              <Text className="!text-[11px] !text-gray-400 flex items-center gap-1">
+              <Text className="!text-[11px] !text-zinc-400 flex items-center gap-1">
                 <IconGlobe size={11} />
                 Stravision MCP 协议保护
               </Text>
@@ -424,14 +424,14 @@ export function MCPServerDetailDialog({ server, open, onOpenChange, onInstall }:
                 <Button
                   variant="ghost"
                   onClick={() => onOpenChange(false)}
-                  className="h-9 px-4 text-[13px] text-gray-600 hover:text-gray-900"
+                  className="h-9 px-4 text-[13px] text-zinc-600 hover:text-zinc-900"
                 >
                   取消
                 </Button>
                 <Button
                   onClick={handleInstall}
                   disabled={isInstalling}
-                  className="h-9 px-5 text-[13px] font-medium !bg-blue-600 hover:!bg-blue-500 !text-white !border-blue-600 disabled:!bg-blue-300"
+                  className="h-9 px-5 text-[13px] font-medium !bg-emerald-600 hover:!bg-emerald-500 !text-white !border-emerald-600 disabled:!bg-emerald-300"
                   style={{ borderRadius: 6 }}
                 >
                   {isInstalling ? (

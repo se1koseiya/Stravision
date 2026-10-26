@@ -50,7 +50,7 @@ const ModuleBox = ({ icon, title, items, isActive = false }: { icon: any, title:
       {/* Items */}
       <div className="grid grid-cols-2 gap-y-2 gap-x-4 relative z-10">
         {items.map((item, i) => (
-          <div key={i} className="flex items-center gap-2 text-[10px] md:text-xs text-zinc-500 group-hover:text-zinc-300 font-mono transition-colors">
+          <div key={i} className="flex items-center gap-2 text-[11px] md:text-xs text-zinc-500 group-hover:text-zinc-300 font-mono transition-colors">
             <div className="w-1 h-1 rounded-full bg-primary/50" />
             {item}
           </div>
@@ -65,11 +65,11 @@ const ModuleBox = ({ icon, title, items, isActive = false }: { icon: any, title:
 
 const LayerSection = ({ title, icon, children, ipImage, ipPosition = "right" }: { title: string, icon: any, children: React.ReactNode, ipImage?: string, ipPosition?: "left" | "right" }) => {
     return (
-        <div className="relative border border-primary/10 rounded-3xl p-6 md:p-8 bg-zinc-900/20 backdrop-blur-sm">
+        <div className="relative border border-primary/10 rounded-2xl p-6 md:p-8 bg-zinc-900/20 backdrop-blur-sm">
             {/* Layer Label */}
             <div className="absolute -top-3 left-8 px-4 py-1 bg-[#050505] border border-primary/20 rounded-full flex items-center gap-2">
                 {icon}
-                <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold">
                     {title}
                 </span>
             </div>
@@ -140,7 +140,7 @@ export function LogicalArchitectureDiagram() {
                     <IconGlobe className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-zinc-300 group-hover:text-white">Web 门户端</span>
-                        <span className="text-[10px] text-zinc-600 font-mono">React / Next.js</span>
+                        <span className="text-[11px] text-zinc-600 font-mono">React / Next.js</span>
                     </div>
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -151,7 +151,7 @@ export function LogicalArchitectureDiagram() {
                     <IconPhone className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-zinc-300 group-hover:text-white">移动端 App</span>
-                        <span className="text-[10px] text-zinc-600 font-mono">iOS / Android / PWA</span>
+                        <span className="text-[11px] text-zinc-600 font-mono">iOS / Android / PWA</span>
                     </div>
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-75" />
@@ -162,7 +162,7 @@ export function LogicalArchitectureDiagram() {
                     <IconGridFour className="w-5 h-5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-zinc-300 group-hover:text-white">管理控制台</span>
-                        <span className="text-[10px] text-zinc-600 font-mono">System Management</span>
+                        <span className="text-[11px] text-zinc-600 font-mono">System Management</span>
                     </div>
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150" />
@@ -174,7 +174,7 @@ export function LogicalArchitectureDiagram() {
 
         {/* 2. Gateway Layer */}
         <div className="relative group">
-           <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+           <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
            <div className="relative p-1 rounded-2xl bg-gradient-to-r from-zinc-800 via-emerald-500/30 to-zinc-800">
                <div className="bg-[#050505] rounded-xl px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="flex items-center gap-4">
@@ -183,13 +183,13 @@ export function LogicalArchitectureDiagram() {
                      </div>
                      <div className="flex flex-col">
                         <span className="font-bold text-white font-jinbuti tracking-wide">API 网关</span>
-                        <span className="text-[10px] text-primary/60 font-mono uppercase tracking-widest">安全过滤 & 流量分发</span>
+                        <span className="text-[11px] text-primary/60 font-mono uppercase tracking-widest">安全过滤 & 流量分发</span>
                      </div>
                   </div>
                   
                   <div className="flex flex-wrap justify-center gap-2 md:gap-6">
                      {["SSL/TLS 卸载", "速率限制", "鉴权守卫", "负载均衡"].map((item, i) => (
-                         <span key={i} className="px-2 py-1 rounded text-[10px] font-mono text-zinc-500 bg-zinc-900 border border-zinc-800">
+                         <span key={i} className="px-2 py-1 rounded text-[11px] font-mono text-zinc-500 bg-zinc-900 border border-zinc-800">
                             {item}
                          </span>
                      ))}
@@ -250,7 +250,7 @@ export function LogicalArchitectureDiagram() {
               ].map((item, i) => (
                   <div key={i} className="flex flex-col items-center justify-center p-4 rounded-xl border border-zinc-800 bg-black/40 hover:bg-primary/5 hover:border-primary/20 transition-colors">
                       <span className="text-xs font-bold text-zinc-300">{item.title}</span>
-                      <span className="text-[10px] text-zinc-600 font-mono mt-1">{item.sub}</span>
+                      <span className="text-[11px] text-zinc-600 font-mono mt-1">{item.sub}</span>
                   </div>
               ))}
            </div>

@@ -19,6 +19,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { APP_VERSION_LABEL } from '@/lib/app-meta'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconBrain, IconChartLine, IconCloudStorage, IconComment, IconCpu, IconDatabaseNetwork, IconExchange, IconGlobe, IconIpad, IconLayers, IconLightning, IconLinkOut, IconLock, IconMagic, IconMonitor, IconPhone, IconRadio, IconRobot, IconSeedling, IconServer, IconShield, IconSun, IconThermometer, IconUnlock, IconVideo, IconWater, IconWifi } from "@/components/icon";
@@ -48,35 +49,35 @@ const layerColors: Record<LayerType, { bg: string; border: string; text: string;
     border: 'border-white/5', 
     text: 'text-zinc-400',
     glow: 'shadow-white/5',
-    accent: '#a855f7' // purple-500
+    accent: '#71717a' // purple-500
   },
   backend: { 
     bg: 'bg-zinc-950/40', 
     border: 'border-primary/20', 
     text: 'text-emerald-400',
     glow: 'shadow-emerald-500/10',
-    accent: '#10b981' // emerald-500
+    accent: '#059669' // emerald-500
   },
   data: { 
     bg: 'bg-zinc-950/40', 
     border: 'border-white/5', 
     text: 'text-zinc-400',
     glow: 'shadow-white/5',
-    accent: '#f59e0b' // amber-500
+    accent: '#52525B' // amber-500
   },
   external: { 
     bg: 'bg-zinc-950/40', 
     border: 'border-white/5', 
     text: 'text-zinc-400',
     glow: 'shadow-white/5',
-    accent: '#f43f5e' // rose-500
+    accent: '#71717a' // rose-500
   },
   device: { 
     bg: 'bg-zinc-950/40', 
     border: 'border-primary/20', 
     text: 'text-emerald-400',
     glow: 'shadow-emerald-500/10',
-    accent: '#10b981' // emerald-500
+    accent: '#059669' // emerald-500
   },
 }
 
@@ -95,7 +96,7 @@ const SystemNodeComponent = ({ data, selected }: NodeProps & { data: SystemNodeD
         "relative min-w-[200px] max-w-[240px] rounded-none border-l-2 backdrop-blur-xl transition-all duration-300",
         colors.border,
         selected && "ring-1 ring-white/20",
-        isHovered && `shadow-2xl ${colors.glow}`,
+        isHovered && `shadow-lg ${colors.glow}`,
         colors.bg
       )}
       style={{ borderLeftColor: colors.accent }}
@@ -134,7 +135,7 @@ const SystemNodeComponent = ({ data, selected }: NodeProps & { data: SystemNodeD
         {data.tech && data.tech.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-4">
             {data.tech.map((t, i) => (
-              <span key={i} className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest px-1 bg-white/5">
+              <span key={i} className="text-[11px] font-mono text-zinc-600 uppercase tracking-widest px-1 bg-white/5">
                 {t}
               </span>
             ))}
@@ -144,7 +145,7 @@ const SystemNodeComponent = ({ data, selected }: NodeProps & { data: SystemNodeD
         {data.status === 'active' && (
           <div className="absolute top-3 right-3">
             <div className={cn(
-              "size-1 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+              "size-1 rounded-full animate-pulse shadow-[0_0_8px_rgba(0,148,86,0.5)]",
               data.layer === 'backend' || data.layer === 'device' ? "bg-primary" : "bg-white/30"
             )} />
           </div>
@@ -163,7 +164,7 @@ const GroupNodeComponent = ({ data }: NodeProps & { data: { label: string; layer
       "bg-zinc-900/10 backdrop-blur-3xl group"
     )}>
       <div className="absolute -top-3 left-4 bg-[#050505] px-2 py-0.5 border border-white/10">
-        <div className={cn("text-[10px] font-mono font-bold uppercase tracking-[0.2em]", colors.text)}>
+        <div className={cn("text-[11px] font-mono font-bold uppercase tracking-[0.2em]", colors.text)}>
           {data.label}
         </div>
       </div>
@@ -480,12 +481,12 @@ const initialEdges: Edge[] = [
   { id: 'e-admin-gateway', source: 'admin-panel', target: 'api-gateway', animated: true, style: { stroke: 'rgba(255,255,255,0.3)', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.4)' } },
   
   // 网关到服务
-  { id: 'e-gateway-ai', source: 'api-gateway', target: 'ai-service', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
-  { id: 'e-gateway-device', source: 'api-gateway', target: 'device-service', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
-  { id: 'e-gateway-automation', source: 'api-gateway', target: 'automation-service', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
+  { id: 'e-gateway-ai', source: 'api-gateway', target: 'ai-service', animated: true, style: { stroke: '#059669', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
+  { id: 'e-gateway-device', source: 'api-gateway', target: 'device-service', animated: true, style: { stroke: '#059669', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
+  { id: 'e-gateway-automation', source: 'api-gateway', target: 'automation-service', animated: true, style: { stroke: '#059669', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
   
   // AI 到外部
-  { id: 'e-ai-llm', source: 'ai-service', target: 'llm-provider', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5, strokeDasharray: '6,4' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
+  { id: 'e-ai-llm', source: 'ai-service', target: 'llm-provider', animated: true, style: { stroke: '#059669', strokeWidth: 2.5, strokeDasharray: '6,4' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
   
   // 服务到数据
   { id: 'e-ai-db', source: 'ai-service', target: 'primary-db', sourceHandle: 'right', targetHandle: 'left', animated: false, style: { stroke: 'rgba(255,255,255,0.2)', strokeWidth: 2 } },
@@ -494,9 +495,9 @@ const initialEdges: Edge[] = [
   { id: 'e-automation-db', source: 'automation-service', target: 'primary-db', sourceHandle: 'right', targetHandle: 'left', animated: false, style: { stroke: 'rgba(255,255,255,0.2)', strokeWidth: 2 } },
   
   // MQTT 到设备
-  { id: 'e-mqtt-sensors', source: 'mqtt-broker', target: 'sensors', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
-  { id: 'e-mqtt-cameras', source: 'mqtt-broker', target: 'cameras', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
-  { id: 'e-mqtt-controllers', source: 'mqtt-broker', target: 'controllers', animated: true, style: { stroke: '#10b981', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
+  { id: 'e-mqtt-sensors', source: 'mqtt-broker', target: 'sensors', animated: true, style: { stroke: '#059669', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
+  { id: 'e-mqtt-cameras', source: 'mqtt-broker', target: 'cameras', animated: true, style: { stroke: '#059669', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
+  { id: 'e-mqtt-controllers', source: 'mqtt-broker', target: 'controllers', animated: true, style: { stroke: '#059669', strokeWidth: 2.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
 ]
 
 const minimapNodeColor = (node: Node) => {
@@ -504,12 +505,12 @@ const minimapNodeColor = (node: Node) => {
   const colorMap: Record<LayerType, string> = {
     frontend: '#3f3f46',
     gateway: '#3f3f46',
-    backend: '#10b981',
+    backend: '#059669',
     data: '#3f3f46',
     external: '#3f3f46',
-    device: '#10b981',
+    device: '#059669',
   }
-  return colorMap[layer] || '#6b7280'
+  return colorMap[layer] || '#71717A'
 }
 
 function SystemArchitectureDiagramInner() {
@@ -556,7 +557,7 @@ function SystemArchitectureDiagramInner() {
           variant="outline"
           size="sm"
           onClick={handleFitView}
-          className="bg-black/40 border-white/10 text-white/50 hover:bg-black hover:text-white rounded-none backdrop-blur-xl font-mono text-[10px] tracking-widest uppercase transition-all"
+          className="bg-black/40 border-white/10 text-white/50 hover:bg-black hover:text-white rounded-none backdrop-blur-xl font-mono text-[11px] tracking-widest uppercase transition-all"
         >
           <IconLayers className="w-3 h-3 mr-2" />
           全景视图
@@ -576,7 +577,7 @@ function SystemArchitectureDiagramInner() {
 export function SystemArchitectureDiagram() {
   return (
     <div className="w-full h-[850px] relative bg-[#050505] overflow-hidden group">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.03)_0%,transparent_70%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,148,86,0.03)_0%,transparent_70%)] pointer-events-none" />
       
       <div className="absolute top-8 left-8 z-20">
         <div className="space-y-1">
@@ -586,26 +587,26 @@ export function SystemArchitectureDiagram() {
               系统架构蓝图
             </h2>
           </div>
-          <p className="text-[10px] text-zinc-600 font-mono tracking-wider ml-11 uppercase opacity-60">
-            核心平台构架 v4.0.0
+          <p className="text-[11px] text-zinc-600 font-mono tracking-wider ml-11 uppercase opacity-60">
+            核心平台构架 {APP_VERSION_LABEL}
           </p>
         </div>
       </div>
 
       <div className="absolute bottom-8 left-8 z-20 hidden md:flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-          <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">核心正常运行</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(0,148,86,0.5)]" />
+          <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-widest">核心正常运行</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
-          <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">空闲节点</span>
+          <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-widest">空闲节点</span>
         </div>
       </div>
 
       <div className="absolute top-8 right-32 z-20 flex gap-4 opacity-40 group-hover:opacity-100 transition-opacity">
         {['表现层', '通信网关', '核心智能', '数据存储', '边缘终端'].map((l) => (
-          <span key={l} className="text-[8px] font-mono text-zinc-600 border border-white/5 px-2 py-0.5 uppercase tracking-widest">
+          <span key={l} className="text-[11px] font-mono text-zinc-600 border border-white/5 px-2 py-0.5 uppercase tracking-widest">
             {l}
           </span>
         ))}

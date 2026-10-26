@@ -67,14 +67,14 @@ export function AbstractMascot({ mood, onClick }: AbstractMascotProps) {
         <defs>
           <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" style={{ stopColor: "#E11D48", stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: "#BE185D", stopOpacity: 0.5 }} />
+            <stop offset="100%" style={{ stopColor: "#3F3F46", stopOpacity: 0.5 }} />
           </linearGradient>
         </defs>
 
         {/* Leaf (Abstract) */}
         <motion.path
           d="M200,50 C180,20 150,20 140,40 M200,50 C220,20 250,20 260,40 M200,50 C200,10 200,10 200,30"
-          stroke="#374151"
+          stroke="#3F3F46"
           strokeWidth="3"
           strokeLinecap="round"
           fill="none"

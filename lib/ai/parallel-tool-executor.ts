@@ -1,110 +1,116 @@
 /**
  * 并行工具执行器
- * 
- * 智能分析工具依赖关系，并行执行独立的工具调用
- * 预期性能提升：3个独立工具从12-15秒降低到4-6秒
+ *
+ * 预期性能提升：3 个独立工具从 12-15 秒降低到 4-6 秒。
+ *
+ * ── 2026-10-12 重写：依赖判定从「猜字符串」改为「显式资源元数据」 ──
+ *
+ * 旧实现的三个问题（详见 lib/ai/tool-capabilities.ts 文件头）：
+ *   1. `argsStr.includes(prevTool.name)` —— 把参数 JSON 串起来做子串匹配，假依赖 / 漏依赖并存；
+ *   2. `if (name.includes('analyze') || name.includes('diagnose')) → 依赖任意 search/scrape`
+ *      —— 硬编码的工具命名约定，新增工具即失效；
+ *   3. `canExecuteInParallel` 用名字白名单决定「强制并行」，完全忽略真实的资源冲突
+ *      （例：两个 `control_camera` 会被判为可并行 → 电机行程互相打断）。
+ *
+ * 新实现：**谁读写什么资源**登记在 `tool-capabilities.ts`，这里只做确定性的冲突推导。
+ * 串行条件只有两个 —— 资源冲突（写-写 / 写-读）与显式声明的 dependsOn。
  */
 
 import { AgentOrchestrator } from './agent-orchestrator/orchestrator';
 import { AgentContext, ToolCall } from './agent-orchestrator/types';
+import { hasResourceConflict, unsatisfiedDependencies } from './tool-capabilities';
 
-interface ToolDependency {
-  toolName: string;
-  dependsOn: string[]; // 依赖的工具名称列表
+/** 分批结果（导出以便单测与排障） */
+export interface BatchPlan {
+  /** 批次有序执行，批内并行 */
+  batches: ToolCall[][];
+  /** 工具被推迟到后续批次的原因（便于日志排查） */
+  notes: string[];
 }
 
 /**
- * 分析工具调用的依赖关系
- * 
+ * 将工具调用分组为可并行执行的批次（确定性推导，不依赖字符串启发式）。
+ *
  * 规则：
- * 1. 搜索工具通常是独立的
- * 2. 设备控制通常是独立的
- * 3. 如果工具B的参数引用了工具A的结果，则B依赖A
+ *   1. 资源冲突（写-写 / 写-读）的工具不能进同一批；
+ *   2. 显式声明的前置工具（dependsOn）必须先执行；
+ *   3. 保持模型给出的原始顺序 —— 冲突时后出现的那个被推到下一批
+ *      （模型通常按意图顺序输出 tool_calls，顺序本身就是弱语义）。
+ *
+ * 复杂度 O(n³) 上下界，但 n = 单次 tool_calls 数量（通常 ≤ 10），无关紧要。
  */
-function analyzeToolDependencies(toolCalls: ToolCall[]): Map<string, Set<string>> {
-  const dependencies = new Map<string, Set<string>>();
-
-  // 初始化依赖图
-  toolCalls.forEach(tc => {
-    dependencies.set(tc.id, new Set());
-  });
-
-  // 分析参数引用
-  for (let i = 0; i < toolCalls.length; i++) {
-    const currentTool = toolCalls[i];
-    const argsStr = JSON.stringify(currentTool.arguments);
-
-    // 检查是否引用了之前工具的结果
-    for (let j = 0; j < i; j++) {
-      const prevTool = toolCalls[j];
-      
-      // 简单的启发式规则：如果参数中包含前一个工具的名称或ID
-      if (argsStr.includes(prevTool.name) || argsStr.includes(prevTool.id)) {
-        dependencies.get(currentTool.id)?.add(prevTool.id);
-      }
-    }
-
-    // 特殊规则：某些工具类型总是依赖搜索结果
-    if (currentTool.name.includes('analyze') || currentTool.name.includes('diagnose')) {
-      // 查找之前的搜索工具
-      for (let j = 0; j < i; j++) {
-        const prevTool = toolCalls[j];
-        if (prevTool.name.includes('search') || prevTool.name.includes('scrape')) {
-          dependencies.get(currentTool.id)?.add(prevTool.id);
-        }
-      }
-    }
-  }
-
-  return dependencies;
-}
-
-/**
- * 将工具调用分组为可并行执行的批次
- * 
- * 返回：[[batch1], [batch2], ...]
- * 每个batch内的工具可以并行执行
- */
-function groupToolCallsIntoBatches(
-  toolCalls: ToolCall[],
-  dependencies: Map<string, Set<string>>
-): ToolCall[][] {
+export function planToolBatches(toolCalls: ToolCall[]): BatchPlan {
   const batches: ToolCall[][] = [];
-  const processed = new Set<string>();
-  const toolMap = new Map(toolCalls.map(tc => [tc.id, tc]));
+  const notes: string[] = [];
+  const scheduled = new Set<string>(); // 已分配的 toolCall.id
+  const scheduledNames = new Set<string>(); // 已分配的工具名
+  const presentNames = new Set(toolCalls.map(tc => tc.name));
 
-  while (processed.size < toolCalls.length) {
+  let guard = 0;
+  const maxGuard = toolCalls.length * toolCalls.length + 8;
+
+  while (scheduled.size < toolCalls.length) {
+    if (++guard > maxGuard) {
+      // 理论上不可达（每轮至少入一个），留作兜底防止死循环
+      const remaining = toolCalls.filter(tc => !scheduled.has(tc.id));
+      if (remaining.length > 0) {
+        batches.push(remaining);
+        notes.push(`兜底：仍有 ${remaining.length} 个工具未分配，强制并入最后一批`);
+        remaining.forEach(tc => {
+          scheduled.add(tc.id);
+          scheduledNames.add(tc.name);
+        });
+      }
+      break;
+    }
+
     const currentBatch: ToolCall[] = [];
 
-    // 找出所有依赖已满足的工具
-    for (const toolCall of toolCalls) {
-      if (processed.has(toolCall.id)) continue;
+    for (const tc of toolCalls) {
+      if (scheduled.has(tc.id)) continue;
 
-      const deps = dependencies.get(toolCall.id) || new Set();
-      const allDepsProcessed = Array.from(deps).every(depId => processed.has(depId));
-
-      if (allDepsProcessed) {
-        currentBatch.push(toolCall);
+      // ① 显式依赖未满足 → 等下一轮
+      const pending = unsatisfiedDependencies(tc.name, presentNames, scheduledNames);
+      if (pending.length > 0) {
+        if (batches.length === 0) {
+          notes.push(`${tc.name} 等待前置工具：${pending.join(', ')}`);
+        }
+        continue;
       }
+
+      // ② 与本批已选中工具资源冲突 → 等下一轮
+      const conflict = currentBatch.find(prev => hasResourceConflict(prev.name, tc.name));
+      if (conflict) {
+        if (batches.length === 0) {
+          notes.push(`${tc.name} 与 ${conflict.name} 存在资源冲突，串行`);
+        }
+        continue;
+      }
+
+      currentBatch.push(tc);
     }
 
     if (currentBatch.length === 0) {
-      // 检测到循环依赖，强制处理剩余工具
-      console.warn('[ParallelExecutor] Circular dependency detected, forcing execution');
-      const remaining = toolCalls.filter(tc => !processed.has(tc.id));
-      currentBatch.push(...remaining);
+      // 依赖环或不可能满足的依赖：取第一个未分配工具单独成批，保证一定推进
+      const forced = toolCalls.find(tc => !scheduled.has(tc.id));
+      if (!forced) break;
+      currentBatch.push(forced);
+      notes.push(`${forced.name} 的依赖不可能全部满足，强制推进以避免死循环`);
     }
 
+    currentBatch.forEach(tc => {
+      scheduled.add(tc.id);
+      scheduledNames.add(tc.name);
+    });
     batches.push(currentBatch);
-    currentBatch.forEach(tc => processed.add(tc.id));
   }
 
-  return batches;
+  return { batches, notes };
 }
 
 /**
- * 并行执行工具调用
- * 
+ * 并行执行工具调用（按资源冲突自动分批）
+ *
  * @param toolCalls 要执行的工具调用列表
  * @param orchestrator Agent编排器实例
  * @param context Agent上下文
@@ -118,60 +124,50 @@ export async function executeToolCallsInParallel(
   onProgress?: (completed: number, total: number, currentTool: string) => void
 ): Promise<Map<string, any>> {
   const results = new Map<string, any>();
-  
+
   if (toolCalls.length === 0) {
     return results;
   }
 
-  console.log(`[ParallelExecutor] Analyzing ${toolCalls.length} tool calls for dependencies`);
+  const { batches, notes } = planToolBatches(toolCalls);
 
-  // 1. 分析依赖关系
-  const dependencies = analyzeToolDependencies(toolCalls);
-  
-  // 2. 分组为批次
-  const batches = groupToolCallsIntoBatches(toolCalls, dependencies);
-  
-  console.log(`[ParallelExecutor] Grouped into ${batches.length} batches:`, 
-    batches.map((b, i) => `Batch ${i + 1}: ${b.map(tc => tc.name).join(', ')}`));
+  console.log(
+    `[ParallelExecutor] ${toolCalls.length} tool calls → ${batches.length} batch(es): ` +
+      batches.map((b, i) => `B${i + 1}[${b.map(tc => tc.name).join(',')}]`).join(' '),
+  );
+  if (notes.length > 0) {
+    console.log(`[ParallelExecutor] serialization notes: ${notes.join(' | ')}`);
+  }
 
-  // 3. 按批次执行
   let completedCount = 0;
   const totalCount = toolCalls.length;
 
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
-    
-    console.log(`[ParallelExecutor] Executing batch ${batchIndex + 1}/${batches.length} with ${batch.length} tools`);
 
-    // 并行执行当前批次的所有工具
-    const batchResults = await Promise.allSettled(
+    const settled = await Promise.allSettled(
       batch.map(async (toolCall) => {
         try {
           const result = await orchestrator.executeToolCall(toolCall, context);
-
-          completedCount++;
-          onProgress?.(completedCount, totalCount, toolCall.name);
-
           return { toolCall, result };
         } catch (error) {
-          completedCount++;
-          onProgress?.(completedCount, totalCount, toolCall.name);
-          
           return {
             toolCall,
             result: {
               id: toolCall.id,
               success: false,
               error: (error as Error).message,
-              executionTime: 0
-            }
+              executionTime: 0,
+            },
           };
+        } finally {
+          completedCount++;
+          onProgress?.(completedCount, totalCount, toolCall.name);
         }
       })
     );
 
-    // 收集结果
-    batchResults.forEach((settledResult) => {
+    settled.forEach((settledResult) => {
       if (settledResult.status === 'fulfilled') {
         const { toolCall, result } = settledResult.value;
         results.set(toolCall.id, result);
@@ -182,76 +178,25 @@ export async function executeToolCallsInParallel(
   }
 
   console.log(`[ParallelExecutor] Completed all ${totalCount} tool calls`);
-  
   return results;
 }
 
 /**
- * 简化版：强制并行执行所有工具（忽略依赖）
- * 
- * 适用于确定所有工具都是独立的场景
- */
-export async function executeToolCallsInParallelForced(
-  toolCalls: ToolCall[],
-  orchestrator: AgentOrchestrator,
-  context: AgentContext
-): Promise<Map<string, any>> {
-  const results = new Map<string, any>();
-  
-  console.log(`[ParallelExecutor] Force parallel execution of ${toolCalls.length} tools`);
-
-  const settledResults = await Promise.allSettled(
-    toolCalls.map(async (toolCall) => {
-      try {
-        const result = await orchestrator.executeToolCall(toolCall, context);
-        return { toolCall, result };
-      } catch (error) {
-        return {
-          toolCall,
-          result: {
-            id: toolCall.id,
-            success: false,
-            error: (error as Error).message,
-            executionTime: 0
-          }
-        };
-      }
-    })
-  );
-
-  settledResults.forEach((settledResult) => {
-    if (settledResult.status === 'fulfilled') {
-      const { toolCall, result } = settledResult.value;
-      results.set(toolCall.id, result);
-    }
-  });
-
-  return results;
-}
-
-/**
- * 检查工具列表是否可以安全地并行执行
- * 
- * 返回true表示所有工具都是独立的，可以强制并行
+ * 检查工具列表是否可以完全并行执行（无任何资源冲突与显式依赖）。
+ *
+ * 语义已修正：旧版是「工具名是否落在某个白名单里」，与真实安全性无关；
+ * 现在等价于「planToolBatches 只分出一个批次」。
  */
 export function canExecuteInParallel(toolCalls: ToolCall[]): boolean {
-  // 独立工具类型列表
-  const independentToolTypes = [
-    'search',
-    'weather',
-    'toggle_relay',
-    'control_camera',
-    'get_channel',
-    'get_all_spectrum'
-  ];
-
-  return toolCalls.every(tc => 
-    independentToolTypes.some(type => tc.name.includes(type))
-  );
+  if (toolCalls.length <= 1) return true;
+  return planToolBatches(toolCalls).batches.length <= 1;
 }
 
 /**
- * 智能执行：自动选择串行或并行
+ * 智能执行：自动选择串行或并行。
+ *
+ * 单工具直执行以省去分批开销；多工具一律走 planToolBatches ——
+ * 无冲突时自然落到一个批次，不再需要「白名单强制并行」那条特殊路径。
  */
 export async function executeToolCallsSmart(
   toolCalls: ToolCall[],
@@ -265,12 +210,5 @@ export async function executeToolCallsSmart(
     return new Map([[toolCalls[0].id, result]]);
   }
 
-  // 检查是否可以强制并行
-  if (canExecuteInParallel(toolCalls)) {
-    console.log('[ParallelExecutor] All tools are independent, using forced parallel execution');
-    return executeToolCallsInParallelForced(toolCalls, orchestrator, context);
-  }
-
-  // 使用依赖分析的并行执行
   return executeToolCallsInParallel(toolCalls, orchestrator, context, onProgress);
 }

@@ -13,7 +13,7 @@ import { IconArrowRight, IconBox, IconCamera, IconChartLine, IconClickTap, IconC
 // Dynamically import project components to reuse them
 const GreenhouseModel = dynamic(
   () => import("@/components/monitor/greenhouse-model").then((mod) => mod.GreenhouseModel),
-  { ssr: false, loading: () => <div className="w-full h-full bg-slate-900/10 animate-pulse rounded-[3rem]" /> }
+  { ssr: false, loading: () => <div className="w-full h-full bg-zinc-900/10 animate-pulse rounded-[3rem]" /> }
 );
 
 // Mock data for the components
@@ -68,10 +68,10 @@ export default function LandingPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3 group cursor-pointer"
           >
-            <Image src="/logo.png" alt="logo" width={32} height={32} className="rounded-xl shadow-2xl shadow-emerald-500/20 group-hover:rotate-6 transition-transform" />
+            <Image src="/logo.png" alt="logo" width={32} height={32} className="rounded-xl shadow-lg shadow-emerald-500/20 group-hover:rotate-6 transition-transform" />
             <div className="flex flex-col leading-tight">
               <span className="text-2xl font-black tracking-tighter text-white">STRAVISION</span>
-              <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Agri Hub v4.0</span>
+              <span className="text-[11px] font-bold text-primary uppercase tracking-[0.2em]">Agri Hub v4.0</span>
             </div>
           </motion.div>
           
@@ -83,7 +83,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * idx }}
               >
-                <Link href={`/${item.toLowerCase().replace(' ', '-')}`} className="text-[11px] font-black text-slate-500 hover:text-emerald-400 tracking-widest transition-colors relative group uppercase">
+                <Link href={`/${item.toLowerCase().replace(' ', '-')}`} className="text-[11px] font-black text-zinc-500 hover:text-emerald-400 tracking-widest transition-colors relative group uppercase">
                   {item}
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
                 </Link>
@@ -93,7 +93,7 @@ export default function LandingPage() {
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <Link href="/dashboard">
-              <Button className="bg-primary hover:bg-emerald-400 text-black font-black rounded-full px-10 h-14 text-xs tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] active:scale-95 uppercase">
+              <Button className="bg-primary hover:bg-emerald-400 text-black font-black rounded-full px-10 h-14 text-xs tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(0,148,86,0.2)] active:scale-95 uppercase">
                 GET STARTED
               </Button>
             </Link>
@@ -110,7 +110,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             whileHover={{ y: -6 }}
-            className="md:col-span-12 lg:col-span-7 bg-white rounded-[3.5rem] p-12 text-black flex flex-col justify-between min-h-[550px] border-[6px] border-black relative overflow-hidden group shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_rgba(16,185,129,1)] transition-all duration-700"
+            className="md:col-span-12 lg:col-span-7 bg-white rounded-[3.5rem] p-12 text-black flex flex-col justify-between min-h-[550px] border-[6px] border-black relative overflow-hidden group shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_rgba(0,148,86,1)] transition-all duration-500"
           >
             <div className="flex justify-between items-start z-10">
               <div className="flex items-center gap-4">
@@ -141,7 +141,7 @@ export default function LandingPage() {
               </motion.h1>
               <p className="text-2xl md:text-3xl font-black leading-tight max-w-xl group-hover:translate-x-3 transition-transform italic uppercase tracking-tighter">
                 赋能每一寸土地，重新定义智慧农业。 <br />
-                <span className="text-slate-400 not-italic tracking-normal">Integrated Vision AI & IoT Cluster for elite farms.</span>
+                <span className="text-zinc-400 not-italic tracking-normal">Integrated Vision AI & IoT Cluster for elite farms.</span>
               </p>
             </div>
 
@@ -149,17 +149,17 @@ export default function LandingPage() {
                <div className="flex gap-6">
                   <motion.div 
                     whileHover={{ scale: 1.1, rotate: -3 }} 
-                    className="size-20 rounded-[2rem] bg-black text-white flex flex-col items-center justify-center cursor-pointer shadow-[8px_8px_0px_rgba(16,185,129,1)]"
+                    className="size-20 rounded-[2rem] bg-black text-white flex flex-col items-center justify-center cursor-pointer shadow-[8px_8px_0px_rgba(0,148,86,1)]"
                   >
                     <IconBox className="size-8" />
-                    <span className="text-[10px] font-black mt-1">TWIN</span>
+                    <span className="text-[11px] font-black mt-1">TWIN</span>
                   </motion.div>
                   <motion.div 
                     whileHover={{ scale: 1.1, rotate: 3 }} 
-                    className="size-20 rounded-[2rem] bg-slate-100 flex flex-col items-center justify-center border-4 border-black cursor-pointer shadow-[8px_8px_0px_rgba(33,150,243,1)]"
+                    className="size-20 rounded-[2rem] bg-zinc-100 flex flex-col items-center justify-center border-4 border-black cursor-pointer shadow-[8px_8px_0px_rgba(33,150,243,1)]"
                   >
                     <IconLightning className="size-8 text-primary" />
-                    <span className="text-[10px] font-black mt-1 text-black">AUTO</span>
+                    <span className="text-[11px] font-black mt-1 text-black">AUTO</span>
                   </motion.div>
                </div>
                <Link href="/dashboard" className="group/btn relative">
@@ -183,7 +183,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             whileHover={{ y: -6 }}
-            className="md:col-span-12 lg:col-span-5 bg-[#FFB7B7] rounded-[3.5rem] p-10 flex flex-col items-center justify-center min-h-[550px] border-[6px] border-black group shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_white] transition-all duration-700 relative overflow-hidden"
+            className="md:col-span-12 lg:col-span-5 bg-[#FFB7B7] rounded-[3.5rem] p-10 flex flex-col items-center justify-center min-h-[550px] border-[6px] border-black group shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_white] transition-all duration-500 relative overflow-hidden"
           >
              <div className="relative size-[380px] cursor-pointer">
                 <BerryOrb 
@@ -227,7 +227,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             whileHover={{ y: -6 }}
-            className="md:col-span-12 lg:col-span-8 bg-[#D1E9FF] rounded-[3.5rem] p-10 border-[6px] border-black flex flex-col min-h-[650px] shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_rgba(33,150,243,1)] transition-all duration-700"
+            className="md:col-span-12 lg:col-span-8 bg-[#D1E9FF] rounded-[3.5rem] p-10 border-[6px] border-black flex flex-col min-h-[650px] shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_rgba(33,150,243,1)] transition-all duration-500"
           >
              <div className="flex justify-between items-center mb-10">
                 <div className="flex gap-4 items-center">
@@ -262,17 +262,17 @@ export default function LandingPage() {
                          <IconChartLine className="size-7" />
                       </div>
                       <div className="flex flex-col">
-                         <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Global Control</span>
+                         <span className="text-[11px] font-bold text-zinc-400 tracking-widest uppercase">Global Control</span>
                          <span className="text-2xl font-black text-black tracking-tighter italic uppercase">Stability: 99.8%</span>
                       </div>
                    </div>
                 </div>
 
                 <div className="absolute bottom-8 right-8 flex gap-4">
-                   <div className="p-4 bg-white border-4 border-black rounded-3xl shadow-[6px_6px_0px_rgba(0,0,0,1)] text-black font-black text-xs tracking-widest uppercase">
+                   <div className="p-4 bg-white border-4 border-black rounded-2xl shadow-[6px_6px_0px_rgba(0,0,0,1)] text-black font-black text-xs tracking-widest uppercase">
                       ZONE_A
                    </div>
-                   <div className="p-4 bg-black border-4 border-black rounded-3xl shadow-[6px_6px_0px_rgba(16,185,129,1)] text-white font-black text-xs tracking-widest uppercase">
+                   <div className="p-4 bg-black border-4 border-black rounded-2xl shadow-[6px_6px_0px_rgba(0,148,86,1)] text-white font-black text-xs tracking-widest uppercase">
                       NODE_0817
                    </div>
                 </div>
@@ -285,7 +285,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             whileHover={{ y: -6 }}
-            className="md:col-span-12 lg:col-span-4 bg-white rounded-[3.5rem] p-10 border-[6px] border-black flex flex-col items-center justify-between min-h-[650px] shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_#FFD700] transition-all duration-700 overflow-hidden"
+            className="md:col-span-12 lg:col-span-4 bg-white rounded-[3.5rem] p-10 border-[6px] border-black flex flex-col items-center justify-between min-h-[650px] shadow-[16px_16px_0px_rgba(0,0,0,1)] hover:shadow-[24px_24px_0px_#FFD700] transition-all duration-500 overflow-hidden"
           >
              <div className="w-full">
                 <div className="flex justify-between items-start mb-16">
@@ -308,7 +308,7 @@ export default function LandingPage() {
                 <div className="grid grid-cols-2 gap-5 w-full">
                    {[
                      { key: 'pump', label: "水泵", icon: IconWater, color: "bg-emerald-400" },
-                     { key: 'fan', label: "通风", icon: IconFan, color: "bg-blue-400" },
+                     { key: 'fan', label: "通风", icon: IconFan, color: "bg-emerald-400" },
                      { key: 'light', label: "补光", icon: IconLight, color: "bg-amber-400" },
                      { key: 'sun', label: "卷帘", icon: IconSun, color: "bg-orange-400" },
                    ].map((item) => (
@@ -320,7 +320,7 @@ export default function LandingPage() {
                        "relative p-6 rounded-[2.5rem] border-4 border-black transition-all cursor-pointer select-none group/switch",
                        switches[item.key as keyof typeof switches] 
                         ? `${item.color} text-black shadow-[8px_8px_0px_rgba(0,0,0,1)]` 
-                        : "bg-slate-50 text-slate-300 border-dashed"
+                        : "bg-zinc-50 text-zinc-300 border-dashed"
                      )}>
                         <item.icon className={cn("size-8 mb-5 transition-transform", switches[item.key as keyof typeof switches] && "scale-110")} />
                         <div className="flex justify-between items-end">
@@ -335,12 +335,12 @@ export default function LandingPage() {
              <div className="w-full pt-12 border-t-4 border-black/5 flex items-center justify-around gap-6 group/qr">
                 <motion.div 
                   whileHover={{ rotate: 5, scale: 1.05 }}
-                  className="p-6 bg-black rounded-[2.5rem] shadow-[12px_12px_0px_rgba(16,185,129,1)]"
+                  className="p-6 bg-black rounded-[2.5rem] shadow-[12px_12px_0px_rgba(0,148,86,1)]"
                 >
                    <Image src="/logo.png" alt="qr" width={100} height={100} className="invert" />
                 </motion.div>
                 <div className="flex flex-col">
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">APP CLUSTER</span>
+                   <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1">APP CLUSTER</span>
                    <p className="text-2xl font-black text-black leading-tight uppercase italic">
                       Efficiency <br /> 
                       <span className="text-5xl tracking-tighter text-primary">+85%</span>
@@ -356,7 +356,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             whileHover={{ y: -6 }}
-            className="md:col-span-12 lg:col-span-12 bg-[#E1F3DB] rounded-[3.5rem] p-12 border-[6px] border-black flex flex-col md:flex-row gap-16 items-center justify-between min-h-[450px] shadow-[20px_20px_0px_rgba(0,0,0,1)] hover:shadow-[30px_30px_0px_#B9FBC0] transition-all duration-700"
+            className="md:col-span-12 lg:col-span-12 bg-[#E1F3DB] rounded-[3.5rem] p-12 border-[6px] border-black flex flex-col md:flex-row gap-16 items-center justify-between min-h-[450px] shadow-[20px_20px_0px_rgba(0,0,0,1)] hover:shadow-[30px_30px_0px_#B9FBC0] transition-all duration-500"
           >
              <div className="md:w-[35%]">
                 <div className="flex items-center gap-3 mb-6">
@@ -372,7 +372,7 @@ export default function LandingPage() {
                 <div className="flex gap-6">
                    <motion.div 
                      whileTap={{ scale: 0.9 }}
-                     className="size-20 rounded-[1.8rem] bg-black flex items-center justify-center text-white cursor-pointer shadow-[8px_8px_0px_rgba(16,185,129,1)] hover:scale-105 transition-transform"
+                     className="size-20 rounded-[1.8rem] bg-black flex items-center justify-center text-white cursor-pointer shadow-[8px_8px_0px_rgba(0,148,86,1)] hover:scale-105 transition-transform"
                    >
                       <IconSearch className="size-10" />
                    </motion.div>
@@ -388,7 +388,7 @@ export default function LandingPage() {
              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
                 {[
                   { label: "TEMPERATURE", val: "24.5°C", icon: IconThermometer, change: "+1.2", h: [40, 60, 50, 80, 70, 90, 85], color: "text-red-500" },
-                  { label: "HUMIDITY", val: "62%", icon: IconWater, change: "-0.5", h: [70, 65, 75, 60, 55, 72, 68], color: "text-blue-500" },
+                  { label: "HUMIDITY", val: "62%", icon: IconWater, change: "-0.5", h: [70, 65, 75, 60, 55, 72, 68], color: "text-emerald-500" },
                   { label: "CO2 LEVEL", val: "420ppm", icon: IconCloudStorage, change: "SECURE", h: [50, 52, 55, 51, 50, 52, 53], color: "text-purple-500" },
                   { label: "FERTILITY", val: "94%", icon: IconLeaf, change: "+2.1", h: [90, 95, 100, 98, 105, 107, 104], color: "text-primary" },
                 ].map((stat, i) => (
@@ -399,13 +399,13 @@ export default function LandingPage() {
                   >
                      <div className="relative z-10 flex justify-between items-start">
                         <div className="flex flex-col">
-                           <span className="text-[11px] font-black text-slate-400 mb-2 block uppercase tracking-widest italic">{stat.label}</span>
+                           <span className="text-[11px] font-black text-zinc-400 mb-2 block uppercase tracking-widest italic">{stat.label}</span>
                            <div className="text-4xl font-black text-black tracking-tighter leading-none">{stat.val}</div>
                         </div>
                         <stat.icon className={cn("size-8", stat.color)} />
                      </div>
 
-                     <div className="relative z-10 mt-6 flex items-center gap-2 text-[10px] font-black text-primary bg-emerald-50 px-3 py-1 rounded-full w-fit uppercase tracking-tighter">
+                     <div className="relative z-10 mt-6 flex items-center gap-2 text-[11px] font-black text-primary bg-emerald-50 px-3 py-1 rounded-full w-fit uppercase tracking-tighter">
                         {stat.change} FROM YESTERDAY
                      </div>
                      
@@ -429,7 +429,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="py-32 bg-black border-t-[8px] border-primary overflow-hidden relative mt-20">
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#059669 1px, transparent 1px), linear-gradient(90deg, #059669 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
         <div className="container mx-auto px-6 flex flex-col items-center relative z-10">
            <motion.h2 
@@ -465,12 +465,12 @@ export default function LandingPage() {
                     <span className="text-[11px] text-primary font-black tracking-[0.4em] mt-1">AGRI CLUSTER SERVICES</span>
                  </div>
               </div>
-              <div className="flex gap-12 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">
+              <div className="flex gap-12 text-[12px] font-black text-zinc-500 uppercase tracking-widest italic">
                  {["Privacy", "Terms", "Twitter", "GitHub"].map(link => (
                    <a key={link} href="#" className="hover:text-primary hover:translate-x-1 transition-all">{link}</a>
                  ))}
               </div>
-              <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic opacity-50">© 2024 STRAVISION ELITE HUB</p>
+              <p className="text-[11px] font-black text-zinc-600 uppercase tracking-widest italic opacity-50">© 2024 STRAVISION ELITE HUB</p>
            </div>
         </div>
       </footer>

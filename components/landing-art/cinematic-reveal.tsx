@@ -311,7 +311,7 @@ export function CinematicReveal() {
           </h2>
 
           {/* 英文副标 */}
-          <span className="mt-8 font-mono text-[10px] sm:text-[11px] tracking-[0.35em] text-white/35 uppercase">
+          <span className="mt-8 font-mono text-[11px] sm:text-[11px] tracking-[0.35em] text-white/35 uppercase">
             Where perception becomes guardianship
           </span>
 
@@ -322,12 +322,12 @@ export function CinematicReveal() {
           >
             <MagneticButton
               href="/dashboard"
-              className="group inline-flex items-center bg-white text-black px-9 py-4 text-[12px] tracking-[0.2em] uppercase transition-colors duration-300 hover:bg-[#1677ff] hover:text-white"
+              className="group inline-flex items-center bg-white text-black px-9 py-4 text-[12px] tracking-[0.2em] uppercase transition-colors duration-300 hover:bg-[#059669] hover:text-white"
             >
               进入莓界
               <IconArrowRightUp
                 className="w-4 h-4 ml-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                strokeWidth={1.75}
+                strokeWidth={2}
               />
             </MagneticButton>
             <Link

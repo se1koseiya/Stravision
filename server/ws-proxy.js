@@ -27,15 +27,22 @@ console.log('Proxy starting with API Key:', DASHSCOPE_API_KEY.substring(0, 8) + 
 
 const wss = new WebSocket.Server({ port: PORT });
 
+/**
+ * Omni 实时模型名。2026-09-24：改为环境变量可配，和 admin 后台 voice_config.omni.model 对齐。
+ * 优先级：连接串 ?model= → env OMNI_MODEL → 内置默认 qwen3-omni-flash。
+ * 前端不需要任何 API 配置，key 走服务端 DASHSCOPE_API_KEY。
+ */
+const DEFAULT_OMNI_MODEL = process.env.OMNI_MODEL || 'qwen3-omni-flash';
+
 console.log(`WebSocket Proxy Server running on ws://localhost:${PORT}`);
-console.log('Target: wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3-omni-flash');
+console.log(`Target: wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=${DEFAULT_OMNI_MODEL}`);
 
 wss.on('connection', (ws, req) => {
   console.log('Client connected');
 
   // Extract model from query params (simple parsing)
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  const model = url.searchParams.get('model') || 'qwen3-omni-flash';
+  const model = url.searchParams.get('model') || DEFAULT_OMNI_MODEL;
 
   const targetUrl = `wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=${model}`;
   console.log(`Connecting to upstream: ${targetUrl}`);

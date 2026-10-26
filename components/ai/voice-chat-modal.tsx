@@ -199,7 +199,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-gradient-to-b from-zinc-900 to-black rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+      <div className="relative w-full max-w-lg mx-4 bg-gradient-to-b from-zinc-900 to-black rounded-2xl overflow-hidden shadow-lg border border-white/10">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -236,7 +236,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
                     isListening 
                       ? "border-primary/40 animate-ping" 
                       : isSpeaking 
-                        ? "border-blue-500/40 animate-ping"
+                        ? "border-emerald-500/40 animate-ping"
                         : "border-white/20"
                   )} />
                   <div className={cn(
@@ -244,7 +244,7 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
                     isListening 
                       ? "border-primary/60" 
                       : isSpeaking 
-                        ? "border-blue-500/60"
+                        ? "border-emerald-500/60"
                         : "border-white/30"
                   )} />
                 </>
@@ -258,12 +258,12 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
               className={cn(
                 "relative z-10 w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg",
                 isNotSupported
-                  ? "bg-gray-700 cursor-not-allowed"
+                  ? "bg-zinc-700 cursor-not-allowed"
                   : isActive
                     ? isListening
                       ? "bg-gradient-to-br from-primary to-primary hover:from-emerald-400 hover:to-emerald-500 shadow-emerald-500/30"
                       : isSpeaking
-                        ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/30"
+                        ? "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30"
                         : isProcessing
                           ? "bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/30"
                           : "bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 shadow-red-500/30"
@@ -303,13 +303,13 @@ export function VoiceChatModal({ open, onClose, onSendMessage, aiSettings }: Voi
 
             {/* AI Response */}
             {isActive && aiResponse && (
-              <div className="bg-blue-500/10 rounded-2xl p-4 border border-blue-500/20">
+              <div className="bg-emerald-500/10 rounded-2xl p-4 border border-emerald-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className={cn(
                     "w-2 h-2 rounded-full",
-                    isSpeaking ? "bg-blue-500 animate-pulse" : "bg-blue-500/50"
+                    isSpeaking ? "bg-emerald-500 animate-pulse" : "bg-emerald-500/50"
                   )} />
-                  <span className="text-xs text-blue-400/70 uppercase tracking-wide">AI 回复</span>
+                  <span className="text-xs text-emerald-400/70 uppercase tracking-wide">AI 回复</span>
                 </div>
                 <p className="text-white/90 text-sm leading-relaxed line-clamp-4">
                   {aiResponse}

@@ -274,7 +274,7 @@ export function useDeviceForgeActions(data: DeviceForgeCardData, onSendMessage?:
         type: form.type,
         category: form.category || '通用',
         icon: form.icon || 'Cpu',
-        color: form.color || '#1677ff',
+        color: form.color || '#059669',
         subscribe_topic: form.subscribe_topic?.trim() || undefined,
         publish_topic: form.publish_topic?.trim() || undefined,
         node_id: form.node_id?.trim() || undefined,
@@ -433,13 +433,13 @@ export function DeviceForgeCard({
         </Flex>
 
         {actionError && (
-          <Alert type="error" showIcon message={<span style={{ fontSize: 12.5 }}>{actionError}</span>} />
+          <Alert type="error" showIcon title={<span style={{ fontSize: 12.5 }}>{actionError}</span>} />
         )}
         {installed && (
           <Alert
             type="success"
             showIcon
-            message={
+            title={
               <span style={{ fontSize: 12.5, lineHeight: 1.7 }}>
                 设备「{installedDeviceName || data.draft.name}」已写入平台设备注册表。刷新后可在 <b>设备控制 / 监控 / 数据看板</b> 看到它
                 {data.draft.type === 'sensor' ? '；MQTT 订阅已即时生效，收到首条数据后即可出数' : ''}。

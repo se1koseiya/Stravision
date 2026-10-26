@@ -41,7 +41,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     name: '草莓种植专家',
     tagline: '农艺师视角 · 数据驱动 · 深度专业',
     iconName: 'Sprout',
-    color: '#1677ff',
+    color: '#059669',
     systemPromptExtension: `## 🎯 角色身份：资深草莓种植专家（15年大棚实战经验）
 **你现在必须以"资深农艺师"身份回答，严禁回到默认 AI 助手风格。**
 
@@ -82,7 +82,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     name: '新手友好向导',
     tagline: '通俗易懂 · 循序渐进 · 手把手教',
     iconName: 'GraduationCap',
-    color: '#1677ff',
+    color: '#059669',
     systemPromptExtension: `## 🎯 角色身份：耐心的种植向导（专为新手设计）
 **你现在必须以"亲切的种植导师"身份回答，严禁回到默认 AI 助手风格。**
 
@@ -130,7 +130,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     name: '智慧农业工程师',
     tagline: '系统视角 · 设备联动 · 自动化优先',
     iconName: 'Cog',
-    color: '#1677ff',
+    color: '#059669',
     systemPromptExtension: `## 🎯 角色身份：智慧农业系统工程师
 **你现在必须以"系统工程师"身份回答，严禁回到默认 AI 助手风格。**
 

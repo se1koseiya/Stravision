@@ -6,7 +6,8 @@ import Image from "next/image"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { motion } from "framer-motion"
-import { IconArrowRight, IconCaution, IconChartLine, IconCpu, IconCrown, IconLeaf, IconLightning, IconLogout, IconMagic, IconMail, IconPhone, IconRemind, IconSetting, IconShield } from "@/components/icon";
+import { IconArrowRight, IconCaution, IconChartLine, IconCpu, IconCrown, IconLeaf, IconLightning, IconLogout, IconMagic, IconMail, IconRemind, IconSetting, IconShield } from "@/components/icon";
+import { EmptyState } from "@/components/illustration"
 
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -141,7 +142,16 @@ export default function ProfilePage() {
       try { localStorage.setItem("profile_activity", JSON.stringify(next)) } catch { }
    }
 
-   if (loading) return null
+   if (loading) {
+      return (
+         <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-[#050505]">
+            <div className="flex flex-col items-center gap-3">
+               <div className="size-7 rounded-full border-2 border-zinc-200 border-t-emerald-600 animate-spin dark:border-zinc-800 dark:border-t-emerald-500" />
+               <span className="text-xs text-zinc-400">加载中…</span>
+            </div>
+         </div>
+      )
+   }
    if (!user) return null
 
    return (
@@ -159,7 +169,8 @@ export default function ProfilePage() {
                <PageNavigation />
             </div>
             <div className="flex items-center gap-6">
-               <button className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+               {/* 纯图标按钮：用 flex 居中让图标落在按钮正中（行内基线会让图标偏高约 2px） */}
+               <button className="flex h-6 items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
                   <IconRemind className="size-5" />
                </button>
                <UserAvatarMenu user={user} />
@@ -168,7 +179,7 @@ export default function ProfilePage() {
 
          {/* Hero Header */}
          <header className="pt-40 pb-20 px-8 md:px-12 border-b border-zinc-200 dark:border-zinc-900 bg-white dark:bg-black relative overflow-hidden">
-            <div className="max-w-7xl mx-auto relative z-10">
+            <div className="max-w-[1400px] mx-auto relative z-10">
                <motion.div
                   initial="hidden"
                   animate="visible"
@@ -177,7 +188,7 @@ export default function ProfilePage() {
                >
                   <div className="flex items-center gap-8">
                      <motion.div variants={fadeInUp} className="relative group">
-                        <div className="size-32 md:size-40 rounded-full overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-700 ease-out ring-1 ring-zinc-200 dark:ring-zinc-800">
+                        <div className="size-32 md:size-40 rounded-full overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-500 ease-out ring-1 ring-zinc-200 dark:ring-zinc-800">
                            <Avatar className="size-full">
                               <AvatarImage src={user.avatar_url || undefined} className="object-cover" />
                               <AvatarFallback className="bg-zinc-100 dark:bg-zinc-900 text-4xl font-light text-zinc-300">
@@ -229,7 +240,7 @@ export default function ProfilePage() {
          </header>
 
          {/* Content Area */}
-         <main className="max-w-7xl mx-auto px-8 md:px-12 py-20">
+         <main className="max-w-[1400px] mx-auto px-8 md:px-12 py-20">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
 
                {/* Sidebar Navigation */}
@@ -375,7 +386,13 @@ export default function ProfilePage() {
                               </div>
                               <div className="border-t border-zinc-200 dark:border-zinc-800">
                                  {activityLog.length === 0 ? (
-                                    <div className="py-12 text-center text-zinc-400 italic">暂无活动记录。</div>
+                                    <EmptyState
+                                       illustration="empty-list"
+                                       illustrationWidth={150}
+                                       className="py-10"
+                                       title="暂无活动记录"
+                                       description="你的操作与系统事件会显示在这里。"
+                                    />
                                  ) : (
                                     activityLog.slice(0, 5).map((log, i) => (
                                        <div key={i} className="group flex items-center justify-between py-6 border-b border-zinc-100 dark:border-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 px-4 -mx-4 transition-colors">
@@ -403,9 +420,19 @@ export default function ProfilePage() {
 
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               {devices.length === 0 ? (
-                                 <div className="col-span-full py-20 text-center border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/20">
-                                    <IconPhone className="size-12 mx-auto mb-4 opacity-20" />
-                                    <p className="text-zinc-500">暂无连接设备。</p>
+                                 <div className="col-span-full border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/20">
+                                    <EmptyState
+                                       illustration="no-accounts"
+                                       illustrationWidth={180}
+                                       className="py-14"
+                                       title="暂无连接设备"
+                                       description="前往「设备监控」添加并绑定的设备会出现在这里。"
+                                       action={
+                                          <Button variant="outline" className="rounded-none border-zinc-200 dark:border-zinc-800" onClick={() => router.push('/monitor')}>
+                                             去添加设备
+                                          </Button>
+                                       }
+                                    />
                                  </div>
                               ) : (
                                  devices.map((device, i) => (

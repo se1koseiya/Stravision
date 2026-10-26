@@ -32,27 +32,27 @@ const TriggerNode = ({ id, data, selected }: NodeProps) => {
       <Handle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-slate-700 transition-colors"
+        className="w-3 h-3 !bg-zinc-400 !border-2 !border-white dark:!border-zinc-700 hover:!bg-zinc-700 transition-colors"
       />
       
       {/* 极简单色节点：白底细线、灰色小字类型、选中变蓝 */}
       <div className={cn(
-        "w-64 rounded-2xl bg-white border overflow-hidden transition-all duration-150",
+        "w-64 rounded-2xl bg-white dark:bg-zinc-900 border overflow-hidden transition-all duration-200",
         selected
-          ? "border-[#1677ff] shadow-[0_0_0_2px_rgba(22,119,255,0.10),0_4px_12px_rgba(22,119,255,0.08)]"
-          : "border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
-        status === 'running' ? "border-[#1677ff]" : "",
-        status === 'completed' ? "border-slate-300" : ""
+          ? "border-[#059669] shadow-[0_0_0_2px_rgba(0,148,86,0.10),0_4px_12px_rgba(0,148,86,0.08)]"
+          : "border-zinc-200 dark:border-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]",
+        status === 'running' ? "border-[#059669]" : "",
+        status === 'completed' ? "border-zinc-300 dark:border-zinc-600" : ""
       )}>
         <div className="px-5 pt-2.5 pb-3 space-y-2">
           <div className="flex items-center justify-between h-3.5">
-            <span className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-slate-400 font-medium">
+            <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-zinc-400 font-medium">
               <svg viewBox="0 0 10 10" className="w-2 h-2 fill-slate-400"><path d="M2 1 L9 5 L2 9 Z" /></svg>
               触发器
             </span>
-            {status === 'running' && <span className="text-[10px] text-[#1677ff] font-medium">运行中</span>}
+            {status === 'running' && <span className="text-[11px] text-[#059669] font-medium">运行中</span>}
           </div>
-          <div className="text-[14px] font-medium text-slate-900 leading-snug">
+          <div className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 leading-snug">
             {data.label}
           </div>
           <div className="nodrag pt-1 space-y-2">
@@ -76,7 +76,7 @@ const TriggerNode = ({ id, data, selected }: NodeProps) => {
             {data.type === 'sensor' && (
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Text type="secondary" className="!text-[10px] block">传感器</Text>
+                  <Text type="secondary" className="!text-[11px] block">传感器</Text>
                   <Select
                     size="small"
                     className="!w-full"
@@ -91,7 +91,7 @@ const TriggerNode = ({ id, data, selected }: NodeProps) => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Text type="secondary" className="!text-[10px] block">检查频率</Text>
+                  <Text type="secondary" className="!text-[11px] block">检查频率</Text>
                   <Select
                     size="small"
                     className="!w-full"
@@ -113,7 +113,7 @@ const TriggerNode = ({ id, data, selected }: NodeProps) => {
                 <Input type="time" size="small" className="!text-xs" defaultValue="08:00" />
                 <div className="flex gap-1 flex-wrap">
                   {['一','二','三','四','五','六','日'].map(d => (
-                    <div key={d} className="w-6 h-6 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-center text-[10px] cursor-pointer hover:bg-slate-100 transition-colors">
+                    <div key={d} className="w-6 h-6 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-[11px] cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                       {d}
                     </div>
                   ))}
@@ -127,7 +127,7 @@ const TriggerNode = ({ id, data, selected }: NodeProps) => {
       <Handle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 !bg-slate-400 !border-2 !border-white hover:!bg-slate-700 transition-colors"
+        className="w-3 h-3 !bg-zinc-400 !border-2 !border-white dark:!border-zinc-700 hover:!bg-zinc-700 transition-colors"
       />
     </div>
   );

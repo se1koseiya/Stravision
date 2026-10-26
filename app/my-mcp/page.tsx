@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { IconArrowLeft, IconArrowRight, IconCalendar, IconChartLine, IconCheck, IconCode, IconComment, IconDatabaseNetwork, IconDelete, IconDownload, IconFileText, IconFilter, IconGithub, IconGlobe, IconGridFour, IconInfo, IconLightning, IconLink, IconLinkOut, IconMagic, IconPlus, IconPower, IconSearch, IconSeedling, IconSetting, IconShield } from "@/components/icon";
+import { Illustration } from "@/components/illustration"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { MCPServerDetailDialog } from "@/components/mcp/mcp-server-detail-dialog"
 import { CustomMCPDialog } from "@/components/mcp/custom-mcp-dialog"
@@ -139,7 +140,7 @@ export default function MyMCPPage() {
 
       {/* Background Elements - Matching Main Site */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top opacity-30" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,148,86,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,148,86,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
       </div>
       
@@ -153,8 +154,8 @@ export default function MyMCPPage() {
           x: "-50%",
           padding: "8px 24px",
           backgroundColor: "rgba(10, 10, 10, 0.9)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(16, 185, 129, 0.3)"
+          backdropFilter: "blur(calc(16px * var(--dc-mat-scale, 1)))",
+          border: "1px solid rgba(0,148,86, 0.3)"
         } : {
           width: "100%",
           top: 0,
@@ -166,7 +167,7 @@ export default function MyMCPPage() {
           border: "1px solid rgba(255, 255, 255, 0)"
         }}
         transition={{ type: "spring", stiffness: 200, damping: 30 }}
-        className="fixed flex items-center justify-between z-50 shadow-2xl shadow-emerald-900/10"
+        className="fixed flex items-center justify-between z-50 shadow-lg shadow-emerald-900/10"
         style={{ maxWidth: isScrolled ? '90vw' : '100%' }}
       >
         <div className="flex items-center gap-2">
@@ -251,7 +252,7 @@ export default function MyMCPPage() {
              className="flex items-center gap-2 mr-2"
            >
               <div className="flex items-center gap-1 bg-white/5 p-1 border border-white/10 shrink-0">
-                 <div className="size-6 bg-white text-black flex items-center justify-center text-[10px] font-bold">EN</div>
+                 <div className="size-6 bg-white text-black flex items-center justify-center text-[11px] font-bold">EN</div>
                  <div className="size-6 flex items-center justify-center text-white/40"><IconGlobe className="size-3" /></div>
               </div>
            </motion.div>
@@ -269,7 +270,7 @@ export default function MyMCPPage() {
 
       {/* Hero Header */}
       <header className="pt-32 pb-16 px-8 md:px-12 relative overflow-hidden">
-         <div className="max-w-7xl mx-auto relative z-10 flex flex-col items-center text-center">
+         <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col items-center text-center">
             <motion.div 
                initial="hidden" 
                animate="visible" 
@@ -298,7 +299,7 @@ export default function MyMCPPage() {
                             alt="Meixiaozhi" 
                             width={192} 
                             height={192} 
-                            className="object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                            className="object-contain drop-shadow-[0_0_15px_rgba(0,148,86,0.5)]"
                         />
                     </motion.div>
                  </div>
@@ -316,11 +317,11 @@ export default function MyMCPPage() {
 
       {/* Content Area */}
       <main className="min-h-[60vh] relative px-6 md:px-8 py-12 z-10">
-         <div className="max-w-[1600px] mx-auto">
+         <div className="max-w-[1400px] mx-auto">
             {installedServers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 bg-white/5 backdrop-blur-sm">
-                    <IconGridFour className="size-16 text-primary/20 mb-6" />
-                    <h3 className="text-xl font-bold mb-2 font-jinbuti">暂无已安装的 MCP Server</h3>
+                    <Illustration name="empty-list" width={180} className="opacity-95" />
+                    <h3 className="text-xl font-bold mt-6 mb-2 font-jinbuti">暂无已安装的 MCP Server</h3>
                     <p className="text-white/40 mb-8 max-w-md text-center font-light">
                         前往 MCP 广场探索并安装您需要的插件，它们将在这里显示。
                     </p>
@@ -376,7 +377,7 @@ export default function MyMCPPage() {
                             
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {server.features.slice(0, 3).map(f => (
-                                    <Badge key={f} variant="secondary" className="bg-white/5 hover:bg-white/10 text-white/40 border-0 text-[10px] font-normal font-mono tracking-wide rounded-none">
+                                    <Badge key={f} variant="secondary" className="bg-white/5 hover:bg-white/10 text-white/40 border-0 text-[11px] font-normal font-mono tracking-wide rounded-none">
                                         {f}
                                     </Badge>
                                 ))}

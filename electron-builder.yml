@@ -50,6 +50,12 @@ extraResources:
     to: app-server
     filter:
       - "**/*"
+  # FFmpeg 静态二进制（RTMP 预览 / AI 抓帧必需），由 pnpm desktop:fetch:ffmpeg 落到 .cache/ffmpeg/
+  - from: .cache/ffmpeg
+    to: ffmpeg
+    filter:
+      - "**/*"
+      - "!**/*.part"
 
 win:
   target:

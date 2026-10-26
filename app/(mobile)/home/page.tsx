@@ -1,1187 +1,434 @@
 "use client"
 
-import { useState, useEffect, Suspense, useRef, useMemo } from "react"
-import Image from "next/image"
+/**
+ * 移动端首页 v3 ——「与 PC 同源」（2026-10-05）
+ * ---------------------------------------------------------------------------
+ * 用户指令：「要跟 PC 端的 UI 联通」。所以这一版不再自创移动端视觉，
+ * 而是**直接复用 PC dashboard 的 widget 组件本体**：
+ *   - TemperatureWidget / HumidityWidget / SoilWidget / CO2Widget / LightWidget
+ *     （size="small"，与 PC 底部一排小卡完全同源：同一材质、同一配色、同一曲线）
+ *   - dc-mat 沉浸光感材质（MATERIAL_CSS 已由根布局全局注入；
+ *     DASHBOARD_MATERIAL_CSS 是 dashboard 页专属增强，这里补注一次）
+ *   - 顶部横幅 = PC top-banner 的移动版（日期块 + 问候 + 天气），不再用绿头
+ *   - AI 洞察卡 = PC「AI 智能洞察」卡的移动形态（状态点 + 分级染色）
+ *
+ * 数据口径：widget 显示**温室实况**（deviceData），顶部横幅显示**室外天气**
+ * （weatherData）——来源不同绝不混写。缺读数的 widget 不渲染，不编造。
+ */
+
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
-import { Canvas, useFrame, extend } from "@react-three/fiber"
-import { useGLTF, OrbitControls, PerspectiveCamera, Grid, Center, Sparkles as Sparkles3D, Float, Environment, ContactShadows, Lightformer } from "@react-three/drei"
-import * as THREE from "three"
-import { useDeviceData, type DeviceData } from "@/lib/hooks/use-device-data"
-import { useDeviceControl } from "@/lib/hooks/use-device-control"
-import { useWeatherContext } from "@/lib/contexts/weather-context"
-import { MobileBackground } from "@/components/mobile-background"
-import { toast } from "sonner"
+import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { UserPublic } from "@/lib/db/user-service"
-import { GreetingOrb } from "@/components/greeting-orb"
-import { IconChartLine, IconCheckOne, IconCloudStorage, IconCpu, IconDashboard, IconFan, IconLight, IconLightning, IconMagic, IconPower, IconRemind, IconRight, IconSearch, IconSeedling, IconSun, IconThermometer, IconWater, IconWind } from "@/components/icon";
+import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { useDeviceData } from "@/lib/hooks/use-device-data"
+import { useDailyInsight } from "@/lib/hooks/use-daily-insight"
+import { DASHBOARD_MATERIAL_CSS } from "@/components/dashboard/ios-style/widget-material"
+import { TemperatureWidget } from "@/components/dashboard/ios-style/temperature-widget"
+import { HumidityWidget } from "@/components/dashboard/ios-style/humidity-widget"
+import { SoilWidget } from "@/components/dashboard/ios-style/soil-widget"
+import { CO2Widget } from "@/components/dashboard/ios-style/co2-widget"
+import { LightWidget } from "@/components/dashboard/ios-style/light-widget"
+import { listFarmPlans, listPlots } from "@/components/mobile/mobile-data"
+import { MOBILE_CANVAS, SectionTitle, Tag, mobileCard } from "@/components/mobile/mobile-shell"
+import {
+  IconCalendar,
+  IconChartLine,
+  IconLocalPin,
+  IconMagic,
+  IconMapDraw,
+  IconMonitor,
+  IconRight,
+  IconSeedling,
+  IconSettingOne,
+} from "@/components/icon"
 
-// --- 3D Components ---
+// ---------------------------------------------------------------------------
 
-function HolographicModel() {
-  const { scene } = useGLTF("/3d_model/hero.glb")
-  const modelRef = useRef<THREE.Group>(null)
+const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+const MONTHS = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"]
 
-  // Apply Frosted Glass Material
+/** 进行中的农事计划（真实数据来自 scheduled_tasks） */
+function useActivePlan() {
+  const [plan, setPlan] = useState<{ title: string; cycle: string; count: number } | null>(null)
+
   useEffect(() => {
-    scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh
-        mesh.material = new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color("#ffffff"), // Pure white
-          emissive: new THREE.Color("#000000"),
-          roughness: 0.25, // Frosted texture (increased roughness)
-          metalness: 0.1,
-          transmission: 0.95, // High light transmission
-          thickness: 1.5, // Realistic thickness
-          transparent: true,
-          opacity: 1,
-          ior: 1.45, // Standard glass IOR
-          side: THREE.DoubleSide,
-          clearcoat: 0.8, // Subtle gloss on top of frost
-          clearcoatRoughness: 0.1,
-          attenuationColor: new THREE.Color("#ffffff"), // No color tint (pure clear/white)
-          attenuationDistance: 0.5,
-        })
+    let alive = true
+    ;(async () => {
+      try {
+        const res = await fetch("/api/scheduler/tasks")
+        // 🚨 /api/scheduler/tasks 仅 admin 可读（任务表无 user_id 隔离）。
+        // 普通用户拿到 401 是「无权限」而非「无数据」——对首页两者都不该占位，统一按没有处理。
+        if (!res.ok) {
+          if (alive) setPlan(null)
+          return
+        }
+        const json = await res.json()
+        const list = Array.isArray(json?.tasks) ? json.tasks : []
+        if (!alive) return
+        const active = listFarmPlans(list.filter((t: any) => t.is_active))
+        if (active.length === 0) {
+          setPlan(null)
+          return
+        }
+        setPlan({ title: active[0].title, cycle: active[0].cycle, count: active.length })
+      } catch {
+        /* 拉不到就当没有，不显示占位 */
       }
-    })
-  }, [scene])
-
-  useFrame((state) => {
-    if (modelRef.current) {
-      modelRef.current.rotation.y += 0.005
+    })()
+    return () => {
+      alive = false
     }
-  })
+  }, [])
 
-  return (
-    <group ref={modelRef}>
-      <Center>
-         <primitive object={scene} scale={3.5} />
-      </Center>
-    </group>
-  )
+  return plan
 }
 
-function WeatherCard() {
-  const { weatherData } = useWeatherContext()
-  
-  if (!weatherData) return null
+/**
+ * AI 智能洞察卡 —— PC dashboard「AI 智能洞察」卡的移动形态。
+ * 同样的视觉语义：浅绿卡 + 「AI 智能洞察」小标 + 状态点；分级染色一对一。
+ */
+function InsightCard() {
+  const { data, loading, error } = useDailyInsight(true)
+  const router = useRouter()
+
+  const risk = error ? "high" : (data?.riskLevel ?? "low")
+  const dot =
+    risk === "high" ? "bg-red-500" : risk === "medium" ? "bg-amber-500" : "bg-emerald-500"
+  const label =
+    risk === "high" ? "需要立即处理" : risk === "medium" ? "需要关注" : "一切正常"
+  const labelColor =
+    risk === "high"
+      ? "text-red-600 dark:text-red-400"
+      : risk === "medium"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-emerald-600 dark:text-emerald-400"
+
+  const text = loading
+    ? "正在读取温室与天气，生成今日洞察…"
+    : error
+      ? "今日洞察生成失败，点按重试"
+      : (data?.insight ?? "")
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="mx-6 mb-8 mt-4"
-    >
-       {/* Glass Container */}
-       <div className="relative overflow-hidden rounded-[2rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.12)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)] transition-shadow duration-500">
-          {/* Background with blur and gradient */}
-          <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/60 dark:border-white/10" />
-          
-          {/* Animated Background Gradient */}
-          <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-blue-100/80 via-blue-50/20 to-transparent dark:from-blue-500/10 dark:via-blue-500/5 dark:to-transparent opacity-80" />
-
-          <div className="relative z-10">
-             {/* Header: Location & Time */}
-             <div className="flex justify-between items-start mb-6">
-                <div>
-                   <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      {weatherData.location.name}
-                   </h3>
-                   <p className="text-xs text-slate-500 dark:text-slate-400 pl-3.5">
-                      {weatherData.location.region} · {weatherData.current.condition.text}
-                   </p>
-                </div>
-                {/* Weather Icon */}
-                <div className="size-12">
-                   <img src={`https:${weatherData.current.condition.icon}`} alt="weather" className="w-full h-full object-contain drop-shadow-md" />
-                </div>
-             </div>
-
-             {/* Main Temp */}
-             <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter" style={{ fontFamily: 'var(--font-jinbuti)' }}>
-                   {Math.round(weatherData.current.temp_c)}
-                </span>
-                <span className="text-xl font-medium text-slate-500 dark:text-slate-400">°C</span>
-             </div>
-
-             {/* Grid Stats */}
-             <div className="grid grid-cols-3 gap-2">
-                <WeatherStat 
-                   icon={IconCloudStorage} 
-                   label="湿度" 
-                   value={`${weatherData.current.humidity}%`} 
-                   delay={0.1}
-                />
-                <WeatherStat 
-                   icon={IconWind} 
-                   label="风速" 
-                   value={`${weatherData.current.wind_kph}km/h`} 
-                   delay={0.2}
-                />
-                <WeatherStat 
-                   icon={IconSun} 
-                   label="UV指数" 
-                   value={weatherData.current.uv} 
-                   delay={0.3}
-                />
-             </div>
-          </div>
-       </div>
-    </motion.div>
-  )
-}
-
-function WeatherStat({ icon: Icon, label, value, delay }: any) {
-   return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 + delay }}
-        className="bg-white/50 dark:bg-white/5 rounded-xl p-3 flex flex-col items-center justify-center gap-1 backdrop-blur-sm"
-      >
-         <Icon className="size-4 text-slate-400 dark:text-slate-500 mb-1" />
-         <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{value}</span>
-         <span className="text-[10px] text-slate-400">{label}</span>
-      </motion.div>
-   )
-}
-
-function Scene3D() {
-  return (
-    <div className="absolute inset-0 z-0 pointer-events-none">
-    </div>
-  )
-}
-
-// --- UI Components ---
-
-function LShapedStats({ 
-  score, 
-  scoreLabel, 
-  temp, 
-  humidity,
-  soil,
-  co2,
-  modelSlot
-}: { 
-  score: number, 
-  scoreLabel: string, 
-  temp: string, 
-  humidity: string,
-  soil: string,
-  co2: string,
-  modelSlot?: React.ReactNode
-}) {
-  // SVG Path for a Perfect L-Shape with Smooth Corners
-  // Designed on 100x100 grid
-  // Left col width: 42%, Bottom row height: 40%
-  // Corner Radius: 4%
-  // Inner Corner Radius: 4%
-  const path = `
-    M 0 12
-    Q 0 0 12 0
-    H 42
-    V 54
-    Q 42 66 54 66
-    H 88
-    Q 100 66 100 78
-    V 88
-    Q 100 100 88 100
-    H 12
-    Q 0 100 0 88
-    Z
-  `
-
-  return (
-    <div className="relative w-full aspect-[1/1.2]">
-      {/* 
-        Layer 1: The Glass Body (Background) 
-        Placed at z-0
-      */}
-      <div className="absolute inset-0 z-0 filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
-        <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-           <defs>
-              <linearGradient id="glass-body" x1="0" y1="0" x2="1" y2="1">
-                 <stop offset="0%" stopColor="var(--glass-start, white)" stopOpacity="0.95" />
-                 <stop offset="100%" stopColor="var(--glass-end, white)" stopOpacity="0.6" />
-              </linearGradient>
-              <linearGradient id="glass-border" x1="0" y1="0" x2="0" y2="1">
-                 <stop offset="0%" stopColor="var(--glass-border-start, white)" stopOpacity="1" />
-                 <stop offset="100%" stopColor="var(--glass-border-end, white)" stopOpacity="0.2" />
-              </linearGradient>
-           </defs>
-           
-           {/* Main Body */}
-           <path 
-             d={path} 
-             fill="url(#glass-body)" 
-             className="backdrop-blur-2xl transition-colors duration-500"
-             style={{
-                // Fallback/Enhancement for glass effect
-                filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.5))'
-             }}
-           />
-           
-           {/* Border Stroke */}
-           <path 
-             d={path} 
-             fill="none" 
-             stroke="url(#glass-border)" 
-             strokeWidth="0.8"
-             vectorEffect="non-scaling-stroke"
-             className="opacity-80 transition-colors duration-500"
-           />
-        </svg>
-      </div>
-
-      {/* 
-         Layer 2: 3D Model Slot
-         Placed at z-30 to sit ON TOP of everything
-      */}
-      {modelSlot && (
-         <div className="absolute inset-0 z-30 pointer-events-none">
-            {modelSlot}
-         </div>
-      )}
-
-      {/* 
-        Layer 3: Content (Text & Icons)
-        Placed at z-20 to sit ON TOP of the 3D model if needed, or just nicely on the glass
-      */}
-      <div className="absolute inset-0 z-20">
-        {/* Left Column Content */}
-        <div className="absolute left-0 top-0 bottom-0 w-[42%] flex flex-col">
-            {/* Environment Score */}
-            <div className="flex-1 p-5 flex flex-col justify-between">
-               <div className="size-11 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 shadow-[0_8px_16px_rgba(30,41,59,0.35)] flex items-center justify-center text-white ring-[3px] ring-white/40">
-                  <IconChartLine className="size-6" />
-               </div>
-               
-               <div className="mt-4">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white leading-tight tracking-tight">环境评分</h3>
-                  <p className="text-[11px] mt-1.5 text-slate-500 dark:text-slate-400 font-medium tracking-wide">需多关注</p>
-                  
-                  <div className="relative mt-2 flex items-baseline gap-0.5 text-slate-700 dark:text-slate-300 font-bold">
-                     <span className="text-5xl font-jinbuti tracking-tighter drop-shadow-sm bg-gradient-to-br from-slate-800 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">{score}</span>
-                     <span className="text-sm font-medium text-slate-400 mb-1.5">分</span>
-                     <IconRight className="size-4 text-slate-400 ml-0.5 mb-2" />
-                  </div>
-               </div>
-            </div>
-
-            {/* Divider */}
-            <div className="w-[80%] h-[1px] bg-gradient-to-r from-transparent via-slate-200 dark:via-white/10 to-transparent mx-auto opacity-70" />
-
-            {/* Temperature */}
-            <div className="h-[35%] flex flex-col justify-center items-center p-2">
-               <div className="size-9 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1.5 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <IconThermometer className="size-5" />
-               </div>
-               <div className="text-[11px] text-slate-400 font-medium">空气温度</div>
-               <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
-                  <span className="text-2xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{temp}</span>
-                  <span className="text-[11px] text-slate-400">°C</span>
-               </div>
-            </div>
-        </div>
-
-        {/* Bottom Right Content: Split into Humidity & Soil/CO2 */}
-        <div className="absolute right-0 bottom-0 left-[42%] h-[34%] flex">
-            {/* Humidity */}
-            <div className="flex-1 border-l border-white/40 dark:border-white/5 flex flex-col justify-center items-center p-2">
-               <div className="size-8 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <IconWater className="size-4" />
-               </div>
-               <div className="text-[10px] text-slate-400 font-medium scale-90">相对湿度</div>
-               <div className="flex items-baseline justify-center gap-0.5">
-                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{humidity}</span>
-                  <span className="text-[10px] text-slate-400">%</span>
-               </div>
-            </div>
-
-            {/* Soil Moisture */}
-            <div className="flex-1 border-l border-white/40 dark:border-white/5 flex flex-col justify-center items-center p-2 bg-slate-50/50 dark:bg-white/5">
-               <div className="size-8 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <IconSeedling className="size-4" />
-               </div>
-               <div className="text-[10px] text-slate-400 font-medium scale-90">土壤水分</div>
-               <div className="flex items-baseline justify-center gap-0.5">
-                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{soil}</span>
-                  <span className="text-[10px] text-slate-400">%</span>
-               </div>
-            </div>
-
-             {/* CO2 */}
-             <div className="flex-1 border-l border-white/40 dark:border-white/5 flex flex-col justify-center items-center p-2">
-               <div className="size-8 rounded-full bg-slate-50 dark:bg-slate-500/10 text-slate-500 flex items-center justify-center mb-1 shadow-sm ring-1 ring-slate-100 dark:ring-slate-500/20">
-                  <IconCloudStorage className="size-4" />
-               </div>
-               <div className="text-[10px] text-slate-400 font-medium scale-90">CO₂浓度</div>
-               <div className="flex items-baseline justify-center gap-0.5">
-                  <span className="text-xl font-bold text-slate-700 dark:text-slate-100 font-jinbuti">{co2}</span>
-                  {/* <span className="text-[10px] text-slate-400">ppm</span> */}
-               </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatusCard({ 
-  icon: Icon, 
-  title, 
-  subtitle, 
-  action, 
-  highlight = false
-}: { 
-  icon?: any, 
-  title: string, 
-  subtitle?: string, 
-  action?: string,
-  highlight?: boolean
-}) {
-  return (
-    <motion.div 
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+    <button
+      type="button"
+      onClick={() => router.push("/ai-assistant-ios")}
       className={cn(
-        "rounded-[2rem] p-6 flex flex-col justify-between shadow-lg border relative overflow-hidden group transition-all duration-300",
-        highlight 
-          ? "bg-white dark:bg-[#1e293b] border-blue-100 dark:border-blue-900 shadow-blue-500/10" 
-          : "bg-white/90 dark:bg-[#1e293b]/90 border-slate-100 dark:border-slate-800"
+        "dc-mat dc-mat--regular w-full rounded-[18px] p-4 text-left",
+        "flex items-start gap-3 active:scale-[0.99] transition-transform"
       )}
     >
-      {highlight && (
-        <div className="absolute -right-8 -top-8 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/10 blur-2xl rounded-full" />
-      )}
-
-      <div className="flex items-start justify-between relative z-10">
-        {Icon && (
-          <div className={cn(
-            "p-3 rounded-2xl",
-            highlight ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-          )}>
-            <Icon className="size-6" />
-          </div>
-        )}
-      </div>
-      
-      <div className="mt-6 relative z-10">
-        <h3 className={cn(
-          "text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100"
-        )}>{title}</h3>
-        {subtitle && (
-          <p className="text-sm mt-2 text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
-        )}
-        
-        {action && (
-          <div className={cn(
-            "flex items-center gap-1 mt-4 text-sm font-bold",
-            highlight ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400"
-          )}>
-            {action} <IconRight className="size-4" />
-          </div>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
-function MiniStatus({ 
-  icon: Icon, 
-  label, 
-  value, 
-  unit 
-}: { 
-  icon: any, 
-  label: string, 
-  value: string, 
-  unit: string 
-}) {
-  return (
-    <div className="flex items-center gap-4 bg-white dark:bg-[#1e293b] rounded-[1.5rem] p-4 shadow-sm border border-slate-100 dark:border-slate-800">
-      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-blue-500 dark:text-blue-400">
-        <Icon className="size-6" />
-      </div>
-      <div>
-        <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">{label}</div>
-        <div className="flex items-baseline gap-1 mt-0.5">
-          <span className="text-xl font-bold text-slate-900 dark:text-slate-100 font-jinbuti tracking-tight">{value}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{unit}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DeviceCard({ 
-  title, 
-  subtitle, 
-  status, 
-  icon: Icon, 
-  isOn,
-  accentColor = "blue",
-  onToggle,
-  disabled = false
-}: { 
-  title: string, 
-  subtitle: string, 
-  status?: string, 
-  icon: any,
-  isOn: boolean,
-  accentColor?: "blue" | "green" | "purple" | "orange",
-  onToggle?: () => void,
-  disabled?: boolean
-}) {
-  const colorMap = {
-    blue: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30",
-    green: "text-primary dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30",
-    purple: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-900/30",
-    orange: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-900/30",
-  }
-
-  const activeClass = colorMap[accentColor]
-
-  return (
-    <motion.div 
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={cn(
-        "rounded-[2rem] p-6 shadow-sm border relative overflow-hidden h-48 flex flex-col justify-between transition-all duration-300",
-        isOn 
-          ? `bg-white dark:bg-[#1e293b] ${activeClass} shadow-lg shadow-blue-500/5` 
-          : "bg-white dark:bg-[#1e293b] border-slate-100 dark:border-slate-800",
-        disabled && "opacity-60 grayscale"
-      )}
-    >
-      <div className="flex justify-between items-start z-10">
-        <div className={cn(
-          "p-3 rounded-full transition-colors",
-          isOn 
-            ? "bg-white dark:bg-[#0B1121] shadow-sm" 
-            : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
-        )}>
-           <Icon className={cn("size-7", isOn && "opacity-100")} />
-        </div>
-        <button 
-          onClick={onToggle}
-          className={cn(
-            "size-10 rounded-full flex items-center justify-center transition-all",
-            isOn 
-              ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md" 
-              : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700",
-            disabled && "cursor-not-allowed opacity-50"
-          )}
-        >
-          <IconPower className="size-5" />
-        </button>
-      </div>
-
-      <div className="relative z-10">
-        <h3 className={cn(
-          "font-bold text-lg",
-          isOn ? "text-slate-900 dark:text-slate-100" : "text-slate-600 dark:text-slate-400"
-        )}>{title}</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-500 mt-2 font-medium">{subtitle}</p>
-        {status && (
-          <p className={cn("text-xs font-bold mt-2", isOn ? "text-slate-900 dark:text-white" : "text-slate-400")}>{status}</p>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
-function TabItem({ label, active }: { label: string, active?: boolean }) {
-  return (
-    <button className={cn(
-      "px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border",
-      active 
-        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-lg shadow-slate-900/20" 
-        : "bg-white dark:bg-[#1e293b] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
-    )}>
-      {label}
+      <span className="grid size-9 shrink-0 self-start place-items-center rounded-full bg-emerald-600 text-white shadow-[0_6px_16px_rgba(5,150,105,0.3)]">
+        <IconMagic className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">AI 智能洞察</span>
+          <span className={cn("size-1.5 rounded-full", dot)} />
+          <span className={cn("text-[11px] font-medium", labelColor)}>{label}</span>
+        </span>
+        <span className="mt-1 line-clamp-2 block text-[13px] font-medium leading-[1.45] text-zinc-800 dark:text-zinc-100">
+          {text}
+        </span>
+      </span>
+      <IconRight className="size-4 shrink-0 self-center text-zinc-300 dark:text-zinc-600" />
     </button>
   )
 }
 
-// --- Helper Functions ---
+// ---------------------------------------------------------------------------
 
-function calculateEnvironmentScore(data: DeviceData | null) {
-  if (!data) return { score: 0, label: "等待数据", deductions: [] }
-  
-  let score = 100
-  const deductions: string[] = []
-
-  // Temp (Ideal 15-30)
-  if (data.temperature < 15) {
-    score -= 10
-    deductions.push("温度偏低")
-  } else if (data.temperature > 30) {
-    score -= 10
-    deductions.push("温度偏高")
-  }
-  
-  // Humidity (Ideal 40-80)
-  if (data.humidity < 40) {
-    score -= 10
-    deductions.push("湿度偏低")
-  } else if (data.humidity > 80) {
-    score -= 10
-    deductions.push("湿度偏高")
-  }
-
-  // Soil Moisture (Ideal 30-80)
-  if (data.earth_water < 30) {
-     score -= 15
-     deductions.push("土壤缺水")
-  }
-
-  score = Math.max(0, score)
-  
-  let label = "环境极佳"
-  if (score < 60) label = "环境恶劣"
-  else if (score < 80) label = "需要关注"
-
-  return { score, label, deductions }
-}
-
-function getAIAnalysisState(data: DeviceData | null): AIState {
-  if (!data) return 'analyzing'
-  const { score } = calculateEnvironmentScore(data)
-  return score < 80 ? 'warning' : 'healthy'
-}
-
-function getAIAnalysisContent(data: DeviceData | null, state: AIState) {
-   if (state === 'analyzing') {
-     return {
-       title: "正在深度诊断...",
-       desc: "正在分析土壤微量元素与光合作用效率，请稍候..."
-     }
-   }
-   
-   if (state === 'healthy') {
-     return {
-       title: "生长环境优良",
-       desc: "当前各项指标处于最佳状态，草莓生长迅速，无需人工干预。"
-     }
-   }
-
-   // Warning State - Generate specific message
-   const { deductions } = calculateEnvironmentScore(data)
-   const mainIssue = deductions[0] || "环境异常"
-   
-   let suggestion = ""
-   if (mainIssue.includes("温度")) suggestion = "建议调节排风或遮阳系统"
-   else if (mainIssue.includes("湿度")) suggestion = "建议开启除湿或喷淋系统"
-   else if (mainIssue.includes("缺水")) suggestion = "建议立即启动灌溉系统"
-   else suggestion = "建议检查设备状态"
-
-   return {
-     title: `${mainIssue}预警`,
-     desc: <>{suggestion}，预计可提升 <span className="font-bold text-blue-600 dark:text-blue-400">15%</span> 生长效率。</>
-   }
-}
-
-function SliderRow({ label, value, onChange, color, displayValue }: { label: string; value: number; onChange: (v: number) => void; color: string; displayValue?: string }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</span>
-        <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{displayValue || value}</span>
-      </div>
-      <input 
-        type="range" 
-        min={0} 
-        max={255} 
-        value={value} 
-        onChange={(e) => onChange(parseInt(e.target.value))} 
-        className="w-full h-2 rounded-full appearance-none cursor-pointer bg-slate-200 dark:bg-slate-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow" 
-        style={{ background: `linear-gradient(to right, ${color} 0%, ${color} ${(value / 255) * 100}%, transparent ${(value / 255) * 100}%, transparent 100%)` }} 
-      />
-    </div>
-  )
-}
-
-// --- AI Analysis Config ---
-type AIState = 'warning' | 'healthy' | 'analyzing'
-
-const AI_STATES_BASE = {
-  warning: {
-    image: "/ip/智慧农业3D图标-浇水灌溉-细线版.png",
-    subtitle: "AI 智能分析",
-    color: "orange",
-    bgPulse: "bg-orange-500",
-    shadow: "shadow-[0_0_8px_rgba(249,115,22,0.6)]",
-    action: "一键优化",
-    actionIcon: IconLightning
-  },
-  healthy: {
-    image: "/ip/智慧农业3D图标-作物检测-细线版.png",
-    subtitle: "AI 持续监控中",
-    color: "green",
-    bgPulse: "bg-green-500",
-    shadow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]",
-    action: "查看报告",
-    actionIcon: IconCheckOne
-  },
-  analyzing: {
-    image: "/ip/智慧农业3D图标-无人机巡检-细线版.png",
-    subtitle: "AI 全局扫描",
-    color: "blue",
-    bgPulse: "bg-blue-500",
-    shadow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]",
-    action: "取消分析",
-    actionIcon: IconSearch
-  }
-}
-
-export default function HomePage() {
+export default function MobileHomePage() {
   const router = useRouter()
-  const { deviceData } = useDeviceData()
   const { weatherData } = useWeatherContext()
-  const { toggleRelay, setLEDs, status: controlStatus } = useDeviceControl()
+  const { devices, deviceData, connectionStatus } = useDeviceData()
   const [user, setUser] = useState<UserPublic | null>(null)
-  
-  // Greeting Orb
-  const greetingOrb = useMemo(() => (
-    <GreetingOrb username={user?.username} enabled={!!user} />
-  ), [user?.username])
-
-  const [aiStatus, setAiStatus] = useState<AIState>('analyzing')
-  const [isOptimizing, setIsOptimizing] = useState(false)
-  const [aiContentOverride, setAiContentOverride] = useState<{title: string, desc: string} | null>(null)
-  const lastAnalysisTimeRef = useRef<number>(0)
-  
-  // RGB Control State
-  const [localR, setLocalR] = useState<number | null>(null)
-  const [localG, setLocalG] = useState<number | null>(null)
-  const [localB, setLocalB] = useState<number | null>(null)
-  const [localW, setLocalW] = useState<number | null>(null)
-
-  const r = (localR ?? deviceData?.led1 ?? 0)
-  const g = (localG ?? deviceData?.led2 ?? 0)
-  const b = (localB ?? deviceData?.led3 ?? 0)
-  const w = (localW ?? deviceData?.led4 ?? 0)
-
-  const handleDeviceToggle = async (relayNum: number, currentStatus: number | undefined) => {
-    if (!checkPermission(relayNum)) {
-       toast.error("权限不足", { description: "您没有权限控制此设备" })
-       return
-    }
-    if (controlStatus.loading) return
-    await toggleRelay(relayNum, currentStatus || 0)
-  }
-
-  const handleLEDUpdate = async () => {
-    if (!checkPermission('led1')) {
-       toast.error("权限不足", { description: "您没有权限调节补光灯颜色" })
-       return
-    }
-    if (controlStatus.loading) return
-    await setLEDs(r, g, b, w)
-  }
-
-  const checkPermission = (key: string | number) => {
-     if (!user) return false
-     if (user.role === 'admin' || user.role === 'super_admin') return true
-     try {
-       const perms = typeof user.permissions === 'string' 
-         ? JSON.parse(user.permissions || '{}') 
-         : (user.permissions || {})
-       const allowed = perms.allowedControls || []
-       const target = typeof key === 'number' ? `relay${key}` : key
-       return allowed.includes(target)
-     } catch {
-       return false
-     }
-  }
-
-  const handleAIAction = async () => {
-    // Prevent multiple clicks
-    if (aiStatus === 'analyzing') return
-
-    setAiStatus('analyzing')
-    setAiContentOverride(null)
-    setIsOptimizing(true) // Reusing this as "loading" state
-    
-    try {
-        // 1. Check local settings
-        const settingsStr = localStorage.getItem("ai-settings")
-        const settings = settingsStr ? JSON.parse(settingsStr) : null
-        
-        // If no API key, fallback to system logic with a simulated delay
-        if (!settings?.apiKey) {
-           await new Promise(resolve => setTimeout(resolve, 1500)) // Fake delay
-           const newState = getAIAnalysisState(deviceData)
-           setAiStatus(newState)
-           setIsOptimizing(false)
-           return
-        }
-
-        // 2. Call AI (No throttling here since it's user triggered)
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-             apiKey: settings.apiKey,
-             model: settings.model || "qwen-plus",
-             messages: [{
-               role: "user",
-               content: "请分析当前环境数据。返回JSON格式：{\"status\": \"healthy\" | \"warning\", \"title\": \"简短标题(10字内)\", \"desc\": \"简短描述(30字内)\"}。只返回JSON，不要其他内容。"
-             }],
-             deviceData,
-             weatherData,
-             systemPrompt: "你是专业的农业AI助手。请严格按照JSON格式返回分析结果。"
-          })
-        })
-
-        if (!response.ok) throw new Error("AI Request Failed")
-
-        // Parse SSE response
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-        let fullText = ""
-        
-        if (reader) {
-           while (true) {
-             const { done, value } = await reader.read()
-             if (done) break
-             const chunk = decoder.decode(value)
-             const lines = chunk.split("\n")
-             for (const line of lines) {
-               if (line.startsWith("data: ")) {
-                 const dataStr = line.slice(6)
-                 if (dataStr === "[DONE]") continue
-                 try {
-                   const data = JSON.parse(dataStr)
-                   const content = data.choices?.[0]?.delta?.content || ""
-                   fullText += content
-                 } catch {}
-               }
-             }
-           }
-        }
-        
-        // Extract JSON from fullText
-        const jsonMatch = fullText.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-           const result = JSON.parse(jsonMatch[0])
-           if (result.status && result.title && result.desc) {
-              setAiStatus(result.status === 'healthy' ? 'healthy' : 'warning')
-              setAiContentOverride({
-                title: result.title,
-                desc: result.desc
-              })
-              setIsOptimizing(false)
-              return
-           }
-        }
-        
-        // If parsing failed or no JSON, fallback
-        throw new Error("Invalid AI Response")
-
-    } catch (e) {
-        // Fallback on error
-        const newState = getAIAnalysisState(deviceData)
-        setAiStatus(newState)
-        setAiContentOverride(null)
-        setIsOptimizing(false)
-    }
-  }
-
-  // Initial System Check (only run once on mount to set initial state based on rules, NO AI)
-  useEffect(() => {
-    if (deviceData && aiStatus === 'analyzing' && !isOptimizing) {
-       const newState = getAIAnalysisState(deviceData)
-       setAiStatus(newState)
-    }
-  }, [deviceData]) // Only depend on deviceData for initial rule-based check
-
+  const plan = useActivePlan()
+  const [now, setNow] = useState<Date | null>(null)
 
   useEffect(() => {
-    const fetchUser = async () => {
-       try {
+    // 日期块放 effect 里落值：SSR 与客户端时钟差不会造成 hydration mismatch
+    setNow(new Date())
+    let alive = true
+    ;(async () => {
+      try {
         const res = await fetch("/api/auth/me")
-        const data = await res.json()
-        if (data?.user) setUser(data.user)
-       } catch {}
+        const json = await res.json()
+        if (alive && json?.user) setUser(json.user as UserPublic)
+      } catch {}
+    })()
+    return () => {
+      alive = false
     }
-    fetchUser()
   }, [])
 
-  const envScore = calculateEnvironmentScore(deviceData)
-  const aiContent = aiContentOverride || getAIAnalysisContent(deviceData, aiStatus)
-  const currentAI = { ...AI_STATES_BASE[aiStatus], ...aiContent }
+  const plots = useMemo(() => listPlots(devices), [devices])
+  const onlineCount = devices.length
 
-  // Derived Data
-   const temp = deviceData?.temperature ? Math.round(deviceData.temperature) : (weatherData?.current?.temp_c ? Math.round(weatherData.current.temp_c) : 24)
-   const humidity = deviceData?.humidity ? Math.round(deviceData.humidity) : (weatherData?.current?.humidity || 68)
-   const soil = deviceData?.earth_water ? Math.round(deviceData.earth_water) : 45
-   const co2 = deviceData?.co2 ? Math.round(deviceData.co2) : 420
-   
-   // Time-based Greeting
-   const getGreeting = () => {
-     const hour = new Date().getHours()
-     if (hour < 6) return "凌晨好,"
-     if (hour < 9) return "早上好,"
-     if (hour < 12) return "上午好,"
-     if (hour < 14) return "中午好,"
-     if (hour < 18) return "下午好,"
-     if (hour < 22) return "晚上好,"
-     return "夜深了,"
-   }
-   
-   const greeting = getGreeting()
+  /* 温室实况（widget 数据源）：有真读数才上卡 */
+  const greenTemp = typeof deviceData?.temperature === "number" && Number.isFinite(deviceData.temperature) ? deviceData.temperature : null
+  const greenHum = typeof deviceData?.humidity === "number" && Number.isFinite(deviceData.humidity) ? deviceData.humidity : null
+  const greenSoil = typeof deviceData?.earth_water === "number" && Number.isFinite(deviceData.earth_water) ? deviceData.earth_water : null
+  const greenCo2 = typeof deviceData?.co2 === "number" && Number.isFinite(deviceData.co2) ? deviceData.co2 : null
+  const greenLight = typeof deviceData?.light === "number" && Number.isFinite(deviceData.light) ? deviceData.light : null
+  const hasAnyWidget = greenTemp != null || greenHum != null || greenSoil != null || greenCo2 != null || greenLight != null
+
+  /* 室外天气（横幅数据源） */
+  const outTemp = typeof weatherData?.current?.temp_c === "number" && Number.isFinite(weatherData.current.temp_c)
+    ? Math.round(weatherData.current.temp_c)
+    : null
 
   return (
-    <div className="min-h-screen w-screen bg-transparent dark:bg-[#0B1121] text-foreground font-sans pb-32 overflow-x-hidden transition-colors duration-500">
-      <MobileBackground />
-       
-      {/* Header */}
-      <div className="px-6 pt-16 pb-8  flex justify-between items-center z-50 relative">
-        <div className="flex items-center gap-4">
-           <div className="size-12 rounded-full bg-white/55 dark:bg-white/5 backdrop-blur-2xl p-[3px] shadow-[0_12px_36px_rgba(15,23,42,0.10)] ring-1 ring-white/70 dark:ring-white/10">
-              <div className="w-full h-full rounded-full bg-white/70 dark:bg-white/5 flex items-center justify-center overflow-hidden ring-1 ring-white/60 dark:ring-white/10">
-                {user?.avatar_url ? (
-                  <Image src={user.avatar_url} alt="User" width={48} height={48} className="object-cover" />
-                ) : (
-                  <span className="font-bold text-slate-500 dark:text-slate-400 text-lg">{user?.username?.[0]?.toUpperCase() || 'S'}</span>
-                )}
-              </div>
-           </div>
-           <div>
-             <h1 className="text-xs text-slate-500/90 dark:text-slate-400 font-medium mb-0.5">{greeting}</h1>
-             <div className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-1 tracking-tight">
-                {user?.username || "管理员"} <span className="text-blue-500">.</span>
-             </div>
-           </div>
-         </div>
-        <div className="flex items-center gap-3">
-         <div className="flex items-center gap-2 bg-white/55 dark:bg-white/5 backdrop-blur-2xl px-4 py-2 rounded-full border border-white/60 dark:border-white/10 shadow-[0_12px_36px_rgba(15,23,42,0.10)]">
-            <span className="size-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">在线</span>
-         </div>
-         <button className="relative p-2.5 rounded-full bg-white/55 dark:bg-white/5 backdrop-blur-2xl border border-white/60 dark:border-white/10 hover:bg-white/70 dark:hover:bg-white/10 transition-colors shadow-[0_12px_36px_rgba(15,23,42,0.10)]">
-            <IconRemind className="size-6 text-slate-700 dark:text-slate-300" />
-            <span className="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border-2 border-white dark:border-[#1e293b]" />
-         </button>
-        </div>
-      </div>
+    <div className={cn("min-h-dvh w-full", MOBILE_CANVAS)}>
+      {/* dashboard 页专属材质增强（光晕/按压光源）；MATERIAL_CSS 本体已在根布局全局注入 */}
+      <style>{DASHBOARD_MATERIAL_CSS}</style>
 
-      {/* Top Section: Dashboard + 3D */}
-      <div className="mb-4 relative">
-        
-        {/* L-Shaped Stats Container with 3D Model Integrated */}
-        <div className="relative z-10 w-full px-6">
-           <LShapedStats 
-              score={envScore.score} 
-              scoreLabel={envScore.label} 
-              temp={`${temp}`} 
-              humidity={`${humidity}`}
-              soil={`${soil}`}
-              co2={`${co2}`}
-              modelSlot={
-                 <div className="absolute bottom-[30%] right-[-14%] z-20 pointer-events-none">
-                     <Image 
-                        src="/ip/sit.png" 
-                        alt="IP Character"
-                        width={350}
-                        height={350}
-                        className="object-contain drop-shadow-2xl animate-float origin-bottom-right"
-                        priority
-                     />
-                 </div>
-               }
-            />
-        </div>
-      </div>
-
-      {/* AI Analysis / Warning Section */}
-      <div className="px-6 mb-8 mt-12 relative z-10">
-        <div className="relative group">
-          {/* Ambient Glow - Dynamic based on state */}
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-r blur-3xl opacity-30 transition-all duration-1000",
-            aiStatus === 'warning' ? "from-orange-500 via-red-500 to-yellow-500" :
-            aiStatus === 'healthy' ? "from-green-400 via-emerald-500 to-teal-500" :
-            "from-blue-400 via-indigo-500 to-purple-500"
-          )} />
-
-          {/* Main Card Container */}
-          <div className="relative rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.05)]">
-             
-             {/* Background Layer */}
-             <div className="absolute inset-0 bg-white/80 dark:bg-[#1a1f2e]/80 backdrop-blur-2xl border border-white/60 dark:border-white/10 rounded-[2.5rem] overflow-hidden">
-                {/* Decorative Tech Grid Background */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-                     style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }} 
-                />
-
-                {/* Top Glass Highlight */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-50" />
-             </div>
-
-             {/* Content Layer */}
-             <div className="relative z-10 p-6 flex justify-between">
-                <div className="flex-1 pt-1 pr-2">
-                   {/* Title Area */}
-                   <div className="mb-4">
-                      <div className="h-7 relative overflow-hidden mb-1">
-                        <AnimatePresence mode="wait">
-                          <motion.h3 
-                            key={currentAI.subtitle}
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: -20, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tight absolute inset-0" 
-                            style={{ fontFamily: 'var(--font-jinbuti)' }}
-                          >
-                            {currentAI.subtitle}
-                          </motion.h3>
-                        </AnimatePresence>
-                      </div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 pl-0.5">
-                        实时生长环境诊断系统
-                      </p>
-                   </div>
-                   
-                   {/* Diagnosis Box */}
-                   <AnimatePresence mode="wait">
-                     <motion.div 
-                       key={aiStatus}
-                       initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
-                       animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                       exit={{ opacity: 0, x: 20, filter: "blur(10px)" }}
-                       transition={{ duration: 0.4, ease: "easeOut" }}
-                       className={cn(
-                         "rounded-2xl p-3.5 border backdrop-blur-sm transition-colors duration-300",
-                         aiStatus === 'warning' ? "bg-orange-50/80 dark:bg-orange-500/10 border-orange-100 dark:border-orange-500/20" :
-                         aiStatus === 'healthy' ? "bg-emerald-50/80 dark:bg-primary/10 border-emerald-100 dark:border-primary/20" :
-                         "bg-blue-50/80 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20"
-                       )}
-                     >
-                        <div className="flex gap-3">
-                           <motion.div 
-                             layoutId="status-bar"
-                             className={cn("w-1 rounded-full shrink-0", currentAI.bgPulse)} 
-                           />
-                           <div>
-                              <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                                className={cn("text-sm font-bold mb-1", 
-                                  aiStatus === 'warning' ? "text-orange-700 dark:text-orange-300" :
-                                  aiStatus === 'healthy' ? "text-emerald-700 dark:text-emerald-300" :
-                                  "text-blue-700 dark:text-blue-300"
-                                )}
-                              >
-                                 {currentAI.title}
-                              </motion.div>
-                              <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                                className="text-[11px] font-medium text-slate-600 dark:text-slate-400 leading-relaxed"
-                              >
-                                 {currentAI.desc}
-                              </motion.div>
-                           </div>
-                        </div>
-                     </motion.div>
-                   </AnimatePresence>
-
-                   {/* Action Button Area */}
-                   <AnimatePresence>
-                     <motion.button 
-                       initial={{ opacity: 0, y: 10 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       exit={{ opacity: 0, y: 10 }}
-                       whileTap={{ scale: 0.95 }}
-                       onClick={handleAIAction}
-                       disabled={aiStatus === 'analyzing'}
-                       className={cn(
-                         "mt-4 w-full py-3 rounded-xl text-xs font-bold shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2 group/btn relative overflow-hidden transition-all",
-                         aiStatus === 'analyzing' 
-                           ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-wait"
-                           : "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                       )}
-                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                        {aiStatus === 'analyzing' ? (
-                           <div className="size-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                           <IconMagic className="size-3.5 fill-current" />
-                        )}
-                        <span>{aiStatus === 'analyzing' ? "正在分析全域数据..." : "开始智能分析"}</span>
-                     </motion.button>
-                   </AnimatePresence>
-                </div>
-
-                {/* 3D IP Character - Breaking Bounds with Higher Impact */}
-                <div className="w-[160px] relative -mr-10 -my-10 -mb-16 flex items-end justify-center pointer-events-none select-none z-20">
-                    {/* Glow behind character */}
-                    <AnimatePresence mode="wait">
-                      <motion.div 
-                         key={aiStatus}
-                         initial={{ scale: 0.8, opacity: 0 }}
-                         animate={{ scale: 1, opacity: 0.6 }}
-                         exit={{ scale: 1.2, opacity: 0 }}
-                         className={cn("absolute bottom-8 left-1/2 -translate-x-1/2 size-40 rounded-full blur-[40px] animate-pulse mix-blend-multiply dark:mix-blend-normal", 
-                            aiStatus === 'warning' ? "bg-orange-400/60" : 
-                            aiStatus === 'healthy' ? "bg-emerald-400/60" : "bg-blue-400/60"
-                         )} 
-                      />
-                    </AnimatePresence>
-                    
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                         key={aiStatus}
-                         initial={{ y: 40, opacity: 0, scale: 0.9 }}
-                         animate={{ 
-                            y: 0, 
-                            opacity: 1, 
-                            scale: 1,
-                            transition: { 
-                              type: "spring",
-                              stiffness: 100,
-                              damping: 15
-                            }
-                         }}
-                         exit={{ y: 20, opacity: 0, scale: 0.95 }}
-                      >
-                         <motion.div
-                            animate={{ y: [0, -8, 0] }}
-                            transition={{ 
-                              duration: 4, 
-                              repeat: Infinity,
-                              ease: "easeInOut" 
-                            }}
-                         >
-                             <Image 
-                                src={currentAI.image} 
-                                alt="AI Assistant"
-                                width={240}
-                                height={240}
-                                className="object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.35)] scale-125 origin-bottom"
-                                priority
-                             />
-                         </motion.div>
-                      </motion.div>
-                    </AnimatePresence>
-                </div>
-             </div>
+      <main className="px-4 pb-32 pt-[max(env(safe-area-inset-top),14px)]" data-lenis-prevent>
+        {/* ① 顶部横幅 —— PC top-banner 的移动版（同款 dc-mat 白卡 + 日期块 + 问候） */}
+        <div className="dc-mat dc-mat--regular flex items-center gap-3.5 rounded-[22px] px-4 py-3.5">
+          {/* 日期块：大数字日 + 周几/月，与 PC 横幅同构 */}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-[30px] font-light leading-none tracking-tight text-zinc-900 dark:text-white tabular-nums">
+              {now?.getDate() ?? "—"}
+            </span>
+            <span className="flex flex-col text-[11px] leading-[1.3] text-zinc-500 dark:text-zinc-400">
+              <span>{now ? WEEKDAYS[now.getDay()] : ""}</span>
+              <span>{now ? MONTHS[now.getMonth()] : ""}</span>
+            </span>
+          </div>
+          <span className="h-8 w-px shrink-0 bg-zinc-200/80 dark:bg-white/10" />
+          {/* 问候 + 室外天气 */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14px] font-semibold text-zinc-900 dark:text-white">
+              你好，{user?.username ?? "欢迎回来"}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+              <IconLocalPin className="size-3 self-center" />
+              <span className="truncate">
+                {weatherData?.location?.name ?? "Stravision 智慧农业"}
+                {weatherData?.current?.condition?.text ? ` · ${weatherData.current.condition.text}` : ""}
+              </span>
+            </p>
+          </div>
+          {/* 室外温度 / 天气图标 */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {weatherData?.current?.condition?.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https:${weatherData.current.condition.icon}`}
+                alt={weatherData.current.condition.text}
+                className="size-9 object-contain"
+              />
+            ) : (
+              <Image
+                src="/ip/智慧农业3D图标-无人机巡检-细线版.png"
+                alt=""
+                width={36}
+                height={36}
+                className="size-9 object-contain"
+              />
+            )}
+            {outTemp != null && (
+              <span className="text-[18px] font-light leading-none text-zinc-900 dark:text-white tabular-nums">
+                {outTemp}°
+              </span>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Greeting Orb */}
-      {greetingOrb}
-
-      <WeatherCard />
-
-      {/* Tab Navigation */}
-      <div className="px-6 mb-10 flex items-center justify-between relative z-10">
-        <div className="text-2xl font-bold text-slate-900 dark:text-white mr-6 flex items-center gap-2">
-          <IconDashboard className="size-7 text-blue-500" />
-          区域
+        {/* ② AI 智能洞察 */}
+        <div className="mt-3">
+          <InsightCard />
         </div>
-        <div className="flex-1 overflow-x-auto scrollbar-hide flex items-center gap-3 py-2">
-          <TabItem label="一号棚" active />
-          <TabItem label="二号棚" />
-          <TabItem label="育苗区" />
-          <TabItem label="设备间" />
-        </div>
-      </div>
 
-      {/* Device Grid */}
-      <div className="px-6 grid grid-cols-2 gap-x-4 gap-y-6 pb-12 relative z-10">
-        <DeviceCard 
-          title="智能补光" 
-          subtitle="自动光谱调节" 
-          icon={IconSun}
-          isOn={!!deviceData?.relay7}
-          accentColor="orange"
-          status={deviceData?.relay7 ? "运行中" : "已关闭"}
-          onToggle={() => handleDeviceToggle(7, deviceData?.relay7)}
-          disabled={!checkPermission(7) || controlStatus.loading}
-        />
-        <DeviceCard 
-          title="排风系统" 
-          subtitle="强力换气模式" 
-          icon={IconFan}
-          isOn={!!deviceData?.relay6}
-          accentColor="blue"
-          onToggle={() => handleDeviceToggle(6, deviceData?.relay6)}
-          disabled={!checkPermission(6) || controlStatus.loading}
-        />
-        <DeviceCard 
-          title="光照植物补光灯控制" 
-          subtitle="照明系统" 
-          icon={IconLight}
-          isOn={!!deviceData?.relay8}
-          status={deviceData?.relay8 ? "已开启" : "已关闭"}
-          onToggle={() => handleDeviceToggle(8, deviceData?.relay8)}
-          disabled={!checkPermission(8) || controlStatus.loading}
-        />
-        <DeviceCard 
-          title="水泵灌溉" 
-          subtitle="精准灌溉" 
-          icon={IconWater}
-          isOn={!!deviceData?.relay5}
-          accentColor="green"
-          onToggle={() => handleDeviceToggle(5, deviceData?.relay5)}
-          disabled={!checkPermission(5) || controlStatus.loading}
-        />
-      </div>
+        {/* ③ 温室实况 widget —— PC 组件本体，2 列小卡（同 PC 底部一排） */}
+        <section>
+          <SectionTitle
+            action={
+              connectionStatus.connected ? (
+                <Tag tone="ok">设备在线</Tag>
+              ) : (
+                <Tag tone="warn">设备离线</Tag>
+              )
+            }
+          >
+            温室实况
+          </SectionTitle>
 
-      {/* RGB Control Section */}
-      <div className="px-6 mb-24 relative z-10">
-        <div className="bg-white/60 dark:bg-black/40 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-[2rem] p-6 shadow-xl">
-           <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                 <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                    <IconLight className="size-6" />
-                 </div>
-                 <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">补光灯调色</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">RGB 全光谱调节</p>
-                 </div>
+          {hasAnyWidget ? (
+            <div className="grid grid-cols-2 gap-3">
+              {/* 每格定高：IOSWidgetCard 是 h-full，高度由网格单元给（PC 同款比例） */}
+              {greenTemp != null && (
+                <div className="h-[136px]">
+                  <TemperatureWidget value={greenTemp} size="small" />
+                </div>
+              )}
+              {greenHum != null && (
+                <div className="h-[136px]">
+                  <HumidityWidget value={greenHum} size="small" />
+                </div>
+              )}
+              {greenSoil != null && (
+                <div className="h-[136px]">
+                  <SoilWidget moisture={greenSoil} size="small" />
+                </div>
+              )}
+              {greenCo2 != null && (
+                <div className="h-[136px]">
+                  <CO2Widget value={greenCo2} size="small" />
+                </div>
+              )}
+              {greenLight != null && (
+                <div className="h-[136px]">
+                  <LightWidget value={greenLight} size="small" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={mobileCard()}>
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <div className="text-zinc-300 dark:text-zinc-600">
+                  <IconSeedling className="size-7" />
+                </div>
+                <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                  {connectionStatus.connected ? "温室传感还没有读数" : "设备未连接，联网后自动亮起温室实况"}
+                </p>
               </div>
-              <div className="w-12 h-6 rounded-full border border-slate-200 dark:border-slate-700 shadow-inner" style={{ backgroundColor: `rgb(${r}, ${g}, ${b})` }} />
-           </div>
+            </div>
+          )}
+        </section>
 
-           <div className="space-y-4">
-              <SliderRow label="红色光谱 (R)" value={r} onChange={setLocalR} color="#ef4444" />
-              <SliderRow label="绿色光谱 (G)" value={g} onChange={setLocalG} color="#22c55e" />
-              <SliderRow label="蓝色光谱 (B)" value={b} onChange={setLocalB} color="#3b82f6" />
-              <SliderRow label="亮度 (W)" value={w} onChange={setLocalW} color="#f59e0b" displayValue={`${Math.round((w / 255) * 100)}%`} />
-           </div>
+        {/* ④ 我的地块 */}
+        <section>
+          <SectionTitle
+            action={
+              <Link href="/plots" className="flex items-center text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
+                全部
+                <IconRight className="size-3.5 self-center" />
+              </Link>
+            }
+          >
+            我的地块
+          </SectionTitle>
 
-           <div className="mt-6">
-              <button 
-                onClick={handleLEDUpdate}
-                className={cn(
-                  "w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all",
-                  (controlStatus.loading || !checkPermission('led1')) && "opacity-50 cursor-not-allowed"
+          {plots.length === 0 ? (
+            <div className={mobileCard()}>
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <div className="text-zinc-300 dark:text-zinc-600">
+                  <IconSeedling className="size-7" />
+                </div>
+                <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                  {connectionStatus.connected ? "还没有地块，去设备管理里添加" : "设备未连接，联网后自动加载地块"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+              {plots.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/plots/${encodeURIComponent(p.id)}`}
+                  className="relative w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl bg-emerald-600 p-3.5 text-white shadow-[0_8px_20px_rgba(5,150,105,0.25)] active:scale-[0.97] transition-transform"
+                >
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        "radial-gradient(120% 80% at 14% -8%, rgba(255,255,255,0.32), rgba(255,255,255,0) 60%)",
+                    }}
+                  />
+                  <span className="relative block">
+                    <span className="block truncate text-[15px] font-semibold leading-tight">{p.name}</span>
+                    <span className="mt-1.5 flex items-center gap-1.5 text-[12px] text-white/88">
+                      <span className="size-1.5 rounded-full bg-emerald-200 shadow-[0_0_6px_rgba(255,255,255,0.9)]" />
+                      {onlineCount} 台在线
+                    </span>
+                    <span className="mt-3 block truncate text-[11px] leading-tight text-white/72">
+                      采集 {p.counts.sensor} · 控制 {p.counts.relay}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ⑤ 进行中的农事计划 */}
+        {plan && (
+          <section>
+            <SectionTitle
+              action={
+                <Link href="/farm-plans" className="flex items-center text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
+                  全部
+                  <IconRight className="size-3.5 self-center" />
+                </Link>
+              }
+            >
+              进行中的农事计划
+            </SectionTitle>
+            <Link
+              href="/farm-plans"
+              className={cn(mobileCard(), "flex items-center gap-3 px-3.5 py-3.5 active:scale-[0.99] transition-transform")}
+            >
+              <span className="grid size-10 shrink-0 self-center place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                <IconCalendar className="size-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-medium text-zinc-800 dark:text-zinc-100">
+                  {plan.title}
+                </span>
+                {plan.cycle && (
+                  <span className="mt-0.5 block truncate text-[12px] text-zinc-500 dark:text-zinc-400">
+                    {plan.cycle}
+                  </span>
                 )}
+              </span>
+              <span className="flex shrink-0 items-center gap-1 self-center">
+                <span className="text-[15px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                  {plan.count}
+                </span>
+                <span className="text-[12px] text-zinc-500 dark:text-zinc-400">项</span>
+                <IconRight className="size-4 self-center text-zinc-300 dark:text-zinc-600" />
+              </span>
+            </Link>
+          </section>
+        )}
+
+        {/* ⑥ 功能宫格 */}
+        <section>
+          <SectionTitle>常用功能</SectionTitle>
+          <div className="grid grid-cols-4 gap-y-3 px-1">
+            {[
+              { icon: <IconMonitor className="size-5" />, label: "实时监控", to: "/monitor-ios" },
+              { icon: <IconChartLine className="size-5" />, label: "环境数据", to: "/dashboard-ios" },
+              { icon: <IconMagic className="size-5" />, label: "病害防治", to: "/ai-assistant-ios?prompt=diagnose" },
+              { icon: <IconCalendar className="size-5" />, label: "农事计划", to: "/farm-plans" },
+              { icon: <IconMapDraw className="size-5" />, label: "地块管理", to: "/plots" },
+              { icon: <IconSettingOne className="size-5" />, label: "设备管理", to: "/devices" },
+            ].map((e) => (
+              <button
+                key={e.label}
+                type="button"
+                onClick={() => router.push(e.to)}
+                className="flex flex-col items-center gap-1.5 py-1 active:scale-95 transition-transform"
               >
-                 {controlStatus.loading ? "正在更新..." : "应用光照设置"}
+                <span className="grid size-[46px] place-items-center rounded-2xl bg-white text-emerald-600 shadow-[0_1px_3px_rgba(16,24,40,0.07),0_6px_16px_rgba(5,150,105,0.06)] dark:bg-white/[0.07] dark:text-emerald-400">
+                  {e.icon}
+                </span>
+                <span className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">{e.label}</span>
               </button>
-           </div>
-        </div>
-      </div>
+            ))}
+          </div>
+        </section>
 
-      {/* Bottom Padding for Global Nav */}
-      <div className="h-24" />
-
+        <p className="mt-7 text-center text-[11px] text-zinc-400 dark:text-zinc-600">
+          Stravision 智慧农业
+        </p>
+      </main>
     </div>
   )
 }

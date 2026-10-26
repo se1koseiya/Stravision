@@ -12,9 +12,9 @@ interface FluidOrbProps {
 export function FluidOrb({ state, className }: FluidOrbProps) {
   // 颜色配置
   const colors = {
-    idle: "from-blue-400/60 via-purple-400/60 to-pink-400/60",
+    idle: "from-emerald-400/60 via-purple-400/60 to-pink-400/60",
     listening: "from-red-400/80 via-orange-400/80 to-yellow-400/80",
-    processing: "from-cyan-400/80 via-blue-500/80 to-indigo-500/80",
+    processing: "from-cyan-400/80 via-emerald-500/80 to-indigo-500/80",
     speaking: "from-emerald-400/80 via-green-500/80 to-teal-500/80",
   };
 
@@ -29,7 +29,7 @@ export function FluidOrb({ state, className }: FluidOrbProps) {
     <div className={cn("relative w-full h-full flex items-center justify-center", className)}>
       {/* 核心球体容器 */}
       <div className={cn(
-        "relative w-full h-full rounded-full overflow-hidden transition-all duration-700",
+        "relative w-full h-full rounded-full overflow-hidden transition-all duration-500",
         glowColors[state]
       )}>
         {/* 背景光晕 - 模拟 Siri 的黑色底色上的流光 */}

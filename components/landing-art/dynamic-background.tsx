@@ -8,7 +8,7 @@ export function DynamicBackground() {
       
       {/* 1. Global Perspective Grid */}
       <div className="absolute inset-0 z-0 opacity-30">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,148,86,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,148,86,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-200px)] origin-top" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
       </div>
 

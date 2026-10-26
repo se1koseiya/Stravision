@@ -29,7 +29,7 @@ const FOOTER_LINKS = [
 
 export function Finale() {
   return (
-    <footer className="relative overflow-hidden bg-[#F4EFE3]">
+    <footer className="relative overflow-hidden bg-[#F4F4F5]">
       <div className="mx-auto max-w-[1400px] px-6 pb-12 pt-28 md:px-10 md:pt-36">
         <div className="grid items-center gap-14 md:grid-cols-[1.1fr_0.9fr] md:gap-8">
           {/* 结语 */}
@@ -46,7 +46,7 @@ export function Finale() {
               —— 一季之后，你会感谢现在的决定
             </p>
             <h2
-              className="text-[clamp(2rem,4.4vw,3.6rem)] leading-[1.35] tracking-tight text-[#2B3122]"
+              className="text-[clamp(2rem,4.4vw,3.6rem)] leading-[1.35] tracking-tight text-[#18181B]"
               style={{ fontFamily: SERIF }}
             >
               把复杂的决策，
@@ -58,7 +58,7 @@ export function Finale() {
               </span>
               。
             </h2>
-            <p className="mt-7 max-w-[44ch] text-[15px] leading-[1.9] text-[#2B3122]/65">
+            <p className="mt-7 max-w-[44ch] text-[14px] leading-[1.9] text-[#18181B]/65">
               大棚已经准备好开口说话了。
               登录莓界，或者先看看哪一种订阅方案适合你的季节。
             </p>
@@ -66,7 +66,7 @@ export function Finale() {
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link
                 href="/login"
-                className="group inline-flex items-center gap-2 text-[16px] text-[#2B3122] transition-colors duration-300 hover:text-[#A63A3D]"
+                className="group inline-flex items-center gap-2 text-[16px] text-[#18181B] transition-colors duration-300 hover:text-[#A63A3D]"
                 style={{ fontFamily: SERIF }}
               >
                 <span className="relative">
@@ -77,7 +77,7 @@ export function Finale() {
               </Link>
               <Link
                 href="/plans"
-                className="text-[14.5px] text-[#2B3122]/55 underline decoration-[#2B3122]/25 decoration-1 underline-offset-4 transition-colors duration-300 hover:text-[#2B3122]"
+                className="text-[14px] text-[#18181B]/55 underline decoration-[#18181B]/25 decoration-1 underline-offset-4 transition-colors duration-300 hover:text-[#18181B]"
                 style={{ fontFamily: SERIF }}
               >
                 看看订阅方案
@@ -105,7 +105,7 @@ export function Finale() {
               />
             </div>
             <figcaption
-              className="absolute bottom-3 left-4 text-[13px] text-[#2B3122]/60"
+              className="absolute bottom-3 left-4 text-[13px] text-[#18181B]/60"
               style={{ fontFamily: KAI }}
             >
               收获那天，手是脏的，心是满的
@@ -118,18 +118,18 @@ export function Finale() {
           <StrawberrySprig className="pointer-events-none absolute -top-6 right-[10%] w-16 opacity-20" />
           <div
             aria-hidden
-            className="absolute inset-x-0 top-0 h-px bg-[#2B3122]/15"
+            className="absolute inset-x-0 top-0 h-px bg-[#18181B]/15"
           />
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-baseline gap-2.5">
               <span
-                className="text-lg tracking-tight text-[#2B3122]"
+                className="text-lg tracking-tight text-[#18181B]"
                 style={{ fontFamily: SERIF }}
               >
                 莓界
               </span>
               <span
-                className="text-[12px] text-[#2B3122]/40"
+                className="text-[12px] text-[#18181B]/40"
                 style={{ fontFamily: KAI }}
               >
                 stravision.site
@@ -141,7 +141,7 @@ export function Finale() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="text-[13.5px] text-[#2B3122]/50 transition-colors duration-300 hover:text-[#A63A3D]"
+                  className="text-[13px] text-[#18181B]/50 transition-colors duration-300 hover:text-[#A63A3D]"
                   style={{ fontFamily: SERIF }}
                 >
                   {l.label}
@@ -150,7 +150,7 @@ export function Finale() {
             </nav>
 
             <p
-              className="text-[12px] text-[#2B3122]/35"
+              className="text-[12px] text-[#18181B]/35"
               style={{ fontFamily: KAI }}
             >
               © 2026 莓界 · 慢慢种，好好收

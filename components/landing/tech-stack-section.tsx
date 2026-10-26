@@ -45,7 +45,7 @@ const techLogos = [
 export function TechStackSection() {
   return (
     <section className="py-12">
-      <div className="max-w-7xl mx-auto px-4 mb-8 text-center">
+      <div className="max-w-[1400px] mx-auto px-4 mb-8 text-center">
         <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
           Powered by Modern Technology Stack
         </p>

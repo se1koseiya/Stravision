@@ -44,14 +44,14 @@ interface AgentNodeData extends Record<string, unknown> {
 }
 
 const nodeTypeStyles: Record<AgentNodeType, { accent: string; label: string }> = {
-  trigger: { accent: '#f43f5e', label: '触发点' },
-  input: { accent: '#3b82f6', label: '输入层' },
-  process: { accent: '#10b981', label: '处理层' },
-  decision: { accent: '#f59e0b', label: '决策点' },
-  action: { accent: '#a855f7', label: '执行层' },
-  output: { accent: '#14b8a6', label: '输出层' },
+  trigger: { accent: '#71717a', label: '触发点' },
+  input: { accent: '#059669', label: '输入层' },
+  process: { accent: '#059669', label: '处理层' },
+  decision: { accent: '#52525B', label: '决策点' },
+  action: { accent: '#71717a', label: '执行层' },
+  output: { accent: '#52525b', label: '输出层' },
   external: { accent: '#71717a', label: '外联层' },
-  loop: { accent: '#6366f1', label: '闭环层' },
+  loop: { accent: '#52525b', label: '闭环层' },
   groupNode: { accent: '#ffffff', label: '组合' },
 }
 
@@ -82,7 +82,7 @@ const AgentNodeComponent = ({ data, selected }: NodeProps & { data: AgentNodeDat
       className={cn(
         "relative min-w-[220px] max-w-[280px] rounded-none border border-white/5 border-l-4 backdrop-blur-3xl transition-all duration-300 bg-zinc-950/60",
         selected && "ring-1 ring-white/30 border-l-white",
-        isHovered && "shadow-2xl shadow-black/80 ring-1 ring-white/10"
+        isHovered && "shadow-lg shadow-black/80 ring-1 ring-white/10"
       )}
       style={{ borderLeftColor: styles.accent }}
     >
@@ -113,7 +113,7 @@ const AgentNodeComponent = ({ data, selected }: NodeProps & { data: AgentNodeDat
         {data.details && data.details.length > 0 && (
           <div className="mt-4 space-y-1.5 border-t border-white/5 pt-3">
             {data.details.map((detail, i) => (
-              <div key={i} className="flex items-center gap-2 text-[10px] text-zinc-600 font-mono">
+              <div key={i} className="flex items-center gap-2 text-[11px] text-zinc-600 font-mono">
                 <div className="w-1.5 h-[1px] bg-white/20" />
                 {detail}
               </div>
@@ -122,7 +122,7 @@ const AgentNodeComponent = ({ data, selected }: NodeProps & { data: AgentNodeDat
         )}
 
         <div className="absolute -top-3 right-2 opacity-50">
-          <span className="text-[8px] font-mono uppercase tracking-[0.2em] bg-zinc-900 border border-white/5 px-2 py-0.5 text-zinc-400">{styles.label}</span>
+          <span className="text-[11px] font-mono uppercase tracking-[0.2em] bg-zinc-900 border border-white/5 px-2 py-0.5 text-zinc-400">{styles.label}</span>
         </div>
       </div>
     </motion.div>
@@ -151,7 +151,7 @@ const DecisionNodeComponent = ({ data, selected }: NodeProps & { data: AgentNode
           </div>
           <div className="font-black text-white text-[13px] leading-none tracking-tighter uppercase font-mono">{data.label}</div>
           {data.condition && (
-            <div className="text-[10px] text-zinc-400 mt-2 leading-tight font-sans">
+            <div className="text-[11px] text-zinc-400 mt-2 leading-tight font-sans">
               {data.condition}
             </div>
           )}
@@ -164,7 +164,7 @@ const DecisionNodeComponent = ({ data, selected }: NodeProps & { data: AgentNode
 const GroupNodeComponent = ({ data }: NodeProps & { data: { label: string } }) => {
   return (
     <div className="relative w-full h-full  border border-white/[0.03] bg-white/[0.01]">
-      <div className="absolute -top-3 left-4 px-2 py-0.5 bg-zinc-900 border border-white/10 text-[9px] font-mono text-white/40 uppercase tracking-[0.2em] z-10">
+      <div className="absolute -top-3 left-4 px-2 py-0.5 bg-zinc-900 border border-white/10 text-[11px] font-mono text-white/40 uppercase tracking-[0.2em] z-10">
         {data.label}
       </div>
     </div>
@@ -205,7 +205,7 @@ const initialNodes: Node<AgentNodeData>[] = [
     type: 'groupNode',
     position: { x: 50, y: 800 },
     data: { label: '记忆与进化层 (Memory & Evolution)', type: 'groupNode' },
-    style: { width: 1360, height: 220, backgroundColor: 'rgba(16, 185, 129, 0.02)' },
+    style: { width: 1360, height: 220, backgroundColor: 'rgba(0,148,86, 0.02)' },
   },
 
   // --- 感知提取节点 ---
@@ -408,10 +408,10 @@ const initialNodes: Node<AgentNodeData>[] = [
 
 const initialEdges: Edge[] = [
   // 连接逻辑
-  { id: 'e-trigger-input', source: 'trigger', target: 'input-processing', animated: true, style: { stroke: '#f43f5e', strokeWidth: 3 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f43f5e' } },
+  { id: 'e-trigger-input', source: 'trigger', target: 'input-processing', animated: true, style: { stroke: '#71717a', strokeWidth: 3 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#71717a' } },
   { id: 'e-input-context', source: 'input-processing', target: 'context-builder', animated: true, style: { stroke: 'rgba(255,255,255,0.4)', strokeWidth: 3 }, markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.4)' } },
-  { id: 'e-context-tool', source: 'context-builder', target: 'tool-selector', animated: true, style: { stroke: '#3b82f6', strokeWidth: 3.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' } },
-  { id: 'e-tool-decision', source: 'tool-selector', target: 'decision-valid', animated: true, style: { stroke: '#3b82f6', strokeWidth: 3.5 } },
+  { id: 'e-context-tool', source: 'context-builder', target: 'tool-selector', animated: true, style: { stroke: '#059669', strokeWidth: 3.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
+  { id: 'e-tool-decision', source: 'tool-selector', target: 'decision-valid', animated: true, style: { stroke: '#059669', strokeWidth: 3.5 } },
   
   {
     id: 'e-decision-llm',
@@ -419,10 +419,10 @@ const initialEdges: Edge[] = [
     target: 'llm-direct',
     sourceHandle: 'no',
     animated: true,
-    style: { stroke: '#f43f5e', strokeWidth: 3 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#f43f5e' },
+    style: { stroke: '#71717a', strokeWidth: 3 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#71717a' },
     label: '否',
-    labelStyle: { fill: '#f43f5e', fontWeight: 900, fontSize: 13 },
+    labelStyle: { fill: '#71717a', fontWeight: 900, fontSize: 13 },
     labelBgStyle: { fill: '#000', fillOpacity: 0.9 },
   },
   {
@@ -431,15 +431,15 @@ const initialEdges: Edge[] = [
     target: 'tool-executor',
     sourceHandle: 'yes',
     animated: true,
-    style: { stroke: '#10b981', strokeWidth: 4 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
+    style: { stroke: '#059669', strokeWidth: 4 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
     label: '是',
-    labelStyle: { fill: '#10b981', fontWeight: 900, fontSize: 13 },
+    labelStyle: { fill: '#059669', fontWeight: 900, fontSize: 13 },
     labelBgStyle: { fill: '#000', fillOpacity: 0.9 },
   },
 
   { id: 'e-tool-external', source: 'tool-executor', target: 'external-llm', sourceHandle: 'right', targetHandle: 'left', animated: true, style: { stroke: 'rgba(255,255,255,0.2)', strokeWidth: 2.5, strokeDasharray: '6,4' } },
-  { id: 'e-tool-result', source: 'tool-executor', target: 'decision-success', animated: true, style: { stroke: '#a855f7', strokeWidth: 4 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a855f7' } },
+  { id: 'e-tool-result', source: 'tool-executor', target: 'decision-success', animated: true, style: { stroke: '#71717a', strokeWidth: 4 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#71717a' } },
   { id: 'e-llm-reasoning', source: 'llm-direct', target: 'reasoning-engine', animated: true, style: { stroke: 'rgba(255,255,255,0.4)', strokeWidth: 3 } },
   
   {
@@ -448,27 +448,27 @@ const initialEdges: Edge[] = [
     target: 'reasoning-engine',
     sourceHandle: 'yes',
     animated: true,
-    style: { stroke: '#10b981', strokeWidth: 4 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
+    style: { stroke: '#059669', strokeWidth: 4 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
   },
 
-  { id: 'e-reasoning-response', source: 'reasoning-engine', target: 'response-builder', animated: true, style: { stroke: '#10b981', strokeWidth: 3.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
-  { id: 'e-response-output', source: 'response-builder', target: 'output-delivery', animated: true, style: { stroke: '#14b8a6', strokeWidth: 3.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#14b8a6' } },
+  { id: 'e-reasoning-response', source: 'reasoning-engine', target: 'response-builder', animated: true, style: { stroke: '#059669', strokeWidth: 3.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } },
+  { id: 'e-response-output', source: 'response-builder', target: 'output-delivery', animated: true, style: { stroke: '#52525b', strokeWidth: 3.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#52525b' } },
   { id: 'e-response-memory', source: 'response-builder', target: 'memory-update', animated: true, style: { stroke: 'rgba(255,255,255,0.2)', strokeWidth: 2, strokeDasharray: '8,4' } },
 ]
 
 const minimapNodeColor = (node: Node) => {
   const type = (node.data as AgentNodeData)?.type
   const colorMap: Partial<Record<AgentNodeType, string>> = {
-    trigger: '#f43f5e',
-    input: '#3b82f6',
-    process: '#10b981',
-    decision: '#f59e0b',
-    action: '#a855f7',
-    output: '#14b8a6',
+    trigger: '#71717a',
+    input: '#059669',
+    process: '#059669',
+    decision: '#52525B',
+    action: '#71717a',
+    output: '#52525b',
     external: '#71717a',
   }
-  return colorMap[type!] || '#6b7280'
+  return colorMap[type!] || '#71717A'
 }
 
 function AIAgentFlowDiagramInner() {
@@ -615,7 +615,7 @@ export function AIAgentFlowDiagram() {
         {['感知层', '逻辑层', '执行层', '进化层'].map((l) => (
           <div key={l} className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-indigo-500/50" />
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-[0.2em]">
+            <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em]">
               {l}
             </span>
           </div>

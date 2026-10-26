@@ -22,7 +22,7 @@ export function ElderFriendlyToggle({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       {showBadge && isElderFriendlyMode && (
-        <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30">
+        <Badge className="bg-emerald-500/20 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/30">
           <IconPreviewOpen className="size-3 mr-1" />
           长辈友好模式
         </Badge>
@@ -36,8 +36,8 @@ export function ElderFriendlyToggle({
           className={cn(
             "h-9 w-9 rounded-full transition-all",
             isElderFriendlyMode 
-              ? "bg-blue-500 hover:bg-blue-600 text-white shadow-md" 
-              : "hover:bg-blue-50 hover:text-blue-900 dark:hover:bg-blue-900/20 dark:hover:text-blue-100"
+              ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm" 
+              : "hover:bg-emerald-50 hover:text-emerald-900 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-100"
           )}
           title={isElderFriendlyMode ? "关闭长辈友好模式" : "开启长辈友好模式"}
         >

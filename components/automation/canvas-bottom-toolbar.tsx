@@ -51,10 +51,10 @@ export function CanvasBottomToolbar({
         onClick={onClick}
         disabled={disabled}
         className={cn(
-          "nodrag flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition-colors",
+          "nodrag flex h-8 w-8 items-center justify-center rounded-lg text-zinc-600 dark:text-zinc-300 transition-colors",
           active
-            ? "bg-[#1677ff]/10 text-[#1677ff]"
-            : "hover:bg-slate-100 hover:text-slate-900",
+            ? "bg-[#059669]/10 text-[#059669] dark:text-[#10B981]"
+            : "hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
           disabled && "opacity-40 cursor-not-allowed hover:bg-transparent"
         )}
       >
@@ -65,17 +65,17 @@ export function CanvasBottomToolbar({
 
   return (
     <Panel position="bottom-right" className="!m-4">
-      <div className="nodrag pointer-events-auto flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white px-1.5 py-1 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+      <div className="nodrag pointer-events-auto flex items-center gap-1 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 px-1.5 py-1 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.35)]">
         {/* 删除所选（节点 / 连线） */}
         <button
           type="button"
           onClick={onDelete}
           disabled={selectedCount === 0}
           className={cn(
-            "nodrag flex h-8 items-center justify-center gap-1 rounded-md px-2 text-[12px] font-medium transition-colors",
+            "nodrag flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-[12px] font-medium transition-colors",
             selectedCount > 0
-              ? "text-red-500 hover:bg-red-50 hover:text-red-600"
-              : "text-slate-300 cursor-not-allowed"
+              ? "text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              : "text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
           )}
         >
           <IconDelete className="h-4 w-4" />
@@ -84,14 +84,14 @@ export function CanvasBottomToolbar({
           )}
         </button>
 
-        <div className="mx-0.5 h-5 w-px bg-slate-200" />
+        <div className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
 
         {/* 分享 / 导出 */}
         <IconBtn tip="分享 / 导出" onClick={() => alert("导出功能待接入")}>
           <IconShare className="h-4 w-4" />
         </IconBtn>
 
-        <div className="mx-0.5 h-5 w-px bg-slate-200" />
+        <div className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
 
         {/* 缩放 */}
         <IconBtn tip="缩小" onClick={() => zoomOut({ duration: 150 })}>
@@ -117,7 +117,7 @@ export function CanvasBottomToolbar({
         >
           <button
             type="button"
-            className="nodrag flex h-8 min-w-[52px] items-center justify-center rounded-md px-1.5 text-[12px] font-medium tabular-nums text-slate-700 hover:bg-slate-100 transition-colors"
+            className="nodrag flex h-8 min-w-[52px] items-center justify-center rounded-lg px-1.5 text-[12px] font-medium tabular-nums text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             {zoomPercent}%
           </button>
@@ -131,7 +131,7 @@ export function CanvasBottomToolbar({
           <IconFullScreenOne className="h-4 w-4" />
         </IconBtn>
 
-        <div className="mx-0.5 h-5 w-px bg-slate-200" />
+        <div className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
 
         {/* 主题切换 */}
         <IconBtn
@@ -141,7 +141,7 @@ export function CanvasBottomToolbar({
           {isDark ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
         </IconBtn>
 
-        <div className="mx-0.5 h-5 w-px bg-slate-200" />
+        <div className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
 
         {/* 撤销 / 重做 */}
         <IconBtn tip="撤销 (⌘Z)" onClick={onUndo} disabled={!canUndo}>

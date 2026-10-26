@@ -7,7 +7,7 @@ interface PageHeaderRightProps {
   // 连接状态
   connectionStatus?: {
     connected: boolean
-    error?: string
+    error?: string | null
   }
   
   // 会员信息（保留但不显示，用于后续可能的功能）

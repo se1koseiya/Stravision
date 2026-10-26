@@ -13,6 +13,7 @@ import {
   IconSun,
   IconThunderstorm,
 } from "@/components/icon";
+import { skyDataBar, getSkyRamp, type SkyRamp } from "./weather-sky";
 
 const A = BERRY_THEME.apple
 
@@ -22,44 +23,59 @@ const A = BERRY_THEME.apple
 // 一个"云上硬盘"图标），所以任何天气渲染出来都是一朵带硬盘的云。
 // 现在改用 lucide 的真实天气图标族，并按「夜间 / 量级」细分。
 
+/**
+ * 天气条件 → 图标 + 色彩。
+ *
+ * ⚠️ 这里的 gradient / color 曾是「糖果色」来源，与卡片天空底完全不是一套色：
+ *    暴雨 #1e40af→#059669（蓝绿对撞）、晴 #f6d365→#fda085（暖橙）、
+ *    雷 #667eea→#764ba2（糖果紫）、雪 #a8edea→#fed6e3（粉蓝）…
+ *    消费方 device-control 拿它当沉浸光感的「环境光源」--wx-1/--wx-2，
+ *    结果是同一场雨在设备页与看板卡上是两个颜色。
+ * 现在统一从 ./weather-sky 取色：color = 该色相的强调色（图标唯一色彩点），
+ * gradient = 同色相两个色标（材质染色用，色相差恒定 → 读起来是一块介质）。
+ */
 export function getWeatherConfig(condition: string, isNight = false) {
+  const ramp = getSkyRamp(condition, isNight)
+  // 材质环境染色要比天空底更亮一档：backdrop-filter 的 saturate 会把底色吸上来，
+  // 给同值会得到「染了个寂寞」；这里用 stops[0]（最亮档）配 stops[1]。
+  const gradient = [ramp.stops[0], ramp.stops[1]] as const
   const c = (condition || '').toLowerCase()
   // 雷暴
   if (c.includes('thunder') || c.includes('storm') || c.includes('雷')) {
-    return { icon: IconThunderstorm, color: '#6366f1', gradient: ['#667eea', '#764ba2'] }
+    return { icon: IconThunderstorm, color: ramp.accent, gradient }
   }
   // 雪
   if (c.includes('snow') || c.includes('sleet') || c.includes('blizzard') || c.includes('雪')) {
-    return { icon: IconSnow, color: '#7dd3fc', gradient: ['#a8edea', '#fed6e3'] }
+    return { icon: IconSnow, color: ramp.accent, gradient }
   }
   // 雨：按量级区分暴雨 / 小到中雨
   if (c.includes('heavy') || c.includes('暴雨') || c.includes('大雨') || c.includes('torrential')) {
-    return { icon: IconHeavyRain, color: '#3b82f6', gradient: ['#1e40af', '#3b82f6'] }
+    return { icon: IconHeavyRain, color: ramp.accent, gradient }
   }
   if (c.includes('rain') || c.includes('drizzle') || c.includes('shower') || c.includes('雨')) {
-    return { icon: IconLightRain, color: '#60a5fa', gradient: ['#4facfe', '#00f2fe'] }
+    return { icon: IconLightRain, color: ramp.accent, gradient }
   }
   // 雾 / 霾 / 沙尘
   if (c.includes('fog') || c.includes('mist') || c.includes('haze') || c.includes('雾') || c.includes('霾')) {
-    return { icon: IconFog, color: '#94a3b8', gradient: ['#d7dde8', '#e9e9e9'] }
+    return { icon: IconFog, color: ramp.accent, gradient }
   }
   // 阴天（全云，无太阳）
   if (c.includes('overcast') || c.includes('阴')) {
-    return { icon: isNight ? IconCloudyNight : IconCloudy, color: '#94a3b8', gradient: ['#475569', '#64748b'] }
+    return { icon: isNight ? IconCloudyNight : IconCloudy, color: ramp.accent, gradient }
   }
   // 多云 / 局部多云
   if (c.includes('cloud') || c.includes('partly') || c.includes('多云')) {
-    return { icon: isNight ? IconCloudyNight : IconCloudy, color: '#94a3b8', gradient: ['#c9d6ff', '#e2e2e2'] }
+    return { icon: isNight ? IconCloudyNight : IconCloudy, color: ramp.accent, gradient }
   }
   // 晴：夜间用月亮，白天用太阳
   if (isNight) {
-    return { icon: IconCloudyNight, color: '#818cf8', gradient: ['#1e1b4b', '#312e81'] }
+    return { icon: IconCloudyNight, color: ramp.accent, gradient }
   }
   if (c.includes('clear') || c.includes('sun') || c.includes('晴')) {
-    return { icon: IconSunny, color: '#fbbf24', gradient: ['#f6d365', '#fda085'] }
+    return { icon: IconSunny, color: ramp.accent, gradient }
   }
   // 未知：白天给太阳
-  return { icon: IconSun, color: '#fbbf24', gradient: ['#f6d365', '#fda085'] }
+  return { icon: IconSun, color: ramp.accent, gradient }
 }
 
 // ─── Wind Arrow — shows wind direction with rotation ───
@@ -318,7 +334,7 @@ export function WidgetHourlyStrip({
               color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
               lineHeight: 1,
             }}>{h.time}</span>
-            <WeatherIcon size={18} strokeWidth={1.75} color={isActive ? '#fff' : 'rgba(255,255,255,0.8)'} />
+            <WeatherIcon size={18} strokeWidth={2} color={isActive ? '#fff' : 'rgba(255,255,255,0.8)'} />
             <span style={{
               fontSize: 14,
               fontWeight: 700,
@@ -355,18 +371,30 @@ export interface ForecastDay {
   rainChance?: number
 }
 
+/**
+ * 7 日预报列表
+ *
+ * ⚠️ `ramp` 是可选的：调用方（天气卡）传入当前天气色相板，让温度区间条
+ *    与卡片天空底色同属一个色相。**不给就退回中性灰蓝**（不再用旧版那条
+ *    蓝→白→黄彩虹 —— 三个色相横插在同色相背景上，是"廉价感"的主要来源；
+ *    而且彩虹条把"温度高低"和"配色"混成了一件事，读数反而失真。）
+ */
 export function WidgetForecastList({
   days,
   maxTemp,
   minTemp,
+  ramp,
 }: {
   days: ForecastDay[]
   maxTemp?: number
   minTemp?: number
+  ramp?: SkyRamp
 }) {
   const globalMax = maxTemp ?? Math.max(...days.map(d => d.high))
   const globalMin = minTemp ?? Math.min(...days.map(d => d.low))
   const range = globalMax - globalMin || 1
+  /* 未传色相时的中性兜底（冷灰蓝，非纯灰） */
+  const barFill = ramp ? skyDataBar(ramp) : 'linear-gradient(90deg, #7C93A8 0%, #4A5D6E 100%)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -397,7 +425,7 @@ export function WidgetForecastList({
             </div>
 
             {/* Weather icon */}
-            <WeatherIcon size={14} strokeWidth={1.75} color="rgba(255,255,255,0.8)" />
+            <WeatherIcon size={14} strokeWidth={2} color="rgba(255,255,255,0.8)" />
 
             {/* Wind */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, width: 40, flexShrink: 0 }}>
@@ -426,7 +454,7 @@ export function WidgetForecastList({
                   width: `${barWidth}%`,
                   height: '100%',
                   borderRadius: 2,
-                  background: 'linear-gradient(90deg, rgba(147,197,253,0.8), rgba(255,255,255,0.9), rgba(251,191,36,0.8))',
+                  background: barFill,
                 }} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', width: 26, fontVariantNumeric: 'tabular-nums' }}>

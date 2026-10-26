@@ -28,7 +28,7 @@ export class ReportGenerator {
     // 添加摘要
     if (summary) {
       html += `
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+        <div style="background: linear-gradient(135deg, #059669 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px;">
           <h2 style="margin: 0 0 12px 0; color: white; border: none;">📊 报告摘要</h2>
           <p style="margin: 0; font-size: 16px; line-height: 1.6;">${summary}</p>
         </div>
@@ -56,8 +56,8 @@ export class ReportGenerator {
 
     let sectionHtml = `
       <div style="margin-bottom: 32px;">
-        <h2 style="color: #10b981; display: flex; align-items: center; gap: 8px;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #10b981; color: white; border-radius: 8px; font-size: 16px; font-weight: bold;">${index}</span>
+        <h2 style="color: #059669; display: flex; align-items: center; gap: 8px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #059669; color: white; border-radius: 8px; font-size: 16px; font-weight: bold;">${index}</span>
           ${title}
         </h2>
     `
@@ -146,7 +146,7 @@ export class ReportGenerator {
    */
   private static generateHighlight(content: string): string {
     return `
-      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-top: 16px;">
+      <div style="background: #f4f4f5; border-left: 4px solid #52525B; padding: 16px; border-radius: 8px; margin-top: 16px;">
         <p style="margin: 0; color: #92400e; font-weight: 500;">⚠️ ${content}</p>
       </div>
     `
@@ -157,16 +157,16 @@ export class ReportGenerator {
    */
   private static generateMetadataSection(metadata: Record<string, any>): string {
     let html = `
-      <div style="margin-top: 48px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
-        <h3 style="color: #6b7280; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">报告元数据</h3>
+      <div style="margin-top: 48px; padding-top: 24px; border-top: 2px solid #e4e4e7;">
+        <h3 style="color: #71717A; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">报告元数据</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
     `
 
     Object.entries(metadata).forEach(([key, value]) => {
       html += `
-        <div style="background: #f9fafb; padding: 12px; border-radius: 8px;">
-          <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">${key}</div>
-          <div style="font-weight: 600; color: #1f2937;">${value}</div>
+        <div style="background: #fafafa; padding: 12px; border-radius: 8px;">
+          <div style="font-size: 12px; color: #71717A; margin-bottom: 4px;">${key}</div>
+          <div style="font-weight: 600; color: #27272a;">${value}</div>
         </div>
       `
     })

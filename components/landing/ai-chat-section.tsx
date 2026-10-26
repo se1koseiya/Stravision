@@ -87,7 +87,7 @@ export function AiChatSection() {
 
   return (
     <section ref={containerRef} className="py-32 px-4 relative z-10 overflow-hidden">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         
         {/* Text Content */}
         <motion.div 
@@ -130,13 +130,13 @@ export function AiChatSection() {
                     animate={{
                       height: isActive ? 40 : 10,
                       width: isActive ? "auto" : 10,
-                      backgroundColor: isActive ? "rgba(16, 185, 129, 0.1)" : "rgba(55, 65, 81, 1)",
+                      backgroundColor: isActive ? "rgba(0,148,86, 0.1)" : "rgba(55, 65, 81, 1)",
                     }}
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     className={`rounded-full flex items-center justify-center overflow-hidden ${
                       isActive 
                         ? "border border-pink-500/30 text-pink-300 shadow-[0_0_15px_rgba(236,72,153,0.2)]" 
-                        : "group-hover:bg-gray-600"
+                        : "group-hover:bg-zinc-600"
                     }`}
                   >
                      {isActive && (
@@ -160,11 +160,11 @@ export function AiChatSection() {
 
         {/* Chat Simulation */}
         <div ref={chatRef} className="relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-pink-500/5 to-purple-500/5 rounded-3xl blur-xl" />
+          <div className="absolute inset-0 bg-gradient-to-b from-pink-500/5 to-purple-500/5 rounded-2xl blur-xl" />
           
-          <div className="relative bg-[#0A0A0A] border border-gray-800 rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col">
+          <div className="relative bg-[#0A0A0A] border border-zinc-800 rounded-2xl overflow-hidden shadow-lg min-h-[500px] flex flex-col">
             {/* Header */}
-            <div className="p-4 border-b border-gray-800 bg-[#0f0f0f]/80 backdrop-blur-sm flex items-center gap-3">
+            <div className="p-4 border-b border-zinc-800 bg-[#0f0f0f]/80 backdrop-blur-sm flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center relative overflow-hidden">
                 <Image 
                   src="/logo.gif" 
@@ -211,8 +211,8 @@ export function AiChatSection() {
                   
                   <div className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${
                     msg.role === 'user' 
-                      ? 'bg-blue-600 text-white rounded-tr-none' 
-                      : 'bg-card text-gray-200 rounded-tl-none'
+                      ? 'bg-emerald-600 text-white rounded-tr-none' 
+                      : 'bg-card text-zinc-200 rounded-tl-none'
                   }`}>
                     <p className="mb-2">{msg.text}</p>
                     {msg.component && (
@@ -223,8 +223,8 @@ export function AiChatSection() {
                   </div>
 
                   {msg.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center mt-1">
-                      <User className="w-4 h-4 text-gray-300" />
+                    <div className="w-8 h-8 rounded-full bg-zinc-700 flex-shrink-0 flex items-center justify-center mt-1">
+                      <User className="w-4 h-4 text-zinc-300" />
                     </div>
                   )}
                 </motion.div>
@@ -237,20 +237,20 @@ export function AiChatSection() {
                    animate={{ opacity: 1 }}
                    className="flex gap-2 ml-11"
                  >
-                   <span className="w-2 h-2 rounded-full bg-gray-600 animate-bounce" style={{ animationDelay: "0ms" }} />
-                   <span className="w-2 h-2 rounded-full bg-gray-600 animate-bounce" style={{ animationDelay: "150ms" }} />
-                   <span className="w-2 h-2 rounded-full bg-gray-600 animate-bounce" style={{ animationDelay: "300ms" }} />
+                   <span className="w-2 h-2 rounded-full bg-zinc-600 animate-bounce" style={{ animationDelay: "0ms" }} />
+                   <span className="w-2 h-2 rounded-full bg-zinc-600 animate-bounce" style={{ animationDelay: "150ms" }} />
+                   <span className="w-2 h-2 rounded-full bg-zinc-600 animate-bounce" style={{ animationDelay: "300ms" }} />
                  </motion.div>
               )}
             </div>
 
             {/* Input Area Mockup */}
-            <div className="p-4 border-t border-gray-800 bg-[#0f0f0f]">
+            <div className="p-4 border-t border-zinc-800 bg-[#0f0f0f]">
               <div className="relative">
-                <div className="h-10 w-full bg-background rounded-full border border-gray-700 px-4 flex items-center text-muted-foreground text-sm">
+                <div className="h-10 w-full bg-background rounded-full border border-zinc-700 px-4 flex items-center text-muted-foreground text-sm">
                   请输入您的问题...
                 </div>
-                <div className="absolute right-1 top-1 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                <div className="absolute right-1 top-1 w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center">
                   <Send className="w-4 h-4 text-white" />
                 </div>
               </div>

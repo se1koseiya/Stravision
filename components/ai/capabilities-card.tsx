@@ -144,10 +144,10 @@ function CapabilityItemComponent({
       data-action={`{"name":"open_examples","context":{"capabilityId":"${capabilityId}"}}`}
       className="group relative p-5 rounded-2xl border border-zinc-200/60 dark:border-white/10 bg-white dark:bg-zinc-900/80 backdrop-blur-xl transition-all duration-300 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-1 hover:scale-[1.02] text-left overflow-hidden"
     >
-      <div className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300" style={{ background: `linear-gradient(135deg, ${color || '#1677ff'}20, transparent)` }} />
-      <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: `linear-gradient(90deg, ${color || '#1677ff'}, ${color || '#1677ff'}40)` }} />
+      <div className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300" style={{ background: `linear-gradient(135deg, ${color || '#059669'}20, transparent)` }} />
+      <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: `linear-gradient(90deg, ${color || '#059669'}, ${color || '#059669'}40)` }} />
       <div className="relative">
-        <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3 text-white shadow-md" style={{ backgroundColor: color || '#1677ff' }}>
+        <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3 text-white shadow-sm" style={{ backgroundColor: color || '#059669' }}>
           <IconRenderer name={iconName || 'Sparkles'} />
         </div>
         <h4 className="font-bold text-zinc-900 dark:text-white mb-1.5 text-base">{title}</h4>
@@ -174,7 +174,7 @@ function ExamplePanelComponent({
         <div className="mt-3 p-5 rounded-2xl border border-zinc-200/60 dark:border-white/10 bg-white dark:bg-zinc-900/80">
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-white shrink-0" style={{ backgroundColor: color || '#1677ff' }}>
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-white shrink-0" style={{ backgroundColor: color || '#059669' }}>
                 <IconRenderer name={iconName || 'Sparkles'} size={18} />
               </div>
               <div className="min-w-0">
@@ -182,13 +182,13 @@ function ExamplePanelComponent({
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{description}</p>
               </div>
             </div>
-            {onClose && (<button onClick={onClose} className="shrink-0 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"><IconClose size={16} className="text-zinc-400" /></button>)}
+            {onClose && (<button onClick={onClose} className="flex shrink-0 items-center justify-center p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"><IconClose size={16} className="text-zinc-400" /></button>)}
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 mb-3"><IconMagic size={14} className="text-emerald-500" /><span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">试试这些示例</span></div>
             {(examples || []).map((example, i) => (
               <button key={i} onClick={() => onSelectExample?.(example)} className="w-full group flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 transition-all text-left">
-                <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: `${color || '#1677ff'}15`, color: color || '#1677ff' }}>{i + 1}</span>
+                <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold" style={{ backgroundColor: `${color || '#059669'}15`, color: color || '#059669' }}>{i + 1}</span>
                 <span className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white truncate">{example}</span>
                 <IconArrowRight size={14} className="shrink-0 text-zinc-300 group-hover:translate-x-0.5 group-hover:text-emerald-500 transition-all" />
               </button>
@@ -241,14 +241,14 @@ function DirectRenderFallback({
             onClick={() => onToggleCapability(cap.id)}
             className={`group relative p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 text-left overflow-hidden ${
               activeCapabilityId === cap.id
-                ? 'border-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-md'
+                ? 'border-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-sm'
                 : 'border-zinc-200/60 dark:border-white/10 bg-white dark:bg-zinc-900/80 hover:shadow-black/5 hover:scale-[1.02]'
             }`}
           >
             <div className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" style={{ background: `linear-gradient(135deg, ${cap.color}20, transparent)` }} />
             <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(90deg, ${cap.color}, ${cap.color}40)` }} />
             <div className="relative">
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3 text-white shadow-md" style={{ backgroundColor: cap.color }}>
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3 text-white shadow-sm" style={{ backgroundColor: cap.color }}>
                 <IconRenderer name={cap.iconName} />
               </div>
               <h4 className="font-bold text-zinc-900 dark:text-white mb-1.5 text-base">{cap.title}</h4>

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
  */
 export function ChatSkeleton() {
   return (
-    <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-white font-sans dark:bg-[#0a0a0a]">
+    <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-white font-sans dark:bg-[#0A0A0A]">
       {/* ===== 顶部 PageHeader (72px) ===== */}
       <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-black/[0.06] px-4 md:px-8 dark:border-white/[0.06]">
         <div className="flex items-center gap-3">
@@ -37,7 +37,7 @@ export function ChatSkeleton() {
         <div className="flex w-[280px] shrink-0 flex-col border-r border-black/[0.06] dark:border-white/[0.06]">
           {/* 搜索框 */}
           <div className="px-3 pb-2 pt-3">
-            <Skeleton className="h-9 w-full rounded-lg bg-[#f2f3f5] dark:bg-white/[0.06]" />
+            <Skeleton className="h-9 w-full rounded-lg bg-[#f4f4f5] dark:bg-white/[0.06]" />
           </div>
           {/* 会话项：头像 + 双行 */}
           <div className="min-h-0 flex-1 space-y-1 overflow-hidden px-2">
@@ -76,8 +76,8 @@ export function ChatSkeleton() {
             <div className="flex items-start gap-3">
               <Skeleton className="size-9 shrink-0 rounded-full" />
               <div className="space-y-2">
-                <Skeleton className="h-9 w-64 rounded-2xl bg-[#f2f3f5] dark:bg-white/[0.06]" />
-                <Skeleton className="h-9 w-48 rounded-2xl bg-[#f2f3f5] dark:bg-white/[0.06]" />
+                <Skeleton className="h-9 w-64 rounded-2xl bg-[#f4f4f5] dark:bg-white/[0.06]" />
+                <Skeleton className="h-9 w-48 rounded-2xl bg-[#f4f4f5] dark:bg-white/[0.06]" />
               </div>
             </div>
             {/* 自己消息 */}
@@ -89,8 +89,8 @@ export function ChatSkeleton() {
             <div className="flex items-start gap-3">
               <Skeleton className="size-9 shrink-0 rounded-full" />
               <div className="space-y-2">
-                <Skeleton className="h-9 w-40 rounded-2xl bg-[#f2f3f5] dark:bg-white/[0.06]" />
-                <Skeleton className="h-28 w-72 rounded-2xl bg-[#f2f3f5] dark:bg-white/[0.06]" />
+                <Skeleton className="h-9 w-40 rounded-2xl bg-[#f4f4f5] dark:bg-white/[0.06]" />
+                <Skeleton className="h-28 w-72 rounded-2xl bg-[#f4f4f5] dark:bg-white/[0.06]" />
               </div>
             </div>
             {/* 自己消息 */}
@@ -102,7 +102,7 @@ export function ChatSkeleton() {
 
           {/* 输入区 */}
           <div className="shrink-0 border-t border-black/[0.06] p-4 dark:border-white/[0.06]">
-            <div className="rounded-2xl border border-slate-200 p-3 dark:border-white/[0.08]">
+            <div className="rounded-2xl border border-zinc-200 p-3 dark:border-white/[0.08]">
               <Skeleton className="h-4 w-[55%]" />
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex gap-2">

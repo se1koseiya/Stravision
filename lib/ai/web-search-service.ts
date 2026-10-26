@@ -5,6 +5,9 @@
  *   复用现有 GLM provider 凭据，返回结构化结果（标题 / URL / 摘要 / 来源站点 / 发布时间）。
  * - exa：Exa Search 官方 API（api.exa.ai），语义检索质量高、有免费额度，x-api-key 鉴权，
  *   contents.text 直接带回正文片段，深度研究场景可省一次网页抓取。
+ * - anysearch：AnySearch 远程 MCP，免 Key 匿名可用。
+ * - local：内置本地引擎（lib/ai/local-search-engine.ts），进程内聚合 Bing / 360 / DuckDuckGo，
+ *   零 Key、零外部服务，桌面端开箱默认走这条。
  *
  * 之所以不套用 jina-ai/node-DeepResearch 那套（Jina Reader + Gemini）：
  * 一是国内访问不稳定，二是协议分派点留在本服务内，后续接 Tavily/Brave 等只需再加分支。
@@ -14,6 +17,7 @@
 
 import { resolveWebSearchProvider, type WebSearchProtocol } from "./provider-resolver"
 import { remoteMcpToolCall } from "../mcp/remote-mcp-client"
+import { localWebSearch } from "./local-search-engine"
 
 // ============== 类型 ==============
 
@@ -108,8 +112,8 @@ async function resolveCredentials(): Promise<SearchCredentials | null> {
   let value: SearchCredentials | null = null
   try {
     const resolved = await resolveWebSearchProvider()
-    // anysearch 免 Key 匿名可用，apiKey 可为空
-    if (resolved && (resolved.apiKey || resolved.protocol === "anysearch")) {
+    // anysearch 免 Key 匿名可用、local 进程内聚合，apiKey 均可为空
+    if (resolved && (resolved.apiKey || resolved.protocol === "anysearch" || resolved.protocol === "local")) {
       const protocol = resolved.protocol
       value = {
         base:
@@ -117,7 +121,9 @@ async function resolveCredentials(): Promise<SearchCredentials | null> {
             ? normalizeExaBase(resolved.baseUrl)
             : protocol === "anysearch"
               ? "https://api.anysearch.com/mcp"
-              : normalizeSearchBase(resolved.baseUrl),
+              : protocol === "local"
+                ? "local"
+                : normalizeSearchBase(resolved.baseUrl),
         apiKey: resolved.apiKey || "",
         protocol,
         engine: resolved.engine,
@@ -161,7 +167,9 @@ export async function webSearch(query: string, options: WebSearchOptions = {}): 
       ? await searchExa(q, creds, options)
       : creds.protocol === "anysearch"
         ? await searchAnySearch(q, creds, options)
-        : await searchZhipu(q, creds, options)
+        : creds.protocol === "local"
+          ? await searchLocal(q, creds, options)
+          : await searchZhipu(q, creds, options)
 
   if (options.fetchFullText && results.length > 0) {
     await Promise.all(
@@ -284,6 +292,19 @@ async function searchExa(q: string, creds: SearchCredentials, options: WebSearch
     })
     .filter(r => r.url && (r.title || r.snippet))
     .map(r => ({ ...r, fullText: r.snippet || undefined }))
+}
+
+/**
+ * 内置本地引擎协议：进程内聚合 Bing / 360 / DuckDuckGo。
+ * 不需要 provider、不需要 Key、不依赖任何外部服务进程 —— 桌面端开箱默认走这条。
+ */
+async function searchLocal(q: string, creds: SearchCredentials, options: WebSearchOptions): Promise<WebSearchResult[]> {
+  const count = Math.min(Math.max(options.count ?? creds.defaultCount ?? 8, 1), 20)
+  return localWebSearch(q, {
+    count,
+    engine: options.engine ?? creds.engine,
+    signal: options.signal
+  })
 }
 
 /**

@@ -3,11 +3,11 @@ import { IconGithub, IconLinkIn, IconTwitter } from "@/components/icon";
 
 export function Footer() {
   return (
-    <footer className="relative z-10 border-t border-gray-800 bg-[#02040a] pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <footer className="relative z-10 border-t border-zinc-800 bg-[#02040a] pt-16 pb-8">
+      <div className="max-w-[1400px] mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
-            <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 mb-4 block">
+            <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400 mb-4 block">
               Stravision
             </span>
             <p className="text-muted-foreground text-sm leading-relaxed mb-4">
@@ -57,7 +57,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-gray-800 text-center text-sm text-muted-foreground">
+        <div className="pt-8 border-t border-zinc-800 text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} Stravision Inc. All rights reserved.</p>
         </div>
       </div>

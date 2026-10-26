@@ -3,30 +3,67 @@
 <head>
 <meta charset="utf-8" />
 <title>Stravision</title>
+<!-- 沉浸光感材质：与 activate.html 共享同一份（见该文件头，唯一来源是 components/device/material-css.ts） -->
+<link rel="stylesheet" href="assets/material.css" />
 <style>
-  /* 落地页视觉语言：白底 + 极淡环境光 + 墨色主按钮 + #009456 品牌绿 + 0.5px 锌色细边 */
+  /* ==========================================================================
+     启动画面。窗口只有 440×300，放不下分栏，但背景与向导 / 激活页完全同源：
+     AI 助手首页那套「极光」层（顶部 emerald 光晕缓慢漂移 + 向下渐隐）。
+     ========================================================================== */
+  :root {
+    --brand: #059669;
+    --brand-600: #047857;
+    --ink: #0a0a0a;
+    --ink-2: #52525b;
+    --ink-3: #71717a;
+    --ink-4: #a1a1aa;
+    --danger: #b42318;
+    --pill: 999px;
+  }
   * { box-sizing: border-box; }
   html, body {
+    position: relative;
     margin: 0; padding: 0; height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-    background: #ffffff;
-    color: #0a0a0a;
+    background: #f7f7f9; color: var(--ink);
     user-select: none;
     -webkit-user-select: none;
     overflow: hidden;
   }
-  .glow {
-    position: absolute; inset: 0; pointer-events: none;
+
+  /* 与 setup / activate 同一套极光层，只把渐隐曲线按小窗比例收紧 */
+  .aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .aurora::before {
+    content: ""; position: absolute; inset: -28% -12% 0 -12%;
     background:
-      radial-gradient(340px 260px at 88% 96%, rgba(0, 148, 86, 0.09), transparent 62%),
-      radial-gradient(260px 200px at 78% 78%, rgba(0, 148, 86, 0.05), transparent 60%),
-      radial-gradient(420px 300px at -10% -20%, rgba(24, 24, 27, 0.03), transparent 58%);
+      radial-gradient(46% 52% at 30% 20%, rgba(52, 211, 153, 0.30) 0%, rgba(52, 211, 153, 0) 68%),
+      radial-gradient(42% 48% at 72% 10%, rgba(110, 231, 183, 0.26) 0%, rgba(110, 231, 183, 0) 70%),
+      radial-gradient(60% 44% at 50% -4%, rgba(167, 243, 208, 0.36) 0%, rgba(167, 243, 208, 0) 72%);
+    filter: blur(26px);
+    animation: aurora-drift 18s ease-in-out infinite alternate;
+    will-change: transform;
   }
+  .aurora::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom,
+      rgba(247, 247, 249, 0) 0%,
+      rgba(247, 247, 249, 0.14) 32%,
+      rgba(247, 247, 249, 0.50) 56%,
+      rgba(247, 247, 249, 0.88) 78%,
+      #f7f7f9 96%);
+  }
+  @keyframes aurora-drift {
+    from { transform: translate3d(-2.5%, -1%, 0) scale(1.04) rotate(-1.5deg); }
+    to   { transform: translate3d(2.5%, 1.5%, 0) scale(1.12) rotate(1.5deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .aurora::before { animation: none; } }
+
   .mascot {
-    position: absolute; right: -8px; bottom: -14px;
-    width: 172px; height: 172px;
+    position: absolute; right: -4px; bottom: -10px;
+    width: 156px; height: 156px;
     object-fit: contain;
-    pointer-events: none;
+    pointer-events: none; z-index: 1;
+    filter: drop-shadow(0 10px 18px rgba(9, 9, 11, 0.10));
     animation: bob 3.2s ease-in-out infinite;
   }
   @keyframes bob {
@@ -34,99 +71,76 @@
     50% { transform: translateY(-5px); }
   }
   .wrap {
-    position: relative; z-index: 1;
+    position: relative; z-index: 2;
     height: 100%;
     display: flex; flex-direction: column;
     padding: 24px 24px 22px;
   }
   .brand { display: flex; align-items: center; gap: 9px; }
   .logo {
-    width: 26px; height: 26px;
-    border: 0.5px solid #e4e4e7;
-    border-radius: 8px;
+    width: 28px; height: 28px; flex-shrink: 0;
+    border-radius: 9px; overflow: hidden;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    background: #fff;
+    box-shadow: 0 2px 8px rgba(9, 9, 11, 0.14);
   }
-  .name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
-  .name .dot { color: #009456; }
+  .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .name { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
   .spacer { flex: 1; }
   .status {
-    font-size: 14.5px;
-    font-weight: 600;
-    color: #0a0a0a;
-    line-height: 1.5;
-    letter-spacing: -0.01em;
-    max-width: 240px;
-    min-height: 42px;
+    font-size: 14.5px; font-weight: 600; line-height: 1.5;
+    letter-spacing: -0.01em; max-width: 240px; min-height: 42px;
+    color: var(--ink);
   }
-  .status.error { color: #b42318; }
+  .status.error { color: var(--danger); }
   .hint {
     margin-top: 6px;
-    font-size: 10.5px;
-    color: #a1a1aa;
+    font-size: 10.5px; line-height: 1.45;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 46px;
-    max-width: 250px;
-    overflow: hidden;
-    line-height: 1.45;
+    color: var(--ink-4);
+    white-space: pre-wrap; word-break: break-all;
+    max-height: 46px; max-width: 250px; overflow: hidden;
   }
+  /* 进度条＝滑槽（凹槽）。**只有 3px 高，所以刻意不用 .mat-seg**：
+     那边会给一个 backdrop-filter 合成层，而 material-css.ts 明确写着
+     「28px 以下的模糊肉眼几乎看不出来，却要付一个独立合成层的代价 —— 不值得」。
+     这里只取它的**中性介质底色 + 内阴影凹槽**，把"凹陷"这层读感保住。 */
   .bar {
-    margin-top: 14px;
-    width: 252px;
-    height: 3px;
-    background: #f1f1f3;
-    border-radius: 999px;
-    overflow: hidden;
+    margin-top: 14px; width: 252px; height: 3px;
+    background: rgba(120, 120, 128, .26);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06), inset 0 -1px 0 rgba(255, 255, 255, .34);
+    border-radius: var(--pill); overflow: hidden;
   }
+  /* 填充＝品牌色，但同样给一点"受光"：上缘 1px 白 + 外缘品牌色辉光 */
   .bar-fill {
     height: 100%; width: 4%;
-    background: #009456;
-    border-radius: 999px;
+    background: var(--brand); border-radius: var(--pill);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .42), 0 0 8px -2px rgba(0, 148, 86, .55);
     transition: width .35s ease, background-color .2s ease;
   }
-  .bar-fill.error { background: #b42318; }
-  .actions {
-    margin-top: 14px;
-    display: none;
-    gap: 8px;
-  }
+  .bar-fill.error { background: var(--danger); }
+  .actions { margin-top: 14px; display: none; gap: 8px; }
   .actions.show { display: flex; }
+  /* ⚠️ 按钮**不写 border / background / transition**：底色、模糊、内缘光交给 .mat-ghost
+     （或 .mat-brand），按压交给 .mat-press —— 两者都在 assets/material.css 里。
+     本文件是 <style>，排在 <link> 之后，同特异性下后写的赢，写了就会盖掉材质。 */
   button {
-    height: 32px;
-    padding: 0 16px;
-    font-size: 12.5px;
-    font-family: inherit;
-    font-weight: 500;
-    border-radius: 999px;
-    border: 0.5px solid #e4e4e7;
-    background: #ffffff;
+    height: 32px; padding: 0 16px;
+    font-size: 12.5px; font-family: inherit; font-weight: 500;
+    border-radius: var(--pill);
     color: #18181b;
     cursor: pointer;
   }
-  button:hover { background: #fafafa; }
-  button.primary {
-    background: #0a0a0a;
-    color: #ffffff;
-    border-color: #0a0a0a;
-  }
-  button.primary:hover { background: #262626; }
+  /* 品牌 CTA 只补字色（.mat-brand 不负责文字色） */
+  button.primary { color: #fff; }
 </style>
 </head>
 <body>
-  <div class="glow"></div>
+  <div class="aurora" aria-hidden="true"></div>
   <img class="mascot" src="assets/splash-mascot.png" alt="" draggable="false" />
   <div class="wrap">
     <div class="brand">
-      <div class="logo">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/>
-          <circle cx="12" cy="12" r="9"/>
-        </svg>
-      </div>
-      <div class="name">Stravision<span class="dot">.</span></div>
+      <div class="logo"><img src="assets/brand-icon.png" alt="" draggable="false" /></div>
+      <div class="name">Stravision</div>
     </div>
 
     <div class="spacer"></div>
@@ -137,8 +151,8 @@
     <div class="bar"><div class="bar-fill" id="bar"></div></div>
 
     <div class="actions" id="actions">
-      <button id="btn-logs">打开日志</button>
-      <button id="btn-retry" class="primary">重试</button>
+      <button class="mat-ghost mat-press" id="btn-logs">打开日志</button>
+      <button class="primary mat-brand mat-press" id="btn-retry">重试</button>
     </div>
   </div>
 

@@ -25,7 +25,7 @@ export function Topology() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.8 }}
-        className="relative w-full max-w-[1400px] mx-auto rounded-t-[3rem] rounded-b-[2rem] overflow-hidden min-h-[500px] flex items-center border border-gray-800 shadow-2xl"
+        className="relative w-full max-w-[1400px] mx-auto rounded-t-[3rem] rounded-b-[2rem] overflow-hidden min-h-[500px] flex items-center border border-zinc-800 shadow-lg"
       >
 
         {/* Background Image (Space/Starburst) */}
@@ -56,11 +56,11 @@ export function Topology() {
 
           {/* Right Content */}
           <div className="flex-1 w-full max-w-sm ml-auto flex flex-col items-center md:items-start text-center md:text-left">
-            <p className="text-gray-300 font-medium text-sm leading-relaxed mb-8 font-alimama">
+            <p className="text-zinc-300 font-medium text-sm leading-relaxed mb-8 font-alimama">
               从手动管理IoT设备到AI自主编排，我们正站在智慧农业的起点，让每一台设备都有AI大脑。
             </p>
 
-            <Link href="/dashboard" className="px-6 py-3 bg-blue-500 text-white rounded-full text-sm font-semibold flex items-center gap-2 hover:bg-blue-600 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.4)]">
+            <Link href="/dashboard" className="px-6 py-3 bg-emerald-500 text-white rounded-full text-sm font-semibold flex items-center gap-2 hover:bg-emerald-600 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.4)]">
               开启未来 <IconArrowRightUp className="w-4 h-4" />
             </Link>
           </div>
@@ -69,11 +69,11 @@ export function Topology() {
 
         {/* Decorative Bottom Elements */}
         <div className="absolute bottom-0 left-0 w-full h-1 z-20 flex justify-center items-end">
-          <div className="w-1/2 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_20px_rgba(59,130,246,1)]" />
+          <div className="w-1/2 h-[2px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_20px_rgba(59,130,246,1)]" />
         </div>
 
         {/* Glowing Orbs at the bottom */}
-        <div className="absolute bottom-[-20px] left-[30%] w-10 h-10 bg-blue-500 rounded-full blur-xl opacity-60 pointer-events-none" />
+        <div className="absolute bottom-[-20px] left-[30%] w-10 h-10 bg-emerald-500 rounded-full blur-xl opacity-60 pointer-events-none" />
         <div className="absolute bottom-[-10px] left-[70%] w-8 h-8 bg-teal-400 rounded-full blur-lg opacity-60 pointer-events-none" />
         <div className="absolute bottom-[-30px] left-[50%] w-20 h-20 bg-green-500 rounded-full blur-2xl opacity-50 pointer-events-none" />
 

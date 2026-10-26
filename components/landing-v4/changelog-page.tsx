@@ -19,7 +19,7 @@ const LandingFooter = dynamic(
 export function ChangelogPageClient({ entries }: { entries: ChangelogEntryView[] }) {
   return (
     <LandingThemeProvider>
-      <div className="min-h-screen bg-white dark:bg-[#0C110E]">
+      <div className="min-h-screen bg-white dark:bg-[#09090B]">
         <LandingNav />
         <main className="pt-24">
           <Changelog entries={entries} />

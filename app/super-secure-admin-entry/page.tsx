@@ -7,7 +7,7 @@ import CapWidget from "@/components/ui/cap-widget";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/feedback";
 import { IconLock, IconShield } from "@/components/icon";
 
 
@@ -78,7 +78,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black/95 p-4">
-      <Card className="w-full max-w-md border-red-900/30 bg-black text-red-500 shadow-2xl shadow-red-900/20">
+      <Card className="w-full max-w-md border-red-900/30 bg-black text-red-500 shadow-lg shadow-red-900/20">
         <CardHeader className="space-y-1 text-center border-b border-red-900/30 pb-6">
           <div className="flex justify-center mb-4">
             <div className="p-3 rounded-full bg-red-950/30 border border-red-900/50">
@@ -144,7 +144,7 @@ export default function AdminLoginPage() {
               {loading ? "Verifying..." : "Authenticate"}
             </Button>
           </form>
-          <div className="text-[10px] text-red-900/50 font-mono text-center pt-4">
+          <div className="text-[11px] text-red-900/50 font-mono text-center pt-4">
             SYSTEM ID: {systemId}
             <br/>
             IP LOGGED AND MONITORED

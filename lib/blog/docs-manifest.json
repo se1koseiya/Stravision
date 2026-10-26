@@ -3,7 +3,7 @@
     {
       "slug": "stravision-用户层操作手册",
       "title": "Stravision 用户层操作手册",
-      "description": "",
+      "description": "面向注册用户，从账号认证、AI 助手到仪表板、实时监控、设备控制与自动化策略，逐步讲清每个页面的操作路径。",
       "category": "user",
       "tags": [],
       "icon": "book",
@@ -18,7 +18,7 @@
     {
       "slug": "智能体提示词",
       "title": "智能体提示词",
-      "description": "",
+      "description": "Agent 智能体的完整 System Prompt 体系：静态/动态分层组装、三种 Persona、Compact 指令模块、记忆增强与 Plan Mode。",
       "category": "developer",
       "tags": [
         "代码"

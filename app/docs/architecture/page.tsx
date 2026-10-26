@@ -27,7 +27,7 @@ export default function ArchitecturePage() {
       
       {/* Ambient Glow */}
       <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       <main className="relative z-10 min-h-screen flex flex-col">
         {/* Nav */}
@@ -58,7 +58,7 @@ export default function ArchitecturePage() {
            </section>
            
            {/* Divider */}
-           <div className="w-full max-w-7xl mx-auto h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+           <div className="w-full max-w-[1400px] mx-auto h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
 
            {/* Logical Architecture */}
            <section id="logical" className="w-full">
@@ -66,7 +66,7 @@ export default function ArchitecturePage() {
            </section>
 
            {/* Divider */}
-           <div className="w-full max-w-7xl mx-auto h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
+           <div className="w-full max-w-[1400px] mx-auto h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
 
            {/* Database Architecture */}
            <section id="database" className="w-full">
@@ -74,7 +74,7 @@ export default function ArchitecturePage() {
            </section>
 
            {/* Divider */}
-           <div className="w-full max-w-7xl mx-auto h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
+           <div className="w-full max-w-[1400px] mx-auto h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
 
            {/* User Flow */}
            <section id="userflow" className="w-full">
@@ -84,10 +84,10 @@ export default function ArchitecturePage() {
         
         {/* Footer */}
         <footer className="px-6 md:px-12 py-6 flex justify-between items-center border-t border-white/5 bg-black/20 backdrop-blur-md">
-          <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">
+          <p className="text-[11px] text-zinc-600 font-mono uppercase tracking-widest">
             Stravision IoT Platform // Architecture Overview
           </p>
-          <p className="text-[10px] text-zinc-700 font-mono uppercase tracking-widest hidden md:block">
+          <p className="text-[11px] text-zinc-700 font-mono uppercase tracking-widest hidden md:block">
             Designed for Precision Agriculture
           </p>
         </footer>

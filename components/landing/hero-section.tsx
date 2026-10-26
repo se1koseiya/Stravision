@@ -45,7 +45,7 @@ export function HeroSection() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-blue-600/20 text-blue-400 border border-blue-500/20 backdrop-blur-sm">
+          <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 backdrop-blur-sm">
             AI 驱动的智慧农业解决方案
           </span>
         </motion.div>
@@ -57,9 +57,9 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] mb-8"
         >
-          <span className="block text-gray-300">智慧感知.</span>
-          <span className="block text-gray-200">万物互联.</span>
-          <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400">
+          <span className="block text-zinc-300">智慧感知.</span>
+          <span className="block text-zinc-200">万物互联.</span>
+          <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400">
             面向未来
           </span>
         </motion.h1>
@@ -85,7 +85,7 @@ export function HeroSection() {
           <Link href="/dashboard" className="w-full sm:w-auto">
             <Button 
               size="lg" 
-              className="w-full sm:w-auto group h-14 px-8 rounded-full bg-white text-black hover:bg-gray-200 transition-all text-base font-semibold"
+              className="w-full sm:w-auto group h-14 px-8 rounded-full bg-white text-black hover:bg-zinc-200 transition-all text-base font-semibold"
             >
               进入控制台
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -96,7 +96,7 @@ export function HeroSection() {
               size="lg" 
               variant="outline"  
               onClick={handleMonitorClick}
-              className="w-full sm:w-auto group h-14 px-8 rounded-full border-gray-700 bg-transparent text-white hover:bg-white/5 hover:border-gray-500 transition-all text-base"
+              className="w-full sm:w-auto group h-14 px-8 rounded-full border-zinc-700 bg-transparent text-white hover:bg-white/5 hover:border-zinc-500 transition-all text-base"
             >
               实时监控
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { IconChartLine, IconCheck, IconCloudStorage, IconComment, IconCopy, IconDatabaseNetwork, IconGlobe, IconLightning, IconLock, IconRadio, IconRight, IconServer, IconShield, IconTerminal, IconTime } from "@/components/icon";
+import { APP_VERSION_TAG } from "@/lib/app-meta"
 
 // --- Types ---
 
@@ -421,7 +422,7 @@ function CodeBlock({ code, label }: { code: string | object, label?: string }) {
   return (
     <div className="relative group mt-2">
       {label && <div className="text-[10px] text-muted-foreground mb-1 font-mono uppercase tracking-wider">{label}</div>}
-      <div className="relative bg-[#0a0a0a] border border-white/10 rounded-lg overflow-hidden">
+      <div className="relative bg-[#0A0A0A] border border-white/10 rounded-lg overflow-hidden">
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={copy} className="p-1.5 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors">
             {copied ? <IconCheck className="w-3 h-3 text-primary" /> : <IconCopy className="w-3 h-3" />}
@@ -464,7 +465,7 @@ export default function ApiDocsPage() {
               <IconTerminal className="w-5 h-5 text-primary" />
               API DOCS
             </h1>
-            <p className="text-[10px] text-muted-foreground mt-1 font-mono">v4.0.2 // SYSTEM_ONLINE</p>
+            <p className="text-[10px] text-muted-foreground mt-1 font-mono">{APP_VERSION_TAG} // SYSTEM_ONLINE</p>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">

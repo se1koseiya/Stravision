@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button, Typography, Spin, Card, Popconfirm } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { ImageCropper } from "@/components/admin/image-cropper"
 import { IconLoading, IconUndo, IconUpload } from "@/components/icon";
 
@@ -176,8 +176,8 @@ export function BrandingSettings() {
                   fontSize: 12,
                   fontWeight: 500,
                   ...(state.isCustom
-                    ? { background: "#E6F4FF", color: "#1677FF", border: "1px solid #91CAFF" }
-                    : { background: "#FAFAFA", color: "#8C8C8C", border: "1px solid #EDEEEF" }),
+                    ? { background: "#ECFDF5", color: "#059669", border: "1px solid #6EE7B7" }
+                    : { background: "#FAFAFA", color: "#8F959E", border: "1px solid #EDEEEF" }),
                 }}
               >
                 {state.isCustom ? "自定义图标" : "系统默认"}

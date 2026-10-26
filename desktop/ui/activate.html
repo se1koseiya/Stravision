@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>激活 Stravision</title>
+<!-- 沉浸光感材质：与 splash.html 共享同一份（见该文件头，唯一来源是 components/device/material-css.ts）。
+     ⚠️ 必须排在本页 <style> **之前**：本页的版式规则靠"后写取胜"覆盖物料时才有明确次序。 -->
+<link rel="stylesheet" href="assets/material.css" />
+<style>
+  /* ==========================================================================
+     与首启向导保持同一套视觉语言（左品牌栏 + 右内容区 + 极光背景）。
+
+     ⚠️ 本页**必须保持静态**：它跑在 bootstrap 第 1 步的授权关卡，早于 Next 服务拉起，
+        窗口里根本加载不到 React 路由。所以这里的样式是手写的，
+        与 app/desktop-setup/page.tsx（React 版向导）是同源的两份实现。
+     🚨 改视觉时两边要一起改；两侧的图标/吉祥物资源也是两份：
+        本页读 ui/assets/（file://），React 页读 public/desktop/（http）。
+     ========================================================================== */
+  :root {
+    --brand: #059669;
+    --brand-600: #047857;
+    --brand-700: #065f46;
+    --ink: #0a0a0a;
+    --ink-2: #52525b;
+    --ink-3: #71717a;
+    --ink-4: #a1a1aa;
+    --line: #e4e4e7;
+    --line-soft: #f1f1f3;
+    --bg-soft: #fafafa;
+    --danger: #b42318;
+    --pill: 999px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    position: relative;
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #f7f7f9; color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ------------------------------------------------------------ 沉浸光感材质
+     🚨 材质本体**不在本文件里**，已抽到 assets/material.css（splash 与本页共享一份，
+        避免两份手写副本各自漂移）。唯一来源仍是 components/device/material-css.ts。
+        本页用到的档位：.mat-rail（左栏）/ .mat-panel（唯一圆角容器）/ .mat-field（输入框）
+        / .mat-brand（品牌 CTA）/ .mat-seg（分段滑槽）/ .mat-ghost（次按钮）/ .mat-press（按压反馈）。
+     ⚠️ 本页只有亮色，不做暗色：它是"应用启动前"的品牌面，与 splash 同性质；
+        应用内的窗口（向导 / 主界面）才跟随系统主题。
+     ========================================================================== */
+
+  /* ------------------------------------------------------------------ 动态背景
+     与 AI 助手首页同一套「极光」层（app/ai-assistant/page.tsx 的 .pb-aurora）：
+     三团 emerald 光晕在上半部缓慢漂移，经向下渐隐的遮罩只留顶部一层清透绿意。
+     ⚠️ 这段**刻意不共享**：::after 的渐隐曲线要按窗口高度收放，本页(660) 与 splash(300) 不同。 */
+  .aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .aurora::before {
+    content: ""; position: absolute; inset: -28% -12% 0 -12%;
+    background:
+      radial-gradient(46% 52% at 30% 20%, rgba(52, 211, 153, 0.30) 0%, rgba(52, 211, 153, 0) 68%),
+      radial-gradient(42% 48% at 72% 10%, rgba(110, 231, 183, 0.26) 0%, rgba(110, 231, 183, 0) 70%),
+      radial-gradient(60% 44% at 50% -4%, rgba(167, 243, 208, 0.36) 0%, rgba(167, 243, 208, 0) 72%);
+    filter: blur(26px);
+    animation: aurora-drift 18s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  .aurora::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom,
+      rgba(247, 247, 249, 0) 0%,
+      rgba(247, 247, 249, 0.10) 24%,
+      rgba(247, 247, 249, 0.52) 48%,
+      rgba(247, 247, 249, 0.88) 68%,
+      #f7f7f9 84%);
+  }
+  @keyframes aurora-drift {
+    from { transform: translate3d(-2.5%, -1%, 0) scale(1.04) rotate(-1.5deg); }
+    to   { transform: translate3d(2.5%, 1.5%, 0) scale(1.12) rotate(1.5deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .aurora::before { animation: none; } }
+
+  .shell { position: relative; z-index: 1; height: 100%; display: flex; }
+
+  /* ------------------------------------------------------------------ 左：品牌面板
+     ⚠️ 这里**不写 border-right**：分隔由 .mat-rail 的内阴影 hairline 负责。
+        （本文件里的普通规则排在 .mat-* 之后，写了就会盖掉材质。） */
+  .aside {
+    flex: 0 0 300px; width: 300px; height: 100%;
+    position: relative;
+    display: flex; flex-direction: column;
+    padding: 26px 24px 22px;
+  }
+
+  .aside-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; }
+  .aside-brand .logo {
+    width: 28px; height: 28px; flex-shrink: 0;
+    border-radius: 9px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+  .aside-brand .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .aside-brand .name { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+
+  .aside-hero { position: relative; z-index: 1; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .mascot {
+    width: 172px; height: 172px; object-fit: contain;
+    pointer-events: none; user-select: none; -webkit-user-select: none;
+    filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.20));
+  }
+
+  .aside-copy { position: relative; z-index: 1; margin-bottom: 16px; }
+  .aside-title { font-size: 25px; line-height: 1.28; font-weight: 700; letter-spacing: -0.022em; color: var(--ink); }
+  .aside-sub { margin-top: 9px; font-size: 12px; line-height: 1.62; color: var(--ink-3); }
+
+  .aside-foot {
+    position: relative; z-index: 1;
+    font-size: 10.5px; line-height: 1.5;
+    color: var(--ink-4);
+    padding-top: 13px; border-top: 0.5px solid rgba(9, 9, 11, 0.07);
+  }
+
+  /* ------------------------------------------------------------------ 右：内容区 */
+  .main { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; }
+
+  .crumb {
+    flex-shrink: 0; display: flex; align-items: center; gap: 7px;
+    padding: 20px 30px 0;
+    font-size: 11.5px; color: var(--ink-4);
+  }
+  .crumb .sep { color: #d4d4d8; }
+  .crumb b { color: var(--brand-600); font-weight: 600; }
+  .close {
+    margin-left: auto;
+    width: 26px; height: 26px; border-radius: 8px;
+    border: 0.5px solid transparent; background: transparent; color: var(--ink-4);
+    font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .close:hover { background: var(--line-soft); color: #18181b; }
+
+  .head { flex-shrink: 0; padding: 11px 30px 0; }
+  h1 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+  .sub { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; margin-top: 6px; }
+
+  /* ------------------------------------------------------------------ 右：内容区
+     版式遵循铁律「一层容器」：本区域**只有 .panel 一个圆角容器**，
+     面板内部只用「留白 + hairline + 字阶」，不再出现卡片套卡片。
+     （旧版：卡片(16px) 里面还套了「设备指纹」灰底块(11px) —— 两级嵌套，已删。） */
+  .body { flex: 1; min-height: 0; padding: 16px 30px 22px; display: flex; }
+
+  .panel {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;                       /* 让圆角裁住内部滚动内容 */
+    transition: border-color .15s ease;
+  }
+  .panel:focus-within { border-color: rgba(5, 150, 105, 0.42); }
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+  /* 分组：只有留白 + hairline，**内部零容器** */
+  .sec { padding: 16px 20px 18px; }
+  .sec + .sec { border-top: 1px solid rgba(9, 9, 11, .055); }
+  .sec-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; }
+  /* 图标基座：铁律里明确列出的例外（是"元素"不是"盒子"），保留 */
+  .sec-ico {
+    width: 30px; height: 30px; flex-shrink: 0; border-radius: 10px;
+    background: rgba(5, 150, 105, 0.08); color: var(--brand-600);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sec-title { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.35; }
+  .sec-note { font-size: 11.5px; color: var(--ink-3); line-height: 1.55; margin-top: 2px; }
+  /* 状态标记用**品牌色文字**而不是药丸底 —— 给药丸底 = 面板里又套一层圆角矩形。
+     语义色照旧在（品牌墨绿），只是不再靠底色承担。 */
+  .tag { margin-left: auto; flex-shrink: 0; font-size: 10.5px; font-weight: 600; color: var(--brand-600); }
+
+  /* 激活方式切换（在线 / 离线）—— 结构同向导的 MQTT 分段控件：
+     滑槽走 .mat-seg（凹槽，比周围暗一档的中性介质），
+     选中块走白玻璃滑块（比滑槽亮一档）+ 品牌墨绿字。
+     ⚠️ 不写 border / background：那两个属性交给 .mat-seg（本文件后面的普通规则会盖掉材质）。 */
+  .tabs {
+    display: flex; gap: 2px; padding: 2px; margin-bottom: 14px;
+    border-radius: var(--pill);
+  }
+  .tab {
+    flex: 1; height: 30px;
+    border: 1px solid transparent;   /* 占位，避免选中态加边框后高度跳 2px */
+    border-radius: var(--pill);
+    background: transparent; color: var(--ink-3);
+    font-family: inherit; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: color .15s ease;
+  }
+  .tab:hover { color: var(--ink); }
+  /* 选中态用白玻璃滑块 + 品牌墨绿字（不用"品牌实底+白字"）：
+     浅底上半透明品牌膜不可能同时满足"比滑槽亮"与"字色达标"，官方做法就是白滑块 + 同色深字。 */
+  .tab.active {
+    color: var(--brand-600); font-weight: 600;
+    -webkit-backdrop-filter: blur(20px) saturate(1.85) brightness(1.05);
+    backdrop-filter: blur(20px) saturate(1.85) brightness(1.05);
+    background-color: rgba(255, 255, 255, .62);
+    border-color: rgba(255, 255, 255, .68);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, .04), 0 6px 16px -10px rgba(0, 0, 0, .16),
+      inset 0 0 1px rgba(255, 255, 255, .80), inset 0 1px 0 rgba(255, 255, 255, .72);
+  }
+
+  .field-label { font-size: 11.5px; font-weight: 500; color: var(--ink-2); margin-bottom: 6px; }
+  /* ⚠️ 输入框/文本域**不写 background 与 border**：底色、模糊、内缘光全部交给 .mat-field。
+     本文件后面的普通规则特异性比 .mat-* 高，一旦自己写了背景就盖掉材质 ——
+     那正是旧版「一排没有光感的白控件」的成因（88% 的白把背后的光冲掉了）。 */
+  input[type="text"] {
+    width: 100%; height: 42px; padding: 0 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; letter-spacing: 0.06em;
+    color: var(--ink);
+    border-radius: 11px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+    user-select: text; -webkit-user-select: text;
+  }
+  input[type="text"]::placeholder { color: #c4c4cc; letter-spacing: 0.04em; }
+  input[type="text"]:focus { border-color: rgba(5, 150, 105, 0.62); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.10); }
+  input[type="text"].invalid { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.08); }
+
+  textarea {
+    width: 100%; height: 96px; padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; line-height: 1.55;
+    color: var(--ink);
+    border-radius: 11px;
+    outline: none; resize: none; word-break: break-all;
+    transition: border-color .15s ease, box-shadow .15s ease;
+    user-select: text; -webkit-user-select: text;
+  }
+  textarea::placeholder { color: #c4c4cc; font-family: inherit; letter-spacing: 0; }
+  textarea:focus { border-color: rgba(5, 150, 105, 0.62); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.10); }
+  textarea.invalid { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.08); }
+
+  .hint { margin-top: 7px; font-size: 11px; color: var(--ink-4); line-height: 1.55; }
+
+  .msg {
+    margin-top: 12px; min-height: 18px;
+    font-size: 12px; line-height: 1.55; color: var(--ink-3);
+    white-space: pre-wrap;
+  }
+  .msg.error { color: var(--danger); }
+  .msg.ok { color: var(--brand-600); }
+
+  /* 设备指纹：**不再做成灰底圆角块**（那是面板里的第二层圆角容器），
+     改成"上缘一条 hairline + 等宽字"的数据行 —— 与向导里的行列表同一手法。 */
+  .device-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; color: var(--ink-2);
+    word-break: break-all; line-height: 1.55;
+    padding-top: 10px; border-top: 1px solid rgba(9, 9, 11, .055);
+    user-select: text; -webkit-user-select: text;
+  }
+  .device-actions { margin-top: 10px; display: flex; gap: 6px; }
+  /* ⚠️ 不写 border / background / transition：交给 .mat-ghost 与 .mat-press
+     （本文件后面的普通规则特异性比 .mat-* 高，写了就会盖掉材质与按压反馈）。 */
+  .link-btn {
+    height: 26px; padding: 0 11px;
+    font-size: 11px; font-family: inherit;
+    border-radius: var(--pill);
+    color: var(--ink-2); cursor: pointer;
+  }
+  .link-btn:hover { color: var(--ink); }
+
+  /* 底部动作区（现在在 .panel 内部，与向导一致：面板是唯一容器，动作条也在里面） */
+  .foot { flex-shrink: 0; padding: 12px 20px 14px; border-top: 1px solid rgba(9, 9, 11, 0.075); }
+  .actions { display: flex; align-items: center; gap: 10px; }
+  .spacer { flex: 1; }
+  /* ⚠️ 不写 border / background / transition：交给 .mat-brand（品牌 CTA，自带品牌色辉光）
+     与 .mat-press（按压弹性 + 点光源）。 */
+  .submit {
+    height: 36px; padding: 0 26px;
+    border-radius: var(--pill);
+    color: #fff;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    letter-spacing: -0.01em; cursor: pointer;
+  }
+  /* 禁用态：把材质一起撤掉（只留一块实色灰），否则"按不动"这件事读不出来 */
+  .submit:disabled {
+    background-color: #d4d4d8; cursor: default;
+    border-color: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+</style>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="shell">
+    <!-- ============ 左：品牌面板 ============ -->
+    <aside class="aside mat-rail">
+      <div class="aside-brand">
+        <div class="logo"><img src="assets/brand-icon.png" alt="" draggable="false" /></div>
+        <div class="name">Stravision</div>
+      </div>
+
+      <div class="aside-hero">
+        <img class="mascot" src="assets/splash-mascot.png" alt="" draggable="false" />
+      </div>
+
+      <div class="aside-copy">
+        <div class="aside-title">授权一次，<br />离线可用。</div>
+        <div class="aside-sub">授权与本机设备绑定，激活后无需联网也能正常使用全部功能。</div>
+      </div>
+
+      <div class="aside-foot">设备指纹仅在本机生成，用于授权校验</div>
+    </aside>
+
+    <!-- ============ 右：内容区 ============ -->
+    <main class="main">
+      <div class="crumb">
+        <span>激活</span>
+        <span class="sep">›</span>
+        <b id="crumb-step">离线授权串</b>
+        <button class="close mat-press" id="btn-close" title="退出">&#10005;</button>
+      </div>
+
+      <div class="head">
+        <h1>激活本机</h1>
+        <div class="sub">授权与设备绑定，激活后本机即可离线使用。</div>
+      </div>
+
+      <div class="body">
+        <section class="panel mat-panel">
+          <div class="scroll">
+            <!-- 激活方式 -->
+            <div class="sec">
+              <div class="sec-head">
+                <span class="sec-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2 11 12"/><path d="m15.5 7.5 3 3L22 7l-3-3"/><circle cx="4" cy="20" r="2"/>
+                    <path d="M4 18V6a2 2 0 0 1 2-2h8"/>
+                  </svg>
+                </span>
+                <div>
+                  <div class="sec-title">激活方式</div>
+                  <div class="sec-note">在线授权码，或管理员签发的离线授权串</div>
+                </div>
+                <span class="tag">必需</span>
+              </div>
+
+              <div class="tabs mat-seg" id="tabs">
+                <button type="button" class="tab" data-mode="online">在线激活</button>
+                <button type="button" class="tab active" data-mode="offline">离线授权串</button>
+              </div>
+
+              <div id="panel-online" hidden>
+                <div class="field-label">授权码</div>
+                <input type="text" class="mat-field" id="code" placeholder="STV-XXXX-XXXX-XXXX-XXXX" maxlength="24"
+                       autocomplete="off" spellcheck="false" />
+                <div class="hint">需授权服务器在线支持；若服务器已停用在线激活，请切回「离线授权串」。</div>
+              </div>
+
+              <div id="panel-offline">
+                <div class="field-label">离线授权串</div>
+                <textarea class="mat-field" id="blob" placeholder="粘贴管理员提供的离线授权串…" spellcheck="false"></textarea>
+                <div class="hint">由管理员针对本机指纹签发，纯本地校验、无需联网，服务器不可用时也能激活。</div>
+              </div>
+
+              <div class="msg" id="msg"></div>
+            </div>
+
+            <!-- 设备指纹 -->
+            <div class="sec">
+              <div class="sec-head">
+                <span class="sec-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>
+                  </svg>
+                </span>
+                <div>
+                  <div class="sec-title">本机设备指纹</div>
+                  <div class="sec-note">激活后可在管理后台看到此设备</div>
+                </div>
+                <span class="tag">本机</span>
+              </div>
+
+              <div class="device-id" id="device-id">读取中…</div>
+              <div class="device-actions">
+                <button class="link-btn mat-ghost mat-press" id="btn-copy">复制</button>
+                <button class="link-btn mat-ghost mat-press" id="btn-logs">打开日志</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="foot">
+            <div class="actions">
+              <div class="spacer"></div>
+              <button class="submit mat-brand mat-press" id="btn-submit" disabled>激活</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+<script>
+  const codeEl = document.getElementById('code');
+  const blobEl = document.getElementById('blob');
+  const msgEl = document.getElementById('msg');
+  const submitEl = document.getElementById('btn-submit');
+  const deviceEl = document.getElementById('device-id');
+  const panelOnline = document.getElementById('panel-online');
+  const panelOffline = document.getElementById('panel-offline');
+  const crumbStepEl = document.getElementById('crumb-step');
+  const tabEls = Array.from(document.querySelectorAll('#tabs .tab'));
+  let mode = 'offline';
+  let activating = false;
+
+  function setMsg(text, kind) {
+    msgEl.textContent = text || '';
+    msgEl.className = 'msg' + (kind ? ' ' + kind : '');
+  }
+
+  /** 输入时统一大写并剔除明显非法字符（服务端仍会做一次严格归一化） */
+  function sanitize(raw) {
+    return String(raw || '').toUpperCase().replace(/[^0-9A-Z-]/g, '').slice(0, 24);
+  }
+
+  function refreshSubmitState() {
+    if (mode === 'offline') {
+      // 离线授权串是 `<base64url payload>.<base64url 签名>`，长度天然远大于 60
+      submitEl.disabled = activating || blobEl.value.trim().length < 40;
+      return;
+    }
+    const body = codeEl.value.replace(/[^0-9A-Z]/g, '');
+    submitEl.disabled = activating || body.length < 12;
+  }
+
+  function setMode(next) {
+    if (activating || next === mode) return;
+    mode = next;
+    for (const el of tabEls) el.classList.toggle('active', el.dataset.mode === next);
+    panelOnline.hidden = next !== 'online';
+    panelOffline.hidden = next !== 'offline';
+    crumbStepEl.textContent = next === 'online' ? '在线激活' : '离线授权串';
+    setMsg('');
+    codeEl.classList.remove('invalid');
+    blobEl.classList.remove('invalid');
+    refreshSubmitState();
+    (next === 'offline' ? blobEl : codeEl).focus();
+  }
+
+  codeEl.addEventListener('input', () => {
+    const caretAtEnd = codeEl.selectionStart === codeEl.value.length;
+    codeEl.value = sanitize(codeEl.value);
+    codeEl.classList.remove('invalid');
+    if (caretAtEnd) codeEl.selectionStart = codeEl.selectionEnd = codeEl.value.length;
+    refreshSubmitState();
+  });
+
+  codeEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !submitEl.disabled) void submit();
+  });
+
+  blobEl.addEventListener('input', () => {
+    blobEl.classList.remove('invalid');
+    refreshSubmitState();
+  });
+
+  for (const el of tabEls) {
+    el.addEventListener('click', () => setMode(el.dataset.mode));
+  }
+
+  async function loadDevice() {
+    try {
+      const info = await window.stravisionDesktop?.licenseInfo();
+      deviceEl.textContent = info?.deviceId || '（读取失败）';
+    } catch {
+      deviceEl.textContent = '（读取失败）';
+    }
+  }
+
+  /** 失败收尾：恢复按钮，标红当前输入框 */
+  function fail(message) {
+    setMsg(message, 'error');
+    (mode === 'offline' ? blobEl : codeEl).classList.add('invalid');
+    activating = false;
+    submitEl.textContent = '激活';
+    refreshSubmitState();
+  }
+
+  /**
+   * 在线激活失败的兜底文案：服务器停用 / 路由缺失 / 断网都可能落到这里，
+   * 必须明确告诉用户改用离线授权串，而不是只丢一句「激活失败」。
+   */
+  function withOfflineHint(message) {
+    const base = message || '激活失败，请检查授权码';
+    return base + '\n\n授权服务器可能已停用在线激活。请切换到「离线授权串」，'
+      + '把页面底部的本机设备指纹发给管理员，索取针对本机签发的离线授权串。';
+  }
+
+  function begin(workingText, msgText) {
+    activating = true;
+    submitEl.disabled = true;
+    submitEl.textContent = workingText;
+    setMsg(msgText, '');
+  }
+
+  async function submit() {
+    if (activating) return;
+
+    // ---- 离线授权串：纯本地验签，不碰网络 ----
+    if (mode === 'offline') {
+      const blob = blobEl.value.trim();
+      if (!blob) return;
+      begin('正在校验…', '正在本地校验离线授权串…');
+      try {
+        const result = await window.stravisionDesktop?.licenseActivateOffline(blob);
+        if (result?.ok) {
+          setMsg('授权已导入，正在启动…', 'ok');
+          submitEl.textContent = '导入成功';
+          // 主进程负责关窗并继续 bootstrap
+        } else {
+          fail(result?.error || '离线授权串无效');
+        }
+      } catch (err) {
+        fail('导入失败：' + (err?.message || '未知错误'));
+      }
+      return;
+    }
+
+    // ---- 在线授权码 ----
+    const code = codeEl.value.trim();
+    if (!code) return;
+    begin('正在激活…', '正在连接授权服务器…');
+    try {
+      const result = await window.stravisionDesktop?.licenseActivate(code);
+      if (result?.ok) {
+        setMsg('激活成功，正在启动…', 'ok');
+        submitEl.textContent = '激活成功';
+        // 主进程负责关窗并继续 bootstrap
+      } else {
+        fail(withOfflineHint(result?.error));
+      }
+    } catch (err) {
+      fail(withOfflineHint('激活失败：' + (err?.message || '未知错误')));
+    }
+  }
+
+  submitEl.addEventListener('click', () => void submit());
+  document.getElementById('btn-close').addEventListener('click', () => {
+    window.stravisionDesktop?.licenseQuit();
+  });
+  document.getElementById('btn-logs').addEventListener('click', () => {
+    window.stravisionDesktop?.openLogs();
+  });
+  document.getElementById('btn-copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(deviceEl.textContent || '');
+      const btn = document.getElementById('btn-copy');
+      const prev = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = prev; }, 1200);
+    } catch {
+      /* 剪贴板不可用时忽略 */
+    }
+  });
+
+  loadDevice();
+  refreshSubmitState();
+  (mode === 'offline' ? blobEl : codeEl).focus();
+</script>
+</body>
+</html>

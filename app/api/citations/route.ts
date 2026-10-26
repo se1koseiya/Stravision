@@ -1,5 +1,6 @@
 import { assertSafeUrl } from "@/lib/security/ssrf-guard"
 import { getCurrentUser } from "@/lib/auth"
+import { adaptChatRequestBody } from "@/lib/ai/provider-body-adapter"
 
 export async function POST(req: Request) {
   // 认证：必须登录才能调用（防止匿名 SSRF）
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
     }
     const headers: Record<string, string> = { "Content-Type": "application/json" }
     headers["Authorization"] = `Bearer ${apiKey}`
-    const resp = await fetch(targetUrl, { method: "POST", headers, body: JSON.stringify(requestBody) })
+    const resp = await fetch(targetUrl, { method: "POST", headers, body: JSON.stringify(adaptChatRequestBody(requestBody, { baseUrl: targetUrl, model })) })
     if (!resp.ok) {
       const t = await resp.text()
       return Response.json({ error: `API Error: ${resp.status} - ${t}` }, { status: resp.status })

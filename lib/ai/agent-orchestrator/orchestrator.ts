@@ -88,7 +88,14 @@ export class AgentOrchestrator {
         context.mcpConfigs || [],
         context.appUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         this.config.toolConfig,
-        { userId: context.userId, sessionId: context.sessionId, onProgress: context.onProgress }
+        {
+          userId: context.userId,
+          sessionId: context.sessionId,
+          onProgress: context.onProgress,
+          onStage: context.onStage,
+          userImages: context.userImages,
+          userModel: context.userModel,
+        }
       );
 
       // 更新动作状态

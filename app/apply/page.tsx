@@ -6,10 +6,10 @@ import { IconArrowLeft } from "@/components/icon";
 
 export default function ApplyPage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white font-sans flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <main className="min-h-screen bg-[#0A0A0A] text-white font-sans flex flex-col items-center justify-center p-4 relative overflow-hidden">
       
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),transparent_70%)] pointer-events-none" />
+      {/* Background Elements —— 2026-10-22 撤掉底部那团绿色径向光：
+          「全站除设备控制页外不再使用渐变背景」，这里只保留一条受光发丝线。 */}
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       
       <nav className="absolute top-8 left-8 z-50">

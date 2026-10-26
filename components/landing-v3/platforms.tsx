@@ -64,11 +64,11 @@ export function Platforms() {
           background: "linear-gradient(180deg, #7FE7BC 0%, #A9F2D4 100%)",
         }}
       >
-        <div className="mx-auto max-w-[1280px] px-6">
+        <div className="mx-auto max-w-[1400px] px-6">
           <motion.div {...fadeUp(0)}>
             <Title
               level={2}
-              className="!mb-0 !text-slate-900"
+              className="!mb-0 !text-zinc-900"
               style={{
                 fontSize: "clamp(1.8rem, 3vw, 2.5rem)",
                 fontWeight: 900,
@@ -90,7 +90,7 @@ export function Platforms() {
                     styles={{ body: { padding: 28, display: "flex", flexDirection: "column", height: "100%" } }}
                   >
                     <span
-                      className="flex size-12 items-center justify-center text-[20px] text-slate-800"
+                      className="flex size-12 items-center justify-center text-[20px] text-zinc-800"
                       style={{
                         borderRadius: "42% 58% 60% 40% / 48% 42% 58% 52%",
                         background: pl.blob,
@@ -100,7 +100,7 @@ export function Platforms() {
                     </span>
                     <Title
                       level={3}
-                      className="mt-5 !mb-0 !text-slate-900"
+                      className="mt-5 !mb-0 !text-zinc-900"
                       style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em" }}
                     >
                       {pl.title}
@@ -122,7 +122,7 @@ export function Platforms() {
                         icon={<pl.ctaIcon className="!text-emerald-600" />}
                         style={{
                           background: "#ffffff",
-                          color: "#0f172a",
+                          color: "#18181b",
                           fontWeight: 600,
                           height: 40,
                           fontSize: 14,
@@ -142,11 +142,11 @@ export function Platforms() {
 
       {/* 了解莓界 */}
       <section className="bg-white py-24 md:py-28">
-        <div className="mx-auto max-w-[1280px] px-6">
+        <div className="mx-auto max-w-[1400px] px-6">
           <motion.div {...fadeUp(0)}>
             <Title
               level={2}
-              className="!mb-0 !text-slate-900"
+              className="!mb-0 !text-zinc-900"
               style={{
                 fontSize: "clamp(1.8rem, 3vw, 2.5rem)",
                 fontWeight: 900,
@@ -169,7 +169,7 @@ export function Platforms() {
             <Row gutter={[40, 40]} align="middle">
               <Col xs={24} lg={10}>
                 <div
-                  className="font-black leading-[1.05] tracking-tight text-slate-900"
+                  className="font-black leading-[1.05] tracking-tight text-zinc-900"
                   style={{ fontSize: "clamp(2.6rem, 5.5vw, 4.4rem)" }}
                 >
                   TRY
@@ -177,7 +177,7 @@ export function Platforms() {
                   莓界 Berry Realm
                 </div>
                 <Text
-                  className="mt-4 block !font-medium !text-slate-700"
+                  className="mt-4 block !font-medium !text-zinc-700"
                   style={{ fontSize: "clamp(1.05rem, 2vw, 1.4rem)" }}
                 >
                   Your agentic farm team
@@ -197,7 +197,7 @@ export function Platforms() {
                   className="overflow-hidden shadow-[0_24px_64px_-16px_rgba(6,78,59,0.35)]"
                   styles={{
                     body: { padding: 0 },
-                    header: { padding: "0 16px", height: 36, lineHeight: "36px", borderBottom: "1px solid rgba(15,23,42,0.05)", background: "#f8fafc" },
+                    header: { padding: "0 16px", height: 36, lineHeight: "36px", borderBottom: "1px solid rgba(15,23,42,0.05)", background: "#fafafa" },
                   }}
                   title={
                     <Flex gap={6} align="center">
@@ -211,18 +211,18 @@ export function Platforms() {
                     <Flex
                       align="center"
                       justify="center"
-                      className="size-11 rounded-2xl text-[20px] shadow-md shadow-emerald-600/30"
+                      className="size-11 rounded-2xl text-[20px] shadow-sm shadow-emerald-600/30"
                       style={{ background: "linear-gradient(135deg, #34d399, #059669)" }}
                     >
                       🍓
                     </Flex>
-                    <Text strong className="mt-4 !text-[18px] !tracking-tight !text-slate-900">
+                    <Text strong className="mt-4 !text-[18px] !tracking-tight !text-zinc-900">
                       今天想为大棚做点什么？
                     </Text>
                     <Flex
                       align="center"
                       gap={8}
-                      className="mt-4 w-[78%] rounded-xl border border-slate-900/[0.08] bg-white px-3.5 py-2.5 shadow-sm"
+                      className="mt-4 w-[78%] rounded-xl border border-zinc-900/[0.08] bg-white px-3.5 py-2.5 shadow-sm"
                     >
                       <Text type="secondary" className="!text-[12px]">
                         随便问点什么…（@ 引用文件）
@@ -232,7 +232,7 @@ export function Platforms() {
                         justify="center"
                         className="ml-auto size-6 rounded-full bg-emerald-600"
                       >
-                        <IconRight className="text-[10px] text-white" />
+                        <IconRight className="text-[11px] text-white" />
                       </Flex>
                     </Flex>
                     {/* 播放按钮 */}
@@ -240,8 +240,8 @@ export function Platforms() {
                       className="group absolute inset-0 flex items-center justify-center"
                       aria-label="播放演示"
                     >
-                      <span className="flex size-14 items-center justify-center rounded-full bg-slate-900/80 backdrop-blur transition-all group-hover:scale-110 group-hover:bg-slate-900">
-                        <IconPlayOne className="!text-[22px] text-white" />
+                      <span className="flex size-14 items-center justify-center rounded-full bg-zinc-900/80 backdrop-blur transition-all group-hover:scale-110 group-hover:bg-zinc-900">
+                        <IconPlayOne className="!text-[20px] text-white" />
                       </span>
                     </button>
                   </div>
@@ -249,7 +249,7 @@ export function Platforms() {
                   <Flex
                     align="center"
                     gap={12}
-                    className="border-t border-slate-900/[0.05] bg-white px-5 py-3.5"
+                    className="border-t border-zinc-900/[0.05] bg-white px-5 py-3.5"
                   >
                     <Avatar size={32} className="!border-2 !border-emerald-400">
                       @
@@ -260,7 +260,7 @@ export function Platforms() {
                       maxStyle={{ color: "#f56a00", backgroundColor: "#fde3cf" }}
                     >
                       {AVATARS.map((a, i) => (
-                        <Avatar key={i} size={32} className="!bg-slate-100 !text-[15px]">
+                        <Avatar key={i} size={32} className="!bg-zinc-100 !text-[14px]">
                           {a}
                         </Avatar>
                       ))}

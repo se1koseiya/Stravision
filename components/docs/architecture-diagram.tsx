@@ -66,7 +66,7 @@ const TechSpec = ({ icon, label, value }: TechSpecProps) => (
       {icon}
     </div>
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-mono">{label}</span>
+      <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-mono">{label}</span>
       {value && <span className="text-xs font-bold text-zinc-300 font-mono">{value}</span>}
     </div>
   </div>
@@ -88,7 +88,7 @@ const LayerCard = ({ title, enTitle, image, description, specs, index }: LayerCa
       className="relative group flex-1 min-w-[300px] max-w-[350px]"
     >
       {/* Glow Effect */}
-      <div className="absolute -inset-1 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      <div className="absolute -inset-1 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       {/* Card Body */}
       <div className="relative h-full bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden flex flex-col">
@@ -155,7 +155,7 @@ const DataFlow = ({ label }: { label: string }) => {
         </div>
       </motion.div>
       <div className="h-px w-8 bg-primary/30" />
-      <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase rotate-90 whitespace-nowrap tracking-widest mt-4 mb-4 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+      <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase rotate-90 whitespace-nowrap tracking-widest mt-4 mb-4 drop-shadow-[0_0_8px_rgba(0,148,86,0.5)]">
         {label}
       </span>
       <div className="h-px w-8 bg-primary/30" />
@@ -165,7 +165,7 @@ const DataFlow = ({ label }: { label: string }) => {
 
 export function ArchitectureDiagram() {
   return (
-    <div className="w-full max-w-[1600px] mx-auto p-4 md:p-8">
+    <div className="w-full max-w-[1400px] mx-auto p-4 md:p-8">
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

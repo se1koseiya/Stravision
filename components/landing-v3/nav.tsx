@@ -61,7 +61,7 @@ export function LandingNav() {
                   style={{ height: 40, fontSize: 14 }}
                 >
                   {l.label}
-                  {l.hasChevron && <IconDown className="ml-1.5 text-[11px] text-slate-400" />}
+                  {l.hasChevron && <IconDown className="ml-1.5 text-[11px] text-zinc-400" />}
                 </Button>
               </Link>
             ))}
@@ -86,7 +86,7 @@ export function LandingNav() {
               size="large"
               style={{
                 background: "#ffffff",
-                color: "#0f172a",
+                color: "#18181b",
                 fontWeight: 600,
                 height: 40,
                 paddingInline: 20,
@@ -101,7 +101,7 @@ export function LandingNav() {
             <Button
               shape="round"
               size="large"
-              style={{ background: "#0f172a", color: "#ffffff", fontWeight: 600, height: 40, paddingInline: 20, fontSize: 14 }}
+              style={{ background: "#18181b", color: "#ffffff", fontWeight: 600, height: 40, paddingInline: 20, fontSize: 14 }}
             >
               进入控制台
               <IconRight className="text-[11px]" />
@@ -147,7 +147,7 @@ export function LandingNav() {
                 shape="round"
                 block
                 size="large"
-                style={{ background: "#0f172a", color: "#ffffff", fontWeight: 600 }}
+                style={{ background: "#18181b", color: "#ffffff", fontWeight: 600 }}
               >
                 进入控制台
               </Button>

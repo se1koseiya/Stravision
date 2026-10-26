@@ -11,7 +11,7 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = "json", className }: CodeBlockProps) {
   return (
     <div className={cn("relative", className)}>
-      <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+      <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-xs">
         <code className={`language-${language}`}>{code}</code>
       </pre>
     </div>

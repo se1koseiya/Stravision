@@ -1,24 +1,8 @@
 "use client"
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useEffect, useCallback } from "react"
-import {
-  Button,
-  Card,
-  Input,
-  Table,
-  Modal,
-  Tag,
-  Space,
-  Typography,
-  App,
-  Select,
-  Upload,
-  Empty,
-  Tabs,
-  Spin,
-  Tooltip,
-  Switch
-} from "antd"
+import { Button, Card, Input, Table, Modal, Tag, Space, Typography, Select, Upload, Empty, Tabs, Spin, Tooltip, Switch } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { IconBook, IconCheckOne, IconCloseOne, IconDelete, IconEdit, IconFileText, IconFire, IconLink, IconLoading, IconPicture, IconPlus, IconPreviewOpen, IconRefresh, IconSearch, IconThunderbolt, IconUpload } from "@/components/icon";
 
@@ -86,7 +70,7 @@ const DEFAULT_FORM: FormState = {
   description: "",
   category: "agriculture",
   cover_image: "",
-  color: "#1677ff",
+  color: "#059669",
   icon: "book",
   official: false,
   is_archived: 0,
@@ -118,12 +102,12 @@ const ICON_OPTIONS = [
 ]
 
 const COLOR_PRESETS = [
-  "#1677ff", "#52c41a", "#fa8c16", "#f5222d", "#722ed1",
-  "#13c2c2", "#eb2f96", "#faad14", "#a0d911", "#2f54eb"
+  "#059669", "#059669", "#52525B", "#DC2626", "#059669",
+  "#52525B", "#eb2f96", "#52525B", "#059669", "#059669"
 ]
 
 export function KnowledgeMarketManager() {
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const [collections, setCollections] = useState<MarketCollection[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -266,7 +250,7 @@ export function KnowledgeMarketManager() {
       description: record.description || "",
       category: record.category || "general",
       cover_image: record.cover_image || "",
-      color: record.color || "#1677ff",
+      color: record.color || "#059669",
       icon: record.icon || "book",
       official: record.official === 1,
       is_archived: record.is_archived,
@@ -511,14 +495,14 @@ export function KnowledgeMarketManager() {
       render: (_, record) => {
         if (record.cover_image) {
           return (
-            <div style={{ width: 48, height: 36, borderRadius: 6, overflow: "hidden", border: "1px solid #EDEEEF", background: "#F7F8FA" }}>
+            <div style={{ width: 48, height: 36, borderRadius: 6, overflow: "hidden", border: "1px solid #EDEEEF", background: "#FAFAFA" }}>
               <img src={record.cover_image} alt={record.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
             </div>
           )
         }
         return (
-          <div style={{ width: 48, height: 36, borderRadius: 6, background: record.color || "#1677ff", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+          <div style={{ width: 48, height: 36, borderRadius: 6, background: record.color || "#059669", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
             <IconBook />
           </div>
         )
@@ -532,7 +516,7 @@ export function KnowledgeMarketManager() {
         <Space direction="vertical" size={2}>
           <Space size={4}>
             <Text strong>{name}</Text>
-            {record.official === 1 && <IconCheckOne style={{ color: "#1677ff" }} />}
+            {record.official === 1 && <IconCheckOne style={{ color: "#059669" }} />}
           </Space>
           {record.description && (
             <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
@@ -561,7 +545,7 @@ export function KnowledgeMarketManager() {
       width: 80,
       render: (_, record) => (
         <Space size={2}>
-          <IconFire style={{ color: "#fa8c16", fontSize: 12 }} />
+          <IconFire style={{ color: "#52525B", fontSize: 12 }} />
           <Text style={{ fontFamily: "monospace" }}>{record.subscriber_count || 0}</Text>
         </Space>
       )
@@ -614,9 +598,9 @@ export function KnowledgeMarketManager() {
       render: (title: string, record) => (
         <Space direction="vertical" size={2} style={{ maxWidth: 320 }}>
           <Space size={4}>
-            {record.content_type === "link" ? <IconLink style={{ color: "#1677ff" }} /> :
-             record.content_type === "image" || record.content_type?.startsWith("image") ? <IconPicture style={{ color: "#1677ff" }} /> :
-             <IconFileText style={{ color: "#1677ff" }} />}
+            {record.content_type === "link" ? <IconLink style={{ color: "#059669" }} /> :
+             record.content_type === "image" || record.content_type?.startsWith("image") ? <IconPicture style={{ color: "#059669" }} /> :
+             <IconFileText style={{ color: "#059669" }} />}
             <Text strong style={{ fontSize: 13 }}>{title}</Text>
           </Space>
           {record.source_url && (
@@ -691,7 +675,7 @@ export function KnowledgeMarketManager() {
         <Space>
           <Input
             placeholder="搜索知识库名称 / 描述"
-            prefix={<IconSearch style={{ color: "#1677ff" }} />}
+            prefix={<IconSearch style={{ color: "#059669" }} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 280 }}
@@ -712,17 +696,17 @@ export function KnowledgeMarketManager() {
       <Space size={12} wrap style={{ marginTop: 12 }}>
         <div style={statBoxStyle}>
           <Text style={{ fontSize: 12, color: "#8F959E" }}>市场知识库总数</Text>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "#1F2329" }}>{collections.length}</div>
+          <div style={{ fontSize: 24, fontWeight: 600, color: "#18181B" }}>{collections.length}</div>
         </div>
         <div style={statBoxStyle}>
           <Text style={{ fontSize: 12, color: "#8F959E" }}>官方发布</Text>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "#1F2329" }}>
+          <div style={{ fontSize: 24, fontWeight: 600, color: "#18181B" }}>
             {collections.filter(c => c.official === 1).length}
           </div>
         </div>
         <div style={statBoxStyle}>
           <Text style={{ fontSize: 12, color: "#8F959E" }}>累计订阅</Text>
-          <div style={{ fontSize: 24, fontWeight: 600, color: "#1F2329" }}>
+          <div style={{ fontSize: 24, fontWeight: 600, color: "#18181B" }}>
             {collections.reduce((sum, c) => sum + (c.subscriber_count || 0), 0)}
           </div>
         </div>
@@ -748,7 +732,7 @@ export function KnowledgeMarketManager() {
         onCancel={() => !saving && setModalOpen(false)}
         title={
           <Space>
-            <IconBook style={{ color: "#1677ff" }} />
+            <IconBook style={{ color: "#059669" }} />
             <span>{form.id ? "编辑市场知识库" : "新建市场知识库"}</span>
           </Space>
         }
@@ -828,7 +812,7 @@ export function KnowledgeMarketManager() {
                               onClick={() => setForm({ ...form, color: c })}
                               style={{
                                 width: 20, height: 20, borderRadius: 4, background: c, cursor: "pointer",
-                                border: form.color === c ? "2px solid #1677ff" : "1px solid #EDEEEF"
+                                border: form.color === c ? "2px solid #059669" : "1px solid #EDEEEF"
                               }}
                             />
                           ))}
@@ -847,13 +831,13 @@ export function KnowledgeMarketManager() {
 
                   <Field label="封面图 URL">
                     <Input
-                      prefix={<IconLink style={{ color: "#1677ff" }} />}
+                      prefix={<IconLink style={{ color: "#059669" }} />}
                       placeholder="https://… （留空则使用主题色块）"
                       value={form.cover_image}
                       onChange={(e) => setForm({ ...form, cover_image: e.target.value })}
                     />
                     {form.cover_image && (
-                      <div style={{ marginTop: 8, width: "100%", height: 120, borderRadius: 6, border: "1px solid #EDEEEF", background: "#F7F8FA", overflow: "hidden" }}>
+                      <div style={{ marginTop: 8, width: "100%", height: 120, borderRadius: 6, border: "1px solid #EDEEEF", background: "#FAFAFA", overflow: "hidden" }}>
                         <img src={form.cover_image} alt="cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
                       </div>
@@ -869,7 +853,7 @@ export function KnowledgeMarketManager() {
                           onChange={(v) => setForm({ ...form, official: v })}
                         />
                         <Space size={4}>
-                          <IconCheckOne style={{ color: "#1677ff" }} />
+                          <IconCheckOne style={{ color: "#059669" }} />
                           <Text>官方发布（展示认证标识）</Text>
                         </Space>
                       </label>
@@ -890,13 +874,13 @@ export function KnowledgeMarketManager() {
             },
             ...(form.id ? [{
               key: "items",
-              label: <span><IconBook /> 条目管理 ({items.length})</span>,
+              label: <span><IconBook className="mr-1" />条目管理 ({items.length})</span>,
               children: (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "8px 0" }}>
                   {/* 1. 文件上传 */}
-                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
+                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#FAFAFA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <IconUpload style={{ color: "#1677ff", marginRight: 6 }} />
+                      <IconUpload style={{ color: "#059669", marginRight: 6 }} />
                       上传文件（自动 embedding）
                     </Text>
                     <Upload
@@ -916,9 +900,9 @@ export function KnowledgeMarketManager() {
                   </div>
 
                   {/* 2. 添加链接 */}
-                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
+                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#FAFAFA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <IconLink style={{ color: "#1677ff", marginRight: 6 }} />
+                      <IconLink style={{ color: "#059669", marginRight: 6 }} />
                       添加链接（content_type=link）
                     </Text>
                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -945,9 +929,9 @@ export function KnowledgeMarketManager() {
                   </div>
 
                   {/* 3. 添加纯文本 */}
-                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#F7F8FA" }}>
+                  <div style={{ padding: 16, border: "1px dashed #EDEEEF", borderRadius: 6, background: "#FAFAFA" }}>
                     <Text strong style={{ display: "block", marginBottom: 8 }}>
-                      <IconFileText style={{ color: "#1677ff", marginRight: 6 }} />
+                      <IconFileText style={{ color: "#059669", marginRight: 6 }} />
                       添加纯文本条目
                     </Text>
                     <Input
@@ -1004,14 +988,14 @@ export function KnowledgeMarketManager() {
       <Modal
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
-        title={<Space><IconBook style={{ color: "#1677ff" }} /><span>知识库详情</span></Space>}
+        title={<Space><IconBook style={{ color: "#059669" }} /><span>知识库详情</span></Space>}
         footer={[<Button key="close" onClick={() => setDetailModalOpen(false)}>关闭</Button>]}
         width={640}
       >
         {detailCollection && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 0" }}>
             {detailCollection.cover_image && (
-              <div style={{ width: "100%", height: 180, borderRadius: 6, overflow: "hidden", background: "#F7F8FA", border: "1px solid #EDEEEF" }}>
+              <div style={{ width: "100%", height: 180, borderRadius: 6, overflow: "hidden", background: "#FAFAFA", border: "1px solid #EDEEEF" }}>
                 <img src={detailCollection.cover_image} alt={detailCollection.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             )}
@@ -1048,7 +1032,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <Text style={{ fontSize: 13 }}>
         {label}
-        {required && <span style={{ color: "#ff4d4f", marginLeft: 4 }}>*</span>}
+        {required && <span style={{ color: "#DC2626", marginLeft: 4 }}>*</span>}
       </Text>
       {children}
     </div>

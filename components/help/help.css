@@ -1,0 +1,93 @@
+/* ------------------------------------------------------------
+   帮助中心（/help）FAQ 答案排版
+   ─────────────────────────────────────────────────────────────
+   ✅ 只负责「答案正文」的段落/列表/链接样式；
+      卡片、折叠、搜索框等外壳全部由 help-page.tsx 用内联 style 完成。
+   ✅ 颜色取 --lg-* 令牌，深色模式自动跟随。
+   ⚠️ 答案里允许出现 <p> <ul> <ol> <li> <strong> <a> <code>，
+      统一在这里定样式，避免每条答案重复写 className。
+   ------------------------------------------------------------ */
+
+.help-answer {
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  color: var(--lg-muted);
+}
+
+.help-answer p {
+  margin: 0 0 0.6rem;
+}
+
+.help-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.help-answer ul,
+.help-answer ol {
+  margin: 0.35rem 0 0.7rem;
+  padding-left: 1.15rem;
+}
+
+.help-answer li {
+  margin: 0.22rem 0;
+}
+
+.help-answer li::marker {
+  color: var(--lg-green-ink);
+}
+
+.help-answer strong {
+  color: var(--lg-ink);
+  font-weight: 700;
+}
+
+.help-answer code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 0.86em;
+  padding: 0.12em 0.38em;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--lg-ink) 6%, transparent);
+  color: var(--lg-ink);
+}
+
+.help-answer a {
+  color: var(--lg-green-ink);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--lg-green-ink) 32%, transparent);
+}
+
+.help-answer a:hover {
+  border-bottom-color: var(--lg-green-ink);
+}
+
+/* 答案里的「行内按钮」（如打开设置弹窗）与链接同款，但要是真按钮语义 */
+.help-answer .help-inline-btn {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lg-green-ink);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--lg-green-ink) 34%, transparent);
+}
+
+.help-answer .help-inline-btn:hover {
+  text-decoration-color: var(--lg-green-ink);
+}
+
+/* 答案里的「提示条」：用于"注意/限制"这类信息 */
+.help-answer .help-note {
+  display: block;
+  margin: 0.5rem 0 0.2rem;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid var(--lg-accent-strong);
+  border-radius: 0 0.6rem 0.6rem 0;
+  background: var(--lg-mint);
+  color: var(--lg-desc);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}

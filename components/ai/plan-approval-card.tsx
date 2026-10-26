@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useState } from "react"
-import { Card, Button, Typography, Flex, Tag, Input, InputNumber } from "antd"
+import { Card, Button, Typography, Flex, Tag, Input, InputNumber, ConfigProvider } from "antd"
+import { useTheme } from "next-themes"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
+import { antdScopeTheme } from "@/lib/theme/antd-scope-theme"
 import { IconArrowDown, IconArrowUp, IconCheckOne, IconCloseOne, IconDelete, IconListCheckbox, IconLoading, IconPencil, IconPlus, IconPreviewOpen, IconTool } from "@/components/icon";
 
 const { Text, Paragraph } = Typography
@@ -53,9 +55,11 @@ const ICON_STROKE = 1.75
  * - 批准计划：AI 按步骤逐步执行（若修改过则按修改后的计划执行）
  * - 拒绝计划：终止当前任务
  *
- * 风格与 ClarifyCard / CheckpointConfirm 一致：白底、单色、Ant Design 简约。
+ * 风格与 ClarifyCard / CheckpointConfirm 一致：HDS 沉浸光感材质 + 亮/暗双态。
  */
 export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCardProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   const [status, setStatus] = useState<"pending" | "approved" | "rejected">("pending")
   // 编辑模式：默认 false（预览模式）
   const [editing, setEditing] = useState(false)
@@ -120,16 +124,26 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
   const stepsToShow = editing ? draft.steps : Array.isArray(data.steps) ? data.steps : []
 
   return (
-    <Card
-      size="small"
-      style={{
-        background: "#fff",
-        border: `1px solid ${status === "approved" ? `${BERRY_THEME.primary}40` : status === "rejected" ? "#ffe0e0" : "#f0f0f0"}`,
-        borderRadius: 10,
-        boxShadow: "none",
-      }}
-      styles={{ body: { padding: 16 } }}
-    >
+    <ConfigProvider theme={antdScopeTheme(isDark)}>
+      <Card
+        size="small"
+        /* HDS 沉浸光感 · 卡片档（2026-09-27）：外观交材质统一给。
+           旧写法 inline background:#fff / border / boxShadow 会整块盖掉材质的低 alpha 底与
+           backdrop-filter → 卡片变死白、无光感。已移除。
+           状态的「边框色」改由 className 表达（approved 品牌绿 / rejected 红 / pending 中性）。
+           ⚠️ 材质基类的 border 是未分层样式、优先级高于 Tailwind 分层 utility，
+              所以状态描边必须走 !important 才盖得住。 */
+        className={
+          "dc-mat dc-mat--regular dc-mat--neutral transition-colors" +
+          (status === "approved"
+            ? " !border-[#05966966] dark:!border-[#34D39959]"
+            : status === "rejected"
+              ? " !border-red-200 dark:!border-red-500/30"
+              : "")
+        }
+        style={{ borderRadius: 10 }}
+        styles={{ body: { padding: 16 } }}
+      >
       {/* 头部：图标 + 标题 + 状态徽章 + 编辑切换 */}
       <Flex align="center" justify="space-between" style={{ marginBottom: 8 }}>
         <Flex align="center" gap={6} style={{ minWidth: 0, flex: 1 }}>
@@ -143,7 +157,7 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
               style={{ fontSize: 14, fontWeight: 500, flex: 1 }}
             />
           ) : (
-            <Text strong style={{ fontSize: 14, color: "#262626" }} ellipsis>
+            <Text strong className="!text-zinc-800 dark:!text-zinc-100" style={{ fontSize: 14 }} ellipsis>
               {data.title || "执行计划"}
             </Text>
           )}
@@ -156,7 +170,8 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
               type="text"
               onClick={() => setEditing(!editing)}
               icon={editing ? <IconPreviewOpen size={13} strokeWidth={ICON_STROKE} /> : <IconPencil size={13} strokeWidth={ICON_STROKE} />}
-              style={{ fontSize: 12, color: editing ? BERRY_THEME.primary : "#8c8c8c", height: 24, padding: "0 6px" }}
+              className={editing ? "!text-emerald-600 dark:!text-emerald-400" : "!text-zinc-500 dark:!text-zinc-400"}
+              style={{ fontSize: 12, height: 24, padding: "0 6px" }}
             >
               {editing ? "预览" : "编辑"}
             </Button>
@@ -191,14 +206,15 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
           autoSize={{ minRows: 2, maxRows: 5 }}
           maxLength={300}
           showCount
-          style={{ fontSize: 12, marginBottom: 12, color: "#595959" }}
+          className="!text-zinc-600 dark:!text-zinc-300"
+          style={{ fontSize: 12, marginBottom: 12 }}
         />
       ) : (
         data.summary && (
           <Paragraph
+            className="text-zinc-500 dark:text-zinc-400"
             style={{
               fontSize: 12,
-              color: "#8c8c8c",
               marginBottom: 12,
               lineHeight: 1.6,
             }}
@@ -213,11 +229,10 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
         {stepsToShow.map((step, idx) => (
           <div
             key={step.id || idx}
+            className="bg-zinc-100/70 dark:bg-white/[0.05] border border-zinc-200/70 dark:border-white/10"
             style={{
               padding: editing ? "10px 10px 8px" : "8px 10px",
-              background: "#fafafa",
               borderRadius: 6,
-              border: "1px solid #f5f5f5",
             }}
           >
             <Flex align="flex-start" gap={8}>
@@ -249,7 +264,8 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                     placeholder="步骤内容描述"
                     autoSize={{ minRows: 1, maxRows: 4 }}
                     maxLength={500}
-                    style={{ fontSize: 12.5, color: "#262626" }}
+                    className="!text-zinc-800 dark:!text-zinc-100"
+                    style={{ fontSize: 12.5 }}
                   />
                   <Flex align="center" gap={6}>
                     <Input
@@ -257,8 +273,9 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                       onChange={(e) => updateStep(idx, { tool: e.target.value })}
                       placeholder="工具名（可选，如 toggle_relay）"
                       size="small"
-                      prefix={<IconTool size={11} strokeWidth={ICON_STROKE} color="#bfbfbf" />}
-                      style={{ fontSize: 11, color: "#8c8c8c", flex: 1 }}
+                      prefix={<IconTool size={11} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500" />}
+                      className="!text-zinc-500 dark:!text-zinc-400"
+                      style={{ fontSize: 11, flex: 1 }}
                     />
                     {/* 上移/下移/删除 */}
                     <Button
@@ -267,7 +284,8 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                       disabled={idx === 0}
                       onClick={() => moveStep(idx, "up")}
                       icon={<IconArrowUp size={12} strokeWidth={ICON_STROKE} />}
-                      style={{ width: 24, height: 24, padding: 0, color: "#8c8c8c" }}
+                      className="!text-zinc-500 dark:!text-zinc-400"
+                      style={{ width: 24, height: 24, padding: 0 }}
                     />
                     <Button
                       size="small"
@@ -275,14 +293,16 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                       disabled={idx === stepsToShow.length - 1}
                       onClick={() => moveStep(idx, "down")}
                       icon={<IconArrowDown size={12} strokeWidth={ICON_STROKE} />}
-                      style={{ width: 24, height: 24, padding: 0, color: "#8c8c8c" }}
+                      className="!text-zinc-500 dark:!text-zinc-400"
+                      style={{ width: 24, height: 24, padding: 0 }}
                     />
                     <Button
                       size="small"
                       type="text"
                       onClick={() => removeStep(idx)}
                       icon={<IconDelete size={12} strokeWidth={ICON_STROKE} />}
-                      style={{ width: 24, height: 24, padding: 0, color: "#ff4d4f" }}
+                      className="!text-red-600 dark:!text-red-400"
+                      style={{ width: 24, height: 24, padding: 0 }}
                     />
                   </Flex>
                 </Flex>
@@ -290,9 +310,9 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                 // 预览模式：只读显示
                 <Flex vertical gap={4} style={{ flex: 1, minWidth: 0 }}>
                   <Text
+                    className="!text-zinc-800 dark:!text-zinc-100"
                     style={{
                       fontSize: 12.5,
-                      color: "#262626",
                       lineHeight: 1.6,
                       wordBreak: "break-word",
                       whiteSpace: "pre-wrap",
@@ -302,8 +322,8 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
                   </Text>
                   {step.tool && (
                     <Flex align="center" gap={3}>
-                      <IconTool size={10} strokeWidth={ICON_STROKE} color="#bfbfbf" />
-                      <Text style={{ fontSize: 11, color: "#bfbfbf" }}>{step.tool}</Text>
+                      <IconTool size={10} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500" />
+                      <Text className="!text-zinc-400 dark:!text-zinc-500" style={{ fontSize: 11 }}>{step.tool}</Text>
                     </Flex>
                   )}
                 </Flex>
@@ -319,11 +339,10 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
             block
             onClick={addStep}
             icon={<IconPlus size={13} strokeWidth={ICON_STROKE} />}
+            className="!text-emerald-600 dark:!text-emerald-400 !border-emerald-500/40 dark:!border-emerald-400/40"
             style={{
               height: 32,
               fontSize: 12.5,
-              color: BERRY_THEME.primary,
-              borderColor: `${BERRY_THEME.primary}40`,
               borderRadius: 6,
               fontWeight: 400,
             }}
@@ -374,15 +393,16 @@ export function PlanApprovalCard({ data, onApprove, onReject }: PlanApprovalCard
 
       {/* 状态后提示 */}
       {status === "approved" && (
-        <div style={{ marginTop: 4, fontSize: 11.5, color: "#8c8c8c" }}>
+        <div className="text-zinc-500 dark:text-zinc-400" style={{ marginTop: 4, fontSize: 11.5 }}>
           已批准，AI 将按计划逐步执行。
         </div>
       )}
       {status === "rejected" && (
-        <div style={{ marginTop: 4, fontSize: 11.5, color: "#8c8c8c" }}>
+        <div className="text-zinc-500 dark:text-zinc-400" style={{ marginTop: 4, fontSize: 11.5 }}>
           已拒绝，AI 将停止当前任务。
         </div>
       )}
     </Card>
+    </ConfigProvider>
   )
 }

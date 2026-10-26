@@ -71,7 +71,7 @@ function StatusBadge({ status, published }: { status: SkillForgeCardData["status
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 80 ? "#52c41a" : score >= 60 ? "#fa8c16" : "#f5222d"
+  const color = score >= 80 ? "#059669" : score >= 60 ? "#52525B" : "#DC2626"
   return (
     <div className="relative flex h-11 w-11 items-center justify-center">
       <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
@@ -113,8 +113,8 @@ export function SkillForgeCard({
   return (
     <div className="my-3 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       {/* ===== 头部 ===== */}
-      <div className="flex items-center gap-3 border-b border-zinc-100 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 px-4 py-3 dark:border-zinc-800 dark:from-blue-950/40 dark:to-indigo-950/40">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-lg text-white shadow-sm">
+      <div className="flex items-center gap-3 border-b border-zinc-100 bg-gradient-to-r from-emerald-50/80 to-indigo-50/80 px-4 py-3 dark:border-zinc-800 dark:from-emerald-950/40 dark:to-indigo-950/40">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-indigo-600 text-lg text-white shadow-sm">
           {data.icon && data.status !== "failed" ? data.icon : <IconMagic size={18} />}
         </div>
         <div className="min-w-0 flex-1">
@@ -124,7 +124,7 @@ export function SkillForgeCard({
             </span>
             <StatusBadge status={data.status} published={data.published} />
             {data.rounds && data.rounds > 1 && (
-              <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+              <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                 第 {data.rounds} 轮
               </span>
             )}
@@ -152,7 +152,7 @@ export function SkillForgeCard({
           </div>
           <div className="flex flex-wrap gap-1.5">
             {data.capabilities?.map((c, i) => (
-              <span key={i} className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600 dark:bg-blue-950/60 dark:text-blue-300">
+              <span key={i} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300">
                 {c}
               </span>
             ))}
@@ -226,7 +226,7 @@ export function SkillForgeCard({
                 <button
                   key={i}
                   onClick={() => onSendMessage(ex)}
-                  className="rounded-full border border-blue-200 px-2.5 py-1 text-[11px] text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-950/50"
+                  className="rounded-full border border-emerald-200 px-2.5 py-1 text-[11px] text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
                 >
                   {ex}
                 </button>
@@ -241,13 +241,13 @@ export function SkillForgeCard({
                 onChange={e => setRefineText(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") submitRefine() }}
                 placeholder="反馈修改要求，如：温度单位改为摄氏度"
-                className="flex-1 rounded-lg border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[12px] text-zinc-800 outline-none focus:border-blue-400 dark:border-zinc-700 dark:text-zinc-200"
+                className="flex-1 rounded-lg border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[12px] text-zinc-800 outline-none focus:border-emerald-400 dark:border-zinc-700 dark:text-zinc-200"
                 autoFocus
               />
               <button
                 onClick={submitRefine}
                 disabled={!refineText.trim()}
-                className="flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
               >
                 <IconSend size={12} /> 提交
               </button>
@@ -255,7 +255,7 @@ export function SkillForgeCard({
           ) : (
             <button
               onClick={() => setShowRefine(true)}
-              className="flex items-center gap-1 text-[11px] text-zinc-400 transition-colors hover:text-blue-500"
+              className="flex items-center gap-1 text-[11px] text-zinc-400 transition-colors hover:text-emerald-500"
             >
               <IconTool size={11} /> 结果不满意？反馈让 AI 修订
             </button>
@@ -269,9 +269,9 @@ export function SkillForgeCard({
 /** 流式中的骨架占位（JSON 未闭合时） */
 export function SkillForgeCardSkeleton({ stage }: { stage?: string }) {
   return (
-    <div className="my-3 rounded-xl border border-[#1677ff30] bg-white p-4 dark:bg-zinc-900">
+    <div className="my-3 rounded-xl border border-[#05966930] bg-white p-4 dark:bg-zinc-900">
       <div className="flex items-center gap-2">
-        <IconLoading className="animate-spin" size={14} style={{ color: "#1677ff" }} />
+        <IconLoading className="animate-spin" size={14} style={{ color: "#059669" }} />
         <span className="text-[13px] text-zinc-500 dark:text-zinc-400">
           {stage || "正在生成技能锻造报告卡片…"}
         </span>

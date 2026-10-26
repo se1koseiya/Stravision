@@ -280,7 +280,7 @@ export function DailyBriefingIsland({
                 </div>
                 <div>
                   <div className="text-[13px] font-semibold text-white/95 tracking-tight leading-tight">今日智能播报</div>
-                  <div className="text-[10px] text-white/40 font-medium">莓小智 · AI 管家</div>
+                  <div className="text-[11px] text-white/40 font-medium">莓小智 · AI 管家</div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -290,7 +290,7 @@ export function DailyBriefingIsland({
                   title="不再显示今日播报"
                 >
                   <IconClose size={10} className="text-white/60 group-hover:text-white/80" />
-                  <span className="text-[10px] text-white/60 group-hover:text-white/80 font-medium">不再显示</span>
+                  <span className="text-[11px] text-white/60 group-hover:text-white/80 font-medium">不再显示</span>
                 </button>
                 <button
                   onClick={handleDismiss}
@@ -307,7 +307,7 @@ export function DailyBriefingIsland({
               {bars.map((h, i) => (
                 <div
                   key={i}
-                  className="w-[3px] rounded-full bg-gradient-to-t from-primary to-emerald-300 transition-all duration-100"
+                  className="w-[3px] rounded-full bg-gradient-to-t from-primary to-emerald-300 transition-all duration-200"
                   style={{ height: `${h}px` }}
                 />
               ))}

@@ -21,7 +21,7 @@ interface Message {
 const AGENT_CONFIG = {
   planner: {
     icon: IconBrain,
-    color: 'bg-blue-500',
+    color: 'bg-emerald-500',
     name: '规划器',
   },
   executor: {
@@ -41,7 +41,7 @@ const AGENT_CONFIG = {
   },
   user: {
     icon: IconUser,
-    color: 'bg-gray-500',
+    color: 'bg-zinc-500',
     name: '用户',
   },
 };
@@ -137,7 +137,7 @@ export function AgentCollaborationChat() {
           Agent 协作对话
           {isProcessing && (
             <Badge variant="secondary" className="ml-auto">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2" />
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2" />
               处理中
             </Badge>
           )}
@@ -181,8 +181,8 @@ export function AgentCollaborationChat() {
                       <div
                         className={`rounded-lg p-3 max-w-[80%] ${
                           isUser
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-muted text-gray-900'
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-muted text-zinc-900'
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -191,9 +191,9 @@ export function AgentCollaborationChat() {
                       {message.status === 'thinking' && (
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
                           <span>思考中...</span>
                         </div>

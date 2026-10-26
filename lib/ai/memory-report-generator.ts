@@ -73,9 +73,9 @@ function escapeHtml(text: string): string {
 }
 
 function confidenceLabel(conf: number): { text: string; color: string } {
-  if (conf >= 0.8) return { text: '高', color: '#52c41a' };
-  if (conf >= 0.6) return { text: '中', color: '#faad14' };
-  return { text: '低', color: '#d9d9d9' };
+  if (conf >= 0.8) return { text: '高', color: '#059669' };
+  if (conf >= 0.6) return { text: '中', color: '#52525B' };
+  return { text: '低', color: '#d4d4d8' };
 }
 
 function preferenceKeyLabel(key: string): string {
@@ -248,7 +248,7 @@ function renderHTML(p: RenderParams): string {
     border-radius: 8px;
     padding: 32px 40px;
     margin-bottom: 16px;
-    border: 1px solid #f0f0f0;
+    border: 1px solid #F4F4F5;
   }
   .header h1 {
     font-size: 24px;
@@ -263,10 +263,10 @@ function renderHTML(p: RenderParams): string {
   .header .summary {
     margin-top: 16px;
     padding: 12px 16px;
-    background: #e6f4ff;
-    border: 1px solid #bae0ff;
+    background: #ECFDF5;
+    border: 1px solid #B7EBD5;
     border-radius: 6px;
-    color: #1677ff;
+    color: #059669;
     font-size: 14px;
   }
   .section {
@@ -274,7 +274,7 @@ function renderHTML(p: RenderParams): string {
     border-radius: 8px;
     padding: 24px 32px;
     margin-bottom: 16px;
-    border: 1px solid #f0f0f0;
+    border: 1px solid #F4F4F5;
   }
   .section-title {
     display: flex;
@@ -282,7 +282,7 @@ function renderHTML(p: RenderParams): string {
     align-items: center;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #F4F4F5;
   }
   .section-title h2 {
     font-size: 16px;
@@ -291,8 +291,8 @@ function renderHTML(p: RenderParams): string {
   }
   .section-title .count {
     font-size: 13px;
-    color: #1677ff;
-    background: #e6f4ff;
+    color: #059669;
+    background: #ECFDF5;
     padding: 2px 10px;
     border-radius: 10px;
   }
@@ -307,12 +307,12 @@ function renderHTML(p: RenderParams): string {
     background: #fafafa;
     color: rgba(0,0,0,0.65);
     font-weight: 500;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #F4F4F5;
     white-space: nowrap;
   }
   .data-table td {
     padding: 12px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #F4F4F5;
     color: rgba(0,0,0,0.88);
   }
   .data-table tr:last-child td { border-bottom: none; }
@@ -348,7 +348,7 @@ function renderHTML(p: RenderParams): string {
   .stat-card .value {
     font-size: 24px;
     font-weight: 500;
-    color: #1677ff;
+    color: #059669;
     line-height: 1.2;
   }
   .stat-card .label {
@@ -358,7 +358,7 @@ function renderHTML(p: RenderParams): string {
   }
   .stat-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .stat-chip {
-    background: #f5f5f5;
+    background: #f4f4f5;
     border-radius: 4px;
     padding: 4px 10px;
     font-size: 13px;

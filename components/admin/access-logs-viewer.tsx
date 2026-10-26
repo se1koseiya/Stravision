@@ -56,7 +56,7 @@ export function AccessLogsViewer() {
       key: "method",
       width: 80,
       render: (val: string) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#1F2329' }}>{val}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#18181B' }}>{val}</span>
       ),
     },
     {
@@ -88,7 +88,7 @@ export function AccessLogsViewer() {
             fontWeight: 500,
             border: `1px solid ${isError ? '#FFCCC7' : '#B7EB8F'}`,
             backgroundColor: isError ? '#FFF2F0' : '#F6FFED',
-            color: isError ? '#F5222D' : '#52C41A',
+            color: isError ? '#DC2626' : '#059669',
           }}>
             {val}
           </span>

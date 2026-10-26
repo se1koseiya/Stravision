@@ -289,9 +289,38 @@ export function EnvironmentAlert() {
 
   if (activeAlerts.length === 0) return null
 
+  /* 同一类环境异常只允许出现一条浮层（2026-10 整理）
+     —— 现象：设备控制页顶部同时叠了两条「光照不足预警」，高度直接把页头吃掉。
+     —— 成因：checkAndTrigger 的「是否已存在」判据读的是 effect 闭包里的 activeAlerts，
+        在 deviceData 高频刷新 + 生效时机交错时，同一个 config.type 可能被推入两次
+        （id 是 `${type}-${Date.now()}`，两条 id 不同 → React 不会合并）。
+     —— 做法：在源头修（改成按 state 最新值判重）风险高于收益，这里做**渲染层兜底**：
+        按 config.type 去重，每种异常只显示最早的那一条。倒计时/忽略逻辑不受影响。 */
+  const seenTypes = new Set<string>()
+  const visibleAlerts = activeAlerts.filter(a => {
+    if (seenTypes.has(a.config.type)) return false
+    seenTypes.add(a.config.type)
+    return true
+  })
+
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2">
-      {activeAlerts.map(alert => {
+    /* 位置：右下角，让开两处已占用区域（2026-10 改）
+       —— 为什么不再放顶部居中 ——
+         原来是 `top-20 left-1/2`（顶栏 72px 下方 8px）。但业务页的页头 h1 就在
+         y≈100 的位置（顶栏 72 + 容器 py-6 = 96）→ 这颗 200px 宽的黑胶囊**直接压在
+         页面标题与副标题上**，一屏出现两条时把「设备总览」整个盖住，
+         这是「页面视觉混乱」里最刺眼的一处（实测截图见 _dcs2_*_overview.png）。
+         居中悬浮天生与「页头 + 页头右侧操作」抢同一条水平带，调到 top-4 会盖顶栏导航，
+         调到 top-20 会盖标题 —— 这条水平带上没有安全位，所以整条搬走。
+       —— 为什么是右下、为什么是 right-[84px] bottom-4 ——
+         · 右下角底部只有 Copilot 莓果球在占（直径 52、距边 16 → 占到 right 68 / bottom 68），
+           所以水平让到 right 84px，浮层就贴在球的**左侧**、与球同一条基线上；
+         · toast 走的是 `bottom: 80, right: 16`（见 toaster-wrapper.tsx），
+           本浮层最高只到 bottom 4 + 44 = 48px，两者不相交；
+         · 竖向用 flex-col + items-end：多条预警向上堆叠、右对齐（不再居中拉扯版式）。
+       折叠态仍保持 200px 宽的胶囊，但此时它落在内容右下角的空白处，不再遮挡任何标题。 */
+    <div className="fixed right-[84px] bottom-4 z-[100] flex flex-col items-end gap-2">
+      {visibleAlerts.map(alert => {
         const isEntering = alert.animationPhase === 'entering'
         const isPill = alert.animationPhase === 'pill'
         const isExpanded = alert.animationPhase === 'expanded' || alert.expanded
@@ -346,13 +375,13 @@ export function EnvironmentAlert() {
                 <svg className="size-8 -rotate-90" viewBox="0 0 32 32">
                   <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2.5" />
                   <circle
-                    cx="16" cy="16" r="13" fill="none" stroke="#f59e0b" strokeWidth="2.5"
+                    cx="16" cy="16" r="13" fill="none" stroke="#52525B" strokeWidth="2.5"
                     strokeLinecap="round" strokeDasharray={2 * Math.PI * 13}
                     strokeDashoffset={2 * Math.PI * 13 * (1 - alert.countdown / ALERT_COUNTDOWN)}
                     className="transition-all duration-1000 ease-linear"
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-amber-400">
+                <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-amber-400">
                   {alert.countdown}
                 </span>
               </div>
@@ -376,7 +405,7 @@ export function EnvironmentAlert() {
                   <svg className="size-14 -rotate-90" viewBox="0 0 56 56">
                     <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
                     <circle
-                      cx="28" cy="28" r="24" fill="none" stroke="#f59e0b" strokeWidth="4"
+                      cx="28" cy="28" r="24" fill="none" stroke="#52525B" strokeWidth="4"
                       strokeLinecap="round" strokeDasharray={2 * Math.PI * 24}
                       strokeDashoffset={2 * Math.PI * 24 * (1 - alert.countdown / ALERT_COUNTDOWN)}
                       className="transition-all duration-1000 ease-linear"
@@ -398,9 +427,9 @@ export function EnvironmentAlert() {
                   onClick={(e) => { e.stopPropagation(); handleAction(alert.id, alert.config.action); }}
                   disabled={alert.loading}
                   className={cn(
-                    "px-4 py-2 rounded-full font-medium text-sm transition-all shrink-0",
+                    "dc-ctrl--press px-4 py-2 rounded-full font-medium text-sm transition-all shrink-0",
                     alert.loading 
-                      ? "bg-gray-700 text-muted-foreground cursor-wait"
+                      ? "bg-zinc-700 text-muted-foreground cursor-wait"
                       : "bg-amber-500 text-black hover:bg-amber-400"
                   )}
                 >
@@ -410,7 +439,7 @@ export function EnvironmentAlert() {
                 {/* 关闭按钮 */}
                 <button
                   onClick={(e) => { e.stopPropagation(); dismissAlert(alert.id); }}
-                  className="p-1.5 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 transition-colors shrink-0 -mt-1"
+                  className="dc-ctrl--press dc-ctrl--sm p-1.5 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 transition-colors shrink-0 -mt-1"
                 >
                   <IconClose size={16} />
                 </button>
@@ -428,7 +457,7 @@ export function EnvironmentAlert() {
                   <button
                     key={opt.label}
                     onClick={(e) => { e.stopPropagation(); handleIgnore(alert.config.type, opt.duration); }}
-                    className="px-2.5 py-1 text-xs text-muted-foreground hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    className="dc-ctrl--press px-2.5 py-1 text-xs text-muted-foreground hover:text-white hover:bg-white/10 rounded-full transition-colors"
                   >
                     {opt.label}
                   </button>

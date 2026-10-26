@@ -132,8 +132,8 @@ export function EmptyState({
       {...rest}
     >
       <Illustration name={illustration} width={illustrationWidth} />
-      {title ? <div className="mt-2 text-[14px] font-medium text-zinc-900">{title}</div> : null}
-      {description ? <div className="max-w-[360px] text-[13px] leading-relaxed text-zinc-500">{description}</div> : null}
+      {title ? <div className="mt-2 text-[14px] font-medium text-zinc-900 dark:text-zinc-100">{title}</div> : null}
+      {description ? <div className="max-w-[360px] text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</div> : null}
       {action ? <div className="mt-3">{action}</div> : null}
       {children}
     </div>

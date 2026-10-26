@@ -29,6 +29,9 @@ import { execute, queryOne } from '@/lib/db/database'
 import { KeywordMatcher } from './skill-system/matchers'
 import type { Skill } from './skill-system/types'
 import { skillManager } from './skill-system/skill-manager'
+// 管线预算的唯一来源：与 tool-manager 的工具级超时共用同一变量，
+// 使「外层超时 > 内层预算」从注释里的约定变成同一根线（由 agent-budget.test.ts 守护）
+import { SKILL_FORGE_LLM_TIMEOUT_MS, SKILL_FORGE_PIPELINE_BUDGET_MS } from './agent-budget'
 
 // ============ 类型定义 ============
 
@@ -135,13 +138,15 @@ export interface ForgeOptions {
 
 /** 文档最大长度（字符），超出截断 */
 const MAX_DOC_CHARS = 60_000
-/** LLM 调用超时（ms） */
-const LLM_TIMEOUT_MS = 180_000
+/** LLM 调用超时（ms） —— 唯一来源 lib/ai/agent-budget.ts */
+const LLM_TIMEOUT_MS = SKILL_FORGE_LLM_TIMEOUT_MS
 /** 彩排测试问题数（并行执行，不增加墙钟时间） */
 const REHEARSAL_QUESTION_COUNT = 3
 /** 整条锻造管线的总时间预算（ms）：到点即停止修订并输出当前最好结果，
- *  避免外层工具超时直接把结果丢掉（用户什么都看不到） */
-const PIPELINE_BUDGET_MS = 300_000
+ *  避免外层工具超时直接把结果丢掉（用户什么都看不到）。
+ *  唯一来源 = agent-budget 的 SKILL_FORGE_PIPELINE_BUDGET_MS —— tool-manager 里
+ *  create_skill_from_doc / refine_skill 的工具级超时基于同一个常量取更大值 */
+const PIPELINE_BUDGET_MS = SKILL_FORGE_PIPELINE_BUDGET_MS
 /** 匹配测试通过阈值（与 matchers MIN_MATCH_SCORE 一致） */
 const MATCH_PASS_THRESHOLD = 60
 /** 彩排通过率阈值：3 题中答对 2 题（0.667）即算通过。

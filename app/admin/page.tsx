@@ -1,28 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  Layout,
-  Menu,
-  Table,
-  Button,
-  Card,
-  Tag,
-  Avatar,
-  Space,
-  Typography,
-  Spin,
-  Dropdown,
-  ConfigProvider,
-  theme,
-  message,
-  Badge,
-  Breadcrumb,
-  Statistic,
-  Tooltip,
-  App,
-  Typography as AntTypography
-} from "antd"
+import { Layout, Menu, Table, Button, Card, Tag, Avatar, Space, Typography, Spin, Dropdown, ConfigProvider, theme, Badge, Breadcrumb, Statistic, Tooltip, App, Typography as AntTypography } from "antd"
+
+import { message } from "@/lib/ui/feedback"
 import type { TableColumnsType, MenuProps } from "antd"
 import Image from "next/image"
 import Link from "next/link"
@@ -50,9 +31,12 @@ import { AIModelsManager } from "@/components/admin/ai-models-manager"
 import { AIProvidersManager } from "@/components/admin/ai-providers-manager"
 import { ModelMarketplace } from "@/components/admin/model-marketplace"
 import DeviceManager from "@/components/admin/device-manager"
+// 设备管理弹窗：桌面端「摄像头与设备」不再用 antd 表格，改用与 AI 助手设置同版式的弹窗
+import { DeviceManagerDialog, DeviceManagerLauncher } from "@/components/device/device-manager-dialog"
 import { VoiceSettings } from "@/components/admin/voice-settings"
 import { VoiceTestPage } from "@/components/admin/voice-test-page"
 import { DesktopAbout } from "@/components/admin/desktop-about"
+import { DesktopLicensesManager } from "@/components/admin/desktop-licenses-manager"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { IconAddUser, IconApi, IconArrowLeft, IconAttention, IconBook, IconCamera, IconCaution, IconCertificate, IconCheckOne, IconCloudStorage, IconDashboard, IconDatabaseNetwork, IconEdit, IconExperiment, IconFileText, IconHistory, IconInfo, IconLayoutTwo, IconLock, IconLogout, IconPeoples, IconRemind, IconRobot, IconSetting, IconShop, IconThunderbolt, IconTool, IconUser, IconVolumeNotice } from "@/components/icon";
 
@@ -76,6 +60,7 @@ type AdminSection =
   | "skills"
   | "docs"
   | "devices"
+  | "desktop-licenses"
   | "desktop-about"
 
 interface SidebarItem {
@@ -105,7 +90,8 @@ const sidebarGroups: SidebarGroup[] = [
       { key: "announcement", label: "公告管理", icon: <IconRemind /> },
       { key: "changelog", label: "更新日志", icon: <IconHistory /> },
       { key: "settings", label: "系统设置", icon: <IconSetting /> },
-      { key: "devices", label: "设备管理", icon: <IconDatabaseNetwork /> }
+      { key: "devices", label: "设备管理", icon: <IconDatabaseNetwork /> },
+      { key: "desktop-licenses", label: "桌面端授权", icon: <IconCertificate /> }
     ]
   },
   {
@@ -144,6 +130,7 @@ const sectionMeta: Record<AdminSection, { label: string; breadcrumb: string[] }>
   "voice-test": { label: "语音测试", breadcrumb: ["AI 配置", "语音测试"] },
   "mcp-market": { label: "MCP 市场", breadcrumb: ["扩展", "MCP 市场"] },
   devices: { label: "设备管理", breadcrumb: ["系统管理", "设备管理"] },
+  "desktop-licenses": { label: "桌面端授权", breadcrumb: ["系统管理", "桌面端授权"] },
   "kb-market": { label: "知识库市场", breadcrumb: ["扩展", "知识库市场"] },
   skills: { label: "Agent 技能", breadcrumb: ["扩展", "技能管理"] },
   docs: { label: "文档管理", breadcrumb: ["扩展", "文档管理"] },
@@ -203,6 +190,8 @@ export default function AdminPage() {
   const [collapsed, setCollapsed] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const [onlineCount, setOnlineCount] = useState<number | null>(null)
+  // 桌面端「摄像头与设备」→ 设备管理弹窗（与 AI 助手设置同版式）
+  const [deviceManagerOpen, setDeviceManagerOpen] = useState(false)
 
   useEffect(() => {
     // 支持 /admin?section=ai-providers 直达分区（桌面端「管理设置」入口用）。
@@ -311,7 +300,7 @@ export default function AdminPage() {
           <Avatar
             size={32}
             src={record.avatar_url}
-            style={{ background: "#1677ff", flexShrink: 0, fontSize: 13 }}
+            style={{ background: "#059669", flexShrink: 0, fontSize: 13 }}
           >
             {record.username?.[0]?.toUpperCase()}
           </Avatar>
@@ -391,7 +380,7 @@ export default function AdminPage() {
   const renderPageHeader = (extra?: React.ReactNode) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
       <div>
-        <div style={{ fontSize: 18, fontWeight: 600, color: "#1F2329", lineHeight: 1.4 }}>{displayLabel}</div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: "#18181B", lineHeight: 1.4 }}>{displayLabel}</div>
         <div style={{ fontSize: 12, color: "#8F959E", marginTop: 2 }}>共 {users.length} 个用户</div>
       </div>
       {extra}
@@ -404,7 +393,7 @@ export default function AdminPage() {
         return (
           <div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: "#1F2329", lineHeight: 1.4 }}>系统概览</div>
+              <div style={{ fontSize: 18, fontWeight: 600, color: "#18181B", lineHeight: 1.4 }}>系统概览</div>
               <div style={{ fontSize: 12, color: "#8F959E", marginTop: 2 }}>实时查看系统运行状态</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
@@ -412,40 +401,40 @@ export default function AdminPage() {
                 <Statistic
                   title="总用户"
                   value={users.length}
-                  prefix={<IconUser style={{ color: "#1677ff" }} />}
-                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+                  prefix={<IconUser style={{ color: "#059669" }} />}
+                  styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
               <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="管理员"
                   value={users.filter((u) => u.role === "admin" || u.role === "super_admin").length}
-                  prefix={<IconCertificate style={{ color: "#1677ff" }} />}
-                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+                  prefix={<IconCertificate style={{ color: "#059669" }} />}
+                  styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
               <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="会员"
                   value={users.filter((u) => u.role === "member").length}
-                  prefix={<IconThunderbolt style={{ color: "#1677ff" }} />}
-                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+                  prefix={<IconThunderbolt style={{ color: "#059669" }} />}
+                  styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
               <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="当前在线"
                   value={onlineCount ?? "—"}
-                  prefix={<IconPeoples style={{ color: "#1677ff" }} />}
-                  styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+                  prefix={<IconPeoples style={{ color: "#059669" }} />}
+                  styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
               <Card size="small" style={{ border: "1px solid #EDEEEF" }}>
                 <Statistic
                   title="系统状态"
                   value="正常"
-                  prefix={<IconCheckOne style={{ color: "#1677ff" }} />}
-                  styles={{ content: { color: "#1F2329", fontSize: 18 }, title: { fontSize: 12, color: "#8F959E" } }}
+                  prefix={<IconCheckOne style={{ color: "#059669" }} />}
+                  styles={{ content: { color: "#18181B", fontSize: 18 }, title: { fontSize: 12, color: "#8F959E" } }}
                 />
               </Card>
             </div>
@@ -519,7 +508,7 @@ export default function AdminPage() {
           return (
             <Space direction="vertical" style={{ width: "100%" }} size={12}>
               <CameraSettings />
-              <DeviceManager />
+              <DeviceManagerLauncher />
             </Space>
           )
         }
@@ -545,6 +534,9 @@ export default function AdminPage() {
 
       case "devices":
         return <DeviceManager />
+
+      case "desktop-licenses":
+        return <DesktopLicensesManager />
 
       case "kb-market":
         return <KnowledgeMarketManager />
@@ -575,16 +567,16 @@ export default function AdminPage() {
       theme={{
         algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#1677ff",
+          colorPrimary: "#059669",
           borderRadius: 6,
           fontFamily: "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)",
           colorBorder: "#EDEEEF",
-          colorBorderSecondary: "#F2F3F5",
+          colorBorderSecondary: "#F4F4F5",
           colorBgLayout: "#F5F6F7",
           controlHeight: 32,
-          controlItemBgHover: "#F2F3F5",
-          controlItemBgActive: "#E8F0FF",
-          colorText: "#1F2329",
+          controlItemBgHover: "#F4F4F5",
+          controlItemBgActive: "#F4F4F5",
+          colorText: "#18181B",
           colorTextSecondary: "#646A73",
           colorTextTertiary: "#8F959E",
           fontSize: 13
@@ -592,17 +584,17 @@ export default function AdminPage() {
         components: {
           Layout: {
             headerBg: "#ffffff",
-            siderBg: "#F7F8FA",
+            siderBg: "#FAFAFA",
             bodyBg: "#F5F6F7",
             headerHeight: 56,
             headerPadding: "0 20px"
           },
           Menu: {
             itemBg: "transparent",
-            itemSelectedBg: "#E8F0FF",
-            itemSelectedColor: "#1677ff",
-            itemHoverBg: "#F2F3F5",
-            itemColor: "#1F2329",
+            itemSelectedBg: "#F4F4F5",
+            itemSelectedColor: "#059669",
+            itemHoverBg: "#F4F4F5",
+            itemColor: "#18181B",
             itemBorderRadius: 6,
             itemMarginInline: 8,
             itemHeight: 36,
@@ -619,7 +611,7 @@ export default function AdminPage() {
           Table: {
             headerBg: "#FAFBFC",
             headerColor: "#646A73",
-            rowHoverBg: "#F7F8FA",
+            rowHoverBg: "#FAFAFA",
             borderColor: "#EFF0F1",
             cellPaddingBlock: 10
           },
@@ -651,7 +643,7 @@ export default function AdminPage() {
             bottom: 0,
             zIndex: 100,
             overflow: "auto",
-            background: "#F7F8FA",
+            background: "#FAFAFA",
             borderRight: "1px solid #EDEEEF"
           }}
         >
@@ -668,7 +660,7 @@ export default function AdminPage() {
           >
             <Image src="/logo.png" alt="Logo" width={24} height={24} style={{ objectFit: "contain", flexShrink: 0 }} />
             {!collapsed && (
-              <Title level={5} style={{ margin: 0, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", color: "#1F2329" }}>
+              <Title level={5} style={{ margin: 0, fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", color: "#18181B" }}>
                 BerryRealm
               </Title>
             )}
@@ -741,7 +733,7 @@ export default function AdminPage() {
                 type="text"
                 icon={<IconArrowLeft />}
                 onClick={() => (IS_DESKTOP_APP ? router.push("/ai-assistant") : router.back())}
-                style={{ fontSize: 13, color: "#1F2329" }}
+                style={{ fontSize: 13, color: "#18181B" }}
               >
                 返回
               </Button>
@@ -754,7 +746,7 @@ export default function AdminPage() {
               <Breadcrumb
                 items={(IS_DESKTOP_APP ? [displayLabel] : meta.breadcrumb).map((b, i, arr) => ({
                   title: i === arr.length - 1 ? (
-                    <span style={{ color: "#1F2329", fontSize: 13 }}>{b}</span>
+                    <span style={{ color: "#18181B", fontSize: 13 }}>{b}</span>
                   ) : (
                     <span style={{ color: "#8F959E", fontSize: 13 }}>{b}</span>
                   )
@@ -782,7 +774,7 @@ export default function AdminPage() {
                   placement="bottomRight"
                 >
                   <Space size={8} style={{ cursor: "pointer" }}>
-                    <Avatar size={28} src={currentUser.avatar_url} style={{ background: "#1677ff", fontSize: 12 }}>
+                    <Avatar size={28} src={currentUser.avatar_url} style={{ background: "#059669", fontSize: 12 }}>
                       {currentUser.username?.[0]?.toUpperCase()}
                     </Avatar>
                     <Text style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>
@@ -813,6 +805,15 @@ export default function AdminPage() {
             setDialogOpen(false)
           }}
         />
+
+        {/* 设备管理弹窗（桌面端「摄像头与设备」入口；监听全局打开事件） */}
+        {IS_DESKTOP_APP && (
+          <DeviceManagerDialog
+            open={deviceManagerOpen}
+            onOpenChange={setDeviceManagerOpen}
+            canManage={currentUser?.role === "admin" || currentUser?.role === "super_admin"}
+          />
+        )}
       </Layout>
     </App>
     </ConfigProvider>

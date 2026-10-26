@@ -13,8 +13,9 @@
  * 与我的空间/定时任务风格保持一致：top-3 right-3 bottom-3 left-[272px]
  */
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-import { Dropdown, Tooltip, App, Modal, Input as AntInput, Select, Empty, Spin, Tabs } from "antd"
+import { Dropdown, Tooltip, Modal, Input as AntInput, Select, Empty, Spin, Tabs } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import CollaboratorsPanel from "@/components/kb/collaborators-panel"
@@ -97,15 +98,15 @@ interface KnowledgeSidebarPanelProps {
 // ============== 常量 ==============
 
 const TYPE_META: Record<ContentType, { label: string; color: string; icon: any }> = {
-  note:     { label: "笔记",   color: "#1677ff", icon: IconFileText },
-  text:     { label: "文本",   color: "#6366f1", icon: IconFileText },
-  image:    { label: "图片",   color: "#06b6d4", icon: IconPicture },
-  document: { label: "文档",   color: "#3b82f6", icon: IconFileText },
-  pdf:      { label: "PDF",   color: "#ef4444", icon: IconFileText },
-  audio:    { label: "音频",   color: "#f59e0b", icon: IconMusic },
-  video:    { label: "视频",   color: "#ec4899", icon: IconVideo },
-  web_clip: { label: "网页",   color: "#10b981", icon: IconLink },
-  link:     { label: "链接",   color: "#8b5cf6", icon: IconLink }
+  note:     { label: "笔记",   color: "#059669", icon: IconFileText },
+  text:     { label: "文本",   color: "#52525b", icon: IconFileText },
+  image:    { label: "图片",   color: "#52525b", icon: IconPicture },
+  document: { label: "文档",   color: "#059669", icon: IconFileText },
+  pdf:      { label: "PDF",   color: "#DC2626", icon: IconFileText },
+  audio:    { label: "音频",   color: "#52525B", icon: IconMusic },
+  video:    { label: "视频",   color: "#71717a", icon: IconVideo },
+  web_clip: { label: "网页",   color: "#059669", icon: IconLink },
+  link:     { label: "链接",   color: "#52525b", icon: IconLink }
 }
 
 const pad2 = (n: number) => n.toString().padStart(2, "0")
@@ -169,9 +170,7 @@ export function KnowledgeSidebarPanel({
   onInsertToChat
 }: KnowledgeSidebarPanelProps) {
   const isDark = darkMode
-  // 必须用 App.useApp() 拿到 context 绑定的 message，
-  // 否则静态 message.warning 无法消费 dynamic theme
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const kc = useKnowledgeConfig()
   // 解析后的配置：未加载时使用保守本地默认值（保证 UI 正常）
   // 所有默认值都尽量与 provider-resolver 的 DEFAULT_KNOWLEDGE_CONFIG 对齐
@@ -640,7 +639,7 @@ export function KnowledgeSidebarPanel({
         "fixed z-[150] flex font-sans overflow-hidden",
         "top-3 right-3 bottom-3",
         sidebarOpen ? "left-[272px]" : "left-3",
-        isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-gray-900"
+        isDark ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
       )}
       style={{ borderRadius: 10 }}
     >
@@ -648,7 +647,7 @@ export function KnowledgeSidebarPanel({
       <div
         className={cn(
           "w-[220px] flex-shrink-0 flex flex-col border-r",
-          isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-gray-100"
+          isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-100"
         )}
       >
         {/* 顶部操作条 */}
@@ -659,15 +658,15 @@ export function KnowledgeSidebarPanel({
                 onClick={onExpandSidebar}
                 className={cn(
                   "p-1.5 rounded transition-colors",
-                  isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100 text-gray-500"
+                  isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-100 text-zinc-500"
                 )}
               >
-                <IconLayoutTwo size={15} strokeWidth={1.5} />
+                <IconLayoutTwo size={15} strokeWidth={2} />
               </button>
             </Tooltip>
           )}
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <IconBookOpen size={15} strokeWidth={1.5} style={{ color: "#1677ff" }} />
+            <IconBookOpen size={15} strokeWidth={2} style={{ color: "#059669" }} />
             <span className="text-sm font-medium truncate">知识库</span>
           </div>
           <Tooltip title="关闭">
@@ -675,10 +674,10 @@ export function KnowledgeSidebarPanel({
               onClick={onClose}
               className={cn(
                 "p-1.5 rounded transition-colors",
-                isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100 text-gray-500"
+                isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-100 text-zinc-500"
               )}
             >
-              <IconClose size={14} strokeWidth={1.5} />
+              <IconClose size={14} strokeWidth={2} />
             </button>
           </Tooltip>
         </div>
@@ -712,11 +711,11 @@ export function KnowledgeSidebarPanel({
           />
 
           {/* 分隔 */}
-          <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-gray-100")} />
+          <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-zinc-100")} />
 
           {/* 集合列表 */}
           <div className="px-2 mb-1.5 flex items-center justify-between">
-            <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-gray-400")}>
+            <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-zinc-400")}>
               分类
             </span>
             <Tooltip title="新建分类">
@@ -724,15 +723,15 @@ export function KnowledgeSidebarPanel({
                 onClick={() => setShowCreateCollection(true)}
                 className={cn(
                   "p-1 rounded transition-colors",
-                  isDark ? "hover:bg-zinc-800 text-zinc-500" : "hover:bg-gray-100 text-gray-400"
+                  isDark ? "hover:bg-zinc-800 text-zinc-500" : "hover:bg-zinc-100 text-zinc-400"
                 )}
               >
-                <IconFolderPlus size={12} strokeWidth={1.5} />
+                <IconFolderPlus size={12} strokeWidth={2} />
               </button>
             </Tooltip>
           </div>
           {collections.length === 0 ? (
-            <div className={cn("px-3 py-2 text-[11px]", isDark ? "text-zinc-600" : "text-gray-400")}>
+            <div className={cn("px-3 py-2 text-[11px]", isDark ? "text-zinc-600" : "text-zinc-400")}>
               还没有分类
             </div>
           ) : (
@@ -755,10 +754,10 @@ export function KnowledgeSidebarPanel({
           {/* 协作中的知识库（被邀请加入的） */}
           {collaborations.length > 0 && (
             <>
-              <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-gray-100")} />
+              <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-zinc-100")} />
               <div className="px-2 mb-1.5 flex items-center gap-1.5">
-                <IconPeoples size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} strokeWidth={1.5} />
-                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-gray-400")}>
+                <IconPeoples size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} strokeWidth={2} />
+                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-zinc-400")}>
                   协作中 · {collaborations.length}
                 </span>
               </div>
@@ -777,8 +776,8 @@ export function KnowledgeSidebarPanel({
                         fontWeight: 500,
                         padding: "1px 5px",
                         borderRadius: 4,
-                        background: "rgba(22,119,255,0.10)",
-                        color: "#1677ff",
+                        background: "rgba(0,148,86,0.10)",
+                        color: "#059669",
                         lineHeight: "14px",
                         whiteSpace: "nowrap"
                       }}
@@ -797,9 +796,9 @@ export function KnowledgeSidebarPanel({
           {/* 标签 */}
           {tags.length > 0 && (
             <>
-              <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-gray-100")} />
+              <div className={cn("my-2 h-px", isDark ? "bg-zinc-800" : "bg-zinc-100")} />
               <div className="px-2 mb-1.5">
-                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-gray-400")}>
+                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-zinc-400")}>
                   标签
                 </span>
               </div>
@@ -831,7 +830,7 @@ export function KnowledgeSidebarPanel({
           <div
             className={cn(
               "px-4 py-2 text-[11px] flex items-center justify-between border-t shrink-0",
-              isDark ? "border-zinc-800 text-zinc-500" : "border-gray-100 text-gray-400"
+              isDark ? "border-zinc-800 text-zinc-500" : "border-zinc-100 text-zinc-400"
             )}
           >
             <span>{stats.total_items} 个条目</span>
@@ -842,10 +841,10 @@ export function KnowledgeSidebarPanel({
                   onClick={() => setShowSettings(true)}
                   className={cn(
                     "p-0.5 rounded transition-colors",
-                    isDark ? "hover:bg-zinc-800" : "hover:bg-gray-200"
+                    isDark ? "hover:bg-zinc-800" : "hover:bg-zinc-200"
                   )}
                 >
-                  <IconSetting size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+                  <IconSetting size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
                 </button>
               </Tooltip>
             </div>
@@ -861,23 +860,23 @@ export function KnowledgeSidebarPanel({
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "flex-1 flex items-center gap-2 px-2.5 h-8 rounded-md border",
-                isDark ? "bg-zinc-950 border-zinc-800" : "bg-gray-50 border-gray-200"
+                "flex-1 flex items-center gap-2 px-2.5 h-8 rounded-lg border",
+                isDark ? "bg-zinc-950 border-zinc-800" : "bg-zinc-50 border-zinc-200"
               )}
             >
-              <IconSearch size={13} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+              <IconSearch size={13} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索知识库"
                 className={cn(
                   "flex-1 bg-transparent text-[13px] outline-none min-w-0",
-                  isDark ? "text-zinc-100 placeholder:text-zinc-600" : "text-gray-900 placeholder:text-gray-400"
+                  isDark ? "text-zinc-100 placeholder:text-zinc-600" : "text-zinc-900 placeholder:text-zinc-400"
                 )}
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")} className="p-0.5">
-                  <IconClose size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+                  <IconClose size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
                 </button>
               )}
             </div>
@@ -897,16 +896,16 @@ export function KnowledgeSidebarPanel({
           {/* 第二行：工具栏（左：图标组 ｜ 中：数据条 ｜ 右：主操作） */}
           <div className="flex items-center mt-2.5 gap-2">
             {/* 左侧图标组（统一 32px 方形按钮） */}
-            <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", isDark ? "" : "")}>
+            <div className={cn("flex items-center gap-0.5 p-0.5 rounded-lg", isDark ? "" : "")}>
               <Tooltip title={uploading ? "上传中..." : "上传文件"}>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                   className={cn(
-                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors",
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-colors",
                     isDark
                       ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50"
-                      : "hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+                      : "hover:bg-zinc-100 text-zinc-500 disabled:opacity-50"
                   )}
                 >
                   {uploading ? <IconLoading size={15} className="animate-spin" /> : <IconUpload size={15} strokeWidth={1.6} />}
@@ -927,10 +926,10 @@ export function KnowledgeSidebarPanel({
                     else setUseGLMOCRToggle(null)
                   }}
                   className={cn(
-                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors relative",
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-colors relative",
                     useGLMOCRToggle === true
-                      ? isDark ? "bg-blue-950/40 text-blue-400" : "bg-blue-50 text-blue-600"
-                      : isDark ? "hover:bg-zinc-800 text-zinc-500" : "hover:bg-gray-100 text-gray-500"
+                      ? isDark ? "bg-emerald-950/40 text-emerald-400" : "bg-emerald-50 text-emerald-600"
+                      : isDark ? "hover:bg-zinc-800 text-zinc-500" : "hover:bg-zinc-100 text-zinc-500"
                   )}
                 >
                   <IconMagic size={15} strokeWidth={1.6} />
@@ -938,9 +937,9 @@ export function KnowledgeSidebarPanel({
                     className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full ring-2"
                     style={{
                       background:
-                        useGLMOCRToggle === true ? "#1677ff" :
+                        useGLMOCRToggle === true ? "#059669" :
                         useGLMOCRToggle === false ? "rgba(0,0,0,0.25)" :
-                        "#52c41a",
+                        "#059669",
                       boxShadow: `0 0 0 2px ${isDark ? "#18181b" : "#ffffff"}`
                     }}
                   />
@@ -965,8 +964,8 @@ export function KnowledgeSidebarPanel({
                   onClick={handleRefresh}
                   disabled={refreshing}
                   className={cn(
-                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors",
-                    isDark ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50" : "hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-colors",
+                    isDark ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50" : "hover:bg-zinc-100 text-zinc-500 disabled:opacity-50"
                   )}
                 >
                   <IconRefresh size={15} className={refreshing ? "animate-spin" : ""} strokeWidth={1.6} />
@@ -978,10 +977,10 @@ export function KnowledgeSidebarPanel({
                   onClick={() => setShowResearch(true)}
                   disabled={researching}
                   className={cn(
-                    "h-8 w-8 rounded-md flex items-center justify-center transition-colors",
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-colors",
                     showResearch || researching
-                      ? isDark ? "bg-blue-950/40 text-blue-400" : "bg-blue-50 text-blue-600"
-                      : isDark ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50" : "hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+                      ? isDark ? "bg-emerald-950/40 text-emerald-400" : "bg-emerald-50 text-emerald-600"
+                      : isDark ? "hover:bg-zinc-800 text-zinc-400 disabled:opacity-50" : "hover:bg-zinc-100 text-zinc-500 disabled:opacity-50"
                   )}
                 >
                   {researching ? <IconLoading size={15} className="animate-spin" /> : <IconGlobe size={15} strokeWidth={1.6} />}
@@ -990,10 +989,10 @@ export function KnowledgeSidebarPanel({
             </div>
 
             {/* 中部：数据条 / 状态文字（不抢戏，weight 400 灰色） */}
-            <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 dark:text-zinc-500">
+            <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
               {searchResults ? (
                 <>
-                  <span style={{ color: "#1677ff", fontWeight: 500 }}>{searchResults.length}</span>
+                  <span style={{ color: "#059669", fontWeight: 500 }}>{searchResults.length}</span>
                   <span>条搜索结果</span>
                 </>
               ) : items.length > 0 ? (
@@ -1010,8 +1009,8 @@ export function KnowledgeSidebarPanel({
             <Tooltip title="新建笔记">
               <button
                 onClick={() => setShowCreateItem(true)}
-                className="h-8 px-3 rounded-md text-[12.5px] font-medium flex items-center gap-1 text-white shrink-0 transition-opacity hover:opacity-90 active:opacity-80"
-                style={{ background: "#1677ff" }}
+                className="h-8 px-3 rounded-lg text-[13px] font-medium flex items-center gap-1 text-white shrink-0 transition-opacity hover:opacity-90 active:opacity-80"
+                style={{ background: "#059669" }}
               >
                 <IconPlus size={13} strokeWidth={2.4} />
                 <span>新建</span>
@@ -1021,17 +1020,17 @@ export function KnowledgeSidebarPanel({
 
           {/* 协作 banner：单行 chip + 文字（无背景块、无分割线） */}
           {selectedIsCollaboration && (
-            <div className="flex items-center gap-2 mt-2.5 text-[11.5px]">
+            <div className="flex items-center gap-2 mt-2.5 text-[12px]">
               <span
-                className="flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] font-medium text-white shrink-0"
-                style={{ background: "#1677ff" }}
+                className="flex items-center gap-1 h-5 px-1.5 rounded text-[11px] font-medium text-white shrink-0"
+                style={{ background: "#059669" }}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-white/90" />
                 协作中
               </span>
-              <span className={cn(isDark ? "text-zinc-500" : "text-gray-500")}>·</span>
+              <span className={cn(isDark ? "text-zinc-500" : "text-zinc-500")}>·</span>
               <span
-                style={{ color: "#1677ff", fontWeight: 500 }}
+                style={{ color: "#059669", fontWeight: 500 }}
               >
                 {selectedCollabRole === "admin" ? "管理员" :
                  selectedCollabRole === "editor" ? "编辑者" :
@@ -1047,7 +1046,7 @@ export function KnowledgeSidebarPanel({
                     }}
                     className={cn(
                       "h-6 px-2 rounded text-[11px] font-medium shrink-0 transition-colors",
-                      isDark ? "text-blue-400 hover:bg-blue-950/30" : "text-blue-600 hover:bg-blue-50"
+                      isDark ? "text-emerald-400 hover:bg-emerald-950/30" : "text-emerald-600 hover:bg-emerald-50"
                     )}
                   >
                     管理
@@ -1066,18 +1065,18 @@ export function KnowledgeSidebarPanel({
             </div>
           ) : displayItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full px-8 py-12">
-              <IconBookOpen size={48} strokeWidth={1} className={isDark ? "text-zinc-700" : "text-gray-300"} />
-              <p className={cn("mt-4 text-sm", isDark ? "text-zinc-500" : "text-gray-400")}>
+              <IconBookOpen size={48} strokeWidth={1} className={isDark ? "text-zinc-700" : "text-zinc-300"} />
+              <p className={cn("mt-4 text-sm", isDark ? "text-zinc-500" : "text-zinc-400")}>
                 {searchQuery ? "没有找到匹配的知识" : "知识库还是空的"}
               </p>
-              <p className={cn("mt-1 text-xs", isDark ? "text-zinc-600" : "text-gray-400")}>
+              <p className={cn("mt-1 text-xs", isDark ? "text-zinc-600" : "text-zinc-400")}>
                 {searchQuery ? "试试调整关键词或切换搜索模式" : "上传文件或新建笔记开始构建你的知识库"}
               </p>
               {!searchQuery && (
                 <button
                   onClick={() => setShowCreateItem(true)}
-                  className="mt-4 h-8 px-4 rounded-md text-xs text-white"
-                  style={{ background: "#1677ff" }}
+                  className="mt-4 h-8 px-4 rounded-lg text-xs text-white"
+                  style={{ background: "#059669" }}
                 >
                   新建第一条知识
                 </button>
@@ -1104,8 +1103,8 @@ export function KnowledgeSidebarPanel({
           {!searchQuery && recommendations.length > 0 && displayItems.length > 0 && (
             <div className="px-5 py-4">
               <div className="flex items-center gap-1.5 mb-2">
-                <IconMagic size={12} style={{ color: "#1677ff" }} />
-                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-gray-500")}>
+                <IconMagic size={12} style={{ color: "#059669" }} />
+                <span className={cn("text-[11px] font-medium uppercase tracking-wide", isDark ? "text-zinc-500" : "text-zinc-500")}>
                   基于历史的推荐
                 </span>
               </div>
@@ -1164,12 +1163,12 @@ export function KnowledgeSidebarPanel({
         width={480}
         title={
           <span className="flex items-center gap-2">
-            <IconGlobe size={16} strokeWidth={1.8} style={{ color: "#1677ff" }} />
+            <IconGlobe size={16} strokeWidth={1.8} style={{ color: "#059669" }} />
             AI 深度研究
           </span>
         }
       >
-        <p className={cn("text-[12.5px] leading-relaxed mb-3", isDark ? "text-zinc-400" : "text-gray-500")}>
+        <p className={cn("text-[13px] leading-relaxed mb-3", isDark ? "text-zinc-400" : "text-zinc-500")}>
           AI 自动拆解多视角子查询 → 联网检索并阅读网页 → 分析缺口补搜 → 融合为带引用的知识条目，
           自动存入知识库并完成向量化。整个流程约需 1-3 分钟。
         </p>
@@ -1184,7 +1183,7 @@ export function KnowledgeSidebarPanel({
           onPressEnter={(e) => { if (!researching && researchTopic.trim() && !(e as any).shiftKey) handleResearch() }}
         />
         {typeof selectedCollection === "number" && (
-          <p className={cn("text-[11.5px] mt-2", isDark ? "text-zinc-500" : "text-gray-400")}>
+          <p className={cn("text-[12px] mt-2", isDark ? "text-zinc-500" : "text-zinc-400")}>
             研究结果将存入当前选中的集合
           </p>
         )}
@@ -1256,27 +1255,27 @@ function CollectionNavItem({
     <div
       onClick={onClick}
       className={cn(
-        "group relative flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-md cursor-pointer transition-colors text-sm",
+        "group relative flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg cursor-pointer transition-colors text-sm",
         // 不再用背景块做 active，靠左侧 2px 色条 + 文字色变化
-        isDark ? "hover:bg-zinc-800/40" : "hover:bg-gray-50/60"
+        isDark ? "hover:bg-zinc-800/40" : "hover:bg-zinc-50/60"
       )}
     >
       {/* 左侧 2px 蓝色色条：唯一 active 锚点 */}
       {active && (
         <span
           className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full"
-          style={{ background: "#1677ff" }}
+          style={{ background: "#059669" }}
         />
       )}
       <Icon
         size={13}
-        strokeWidth={1.5}
-        style={{ color: active ? "#1677ff" : color || (isDark ? "#a1a1aa" : "#9ca3af") }}
+        strokeWidth={2}
+        style={{ color: active ? "#059669" : color || (isDark ? "#a1a1aa" : "#A1A1AA") }}
       />
       <span
         className={cn(
           "flex-1 truncate text-[13px]",
-          active ? (isDark ? "text-zinc-100 font-medium" : "text-gray-900 font-medium") : (isDark ? "text-zinc-400" : "text-gray-600")
+          active ? (isDark ? "text-zinc-100 font-medium" : "text-zinc-900 font-medium") : (isDark ? "text-zinc-400" : "text-zinc-600")
         )}
       >
         {label}
@@ -1285,10 +1284,10 @@ function CollectionNavItem({
       {typeof count === "number" && count > 0 && (
         <span
           className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded",
+            "text-[11px] px-1.5 py-0.5 rounded",
             active
-              ? isDark ? "bg-blue-950/40 text-blue-400" : "bg-blue-50 text-blue-600"
-              : isDark ? "text-zinc-500" : "text-gray-400"
+              ? isDark ? "bg-emerald-950/40 text-emerald-400" : "bg-emerald-50 text-emerald-600"
+              : isDark ? "text-zinc-500" : "text-zinc-400"
           )}
         >
           {count}
@@ -1301,10 +1300,10 @@ function CollectionNavItem({
             onClick={(e) => { e.stopPropagation(); onManage() }}
             className={cn(
               "opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all",
-              isDark ? "hover:bg-zinc-700" : "hover:bg-gray-200"
+              isDark ? "hover:bg-zinc-700" : "hover:bg-zinc-200"
             )}
           >
-            <IconPeoples size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+            <IconPeoples size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
           </button>
         </Tooltip>
       )}
@@ -1313,10 +1312,10 @@ function CollectionNavItem({
           onClick={(e) => { e.stopPropagation(); onDelete() }}
           className={cn(
             "opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all",
-            isDark ? "hover:bg-zinc-700" : "hover:bg-gray-200"
+            isDark ? "hover:bg-zinc-700" : "hover:bg-zinc-200"
           )}
         >
-          <IconDelete size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+          <IconDelete size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
         </button>
       )}
     </div>
@@ -1396,7 +1395,8 @@ function CollectionManageModal({
           borderRadius: 10,
           overflow: "hidden"
         },
-        mask: { backdropFilter: "blur(2px)" }
+        /* 遮罩模糊接全站「材质厚度」档位（--dc-mat-scale 由 <html data-mat-level> 提供） */
+        mask: { backdropFilter: "blur(calc(2px * var(--dc-mat-scale, 1)))" }
       }}
       // 极简头部：单行面包屑 + 单行标题 + Tab，零装饰
       title={
@@ -1407,23 +1407,23 @@ function CollectionManageModal({
             style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}
           >
             <span>知识库</span>
-            <IconRight style={{ width: 10, height: 10 }} strokeWidth={1.5} />
+            <IconRight style={{ width: 10, height: 10 }} strokeWidth={2} />
             <span>{collection.name}</span>
-            <IconRight style={{ width: 10, height: 10 }} strokeWidth={1.5} />
+            <IconRight style={{ width: 10, height: 10 }} strokeWidth={2} />
             <span>协作管理</span>
           </div>
 
           {/* 主标题 + 关闭按钮 */}
           <div className="flex items-center justify-between">
             <h2
-              className="text-[15px] font-semibold leading-tight m-0"
+              className="text-[14px] font-semibold leading-tight m-0"
               style={{ color: isDark ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.88)" }}
             >
               {collection.name} · 协作管理
             </h2>
             <div className="flex items-center gap-3 text-[12px]">
               {pendingCount > 0 && (
-                <span style={{ color: "#fa8c16" }}>{pendingCount} 条待处理</span>
+                <span style={{ color: "#52525B" }}>{pendingCount} 条待处理</span>
               )}
               <span style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
                 {collabCount} 位协作者
@@ -1434,7 +1434,7 @@ function CollectionManageModal({
           {/* 关闭按钮（绝对定位右上） */}
           <button
             onClick={onClose}
-            className="absolute right-0 top-0 w-7 h-7 rounded-md flex items-center justify-center transition-colors"
+            className="absolute right-0 top-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
             style={{
               color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)"
             }}
@@ -1471,7 +1471,7 @@ function CollectionManageModal({
                 <span
                   className="text-[13px] font-medium transition-colors"
                   style={{
-                    color: activeKey === "collaborators" ? "#1677ff" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)"
+                    color: activeKey === "collaborators" ? "#059669" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)"
                   }}
                 >
                   协作者
@@ -1493,7 +1493,7 @@ function CollectionManageModal({
                 <span
                   className="text-[13px] font-medium transition-colors"
                   style={{
-                    color: activeKey === "activity" ? "#1677ff" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)"
+                    color: activeKey === "activity" ? "#059669" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.65)"
                   }}
                 >
                   活动动态
@@ -1538,14 +1538,14 @@ function TagBadge({
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-colors",
         active
           ? "text-white"
-          : isDark ? "bg-zinc-800/60 text-zinc-400 hover:bg-zinc-800" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          : isDark ? "bg-zinc-800/60 text-zinc-400 hover:bg-zinc-800" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
       )}
-      style={active ? { background: color || "#1677ff" } : undefined}
+      style={active ? { background: color || "#059669" } : undefined}
     >
-      <IconHashtagKey size={9} strokeWidth={1.5} />
+      <IconHashtagKey size={9} strokeWidth={2} />
       <span className="truncate max-w-[60px]">{name}</span>
       {typeof count === "number" && count > 0 && !active && (
-        <span className={isDark ? "text-zinc-600" : "text-gray-400"}>{count}</span>
+        <span className={isDark ? "text-zinc-600" : "text-zinc-400"}>{count}</span>
       )}
     </button>
   )
@@ -1574,16 +1574,16 @@ function ItemListRow({
     <div
       onClick={onClick}
       className={cn(
-        "group relative flex items-start gap-2.5 pl-3 pr-2.5 py-2 rounded-md cursor-pointer transition-colors",
+        "group relative flex items-start gap-2.5 pl-3 pr-2.5 py-2 rounded-lg cursor-pointer transition-colors",
         // 不再用背景块做 active
-        isDark ? "hover:bg-zinc-800/30" : "hover:bg-gray-50/60"
+        isDark ? "hover:bg-zinc-800/30" : "hover:bg-zinc-50/60"
       )}
     >
       {/* 左侧 2px 蓝色色条：active 唯一锚点 */}
       {active && (
         <span
           className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full"
-          style={{ background: "#1677ff" }}
+          style={{ background: "#059669" }}
         />
       )}
       {/* 类型图标：始终使用 meta.color 浅色背景，active 不变色（让色条做唯一锚点） */}
@@ -1601,29 +1601,29 @@ function ItemListRow({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-              "text-[12.5px] truncate transition-colors",
+              "text-[13px] truncate transition-colors",
               active ? "font-semibold" : "font-medium",
               isDark
-                ? (active ? "text-blue-400" : "text-zinc-100")
-                : (active ? "text-[#1677ff]" : "text-gray-900")
+                ? (active ? "text-emerald-400" : "text-zinc-100")
+                : (active ? "text-[#059669]" : "text-zinc-900")
             )}
           >
             {item.title}
           </span>
           {item.is_favorite ? (
-            <IconStar size={10} className="shrink-0" style={{ color: "#f59e0b", fill: "#f59e0b" }} />
+            <IconStar size={10} className="shrink-0" style={{ color: "#52525B", fill: "#52525B" }} />
           ) : null}
         </div>
         {item.summary ? (
-          <p className={cn("text-[11px] mt-0.5 line-clamp-1", isDark ? "text-zinc-500" : "text-gray-500")}>
+          <p className={cn("text-[11px] mt-0.5 line-clamp-1", isDark ? "text-zinc-500" : "text-zinc-500")}>
             {item.summary}
           </p>
         ) : item.content ? (
-          <p className={cn("text-[11px] mt-0.5 line-clamp-1", isDark ? "text-zinc-600" : "text-gray-400")}>
+          <p className={cn("text-[11px] mt-0.5 line-clamp-1", isDark ? "text-zinc-600" : "text-zinc-400")}>
             {item.content.replace(/\n+/g, " ").slice(0, listPreviewChars)}
           </p>
         ) : null}
-        <div className={cn("flex items-center gap-1.5 mt-0.5 text-[10px]", isDark ? "text-zinc-600" : "text-gray-400")}>
+        <div className={cn("flex items-center gap-1.5 mt-0.5 text-[11px]", isDark ? "text-zinc-600" : "text-zinc-400")}>
           <span>{formatTime(item.updated_at)}</span>
           {item.collection_name && (
             <>
@@ -1635,7 +1635,7 @@ function ItemListRow({
             <>
               <span>·</span>
               <Tooltip title="已向量化">
-                <IconMagic size={9} style={{ color: "#1677ff" }} />
+                <IconMagic size={9} style={{ color: "#059669" }} />
               </Tooltip>
             </>
           )}
@@ -1654,12 +1654,12 @@ function ItemListRow({
             onClick={(e) => { e.stopPropagation(); onToggleFavorite() }}
             className={cn(
               "p-1 rounded transition-colors",
-              isDark ? "hover:bg-zinc-700" : "hover:bg-gray-200"
+              isDark ? "hover:bg-zinc-700" : "hover:bg-zinc-200"
             )}
           >
             {item.is_favorite
               ? <IconStar size={11} className="text-amber-500" theme="filled" />
-              : <IconStar size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />}
+              : <IconStar size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} />}
           </button>
         </Tooltip>
         <Dropdown
@@ -1681,8 +1681,8 @@ function ItemListRow({
               { type: "divider" },
               {
                 key: "delete",
-                label: <span style={{ color: "#ef4444" }}>删除</span>,
-                icon: <IconDelete size={12} style={{ color: "#ef4444" }} />,
+                label: <span style={{ color: "#DC2626" }}>删除</span>,
+                icon: <IconDelete size={12} style={{ color: "#DC2626" }} />,
                 danger: true,
                 onClick: (e: any) => { e.domEvent.stopPropagation(); onDelete() }
               }
@@ -1693,10 +1693,10 @@ function ItemListRow({
             onClick={(e) => e.stopPropagation()}
             className={cn(
               "p-1 rounded transition-colors",
-              isDark ? "hover:bg-zinc-700" : "hover:bg-gray-200"
+              isDark ? "hover:bg-zinc-700" : "hover:bg-zinc-200"
             )}
           >
-            <IconMore size={11} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+            <IconMore size={11} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
           </button>
         </Dropdown>
       </div>
@@ -1719,17 +1719,17 @@ function RecommendationCard({
     <button
       onClick={onClick}
       className={cn(
-        "p-2.5 rounded-md text-left transition-colors border",
-        isDark ? "bg-zinc-900 border-zinc-800 hover:border-zinc-700" : "bg-white border-gray-100 hover:border-gray-200"
+        "p-2.5 rounded-lg text-left transition-colors border",
+        isDark ? "bg-zinc-900 border-zinc-800 hover:border-zinc-700" : "bg-white border-zinc-100 hover:border-zinc-200"
       )}
     >
       <div className="flex items-center gap-1.5 mb-1">
         <Icon size={11} style={{ color: meta.color }} />
-        <span className={cn("text-[11px] font-medium truncate flex-1", isDark ? "text-zinc-200" : "text-gray-700")}>
+        <span className={cn("text-[11px] font-medium truncate flex-1", isDark ? "text-zinc-200" : "text-zinc-700")}>
           {item.title}
         </span>
       </div>
-      <p className={cn("text-[10px] line-clamp-2", isDark ? "text-zinc-500" : "text-gray-500")}>
+      <p className={cn("text-[11px] line-clamp-2", isDark ? "text-zinc-500" : "text-zinc-500")}>
         {item.summary || item.content?.replace(/\n+/g, " ").slice(0, recommendationPreviewChars) || "点击查看详情"}
       </p>
     </button>
@@ -1749,8 +1749,7 @@ function ItemDetailPanel({
   darkMode?: boolean
 }) {
   const isDark = darkMode
-  // 必须用 App.useApp() 拿到 context 绑定的 message
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const kc = useKnowledgeConfig()
   // 走 admin knowledgeConfig 暴露的可配置项（未加载时使用兜底默认值）
   const detailEditorTextareaMinRows = (kc?.ui?.detailEditorTextareaMinRows as number) ?? 12
@@ -1860,30 +1859,30 @@ function ItemDetailPanel({
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
         "w-[480px] flex-shrink-0 flex flex-col border-l",
-        isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-gray-100"
+        isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-100"
       )}
     >
       {/* 头部 */}
-      <div className={cn("px-5 pt-4 pb-3 border-b flex items-center gap-2 shrink-0", isDark ? "border-zinc-800" : "border-gray-100")}>
+      <div className={cn("px-5 pt-4 pb-3 border-b flex items-center gap-2 shrink-0", isDark ? "border-zinc-800" : "border-zinc-100")}>
         <button
           onClick={onClose}
           className={cn(
             "p-1.5 rounded transition-colors",
-            isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100 text-gray-500"
+            isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-100 text-zinc-500"
           )}
         >
-          <IconArrowLeft size={14} strokeWidth={1.5} />
+          <IconArrowLeft size={14} strokeWidth={2} />
         </button>
         <div
-          className="w-7 h-7 rounded-md flex items-center justify-center"
+          className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{ background: `${meta.color}15`, color: meta.color }}
         >
-          <Icon size={14} strokeWidth={1.5} />
+          <Icon size={14} strokeWidth={2} />
         </div>
-        <span className={cn("text-[11px] px-1.5 py-0.5 rounded", isDark ? "bg-zinc-800 text-zinc-400" : "bg-gray-100 text-gray-500")}>
+        <span className={cn("text-[11px] px-1.5 py-0.5 rounded", isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500")}>
           {meta.label}
         </span>
-        <span className={cn("text-[11px]", isDark ? "text-zinc-500" : "text-gray-400")}>
+        <span className={cn("text-[11px]", isDark ? "text-zinc-500" : "text-zinc-400")}>
           v{item.current_version}
         </span>
         <div className="flex-1" />
@@ -1924,8 +1923,8 @@ function ItemDetailPanel({
               { type: "divider" },
               {
                 key: "delete",
-                label: <span style={{ color: "#ef4444" }}>删除</span>,
-                icon: <IconDelete size={12} style={{ color: "#ef4444" }} />,
+                label: <span style={{ color: "#DC2626" }}>删除</span>,
+                icon: <IconDelete size={12} style={{ color: "#DC2626" }} />,
                 danger: true,
                 onClick: () => onDelete()
               }
@@ -1934,19 +1933,19 @@ function ItemDetailPanel({
         >
           <button className={cn(
             "p-1.5 rounded transition-colors",
-            isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100 text-gray-500"
+            isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-100 text-zinc-500"
           )}>
-            <IconMore size={14} strokeWidth={1.5} />
+            <IconMore size={14} strokeWidth={2} />
           </button>
         </Dropdown>
         <button
           onClick={onClose}
           className={cn(
             "p-1.5 rounded transition-colors",
-            isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100 text-gray-500"
+            isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-100 text-zinc-500"
           )}
         >
-          <IconClose size={14} strokeWidth={1.5} />
+          <IconClose size={14} strokeWidth={2} />
         </button>
       </div>
 
@@ -1976,8 +1975,8 @@ function ItemDetailPanel({
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 h-9 rounded-md text-white text-sm flex items-center justify-center gap-1.5"
-                style={{ background: "#1677ff" }}
+                className="flex-1 h-9 rounded-lg text-white text-sm flex items-center justify-center gap-1.5"
+                style={{ background: "#059669" }}
               >
                 {saving ? <IconLoading size={13} className="animate-spin" /> : <IconSave size={13} />}
                 保存（创建新版本）
@@ -1985,8 +1984,8 @@ function ItemDetailPanel({
               <button
                 onClick={() => setEditing(false)}
                 className={cn(
-                  "h-9 px-4 rounded-md text-sm border",
-                  isDark ? "border-zinc-800 text-zinc-300" : "border-gray-200 text-gray-700"
+                  "h-9 px-4 rounded-lg text-sm border",
+                  isDark ? "border-zinc-800 text-zinc-300" : "border-zinc-200 text-zinc-700"
                 )}
               >
                 取消
@@ -2002,7 +2001,7 @@ function ItemDetailPanel({
               <button
                 onClick={() => handleRestoreVersion(previewVersion.id)}
                 className="text-[11px] px-2 py-0.5 rounded"
-                style={{ background: "#1677ff", color: "white" }}
+                style={{ background: "#059669", color: "white" }}
               >
                 恢复此版本
               </button>
@@ -2013,10 +2012,10 @@ function ItemDetailPanel({
                 关闭预览
               </button>
             </div>
-            <h2 className={cn("text-lg font-semibold mb-2", isDark ? "text-zinc-100" : "text-gray-900")}>
+            <h2 className={cn("text-lg font-semibold mb-2", isDark ? "text-zinc-100" : "text-zinc-900")}>
               {previewVersion.title}
             </h2>
-            <pre className={cn("whitespace-pre-wrap text-sm leading-relaxed", isDark ? "text-zinc-300" : "text-gray-700")}>
+            <pre className={cn("whitespace-pre-wrap text-sm leading-relaxed", isDark ? "text-zinc-300" : "text-zinc-700")}>
               {previewVersion.content || "（无内容）"}
             </pre>
           </div>
@@ -2024,10 +2023,10 @@ function ItemDetailPanel({
           <div className="p-5 space-y-4">
             {/* 标题 */}
             <div>
-              <h2 className={cn("text-lg font-semibold", isDark ? "text-zinc-100" : "text-gray-900")}>
+              <h2 className={cn("text-lg font-semibold", isDark ? "text-zinc-100" : "text-zinc-900")}>
                 {item.title}
               </h2>
-              <div className={cn("flex items-center gap-3 mt-2 text-[11px]", isDark ? "text-zinc-500" : "text-gray-400")}>
+              <div className={cn("flex items-center gap-3 mt-2 text-[11px]", isDark ? "text-zinc-500" : "text-zinc-400")}>
                 <span>创建 {formatFullTime(item.created_at)}</span>
                 <span>·</span>
                 <span>更新 {formatFullTime(item.updated_at)}</span>
@@ -2044,7 +2043,7 @@ function ItemDetailPanel({
                     key={t}
                     className={cn(
                       "inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px]",
-                      isDark ? "bg-zinc-800 text-zinc-400" : "bg-gray-100 text-gray-600"
+                      isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-600"
                     )}
                   >
                     <IconHashtagKey size={9} /> {t}
@@ -2055,7 +2054,7 @@ function ItemDetailPanel({
 
             {/* 文件预览 */}
             {item.file_url && (
-              <div className={cn("rounded-md overflow-hidden border", isDark ? "border-zinc-800" : "border-gray-200")}>
+              <div className={cn("rounded-lg overflow-hidden border", isDark ? "border-zinc-800" : "border-zinc-200")}>
                 {item.content_type === "image" ? (
                   <img src={item.file_url} alt={item.title} className="w-full h-auto max-h-[300px] object-contain bg-black/5" />
                 ) : item.content_type === "video" ? (
@@ -2063,18 +2062,18 @@ function ItemDetailPanel({
                 ) : item.content_type === "audio" ? (
                   <audio src={item.file_url} controls className="w-full" />
                 ) : (
-                  <div className={cn("flex items-center gap-3 p-3", isDark ? "bg-zinc-900" : "bg-gray-50")}>
+                  <div className={cn("flex items-center gap-3 p-3", isDark ? "bg-zinc-900" : "bg-zinc-50")}>
                     <div
-                      className="w-10 h-10 rounded-md flex items-center justify-center shrink-0"
+                      className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                       style={{ background: `${meta.color}15`, color: meta.color }}
                     >
                       <Icon size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className={cn("text-[12px] font-medium truncate", isDark ? "text-zinc-200" : "text-gray-700")}>
+                      <div className={cn("text-[12px] font-medium truncate", isDark ? "text-zinc-200" : "text-zinc-700")}>
                         {item.title}
                       </div>
-                      <div className={cn("text-[10px]", isDark ? "text-zinc-500" : "text-gray-400")}>
+                      <div className={cn("text-[11px]", isDark ? "text-zinc-500" : "text-zinc-400")}>
                         {item.mime_type} · {formatSize(item.file_size)}
                       </div>
                     </div>
@@ -2084,7 +2083,7 @@ function ItemDetailPanel({
                       rel="noreferrer"
                       className={cn(
                         "p-1.5 rounded transition-colors",
-                        isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-200 text-gray-500"
+                        isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-200 text-zinc-500"
                       )}
                     >
                       <IconLinkOut size={13} />
@@ -2096,20 +2095,20 @@ function ItemDetailPanel({
 
             {/* 文本内容 */}
             {item.content && (
-              <div className={cn("rounded-md p-3 text-[13px] leading-relaxed whitespace-pre-wrap", isDark ? "bg-zinc-900 text-zinc-300" : "bg-gray-50 text-gray-700")}>
+              <div className={cn("rounded-lg p-3 text-[13px] leading-relaxed whitespace-pre-wrap", isDark ? "bg-zinc-900 text-zinc-300" : "bg-zinc-50 text-zinc-700")}>
                 {item.content}
               </div>
             )}
 
             {/* 摘要 */}
             {item.summary && !item.content && (
-              <div className={cn("rounded-md p-3 text-[13px] leading-relaxed", isDark ? "bg-zinc-900 text-zinc-300" : "bg-gray-50 text-gray-700")}>
+              <div className={cn("rounded-lg p-3 text-[13px] leading-relaxed", isDark ? "bg-zinc-900 text-zinc-300" : "bg-zinc-50 text-zinc-700")}>
                 {item.summary}
               </div>
             )}
 
             {/* 元数据 */}
-            <div className={cn("rounded-md p-3 text-[11px] space-y-1.5", isDark ? "bg-zinc-900/50" : "bg-gray-50/50")}>
+            <div className={cn("rounded-lg p-3 text-[11px] space-y-1.5", isDark ? "bg-zinc-900/50" : "bg-zinc-50/50")}>
               <MetaRow label="类型" value={meta.label} darkMode={isDark} />
               {item.collection_name && <MetaRow label="分类" value={item.collection_name} darkMode={isDark} />}
               {item.embedding_model && <MetaRow label="Embedding" value={item.embedding_model} darkMode={isDark} />}
@@ -2122,8 +2121,8 @@ function ItemDetailPanel({
             {onInsertToChat && (
               <button
                 onClick={onInsertToChat}
-                className="w-full h-9 rounded-md text-sm flex items-center justify-center gap-1.5 text-white"
-                style={{ background: "#1677ff" }}
+                className="w-full h-9 rounded-lg text-sm flex items-center justify-center gap-1.5 text-white"
+                style={{ background: "#059669" }}
               >
                 <IconCopy size={13} /> 引用到对话
               </button>
@@ -2146,17 +2145,17 @@ function ItemDetailPanel({
             )}
             style={{ zIndex: 10 }}
           >
-            <div className={cn("px-5 py-3 border-b flex items-center gap-2", isDark ? "border-zinc-800" : "border-gray-100")}>
+            <div className={cn("px-5 py-3 border-b flex items-center gap-2", isDark ? "border-zinc-800" : "border-zinc-100")}>
               <button
                 onClick={() => { setShowVersions(false); setPreviewVersion(null) }}
                 className={cn(
                   "p-1.5 rounded transition-colors",
-                  isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100 text-gray-500"
+                  isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-100 text-zinc-500"
                 )}
               >
-                <IconArrowLeft size={14} strokeWidth={1.5} />
+                <IconArrowLeft size={14} strokeWidth={2} />
               </button>
-              <IconHistory size={14} strokeWidth={1.5} style={{ color: "#1677ff" }} />
+              <IconHistory size={14} strokeWidth={2} style={{ color: "#059669" }} />
               <span className="text-sm font-medium">历史版本</span>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
@@ -2167,20 +2166,20 @@ function ItemDetailPanel({
                   key={v.id}
                   onClick={() => setPreviewVersion(v)}
                   className={cn(
-                    "p-3 rounded-md cursor-pointer transition-colors",
+                    "p-3 rounded-lg cursor-pointer transition-colors",
                     previewVersion?.id === v.id
-                      ? isDark ? "bg-zinc-800" : "bg-blue-50"
-                      : isDark ? "hover:bg-zinc-800/50" : "hover:bg-gray-50"
+                      ? isDark ? "bg-zinc-800" : "bg-emerald-50"
+                      : isDark ? "hover:bg-zinc-800/50" : "hover:bg-zinc-50"
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <span
                       className="text-[11px] px-1.5 py-0.5 rounded font-mono"
-                      style={{ background: "#1677ff15", color: "#1677ff" }}
+                      style={{ background: "#05966915", color: "#059669" }}
                     >
                       v{v.version_number}
                     </span>
-                    <span className={cn("text-[11px]", isDark ? "text-zinc-500" : "text-gray-500")}>
+                    <span className={cn("text-[11px]", isDark ? "text-zinc-500" : "text-zinc-500")}>
                       {formatFullTime(v.created_at)}
                     </span>
                     <div className="flex-1" />
@@ -2190,7 +2189,7 @@ function ItemDetailPanel({
                           onClick={(e) => { e.stopPropagation(); handleRestoreVersion(v.id) }}
                           className={cn(
                             "p-1 rounded transition-colors",
-                            isDark ? "hover:bg-zinc-700 text-zinc-400" : "hover:bg-gray-200 text-gray-500"
+                            isDark ? "hover:bg-zinc-700 text-zinc-400" : "hover:bg-zinc-200 text-zinc-500"
                           )}
                         >
                           <IconUndo size={11} />
@@ -2198,10 +2197,10 @@ function ItemDetailPanel({
                       </Tooltip>
                     )}
                   </div>
-                  <p className={cn("text-[12px] mt-1 truncate", isDark ? "text-zinc-200" : "text-gray-700")}>
+                  <p className={cn("text-[12px] mt-1 truncate", isDark ? "text-zinc-200" : "text-zinc-700")}>
                     {v.title}
                   </p>
-                  <p className={cn("text-[11px] mt-0.5", isDark ? "text-zinc-500" : "text-gray-500")}>
+                  <p className={cn("text-[11px] mt-0.5", isDark ? "text-zinc-500" : "text-zinc-500")}>
                     {v.change_summary || v.change_type}
                   </p>
                 </div>
@@ -2218,13 +2217,13 @@ function MetaRow({ label, value, link, darkMode }: { label: string; value: strin
   const isDark = darkMode
   return (
     <div className="flex items-center gap-2">
-      <span className={cn("shrink-0", isDark ? "text-zinc-600" : "text-gray-400")}>{label}</span>
+      <span className={cn("shrink-0", isDark ? "text-zinc-600" : "text-zinc-400")}>{label}</span>
       {link ? (
-        <a href={value} target="_blank" rel="noreferrer" className="truncate text-blue-500 hover:underline">
+        <a href={value} target="_blank" rel="noreferrer" className="truncate text-emerald-500 hover:underline">
           {value}
         </a>
       ) : (
-        <span className={cn("truncate", isDark ? "text-zinc-300" : "text-gray-700")}>{value}</span>
+        <span className={cn("truncate", isDark ? "text-zinc-300" : "text-zinc-700")}>{value}</span>
       )}
     </div>
   )
@@ -2240,12 +2239,12 @@ function CreateCollectionModal({
   // 走 admin knowledgeConfig 暴露的可配置项（未加载时使用兜底默认值）
   const collectionNameMax = (kc?.limits?.collectionNameMax as number) ?? 100
   const [name, setName] = useState("")
-  const [color, setColor] = useState("#1677ff")
-  const colors = ["#1677ff", "#6366f1", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#8b5cf6", "#ef4444"]
+  const [color, setColor] = useState("#059669")
+  const colors = ["#059669", "#52525b", "#71717a", "#52525B", "#059669", "#52525b", "#52525b", "#DC2626"]
   return (
     <Modal
       open={open}
-      onCancel={() => { setName(""); setColor("#1677ff"); onClose() }}
+      onCancel={() => { setName(""); setColor("#059669"); onClose() }}
       title="新建分类"
       okText="创建"
       cancelText="取消"
@@ -2254,7 +2253,7 @@ function CreateCollectionModal({
     >
       <div className="space-y-3 py-2">
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">名称</label>
+          <label className="text-xs text-zinc-500 mb-1 block">名称</label>
           <AntInput
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -2264,7 +2263,7 @@ function CreateCollectionModal({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">颜色</label>
+          <label className="text-xs text-zinc-500 mb-1 block">颜色</label>
           <div className="flex gap-2">
             {colors.map(c => (
               <button
@@ -2272,7 +2271,7 @@ function CreateCollectionModal({
                 onClick={() => setColor(c)}
                 className={cn(
                   "w-7 h-7 rounded-full transition-all",
-                  color === c ? "ring-2 ring-offset-2 ring-blue-500" : ""
+                  color === c ? "ring-2 ring-offset-2 ring-emerald-500" : ""
                 )}
                 style={{ background: c }}
               />
@@ -2297,8 +2296,7 @@ function CreateItemModal({
   defaultTags: string[]
   darkMode?: boolean
 }) {
-  // 必须用 App.useApp() 拿到 context 绑定的 message
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const kc = useKnowledgeConfig()
   // 走 admin knowledgeConfig 暴露的可配置项（未加载时使用兜底默认值）
   const summaryMax = (kc?.limits?.summaryMax as number) ?? 200
@@ -2347,7 +2345,7 @@ function CreateItemModal({
     >
       <div className="space-y-3 py-2">
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">标题 <span className="text-red-500">*</span></label>
+          <label className="text-xs text-zinc-500 mb-1 block">标题 <span className="text-red-500">*</span></label>
           <AntInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -2358,7 +2356,7 @@ function CreateItemModal({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">类型</label>
+            <label className="text-xs text-zinc-500 mb-1 block">类型</label>
             <Select
               value={contentType}
               onChange={(v) => setContentType(v)}
@@ -2367,7 +2365,7 @@ function CreateItemModal({
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">分类</label>
+            <label className="text-xs text-zinc-500 mb-1 block">分类</label>
             <Select
               value={collectionId ?? undefined}
               onChange={(v) => setCollectionId(v ?? null)}
@@ -2382,7 +2380,7 @@ function CreateItemModal({
           </div>
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">标签（逗号分隔）</label>
+          <label className="text-xs text-zinc-500 mb-1 block">标签（逗号分隔）</label>
           <AntInput
             value={tagsStr}
             onChange={(e) => setTagsStr(e.target.value)}
@@ -2390,7 +2388,7 @@ function CreateItemModal({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">摘要（可选）</label>
+          <label className="text-xs text-zinc-500 mb-1 block">摘要（可选）</label>
           <AntInput
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
@@ -2399,7 +2397,7 @@ function CreateItemModal({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">内容</label>
+          <label className="text-xs text-zinc-500 mb-1 block">内容</label>
           <AntInput.TextArea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -2424,8 +2422,7 @@ interface KnowledgeSettingsModalProps {
 
 function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: KnowledgeSettingsModalProps) {
   const isDark = darkMode
-  // 必须用 App.useApp() 拿到 context 绑定的 message
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const kc = useKnowledgeConfig()
   // 走 admin knowledgeConfig 暴露的可配置项（未加载时使用兜底默认值）
   const backupListMaxHeight = (kc?.ui?.backupListMaxHeight as number) ?? 280
@@ -2480,7 +2477,7 @@ function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: K
       width={680}
       title={
         <div className="flex items-center gap-2">
-          <IconSetting size={16} style={{ color: "#1677ff" }} />
+          <IconSetting size={16} style={{ color: "#059669" }} />
           <span>知识库管理</span>
         </div>
       }
@@ -2499,16 +2496,16 @@ function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: K
                   <StatCard label="存储占用" value={formatSize(stats.storage_bytes)} darkMode={isDark} />
                   <StatCard label="加密状态" value="默认私有" darkMode={isDark} icon={Lock} />
                 </div>
-                <div className={cn("p-3 rounded-md text-xs space-y-1.5", isDark ? "bg-zinc-900 text-zinc-400" : "bg-gray-50 text-gray-500")}>
-                  <div className="flex items-center gap-1.5"><IconShield size={12} style={{ color: "#10b981" }} /><span>所有数据仅本人可见（access_level = private）</span></div>
-                  <div className="flex items-center gap-1.5"><IconCheckOne size={12} style={{ color: "#10b981" }} /><span>API 路由全部经过 getCurrentUser 鉴权</span></div>
-                  <div className="flex items-center gap-1.5"><IconCheckOne size={12} style={{ color: "#10b981" }} /><span>文件存储于 /public/uploads/knowledge/[uid]/（受 Web 鉴权保护）</span></div>
+                <div className={cn("p-3 rounded-lg text-xs space-y-1.5", isDark ? "bg-zinc-900 text-zinc-400" : "bg-zinc-50 text-zinc-500")}>
+                  <div className="flex items-center gap-1.5"><IconShield size={12} style={{ color: "#059669" }} /><span>所有数据仅本人可见（access_level = private）</span></div>
+                  <div className="flex items-center gap-1.5"><IconCheckOne size={12} style={{ color: "#059669" }} /><span>API 路由全部经过 getCurrentUser 鉴权</span></div>
+                  <div className="flex items-center gap-1.5"><IconCheckOne size={12} style={{ color: "#059669" }} /><span>文件存储于 /public/uploads/knowledge/[uid]/（受 Web 鉴权保护）</span></div>
                 </div>
                 <button
                   onClick={onRefresh}
                   className={cn(
-                    "w-full h-8 rounded-md text-sm flex items-center justify-center gap-1.5 border",
-                    isDark ? "border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                    "w-full h-8 rounded-lg text-sm flex items-center justify-center gap-1.5 border",
+                    isDark ? "border-zinc-800 text-zinc-300 hover:bg-zinc-800" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                   )}
                 >
                   <IconRefresh size={12} /> 刷新统计
@@ -2518,18 +2515,18 @@ function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: K
           },
           {
             key: "backup",
-            label: <span className="text-sm"><IconCloudStorage size={12} className="inline mr-1" />备份</span>,
+            label: <span className="text-sm"><IconCloudStorage size={12} className="mr-1" />备份</span>,
             children: (
               <div className="space-y-3 py-2">
                 <div className="flex items-center justify-between">
-                  <p className={cn("text-xs", isDark ? "text-zinc-400" : "text-gray-500")}>
+                  <p className={cn("text-xs", isDark ? "text-zinc-400" : "text-zinc-500")}>
                     备份为 JSON 格式，包含条目元数据、版本历史、标签（不含文件二进制）
                   </p>
                   <button
                     onClick={handleCreateBackup}
                     disabled={creatingBackup}
-                    className="h-7 px-3 rounded-md text-xs text-white flex items-center gap-1.5"
-                    style={{ background: "#1677ff" }}
+                    className="h-7 px-3 rounded-lg text-xs text-white flex items-center gap-1.5"
+                    style={{ background: "#059669" }}
                   >
                     {creatingBackup ? <IconLoading size={11} className="animate-spin" /> : <IconCloudStorage size={11} />}
                     创建备份
@@ -2548,31 +2545,31 @@ function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: K
                       <div
                         key={b.id}
                         className={cn(
-                          "p-2.5 rounded-md flex items-center gap-2 text-xs",
-                          isDark ? "bg-zinc-900" : "bg-gray-50"
+                          "p-2.5 rounded-lg flex items-center gap-2 text-xs",
+                          isDark ? "bg-zinc-900" : "bg-zinc-50"
                         )}
                       >
-                        <IconHardDisk size={12} className={isDark ? "text-zinc-500" : "text-gray-400"} />
+                        <IconHardDisk size={12} className={isDark ? "text-zinc-500" : "text-zinc-400"} />
                         <div className="flex-1 min-w-0">
-                          <div className={cn("font-medium truncate", isDark ? "text-zinc-200" : "text-gray-700")}>
+                          <div className={cn("font-medium truncate", isDark ? "text-zinc-200" : "text-zinc-700")}>
                             {b.name || `备份 #${b.id}`}
                           </div>
-                          <div className={cn("text-[10px]", isDark ? "text-zinc-500" : "text-gray-400")}>
+                          <div className={cn("text-[11px]", isDark ? "text-zinc-500" : "text-zinc-400")}>
                             {formatFullTime(b.created_at)} · {b.item_count} 条 · {formatSize(b.file_size)}
                           </div>
                         </div>
                         {b.status === "completed" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#10b98120", color: "#10b981" }}>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: "#16A34A20", color: "#059669" }}>
                             完成
                           </span>
                         )}
                         {b.status === "running" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" style={{ background: "#1677ff20", color: "#1677ff" }}>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded flex items-center gap-1" style={{ background: "#05966920", color: "#059669" }}>
                             <IconLoading size={9} className="animate-spin" /> 进行中
                           </span>
                         )}
                         {b.status === "failed" && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#ef444420", color: "#ef4444" }}>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: "#DC262620", color: "#DC2626" }}>
                             失败
                           </span>
                         )}
@@ -2584,7 +2581,7 @@ function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: K
                               rel="noreferrer"
                               className={cn(
                                 "p-1 rounded transition-colors",
-                                isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-200 text-gray-500"
+                                isDark ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-zinc-200 text-zinc-500"
                               )}
                             >
                               <IconDownload size={11} />
@@ -2600,18 +2597,18 @@ function KnowledgeSettingsModal({ open, onClose, darkMode, stats, onRefresh }: K
           },
           {
             key: "permissions",
-            label: <span className="text-sm"><IconShare size={12} className="inline mr-1" />共享</span>,
+            label: <span className="text-sm"><IconShare size={12} className="mr-1" />共享</span>,
             children: (
               <div className="py-2">
                 <Empty
                   description={
                     <div className="space-y-2">
-                      <p className="text-xs text-gray-500">共享功能允许你将知识条目授权给其他用户</p>
-                      <p className="text-[11px] text-gray-400">支持 read / write / admin 三级权限</p>
+                      <p className="text-xs text-zinc-500">共享功能允许你将知识条目授权给其他用户</p>
+                      <p className="text-[11px] text-zinc-400">支持 read / write / admin 三级权限</p>
                     </div>
                   }
                 />
-                <p className={cn("text-[11px] mt-2 text-center", isDark ? "text-zinc-500" : "text-gray-400")}>
+                <p className={cn("text-[11px] mt-2 text-center", isDark ? "text-zinc-500" : "text-zinc-400")}>
                   API 已就绪（/api/knowledge/permissions），UI 调用可在条目详情 → 共享中发起
                 </p>
               </div>
@@ -2627,15 +2624,15 @@ function StatCard({ label, value, darkMode, icon: Icon }: { label: string; value
   const isDark = darkMode
   return (
     <div className={cn(
-      "p-3 rounded-md",
-      isDark ? "bg-zinc-900" : "bg-gray-50"
+      "p-3 rounded-lg",
+      isDark ? "bg-zinc-900" : "bg-zinc-50"
     )}>
-      <div className={cn("text-[10px] uppercase tracking-wide mb-1", isDark ? "text-zinc-500" : "text-gray-400")}>
+      <div className={cn("text-[11px] uppercase tracking-wide mb-1", isDark ? "text-zinc-500" : "text-zinc-400")}>
         {label}
       </div>
       <div className="flex items-center gap-1.5">
-        {Icon && <Icon size={12} className="text-blue-500" />}
-        <div className={cn("text-base font-semibold", isDark ? "text-zinc-100" : "text-gray-900")}>
+        {Icon && <Icon size={12} className="text-emerald-500" />}
+        <div className={cn("text-base font-semibold", isDark ? "text-zinc-100" : "text-zinc-900")}>
           {value}
         </div>
       </div>

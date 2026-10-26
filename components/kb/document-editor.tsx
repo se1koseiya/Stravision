@@ -20,6 +20,7 @@
  * Yjs WebSocket URL：process.env.NEXT_PUBLIC_YJS_WS_URL || /ws/yjs
  */
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   Button, Spin, Empty, Tooltip, Tag, App as AntApp, Segmented, Modal
@@ -59,9 +60,9 @@ type ViewMode = "split" | "edit" | "preview"
 
 // 用户颜色调色板（与 yjs awareness 配合）
 const USER_COLORS = [
-  "#1677ff", "#52c41a", "#fa8c16", "#722ed1",
-  "#13c2c2", "#eb2f96", "#f5222d", "#2f54eb",
-  "#a0d911", "#fadb14"
+  "#059669", "#059669", "#52525B", "#059669",
+  "#52525B", "#eb2f96", "#DC2626", "#059669",
+  "#059669", "#fadb14"
 ]
 
 function colorForUserId(userId: number): string {
@@ -110,7 +111,9 @@ export default function DocumentEditor({
   officeFileUrl,
   officeFileName,
 }: DocumentEditorProps) {
-  const { message, modal } = AntApp.useApp()
+  const { modal } = AntApp.useApp()
+
+  const { message } = useFeedback()
 
   const [viewMode, setViewMode] = useState<ViewMode>("split")
   const [content, setContent] = useState(initialContent)
@@ -491,17 +494,17 @@ export default function DocumentEditor({
   return (
     <div className={cn("flex flex-col", className)} style={{ height }}>
       {/* 顶部工具栏 */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center gap-2 flex-wrap">
-          <IconFileText size={14} className="text-[#1677ff]" />
+          <IconFileText size={14} className="text-[#059669]" />
           <span className="text-[13px] font-medium truncate max-w-[200px]">{title}</span>
           {connected ? (
             <Tooltip title="已连接协同服务">
-              <IconWifi size={13} className="text-[#52c41a]" />
+              <IconWifi size={13} className="text-[#059669]" />
             </Tooltip>
           ) : (
             <Tooltip title="未连接协同服务">
-              <IconCloseWifi size={13} className="text-[#ff4d4f]" />
+              <IconCloseWifi size={13} className="text-[#DC2626]" />
             </Tooltip>
           )}
           {hasRemoteUpdate && (
@@ -517,7 +520,7 @@ export default function DocumentEditor({
             {onlineUsers.slice(0, 5).map((u) => (
               <Tooltip key={u.clientId} title={`${u.name}${u.userId === currentUser.id ? "（你）" : ""}`}>
                 <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] text-white font-medium border-2 border-white dark:border-gray-900"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] text-white font-medium border-2 border-white dark:border-zinc-900"
                   style={{ background: u.color }}
                 >
                   {u.name.slice(0, 1).toUpperCase()}
@@ -526,15 +529,15 @@ export default function DocumentEditor({
             ))}
             {onlineUsers.length > 5 && (
               <Tooltip title={`还有 ${onlineUsers.length - 5} 位`}>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-900">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] bg-zinc-200 dark:bg-zinc-700 border-2 border-white dark:border-zinc-900">
                   +{onlineUsers.length - 5}
                 </div>
               </Tooltip>
             )}
             {onlineUsers.length === 0 && (
               <Tooltip title="暂无在线协作者">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                  <IconPeoples size={12} className="text-gray-400" />
+                <div className="w-6 h-6 rounded-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                  <IconPeoples size={12} className="text-zinc-400" />
                 </div>
               </Tooltip>
             )}
@@ -602,7 +605,7 @@ export default function DocumentEditor({
           <div
             className={cn(
               "flex flex-col min-h-0",
-              viewMode === "split" ? "w-1/2 border-r border-gray-100 dark:border-gray-800" : "w-full"
+              viewMode === "split" ? "w-1/2 border-r border-zinc-100 dark:border-zinc-800" : "w-full"
             )}
           >
             <textarea
@@ -612,7 +615,7 @@ export default function DocumentEditor({
               onBlur={handleBlur}
               readOnly={!canEdit}
               placeholder={canEdit ? "开始输入文档内容..." : "（只读模式）"}
-              className="flex-1 w-full p-4 font-mono text-[13px] leading-relaxed resize-none outline-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400"
+              className="flex-1 w-full p-4 font-mono text-[13px] leading-relaxed resize-none outline-none bg-transparent text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
               style={{ minHeight: 0 }}
               spellCheck={false}
             />
@@ -626,7 +629,7 @@ export default function DocumentEditor({
             )}
           >
             <div
-              className="px-4 py-3 text-[13px] leading-relaxed text-gray-900 dark:text-gray-100"
+              className="px-4 py-3 text-[13px] leading-relaxed text-zinc-900 dark:text-zinc-100"
               dangerouslySetInnerHTML={{ __html: renderPreview }}
             />
           </div>
@@ -634,7 +637,7 @@ export default function DocumentEditor({
       </div>
 
       {/* 底部状态栏 */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400">
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-zinc-100 dark:border-zinc-800 text-[11px] text-zinc-400">
         <div className="flex items-center gap-3">
           <span>{content.length} 字符</span>
           <span className="flex items-center gap-1">
@@ -644,7 +647,7 @@ export default function DocumentEditor({
         </div>
         <div className="flex items-center gap-2">
           {saving ? (
-            <span className="text-[#1677ff] flex items-center gap-1">
+            <span className="text-[#059669] flex items-center gap-1">
               <IconLoading size={10} className="animate-spin" /> 保存中…
             </span>
           ) : lastSavedAt ? (
@@ -667,7 +670,7 @@ function escapeHtml(s: string): string {
 }
 
 function renderMarkdown(md: string): string {
-  if (!md) return '<div class="text-gray-400">（空文档）</div>'
+  if (!md) return '<div class="text-zinc-400">（空文档）</div>'
 
   const lines = md.replace(/\r\n/g, "\n").split("\n")
   const out: string[] = []
@@ -729,7 +732,7 @@ function renderMarkdown(md: string): string {
         quoteLines.push(lines[i].replace(/^>\s?/, ""))
       }
       out.push(
-        `<blockquote style="border-left:3px solid #1677ff;padding-left:12px;margin:8px 0;color:#595959;">${renderInline(quoteLines.join(" "))}</blockquote>`
+        `<blockquote style="border-left:3px solid #059669;padding-left:12px;margin:8px 0;color:#52525B;">${renderInline(quoteLines.join(" "))}</blockquote>`
       )
       continue
     }
@@ -800,7 +803,7 @@ function renderInline(text: string): string {
   // 链接
   out = out.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener" style="color:#1677ff;text-decoration:none;">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener" style="color:#059669;text-decoration:none;">$1</a>'
   )
   return out
 }

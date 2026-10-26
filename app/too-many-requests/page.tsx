@@ -34,7 +34,7 @@ const Oscilloscope = ({ quality, isLocked }: { quality: number, isLocked: boolea
             ctx.fillRect(0, 0, width, height)
 
             // Grid Line
-            ctx.strokeStyle = 'rgba(16, 185, 129, 0.1)'
+            ctx.strokeStyle = 'rgba(0,148,86, 0.1)'
             ctx.lineWidth = 1
             ctx.beginPath()
             ctx.moveTo(0, centerY)
@@ -51,9 +51,9 @@ const Oscilloscope = ({ quality, isLocked }: { quality: number, isLocked: boolea
 
             // Wave Style
             ctx.lineWidth = isLocked ? 3 : 2
-            ctx.strokeStyle = isLocked ? '#10b981' : `rgba(16, 185, 129, ${0.4 + quality * 0.6})`
+            ctx.strokeStyle = isLocked ? '#059669' : `rgba(0,148,86, ${0.4 + quality * 0.6})`
             ctx.shadowBlur = isLocked ? 20 : 5
-            ctx.shadowColor = '#10b981'
+            ctx.shadowColor = '#059669'
             ctx.lineJoin = 'round'
             ctx.lineCap = 'round'
 
@@ -89,7 +89,7 @@ const Oscilloscope = ({ quality, isLocked }: { quality: number, isLocked: boolea
     }, [quality, isLocked])
 
     return (
-        <div className="relative w-full h-full bg-[#020502] overflow-hidden rounded-md border border-white/5 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]">
+        <div className="relative w-full h-full bg-[#020502] overflow-hidden rounded-lg border border-white/5 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)]">
             <canvas 
                 ref={canvasRef} 
                 width={600} 
@@ -182,7 +182,7 @@ const Knob = ({ value, onChange, isLocked }: { value: number, onChange: (v: numb
                         <line 
                             key={i} 
                             x1={x1} y1={y1} x2={x2} y2={y2} 
-                            stroke={isActive ? "#10b981" : "#ffffff20"} 
+                            stroke={isActive ? "#059669" : "#ffffff20"} 
                             strokeWidth={isActive ? 2 : 1}
                             strokeLinecap="round"
                             className="transition-colors duration-200"
@@ -198,14 +198,14 @@ const Knob = ({ value, onChange, isLocked }: { value: number, onChange: (v: numb
                     <circle cx="100" cy="100" r="40" fill="none" stroke="#ffffff05" strokeWidth="1" />
                     
                     {/* Indicator */}
-                    <circle cx="100" cy="55" r="4" fill={isLocked ? "#10b981" : "#10b98180"} filter={isLocked ? "url(#glow)" : ""} />
-                    <line x1="100" y1="55" x2="100" y2="70" stroke={isLocked ? "#10b981" : "#10b98140"} strokeWidth="2" strokeLinecap="round" />
+                    <circle cx="100" cy="55" r="4" fill={isLocked ? "#059669" : "#16A34A80"} filter={isLocked ? "url(#glow)" : ""} />
+                    <line x1="100" y1="55" x2="100" y2="70" stroke={isLocked ? "#059669" : "#16A34A40"} strokeWidth="2" strokeLinecap="round" />
                 </g>
             </svg>
 
             {/* Label in center (HTML overlay) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="font-jinbuti text-[10px] text-zinc-500 tracking-widest mt-16">GAIN</span>
+                <span className="font-jinbuti text-[11px] text-zinc-500 tracking-widest mt-16">GAIN</span>
             </div>
         </div>
     )
@@ -254,16 +254,16 @@ export default function TooManyRequestsPage() {
                         viewport={{ once: true }}
                     >
                         {/* Glass Panel Body */}
-                        <GlassCard className="rounded-3xl p-0 overflow-hidden bg-[#0a0a0a]/80 border-red-500/20" hoverEffect={false}>
+                        <GlassCard className="rounded-2xl p-0 overflow-hidden bg-[#0A0A0A]/80 border-red-500/20" hoverEffect={false}>
                             
                             {/* Top Bar */}
                             <div className="h-10 bg-white/5 border-b border-white/5 flex items-center justify-between px-6">
                                 <div className="flex gap-2">
                                     <div className="w-2 h-2 rounded-full bg-red-500/40 shadow-[0_0_5px_rgba(239,68,68,0.4)]" />
                                     <div className="w-2 h-2 rounded-full bg-yellow-500/40 shadow-[0_0_5px_rgba(234,179,8,0.4)]" />
-                                    <div className="w-2 h-2 rounded-full bg-primary/40 shadow-[0_0_5px_rgba(16,185,129,0.4)]" />
+                                    <div className="w-2 h-2 rounded-full bg-primary/40 shadow-[0_0_5px_rgba(0,148,86,0.4)]" />
                                 </div>
-                                <span className="font-jinbuti text-[10px] text-red-500/60 tracking-[0.2em] uppercase">Traffic Control // Active</span>
+                                <span className="font-jinbuti text-[11px] text-red-500/60 tracking-[0.2em] uppercase">Traffic Control // Active</span>
                             </div>
 
                             {/* Main Display Area */}
@@ -274,10 +274,10 @@ export default function TooManyRequestsPage() {
                                     {/* Oscilloscope Screen */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-end px-1">
-                                            <span className="font-jinbuti text-[10px] text-primary/60 uppercase">Signal Input</span>
-                                            <span className="font-jinbuti text-[10px] text-primary/60">{isLocked ? "LOCKED" : "SEARCHING"}</span>
+                                            <span className="font-jinbuti text-[11px] text-primary/60 uppercase">Signal Input</span>
+                                            <span className="font-jinbuti text-[11px] text-primary/60">{isLocked ? "LOCKED" : "SEARCHING"}</span>
                                         </div>
-                                        <div className="h-40 md:h-56 relative group-hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-shadow duration-500">
+                                        <div className="h-40 md:h-56 relative group-hover:shadow-[0_0_30px_rgba(0,148,86,0.1)] transition-shadow duration-500">
                                             <Oscilloscope quality={quality} isLocked={isLocked} />
                                             
                                             {/* Locked Pop-up */}
@@ -290,7 +290,7 @@ export default function TooManyRequestsPage() {
                                                         className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-20"
                                                     >
                                                         <div className="flex flex-col items-center gap-2">
-                                                            <div className="w-12 h-12 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)] bg-emerald-950/50">
+                                                            <div className="w-12 h-12 rounded-full border-2 border-primary flex items-center justify-center shadow-[0_0_20px_rgba(0,148,86,0.5)] bg-emerald-950/50">
                                                                 <IconLock className="w-5 h-5 text-primary" />
                                                             </div>
                                                             <span className="font-jinbuti text-primary tracking-widest text-sm font-bold shadow-black drop-shadow-md">SIGNAL LOCKED</span>
@@ -305,13 +305,13 @@ export default function TooManyRequestsPage() {
                                     <div className="flex flex-col justify-between py-2 border-l border-white/5 pl-6">
                                         <div className="space-y-4">
                                             <div className="space-y-1">
-                                                <div className="text-[10px] font-jinbuti text-zinc-500 uppercase">Target Freq</div>
+                                                <div className="text-[11px] font-jinbuti text-zinc-500 uppercase">Target Freq</div>
                                                 <div className="text-xl font-jinbuti text-white tabular-nums tracking-wider">
                                                     {isLocked ? targetFreq.toFixed(2) : <span className="animate-pulse text-white/30">--.--</span>} <span className="text-xs text-zinc-600">MHz</span>
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
-                                                <div className="text-[10px] font-jinbuti text-zinc-500 uppercase">Current</div>
+                                                <div className="text-[11px] font-jinbuti text-zinc-500 uppercase">Current</div>
                                                 <div className={cn("text-xl font-jinbuti tabular-nums tracking-wider transition-colors", 
                                                     quality > 0.9 ? "text-emerald-400" : "text-white/60"
                                                 )}>
@@ -321,10 +321,10 @@ export default function TooManyRequestsPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <div className="text-[10px] font-jinbuti text-zinc-500 uppercase">Signal Quality</div>
+                                            <div className="text-[11px] font-jinbuti text-zinc-500 uppercase">Signal Quality</div>
                                             <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                                                 <motion.div 
-                                                    className="h-full bg-primary shadow-[0_0_10px_#10b981]"
+                                                    className="h-full bg-primary shadow-[0_0_10px_#059669]"
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${quality * 100}%` }}
                                                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -338,10 +338,10 @@ export default function TooManyRequestsPage() {
                                 <div className="pt-6 border-t border-white/5 flex items-center justify-between gap-8">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-4 mb-2">
-                                            <div className={cn("w-1.5 h-1.5 rounded-full", isLocked ? "bg-primary shadow-[0_0_8px_#10b981]" : "bg-zinc-600")} />
+                                            <div className={cn("w-1.5 h-1.5 rounded-full", isLocked ? "bg-primary shadow-[0_0_8px_#059669]" : "bg-zinc-600")} />
                                             <span className="text-xs font-jinbuti text-zinc-400 uppercase tracking-wider">Manual Tuning</span>
                                         </div>
-                                        <p className="text-[10px] font-jinbuti text-zinc-600 leading-relaxed max-w-[200px]">
+                                        <p className="text-[11px] font-jinbuti text-zinc-600 leading-relaxed max-w-[200px]">
                                             请上下拖动旋钮调节频率，使波形同步以解锁访问限制。
                                         </p>
                                     </div>
@@ -363,7 +363,7 @@ export default function TooManyRequestsPage() {
                     >
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 mb-6 backdrop-blur-md">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-[10px] font-jinbuti text-red-400 uppercase tracking-widest">Traffic Overflow</span>
+                            <span className="text-[11px] font-jinbuti text-red-400 uppercase tracking-widest">Traffic Overflow</span>
                         </div>
                         
                         <h2 className="text-5xl md:text-6xl font-jinbuti text-white mb-6 leading-[1.1] tracking-tight">

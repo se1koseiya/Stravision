@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react"
 import { App, Avatar, Button, Input, Tooltip } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { chatClient } from "@/lib/chat/chat-client"
 import type {
@@ -31,23 +31,23 @@ function RoleBadge({ role }: { role: string }) {
   const label = ROLE_LABELS[role] || role
   if (role === "owner") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-[#1677ff]" style={{ fontWeight: 500 }}>
-        <IconCrown size={11} strokeWidth={1.75} />
+      <span className="inline-flex items-center gap-1 text-[11px] text-br-brand-ink" style={{ fontWeight: 500 }}>
+        <IconCrown size={11} strokeWidth={2} />
         {label}
       </span>
     )
   }
   if (role === "admin") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-[#1677ff]" style={{ fontWeight: 500 }}>
-        <IconShield size={11} strokeWidth={1.75} />
+      <span className="inline-flex items-center gap-1 text-[11px] text-br-brand-ink" style={{ fontWeight: 500 }}>
+        <IconShield size={11} strokeWidth={2} />
         {label}
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-[rgba(0,0,0,0.45)]">
-      <IconShield size={11} strokeWidth={1.75} />
+    <span className="inline-flex items-center gap-1 text-[11px] text-br-text-3">
+      <IconShield size={11} strokeWidth={2} />
       {label}
     </span>
   )
@@ -169,25 +169,25 @@ function OrganizationDetailPanelInner({
 
   if (!org) {
     return (
-      <div className="w-full h-full bg-white flex items-center justify-center text-[14px] text-[rgba(0,0,0,0.3)]">
+      <div className="w-full h-full bg-br-surface flex items-center justify-center text-[14px] text-br-text-3">
         选择一个组织查看详情
       </div>
     )
   }
 
   return (
-    <div className="w-full h-full bg-white flex flex-col">
+    <div className="w-full h-full bg-br-surface flex flex-col">
       {/* 顶栏 */}
       <div className="h-14 shrink-0 flex items-center justify-between px-6">
-        <span className="text-[15px] text-[rgba(0,0,0,0.88)]" style={{ fontWeight: 500 }}>
+        <span className="text-[14px] text-br-text-1" style={{ fontWeight: 500 }}>
           组织详情
         </span>
         {onClose && (
           <button
             onClick={onClose}
-            className="size-7 flex items-center justify-center rounded-full hover:bg-black/[0.04] text-[rgba(0,0,0,0.45)]"
+            className="size-7 flex items-center justify-center rounded-full hover:bg-br-surface-3 text-br-text-3"
           >
-            <IconClose size={16} strokeWidth={1.75} />
+            <IconClose size={16} strokeWidth={2} />
           </button>
         )}
       </div>
@@ -197,21 +197,21 @@ function OrganizationDetailPanelInner({
         <div className="px-8 pb-8">
           {/* 头部：头像 + 名称 + 统计 */}
           <div className="flex items-start gap-5 pt-2 pb-6">
-            <div className="size-[72px] rounded-2xl bg-[#f0f5ff] flex items-center justify-center text-[#2f54eb] shrink-0 ring-1 ring-black/[0.04]">
-              <IconBuildingFour size={32} strokeWidth={1.75} />
+            <div className="size-[72px] rounded-2xl bg-br-brand-soft flex items-center justify-center text-br-brand-ink shrink-0 ring-1 ring-br-line">
+              <IconBuildingFour size={32} strokeWidth={2} />
             </div>
             <div className="flex-1 min-w-0 pt-1">
-              <h2 className="text-[20px] text-[rgba(0,0,0,0.88)] leading-tight truncate" style={{ fontWeight: 500 }}>
+              <h2 className="text-[20px] text-br-text-1 leading-tight truncate" style={{ fontWeight: 500 }}>
                 {org.name}
               </h2>
-              <p className="mt-1.5 text-[13px] text-[rgba(0,0,0,0.4)] flex items-center gap-3">
+              <p className="mt-1.5 text-[13px] text-br-text-3 flex items-center gap-3">
                 <span className="flex items-center gap-1">
-                  <IconPeoples size={12} strokeWidth={1.75} />
+                  <IconPeoples size={12} strokeWidth={2} />
                   {members.length} 位成员
                 </span>
                 {org.child_count ? (
                   <span className="flex items-center gap-1">
-                    <IconNetworkTree size={12} strokeWidth={1.75} />
+                    <IconNetworkTree size={12} strokeWidth={2} />
                     {org.child_count} 个子组织
                   </span>
                 ) : null}
@@ -236,7 +236,7 @@ function OrganizationDetailPanelInner({
             <div className="pb-6 flex gap-2">
               <Button
                 className="!rounded-lg !shadow-none !h-9"
-                icon={<IconRefresh size={14} strokeWidth={1.75} className={syncing ? "animate-spin" : ""} />}
+                icon={<IconRefresh size={14} strokeWidth={2} className={syncing ? "animate-spin" : ""} />}
                 loading={syncing}
                 onClick={handleSync}
               >
@@ -249,18 +249,18 @@ function OrganizationDetailPanelInner({
           {isAdmin && (
             <div className="pb-6">
               <div className="flex items-center gap-2 mb-2">
-                <IconMail size={13} strokeWidth={1.75} className="text-[rgba(0,0,0,0.45)]" />
-                <span className="text-[13px] text-[rgba(0,0,0,0.65)]" style={{ fontWeight: 500 }}>
+                <IconMail size={13} strokeWidth={2} className="text-br-text-3" />
+                <span className="text-[13px] text-br-text-2" style={{ fontWeight: 500 }}>
                   邀请成员
                 </span>
-                <span className="text-[11px] text-[rgba(0,0,0,0.35)]">
+                <span className="text-[11px] text-br-text-3">
                   · 自动加入大棚与通讯录
                 </span>
               </div>
               <div className="flex gap-2">
                 <Input
                   placeholder="输入邮箱地址"
-                  prefix={<IconMail size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+                  prefix={<IconMail size={14} strokeWidth={2} className="text-br-text-3" />}
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   onPressEnter={handleInvite}
@@ -270,7 +270,7 @@ function OrganizationDetailPanelInner({
                   type="primary"
                   className="!rounded-lg !shadow-none"
                   loading={inviting}
-                  icon={<IconAddUser size={14} strokeWidth={1.75} />}
+                  icon={<IconAddUser size={14} strokeWidth={2} />}
                   onClick={handleInvite}
                 >
                   邀请
@@ -282,24 +282,24 @@ function OrganizationDetailPanelInner({
           {/* 成员列表 */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[13px] text-[rgba(0,0,0,0.65)]" style={{ fontWeight: 500 }}>
+              <span className="text-[13px] text-br-text-2" style={{ fontWeight: 500 }}>
                 成员列表
               </span>
-              <span className="text-[11px] text-[rgba(0,0,0,0.35)]">
+              <span className="text-[11px] text-br-text-3">
                 共 {members.length} 人 · 点击发消息
               </span>
             </div>
 
             {loading ? (
-              <div className="py-8 text-center text-[12px] text-[rgba(0,0,0,0.35)]">
+              <div className="py-8 text-center text-[12px] text-br-text-3">
                 加载中...
               </div>
             ) : members.length === 0 ? (
-              <div className="py-8 flex flex-col items-center text-[12px] text-[rgba(0,0,0,0.35)]">
-                <IconNetworkTree size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
+              <div className="py-8 flex flex-col items-center text-[12px] text-br-text-3">
+                <IconNetworkTree size={28} strokeWidth={2} className="mb-2 opacity-40" />
                 <span>暂无成员</span>
                 {isAdmin && (
-                  <span className="text-[11px] text-[rgba(0,0,0,0.3)] mt-1">
+                  <span className="text-[11px] text-br-text-3 mt-1">
                     邀请成员或同步大棚成员
                   </span>
                 )}
@@ -322,33 +322,33 @@ function OrganizationDetailPanelInner({
                     <div
                       key={m.id}
                       className={cn(
-                        "group flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
+                        "group flex items-center gap-3 px-2 py-2 rounded-lg transition-colors",
                         isSelf
                           ? "cursor-default"
-                          : "cursor-pointer hover:bg-black/[0.03]"
+                          : "cursor-pointer hover:bg-br-surface-3"
                       )}
                       onClick={() => !isSelf && handleMemberClick(m)}
                     >
                       <Avatar
                         size={40}
                         src={avatarUrl || undefined}
-                        className="shrink-0 ring-1 ring-black/[0.04]"
-                        style={{ backgroundColor: "#e6f4ff", color: "#1677ff", fontWeight: 500 }}
+                        className="shrink-0 ring-1 ring-br-line"
+                        style={{ backgroundColor: "var(--br-brand-soft)", color: "var(--br-brand-ink)", fontWeight: 500 }}
                       >
                         {username[0]?.toUpperCase()}
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[14px] text-[rgba(0,0,0,0.88)] truncate" style={{ fontWeight: 500 }}>
+                          <span className="text-[14px] text-br-text-1 truncate" style={{ fontWeight: 500 }}>
                             {username}
                             {isSelf && (
-                              <span className="text-[11px] text-[rgba(0,0,0,0.35)] ml-1">（我）</span>
+                              <span className="text-[11px] text-br-text-3 ml-1">（我）</span>
                             )}
                           </span>
                           <RoleBadge role={m.role} />
                         </div>
                         {user?.email && (
-                          <div className="text-[12px] text-[rgba(0,0,0,0.4)] truncate">
+                          <div className="text-[12px] text-br-text-3 truncate">
                             {user.email}
                           </div>
                         )}
@@ -362,9 +362,9 @@ function OrganizationDetailPanelInner({
                                 e.stopPropagation()
                                 handleMemberClick(m)
                               }}
-                              className="size-7 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.45)] hover:text-[#1677ff] hover:bg-[#e6f4ff] transition-colors"
+                              className="size-7 flex items-center justify-center rounded-full text-br-text-3 hover:text-br-brand-ink hover:bg-br-brand-soft transition-colors"
                             >
-                              <IconComments size={14} strokeWidth={1.75} />
+                              <IconComments size={14} strokeWidth={2} />
                             </button>
                           </Tooltip>
                         )}
@@ -376,9 +376,9 @@ function OrganizationDetailPanelInner({
                                 handleRemoveMember(m.user_id, username)
                               }}
                               disabled={removingId === m.user_id}
-                              className="size-7 flex items-center justify-center rounded-full text-[rgba(0,0,0,0.45)] hover:text-[#ff4d4f] hover:bg-[#fff1f0] opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                              className="size-7 flex items-center justify-center rounded-full text-br-text-3 hover:text-br-danger hover:bg-br-danger-soft opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                             >
-                              <IconDelete size={13} strokeWidth={1.75} />
+                              <IconDelete size={13} strokeWidth={2} />
                             </button>
                           </Tooltip>
                         )}
@@ -398,9 +398,9 @@ function OrganizationDetailPanelInner({
 function InfoRow({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[13px] text-[rgba(0,0,0,0.45)]">{label}</span>
+      <span className="text-[13px] text-br-text-3">{label}</span>
       <span className={cn(
-        "text-[15px] text-[rgba(0,0,0,0.88)]",
+        "text-[14px] text-br-text-1",
         multiline ? "whitespace-pre-wrap break-words" : ""
       )}>
         {value}

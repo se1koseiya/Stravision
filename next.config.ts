@@ -1,14 +1,40 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { readFileSync } from "node:fs";
 
 // 桌面端（Electron）构建开关。
 // 仅在 DESKTOP_BUILD=1 时输出 Next standalone 产物，供 Electron 主进程直接 fork。
 // 默认关闭 —— Docker / 线上构建仍走 standard 模式，行为与改造前完全一致。
 const isDesktopBuild = process.env.DESKTOP_BUILD === "1";
 
+// 版本号唯一真源：仓库根 package.json 的 version。
+// 这里只做「读出来 → 内联给客户端」，组件侧统一从 lib/app-meta.ts 取。
+const rootPkg = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as {
+  version?: string;
+};
+
 const nextConfig: NextConfig = {
+  // 构建期内联的应用版本（lib/app-meta.ts 读取），避免组件里散落版本字面量
+  env: {
+    NEXT_PUBLIC_APP_VERSION: rootPkg.version ?? "0.0.0",
+  },
   // 桌面端需要自包含的服务端产物（.next/standalone/server.js + 精简 node_modules）
   ...(isDesktopBuild ? { output: "standalone" as const } : {}),
+  // 允许用独立构建目录并行跑第二个 dev 实例。
+  // 背景：Next 的 dev 互斥锁是 <distDir>/dev/lock，只要桌面端 / 常驻 dev 占着默认
+  // .next 目录，第二个 `next dev`（哪怕换了端口）都会撞 "Unable to acquire lock"。
+  //
+  // 🚨 目录名必须落在已被 .gitignore 忽略的 `/.next/` 之下（推荐 `.next/probe`）。
+  //    踩过的坑：用项目根的 `.next-probe` 时，Tailwind v4 的自动内容扫描会把它当成
+  //    源码目录 —— 扫到 `dev/cache/turbopack/*.sst`（Turbopack 的**二进制**缓存，
+  //    里面恰好嵌着某个 arbitrary-value 背景色类的字面量，后面直接跟着一串二进制字节）
+  //    → 提取出带控制字符的「类名」→ PostCSS 解析失败 → globals.css 编译报错 →
+  //    **全站 500**，且报错只指向 globals.css，极难反推到 distDir 上。
+  //    放在 /.next/ 下即可被 Tailwind 的 gitignore 感知自动排除。
+  //    ⚠️ 注释里**不要写出该类的完整字面量**：next.config.ts 本身也会被 Tailwind 扫，
+  //       写进去等于自己往 CSS 里塞非法候选（二次污染）。
+  // 不设该变量时行为与改造前完全一致（仍为 .next），生产构建不受影响。
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // 桌面端：收紧文件追踪范围。
   // 实测（Next 16.1 + turbopack）不加此配置时，standalone 会把项目根目录整体
   // 镜像进去 —— 含 README/Dockerfile/nginx，其中 data/ai-providers-config.json
@@ -25,6 +51,11 @@ const nextConfig: NextConfig = {
             "./scripts/**",
             "./tmp/**",
             "./release/**",
+            "./node_modules.old/**",
+            "./node_modules.old2/**",
+            "./output/**",
+            "./tmp-desktop-shots/**",
+            "./tmp-verify/**",
             "./.git/**",
             "./.workbuddy/**",
             "./prisma/**",
@@ -71,7 +102,27 @@ const nextConfig: NextConfig = {
   // Fix mermaid module resolution issues - works with both Turbopack and Webpack
   transpilePackages: ['mermaid'],
   // Mark server-only packages to prevent client-side bundling (moved from experimental in Next.js 16+)
-  serverExternalPackages: ['lightningcss', 'better-sqlite3', 'pg', 'pg-connection-string', 'bcryptjs'],
+  // ioredis：HITL 挂起注册表的跨实例传输层（lib/ai/hitl/redis-transport.ts，惰性 import）。
+  // 与 pg 同理必须外部化 —— 它内部动态 require 协议/命令表，被 bundler 打包会失效。
+  // pdfjs-dist：legacy build 内部用 new Function 做沙箱判定 + 动态加载 cmaps/字体，
+  //   被 bundler 改写会报 "Cannot find module" 或直接拿不到 worker。
+  // exceljs / pdf-lib / @pdf-lib/fontkit：内部有大量条件 require 与流式读取，
+  //   且只在服务端使用，外部化后由 Node 直接解析更稳（也避免把 20MB 字体路径算错）。
+  serverExternalPackages: [
+    'lightningcss',
+    'better-sqlite3',
+    'pg',
+    'pg-connection-string',
+    'bcryptjs',
+    'ioredis',
+    'pdfjs-dist',
+    'exceljs',
+    'pdf-lib',
+    '@pdf-lib/fontkit',
+    // 语音输入：sherpa-onnx 是 N-API 原生 addon（.node + onnxruntime 动态库），
+    // 不能被打包器吞掉，必须交回 node 运行时按 CJS 直接 require。
+    'sherpa-onnx-node',
+  ],
   // Turbopack configuration (Next.js 16+)
   turbopack: {
     resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
@@ -110,6 +161,16 @@ const nextConfig: NextConfig = {
         hostname: "plus.unsplash.com",
       },
     ],
+  },
+  // 2026-10-21 文档库（原 /blog 列表）并入文档中心（/docs）：
+  // 在路由层做真跳转（308），比在页面组件里调用 redirect() 更干净 ——
+  // 后者在流式渲染下会先回 200 再由客户端跳，SEO 与首屏都吃亏。
+  // 页面文件 app/blog/page.tsx、app/blog/[slug]/page.tsx 仍保留 redirect() 作为兜底。
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/docs", permanent: true },
+      { source: "/blog/:slug", destination: "/docs/:slug", permanent: true },
+    ];
   },
   // 本地开发代理 OnlyOffice Document Server
   // Docker 容器暴露在宿主机的 8080 端口，前端通过 /onlyoffice/* 访问

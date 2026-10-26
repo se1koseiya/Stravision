@@ -112,14 +112,14 @@ function Column({ children, className }: { children?: React.ReactNode; className
 function StatusBadge({ status, text }: { status?: string; text?: string }) {
   const cfg: Record<string, { bg: string; color: string; dot: string }> = {
     in_progress: { bg: `${PRIMARY}14`, color: PRIMARY, dot: PRIMARY },
-    completed: { bg: "#52c41a14", color: "#52c41a", dot: "#52c41a" },
-    pending: { bg: "#9ca3af14", color: "#9ca3af", dot: "#9ca3af" },
-    failed: { bg: "#ff4d4f14", color: "#ff4d4f", dot: "#ff4d4f" },
+    completed: { bg: "#16A34A14", color: "#059669", dot: "#059669" },
+    pending: { bg: "#A1A1AA14", color: "#A1A1AA", dot: "#A1A1AA" },
+    failed: { bg: "#DC262614", color: "#DC2626", dot: "#DC2626" },
   }
   const c = cfg[status || "pending"] || cfg.pending
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium leading-none"
       style={{ background: c.bg, color: c.color }}
     >
       <span
@@ -151,7 +151,7 @@ function TaskNodeComponent({
   const indicator = isCompleted ? (
     <span
       className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full text-white"
-      style={{ background: "#52c41a" }}
+      style={{ background: "#059669" }}
     >
       <IconCheck size={10} strokeWidth={3} />
     </span>
@@ -165,26 +165,26 @@ function TaskNodeComponent({
   ) : isFailed ? (
     <span
       className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
-      style={{ background: "#ff4d4f" }}
+      style={{ background: "#DC2626" }}
     >
-      <span className="text-white text-[10px] font-bold">!</span>
+      <span className="text-white text-[11px] font-bold">!</span>
     </span>
   ) : (
     <span
       className="relative z-10 flex items-center justify-center w-4 h-4 rounded-full"
-      style={{ background: "transparent", border: "1.5px solid #d1d5db" }}
+      style={{ background: "transparent", border: "1.5px solid #d4d4d8" }}
     >
-      <IconRound size={6} className="text-gray-400" />
+      <IconRound size={6} className="text-zinc-400" />
     </span>
   )
 
   const titleColor = isCompleted
-    ? "text-gray-400 line-through"
+    ? "text-zinc-400 line-through"
     : isInProgress
-    ? "text-gray-900 dark:text-white"
+    ? "text-zinc-900 dark:text-white"
     : isFailed
     ? "text-red-500"
-    : "text-gray-500 dark:text-gray-400"
+    : "text-zinc-500 dark:text-zinc-400"
 
   return (
     <div className="relative flex gap-3 pb-3.5 last:pb-0">
@@ -195,7 +195,7 @@ function TaskNodeComponent({
           <span
             className="flex-1 w-px mt-1"
             style={{
-              background: isCompleted ? "#52c41a" : isInProgress ? `${PRIMARY}40` : "#e5e7eb",
+              background: isCompleted ? "#059669" : isInProgress ? `${PRIMARY}40` : "#e4e4e7",
             }}
           />
         )}
@@ -206,8 +206,8 @@ function TaskNodeComponent({
         <div className="flex items-center gap-2">
           {typeof index === "number" && (
             <span
-              className="text-[10px] font-mono tabular-nums"
-              style={{ color: isInProgress ? PRIMARY : "#9ca3af" }}
+              className="text-[11px] font-mono tabular-nums"
+              style={{ color: isInProgress ? PRIMARY : "#A1A1AA" }}
             >
               {String(index + 1).padStart(2, "0")}
             </span>
@@ -230,17 +230,17 @@ function TaskNodeComponent({
                   {subCompleted ? (
                     <IconCheck size={10} className="text-green-500 shrink-0" strokeWidth={2.5} />
                   ) : subInProgress ? (
-                    <IconLoading size={10} className="text-blue-500 animate-spin shrink-0" />
+                    <IconLoading size={10} className="text-emerald-500 animate-spin shrink-0" />
                   ) : (
-                    <IconTime size={10} className="text-gray-300 shrink-0" />
+                    <IconTime size={10} className="text-zinc-300 shrink-0" />
                   )}
                   <span
                     className={
                       subCompleted
-                        ? "text-gray-400 line-through"
+                        ? "text-zinc-400 line-through"
                         : subInProgress
-                        ? "text-gray-700 dark:text-gray-300"
-                        : "text-gray-400"
+                        ? "text-zinc-700 dark:text-zinc-300"
+                        : "text-zinc-400"
                     }
                   >
                     {item.text}
@@ -296,18 +296,18 @@ function CardHeaderComponent({
   return (
     <button
       onClick={onToggleCollapsed}
-      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]"
+      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-zinc-50/60 dark:hover:bg-white/[0.02]"
     >
       {/* 状态点 */}
       <span className="relative flex items-center justify-center shrink-0">
         <span
           className={`block w-1.5 h-1.5 rounded-full ${isCompleted ? "" : "animate-pulse"}`}
-          style={{ background: isCompleted ? "#52c41a" : PRIMARY }}
+          style={{ background: isCompleted ? "#059669" : PRIMARY }}
         />
       </span>
 
       {/* 标题 */}
-      <span className="text-[13px] font-medium text-gray-900 dark:text-white shrink-0">
+      <span className="text-[13px] font-medium text-zinc-900 dark:text-white shrink-0">
         {title}
       </span>
 
@@ -321,23 +321,23 @@ function CardHeaderComponent({
       {collapsed && (
         <>
           <div className="flex-1 flex items-center gap-2 min-w-0 ml-1">
-            <div className="flex-1 h-1 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden">
+            <div className="flex-1 h-1 rounded-full bg-zinc-100 dark:bg-white/5 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${progress || 0}%`,
-                  background: isCompleted ? "#52c41a" : PRIMARY,
+                  background: isCompleted ? "#059669" : PRIMARY,
                 }}
               />
             </div>
             <span
-              className="text-[10px] font-mono tabular-nums shrink-0"
+              className="text-[11px] font-mono tabular-nums shrink-0"
               style={{ color: PRIMARY }}
             >
               {progress || 0}%
             </span>
           </div>
-          <span className="text-[10px] font-mono tabular-nums text-gray-400 shrink-0">
+          <span className="text-[11px] font-mono tabular-nums text-zinc-400 shrink-0">
             {elapsed}
           </span>
         </>
@@ -345,7 +345,7 @@ function CardHeaderComponent({
 
       {/* 折叠/展开箭头 */}
       {collapsible && (
-        <span className="ml-auto text-gray-400 shrink-0">
+        <span className="ml-auto text-zinc-400 shrink-0">
           {collapsed ? <IconDown size={14} /> : <IconUp size={14} />}
         </span>
       )}
@@ -381,7 +381,9 @@ function DirectRenderFallback({
 
   return (
     <div
-      className="my-4 w-full rounded-xl border bg-white dark:bg-zinc-900/50 overflow-hidden"
+      /* 沉浸光感：bg-white/暗态实底 → .dc-mat--neutral 中性灰膜（纯白画布上仍保轮廓）。
+         inline borderColor 保留 = 品牌绿 0x30 alpha 描边（材质只提供 1px 宽度）。 */
+      className="my-4 w-full rounded-xl overflow-hidden dc-mat dc-mat--regular dc-mat--neutral"
       style={{ borderColor: PRIMARY_BORDER }}
     >
       <CardHeaderComponent
@@ -414,17 +416,17 @@ function DirectRenderFallback({
                     className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${progressPercent}%`,
-                      background: allCompleted ? "#52c41a" : PRIMARY,
+                      background: allCompleted ? "#059669" : PRIMARY,
                     }}
                   />
                 </div>
                 <span
-                  className="text-[10px] font-mono tabular-nums shrink-0"
+                  className="text-[11px] font-mono tabular-nums shrink-0"
                   style={{ color: PRIMARY }}
                 >
                   {progressPercent}%
                 </span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 tabular-nums">
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0 tabular-nums">
                   {completedCount}/{tasks.length}
                 </span>
               </div>
@@ -435,9 +437,9 @@ function DirectRenderFallback({
               {/* 底部状态 */}
               <div
                 className="flex items-center justify-between pt-2.5 mt-1"
-                style={{ borderTop: "1px solid #f0f0f0" }}
+                style={{ borderTop: "1px solid #F4F4F5" }}
               >
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[11px] text-zinc-400">
                   {allCompleted
                     ? "所有任务已完成"
                     : isPaused
@@ -449,7 +451,7 @@ function DirectRenderFallback({
                 {!allCompleted && onTogglePause && (
                   <button
                     onClick={() => onTogglePause?.(!isPaused)}
-                    className="text-[10px] font-medium px-2 py-0.5 rounded transition-colors"
+                    className="text-[11px] font-medium px-2 py-0.5 rounded transition-colors"
                     style={{
                       background: isPaused ? PRIMARY : "transparent",
                       color: isPaused ? "#fff" : PRIMARY,
@@ -480,7 +482,7 @@ function DirectRenderFallback({
  * 2. 移除渐变背景与厚重 Tag，采用单色描边 + 轻量 Badge
  * 3. 任务节点使用时间线样式（圆形指示器 + 连接线），更紧凑
  * 4. 优先 A2UI 协议渲染，500ms 超时自动切换直接渲染兜底
- * 5. 统一 Ant Design 蓝 #1677ff，零渐变、零阴影
+ * 5. 统一 Ant Design 蓝 #059669，零渐变、零阴影
  */
 export function DynamicTaskPlanner({
   content,
@@ -592,7 +594,7 @@ export function DynamicTaskPlanner({
             Column,
             Card: (props: any) => (
               <div
-                className="rounded-xl border bg-white dark:bg-zinc-900/50 overflow-hidden"
+                className="rounded-xl overflow-hidden dc-mat dc-mat--regular dc-mat--neutral"
                 style={{ borderColor: PRIMARY_BORDER }}
                 {...props}
               />

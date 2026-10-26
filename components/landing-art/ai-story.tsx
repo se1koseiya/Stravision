@@ -141,7 +141,7 @@ export function AIChapters() {
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-[#08080A]">
         {/* ============ 顶部章节标记 ============ */}
         <div className="absolute top-0 left-0 right-0 z-30 pt-24">
-          <div className="max-w-[1600px] mx-auto px-6 lg:px-10 flex items-start justify-between">
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-10 flex items-start justify-between">
             <div className="flex items-center gap-4">
               <span className="font-mono text-[11px] tracking-[0.25em] text-white/40 uppercase">
                 02 / 推理
@@ -158,14 +158,14 @@ export function AIChapters() {
             >
               <span>Scroll</span>
               <span className="block w-8 h-px bg-white/30" />
-              <span className="text-[#1677ff]">→</span>
+              <span className="text-[#059669]">→</span>
             </motion.div>
           </div>
         </div>
 
         {/* ============ 顶部标题区（钉住）============ */}
         <div className="absolute top-0 left-0 right-0 z-20 pt-40 px-6 lg:px-10 pointer-events-none">
-          <div className="max-w-[1600px] mx-auto">
+          <div className="max-w-[1400px] mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -209,12 +209,12 @@ export function AIChapters() {
 
         {/* ============ 底部水平进度条 + 帧索引 ============ */}
         <div className="absolute bottom-0 left-0 right-0 z-30 pb-10">
-          <div className="max-w-[1600px] mx-auto px-6 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
             {/* 进度条 */}
             <div className="relative h-px bg-white/10">
               <motion.div
                 style={{ scaleX: progressScaleX, transformOrigin: "left" }}
-                className="absolute top-0 left-0 h-px w-full bg-[#1677ff]"
+                className="absolute top-0 left-0 h-px w-full bg-[#059669]"
               />
               {/* 帧标记点 */}
               <div className="absolute inset-0 flex justify-between">
@@ -233,7 +233,7 @@ export function AIChapters() {
               </div>
             </div>
             {/* 底部帧索引文字 */}
-            <div className="mt-3 flex items-center justify-between font-mono text-[10px] tracking-[0.25em] text-white/30 uppercase">
+            <div className="mt-3 flex items-center justify-between font-mono text-[11px] tracking-[0.25em] text-white/30 uppercase">
               {STAGES.map((s) => (
                 <span key={s.no} className="flex-1 text-center first:text-left last:text-right">
                   {s.no} · {s.keyword}
@@ -312,18 +312,18 @@ function FilmFrame({
         style={{ opacity: contentOpacity, y: contentY }}
         className="relative z-10 w-full px-6 lg:px-10 pt-44 lg:pt-32"
       >
-        <div className="max-w-[1600px] mx-auto grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="max-w-[1400px] mx-auto grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* 左：编辑文案 */}
           <div className="lg:col-span-5 lg:col-start-1 order-2 lg:order-1">
             <div className="flex items-baseline gap-4 mb-6">
-              <span className="font-alimama font-medium text-[#1677ff] leading-none" style={{ fontSize: "clamp(48px, 6vw, 96px)", letterSpacing: "-0.05em" }}>
+              <span className="font-alimama font-medium text-[#059669] leading-none" style={{ fontSize: "clamp(48px, 6vw, 96px)", letterSpacing: "-0.05em" }}>
                 {stage.no}
               </span>
               <div className="flex flex-col">
-                <span className="font-mono text-[12px] tracking-[0.25em] text-[#1677ff] uppercase">
+                <span className="font-mono text-[12px] tracking-[0.25em] text-[#059669] uppercase">
                   {stage.keyword}
                 </span>
-                <span className="font-mono text-[10px] tracking-[0.2em] text-white/30 uppercase mt-1">
+                <span className="font-mono text-[11px] tracking-[0.2em] text-white/30 uppercase mt-1">
                   {stage.eyebrow}
                 </span>
               </div>
@@ -336,7 +336,7 @@ function FilmFrame({
               {stage.title}
             </h3>
 
-            <p className="text-white/50 text-[15px] sm:text-[16px] leading-[1.75] max-w-[440px] mb-8">
+            <p className="text-white/50 text-[14px] sm:text-[16px] leading-[1.75] max-w-[440px] mb-8">
               {stage.desc}
             </p>
 
@@ -355,16 +355,16 @@ function FilmFrame({
               {/* 直角边框容器 */}
               <div className="relative border border-white/15 bg-white/[0.02] p-3 backdrop-blur-sm">
                 <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-2 border-b border-white/10">
-                  <span className="font-mono text-[10px] tracking-[0.2em] text-white/40 uppercase">
+                  <span className="font-mono text-[11px] tracking-[0.2em] text-white/40 uppercase">
                     AI · {stage.no}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <motion.span
                       animate={{ opacity: [1, 0.3, 1] }}
                       transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                      className="block w-1.5 h-1.5 bg-[#1677ff]"
+                      className="block w-1.5 h-1.5 bg-[#059669]"
                     />
-                    <span className="font-mono text-[10px] tracking-[0.2em] text-white/40 uppercase">
+                    <span className="font-mono text-[11px] tracking-[0.2em] text-white/40 uppercase">
                       live
                     </span>
                   </span>
@@ -374,7 +374,7 @@ function FilmFrame({
                 </div>
               </div>
               {/* 落款 */}
-              <div className="mt-3 flex items-center justify-between font-mono text-[10px] tracking-[0.2em] text-white/30 uppercase">
+              <div className="mt-3 flex items-center justify-between font-mono text-[11px] tracking-[0.2em] text-white/30 uppercase">
                 <span>fig.{stage.no}</span>
                 <span>berry · ai</span>
               </div>
@@ -454,7 +454,7 @@ function FrameDot({
     <div className="absolute top-1/2 -translate-y-1/2" style={style}>
       <motion.div
         style={{ scale }}
-        className="w-1.5 h-1.5 bg-[#1677ff] -translate-x-1/2"
+        className="w-1.5 h-1.5 bg-[#059669] -translate-x-1/2"
       />
     </div>
   );

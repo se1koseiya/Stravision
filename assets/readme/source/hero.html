@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face{
+    font-family:'HarmonyOS Sans';
+    src:url('file:///C:/Users/24121/Documents/stravision/meijie/berry-realm-v4.0/public/font/HarmonyOS_Sans.web.woff2') format('woff2');
+    font-weight:400 900;font-style:normal;
+  }
+  @font-face{
+    font-family:'HarmonyOS Sans SC';
+    src:url('file:///C:/Users/24121/Documents/stravision/meijie/berry-realm-v4.0/public/font/HarmonyOS_Sans_SC.web.woff2') format('woff2');
+    font-weight:400 900;font-style:normal;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#222222; --muted:#646A73; --faint:#8A9299;
+    --mark:#5EE9B5; --accent:#059669;
+    --glow-y:#FFF85E; --glow-g:#75FF9F; --glow-o:.32; --glow-o2:.38;
+  }
+  html,body{width:1200px;height:740px;overflow:hidden}
+  body{
+    position:relative;background:var(--bg);color:var(--ink);
+    font-family:'HarmonyOS Sans','HarmonyOS Sans SC',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .glow{position:absolute;border-radius:50%;pointer-events:none}
+  .glow.y{left:-190px;top:214px;width:800px;height:520px;background:var(--glow-y);opacity:var(--glow-o);transform:rotate(8deg);filter:blur(120px)}
+  .glow.g{right:-200px;top:250px;width:860px;height:540px;background:var(--glow-g);opacity:var(--glow-o2);transform:rotate(-9deg);filter:blur(126px)}
+  .wash-t{position:absolute;left:0;right:0;top:0;height:262px;
+    background:linear-gradient(180deg,var(--surface) 0%,color-mix(in srgb,var(--surface) 86%,transparent) 50%,transparent 100%)}
+  .wash-b{position:absolute;left:0;right:0;bottom:0;height:132px;
+    background:linear-gradient(0deg,var(--surface) 0%,color-mix(in srgb,var(--surface) 60%,transparent) 46%,transparent 100%)}
+
+  .copy{position:absolute;left:0;right:0;top:112px;text-align:center;z-index:3}
+  h1{font-size:56px;line-height:1.12;font-weight:700;letter-spacing:-.03em}
+  h1 .mark{position:relative;z-index:0;display:inline-block}
+  h1 .l2{display:block;margin-top:8px}
+  h1 .accent{color:var(--accent)}
+  p{margin:26px auto 0;width:668px;font-size:16.5px;line-height:1.9;color:var(--muted);text-wrap:balance}
+  .meta{margin-top:22px;font-size:12px;font-weight:500;letter-spacing:.06em;color:var(--faint);
+    font-variant-numeric:tabular-nums}
+
+  .mascot{position:absolute;left:50%;bottom:-6px;width:336px;margin-left:-168px;z-index:2}
+  .wash-l,.wash-r{position:absolute;top:0;bottom:0;width:96px}
+  .wash-l{left:0;background:linear-gradient(90deg,var(--surface) 0%,transparent 100%)}
+  .wash-r{right:0;background:linear-gradient(270deg,var(--surface) 0%,transparent 100%)}
+  .mascot-fade{position:absolute;left:0;right:0;bottom:0;height:54px;z-index:3;pointer-events:none;
+    background:linear-gradient(0deg,var(--surface) 0%,transparent 100%)}
+</style>
+</head>
+<body>
+  <div class="glow y"></div>
+  <div class="glow g"></div>
+  <div class="wash-l"></div>
+  <div class="wash-r"></div>
+  <div class="wash-t"></div>
+  <div class="wash-b"></div>
+
+  <div class="copy">
+    <h1>
+      <span class="mark">莓界</span>　设施农业 AIoT 平台
+      <span class="l2">把传感读数，<span class="accent">接成设备动作</span></span>
+    </h1>
+    <p>Next.js 16、PostgreSQL 与 MQTT 跑在同一台机器上；AI 调度 59 个工具，直接下发继电器指令并回读设备确认。</p>
+    <div class="meta">v5.2.7「晨雾」 · Apache-2.0 · Windows / macOS / Linux</div>
+  </div>
+
+  <img class="mascot" src="../mascot.webp" alt="莓界形象：草莓头工程师">
+  <div class="mascot-fade"></div>
+</body>
+</html>

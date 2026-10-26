@@ -112,7 +112,7 @@ export default function CapWidget({ onSuccess, onError, className, endpoint }: C
           ) : (
             <>
               {scriptState === "loading" && (
-                <div className="text-xs text-gray-400 py-2 text-center">正在加载安全验证…</div>
+                <div className="text-xs text-zinc-400 py-2 text-center">正在加载安全验证…</div>
               )}
               <cap-widget
                 ref={widgetRef as any}

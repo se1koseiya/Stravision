@@ -9,9 +9,8 @@ const payloadSchema = z.object({
   cameraBUrl: z.string()
 })
 
-/** 单用户写入限流：同一用户 10s 内最多 1 次，避免刷新式写入打满嵌入式 PG */
-const lastWriteAt = new Map<number, number>()
-const WRITE_COOLDOWN_MS = 10_000
+/** 摄像头地址写入是用户点「保存」触发的低频操作，不再叠加冷却（桌面端曾加 10s 冷却，
+ *  结果用户连续改两次就撞「操作过于频繁」，已随桌面端整体豁免限流一并移除）。 */
 
 export async function GET(_req: NextRequest) {
   const user = await getCurrentUser()
@@ -36,18 +35,6 @@ export async function POST(req: NextRequest) {
   // 桌面端：本机单用户使用，地址等价于「我的设备接入配置」，开放给当前用户
   if (!IS_DESKTOP_APP && user.role !== "super_admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
-  }
-
-  if (IS_DESKTOP_APP) {
-    const now = Date.now()
-    const prev = lastWriteAt.get(user.id as number) || 0
-    if (now - prev < WRITE_COOLDOWN_MS) {
-      return NextResponse.json(
-        { error: "操作过于频繁，请稍后再试" },
-        { status: 429 }
-      )
-    }
-    lastWriteAt.set(user.id as number, now)
   }
 
   try {

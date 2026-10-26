@@ -42,19 +42,19 @@ function ChatHeaderInner({
   const displayName = isDirect ? friend?.username : group?.name
 
   return (
-    <div className="flex items-center justify-between shrink-0 h-14 px-5 border-b border-black/[0.06] bg-white">
+    <div className="flex items-center justify-between shrink-0 h-14 px-5 bg-br-surface">
       {/* 左侧：移动端返回 + 名称 */}
       <div className="flex items-center gap-2 min-w-0">
         {isMobile && (
           <button
             onClick={onBack}
-            className="-ml-1 size-8 flex items-center justify-center rounded-full hover:bg-black/[0.04] shrink-0"
+            className="-ml-1 size-8 flex items-center justify-center rounded-full hover:bg-br-surface-3 shrink-0"
           >
-            <IconLeft size={20} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.65)]" />
+            <IconLeft size={20} strokeWidth={ICON_STROKE} className="text-br-text-2" />
           </button>
         )}
         <h2
-          className="text-[20px] text-[rgba(0,0,0,0.88)] leading-none truncate"
+          className="text-[20px] text-br-text-1 leading-none truncate"
           style={{ fontWeight: 500 }}
         >
           {displayName}
@@ -64,21 +64,21 @@ function ChatHeaderInner({
       {/* 右侧：对方头像 + 下拉箭头（点击展开详情面板） */}
       <button
         onClick={onToggleDetails}
-        className="flex items-center gap-1 px-1 py-1 rounded-full hover:bg-black/[0.04] transition-colors"
+        className="flex items-center gap-1 px-1 py-1 rounded-full hover:bg-br-surface-3 transition-colors"
       >
         <Avatar
           size={40}
           src={avatarUrl || undefined}
           className="shrink-0"
           style={{
-            backgroundColor: isDirect ? "#e6f4ff" : "#fff7e6",
-            color: isDirect ? "#1677ff" : "#fa8c16",
+            backgroundColor: isDirect ? "var(--br-brand-soft)" : "var(--br-surface-3)",
+            color: isDirect ? "var(--br-brand-ink)" : "var(--br-text-2)",
             fontWeight: 500
           }}
         >
           {displayName?.[0]?.toUpperCase()}
         </Avatar>
-        <IconDown size={14} strokeWidth={ICON_STROKE} className="text-[rgba(0,0,0,0.4)] mr-0.5" />
+        <IconDown size={14} strokeWidth={ICON_STROKE} className="text-br-text-3 mr-0.5" />
       </button>
     </div>
   )

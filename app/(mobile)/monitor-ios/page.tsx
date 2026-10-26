@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ElementType, useCallback, useMemo, useRef } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
@@ -9,7 +10,7 @@ import type { UserPublic } from "@/lib/db/user-service"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
 import { MobileBackground } from "@/components/mobile-background"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
 import { IconAlarmClock, IconCamera, IconCd, IconClose, IconCloudy, IconDown, IconFan, IconFire, IconFullScreen, IconFullScreenOne, IconHamburgerButton, IconLeft, IconLight, IconMedicineChest, IconMicrophone, IconMonitor, IconOffScreen, IconPlay, IconPlus, IconRemind, IconRight, IconRotate, IconRound, IconSetting, IconSun, IconThunderbolt, IconUp, IconVideocamera, IconVolumeMute, IconVolumeNotice, IconZoomIn, IconZoomOut } from "@/components/icon";
@@ -29,7 +30,7 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
             key={room}
             onClick={() => onSelect(room)}
             className={`whitespace-nowrap px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-300 ${isSelected
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105"
+              ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 scale-105"
               : "bg-white/60 dark:bg-white/5 text-foreground/70 hover:bg-white/80"
               }`}
           >
@@ -37,7 +38,7 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
           </button>
         )
       })}
-      <button className="p-2 rounded-full bg-white/60 dark:bg-white/5 text-foreground/70">
+      <button className="flex items-center justify-center p-2 rounded-full bg-white/60 dark:bg-white/5 text-foreground/70">
         <IconHamburgerButton className="size-5" />
       </button>
     </div>
@@ -66,22 +67,22 @@ function DeviceCard({
   return (
     <div className={`relative rounded-[2rem] p-5 shadow-sm flex flex-col justify-between h-[160px] transition-all duration-300 ${isOn
       ? 'bg-[#2c3e50] dark:bg-[#1e2936]'
-      : 'bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl border border-white/20 dark:border-white/5'
+      : 'bg-white/70 dark:bg-[#18181B]/70 backdrop-blur-xl border border-white/20 dark:border-white/5'
       } ${className}`}>
       <div className="flex justify-between items-start">
         <div className={`size-12 rounded-full flex items-center justify-center transition-colors duration-300 ${isOn
-          ? 'bg-blue-500/20 text-blue-300'
-          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+          ? 'bg-emerald-500/20 text-emerald-300'
+          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
           }`}>
           <Icon className="size-7" />
         </div>
-        <span className={`text-xs font-medium ${isOn ? 'text-blue-200/70' : 'text-slate-400'}`}>{room}</span>
+        <span className={`text-xs font-medium ${isOn ? 'text-emerald-200/70' : 'text-zinc-400'}`}>{room}</span>
       </div>
 
       <div>
         <h3 className={`text-base font-bold mb-1 ${isOn ? 'text-white' : 'text-foreground'}`}>{title}</h3>
         <div className="flex items-center justify-between">
-          <span className={`text-xs font-medium transition-colors duration-300 ${isOn ? 'text-blue-200/80' : 'text-slate-400'
+          <span className={`text-xs font-medium transition-colors duration-300 ${isOn ? 'text-emerald-200/80' : 'text-zinc-400'
             }`}>
             {subtitle}
           </span>
@@ -90,7 +91,7 @@ function DeviceCard({
             <button
               onClick={(e) => { e.stopPropagation(); if (!disabled) onToggle(); }}
               disabled={disabled}
-              className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${isOn ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+              className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${isOn ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-700'
                 } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className={`absolute top-1 size-5 rounded-full transition-all duration-300 ${isOn ? 'left-[22px] bg-white' : 'left-1 bg-white'
@@ -104,6 +105,7 @@ function DeviceCard({
 }
 
 export default function MonitorIOSPage() {
+  const router = useRouter()
   const { deviceData, connectionStatus } = useDeviceData()
   const { status: controlStatus, toggleRelay } = useDeviceControl()
   const { weatherData } = useWeatherContext()
@@ -342,19 +344,20 @@ export default function MonitorIOSPage() {
   ].filter(state => state === 1).length
 
   return (
-    <div className="min-h-screen w-screen bg-slate-50 dark:bg-[#0B1121] text-foreground overflow-hidden font-sans transition-colors duration-500">
+    <div className="min-h-dvh w-full bg-zinc-50 dark:bg-[#09090B] text-foreground font-sans transition-colors duration-500">
       <MobileBackground />
-      
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <div className="px-6 pt-12 pb-4">
+
+      {/* 🚨 旧版把 header+视频+tabs+网格全塞进一个 fixed top-0 容器 —— fixed 内容
+          超出视口不可滚（页面滚动高度恒 0）。本版回归正常文档流，整页随 Lenis 滚动。 */}
+      <main className="relative z-10 pb-32 pt-[max(env(safe-area-inset-top),14px)]" data-lenis-prevent>
+        <div className="px-5 pb-4">
           <div className="flex justify-between items-center mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'var(--font-jinbuti)' }}>{user?.username ? `${user.username}的大棚` : '我的大棚'}</h1>
-                <div className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                  <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                     {connectionStatus.connected ? '设备在线' : '设备离线'}
                   </span>
                 </div>
@@ -368,7 +371,7 @@ export default function MonitorIOSPage() {
 
         {/* Video Player Section (Prominent) */}
         <div className="px-4 mb-4">
-          <div className="relative bg-black rounded-[2rem] overflow-hidden aspect-[4/3] shadow-xl group" id="mobile-video-player" ref={videoContainerRef}>
+          <div className="relative bg-black rounded-[2rem] overflow-hidden aspect-[4/3] shadow-lg group" id="mobile-video-player" ref={videoContainerRef}>
             <div className="absolute inset-0 w-full h-full transition-transform duration-300 ease-out origin-center" style={{ transform: `scale(${zoomLevel})` }}>
                 <LiveStreamPlayer
                 sources={cameraPlayerSources}
@@ -445,7 +448,7 @@ export default function MonitorIOSPage() {
                         onClick={() => setShowPTZ(!showPTZ)}
                         className={cn(
                             "size-10 rounded-full flex items-center justify-center transition-all border",
-                            showPTZ ? "bg-blue-600 border-blue-500 text-white" : "bg-white/10 backdrop-blur-md border-white/10 text-white hover:bg-white/20"
+                            showPTZ ? "bg-emerald-600 border-emerald-500 text-white" : "bg-white/10 backdrop-blur-md border-white/10 text-white hover:bg-white/20"
                         )}
                     >
                         <IconSetting className="size-5" />
@@ -492,18 +495,22 @@ export default function MonitorIOSPage() {
           </div>
         </div>
 
-        {/* Quick Actions Bar (New) */}
+        {/* Quick Actions Bar —— 补光是 relay7 的真开关；灯光调节跳环境页的调光卡 */}
         <div ref={quickActionsRef} className="px-4 mb-4 flex gap-3 overflow-x-auto scrollbar-hide">
+             <button onClick={() => handleRelayToggle(7)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
+                <IconLight className="size-4 text-amber-500" />
+                <span className="text-xs font-medium">{deviceData?.relay7 === 1 ? "关闭补光" : "开启补光"}</span>
+             </button>
+             <button onClick={() => router.push("/dashboard-ios")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
+                <IconSetting className="size-4 text-zinc-500" />
+                <span className="text-xs font-medium">灯光调节</span>
+             </button>
              <button onClick={() => toast.info("警报已触发")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
                 <IconAlarmClock className="size-4 text-red-500" />
                 <span className="text-xs font-medium">一键警报</span>
              </button>
-             <button onClick={() => toast.info("补光灯已开启")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
-                <IconLight className="size-4 text-amber-500" />
-                <span className="text-xs font-medium">开启补光</span>
-             </button>
               <button onClick={() => toast.info("麦克风已开启")} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 shadow-sm whitespace-nowrap">
-                <IconMicrophone className="size-4 text-blue-500" />
+                <IconMicrophone className="size-4 text-emerald-500" />
                 <span className="text-xs font-medium">双向通话</span>
              </button>
         </div>
@@ -516,13 +523,13 @@ export default function MonitorIOSPage() {
         {/* Execution Devices Section */}
         <div className="px-4 py-2">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-foreground">执行设备 <span className="text-sm text-slate-400">({activeCount}台设备运行中)</span></h2>
-            <button className="text-blue-600 text-sm font-medium">+</button>
+            <h2 className="text-base font-bold text-foreground">执行设备 <span className="text-sm text-zinc-400">({activeCount}台设备运行中)</span></h2>
+            <button className="text-emerald-600 text-sm font-medium">+</button>
           </div>
         </div>
 
         {/* Device Grid */}
-        <div ref={mainScrollRef} className="flex-1 overflow-y-auto px-4 pb-32 scrollbar-hide" id="mobile-device-grid">
+        <div ref={mainScrollRef} className="px-4 pb-8 scrollbar-hide" id="mobile-device-grid">
           <div className="grid grid-cols-2 gap-4">
 
             {/* Relay 5: Water Pump */}
@@ -571,7 +578,7 @@ export default function MonitorIOSPage() {
 
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

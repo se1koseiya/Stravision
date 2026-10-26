@@ -18,17 +18,17 @@ export function generateEnvironmentReport(deviceData: any) {
         title: '温度分析',
         content: `
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
-            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-              <h4 style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">平均温度</h4>
-              <p style="margin: 0; font-size: 28px; font-weight: bold; color: #f59e0b;">${deviceData.temperature.avg}°C</p>
+            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #D97706;">
+              <h4 style="margin: 0 0 8px 0; color: #71717A; font-size: 14px;">平均温度</h4>
+              <p style="margin: 0; font-size: 28px; font-weight: bold; color: #D97706;">${deviceData.temperature.avg}°C</p>
             </div>
-            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-              <h4 style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">最低温度</h4>
-              <p style="margin: 0; font-size: 28px; font-weight: bold; color: #3b82f6;">${deviceData.temperature.min}°C</p>
+            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #009456;">
+              <h4 style="margin: 0 0 8px 0; color: #71717A; font-size: 14px;">最低温度</h4>
+              <p style="margin: 0; font-size: 28px; font-weight: bold; color: #009456;">${deviceData.temperature.min}°C</p>
             </div>
-            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #ef4444;">
-              <h4 style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">最高温度</h4>
-              <p style="margin: 0; font-size: 28px; font-weight: bold; color: #ef4444;">${deviceData.temperature.max}°C</p>
+            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border-left: 4px solid #DC2626;">
+              <h4 style="margin: 0 0 8px 0; color: #71717A; font-size: 14px;">最高温度</h4>
+              <p style="margin: 0; font-size: 28px; font-weight: bold; color: #DC2626;">${deviceData.temperature.max}°C</p>
             </div>
           </div>
           <p>温度控制良好，全天保持在草莓生长的适宜范围（18-28°C）内。</p>
@@ -84,7 +84,7 @@ export function generateDiagnosticReport(anomaly: any) {
       {
         title: '异常概述',
         content: `
-          <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+          <div style="background: linear-gradient(135deg, #DC2626 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 12px 0; color: white; font-size: 20px;">⚠️ ${anomaly.type}</h3>
             <p style="margin: 0; font-size: 16px;">${anomaly.description}</p>
           </div>

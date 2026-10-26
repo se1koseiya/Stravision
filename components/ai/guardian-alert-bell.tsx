@@ -55,9 +55,15 @@ const DOT_CLASS: Record<GuardianAlert['severity'], string> = {
 interface GuardianAlertBellProps {
   className?: string
   compact?: boolean
+  /** Dropdown 展开方向。默认 bottomRight（顶栏右端）；放在侧栏底部用户卡右边时传 topLeft，
+   *  否则 380px 面板会从屏幕左缘溢出。 */
+  placement?: 'bottomRight' | 'bottomLeft' | 'topLeft' | 'topRight'
+  /** 铃铛图标尺寸。顶栏/列表行 16；侧栏底部用户卡右边用 18 —— 与 30px 头像的配比
+   *  才对得上 WorkBuddy 账号行（图标 ≈ 头像 0.6 倍）；16px 贴 30px 头像会显小。 */
+  iconSize?: number
 }
 
-export function GuardianAlertBell({ className, compact = true }: GuardianAlertBellProps) {
+export function GuardianAlertBell({ className, compact = true, placement = 'bottomRight', iconSize = 16 }: GuardianAlertBellProps) {
   // 深色模式下 hover/open 底色要用低透明白，否则 rgba(0,0,0,.05) 在深底上等于"没反应"
   const { resolvedTheme } = useTheme()
   const darkHost = resolvedTheme === "dark"
@@ -116,27 +122,27 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
     : '—'
 
   const panel = (
-    <div className="w-[380px] max-w-[92vw] rounded-lg border border-gray-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 shadow-[0_8px_28px_rgba(0,0,0,0.10)] overflow-hidden">
+    <div className="w-[380px] max-w-[92vw] rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 shadow-[0_8px_28px_rgba(0,0,0,0.10)] overflow-hidden">
       {/* 头部 */}
-      <div className="flex items-center justify-between px-4 h-11 border-b border-gray-100 dark:border-zinc-800">
-        <span className="text-[13px] font-medium text-gray-900 dark:text-zinc-100">环境告警</span>
-        <span className="text-[12px] tabular-nums text-gray-400 dark:text-zinc-500">{statusText}</span>
+      <div className="flex items-center justify-between px-4 h-11 border-b border-zinc-100 dark:border-zinc-800">
+        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">环境告警</span>
+        <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">{statusText}</span>
       </div>
 
       {/* 列表 */}
       <div className="max-h-[380px] overflow-y-auto">
         {loading && alerts.length === 0 ? (
-          <div className="py-10 text-center text-[12px] text-gray-400 dark:text-zinc-500">加载中…</div>
+          <div className="py-10 text-center text-[12px] text-zinc-400 dark:text-zinc-500">加载中…</div>
         ) : alerts.length === 0 ? (
           <div className="py-10 flex flex-col items-center gap-2">
             {deviceStatus?.status === 'offline' ? (
-              <IconCloseWifi className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
+              <IconCloseWifi className="w-5 h-5 text-zinc-300 dark:text-zinc-600" strokeWidth={2} />
             ) : deviceStatus?.status === 'no_data' ? (
-              <IconDatabaseNetwork className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
+              <IconDatabaseNetwork className="w-5 h-5 text-zinc-300 dark:text-zinc-600" strokeWidth={2} />
             ) : (
-              <IconCheckOne className="w-5 h-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
+              <IconCheckOne className="w-5 h-5 text-zinc-300 dark:text-zinc-600" strokeWidth={2} />
             )}
-            <p className="text-[12px] text-gray-400 dark:text-zinc-500">
+            <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
               {deviceStatus?.status === 'offline'
                 ? `设备离线，无法获取环境数据${deviceStatus.staleMinutes ? `（${deviceStatus.staleMinutes} 分钟前）` : ''}`
                 : deviceStatus?.status === 'no_data'
@@ -150,7 +156,7 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
           alerts.map(a => (
             <div
               key={a.id}
-              className="group relative flex gap-3 px-4 py-3 border-b border-gray-100/80 dark:border-zinc-800/60 last:border-b-0 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors"
+              className="group relative flex gap-3 px-4 py-3 border-b border-zinc-100/80 dark:border-zinc-800/60 last:border-b-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
             >
               {/* severity 圆点：唯一的彩色元素 */}
               <span className={cn('w-1.5 h-1.5 rounded-full mt-[6px] shrink-0', DOT_CLASS[a.severity] || DOT_CLASS.warning)} />
@@ -158,10 +164,10 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
               <div className="flex-1 min-w-0">
                 {/* 标题 + 时间（hover 时时间让位给操作按钮） */}
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-[13px] font-medium leading-[22px] text-gray-800 dark:text-zinc-200 truncate">
+                  <span className="text-[13px] font-medium leading-[22px] text-zinc-800 dark:text-zinc-200 truncate">
                     {a.title}
                   </span>
-                  <span className="shrink-0 text-[11px] leading-[22px] tabular-nums text-gray-400 dark:text-zinc-500 group-hover:opacity-0 transition-opacity">
+                  <span className="shrink-0 text-[11px] leading-[22px] tabular-nums text-zinc-400 dark:text-zinc-500 group-hover:opacity-0 transition-opacity">
                     {timeAgo(a.created_at)}
                   </span>
                   {/* hover 操作：已读 / 忽略 */}
@@ -169,29 +175,29 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
                     <button
                       title="标记已读"
                       onClick={() => markRead(a.id)}
-                      className="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-gray-200/70 dark:hover:bg-zinc-700/70 transition-colors"
+                      className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 transition-colors"
                     >
-                      <IconCheck className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <IconCheck className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
                     <button
                       title="忽略"
                       onClick={() => dismiss(a.id)}
-                      className="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-gray-200/70 dark:hover:bg-zinc-700/70 transition-colors"
+                      className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 transition-colors"
                     >
-                      <IconClose className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <IconClose className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>
                   </span>
                 </div>
 
                 {/* 正文 */}
-                <p className="mt-0.5 text-[12px] leading-[20px] text-gray-500 dark:text-zinc-400 line-clamp-2">
+                <p className="mt-0.5 text-[12px] leading-[20px] text-zinc-500 dark:text-zinc-400 line-clamp-2">
                   {a.message}
                 </p>
 
                 {/* 建议 */}
                 {a.recommendation && (
-                  <p className="mt-1 text-[12px] leading-[20px] text-gray-500 dark:text-zinc-400">
-                    <span className="text-gray-400 dark:text-zinc-500">建议 · </span>
+                  <p className="mt-1 text-[12px] leading-[20px] text-zinc-500 dark:text-zinc-400">
+                    <span className="text-zinc-400 dark:text-zinc-500">建议 · </span>
                     {a.recommendation}
                   </p>
                 )}
@@ -209,7 +215,7 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
             await Promise.all(alerts.map(a => markRead(a.id)))
             setLoading(false)
           }}
-          className="w-full h-9 text-[12px] text-gray-500 dark:text-zinc-400 border-t border-gray-100 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/60 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
+          className="w-full h-9 text-[12px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
         >
           全部标记已读
         </button>
@@ -223,7 +229,7 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
       onOpenChange={setOpen}
       dropdownRender={() => panel}
       trigger={['click']}
-      placement="bottomRight"
+      placement={placement}
     >
       <button
         onClick={() => { if (!open) fetchAlerts() }}
@@ -232,7 +238,7 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
           // 此前用 `padding: 4` 包裹图标 —— padding-box 而非固定盒，视觉小一圈，
           // 且 hover 底色的圆角/面积都与其他按钮不一致（用户 2026-09-19 截图反馈）。
           'inline-flex items-center justify-center size-7 rounded-lg border-none cursor-pointer',
-          'transition-colors duration-150',
+          'transition-colors duration-200',
           className
         )}
         title="环境告警"
@@ -247,12 +253,31 @@ export function GuardianAlertBell({ className, compact = true }: GuardianAlertBe
           count={unreadCount}
           size="small"
           overflowCount={99}
-          color={criticalCount > 0 ? '#ef4444' : '#a1a1aa'}
+          color={criticalCount > 0 ? '#DC2626' : '#a1a1aa'}
           offset={[2, -2]}
+          styles={{
+            /* 2026-09-22 用户截图反馈「这个红色好难看」：
+               默认 small 徽标是 20px 高 / 12px 字号 / 0 6 padding，贴着 16px 铃铛时
+               像贴了张红贴纸（2 位数直接撑到 30px 宽，比铃铛本体还大）。
+               收成 14px 小胶囊：字号 9.5 + padding 0 4 → 两位数 ~18px 宽，与图标同量级；
+               再加一圈 1.5px「与侧栏底色同色」的描边环，让徽标从铃铛轮廓里"抠"出来
+               —— 环色沿用侧栏「我的空间新简报」小红点的既有配色（5484 行同款）。 */
+            indicator: {
+              height: 14,
+              minWidth: 14,
+              lineHeight: '14px',
+              padding: '0 4px',
+              borderRadius: 7,
+              fontSize: 9.5,
+              fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums',
+              boxShadow: `0 0 0 1.5px ${darkHost ? '#0a0a0c' : '#f7f7f9'}`,
+            },
+          }}
         >
           {/* strokeWidth 必须与顶栏 house/plus 一致：项目规范是 16px 用 2（=1.33px 视觉线宽）。
               原来写 1.75 → 1.17px，比 house 细了 12%，并排看"一粗一细"。 */}
-          <IconRemind size={16} strokeWidth={2} className="text-gray-500 dark:text-zinc-400" />
+          <IconRemind size={iconSize} strokeWidth={2} className="text-zinc-500 dark:text-zinc-400" />
         </Badge>
         {!compact && <span className="text-[12px]">告警</span>}
       </button>

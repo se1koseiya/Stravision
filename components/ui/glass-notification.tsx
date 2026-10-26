@@ -32,19 +32,19 @@ const variantConfig: Record<NoticeVariant, {
   success: {
     icon: <IconCheckOne size={18} className="text-emerald-400" />,
     gradientId: 'glass-ok',
-    stops: ['rgba(16,185,129,0.12)', 'rgba(16,185,129,0.06)', 'rgba(16,185,129,0.02)'],
+    stops: ['rgba(0,148,86,0.12)', 'rgba(0,148,86,0.06)', 'rgba(0,148,86,0.02)'],
     strokeOpacity: 0.25,
     bgOpacity: 0.08,
   },
   loading: {
-    icon: <IconLoading size={18} className="text-blue-400 animate-spin" />,
+    icon: <IconLoading size={18} className="text-emerald-400 animate-spin" />,
     gradientId: 'glass-load',
     stops: ['rgba(59,130,246,0.12)', 'rgba(59,130,246,0.06)', 'rgba(59,130,246,0.02)'],
     strokeOpacity: 0.25,
     bgOpacity: 0.08,
   },
   info: {
-    icon: <IconInfo size={18} className="text-blue-300" />,
+    icon: <IconInfo size={18} className="text-emerald-300" />,
     gradientId: 'glass-info',
     stops: ['rgba(147,197,253,0.10)', 'rgba(147,197,253,0.05)', 'rgba(147,197,253,0.01)'],
     strokeOpacity: 0.18,
@@ -88,7 +88,7 @@ function GlassCard({ notice, onClose }: { notice: NoticeItem; onClose: (id: numb
           stroke={`rgba(255,255,255,${hovered ? Math.min(cfg.strokeOpacity + 0.1, 0.4) : cfg.strokeOpacity})`}
           strokeWidth={1}
           className="transition-all duration-300"
-          style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+          style={{ backdropFilter: 'blur(calc(20px * var(--dc-mat-scale, 1)))', WebkitBackdropFilter: 'blur(calc(20px * var(--dc-mat-scale, 1)))' }}
         />
       </svg>
 
@@ -100,8 +100,8 @@ function GlassCard({ notice, onClose }: { notice: NoticeItem; onClose: (id: numb
           )}
           style={{
             background: `rgba(255,255,255,${hovered ? cfg.bgOpacity + 0.04 : cfg.bgOpacity})`,
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+            backdropFilter: 'blur(calc(10px * var(--dc-mat-scale, 1)))',
+            WebkitBackdropFilter: 'blur(calc(10px * var(--dc-mat-scale, 1)))',
           }}
         >
           {cfg.icon}
@@ -109,10 +109,10 @@ function GlassCard({ notice, onClose }: { notice: NoticeItem; onClose: (id: numb
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[15px] font-semibold text-white/90 leading-tight truncate">
+            <span className="text-[14px] font-semibold text-white/90 leading-tight truncate">
               {notice.title}
             </span>
-            <button onClick={(e) => { e.stopPropagation(); onClose(notice.id) }} className="flex-shrink-0 p-0.5 rounded-md hover:bg-white/10 transition-colors">
+            <button onClick={(e) => { e.stopPropagation(); onClose(notice.id) }} className="flex-shrink-0 p-0.5 rounded-lg hover:bg-white/10 transition-colors">
               <IconClose size={14} className="text-white/40 hover:text-white/70" />
             </button>
           </div>

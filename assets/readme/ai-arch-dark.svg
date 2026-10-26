@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="ai-arch-title ai-arch-desc">
+  <title id="ai-arch-title-dark">莓界 Stravision AI 子系统架构</title>
+  <desc id="ai-arch-desc-dark">一次请求的完整链路：请求准入、上下文装配、模型推理、工具执行、结果与落库；结果回灌后再来一轮，上限 5 轮。左列是上下文来源，中列是工具落地目标，右列是写在代码里的约束，底部是 PostgreSQL 与 Valkey 状态层。</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#A1A1AA"/>
+    </marker>
+    <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#34D399"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="640" fill="#0B0C0E"/>
+
+  <!-- title -->
+  <g id="title-block">
+    <text x="56" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="32" font-weight="700" fill="#F4F4F5">AI 子系统</text>
+    <text x="56" y="92" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#A1A1AA">一次请求的完整链路：装配上下文 → 流式推理 → 工具执行 → 结果回灌 → 落库</text>
+  </g>
+
+  <!-- external pills -->
+  <g id="external">
+    <rect x="48" y="132" width="192" height="36" rx="18" fill="#141618" stroke="#52525B" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="144" y="156" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" fill="#A1A1AA">调用端 · SSE 事件流</text>
+
+    <rect x="490" y="132" width="248" height="36" rx="18" fill="#141618" stroke="#52525B" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="614" y="156" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" fill="#A1A1AA">模型供应商 · OpenAI 兼容</text>
+
+    <!-- pill → spine stubs -->
+    <line x1="144" y1="168" x2="144" y2="196" stroke="#A1A1AA" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="614" y1="168" x2="614" y2="196" stroke="#A1A1AA" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- main spine: 5 stages -->
+  <g id="spine">
+    <!-- 1 请求准入 -->
+    <rect x="48" y="200" width="192" height="104" rx="12" fill="#141618" stroke="#2A2D31" stroke-width="1.5"/>
+    <text x="144" y="246" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">请求准入</text>
+    <text x="144" y="278" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#A1A1AA">鉴权 · 配额预扣</text>
+
+    <!-- 2 上下文装配 -->
+    <rect x="276" y="200" width="192" height="104" rx="12" fill="#141618" stroke="#2A2D31" stroke-width="1.5"/>
+    <text x="372" y="246" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">上下文装配</text>
+    <text x="372" y="278" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#A1A1AA">记忆·技能·预算</text>
+
+    <!-- 3 模型推理 (accent) -->
+    <rect x="504" y="200" width="192" height="104" rx="12" fill="#0F2B22" stroke="#34D399" stroke-width="2"/>
+    <text x="600" y="246" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#6EE7B7">模型推理</text>
+    <text x="600" y="278" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#A1A1AA">流式 · ≤5 轮</text>
+
+    <!-- 4 工具执行 (accent) -->
+    <rect x="732" y="200" width="192" height="104" rx="12" fill="#0F2B22" stroke="#34D399" stroke-width="2"/>
+    <text x="828" y="246" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#6EE7B7">工具执行</text>
+    <text x="828" y="278" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#A1A1AA">并行 · 回读</text>
+
+    <!-- 5 结果与落库 -->
+    <rect x="960" y="200" width="192" height="104" rx="12" fill="#141618" stroke="#2A2D31" stroke-width="1.5"/>
+    <text x="1056" y="246" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">结果与落库</text>
+    <text x="1056" y="278" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#A1A1AA">回灌 · 持久化</text>
+
+    <!-- spine arrows -->
+    <line x1="243" y1="252" x2="271" y2="252" stroke="#A1A1AA" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="471" y1="252" x2="499" y2="252" stroke="#A1A1AA" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="699" y1="252" x2="727" y2="252" stroke="#A1A1AA" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <line x1="927" y1="252" x2="955" y2="252" stroke="#A1A1AA" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- loop: 结果回灌 → 模型推理 -->
+  <g id="loop">
+    <path d="M 1056 304 V 344 H 600 V 308" fill="none" stroke="#34D399" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow-accent)"/>
+    <text x="828" y="374" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#6EE7B7">回灌后再来一轮 · 上限 5 轮</text>
+  </g>
+
+  <!-- three columns -->
+  <g id="columns">
+    <!-- col 1 -->
+    <text x="56" y="428" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">上下文从哪来</text>
+    <rect x="56" y="438" width="40" height="3" rx="1.5" fill="#34D399"/>
+    <circle cx="62" cy="474" r="3.5" fill="#34D399"/>
+    <text x="78" y="480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">记忆三层：短期 · 工作 · 长期</text>
+    <circle cx="62" cy="510" r="3.5" fill="#34D399"/>
+    <text x="78" y="516" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">技能注入与多角色人格</text>
+    <circle cx="62" cy="546" r="3.5" fill="#34D399"/>
+    <text x="78" y="552" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">预算四档 · 阈值 0.60</text>
+
+    <!-- col 2 -->
+    <text x="440" y="428" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">工具落到哪去</text>
+    <rect x="440" y="438" width="40" height="3" rx="1.5" fill="#34D399"/>
+    <circle cx="446" cy="474" r="3.5" fill="#34D399"/>
+    <text x="462" y="480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">设备动作：继电器 · 云台 · LED</text>
+    <circle cx="446" cy="510" r="3.5" fill="#34D399"/>
+    <text x="462" y="516" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">视觉诊断与病斑遮罩</text>
+    <circle cx="446" cy="546" r="3.5" fill="#34D399"/>
+    <text x="462" y="552" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">病历档案 · 文稿 · 画布</text>
+
+    <!-- col 3 -->
+    <text x="824" y="428" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="600" fill="#F4F4F5">约束写在代码里</text>
+    <rect x="824" y="438" width="40" height="3" rx="1.5" fill="#34D399"/>
+    <circle cx="830" cy="474" r="3.5" fill="#34D399"/>
+    <text x="846" y="480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">59 工具 / 14 组登记表</text>
+    <circle cx="830" cy="510" r="3.5" fill="#34D399"/>
+    <text x="846" y="516" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">风险过滤 · 能力调度</text>
+    <circle cx="830" cy="546" r="3.5" fill="#34D399"/>
+    <text x="846" y="552" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" fill="#D4D4D8">HITL 挂起 · 执行确认</text>
+  </g>
+
+  <!-- state layer footer -->
+  <g id="state-layer">
+    <line x1="56" y1="580" x2="1144" y2="580" stroke="#2A2D31" stroke-width="1.5"/>
+    <text x="56" y="614" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="19" font-weight="600" fill="#F4F4F5">状态层</text>
+    <text x="134" y="614" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" fill="#A1A1AA">PostgreSQL · 会话 / 额度 / 病历 / 文稿</text>
+    <text x="1144" y="614" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" fill="#A1A1AA">Valkey · HITL 传输</text>
+  </g>
+</svg>

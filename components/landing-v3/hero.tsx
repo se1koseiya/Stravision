@@ -14,7 +14,7 @@ const HeroChat = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[520px] items-center justify-center rounded-2xl bg-white shadow-[0_32px_80px_-20px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/[0.06]">
+      <div className="flex h-[520px] items-center justify-center rounded-2xl bg-white shadow-[0_32px_80px_-20px_rgba(15,23,42,0.28)] ring-1 ring-zinc-900/[0.06]">
         <div className="size-6 animate-spin rounded-full border-2 border-emerald-600/15 border-t-emerald-600/70" />
       </div>
     ),
@@ -98,14 +98,14 @@ export function Hero() {
       <Row
         justify="center"
         gutter={[32, 48]}
-        className="!mx-auto max-w-[1280px] !px-6 pb-16 pt-10 lg:pb-24 lg:pt-14"
+        className="!mx-auto max-w-[1400px] !px-6 pb-16 pt-10 lg:pb-24 lg:pt-14"
       >
         {/* 左：文案 */}
         <Col xs={24} lg={9} className="lg:!pl-0 lg:!pt-8">
           <motion.div {...fadeUp(0)}>
             <Title
               level={1}
-              className="!mb-0 !text-slate-900"
+              className="!mb-0 !text-zinc-900"
               style={{
                 fontSize: "clamp(2.5rem, 4.6vw, 3.8rem)",
                 fontWeight: 900,
@@ -139,7 +139,7 @@ export function Hero() {
                   icon={<IconRight className="text-[12px]" />}
                   iconPosition="end"
                   style={{
-                    background: "#0f172a",
+                    background: "#18181b",
                     height: 48,
                     paddingInline: 28,
                     fontSize: 15,
@@ -159,8 +159,8 @@ export function Hero() {
                   iconPosition="end"
                   style={{
                     background: "rgba(255,255,255,0.8)",
-                    backdropFilter: "blur(8px)",
-                    color: "#0f172a",
+                    backdropFilter: "blur(calc(8px * var(--dc-mat-scale, 1)))",
+                    color: "#18181b",
                     fontWeight: 600,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                   }}

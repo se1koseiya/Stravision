@@ -46,7 +46,7 @@ const StepCard = ({
         <motion.div variants={itemVariants} className="flex-1 relative">
             <div className="relative z-10 h-full flex flex-col">
                 {/* Number Badge */}
-                <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-zinc-900 border border-primary/30 flex items-center justify-center text-primary font-mono font-bold shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)] z-20">
+                <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-zinc-900 border border-primary/30 flex items-center justify-center text-primary font-mono font-bold shadow-[0_0_15px_-3px_rgba(0,148,86,0.3)] z-20">
                     {step}
                 </div>
 
@@ -107,7 +107,7 @@ const StepCard = ({
 
 export function UserFlowDiagram() {
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 md:p-8">
+    <div className="w-full max-w-[1400px] mx-auto p-4 md:p-8">
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         whileInView={{ opacity: 1, y: 0 }}

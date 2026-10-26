@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button, Input, Card, Typography, Space } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconCertificate, IconRefresh, IconSave } from "@/components/icon";
 
 const { Text } = Typography
@@ -77,7 +77,7 @@ export function RateLimitSettings() {
       style={{ border: "1px solid #EDEEEF" }}
       title={
         <Space>
-          <IconCertificate style={{ color: "#1677ff" }} />
+          <IconCertificate style={{ color: "#059669" }} />
           <span>Auto-Ban Thresholds</span>
         </Space>
       }

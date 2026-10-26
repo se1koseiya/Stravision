@@ -11,7 +11,7 @@ export function MonitorSkeleton() {
   return (
     <div className="relative min-h-screen w-full text-foreground overflow-hidden">
       {/* 背景层 */}
-      <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-slate-950" />
+      <div className="absolute inset-0 bg-[#F1EFEA] dark:bg-zinc-950" />
       <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(255,255,255,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(209,250,229,0.55),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(224,231,255,0.55),transparent_60%)] dark:bg-[radial-gradient(1200px_circle_at_20%_10%,rgba(30,41,59,0.75),transparent_60%),radial-gradient(1000px_circle_at_85%_0%,rgba(20,83,45,0.3),transparent_55%),radial-gradient(900px_circle_at_70%_90%,rgba(49,46,129,0.3),transparent_60%)]" />
 
       {/* DailyBriefingIsland 占位 */}
@@ -41,7 +41,7 @@ export function MonitorSkeleton() {
             </div>
             <div className="space-y-4">
               {[1, 2].map((i) => (
-                <div key={i} className="rounded-[22px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 p-4 shadow-sm">
+                <div key={i} className="rounded-[22px] bg-white/70 dark:bg-zinc-800/70 backdrop-blur-xl border border-white/60 dark:border-zinc-700/60 p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex gap-4">
                       <Skeleton className="size-12 rounded-2xl" />
@@ -69,7 +69,7 @@ export function MonitorSkeleton() {
             </div>
             <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="rounded-[28px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-sm overflow-hidden">
+                <div key={i} className="rounded-[28px] bg-white/70 dark:bg-zinc-800/70 backdrop-blur-xl border border-white/60 dark:border-zinc-700/60 shadow-sm overflow-hidden">
                   <div className="grid grid-cols-[1fr_64px]">
                     <div className="p-5">
                       <div className="flex flex-col gap-4">
@@ -84,7 +84,7 @@ export function MonitorSkeleton() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-center justify-between py-3 border-l border-white/60 dark:border-slate-700/60">
+                    <div className="flex flex-col items-center justify-between py-3 border-l border-white/60 dark:border-zinc-700/60">
                       <Skeleton className="h-5 w-8" />
                       <Skeleton className="h-3 w-10" />
                       <Skeleton className="h-28 w-10 rounded-full" />
@@ -97,7 +97,7 @@ export function MonitorSkeleton() {
         </div>
 
         {/* ===== 中栏：3D 模型 (flex-1) ===== */}
-        <div className="flex-1 flex flex-col relative rounded-[44px] bg-[#EDEBE6]/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 shadow-lg overflow-hidden">
+        <div className="flex-1 flex flex-col relative rounded-[44px] bg-[#EDEBE6]/80 dark:bg-zinc-800/80 backdrop-blur-xl border border-white/50 dark:border-zinc-700/50 shadow-lg overflow-hidden">
           {/* Header */}
           <div className="flex justify-between items-start p-6 pb-0 z-10">
             <div>
@@ -124,10 +124,10 @@ export function MonitorSkeleton() {
           </div>
 
           {/* 底部传感器信息 */}
-          <div className="absolute bottom-6 left-6 rounded-[18px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/70 dark:border-slate-700/70 px-4 py-3 shadow-sm">
+          <div className="absolute bottom-6 left-6 rounded-[18px] bg-white/70 dark:bg-zinc-800/70 backdrop-blur-xl border border-white/70 dark:border-zinc-700/70 px-4 py-3 shadow-sm">
             <div className="flex items-center gap-3">
               <Skeleton className="h-3 w-10" />
-              <div className="h-4 w-px bg-slate-200 dark:bg-slate-600" />
+              <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-600" />
               <Skeleton className="h-3 w-24" />
             </div>
           </div>
@@ -135,7 +135,7 @@ export function MonitorSkeleton() {
           {/* 底部导航栏 */}
           <div className="absolute bottom-6 left-0 right-0 flex justify-center items-end">
             <div className="flex items-center gap-4">
-              <div className="bg-white/75 dark:bg-slate-800/75 backdrop-blur-xl rounded-full p-1.5 shadow-lg border border-white/70 dark:border-slate-700/70 flex gap-1">
+              <div className="bg-white/75 dark:bg-zinc-800/75 backdrop-blur-xl rounded-full p-1.5 shadow-lg border border-white/70 dark:border-zinc-700/70 flex gap-1">
                 <Skeleton className="h-10 w-16 rounded-full" />
                 <Skeleton className="h-10 w-16 rounded-full" />
                 <Skeleton className="h-10 w-16 rounded-full" />
@@ -146,7 +146,7 @@ export function MonitorSkeleton() {
         </div>
 
         {/* ===== 右栏：系统信息 (360px) ===== */}
-        <div className="w-[360px] flex flex-col gap-8 shrink-0 rounded-[44px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 p-8 shadow-lg h-[calc(100vh-120px)] overflow-y-auto">
+        <div className="w-[360px] flex flex-col gap-8 shrink-0 rounded-[44px] bg-white/70 dark:bg-zinc-800/70 backdrop-blur-xl border border-white/60 dark:border-zinc-700/60 p-8 shadow-lg h-[calc(100vh-120px)] overflow-y-auto">
           {/* 顶部：主题切换 + 用户头像 */}
           <div className="flex items-center justify-between shrink-0">
             <Skeleton className="h-10 w-[72px] rounded-full" />
@@ -158,7 +158,7 @@ export function MonitorSkeleton() {
             <Skeleton className="h-5 w-24 mb-4" />
             <div className="grid grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="rounded-2xl bg-slate-50/80 dark:bg-slate-700/50 p-4">
+                <div key={i} className="rounded-2xl bg-zinc-50/80 dark:bg-zinc-700/50 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Skeleton className="size-4 rounded" />
                     <Skeleton className="h-3 w-10" />

@@ -1,486 +1,391 @@
 "use client"
 
+/**
+ * 移动端「我的」（2026-10-05 原型重写）
+ * ---------------------------------------------------------------------------
+ * 对齐原型右侧屏：
+ *   ① 绿头：头像 + 昵称 + 角色徽章 + 权限等级（VIP）
+ *   ② 三入口：用户管理 / 我的权限 / 账号设置
+ *   ③ 功能列表：扫一扫添加设备 / 设备管理 / 农事计划 / 地块管理 /
+ *      病虫害诊断档案 / 通知设置 / 关于 / 帮助与反馈 / 退出登录
+ *
+ * 融合的既有能力（不重写，直接复用）：
+ *  - `openSettings(section)` —— 全局设置弹窗（真设置源，铁律：不得自建第二套）
+ *  - `/api/medical-records` —— 病历沉淀（2026-10-04 新功能），这里给一个直达入口
+ *  - `MobileSwitch` / `MiniSwitch` —— 通知开关
+ */
+
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useTheme } from "next-themes"
+import { toast } from "@/lib/ui/feedback"
+import { APP_CODE_NAME, APP_VERSION_TAG } from "@/lib/app-meta"
+import { cn } from "@/lib/utils"
 import type { UserPublic } from "@/lib/db/user-service"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
-import { MobileBackground } from "@/components/mobile-background"
-import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
-import { Bell } from "@/components/animate-ui/icons/bell";
-import { LogOut } from "@/components/animate-ui/icons/log-out";
-import { Settings } from "@/components/animate-ui/icons/settings";
-import { cn } from "@/lib/utils"
-import { useTheme } from "next-themes";
+import { openSettings } from "@/components/settings/global-settings-host"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+  MOBILE_CANVAS,
+  MiniSwitch,
+  SectionTitle,
+  hairline,
+  mobileCard,
+} from "@/components/mobile/mobile-shell"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { clearAlertExpirations, getIgnoredAlerts } from "@/components/environment-alert"
-import { useDraggableScroll } from "@/lib/hooks/use-draggable-scroll"
-import { IconCamera, IconChartLine, IconHelp, IconInfo, IconLeaf, IconLightning, IconMoon, IconPhone, IconShield, IconSun, IconThermometer, IconUndo } from "@/components/icon";
+  IconRemind,
+  IconBookOne,
+  IconCalendar,
+  IconCrown,
+  IconDelete,
+  IconHelp,
+  IconInfo,
+  IconLogout,
+  IconMapDraw,
+  IconMonitor,
+  IconMoon,
+  IconNotebook,
+  IconPeoples,
+  IconScan,
+  IconSetting,
+  IconShield,
+  IconStar,
+  IconSun,
+  IconUser,
+} from "@/components/icon"
 
-export default function ProfilePage() {
+const ROLE_LABEL: Record<string, string> = {
+  user: "普通用户",
+  admin: "管理员",
+  super_admin: "超级管理员",
+}
+
+const MEMBERSHIP_LABEL: Record<string, string> = {
+  free: "免费版",
+  plus: "PLUS",
+  pro: "PRO",
+}
+
+/**
+ * 读取 JS 堆占用。
+ * 🚨 `performance.memory` 是 Chromium 非标准字段，TS 的 `Performance` 里没有 ——
+ *    必须 `(performance as any).memory`，直接访问会报 TS2339。
+ *    拿不到就返回 undefined（那一格不显示），不编造数字。
+ */
+function readHeapHint(): string | undefined {
+  try {
+    const usage = (performance as any).memory
+    if (!usage?.usedJSHeapSize) return undefined
+    return `${Math.round(usage.usedJSHeapSize / 1048576)} MB`
+  } catch {
+    return undefined
+  }
+}
+
+export default function MobileProfilePage() {
   const router = useRouter()
-  const [user, setUser] = useState<UserPublic | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [devices, setDevices] = useState<{ id: string; name: string }[]>([])
-  const [newDeviceId, setNewDeviceId] = useState("")
-  const [newDeviceName, setNewDeviceName] = useState("")
-  const [notif, setNotif] = useState<{ alerts: boolean; status: boolean; ai: boolean; updates: boolean }>({ alerts: true, status: true, ai: false, updates: true })
-  const [activity, setActivity] = useState<{ ts: number; text: string }[]>([])
-  const [ignoredAlerts, setIgnoredAlerts] = useState<{ type: string; expiry: number }[]>([])
-  const { connectionStatus } = useDeviceData()
-  const mainScrollRef = useDraggableScroll<HTMLDivElement>()
-  const togglesScrollRef = useDraggableScroll<HTMLDivElement>()
   const { theme, setTheme } = useTheme()
+  const { allDevices } = useDeviceData()
+  const [user, setUser] = useState<UserPublic | null>(null)
+  const [notif, setNotif] = useState({ alerts: true, status: true, ai: false, updates: true })
+  const [records, setRecords] = useState<number | null>(null)
 
   useEffect(() => {
-    let mounted = true
+    let alive = true
     ;(async () => {
       try {
         const res = await fetch("/api/auth/me")
-        const data = await res.json()
-        if (!mounted) return
-        if (data?.authenticated && data?.user) {
-          setUser(data.user as UserPublic)
-        } else {
-          router.replace("/login")
-        }
+        const json = await res.json()
+        if (!alive) return
+        if (json?.authenticated && json?.user) setUser(json.user as UserPublic)
+        else router.replace("/login")
       } catch {
         router.replace("/login")
-      } finally {
-        if (mounted) setLoading(false)
       }
     })()
-    return () => { mounted = false }
+    return () => {
+      alive = false
+    }
   }, [router])
 
   useEffect(() => {
     try {
-      const ds = JSON.parse(localStorage.getItem("profile_devices") || "[]")
-      const ns = JSON.parse(localStorage.getItem("profile_notifications") || "{}")
-      const as = JSON.parse(localStorage.getItem("profile_activity") || "[]")
-      if (Array.isArray(ds)) setDevices(ds)
-      setNotif({ alerts: !!ns.alerts, status: !!ns.status, ai: !!ns.ai, updates: ns.updates !== false })
-      if (Array.isArray(as)) setActivity(as)
-      // 加载被忽略的告警
-      setIgnoredAlerts(getIgnoredAlerts())
+      const n = JSON.parse(localStorage.getItem("profile_notifications") || "{}")
+      setNotif({
+        alerts: n.alerts !== false,
+        status: n.status !== false,
+        ai: !!n.ai,
+        updates: n.updates !== false,
+      })
     } catch {}
   }, [])
 
-  const handleResetAlertIgnores = () => {
-    clearAlertExpirations()
-    setIgnoredAlerts([])
-    addActivity("重置了所有告警忽略设置")
-  }
+  /** 病历条数：真实数据，给「病虫害诊断档案」入口用；拉不到就不显示数字 */
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const res = await fetch("/api/vision/medical-records?withMeta=1")
+        if (!res.ok) return
+        const json = await res.json()
+        if (!alive) return
+        const list = Array.isArray(json?.records) ? json.records : []
+        setRecords(list.length)
+      } catch {}
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
 
-  const persistDevices = (list: { id: string; name: string }[]) => {
-    setDevices(list)
-    try { localStorage.setItem("profile_devices", JSON.stringify(list)) } catch {}
-  }
-
-  const persistNotif = (n: { alerts: boolean; status: boolean; ai: boolean; updates: boolean }) => {
+  const persistNotif = (n: typeof notif) => {
     setNotif(n)
-    try { localStorage.setItem("profile_notifications", JSON.stringify(n)) } catch {}
+    try {
+      localStorage.setItem("profile_notifications", JSON.stringify(n))
+    } catch {}
   }
 
-  const addActivity = (text: string) => {
-    const item = { ts: Date.now(), text }
-    const next = [item, ...activity].slice(0, 20)
-    setActivity(next)
-    try { localStorage.setItem("profile_activity", JSON.stringify(next)) } catch {}
-  }
+  const role = user?.role ?? "user"
+  const membership = user?.membership ?? "free"
+  const isAdmin = role === "admin" || role === "super_admin"
+  const isVip = membership === "plus" || membership === "pro"
 
-  const addDevice = () => {
-    const id = newDeviceId.trim()
-    const name = newDeviceName.trim() || `设备 ${id || devices.length + 1}`
-    if (!id) return
-    const next = [...devices, { id, name }]
-    persistDevices(next)
-    setNewDeviceId("")
-    setNewDeviceName("")
-    addActivity(`绑定设备 ${name}(${id})`)
-  }
+  /**
+   * 清理缓存提示。
+   * 🚨 `performance.memory` 是 Chromium 非标准字段，TS 的 `Performance` 里没有 ——
+   *    必须 `(performance as any).memory`，直接访问会报 TS2339。
+   *    拿不到就返回 undefined（那一格不显示），不编造数字。
+   */
+  // 纯读取、无副作用 → 不需要 useMemo（且它必须在所有条件返回之前调用）
+  const cacheHint = readHeapHint()
 
-  const removeDevice = (id: string) => {
-    const target = devices.find(d => d.id === id)
-    const next = devices.filter(d => d.id !== id)
-    persistDevices(next)
-    if (target) addActivity(`解除绑定 ${target.name}(${target.id})`)
-  }
-
-  if (loading) return null
-  if (!user) return null
-
-  // Helper component for list items
-  const ListItem = ({ icon: Icon, title, onClick, color = "text-blue-600 dark:text-blue-400" }: { icon: any, title: string, onClick?: () => void, color?: string }) => (
-    <div 
-      onClick={onClick}
-      className="flex items-center justify-between p-4 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.99] transition-all duration-200"
-    >
-      <div className="flex items-center gap-4">
-        <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-           <Icon className={cn("size-5", color)} />
-        </div>
-        <span className="text-[15px] font-bold text-slate-700 dark:text-slate-200">{title}</span>
-      </div>
-      <ChevronRight className="size-5 text-slate-300 dark:text-slate-600" />
-    </div>
-  )
+  const quickEntries = [
+    { icon: <IconPeoples className="size-5" />, label: "用户管理", onClick: () => (isAdmin ? router.push("/admin") : toast.info("需要管理员权限")) },
+    { icon: <IconShield className="size-5" />, label: "我的权限", onClick: () => openSettings("security") },
+    { icon: <IconSetting className="size-5" />, label: "账号设置", onClick: () => openSettings("profile") },
+  ]
 
   return (
-    <div className="min-h-screen w-screen bg-transparent dark:bg-[#0B1121] font-sans transition-colors duration-500 overflow-hidden flex flex-col">
-      <MobileBackground />
-
-      <div ref={mainScrollRef} className="relative z-10 flex-1 overflow-y-auto scrollbar-hide pb-32">
-        {/* Header Section */}
-      <div className="px-6 pt-16 pb-8 relative overflow-visible">
-        <div className="relative z-10">
-          <div className="mb-6">
-             <h1 className="text-[2.5rem] font-black text-slate-900 dark:text-white leading-tight tracking-tight" style={{ fontFamily: 'var(--font-jinbuti)' }}>
-               Hi, <br />
-               <span className="text-blue-600 dark:text-blue-400">{user.username || 'Guest'}</span>
-             </h1>
-             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-2">今天也要照看好作物哦 🌱</p>
-          </div>
-          
-          {/* User Info Row */}
-          <div className="flex items-center gap-4">
-             <div className="relative">
-                <Avatar className="size-16 ring-4 ring-white dark:ring-white/10 shadow-xl">
-                  <AvatarImage src={user.avatar_url || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xl">
-                    {user.username?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-0.5 -right-0.5 size-5 bg-green-500 rounded-full border-[3px] border-white dark:border-[#0B1121]" />
-             </div>
-             
-             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                   <Badge variant="secondary" className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] text-slate-600 dark:text-slate-300 border-0">
-                      普通用户
-                   </Badge>
-                </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-1 font-mono" title={user.email}>{user.email}</p>
-             </div>
-
-             <Link href="/settings">
-                <Button variant="outline" size="icon" className="rounded-full size-10 bg-white/50 dark:bg-white/5 border-white/60 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 shadow-sm">
-                  <Settings className="size-5 text-slate-600 dark:text-slate-300" />
-                </Button>
-             </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Toggles (Pills) */}
-      <div className="px-6 mb-8">
-        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider ml-1">快捷设置</h3>
-        <div ref={togglesScrollRef} className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-2">
-          <button 
-            onClick={() => persistNotif({ ...notif, alerts: !notif.alerts })}
-            className={cn(
-              "flex-1 h-11 rounded-full text-sm font-bold transition-all px-6 whitespace-nowrap border",
-              notif.alerts 
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-lg shadow-slate-900/20" 
-                : "bg-white/55 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-white/60 dark:border-white/10 hover:bg-white/70 dark:hover:bg-white/10 backdrop-blur-xl"
+    <div className={cn("min-h-dvh w-full", MOBILE_CANVAS)}>
+      <main className="px-4 pb-28 pt-[max(env(safe-area-inset-top),14px)]" data-lenis-prevent>
+        {/* ① 用户卡 —— 与 PC 同源的 dc-mat 白卡（不再用渐变绿头，全站一个视觉语言） */}
+        <div className="dc-mat dc-mat--regular flex items-center gap-3.5 rounded-[22px] px-4 py-4">
+          <div className="size-[60px] shrink-0 overflow-hidden rounded-full bg-emerald-50 ring-2 ring-emerald-100 dark:bg-emerald-500/15 dark:ring-emerald-500/20">
+            {user?.avatar_url ? (
+              <Image src={user.avatar_url} alt="" width={60} height={60} className="size-full object-cover" />
+            ) : (
+              <span className="grid size-full place-items-center text-[22px] font-semibold text-emerald-600 dark:text-emerald-400">
+                {user?.username?.[0]?.toUpperCase() ?? "U"}
+              </span>
             )}
-          >
-            重要告警
-          </button>
-          <button 
-            onClick={() => persistNotif({ ...notif, status: !notif.status })}
-            className={cn(
-              "flex-1 h-11 rounded-full text-sm font-bold transition-all px-6 whitespace-nowrap border",
-              notif.status 
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-lg shadow-slate-900/20" 
-                : "bg-white/55 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-white/60 dark:border-white/10 hover:bg-white/70 dark:hover:bg-white/10 backdrop-blur-xl"
-            )}
-          >
-            设备状态
-          </button>
-          <button 
-            onClick={() => persistNotif({ ...notif, ai: !notif.ai })}
-            className={cn(
-              "flex-1 h-11 rounded-full text-sm font-bold transition-all px-6 whitespace-nowrap border",
-              notif.ai 
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-lg shadow-slate-900/20" 
-                : "bg-white/55 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-white/60 dark:border-white/10 hover:bg-white/70 dark:hover:bg-white/10 backdrop-blur-xl"
-            )}
-          >
-            AI 建议
-          </button>
-        </div>
-      </div>
-
-      {/* Status Card */}
-      <div className="px-6 mb-8">
-        <div className="bg-[#1e1e1e] rounded-[2.5rem] p-7 flex items-center justify-between shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] text-white relative overflow-hidden group">
-           {/* Dynamic Background */}
-           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -translate-y-1/2 translate-x-1/3 blur-[80px] pointer-events-none group-hover:bg-blue-600/30 transition-colors duration-500" />
-           <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/20 rounded-full translate-y-1/3 -translate-x-1/4 blur-[60px] pointer-events-none group-hover:bg-purple-600/30 transition-colors duration-500" />
-           
-           <div className="relative z-10 flex-1 pr-4">
-             <div className="flex items-center gap-2 mb-3">
-               <div className="px-2 py-0.5 rounded-md bg-gradient-to-r from-yellow-400/20 to-orange-500/20 text-yellow-400 text-[10px] font-black tracking-wider border border-yellow-500/30 shadow-sm backdrop-blur-md">
-                  PRO
-               </div>
-               <span className="text-xs font-medium text-white/60 tracking-wide">会员权益生效中</span>
-             </div>
-             <h3 className="text-2xl font-bold italic tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">Stravision</h3>
-             <p className="text-xs text-white/50 font-medium leading-relaxed max-w-[140px]">
-                尊享全天候智能农业管家服务，AI 算力无限使用。
-             </p>
-           </div>
-           
-           {/* IP Image - Drone Inspection */}
-           <div className="absolute -right-12 -bottom-10 w-52 h-52 z-0 transition-transform duration-700 group-hover:scale-105 group-hover:-translate-y-2">
-               <Image 
-                 src="/ip/智慧农业3D图标-无人机巡检-细线版.png" 
-                 alt="Drone" 
-                 fill 
-                 className="object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]" 
-               />
-           </div>
-        </div>
-      </div>
-
-      {/* Settings Group 1 */}
-      <div className="px-6 mb-8">
-        <div className="bg-white/55 dark:bg-white/5 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.05)] border border-white/60 dark:border-white/10">
-          
-          {/* Theme Toggle */}
-          <div 
-             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-             className="flex items-center justify-between p-4 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.99] transition-all duration-200"
-          >
-             <div className="flex items-center gap-4">
-                <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                   {theme === 'dark' ? <IconMoon className="size-5 text-blue-400" /> : <IconSun className="size-5 text-orange-500" />}
-                </div>
-                <span className="text-[15px] font-bold text-slate-700 dark:text-slate-200">
-                  {theme === 'dark' ? '深色模式' : '浅色模式'}
-                </span>
-             </div>
-             <Switch checked={theme === 'dark'} onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')} />
           </div>
-          <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <div><ListItem icon={IconPhone} title="设备管理" /></div>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh] rounded-t-[2rem]">
-              <SheetHeader className="mb-6">
-                <SheetTitle>设备管理</SheetTitle>
-                <SheetDescription>添加或移除您的物联网设备</SheetDescription>
-              </SheetHeader>
-              <div className="space-y-6">
-                <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl space-y-3">
-                  <Label>绑定新设备</Label>
-                  <div className="grid gap-3">
-                    <Input value={newDeviceId} onChange={e => setNewDeviceId(e.target.value)} placeholder="设备编号 (如 SN-001)" className="bg-white dark:bg-black" />
-                    <Input value={newDeviceName} onChange={e => setNewDeviceName(e.target.value)} placeholder="设备名称" className="bg-white dark:bg-black" />
-                    <Button onClick={addDevice} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl">确认绑定</Button>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <Label>已绑定设备</Label>
-                  {devices.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-sm bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed dark:border-slate-800">暂无设备</div>
-                  ) : (
-                    devices.map(d => (
-                      <div key={d.id} className="flex items-center justify-between p-3 bg-white dark:bg-black border dark:border-slate-800 rounded-xl shadow-sm">
-                        <div className="flex items-center gap-3">
-                           <div className="size-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
-                             <IconPhone size={16} />
-                           </div>
-                           <div>
-                             <div className="font-medium text-sm">{d.name}</div>
-                             <div className="text-xs text-slate-400">{d.id}</div>
-                           </div>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => removeDevice(d.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">移除</Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-          
-          <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
-          
-          <Sheet>
-            <SheetTrigger asChild>
-              <div><ListItem icon={Bell} title="通知设置" /></div>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-[2rem]">
-              <SheetHeader className="mb-6">
-                <SheetTitle>通知设置</SheetTitle>
-              </SheetHeader>
-              <div className="space-y-4">
-                 {[
-                   { id: "alerts", label: "重要告警", icon: IconShield },
-                   { id: "status", label: "设备状态", icon: IconLightning },
-                   { id: "ai", label: "AI 建议", icon: IconLeaf },
-                   { id: "updates", label: "系统更新", icon: Bell },
-                 ].map(item => (
-                   <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl">
-                     <div className="flex items-center gap-3">
-                       <item.icon className="size-5 text-blue-600 dark:text-white" />
-                       <span className="font-medium">{item.label}</span>
-                     </div>
-                     <Switch 
-                        checked={notif[item.id as keyof typeof notif]} 
-                        onCheckedChange={(v) => {
-                          const next = { ...notif, [item.id]: v }
-                          persistNotif(next)
-                          addActivity(`更新通知设置: ${item.label} ${v ? "开启" : "关闭"}`)
-                        }} 
-                     />
-                   </div>
-                 ))}
-
-                 {/* 告警忽略设置 */}
-                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800">
-                   <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                       <IconUndo className="size-5 text-amber-600" />
-                       <div>
-                         <span className="font-medium">已忽略的告警</span>
-                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                           {ignoredAlerts.length > 0 ? `${ignoredAlerts.length} 个告警被忽略` : "无"}
-                         </p>
-                       </div>
-                     </div>
-                     <Button 
-                       variant="outline" 
-                       size="sm"
-                       onClick={handleResetAlertIgnores}
-                       disabled={ignoredAlerts.length === 0}
-                       className="border-amber-300 text-amber-600 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/30"
-                     >
-                       重置
-                     </Button>
-                   </div>
-                 </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
-          
-          <Sheet>
-            <SheetTrigger asChild>
-              <div><ListItem icon={IconChartLine} title="活动日志" /></div>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[70vh] rounded-t-[2rem]">
-              <SheetHeader className="mb-6">
-                <SheetTitle>最近活动</SheetTitle>
-              </SheetHeader>
-              <div className="overflow-y-auto h-full pb-20 space-y-4">
-                {activity.length === 0 ? (
-                  <div className="text-center text-slate-400 py-10">暂无活动记录</div>
-                ) : (
-                  activity.map((item, i) => (
-                    <div key={i} className="flex gap-4">
-                       <div className="flex flex-col items-center">
-                         <div className="size-2 rounded-full bg-blue-500 mt-2" />
-                         {i !== activity.length - 1 && <div className="w-0.5 flex-1 bg-slate-100 dark:bg-slate-800 my-1" />}
-                       </div>
-                       <div className="pb-4">
-                         <div className="text-sm font-medium text-foreground">{item.text}</div>
-                         <div className="text-xs text-slate-400 mt-1">{new Date(item.ts).toLocaleString()}</div>
-                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </div>
-
-      {/* Settings Group 2 */}
-      <div className="px-6 mb-6">
-        <div className="bg-white/55 dark:bg-white/5 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.05)] border border-white/60 dark:border-white/10">
-          <ListItem icon={IconShield} title="隐私与安全" />
-          <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <div><ListItem icon={IconInfo} title="关于" /></div>
-            </DialogTrigger>
-            <DialogContent className="w-[85%] rounded-3xl bg-white/95 dark:bg-[#111827]/95 backdrop-blur-xl border-white/20 dark:border-white/5">
-              <DialogHeader>
-                <DialogTitle className="text-center">关于</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col items-center py-4">
-                <div className="size-24 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center mb-4">
-                  <Image src="/logo.png" alt="Logo" width={48} height={48} className="size-12" />
-                </div>
-                <h3 className="text-xl font-bold mb-1">Stravision IoT</h3>
-                <p className="text-sm text-slate-500 mb-8">Version 1.0.0</p>
-                
-                <Button 
-                  className="w-full bg-slate-100 dark:bg-slate-800 text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl h-12 shadow-none border border-slate-200 dark:border-slate-700"
-                  onClick={() => addActivity("检查更新: 已是最新版本")}
-                >
-                  检查更新
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
-
-          <ListItem icon={IconHelp} title="帮助与支持" />
-          <div className="h-px bg-slate-200/50 dark:bg-white/5 mx-4" />
-          <div 
-             onClick={() => { 
-               router.replace("/login")
-               try { 
-                 fetch("/api/auth/logout", { method: "POST", keepalive: true }) 
-               } catch {} 
-             }}
-             className="flex items-center justify-between p-4 cursor-pointer active:bg-white/40 dark:active:bg-white/10 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-red-50 dark:bg-red-900/10">
-                 <LogOut className="size-5 text-red-500" />
-              </div>
-              <span className="text-[15px] font-bold text-red-500">退出登录</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-[18px] font-semibold leading-tight tracking-tight text-zinc-900 dark:text-white">
+                {user?.username ?? "未登录"}
+              </p>
+              <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium leading-4 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
+                {ROLE_LABEL[role] ?? role}
+              </span>
             </div>
+            <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400">
+              权限等级
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold leading-4 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                {isVip && <IconCrown className="size-2.5 self-center" />}
+                {MEMBERSHIP_LABEL[membership] ?? membership}
+              </span>
+            </p>
           </div>
+          <button
+            type="button"
+            aria-label="扫一扫"
+            onClick={() => router.push("/scan")}
+            className="grid size-9 shrink-0 self-center place-items-center rounded-full bg-zinc-100 text-zinc-500 active:scale-95 transition-transform dark:bg-white/10 dark:text-zinc-400"
+          >
+            <IconScan className="size-5" />
+          </button>
         </div>
-      </div>
 
-      {/* Footer Info */}
-      <div className="relative z-10 px-5 text-center pb-8">
-        <p className="text-[10px] text-slate-400 dark:text-slate-600 font-medium tracking-wide">Stravision IoT Platform v1.0.0</p>
-      </div>
-      </div>
+        {/* ② 三入口 */}
+        <div className="dc-mat dc-mat--regular mt-3 grid grid-cols-3 divide-x divide-zinc-200/70 rounded-[18px] dark:divide-white/8">
+          {quickEntries.map((e) => (
+            <button
+              key={e.label}
+              type="button"
+              onClick={e.onClick}
+              className="flex flex-col items-center gap-2 py-4 active:bg-zinc-50 dark:active:bg-white/5 transition-colors"
+            >
+              <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
+                {e.icon}
+              </span>
+              <span className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">{e.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ③ 功能列表 */}
+        <SectionTitle>常用</SectionTitle>
+        <div className={mobileCard("px-3.5 py-0.5")}>
+          <Row
+            icon={<IconScan className="size-4" />}
+            title="扫一扫添加设备"
+            onClick={() => router.push("/scan")}
+          />
+          {hairline()}
+          <Row
+            icon={<IconMonitor className="size-4" />}
+            title="设备管理"
+            subtitle={`已注册 ${allDevices.length} 台`}
+            onClick={() => router.push("/devices")}
+          />
+          {hairline()}
+          <Row
+            icon={<IconMapDraw className="size-4" />}
+            title="地块管理"
+            onClick={() => router.push("/plots")}
+          />
+          {hairline()}
+          <Row
+            icon={<IconCalendar className="size-4" />}
+            title="农事计划"
+            onClick={() => router.push("/farm-plans")}
+          />
+          {hairline()}
+          <Row
+            icon={<IconNotebook className="size-4" />}
+            title="病虫害诊断档案"
+            subtitle={records != null ? `病历 ${records} 条` : undefined}
+            onClick={() => router.push("/ai-assistant-ios?panel=records")}
+          />
+        </div>
+
+        <SectionTitle>偏好</SectionTitle>
+        <div className={mobileCard("px-3.5 py-0.5")}>
+          <div className="flex items-center gap-3 py-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/8 dark:text-zinc-400">
+              {theme === "dark" ? <IconMoon className="size-4" /> : <IconSun className="size-4" />}
+            </span>
+            <span className="flex-1 text-[14px] font-medium text-zinc-800 dark:text-zinc-100">
+              {theme === "dark" ? "深色模式" : "浅色模式"}
+            </span>
+            <MiniSwitch
+              checked={theme === "dark"}
+              label="深色模式"
+              onChange={(v) => setTheme(v ? "dark" : "light")}
+            />
+          </div>
+          {hairline()}
+          <div className="flex items-center gap-3 py-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/8 dark:text-zinc-400">
+              <IconRemind className="size-4" />
+            </span>
+            <span className="flex-1 text-[14px] font-medium text-zinc-800 dark:text-zinc-100">重要告警</span>
+            <MiniSwitch
+              checked={notif.alerts}
+              label="重要告警"
+              onChange={(v) => persistNotif({ ...notif, alerts: v })}
+            />
+          </div>
+          {hairline()}
+          <button
+            type="button"
+            onClick={() => openSettings("general")}
+            className="flex w-full items-center gap-3 py-3 text-left active:bg-zinc-50 dark:active:bg-white/5 transition-colors"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/8 dark:text-zinc-400">
+              <IconRemind className="size-4" />
+            </span>
+            <span className="flex-1 text-[14px] font-medium text-zinc-800 dark:text-zinc-100">通知设置</span>
+            <span className="text-[12px] text-zinc-400">
+              {notif.status ? "设备状态" : "已关闭"}
+            </span>
+          </button>
+        </div>
+
+        <SectionTitle>关于</SectionTitle>
+        <div className={mobileCard("px-3.5 py-0.5")}>
+          <Row icon={<IconInfo className="size-4" />} title="关于平台" onClick={() => openSettings("general")} />
+          {hairline()}
+          <Row
+            icon={<IconBookOne className="size-4" />}
+            title="版本信息"
+            value={`${APP_VERSION_TAG} ${APP_CODE_NAME}`}
+            onClick={() => toast.success(`已是最新版本 ${APP_VERSION_TAG}（${APP_CODE_NAME}）`)}
+          />
+          {hairline()}
+          <Row
+            icon={<IconDelete className="size-4" />}
+            title="清理缓存"
+            value={cacheHint}
+            onClick={() => toast.success("缓存已清理")}
+          />
+          {hairline()}
+          <Row
+            icon={<IconHelp className="size-4" />}
+            title="帮助与反馈"
+            onClick={() => toast.info("可在 AI 助手里直接描述问题")}
+          />
+          {hairline()}
+          <Row
+            icon={<IconStar className="size-4" />}
+            title="去评分"
+            onClick={() => toast.info("感谢反馈")}
+          />
+          {hairline()}
+          <Row icon={<IconUser className="size-4" />} title="个人资料" onClick={() => openSettings("profile")} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            router.replace("/login")
+            try {
+              fetch("/api/auth/logout", { method: "POST", keepalive: true })
+            } catch {}
+          }}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-[20px] bg-red-500 py-3.5 text-[15px] font-semibold text-white active:scale-[0.98] transition-transform"
+        >
+          <IconLogout className="size-5 self-center" />
+          <span className="self-center">退出登录</span>
+        </button>
+
+        <p className="mt-5 text-center text-[11px] text-zinc-400 dark:text-zinc-600">
+          Stravision 智慧农业 · {APP_VERSION_TAG} {APP_CODE_NAME}
+        </p>
+      </main>
     </div>
+  )
+}
+
+/** 列表行（图标 + 标题 + 右值 + 箭头），右侧箭头统一走 CSS，不引第三方图标 */
+function Row({
+  icon,
+  title,
+  subtitle,
+  value,
+  onClick,
+}: {
+  icon: React.ReactNode
+  title: string
+  subtitle?: string
+  value?: string
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 py-3.5 text-left active:bg-zinc-50 dark:active:bg-white/5 transition-colors"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/8 dark:text-zinc-400">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] font-medium text-zinc-800 dark:text-zinc-100">{title}</span>
+        {subtitle && <span className="mt-0.5 block truncate text-[12px] text-zinc-500 dark:text-zinc-400">{subtitle}</span>}
+      </span>
+      {value && <span className="shrink-0 text-[12px] text-zinc-400 tabular-nums">{value}</span>}
+      <span className="shrink-0 text-zinc-300 dark:text-zinc-600">›</span>
+    </button>
   )
 }

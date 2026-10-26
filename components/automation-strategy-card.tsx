@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { XCard, registerCatalog } from "@ant-design/x-card"
 import type { A2UICommand_v0_9, ActionPayload, Catalog } from "@ant-design/x-card"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { useRouter } from "next/navigation"
 import { IconBrain, IconCheck, IconCpu, IconDown, IconLightning, IconLinkOut, IconLoading, IconPlay, IconRemind, IconSave, IconUp } from "@/components/icon";
 
@@ -17,7 +17,7 @@ interface AutomationStrategyCardProps {
 }
 
 // ---------------------------------------------------------------------------
-// 主题（统一 Ant Design 蓝 #1677ff）
+// 主题（统一 Ant Design 蓝 #059669）
 // ---------------------------------------------------------------------------
 const PRIMARY = BERRY_THEME.primary
 const PRIMARY_BG = `${PRIMARY}0a`
@@ -78,12 +78,12 @@ registerCatalog(catalog)
 // ---------------------------------------------------------------------------
 const NODE_TYPE_CONFIG: Record<string, { icon: any; label: string; color: string; bg: string; border: string }> = {
   triggerNode: { icon: IconRemind,    label: "触发", color: PRIMARY, bg: `${PRIMARY}14`,  border: `${PRIMARY}40` },
-  logicNode:   { icon: IconBrain,   label: "判断", color: "#722ed1", bg: "#722ed114", border: "#722ed140" },
+  logicNode:   { icon: IconBrain,   label: "判断", color: "#059669", bg: "#05966914", border: "#05966940" },
   actionNode:  { icon: IconCpu,     label: "动作", color: SUCCESS, bg: `${SUCCESS}14`, border: `${SUCCESS}40` },
 }
 
 function getNodeConfig(type: string) {
-  return NODE_TYPE_CONFIG[type] || { icon: IconLightning, label: "节点", color: "#6b7280", bg: "#9ca3af14", border: "#9ca3af40" }
+  return NODE_TYPE_CONFIG[type] || { icon: IconLightning, label: "节点", color: "#71717A", bg: "#A1A1AA14", border: "#A1A1AA40" }
 }
 
 // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ function CardHeaderComponent({
       <div className="flex items-start gap-2.5">
         {/* 图标 */}
         <span
-          className="flex items-center justify-center shrink-0 w-7 h-7 rounded-md"
+          className="flex items-center justify-center shrink-0 w-7 h-7 rounded-lg"
           style={{ background: PRIMARY_BG, border: `1px solid ${PRIMARY_BORDER}` }}
         >
           <IconLightning size={14} style={{ color: PRIMARY }} />
@@ -133,12 +133,12 @@ function CardHeaderComponent({
         {/* 标题与描述 */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[13px] font-semibold text-gray-900 dark:text-white">
+            <span className="text-[13px] font-semibold text-zinc-900 dark:text-white">
               {title || "自动化策略"}
             </span>
             {stats && (
               <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium leading-none"
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium leading-none"
                 style={{ background: `${PRIMARY}14`, color: PRIMARY }}
               >
                 {stats}
@@ -146,7 +146,7 @@ function CardHeaderComponent({
             )}
           </div>
           {description && (
-            <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2">
+            <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2">
               {description}
             </p>
           )}
@@ -155,7 +155,7 @@ function CardHeaderComponent({
         {collapsible && (
           <button
             onClick={onToggleCollapsed}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 shrink-0"
           >
             {collapsed ? <IconDown size={14} /> : <IconUp size={14} />}
           </button>
@@ -185,7 +185,7 @@ function NodeItemComponent({
       {/* 左侧：图标 + 时间线 */}
       <div className="flex flex-col items-center shrink-0">
         <span
-          className="relative z-10 flex items-center justify-center w-5 h-5 rounded-md shrink-0"
+          className="relative z-10 flex items-center justify-center w-5 h-5 rounded-lg shrink-0"
           style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
         >
           <Icon size={11} style={{ color: cfg.color }} strokeWidth={2.2} />
@@ -193,7 +193,7 @@ function NodeItemComponent({
         {!isLast && (
           <span
             className="flex-1 w-px mt-1"
-            style={{ background: "linear-gradient(to bottom, #e5e7eb, #e5e7eb)" }}
+            style={{ background: "linear-gradient(to bottom, #e4e4e7, #e4e4e7)" }}
           />
         )}
       </div>
@@ -202,22 +202,22 @@ function NodeItemComponent({
       <div className="flex-1 min-w-0 pt-0.5">
         <div className="flex items-center gap-1.5">
           {typeof index === "number" && (
-            <span className="text-[10px] font-mono tabular-nums text-gray-400">
+            <span className="text-[11px] font-mono tabular-nums text-zinc-400">
               {String(index + 1).padStart(2, "0")}
             </span>
           )}
           <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium leading-none"
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium leading-none"
             style={{ background: cfg.bg, color: cfg.color }}
           >
             {cfg.label}
           </span>
-          <span className="text-[12.5px] font-medium text-gray-800 dark:text-gray-200 truncate">
+          <span className="text-[13px] font-medium text-zinc-800 dark:text-zinc-200 truncate">
             {title}
           </span>
         </div>
         {description && (
-          <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1">
+          <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
             {description}
           </p>
         )}
@@ -289,7 +289,7 @@ function DirectRenderFallback({
         {saved ? (
           <button
             onClick={onViewDetail}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-7 rounded-md text-[12px] font-medium transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 h-7 rounded-lg text-[12px] font-medium transition-colors"
             style={{ background: `${PRIMARY}14`, color: PRIMARY }}
           >
             <IconCheck size={12} />
@@ -300,7 +300,7 @@ function DirectRenderFallback({
           <button
             onClick={onSave}
             disabled={isSaving}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-7 rounded-md text-[12px] font-medium text-white transition-colors disabled:opacity-50"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 h-7 rounded-lg text-[12px] font-medium text-white transition-colors disabled:opacity-50"
             style={{ background: PRIMARY }}
           >
             {isSaving ? <IconLoading size={12} className="animate-spin" /> : <IconSave size={12} />}
@@ -310,11 +310,11 @@ function DirectRenderFallback({
         <button
           onClick={onExecute}
           disabled={isExecuting}
-          className="inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-50"
           style={{
             background: "transparent",
-            color: "#374151",
-            border: "1px solid #d1d5db",
+            color: "#3F3F46",
+            border: "1px solid #d4d4d8",
           }}
         >
           {isExecuting ? <IconLoading size={12} className="animate-spin" /> : <IconPlay size={12} />}
@@ -333,7 +333,7 @@ function DirectRenderFallback({
  *
  * 优化点：
  * 1. 节点流用时间线样式 + 单色描边，取代厚重 Tag 堆叠
- * 2. 状态徽章 10px 极简风，统一 Ant Design 蓝 #1677ff，零渐变
+ * 2. 状态徽章 10px 极简风，统一 Ant Design 蓝 #059669，零渐变
  * 3. 顶栏布局：图标 + 标题 + 统计徽章 + 折叠
  * 4. 底部操作区：单行（主操作铺满 + 次操作边框按钮）
  * 5. 优先 A2UI 协议渲染，500ms 超时自动切换直接渲染兜底

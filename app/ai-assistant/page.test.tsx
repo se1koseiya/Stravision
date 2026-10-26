@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest'
  * 
  * 1. Search Button State Toggle:
  *    - Initial state: Button should have bg-white, text-muted-foreground, border-border
- *    - After click: Button should have bg-blue-50, text-blue-600, border-blue-200, shadow-sm
+ *    - After click: Button should have bg-emerald-50, text-emerald-600, border-emerald-200, shadow-sm
  *    - After second click: Button should return to initial state
  * 
  * 2. Globe Icon Presence:
@@ -46,7 +46,7 @@ describe('AI Assistant Page - UI State Synchronization (Manual Verification)', (
         enableSearch: false,
       },
       activeState: {
-        classes: ['bg-blue-50', 'text-blue-600', 'border-blue-200', 'shadow-sm'],
+        classes: ['bg-emerald-50', 'text-emerald-600', 'border-emerald-200', 'shadow-sm'],
         enableSearch: true,
       },
       icon: 'Globe (SVG)',
@@ -85,9 +85,9 @@ describe('AI Assistant Page - UI State Synchronization (Manual Verification)', (
     const getButtonClasses = (enableSearch: boolean) => {
       if (enableSearch) {
         return {
-          bg: 'bg-blue-50',
-          text: 'text-blue-600',
-          border: 'border-blue-200',
+          bg: 'bg-emerald-50',
+          text: 'text-emerald-600',
+          border: 'border-emerald-200',
           shadow: 'shadow-sm',
         }
       }
@@ -108,9 +108,9 @@ describe('AI Assistant Page - UI State Synchronization (Manual Verification)', (
     
     // Test active state
     const activeClasses = getButtonClasses(true)
-    expect(activeClasses.bg).toBe('bg-blue-50')
-    expect(activeClasses.text).toBe('text-blue-600')
-    expect(activeClasses.border).toBe('border-blue-200')
+    expect(activeClasses.bg).toBe('bg-emerald-50')
+    expect(activeClasses.text).toBe('text-emerald-600')
+    expect(activeClasses.border).toBe('border-emerald-200')
     expect(activeClasses.shadow).toBe('shadow-sm')
   })
 

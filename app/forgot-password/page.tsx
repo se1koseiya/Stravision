@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="" className="size-8 rounded-[10px] object-cover" />
-        <span className="text-[17px] font-extrabold tracking-tight text-[#222]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
+        <span className="text-[16px] font-extrabold tracking-tight text-[#222]" style={{ fontFamily: "var(--font-ui-strong)" }}>
           莓界
         </span>
       </Link>
@@ -167,7 +167,7 @@ export default function ForgotPasswordPage() {
   if (success) {
     return cardShell(
       <div className="px-7 pb-9 pt-4">
-        <h1 className="text-[22px] font-bold leading-tight text-[#1a1a1a]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
+        <h1 className="text-[20px] font-bold leading-tight text-[#1a1a1a]" style={{ fontFamily: "var(--font-ui-strong)" }}>
           重置成功
         </h1>
         <p className="mt-1.5 text-[13px] leading-relaxed text-[#999]">
@@ -178,9 +178,9 @@ export default function ForgotPasswordPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 18 }}
-            className="flex size-16 items-center justify-center rounded-full bg-[#E6FDEE]"
+            className="flex size-16 items-center justify-center rounded-full bg-[#ECFDF5]"
           >
-            <svg className="h-8 w-8 text-[#009456]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-8 w-8 text-[#059669]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </motion.div>
@@ -192,7 +192,7 @@ export default function ForgotPasswordPage() {
 
   return cardShell(
     <div className="px-7 pb-7 pt-4">
-      <h1 className="text-[22px] font-bold leading-tight text-[#1a1a1a]" style={{ fontFamily: "'AlimamaShuHeiTi', sans-serif" }}>
+      <h1 className="text-[20px] font-bold leading-tight text-[#1a1a1a]" style={{ fontFamily: "var(--font-ui-strong)" }}>
         找回密码
       </h1>
       <p className="mt-1.5 text-[13px] leading-relaxed text-[#999]">
@@ -206,7 +206,7 @@ export default function ForgotPasswordPage() {
             id="email"
             type="email"
             placeholder="账户邮箱"
-            className="h-12 rounded-[10px] border-[#e5e5e5] bg-white pr-24 text-sm text-[#111] placeholder:text-[#bbb] focus-visible:border-[#4ED18F] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60"
+            className="h-12 rounded-[10px] border-[#e4e4e7] bg-white pr-24 text-sm text-[#111] placeholder:text-[#bbb] focus-visible:border-[#059669] focus-visible:ring-2 focus-visible:ring-[#059669]/60"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={codeSent && countdown > 0}
@@ -215,7 +215,7 @@ export default function ForgotPasswordPage() {
             type="button"
             onClick={sendResetCode}
             disabled={sendingCode || countdown > 0 || !email}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-[#009456] transition-colors hover:bg-[#009456]/[0.06] disabled:cursor-not-allowed disabled:text-[#bbb] disabled:hover:bg-transparent"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-[#059669] transition-colors hover:bg-[#059669]/[0.06] disabled:cursor-not-allowed disabled:text-[#bbb] disabled:hover:bg-transparent"
           >
             {sendingCode ? (
               <IconLoading className="h-3.5 w-3.5 animate-spin" />
@@ -248,7 +248,7 @@ export default function ForgotPasswordPage() {
                       <InputOTPSlot
                         key={i}
                         index={i}
-                        className="h-11 w-11 rounded-[10px] border-[#e5e5e5] bg-white text-sm font-semibold text-[#111] focus-visible:border-[#4ED18F] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60"
+                        className="h-11 w-11 rounded-[10px] border-[#e4e4e7] bg-white text-sm font-semibold text-[#111] focus-visible:border-[#059669] focus-visible:ring-2 focus-visible:ring-[#059669]/60"
                       />
                     ))}
                   </InputOTPGroup>
@@ -258,14 +258,14 @@ export default function ForgotPasswordPage() {
                   id="new-password"
                   type="password"
                   placeholder="请输入新密码（至少8位）"
-                  className="h-12 rounded-[10px] border-[#e5e5e5] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:border-[#4ED18F] focus-visible:ring-2 focus-visible:ring-[#4ED18F]/60"
+                  className="h-12 rounded-[10px] border-[#e4e4e7] bg-white text-sm text-[#111] placeholder:text-[#bbb] focus-visible:border-[#059669] focus-visible:ring-2 focus-visible:ring-[#059669]/60"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && onSubmit()}
                 />
 
                 <Button
-                  className="h-12 w-full rounded-[10px] bg-[#111] text-[15px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
+                  className="h-12 w-full rounded-[10px] bg-[#111] text-[14px] font-semibold tracking-[0.2em] text-white shadow-none transition-opacity hover:opacity-85 hover:shadow-none"
                   onClick={onSubmit}
                   disabled={loading}
                 >
@@ -291,7 +291,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <div className="pt-3 text-center">
-          <Link href="/login" className="inline-flex items-center gap-1 text-xs font-medium text-[#999] transition-colors hover:text-[#009456]">
+          <Link href="/login" className="inline-flex items-center gap-1 text-xs font-medium text-[#999] transition-colors hover:text-[#059669]">
             <IconArrowLeft className="h-3.5 w-3.5" />
             返回登录
           </Link>

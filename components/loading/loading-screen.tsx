@@ -25,12 +25,12 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
   }, [showProgress])
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center z-50">
       <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
         {/* Logo Animation */}
         <div className="relative w-24 h-24 mx-auto">
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400 to-blue-500 animate-pulse" />
-          <div className="absolute inset-2 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 animate-pulse" />
+          <div className="absolute inset-2 rounded-xl bg-white dark:bg-zinc-900 flex items-center justify-center">
             <img 
               src="/logo.png" 
               alt="Loading" 
@@ -41,10 +41,10 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
 
         {/* Loading Text */}
         <div className="space-y-2">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
             {message}
           </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             正在为您准备最佳体验
           </p>
         </div>
@@ -52,13 +52,13 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
         {/* Progress Bar */}
         {showProgress && (
           <div className="w-64 mx-auto space-y-2">
-            <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full transition-all duration-300 ease-out"
+                className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-500">
+            <p className="text-xs text-zinc-500 dark:text-zinc-500">
               {Math.round(progress)}%
             </p>
           </div>
@@ -67,7 +67,7 @@ export function LoadingScreen({ message = "正在准备", showProgress = true }:
         {/* Loading Dots */}
         <div className="flex items-center justify-center gap-2">
           <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
           <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
       </div>
@@ -84,7 +84,7 @@ export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   }
 
   return (
-    <div className={`${sizeClasses[size]} border-slate-200 dark:border-slate-700 border-t-emerald-500 rounded-full animate-spin`} />
+    <div className={`${sizeClasses[size]} border-zinc-200 dark:border-zinc-700 border-t-emerald-500 rounded-full animate-spin`} />
   )
 }
 
@@ -93,7 +93,7 @@ export function InlineLoading({ text = "正在加载" }: { text?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-8">
       <LoadingSpinner size="sm" />
-      <span className="text-sm text-slate-600 dark:text-slate-400">{text}</span>
+      <span className="text-sm text-zinc-600 dark:text-zinc-400">{text}</span>
     </div>
   )
 }

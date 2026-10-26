@@ -3,7 +3,7 @@
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { motion } from "framer-motion"
 import { Card, Switch, Typography, Row, Col, Space, theme } from "antd"
 import { BerryXCard } from "@/components/ui/berry-xcard"
@@ -29,7 +29,7 @@ const DEVICES: DeviceMeta[] = [
     id: DEVICE_IDS.PUMP,
     name: "灌溉水泵",
     icon: IconWater,
-    color: "#3b82f6",
+    color: "#059669",
     relayKey: "relay5",
     action: "toggle-device-pump",
   },
@@ -37,7 +37,7 @@ const DEVICES: DeviceMeta[] = [
     id: DEVICE_IDS.FAN,
     name: "通风风扇",
     icon: IconFan,
-    color: "#06b6d4",
+    color: "#52525b",
     relayKey: "relay6",
     action: "toggle-device-fan",
   },
@@ -45,7 +45,7 @@ const DEVICES: DeviceMeta[] = [
     id: DEVICE_IDS.RGB_LIGHT,
     name: "补光灯",
     icon: IconLightning,
-    color: "#a855f7",
+    color: "#71717a",
     relayKey: "relay7",
     action: "toggle-device-grow-light",
   },
@@ -53,7 +53,7 @@ const DEVICES: DeviceMeta[] = [
     id: DEVICE_IDS.WHITE_LIGHT,
     name: "白光照明",
     icon: IconLight,
-    color: "#f59e0b",
+    color: "#52525B",
     relayKey: "relay8",
     action: "toggle-device-white-light",
   },

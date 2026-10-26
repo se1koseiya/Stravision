@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import Image from "next/image"
 import { toPng } from "html-to-image"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconChartLine, IconDownload, IconLightning, IconMicrophone, IconRight, IconTerminal, IconTime } from "@/components/icon";
 
 // --- Visual Primitives ---
@@ -28,7 +28,7 @@ function ImpactBorder({ children, className = "" }: { children: React.ReactNode,
        <div className="absolute -bottom-[1px] -right-[1px] w-4 h-4 border-r-4 border-b-4 border-primary" />
        
        {/* Scanline Overlay */}
-       <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.02)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none" />
+       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,148,86,0.02)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none" />
        
        {children}
     </div>
@@ -43,7 +43,7 @@ function NeonGrid() {
        
        {/* Perspective Grid */}
        <div className="absolute inset-0 opacity-30 z-0 transform perspective-[1000px] rotate-x-[60deg] scale-150 origin-top">
-         <div className="w-full h-full bg-[linear-gradient(90deg,rgba(16,185,129,0.3)_1px,transparent_1px),linear-gradient(rgba(16,185,129,0.3)_1px,transparent_1px)] bg-[size:60px_60px]" />
+         <div className="w-full h-full bg-[linear-gradient(90deg,rgba(0,148,86,0.3)_1px,transparent_1px),linear-gradient(rgba(0,148,86,0.3)_1px,transparent_1px)] bg-[size:60px_60px]" />
        </div>
 
        {/* Floating Particles */}
@@ -88,7 +88,7 @@ export default function VoiceAssistantAnnouncement() {
       <button 
         onClick={handleDownload}
         disabled={isGenerating}
-        className="fixed top-6 right-6 z-50 flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary text-black font-black italic tracking-tighter uppercase transform hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.6)] skew-x-[-10deg]"
+        className="fixed top-6 right-6 z-50 flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary text-black font-black italic tracking-tighter uppercase transform hover:scale-105 transition-all shadow-[0_0_30px_rgba(0,148,86,0.6)] skew-x-[-10deg]"
       >
         <IconDownload className="w-5 h-5 skew-x-[10deg]" />
         <span className="skew-x-[10deg]">{isGenerating ? "RENDERING..." : "GET POSTER"}</span>
@@ -113,8 +113,8 @@ export default function VoiceAssistantAnnouncement() {
           <div className="relative">
             <h2 className="text-primary font-mono text-xs tracking-[0.4em] mb-2 uppercase">System Upgrade</h2>
             <h1 className="text-7xl font-black italic tracking-tighter leading-[0.85] text-white mix-blend-screen relative z-20">
-              <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">VOICE</span>
-              <span className="block text-primary drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]">CONTROL</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500">VOICE</span>
+              <span className="block text-primary drop-shadow-[0_0_15px_rgba(0,148,86,0.8)]">CONTROL</span>
             </h1>
             {/* Outline Text Decoration */}
             <h1 className="absolute top-1 left-1 text-7xl font-black italic tracking-tighter leading-[0.85] text-transparent stroke-white stroke-1 opacity-20 pointer-events-none z-10" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.2)' }}>
@@ -144,7 +144,7 @@ export default function VoiceAssistantAnnouncement() {
                src="/ip/sayhi.png" 
                alt="IP" 
                fill
-               className="object-contain drop-shadow-[0_0_40px_rgba(16,185,129,0.4)]"
+               className="object-contain drop-shadow-[0_0_40px_rgba(0,148,86,0.4)]"
              />
            </div>
 
@@ -152,11 +152,11 @@ export default function VoiceAssistantAnnouncement() {
            <div className="absolute top-0 right-0 z-30 transform translate-x-2 translate-y-4">
              {/* Connection Line */}
              <svg className="absolute top-full right-full w-12 h-12 pointer-events-none opacity-60" style={{ transform: 'translate(20%, -20%)' }}>
-               <path d="M48,0 L0,48" stroke="#10b981" strokeWidth="1" fill="none" />
-               <circle cx="0" cy="48" r="2" fill="#10b981" />
+               <path d="M48,0 L0,48" stroke="#059669" strokeWidth="1" fill="none" />
+               <circle cx="0" cy="48" r="2" fill="#059669" />
              </svg>
 
-             <div className="bg-black/80 backdrop-blur-xl border border-primary/30 p-4 w-[180px] shadow-[0_0_30px_rgba(16,185,129,0.15)] relative overflow-hidden group">
+             <div className="bg-black/80 backdrop-blur-xl border border-primary/30 p-4 w-[180px] shadow-[0_0_30px_rgba(0,148,86,0.15)] relative overflow-hidden group">
                {/* Animated Scanline */}
                <div className="absolute top-0 left-0 w-full h-[2px] bg-primary/50 animate-[scan_2s_linear_infinite]" />
                
@@ -177,7 +177,7 @@ export default function VoiceAssistantAnnouncement() {
 
                {/* Text Content */}
                <div className="relative z-10">
-                 <p className="text-[10px] text-primary/60 font-mono mb-1 tracking-wider">RECOGNIZING...</p>
+                 <p className="text-[11px] text-primary/60 font-mono mb-1 tracking-wider">RECOGNIZING...</p>
                  <p className="text-sm font-bold text-white leading-tight">
                    "打开<span className="text-emerald-400 bg-primary/10 px-1 rounded">所有风扇</span>，温度调到25度"
                  </p>
@@ -212,7 +212,7 @@ export default function VoiceAssistantAnnouncement() {
                {/* Instant Control */}
                <div className="bg-zinc-900/60 border border-primary/20 p-5 flex flex-col items-center text-center hover:bg-zinc-900/80 transition-colors group relative overflow-hidden">
                  <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                 <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-primary/30 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.2)] group-hover:scale-110 transition-transform">
+                 <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-primary/30 mb-3 shadow-[0_0_15px_rgba(0,148,86,0.2)] group-hover:scale-110 transition-transform">
                     <IconLightning className="w-6 h-6 text-emerald-400" />
                  </div>
                  <h3 className="font-bold text-white text-sm leading-tight">设备<br/>瞬时控制</h3>
@@ -221,7 +221,7 @@ export default function VoiceAssistantAnnouncement() {
                {/* Smart Schedule */}
                <div className="bg-zinc-900/60 border border-primary/20 p-5 flex flex-col items-center text-center hover:bg-zinc-900/80 transition-colors group relative overflow-hidden">
                  <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 delay-75" />
-                 <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-primary/30 mb-3 shadow-[0_0_15px_rgba(16,185,129,0.2)] group-hover:scale-110 transition-transform">
+                 <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-primary/30 mb-3 shadow-[0_0_15px_rgba(0,148,86,0.2)] group-hover:scale-110 transition-transform">
                     <IconTime className="w-6 h-6 text-emerald-400" />
                  </div>
                  <h3 className="font-bold text-white text-sm leading-tight">智能<br/>任务编排</h3>
@@ -229,7 +229,7 @@ export default function VoiceAssistantAnnouncement() {
             </div>
 
             {/* Row 3: IconTerminal (Full Width) */}
-            <div className="bg-black border-l-2 border-primary/50 p-4 font-mono text-[10px] relative overflow-hidden">
+            <div className="bg-black border-l-2 border-primary/50 p-4 font-mono text-[11px] relative overflow-hidden">
                <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
                <div className="flex items-center gap-2 border-b border-primary/10 pb-2 mb-2 opacity-50">
                  <IconTerminal className="w-3 h-3" />
@@ -260,7 +260,7 @@ export default function VoiceAssistantAnnouncement() {
               </div>
            </div>
            
-           <p className="mt-6 text-[10px] text-zinc-600 font-mono">
+           <p className="mt-6 text-[11px] text-zinc-600 font-mono">
              STRAVISION IOT PLATFORM © 2026<br/>
              POWERED BY QWEN LARGE MODEL
            </p>

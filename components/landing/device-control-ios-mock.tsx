@@ -16,9 +16,9 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
           <button
             key={room}
             onClick={() => onSelect(room)}
-            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-[10px] font-medium transition-all duration-300 ${isSelected
-              ? "bg-black text-white shadow-md shadow-black/10"
-              : "bg-white text-muted-foreground hover:bg-gray-50 border border-gray-100"
+            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-300 ${isSelected
+              ? "bg-black text-white shadow-sm shadow-black/10"
+              : "bg-white text-muted-foreground hover:bg-zinc-50 border border-zinc-100"
               }`}
           >
             {room}
@@ -49,18 +49,18 @@ function DeviceCard({
   disabled?: boolean;
 }) {
   return (
-    <div className={`relative bg-white rounded-[1.2rem] p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/50 flex flex-col justify-between h-[100px] transition-all duration-300 group hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${className}`}>
+    <div className={`relative bg-white rounded-[1.2rem] p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-zinc-100/50 flex flex-col justify-between h-[100px] transition-all duration-300 group hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${className}`}>
       <div className="flex justify-between items-start">
-        <div className={`size-8 rounded-full flex items-center justify-center transition-colors duration-300 ${isOn ? 'bg-black text-white' : 'bg-gray-50 text-muted-foreground'}`}>
+        <div className={`size-8 rounded-full flex items-center justify-center transition-colors duration-300 ${isOn ? 'bg-black text-white' : 'bg-zinc-50 text-muted-foreground'}`}>
           <Icon className="size-4" />
         </div>
-        <span className="text-[9px] text-muted-foreground font-medium tracking-wide">{room}</span>
+        <span className="text-[11px] text-muted-foreground font-medium tracking-wide">{room}</span>
       </div>
 
       <div>
-        <h3 className="text-[11px] font-semibold text-gray-900 mb-0.5 tracking-tight">{title}</h3>
+        <h3 className="text-[11px] font-semibold text-zinc-900 mb-0.5 tracking-tight">{title}</h3>
         <div className="flex items-center justify-between">
-          <span className={`text-[9px] font-medium transition-colors duration-300 ${isOn ? 'text-black' : 'text-muted-foreground'}`}>
+          <span className={`text-[11px] font-medium transition-colors duration-300 ${isOn ? 'text-black' : 'text-muted-foreground'}`}>
             {subtitle}
           </span>
 
@@ -68,7 +68,7 @@ function DeviceCard({
             <button
               onClick={(e) => { e.stopPropagation(); if (!disabled) onToggle(); }}
               disabled={disabled}
-              className={`w-8 h-4.5 rounded-full relative transition-colors duration-300 ${isOn ? 'bg-black' : 'bg-gray-200'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              className={`w-8 h-4.5 rounded-full relative transition-colors duration-300 ${isOn ? 'bg-black' : 'bg-zinc-200'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <div className={`absolute top-0.5 size-3.5 rounded-full transition-all duration-300 shadow-sm ${isOn ? 'left-[16px] bg-white' : 'left-0.5 bg-white'}`} />
             </button>
@@ -83,10 +83,10 @@ function SliderRow({ label, value, onChange, color, displayValue }: { label: str
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-[8px] text-muted-foreground font-medium">{label}</span>
-        <span className="text-[10px] font-bold text-gray-900">{displayValue || value}</span>
+        <span className="text-[11px] text-muted-foreground font-medium">{label}</span>
+        <span className="text-[11px] font-bold text-zinc-900">{displayValue || value}</span>
       </div>
-      <input type="range" min={0} max={255} value={value} onChange={(e) => onChange(parseInt(e.target.value))} className="w-full h-1 rounded-full appearance-none cursor-pointer bg-gray-200 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow" style={{ background: `linear-gradient(to right, ${color} 0%, ${color} ${(value / 255) * 100}%, #e5e7eb ${(value / 255) * 100}%, #e5e7eb 100%)` }} />
+      <input type="range" min={0} max={255} value={value} onChange={(e) => onChange(parseInt(e.target.value))} className="w-full h-1 rounded-full appearance-none cursor-pointer bg-zinc-200 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow" style={{ background: `linear-gradient(to right, ${color} 0%, ${color} ${(value / 255) * 100}%, #e4e4e7 ${(value / 255) * 100}%, #e4e4e7 100%)` }} />
     </div>
   )
 }
@@ -108,7 +108,7 @@ export function DeviceControlIOSMock() {
   return (
     <div className="w-full h-full bg-[#FAFAFA] overflow-hidden font-sans relative flex flex-col">
       {/* Subtle Gradient Background */}
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-gray-50 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-zinc-50 to-transparent pointer-events-none" />
 
       <div className="relative z-10 flex-1 flex flex-col h-full">
         {/* Header */}
@@ -116,44 +116,44 @@ export function DeviceControlIOSMock() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-lg font-bold text-gray-900 tracking-tight">我的智能大棚</h1>
+                <h1 className="text-lg font-bold text-zinc-900 tracking-tight">我的智能大棚</h1>
                 <div className="size-2 rounded-full bg-green-500 animate-pulse" />
               </div>
-              <p className="text-[10px] text-muted-foreground font-medium">设备运行正常</p>
+              <p className="text-[11px] text-muted-foreground font-medium">设备运行正常</p>
             </div>
-            <div className="relative size-9 rounded-full overflow-hidden border border-gray-100 shadow-sm bg-white p-1.5">
+            <div className="relative size-9 rounded-full overflow-hidden border border-zinc-100 shadow-sm bg-white p-1.5">
               <Image src="/logo.svg" alt="logo" fill className="object-contain p-1" />
             </div>
           </div>
 
           {/* Weather Row */}
-          <div className="flex justify-between items-center bg-white rounded-2xl p-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/50">
+          <div className="flex justify-between items-center bg-white rounded-2xl p-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-zinc-100/50">
             <div className="flex flex-col items-center flex-1">
-              <div className="flex items-center gap-1 text-gray-900 mb-0.5">
+              <div className="flex items-center gap-1 text-zinc-900 mb-0.5">
                 <IconFire className="size-3.5 text-orange-500" />
                 <span className="text-base font-bold tracking-tight">24°C</span>
               </div>
-              <span className="text-[9px] text-muted-foreground font-medium">室内温度</span>
+              <span className="text-[11px] text-muted-foreground font-medium">室内温度</span>
             </div>
 
             <div className="w-px h-6 bg-muted" />
 
             <div className="flex flex-col items-center flex-1">
-              <div className="flex items-center gap-1 text-gray-900 mb-0.5">
-                <IconMedicineChest className="size-3.5 text-blue-500" />
+              <div className="flex items-center gap-1 text-zinc-900 mb-0.5">
+                <IconMedicineChest className="size-3.5 text-emerald-500" />
                 <span className="text-base font-bold tracking-tight">63%</span>
               </div>
-              <span className="text-[9px] text-muted-foreground font-medium">空气湿度</span>
+              <span className="text-[11px] text-muted-foreground font-medium">空气湿度</span>
             </div>
 
             <div className="w-px h-6 bg-muted" />
 
             <div className="flex flex-col items-center flex-1">
-              <div className="flex items-center gap-1 text-gray-900 mb-0.5">
+              <div className="flex items-center gap-1 text-zinc-900 mb-0.5">
                 <IconSun className="size-3.5 text-yellow-500" />
                 <span className="text-base font-bold tracking-tight">良好</span>
               </div>
-              <span className="text-[9px] text-muted-foreground font-medium">光照强度</span>
+              <span className="text-[11px] text-muted-foreground font-medium">光照强度</span>
             </div>
           </div>
         </div>
@@ -208,26 +208,26 @@ export function DeviceControlIOSMock() {
             />
 
             {/* RGB Control Card */}
-            <div className="col-span-2 bg-white rounded-[1.5rem] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/50">
+            <div className="col-span-2 bg-white rounded-[1.5rem] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-zinc-100/50">
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-7 rounded-full bg-gray-50 flex items-center justify-center text-muted-foreground">
+                  <div className="size-7 rounded-full bg-zinc-50 flex items-center justify-center text-muted-foreground">
                     <IconLight className="size-3.5" />
                   </div>
                   <div>
-                    <h3 className="text-[11px] font-bold text-gray-900">光谱调节 (RGB)</h3>
-                    <span className="text-[9px] text-muted-foreground font-medium">精准控制</span>
+                    <h3 className="text-[11px] font-bold text-zinc-900">光谱调节 (RGB)</h3>
+                    <span className="text-[11px] text-muted-foreground font-medium">精准控制</span>
                   </div>
                 </div>
-                <div className="size-5 rounded-full border border-gray-100 shadow-sm" style={{ backgroundColor: `rgb(${r}, ${g}, ${b})` }} />
+                <div className="size-5 rounded-full border border-zinc-100 shadow-sm" style={{ backgroundColor: `rgb(${r}, ${g}, ${b})` }} />
               </div>
 
               <div className="space-y-2.5">
-                <SliderRow label="Red" value={r} onChange={setR} color="#ef4444" />
-                <SliderRow label="Green" value={g} onChange={setG} color="#22c55e" />
-                <SliderRow label="Blue" value={b} onChange={setB} color="#3b82f6" />
+                <SliderRow label="Red" value={r} onChange={setR} color="#DC2626" />
+                <SliderRow label="Green" value={g} onChange={setG} color="#059669" />
+                <SliderRow label="Blue" value={b} onChange={setB} color="#059669" />
                 <div className="pt-0.5">
-                    <SliderRow label="Brightness" value={w} onChange={setW} color="#f59e0b" displayValue={`${Math.round((w / 255) * 100)}%`} />
+                    <SliderRow label="Brightness" value={w} onChange={setW} color="#52525B" displayValue={`${Math.round((w / 255) * 100)}%`} />
                 </div>
               </div>
             </div>
@@ -235,24 +235,24 @@ export function DeviceControlIOSMock() {
         </div>
         
         {/* Tab Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-[80px] bg-white/95 backdrop-blur-md border-t border-gray-100/50 flex justify-around items-start pt-3 pb-8 px-6 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] z-20">
+        <div className="absolute bottom-0 left-0 right-0 h-[80px] bg-white/95 backdrop-blur-md border-t border-zinc-100/50 flex justify-around items-start pt-3 pb-8 px-6 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] z-20">
            <div className="flex flex-col items-center gap-1 group cursor-pointer">
-              <div className="p-1.5 rounded-xl bg-gray-50 group-hover:bg-muted transition-colors">
-                 <IconHome className="size-4 text-gray-900" />
+              <div className="p-1.5 rounded-xl bg-zinc-50 group-hover:bg-muted transition-colors">
+                 <IconHome className="size-4 text-zinc-900" />
               </div>
-              <span className="text-[9px] font-medium text-gray-900">首页</span>
+              <span className="text-[11px] font-medium text-zinc-900">首页</span>
            </div>
            <div className="flex flex-col items-center gap-1 group cursor-pointer">
-              <div className="p-1.5 rounded-xl bg-transparent group-hover:bg-gray-50 transition-colors">
+              <div className="p-1.5 rounded-xl bg-transparent group-hover:bg-zinc-50 transition-colors">
                  <IconChartHistogram className="size-4 text-muted-foreground group-hover:text-muted-foreground" />
               </div>
-              <span className="text-[9px] font-medium text-muted-foreground group-hover:text-muted-foreground">数据</span>
+              <span className="text-[11px] font-medium text-muted-foreground group-hover:text-muted-foreground">数据</span>
            </div>
            <div className="flex flex-col items-center gap-1 group cursor-pointer">
-              <div className="p-1.5 rounded-xl bg-transparent group-hover:bg-gray-50 transition-colors">
+              <div className="p-1.5 rounded-xl bg-transparent group-hover:bg-zinc-50 transition-colors">
                  <IconUser className="size-4 text-muted-foreground group-hover:text-muted-foreground" />
               </div>
-              <span className="text-[9px] font-medium text-muted-foreground group-hover:text-muted-foreground">我的</span>
+              <span className="text-[11px] font-medium text-muted-foreground group-hover:text-muted-foreground">我的</span>
            </div>
         </div>
       </div>

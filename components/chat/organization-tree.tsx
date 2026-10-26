@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Tooltip } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { chatClient } from "@/lib/chat/chat-client"
 import type { ChatOrganization } from "@/lib/chat/chat-types"
@@ -10,6 +10,9 @@ import { CreateOrganizationDialog } from "./create-organization-dialog"
 import { IconBuildingFour, IconDelete, IconDown, IconNetworkTree, IconPeoples, IconPlus, IconRefresh, IconRight } from "@/components/icon";
 
 const ICON_STROKE = 1.75
+
+/** 组织树节点：原始组织 + 递归 children（写成递归类型，否则子节点再递归时类型对不上） */
+type OrgTreeNode = ChatOrganization & { children: OrgTreeNode[] }
 
 interface OrganizationTreeProps {
   /** 当前选中的组织 id（高亮显示） */
@@ -66,9 +69,9 @@ export function OrganizationTree({
 
   // 构建树形结构
   const tree = useMemo(() => {
-    const map = new Map<number, ChatOrganization & { children: ChatOrganization[] }>()
+    const map = new Map<number, OrgTreeNode>()
     organizations.forEach(o => map.set(o.id, { ...o, children: [] }))
-    const roots: (ChatOrganization & { children: ChatOrganization[] })[] = []
+    const roots: OrgTreeNode[] = []
     organizations.forEach(o => {
       const node = map.get(o.id)!
       if (o.parent_id && map.has(o.parent_id)) {
@@ -120,7 +123,7 @@ export function OrganizationTree({
   }
 
   const renderNode = (
-    node: ChatOrganization & { children: ChatOrganization[] },
+    node: OrgTreeNode,
     depth: number
   ) => {
     const hasChildren = node.children.length > 0
@@ -134,8 +137,8 @@ export function OrganizationTree({
           className={cn(
             "group flex items-center gap-1.5 pr-2 pl-1 py-2 cursor-pointer transition-colors",
             isSelected
-              ? "bg-[#f0f2f5]"
-              : "hover:bg-black/[0.03]"
+              ? "bg-br-surface-3"
+              : "hover:bg-br-surface-3"
           )}
           style={{ paddingLeft: 8 + indent }}
           onClick={() => onSelectOrg?.(node)}
@@ -147,11 +150,11 @@ export function OrganizationTree({
                 e.stopPropagation()
                 toggleExpand(node.id)
               }}
-              className="size-5 shrink-0 flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-[rgba(0,0,0,0.75)]"
+              className="size-5 shrink-0 flex items-center justify-center text-br-text-3 hover:text-br-text-1"
             >
               {expanded
-                ? <IconDown size={14} strokeWidth={1.75} />
-                : <IconRight size={14} strokeWidth={1.75} />}
+                ? <IconDown size={14} strokeWidth={2} />
+                : <IconRight size={14} strokeWidth={2} />}
             </button>
           ) : (
             <span className="size-5 shrink-0" />
@@ -160,25 +163,25 @@ export function OrganizationTree({
           {/* 图标 */}
           <span
             className={cn(
-              "size-7 rounded-md flex items-center justify-center shrink-0",
+              "size-7 rounded-lg flex items-center justify-center shrink-0",
               depth === 0
-                ? "bg-[#f0f5ff] text-[#2f54eb]"
-                : "bg-[#fafafa] text-[rgba(0,0,0,0.55)]"
+                ? "bg-br-brand-soft text-br-brand-ink"
+                : "bg-br-surface-2 text-br-text-2"
             )}
           >
-            <IconBuildingFour size={15} strokeWidth={1.75} />
+            <IconBuildingFour size={15} strokeWidth={2} />
           </span>
 
           {/* 名称 */}
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] text-[rgba(0,0,0,0.88)] truncate" style={{ fontWeight: 400 }}>
+            <div className="text-[14px] text-br-text-1 truncate" style={{ fontWeight: 400 }}>
               {node.name}
             </div>
           </div>
 
           {/* 成员数 */}
-          <span className="text-[11px] text-[rgba(0,0,0,0.4)] shrink-0 flex items-center gap-1">
-            <IconPeoples size={11} strokeWidth={1.75} />
+          <span className="text-[11px] text-br-text-3 shrink-0 flex items-center gap-1">
+            <IconPeoples size={11} strokeWidth={2} />
             {node.member_count ?? 0}
           </span>
 
@@ -192,9 +195,9 @@ export function OrganizationTree({
                     handleSync(node)
                   }}
                   disabled={syncingId === node.id}
-                  className="size-6 flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-[#1677ff] disabled:opacity-50"
+                  className="size-6 flex items-center justify-center text-br-text-3 hover:text-br-brand-ink disabled:opacity-50"
                 >
-                  <IconRefresh size={12} strokeWidth={1.75} className={syncingId === node.id ? "animate-spin" : ""} />
+                  <IconRefresh size={12} strokeWidth={2} className={syncingId === node.id ? "animate-spin" : ""} />
                 </button>
               </Tooltip>
               <Tooltip title="删除组织">
@@ -204,9 +207,9 @@ export function OrganizationTree({
                     handleDelete(node)
                   }}
                   disabled={deletingId === node.id}
-                  className="size-6 flex items-center justify-center text-[rgba(0,0,0,0.45)] hover:text-[#ff4d4f] disabled:opacity-50"
+                  className="size-6 flex items-center justify-center text-br-text-3 hover:text-br-danger disabled:opacity-50"
                 >
-                  <IconDelete size={12} strokeWidth={1.75} />
+                  <IconDelete size={12} strokeWidth={2} />
                 </button>
               </Tooltip>
             </div>
@@ -229,26 +232,26 @@ export function OrganizationTree({
       {isAdmin && (
         <button
           onClick={() => setCreateOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-black/[0.03] transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-br-surface-3 transition-colors"
         >
-          <span className="size-9 rounded-full bg-[#f0f5ff] flex items-center justify-center text-[#2f54eb]">
+          <span className="size-9 rounded-full bg-br-brand-soft flex items-center justify-center text-br-brand-ink">
             <IconPlus size={18} strokeWidth={ICON_STROKE} />
           </span>
-          <span className="text-[14px] text-[rgba(0,0,0,0.7)]">创建组织架构</span>
+          <span className="text-[14px] text-br-text-2">创建组织架构</span>
         </button>
       )}
 
       {/* 树形列表 */}
       {loading ? (
-        <div className="flex items-center justify-center text-[13px] text-[rgba(0,0,0,0.35)] py-8">
+        <div className="flex items-center justify-center text-[13px] text-br-text-3 py-8">
           加载中...
         </div>
       ) : tree.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-[13px] text-[rgba(0,0,0,0.35)] py-16">
-          <IconNetworkTree size={28} strokeWidth={1.5} className="mb-2 opacity-40" />
+        <div className="flex flex-col items-center justify-center text-[13px] text-br-text-3 py-16">
+          <IconNetworkTree size={28} strokeWidth={2} className="mb-2 opacity-40" />
           <span>暂无组织架构</span>
           {isAdmin && (
-            <span className="text-[11px] text-[rgba(0,0,0,0.3)] mt-1">
+            <span className="text-[11px] text-br-text-3 mt-1">
               点击上方按钮创建第一个组织
             </span>
           )}

@@ -37,6 +37,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const nodeRequire = createRequire(import.meta.url);
+// @electron/asar 是 CommonJS，ESM 里没有 default 导出，走 createRequire
+const asar = nodeRequire('@electron/asar');
 
 const RUN = process.argv.includes('--run');
 
@@ -115,7 +117,7 @@ const mb = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /* ---------------- 静态检查 ---------------- */
 
-function staticChecks() {
+async function staticChecks() {
   console.log('\n[1] 可执行文件与资源骨架');
   check(fs.existsSync(EXE), `${path.basename(EXE)} 存在`, path.relative(ROOT, EXE));
   check(fs.existsSync(ASAR), 'resources/app.asar 存在');
@@ -146,15 +148,125 @@ function staticChecks() {
   } catch (err) {
     check(false, 'asar 头部可解析', err.message);
   }
-  for (const f of ['"main.js"', '"preload.js"', '"setup.html"', '"splash.html"', '"settings.js"', '"mqtt.js"']) {
+  // 🚨 splash.html / activate.html **故意不在 asar 里**：
+  //    asar 内是 Windows 反斜杠路径，Chromium 的 file:// 加载不了（loadFile 恒 ERR_FILE_NOT_FOUND）。
+  //    它们走 extraResources 落在 resources/ui，由 main.js 的 uiDir() 读取。
+  //    ⚠️ 2026-10-07：首启向导（原 setup.html）已删除 —— 它改成了 Next 路由
+  //       /desktop-setup（见 app/desktop-setup/page.tsx 文件头），不再走 file://，
+  //       所以这里不再检查它。（向导为什么能是路由：它跑在 bootstrap 第 8 步，Next 已就绪。）
+  for (const f of ['"main.js"', '"preload.js"', '"settings.js"', '"mqtt.js"']) {
     check(header.includes(f), `asar 含 ${f.replaceAll('"', '')}`);
+  }
+  check(!/\\ui\\/.test(header), 'asar 不含 ui/（UI 页面已移到 resources）');
+  for (const f of ['activate.html', 'splash.html']) {
+    check(fs.existsSync(path.join(RESOURCES, 'ui', f)), `resources/ui 含 ${f}`);
+  }
+  // 🚨 ui/assets/ 是这两页的**运行时依赖**，漏掉不会报错、只会静默降级：
+  //    material.css 丢了 → 两个窗口的沉浸光感全没（退成一排平白控件）；
+  //    两张 png 丢了 → 品牌图标与吉祥物变成裂图。
+  for (const f of ['assets/material.css', 'assets/brand-icon.png', 'assets/splash-mascot.png']) {
+    check(fs.existsSync(path.join(RESOURCES, 'ui', f)), `resources/ui 含 ${f}`);
   }
   for (const f of ['".npmrc"', '"electron-builder.yml"', '"package-lock.json"']) {
     check(!header.includes(f), `asar 不含构建期文件 ${f.replaceAll('"', '')}`);
   }
   check(!/"verify-[a-z-]*\.(mjs|cjs)"/.test(header), 'asar 不含 verify-* 验证脚本');
-  for (const pkg of ['"aedes"', '"embedded-postgres"', '"get-port"', '"pg"']) {
-    check(header.includes(pkg), `asar 含运行期依赖 ${pkg.replaceAll('"', '')}`);
+  // 先校验 desktop/package.json 里声明的直接依赖
+  for (const pkg of ['"aedes"', '"embedded-postgres"', '"get-port"', '"electron-updater"']) {
+    check(header.includes(pkg), `asar 含直接依赖 ${pkg.replaceAll('"', '')}`);
+  }
+
+  // 🚨🚨 传递依赖必须一起进 asar（2026-09-29 事故的漏网点）
+  //   embedded-postgres 运行期会 `import('pg')` 连本地库，而 pg 只是它的**传递依赖**，
+  //   desktop/package.json 里并没有写。一旦 electron-builder 的依赖采集退化成
+  //   "只搬 package.json 的直接依赖"（见 scripts/desktop/obfuscate-desktop.mjs 文件头），
+  //   pg 就不进包 → 客户端 bootstrap 走到 18%「初始化本地数据库」时
+  //   `Cannot find package 'pg' imported from .../embedded-postgres/dist/index.js`
+  //   → 应用无限重启，装上去就是废的。
+  //   老注释"主进程从不 require('pg')"是错的：主进程不 require，但 embedded-postgres 会。
+  for (const pkg of [
+    '"pg"',
+    '"pg-pool"',
+    '"pg-protocol"',
+    '"pg-types"',
+    '"pg-connection-string"',
+    '"async-exit-hook"',
+  ]) {
+    check(header.includes(pkg), `asar 含传递依赖 ${pkg.replaceAll('"', '')}`);
+  }
+
+  // 采集器退化防护：直接依赖 + 传递依赖加起来应该有几十个顶层包。
+  // 只有 4 个 = 采集器又退化成"只搬 package.json"，上面那组断言可能还没覆盖到的地方同样危险。
+  let nmTop = 0;
+  try {
+    const names = new Set();
+    for (const f of asar.listPackage(ASAR)) {
+      const parts = f.replace(/\\/g, '/').split('/');
+      const i = parts.indexOf('node_modules');
+      if (i >= 0 && parts[i + 1]) names.add(parts[i + 1]);
+    }
+    nmTop = names.size;
+  } catch {
+    nmTop = 0;
+  }
+  check(nmTop >= 20, 'asar 的 node_modules 顶层包数量正常（依赖采集未退化）', `${nmTop} 个`);
+  check(!header.includes('"after-pack.cjs"'), 'asar 不含加固脚本 after-pack.cjs');
+
+  console.log('\n[2b] 加固：主进程与授权模块已混淆');
+  // 判定口径：看**字符串字面量**是不是已经读不到了。
+  // 🚨 不要用函数名/属性名判定 —— obfuscator 默认不重命名标识符（renameGlobals 关着），
+  //    ensureLicensed / loadBuiltinPublicKey 这些名字留着是正常的，拿它们断言只会误报。
+  try {
+    const main = asar.extractFile(ASAR, 'main.js').toString('utf8');
+    const lic = asar.extractFile(ASAR, 'lib/license.js').toString('utf8');
+    const pub = asar.extractFile(ASAR, 'lib/license-public-key.js').toString('utf8');
+    check(!main.includes('desktop-license.json'), 'main.js 的字符串已加密');
+    check(/_0x[0-9a-f]{4,}/.test(main), 'main.js 带混淆特征');
+    check(!lic.includes('该授权已被管理员作废'), 'lib/license.js 的字符串已加密');
+    check(!lic.includes('revocation-overdue'), 'lib/license.js 的状态名已加密');
+    check(!pub.includes('MCowBQYDK2VwAyEA'), '内置公钥在产物里读不到明文');
+    check(/_0x[0-9a-f]{4,}/.test(pub), 'license-public-key.js 带混淆特征');
+  } catch (err) {
+    check(false, '读取 asar 内文件以校验混淆', err.message);
+  }
+
+  // 🚨 [2c] Fuses 与「子进程靠 ELECTRON_RUN_AS_NODE 启动」的架构必须兼容。
+  //   桌面端用 spawn(process.execPath, [script], {ELECTRON_RUN_AS_NODE:'1'}) 拉起 Next/WS/Yjs
+  //   （desktop/lib/servers.js）。RunAsNode 被翻成 DISABLE 后该环境变量会被静默忽略，
+  //   子进程退化成"再启一个完整 Electron 应用" → 撞单实例锁 → 0.2 秒后 quit(0)，
+  //   现象是 splash 永远停在「正在等待服务就绪…(72%)」，日志却只有 `进程退出 code=0`。
+  //   2026-09-29 踩过一次，这条断言就是那次事故的护栏。
+  console.log('\n[2c] Electron Fuses 与子进程启动方式兼容');
+  try {
+    const fuses = nodeRequire('@electron/fuses');
+    const { FuseV1Options, FuseState } = fuses;
+    const wire = await fuses.getCurrentFuseWire(EXE);
+    const st = (opt) => wire[String(FuseV1Options[opt])];
+    const name = (v) =>
+      v === FuseState.ENABLE ? 'ENABLE' : v === FuseState.DISABLE ? 'DISABLE' : String(v);
+
+    check(
+      st('RunAsNode') === FuseState.ENABLE,
+      'RunAsNode 已启用（子服务依赖 ELECTRON_RUN_AS_NODE）',
+      name(st('RunAsNode'))
+    );
+    check(
+      st('OnlyLoadAppFromAsar') === FuseState.ENABLE,
+      'OnlyLoadAppFromAsar 已启用（只能从 asar 加载）',
+      name(st('OnlyLoadAppFromAsar'))
+    );
+    check(
+      st('EnableEmbeddedAsarIntegrityValidation') === FuseState.ENABLE,
+      'AsarIntegrity 已启用（改 asar 起不来）',
+      name(st('EnableEmbeddedAsarIntegrityValidation'))
+    );
+    check(
+      st('EnableNodeCliInspectArguments') === FuseState.DISABLE,
+      'EnableNodeCliInspectArguments 已禁用（挡 --inspect）',
+      name(st('EnableNodeCliInspectArguments'))
+    );
+  } catch (err) {
+    check(false, '读取 Electron Fuses', err.message);
   }
 
   console.log('\n[3] PostgreSQL 二进制在 asar 之外（否则无法 spawn）');
@@ -202,6 +314,19 @@ function staticChecks() {
     'app-server 含 AI 供应商配置占位文件'
   );
 
+  // 🚨 2026-10-27 事故：语音模型随 data/ 打包，而桌面端 data/ 被 links.js 重定向成
+  //    指向 userData 的目录联接 → 老用户升级时迁移整段跳过，模型只留在 data.__bundled__，
+  //    运行期 cwd/data/models/asr 不存在 → 语音输入永久置灰。
+  //    现在模型放 serverRoot/models/asr（不经任何联接），这里钉死它必须随包。
+  if (process.env.ASR_SKIP_MODEL === '1') {
+    console.log('  · 跳过语音模型校验（ASR_SKIP_MODEL=1）');
+  } else {
+    const asrDir = path.join(SERVER, 'models', 'asr', 'funasr-paraformer');
+    for (const f of ['model.int8.onnx', 'tokens.txt']) {
+      check(fs.existsSync(path.join(asrDir, f)), `app-server 含语音模型 ${f}（缺失则语音输入置灰）`);
+    }
+  }
+
   console.log('\n[5] 产物内不得残留真实凭据');
   const credTargets = [
     path.join(SERVER, 'data', 'ai-providers-config.json'),
@@ -229,6 +354,56 @@ function staticChecks() {
  * `Stravision.exe: bad option: --user-data-dir=...` 然后秒退。
  * 从打包/调试脚本里跑验证时，这个变量很容易残留在当前 shell 环境里。
  */
+/**
+ * 验收用授权注入（只读源文件，不动真实用户数据）。
+ *
+ * 打包态首启在 bootstrap 12% 处会停在授权激活窗：没有有效凭据 → 后面的
+ * 内嵌 PG / aedes MQTT / Next / WS / Yjs 全部不启动，`/api/health` 必然 fetch failed，
+ * 动态验收会稳定挂掉 6 项（跟包体质量无关，纯粹是验收场景没凭据）。
+ *
+ * 设备指纹 = sha256(machine-id | hostname | platform | arch)（见 desktop/lib/license.js
+ * 的 getDeviceId），与 userData 目录无关 —— 所以同一台机器上本机已激活的
+ * desktop-license.json 可以直接复用。
+ *
+ * 🚨 但有两个前置条件，任一不满足都会退化成 device-mismatch 并停在激活窗：
+ *   ① Windows 的机器码来自 `reg query HKLM\SOFTWARE\Microsoft\Cryptography /v MachineGuid`；
+ *      若进程策略把 reg.exe 拉黑（WorkBuddy 沙箱就是这样），rawMachineId() 返回 ''，
+ *      机器码退化成 'no-machine-id'，指纹必然与本机真实授权不符。
+ *   ② 授权本身已过期 / 被吊销。
+ *   这两种情况都不是包体缺陷，别据此判定构建失败；换到普通终端跑即可。
+ *
+ * 覆盖方式：`STRAVISION_VERIFY_LICENSE=<path>`；
+ * 关闭注入：`STRAVISION_VERIFY_SKIP_LICENSE_SEED=1`（用于专门验证激活窗本身）。
+ */
+function seedLicense(userDataDir) {
+  if (process.env.STRAVISION_VERIFY_SKIP_LICENSE_SEED === '1') return;
+  if (fs.existsSync(path.join(userDataDir, 'server-data', 'desktop-license.json'))) return;
+
+  const candidates = [
+    process.env.STRAVISION_VERIFY_LICENSE,
+    process.env.APPDATA
+      ? path.join(process.env.APPDATA, 'stravision-desktop-runtime', 'server-data', 'desktop-license.json')
+      : null,
+  ].filter(Boolean);
+
+  const src = candidates.find((p) => {
+    try {
+      return fs.statSync(p).isFile();
+    } catch {
+      return false;
+    }
+  });
+  if (!src) {
+    console.log('  · 未找到可复用的本机授权凭据（动态验收会停在激活窗）');
+    return;
+  }
+
+  const destDir = path.join(userDataDir, 'server-data');
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.copyFileSync(src, path.join(destDir, 'desktop-license.json'));
+  console.log(`  · 已注入本机授权凭据 ← ${src}`);
+}
+
 function launchApp(userDataDir, { skipSetup }) {
   if (skipSetup) {
     // 与 main.js 的 SKIP_FLAG 对齐：有该标记就不弹配置向导，直接进主界面
@@ -236,6 +411,8 @@ function launchApp(userDataDir, { skipSetup }) {
     fs.mkdirSync(serverData, { recursive: true });
     fs.writeFileSync(path.join(serverData, '.ai-setup-skipped'), '');
   }
+
+  seedLicense(userDataDir);
 
   const outPath = path.join(userDataDir, 'stdout.log');
   const errPath = path.join(userDataDir, 'stderr.log');
@@ -570,7 +747,10 @@ async function dynamicChecks() {
     }
   }
 
-  // 向导页面是否被正确加载（若 ui/setup.html 在 asar 里解析失败会报 ERR_FILE_NOT_FOUND）
+  // 向导窗口是否被正确加载。
+  // ⚠️ 2026-10-07：向导已从 file://（ui/setup.html）改成 Next 路由 /desktop-setup
+  //    （打包态走 http://127.0.0.1:<port>/desktop-setup）。所以 ERR_FILE_NOT_FOUND
+  //    现在只可能来自 splash/activate；这条总检查保留，覆盖两类加载失败。
   check(!/ERR_FILE_NOT_FOUND|Failed to load URL/i.test(text), '配置向导页面加载无错误');
   check(crashedServices(text).length === 0, '无子服务异常退出', crashedServices(text).join(' | ').slice(0, 300) || undefined);
 
@@ -676,7 +856,7 @@ if (!fs.existsSync(APP_OUT)) {
   process.exit(1);
 }
 
-staticChecks();
+await staticChecks();
 if (RUN) {
   await dynamicChecks();
 }

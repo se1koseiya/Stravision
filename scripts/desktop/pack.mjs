@@ -71,8 +71,15 @@ import { writeLatestYml } from './latest-yml.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
-const PROJECT_DIR = path.join(ROOT, 'desktop');
-const CONFIG = path.join(PROJECT_DIR, 'electron-builder.yml');
+const SRC_DIR = path.join(ROOT, 'desktop');
+// 🚨 appDir 恒为 desktop/，不要另建 desktop-obf 副本目录：
+//    electron-builder 内部用 `npm list --production --json` 采集依赖树，而副本目录位于仓库根，
+//    npm 会顺着它的 node_modules junction 往上摸到根的前端依赖树（实测 27031 个包 + ELSPROBLEMS），
+//    采集失败后退化成"只搬 package.json 的直接依赖" → 传递依赖 pg 丢失 →
+//    客户端 bootstrap 18% 报 `Cannot find package 'pg'` 并无限重启（2026-09-29 事故）。
+//    混淆改为就地改写 desktop/ 下的几个文件，构建结束自动还原，appDir 始终是 desktop/。
+const PROJECT_DIR = SRC_DIR;
+let CONFIG = path.join(PROJECT_DIR, 'electron-builder.yml');
 const CLI = path.join(ROOT, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js');
 
 /** MSYS 形式（/c/Users/...）→ 宿主原生路径；非 MSYS 原样返回 */
@@ -104,6 +111,19 @@ const args = process.argv.slice(2);
 const electronVersion = resolveElectronVersion();
 
 /**
+ * 输出目录覆盖（可选）。
+ *
+ * 🚨 为什么需要：`release/win-unpacked` 一旦正被一个**运行中的免安装产物**占用
+ *    （Windows 上进程工作目录、已加载的 DLL 都会锁住目录本身），预清理的
+ *    `renameSync` 会抛 EBUSY/EPERM，整次打包就死在第一步。
+ *    这时用 `STRAVISION_PACK_OUTPUT_DIR=<绝对路径>` 指到新目录即可：
+ *    旧产物原样留着（不要去强杀用户正在看的窗口），新产物落在旁边。
+ */
+const OUTPUT_OVERRIDE = process.env.STRAVISION_PACK_OUTPUT_DIR
+  ? path.resolve(process.env.STRAVISION_PACK_OUTPUT_DIR)
+  : null;
+
+/**
  * 预清理上一轮构建目录。
  *
  * 🚨 electron-builder 在解压 Electron 前会 `fs.rm(appOutDir, {recursive:true})`
@@ -117,18 +137,27 @@ const electronVersion = resolveElectronVersion();
  * （scripts/desktop/prepare-standalone.mjs 里 pruneStandalone() 是同一套解法。）
  */
 function preCleanOutputDirs() {
-  const outDir = path.join(ROOT, 'release');
+  const outDir = OUTPUT_OVERRIDE ?? path.join(ROOT, 'release');
   if (!fs.existsSync(outDir)) return;
   const trash = path.join(os.tmpdir(), 'stravision-pack-trash', String(Date.now()));
   const moved = [];
+  const skipped = [];
   for (const entry of fs.readdirSync(outDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    fs.mkdirSync(trash, { recursive: true });
-    fs.renameSync(path.join(outDir, entry.name), path.join(trash, entry.name));
-    moved.push(entry.name);
+    try {
+      fs.mkdirSync(trash, { recursive: true });
+      fs.renameSync(path.join(outDir, entry.name), path.join(trash, entry.name));
+      moved.push(entry.name);
+    } catch (err) {
+      // 被占用就跳过，不要整包崩：下一次 electron-builder 自己也会尝试清 appOutDir
+      skipped.push(`${entry.name}(${err.code ?? err.message})`);
+    }
   }
   if (moved.length > 0) {
     console.log(`[pack] 预清理上轮构建目录：${moved.join(', ')} → ${trash}`);
+  }
+  if (skipped.length > 0) {
+    console.warn(`[pack] ⚠️ 以下目录被占用，未清理：${skipped.join(', ')}`);
   }
 }
 
@@ -182,8 +211,36 @@ if (!process.env.DESKTOP_NO_MIRROR) {
   env.ELECTRON_BUILDER_BINARIES_MIRROR ||= 'https://npmmirror.com/mirrors/electron-builder-binaries/';
 }
 
+/**
+ * 加固一：就地混淆主进程源码（见 obfuscate-desktop.mjs 文件头）。
+ *
+ * 顺序不能反 —— afterPack 里的 asar 完整性校验会记住"打包那一刻"的 asar 哈希，
+ * 所以混淆必须在 electron-builder 读文件之前完成。
+ * 构建结束后必须还原，否则 desktop/ 里的源码就一直是混淆态。
+ */
+let restoreSource = null;
+const noObf = args.includes('--no-obf') || !!process.env.DESKTOP_NO_OBF;
+if (noObf) {
+  const i = args.indexOf('--no-obf');
+  if (i >= 0) args.splice(i, 1); // 这是本脚本的参数，不能透传给 electron-builder
+  console.log('[pack] 已跳过混淆（--no-obf）：直接打包 desktop/ 源码');
+} else {
+  try {
+    const { obfuscateInPlace } = await import('./obfuscate-desktop.mjs');
+    const obf = await obfuscateInPlace({ src: SRC_DIR });
+    if (obf.done > 0) {
+      restoreSource = obf.restore;
+      // 进程被强杀（Ctrl-C / OOM）时也要还原：exit 钩子里只跑同步 IO
+      process.on('exit', () => obf.restore());
+    }
+  } catch (err) {
+    console.warn(`[pack] ⚠️ 混淆失败，本次打包不含混淆：${err.message}`);
+  }
+}
+
 const cliArgs = ['--projectDir', PROJECT_DIR, '--config', CONFIG];
 if (electronVersion) cliArgs.push(`--config.electronVersion=${electronVersion}`);
+if (OUTPUT_OVERRIDE) cliArgs.push(`--config.directories.output=${OUTPUT_OVERRIDE}`);
 
 /**
  * 推断目标平台/架构，用于复用已解压的 Electron 运行时。
@@ -439,5 +496,8 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   }
   break;
 }
+
+// 还原被就地混淆的源码（幂等；exit 钩子也已兜底）
+if (restoreSource) restoreSource();
 
 process.exit(exitCode);

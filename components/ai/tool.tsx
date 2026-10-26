@@ -68,7 +68,7 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
             "relative z-10 flex size-8 items-center justify-center rounded-xl border shadow-sm transition-colors",
             isCompleted ? "bg-emerald-50 dark:bg-primary/10 border-emerald-200 dark:border-primary/20 text-primary dark:text-emerald-400" :
             isError ? "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400" :
-            "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400"
+            "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
           )}>
             {icon}
           </div>
@@ -78,10 +78,10 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
           <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 placeholder:tracking-tight">{displayTitle}</span>
           <div className="flex items-center gap-2 mt-0.5">
             <span className={cn(
-              "text-[10px] font-medium uppercase tracking-wider",
+              "text-[11px] font-medium uppercase tracking-wider",
               isCompleted ? "text-primary dark:text-emerald-400" :
               isError ? "text-red-500" :
-              "text-blue-500 animate-pulse"
+              "text-emerald-500 animate-pulse"
             )}>
               {isCompleted ? "Completed" : isError ? "Failed" : "Executing"}
             </span>
@@ -89,7 +89,7 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
             {executionTime && isCompleted && (
               <>
                 <span className="text-zinc-300 dark:text-zinc-700 mx-1">•</span>
-                <span className="flex items-center text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
+                <span className="flex items-center text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
                   <IconTime className="size-3 mr-1" />
                   {executionTime}ms
                 </span>
@@ -107,7 +107,7 @@ export const ToolHeader = ({ className, title, type, state, executionTime, ...pr
            ) : isError ? (
              <IconCloseOne className="size-4 text-red-500" />
            ) : (
-             <IconRoundCaliper className="size-4 text-blue-500 animate-spin" />
+             <IconRoundCaliper className="size-4 text-emerald-500 animate-spin" />
            )}
         </div>
         <div className="flex size-6 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 group-data-[state=open]:rotate-180 transition-transform duration-300">

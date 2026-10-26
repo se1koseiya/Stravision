@@ -188,12 +188,12 @@ export default function QwenVoiceInput({
                   }}
                   className={cn(
                     "text-sm",
-                    selectedLanguage === langCode && selectedDialect === 'auto' && "bg-blue-50 dark:bg-blue-900/20"
+                    selectedLanguage === langCode && selectedDialect === 'auto' && "bg-emerald-50 dark:bg-emerald-900/20"
                   )}
                 >
                   <span className="font-medium">{langInfo.name}</span>
                   {selectedLanguage === langCode && selectedDialect === 'auto' && (
-                    <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>
+                    <span className="ml-auto text-emerald-600 dark:text-emerald-400">✓</span>
                   )}
                 </DropdownMenuItem>
                 {langInfo.dialects.length > 1 && langInfo.dialects.slice(1).map(dialect => (
@@ -205,12 +205,12 @@ export default function QwenVoiceInput({
                     }}
                     className={cn(
                       "text-sm pl-6 text-zinc-600 dark:text-zinc-300",
-                      selectedLanguage === langCode && selectedDialect === dialect && "bg-blue-50 dark:bg-blue-900/20"
+                      selectedLanguage === langCode && selectedDialect === dialect && "bg-emerald-50 dark:bg-emerald-900/20"
                     )}
                   >
                     <span>└ {getDialectName(dialect)}</span>
                     {selectedLanguage === langCode && selectedDialect === dialect && (
-                      <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>
+                      <span className="ml-auto text-emerald-600 dark:text-emerald-400">✓</span>
                     )}
                   </DropdownMenuItem>
                 ))}
@@ -273,7 +273,7 @@ export default function QwenVoiceInput({
       {showTranscript && transcript && (
         <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-start gap-2">
-            <IconVolumeNotice size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+            <IconVolumeNotice size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-zinc-900 dark:text-zinc-100 leading-relaxed">
                 {transcript}

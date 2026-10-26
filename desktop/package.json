@@ -1,6 +1,6 @@
 {
   "name": "stravision-desktop-runtime",
-  "version": "4.2.6",
+  "version": "5.2.7",
   "private": true,
   "description": "Stravision 桌面端主进程运行期依赖。独立于前端依赖树，避免 electron-builder 把整个前端 node_modules 打进 asar。",
   "author": "Stravision",

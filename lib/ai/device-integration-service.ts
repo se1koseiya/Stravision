@@ -18,6 +18,9 @@
  */
 
 import { readProvidersConfig, resolveDefaultModelId, resolveProvider } from './provider-resolver'
+// 管线预算 / LLM 超时的唯一来源：与 tool-manager 的工具级超时共用同一变量，
+// 保证「外层工具超时（480s）> 内层管线预算（240s）」（由 agent-budget.test.ts 守护）
+import { AUX_LLM_TIMEOUT_MS, DEVICE_FORGE_PIPELINE_BUDGET_MS } from './agent-budget'
 
 // ============ 类型定义 ============
 
@@ -125,15 +128,17 @@ export interface DeviceIntegrationOptions {
 // ============ 常量 ============
 
 const MAX_DOC_CHARS = 60_000
-const LLM_TIMEOUT_MS = 180_000
-const PIPELINE_BUDGET_MS = 240_000
+/** LLM 调用超时 —— 唯一来源 lib/ai/agent-budget.ts */
+const LLM_TIMEOUT_MS = AUX_LLM_TIMEOUT_MS
+/** 整条接入管线的总时间预算 —— 唯一来源 lib/ai/agent-budget.ts */
+const PIPELINE_BUDGET_MS = DEVICE_FORGE_PIPELINE_BUDGET_MS
 
 const VALID_TYPES: DeviceTypeEnum[] = ['relay', 'sensor', 'camera', 'stepper']
 const TYPE_ICON_HINTS: Record<string, { icon: string; color: string }> = {
-  sensor: { icon: 'Thermometer', color: '#1677ff' },
-  relay: { icon: 'ToggleRight', color: '#52c41a' },
-  camera: { icon: 'Video', color: '#722ed1' },
-  stepper: { icon: 'Compass', color: '#fa8c16' },
+  sensor: { icon: 'Thermometer', color: '#059669' },
+  relay: { icon: 'ToggleRight', color: '#059669' },
+  camera: { icon: 'Video', color: '#059669' },
+  stepper: { icon: 'Compass', color: '#52525B' },
 }
 
 // ============ LLM 调用 ============
@@ -346,7 +351,7 @@ async function generateDeviceDraft(params: {
     parsed.type ?? parsed.device_type ?? parsed['设备类型'] ?? params.analysis.device_type_hint ?? 'sensor'
   ).trim().toLowerCase()
   const type: DeviceTypeEnum = (VALID_TYPES as string[]).includes(typeRaw) ? (typeRaw as DeviceTypeEnum) : 'sensor'
-  const iconHint = TYPE_ICON_HINTS[type] || { icon: 'Cpu', color: '#1677ff' }
+  const iconHint = TYPE_ICON_HINTS[type] || { icon: 'Cpu', color: '#059669' }
   const metrics: DraftMetric[] = Array.isArray(parsed.metrics)
     ? parsed.metrics
         .map((m: any) => ({
@@ -408,7 +413,7 @@ function buildFallbackDraft(analysis: DeviceDocumentAnalysis, rawPreview: string
       : 'sensor',
     category: '通用',
     icon: 'Cpu',
-    color: '#1677ff',
+    color: '#059669',
     subscribe_topic: subscribeHint,
     publish_topic: undefined,
     node_id: undefined,

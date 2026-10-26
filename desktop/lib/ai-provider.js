@@ -48,6 +48,24 @@ const PRESETS = [
     ],
   },
   {
+    // Kimi 月之暗面开放平台：OpenAI 完全兼容，但采样参数被上游钉死
+    // （temperature / top_p / n / presence_penalty / frequency_penalty 均为固定值，
+    //  显式传入不同值会被 400 invalid_request_error 拒绝）。
+    // 请求体清洗在服务端 lib/ai/provider-body-adapter.ts 统一做，这里只需填对 baseUrl。
+    // 文档：https://platform.kimi.com/docs/api/models-overview
+    id: 'kimi',
+    name: 'Kimi（月之暗面）',
+    type: 'moonshot',
+    baseUrl: 'https://api.moonshot.cn/v1',
+    keyHint: 'sk-…',
+    consoleUrl: 'https://platform.kimi.com/console/api-keys',
+    models: [
+      { id: 'kimi-k3', name: 'Kimi K3', icon: 'moonshot', enabled: true, supportsVision: true, supportsReasoning: true },
+      { id: 'kimi-k2.7-code-highspeed', name: 'Kimi K2.7 Code 高速版', icon: 'moonshot', enabled: true, supportsReasoning: true },
+      { id: 'kimi-k2.6', name: 'Kimi K2.6', icon: 'moonshot', enabled: true, supportsReasoning: true },
+    ],
+  },
+  {
     id: 'siliconflow',
     name: '硅基流动（SiliconFlow）',
     type: 'openai',
@@ -161,15 +179,18 @@ function save(serverRoot, input) {
     ...existing,
     providers,
     defaultModelId: defaultModelId || existing.defaultModelId,
-    // 保留既有 embedding / 搜索配置；未配置时给安全默认
+    // 保留既有 embedding / 搜索配置；未配置时给安全默认。
+    // 联网搜索默认走内置本地引擎（零 Key、无需任何外部服务）——向导这一步之后再被
+    // lib/web-search.js#ensureWebSearch 重新评估，能拿到服务端 key 时会自动升级到 Exa。
     embeddingConfig: existing.embeddingConfig || { providerId: '', model: '', enabled: false },
     creditConfig: existing.creditConfig || { enabled: false },
     webSearchConfig: existing.webSearchConfig || {
-      enabled: false,
+      enabled: true,
       providerId: '',
-      protocol: 'anysearch',
+      protocol: 'local',
       apiKey: '',
       defaultCount: 8,
+      managedBy: 'desktop-auto',
     },
   };
 

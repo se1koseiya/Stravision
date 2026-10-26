@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import type { UserPublic } from "@/lib/db/user-service"
 
 type CameraUrls = { cameraAUrl: string; cameraBUrl: string }
@@ -84,7 +84,7 @@ export default function SuperSecureAdminPage() {
 
   return (
     <div className="min-h-screen w-full bg-black/95 p-4 flex items-center justify-center">
-      <Card className="w-full max-w-2xl border-red-900/30 bg-black text-red-500 shadow-2xl shadow-red-900/20">
+      <Card className="w-full max-w-2xl border-red-900/30 bg-black text-red-500 shadow-lg shadow-red-900/20">
         <CardHeader className="border-b border-red-900/30">
           <CardTitle className="font-mono tracking-widest text-red-600 uppercase">
             Super Secure Admin

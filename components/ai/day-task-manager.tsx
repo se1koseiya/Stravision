@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -435,7 +435,7 @@ export function DayTaskManager({ date }: { date: Date }) {
             </div>
           </div>
 
-          <Button className="w-full h-9 rounded-xl font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 shadow-md" onClick={handleCreate} disabled={submitting}>
+          <Button className="w-full h-9 rounded-xl font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 shadow-sm" onClick={handleCreate} disabled={submitting}>
             {submitting && <IconLoading className="mr-2 h-4 w-4 animate-spin" />}
             确认添加
           </Button>
@@ -463,7 +463,7 @@ export function DayTaskManager({ date }: { date: Date }) {
              } catch {}
              
              return (
-              <div key={task.id} className="group flex items-center justify-between p-4 bg-white dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 rounded-2xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+              <div key={task.id} className="group flex items-center justify-between p-4 bg-white dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 rounded-2xl transition-all shadow-sm hover:shadow-sm hover:-translate-y-0.5">
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "h-10 w-10 rounded-full flex items-center justify-center border transition-all shadow-sm",
@@ -476,7 +476,7 @@ export function DayTaskManager({ date }: { date: Date }) {
                   <div>
                     <div className="font-bold text-sm text-zinc-800 dark:text-zinc-100">{task.title}</div>
                     <div className="text-xs text-zinc-500 flex items-center gap-2 mt-1">
-                       <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">{format(new Date(task.execute_at!), "HH:mm")}</span>
+                       <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-lg text-[11px] font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">{format(new Date(task.execute_at!), "HH:mm")}</span>
                        <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
                        <span className={cn("font-bold", isOn ? "text-primary dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                          {isOn ? "开启" : "关闭"}

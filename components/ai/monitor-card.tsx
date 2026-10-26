@@ -6,7 +6,7 @@ import { LiveStreamPlayer } from "@/components/live-stream-player"
 import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle } from "@/components/ui/dialog"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { BERRY_THEME } from "@/lib/ui/berry-theme"
 import { IconCamera, IconClose, IconCloseWifi, IconFullScreen, IconPreviewOpen, IconVideo, IconVolumeMute, IconVolumeNotice, IconWifi, IconZoomIn, IconZoomOut } from "@/components/icon";
 
@@ -169,7 +169,7 @@ export function MonitorCard() {
             <IconPreviewOpen size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">实时监控</h3>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">实时监控</h3>
             <p className="text-xs text-muted-foreground dark:text-muted-foreground font-medium">{date}</p>
           </div>
         </div>
@@ -183,7 +183,7 @@ export function MonitorCard() {
         {/* Overlay Status */}
         <div className="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full flex items-center gap-1.5 border border-white/10 z-10">
           <div className="size-1.5 rounded-full animate-pulse bg-red-500"></div>
-          <span className="text-[10px] font-medium text-white/90">直播中</span>
+          <span className="text-[11px] font-medium text-white/90">直播中</span>
         </div>
 
         {/* Controls (Visible on Hover) */}
@@ -213,20 +213,20 @@ export function MonitorCard() {
             <IconVideo size={14} />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100">主摄像头</h4>
-            <p className="text-[10px] text-muted-foreground dark:text-muted-foreground">高清 • 30fps</p>
+            <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">主摄像头</h4>
+            <p className="text-[11px] text-muted-foreground dark:text-muted-foreground">高清 • 30fps</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/10 rounded-full border border-gray-100 dark:border-white/10 shadow-sm">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/10 rounded-full border border-zinc-100 dark:border-white/10 shadow-sm">
             {connectionStatus.connected ? (
                 <>
                     <IconWifi size={12} className="text-green-500" />
-                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">在线</span>
+                    <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">在线</span>
                 </>
             ) : (
                 <>
                     <IconCloseWifi size={12} className="text-red-500" />
-                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">离线</span>
+                    <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300">离线</span>
                 </>
             )}
         </div>
@@ -234,7 +234,7 @@ export function MonitorCard() {
     </div>
 
     {/* Expanded View Dialog */}
-    <DialogContent className="max-w-[1200px] w-full h-[80vh] p-0 bg-black border-gray-800 overflow-hidden flex flex-col [&>button:last-child]:hidden rounded-3xl">
+    <DialogContent className="max-w-[1400px] w-full h-[80vh] p-0 bg-black border-zinc-800 overflow-hidden flex flex-col [&>button:last-child]:hidden rounded-2xl">
         <DialogTitle className="sr-only">全屏监控</DialogTitle>
         
         {/* Top Bar */}

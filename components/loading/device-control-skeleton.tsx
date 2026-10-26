@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function DeviceControlSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-indigo-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
       {/* Header */}
       <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <Skeleton className="h-12 w-80 mb-3" />
@@ -12,11 +12,11 @@ export function DeviceControlSkeleton() {
       </div>
 
       {/* Control Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
           <div 
             key={i} 
-            className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-800/50"
+            className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-zinc-200/50 dark:border-zinc-800/50"
             style={{ animationDelay: `${i * 50}ms` }}
           >
             {/* Device Icon */}
@@ -42,13 +42,13 @@ export function DeviceControlSkeleton() {
       </div>
 
       {/* Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
         {/* Automation Rules */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-800/50">
+        <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-zinc-200/50 dark:border-zinc-800/50">
           <Skeleton className="h-7 w-40 mb-6" />
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-10 w-10 rounded-lg" />
                   <div>
@@ -63,7 +63,7 @@ export function DeviceControlSkeleton() {
         </div>
 
         {/* System Status */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-800/50">
+        <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-zinc-200/50 dark:border-zinc-800/50">
           <Skeleton className="h-7 w-32 mb-6" />
           <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (

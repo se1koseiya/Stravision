@@ -160,7 +160,7 @@ export function MemorySummaryCard({
         >
           <div className="flex items-center gap-2">
             <div
-              className="flex h-7 w-7 items-center justify-center rounded-md"
+              className="flex h-7 w-7 items-center justify-center rounded-lg"
               style={{
                 background: token.colorPrimaryBg,
                 color: token.colorPrimary,
@@ -205,7 +205,7 @@ export function MemorySummaryCard({
             {/* User intent highlight */}
             {memory.user_intent && (
               <div
-                className="rounded-md px-3 py-2 text-[13px] leading-relaxed"
+                className="rounded-lg px-3 py-2 text-[13px] leading-relaxed"
                 style={{
                   background: token.colorPrimaryBgHover,
                   color: token.colorPrimaryText,
@@ -246,7 +246,7 @@ export function MemorySummaryCard({
                   icon={<IconLight />}
                   title="关键决策"
                   items={memory.decisions}
-                  color="#a855f7"
+                  color="#71717a"
                 />
                 <SummarySection
                   icon={<IconSchedule />}
@@ -260,7 +260,7 @@ export function MemorySummaryCard({
             {/* Current state footer */}
             {memory.current_state && (
               <div
-                className="mt-1 rounded-md px-3 py-2 text-[12px] leading-relaxed"
+                className="mt-1 rounded-lg px-3 py-2 text-[12px] leading-relaxed"
                 style={{
                   background: token.colorFillTertiary,
                   color: token.colorTextSecondary,

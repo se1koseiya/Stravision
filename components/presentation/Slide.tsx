@@ -39,7 +39,7 @@ export function Slide({
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
            {/* 1. Global Perspective Grid - Refined */}
            <div className="absolute inset-0 z-0 opacity-10">
-             <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.05)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)] origin-top" />
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,148,86,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,148,86,0.05)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)] origin-top" />
              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
            </div>
 
@@ -79,7 +79,7 @@ export function Slide({
                  x: [0, -30, 0]
                }}
                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-               className="absolute bottom-[-10%] right-[-5%] w-[70vw] h-[70vw] rounded-full bg-blue-500/10 blur-[150px]" 
+               className="absolute bottom-[-10%] right-[-5%] w-[70vw] h-[70vw] rounded-full bg-emerald-500/10 blur-[150px]" 
              />
            </div>
 
@@ -158,7 +158,7 @@ export function Slide({
              <div className="flex flex-col items-end gap-1">
                 <span className="text-base font-mono text-zinc-700 tracking-[0.3em] uppercase">Navigation</span>
                 {(onPrev || onNext) && (
-                  <div className="flex items-center gap-6 bg-white/[0.02] border border-white/5 px-6 py-3 rounded-sm backdrop-blur-md">
+                  <div className="flex items-center gap-6 bg-white/[0.02] border border-white/5 px-6 py-3 rounded-lg backdrop-blur-md">
                     <button 
                       onClick={onPrev}
                       className="p-1 text-zinc-500 hover:text-white transition-colors disabled:opacity-10"

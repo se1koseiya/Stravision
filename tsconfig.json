@@ -36,10 +36,35 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts",
-    ".next/dev/dev/types/**/*.ts"
+    ".next/dev/dev/types/**/*.ts",
+    ".next/probe/types/**/*.ts",
+    ".next/probe/dev/types/**/*.ts",
+    ".next/probe2/types/**/*.ts",
+    ".next/probe2/dev/types/**/*.ts",
+    ".next/probe-web/types/**/*.ts",
+    ".next/probe-web/dev/types/**/*.ts",
+    ".next/probe3/types/**/*.ts",
+    ".next/probe3/dev/types/**/*.ts",
+    ".next/probe4/types/**/*.ts",
+    ".next/probe4/dev/types/**/*.ts",
+    ".next/desk/types/**/*.ts",
+    ".next/desk/dev/types/**/*.ts",
+    ".next/probe5/types/**/*.ts",
+    ".next/probe5/dev/types/**/*.ts",
+    ".next/probe6/types/**/*.ts",
+    ".next/probe6/dev/types/**/*.ts",
+    ".next/promo/types/**/*.ts",
+    ".next/promo/dev/types/**/*.ts",
+    ".next/promo-rebuild/types/**/*.ts",
+    ".next/promo-rebuild/dev/types/**/*.ts",
+    ".next/ae/types/**/*.ts",
+    ".next/ae/dev/types/**/*.ts",
+    ".next/motion-ui/types/**/*.ts",
+    ".next/motion-ui/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
+    "node_modules.old",
     "stravision-app"
   ]
 }

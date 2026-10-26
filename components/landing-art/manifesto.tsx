@@ -59,19 +59,19 @@ function Line({
         className="block"
       >
         <span
-          className="font-mono text-[11px] sm:text-[12px] text-[#0A0A0B]/25 align-top mr-3 sm:mr-5 hidden sm:inline"
+          className="font-mono text-[11px] sm:text-[12px] text-[#09090B]/25 align-top mr-3 sm:mr-5 hidden sm:inline"
           style={{ letterSpacing: "0.15em" }}
         >
           {String(index + 1).padStart(2, "0")}
         </span>
         <span
-          className={accent ? "text-[#1677ff] relative inline-block" : "text-[#0A0A0B]"}
+          className={accent ? "text-[#059669] relative inline-block" : "text-[#09090B]"}
         >
           {children}
           {accent && (
             <motion.span
               style={{ scaleX: underlineScale, transformOrigin: "left" }}
-              className="absolute -bottom-1 left-0 right-0 h-[3px] bg-[#1677ff]/20"
+              className="absolute -bottom-1 left-0 right-0 h-[3px] bg-[#059669]/20"
             />
           )}
         </span>
@@ -152,7 +152,7 @@ export function Manifesto() {
           aria-hidden
         >
           <span
-            className="font-alimama font-bold text-[#0A0A0B] leading-none whitespace-nowrap"
+            className="font-alimama font-bold text-[#09090B] leading-none whitespace-nowrap"
             style={{
               fontSize: "clamp(320px, 52vw, 900px)",
               letterSpacing: "-0.08em",
@@ -164,23 +164,23 @@ export function Manifesto() {
 
         {/* ============ 顶部章节进度条 ============ */}
         <div className="absolute top-0 left-0 right-0 z-30">
-          <div className="h-px bg-[#0A0A0B]/8 w-full">
+          <div className="h-px bg-[#09090B]/8 w-full">
             <motion.div
               style={{ scaleX: progressScaleX, transformOrigin: "left" }}
-              className="h-full bg-[#1677ff] w-full"
+              className="h-full bg-[#059669] w-full"
             />
           </div>
         </div>
 
         {/* ============ 顶部章节标记 ============ */}
         <div className="absolute top-0 left-0 right-0 z-20 pt-24">
-          <div className="max-w-[1600px] mx-auto px-6 lg:px-10 flex items-start justify-between">
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-10 flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <span className="font-mono text-[11px] tracking-[0.25em] text-[#0A0A0B]/40 uppercase">
+              <span className="font-mono text-[11px] tracking-[0.25em] text-[#09090B]/40 uppercase">
                 01 / 信仰
               </span>
-              <span className="block w-12 h-px bg-[#0A0A0B]/15" />
-              <span className="font-mono text-[11px] tracking-[0.25em] text-[#0A0A0B]/40 uppercase">
+              <span className="block w-12 h-px bg-[#09090B]/15" />
+              <span className="font-mono text-[11px] tracking-[0.25em] text-[#09090B]/40 uppercase">
                 Manifesto
               </span>
             </div>
@@ -188,11 +188,11 @@ export function Manifesto() {
             <div className="flex items-baseline gap-2 font-mono">
               <motion.span
                 style={{ opacity: useTransform(scrollYProgress, [0, 0.05], [0, 1]) }}
-                className="text-[24px] sm:text-[32px] text-[#0A0A0B] tabular-nums leading-none font-light"
+                className="text-[24px] sm:text-[32px] text-[#09090B] tabular-nums leading-none font-light"
               >
                 {counterText}
               </motion.span>
-              <span className="text-[11px] tracking-[0.2em] text-[#0A0A0B]/35 uppercase">
+              <span className="text-[11px] tracking-[0.2em] text-[#09090B]/35 uppercase">
                 / 06
               </span>
             </div>
@@ -201,18 +201,18 @@ export function Manifesto() {
 
         {/* ============ 左侧垂直轨道 ============ */}
         <div className="absolute left-6 lg:left-10 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-4 z-20">
-          <span className="font-mono text-[10px] tracking-[0.3em] text-[#0A0A0B]/30 uppercase [writing-mode:vertical-rl] rotate-180">
+          <span className="font-mono text-[11px] tracking-[0.3em] text-[#09090B]/30 uppercase [writing-mode:vertical-rl] rotate-180">
             Belief
           </span>
-          <div className="relative w-px h-48 bg-[#0A0A0B]/10">
+          <div className="relative w-px h-48 bg-[#09090B]/10">
             <motion.div
               style={{ scaleY: railScale }}
-              className="absolute inset-0 origin-top bg-[#1677ff]"
+              className="absolute inset-0 origin-top bg-[#059669]"
             />
           </div>
           <motion.span
             style={{ opacity: useTransform(scrollYProgress, [0.8, 1], [0, 1]) }}
-            className="font-mono text-[10px] tracking-[0.3em] text-[#1677ff] uppercase"
+            className="font-mono text-[11px] tracking-[0.3em] text-[#059669] uppercase"
           >
             ✓
           </motion.span>
@@ -220,7 +220,7 @@ export function Manifesto() {
 
         {/* ============ 主体：逐行揭示的巨字 ============ */}
         <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10">
-          <div className="max-w-[1600px] mx-auto w-full">
+          <div className="max-w-[1400px] mx-auto w-full">
             {/* Eyebrow */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -229,15 +229,15 @@ export function Manifesto() {
               transition={{ duration: 0.6 }}
               className="mb-8 lg:mb-12 ml-0 sm:ml-[3.2rem]"
             >
-              <span className="inline-flex items-center gap-3 font-mono text-[11px] sm:text-[12px] tracking-[0.3em] text-[#1677ff] uppercase">
-                <span className="block w-1.5 h-1.5 bg-[#1677ff]" />
+              <span className="inline-flex items-center gap-3 font-mono text-[11px] sm:text-[12px] tracking-[0.3em] text-[#059669] uppercase">
+                <span className="block w-1.5 h-1.5 bg-[#059669]" />
                 我们相信
               </span>
             </motion.div>
 
             {/* 宣言正文 */}
             <h2
-              className="font-alimama font-medium text-[#0A0A0B] leading-[1.06]"
+              className="font-alimama font-medium text-[#09090B] leading-[1.06]"
               style={{
                 fontSize: "clamp(36px, 7vw, 118px)",
                 letterSpacing: "-0.04em",
@@ -268,8 +268,8 @@ export function Manifesto() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-12 lg:mt-16 flex items-center gap-6 ml-0 sm:ml-[3.2rem]"
             >
-              <span className="block w-12 h-px bg-[#0A0A0B]/40" />
-              <span className="font-mono text-[11px] tracking-[0.25em] text-[#0A0A0B]/45 uppercase">
+              <span className="block w-12 h-px bg-[#09090B]/40" />
+              <span className="font-mono text-[11px] tracking-[0.25em] text-[#09090B]/45 uppercase">
                 Berry Realm · 2026
               </span>
 
@@ -287,7 +287,7 @@ export function Manifesto() {
                     cy="32"
                     r="29"
                     fill="none"
-                    stroke="#1677ff"
+                    stroke="#059669"
                     strokeWidth="1.5"
                     strokeDasharray="3 2"
                   />
@@ -296,7 +296,7 @@ export function Manifesto() {
                     cy="32"
                     r="22"
                     fill="none"
-                    stroke="#1677ff"
+                    stroke="#059669"
                     strokeWidth="1"
                     opacity="0.4"
                   />
@@ -304,7 +304,7 @@ export function Manifesto() {
                     x="32"
                     y="28"
                     textAnchor="middle"
-                    fill="#1677ff"
+                    fill="#059669"
                     fontFamily="AlimamaShuHeiTi, sans-serif"
                     fontSize="11"
                     fontWeight="700"
@@ -315,7 +315,7 @@ export function Manifesto() {
                     x="32"
                     y="42"
                     textAnchor="middle"
-                    fill="#1677ff"
+                    fill="#059669"
                     fontFamily="monospace"
                     fontSize="7"
                     letterSpacing="0.1em"

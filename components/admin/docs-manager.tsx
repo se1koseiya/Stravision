@@ -1,26 +1,8 @@
 "use client"
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useState, useEffect, useMemo } from "react"
-import {
-  Button,
-  Table,
-  Modal,
-  Input,
-  Select,
-  Tag,
-  Space,
-  Upload,
-  Progress,
-  App,
-  Segmented,
-  Popconfirm,
-  Tooltip,
-  Empty,
-  Spin,
-  Typography,
-  Alert,
-  Avatar,
-} from "antd"
+import { Button, Table, Modal, Input, Select, Tag, Space, Upload, Progress, Segmented, Popconfirm, Tooltip, Empty, Spin, Typography, Alert, Avatar } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { OnlyOfficeEditor } from "@/components/admin/onlyoffice-editor"
 import { IconDelete, IconDownload, IconEdit, IconFilePdf, IconFilePpt, IconFileText, IconFileWord, IconFileZip, IconHtmlFive, IconPaperclip, IconPlus, IconPreviewOpen, IconRefresh, IconSearch, IconUpload } from "@/components/icon";
@@ -143,25 +125,25 @@ function formatFileSize(bytes: number): string {
 
 // 附件类型 → 图标 / 标签
 const ATTACHMENT_EXT_META: Record<string, { label: string; color: string }> = {
-  pdf: { label: "PDF", color: "#f5222d" },
-  doc: { label: "DOC", color: "#1677ff" },
-  docx: { label: "DOC", color: "#1677ff" },
-  xls: { label: "XLS", color: "#52c41a" },
-  xlsx: { label: "XLS", color: "#52c41a" },
-  ppt: { label: "PPT", color: "#fa8c16" },
-  pptx: { label: "PPT", color: "#fa8c16" },
-  zip: { label: "ZIP", color: "#722ed1" },
-  png: { label: "IMG", color: "#13c2c2" },
-  jpg: { label: "IMG", color: "#13c2c2" },
-  jpeg: { label: "IMG", color: "#13c2c2" },
-  gif: { label: "IMG", color: "#13c2c2" },
-  webp: { label: "IMG", color: "#13c2c2" },
-  bmp: { label: "IMG", color: "#13c2c2" },
-  mp4: { label: "MP4", color: "#fa8c16" },
+  pdf: { label: "PDF", color: "#DC2626" },
+  doc: { label: "DOC", color: "#059669" },
+  docx: { label: "DOC", color: "#059669" },
+  xls: { label: "XLS", color: "#059669" },
+  xlsx: { label: "XLS", color: "#059669" },
+  ppt: { label: "PPT", color: "#52525B" },
+  pptx: { label: "PPT", color: "#52525B" },
+  zip: { label: "ZIP", color: "#059669" },
+  png: { label: "IMG", color: "#52525B" },
+  jpg: { label: "IMG", color: "#52525B" },
+  jpeg: { label: "IMG", color: "#52525B" },
+  gif: { label: "IMG", color: "#52525B" },
+  webp: { label: "IMG", color: "#52525B" },
+  bmp: { label: "IMG", color: "#52525B" },
+  mp4: { label: "MP4", color: "#52525B" },
   mp3: { label: "MP3", color: "#eb2f96" },
-  txt: { label: "TXT", color: "#86909c" },
-  md: { label: "MD", color: "#86909c" },
-  csv: { label: "CSV", color: "#52c41a" },
+  txt: { label: "TXT", color: "#8f959e" },
+  md: { label: "MD", color: "#8f959e" },
+  csv: { label: "CSV", color: "#059669" },
 }
 
 // ============== 默认表单 ==============
@@ -214,7 +196,7 @@ function parseTags(tagsStr: string): string[] {
 
 // ============== 主组件 ==============
 export function DocsManager() {
-  const { message } = App.useApp()
+  const { message } = useFeedback()
 
   const [docs, setDocs] = useState<DocManifestEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -535,8 +517,9 @@ export function DocsManager() {
   }
 
   // ============ 预览文档 ============
+  // 2026-10-21：文档库并入文档中心后，详情页统一在 /docs/[slug]
   const handlePreview = (doc: DocManifestEntry) => {
-    window.open(`/blog/${encodeURIComponent(doc.slug)}`, "_blank")
+    window.open(`/docs/${encodeURIComponent(doc.slug)}`, "_blank")
   }
 
   // ============ 文件选择校验 ============
@@ -668,7 +651,7 @@ export function DocsManager() {
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Text
             style={{
-              color: "#1677ff",
+              color: "#059669",
               cursor: "pointer",
               fontSize: 14,
               fontWeight: 500,
@@ -709,7 +692,7 @@ export function DocsManager() {
         return (
           <Tag
             style={{
-              color: "#1677ff",
+              color: "#059669",
               background: "#E8F1FF",
               border: "none",
               fontSize: 12,
@@ -740,7 +723,7 @@ export function DocsManager() {
               <Avatar
                 size={22}
                 style={{
-                  backgroundColor: "#1677ff",
+                  backgroundColor: "#059669",
                   fontSize: 11,
                   flexShrink: 0,
                 }}
@@ -762,7 +745,7 @@ export function DocsManager() {
         const meta = FILE_TYPE_MAP[fileType]
         return (
           <Space size={6}>
-            <span style={{ color: "#86909c" }}>{meta.icon}</span>
+            <span style={{ color: "#8f959e" }}>{meta.icon}</span>
             <Text style={{ fontSize: 13 }}>{meta.label}</Text>
           </Space>
         )
@@ -795,7 +778,7 @@ export function DocsManager() {
               onClick={() => handleOpenEdit(record)}
             />
           </Tooltip>
-          <Tooltip title="在文档库预览">
+          <Tooltip title="在文档中心预览">
             <Button
               type="text"
               size="small"
@@ -871,7 +854,7 @@ export function DocsManager() {
         >
           <Input
             placeholder="搜索标题 / 描述 / 标签 / slug..."
-            prefix={<IconSearch style={{ color: "#86909c" }} />}
+            prefix={<IconSearch style={{ color: "#8f959e" }} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ maxWidth: 320, height: 32, borderRadius: 6 }}
@@ -1217,11 +1200,11 @@ export function DocsManager() {
                   padding: "8px 12px",
                   border: "1px solid #EDEEEF",
                   borderRadius: 8,
-                  backgroundColor: "#F7F8FA",
+                  backgroundColor: "#FAFAFA",
                 }}
               >
                 <Space size={8}>
-                  <IconFileText style={{ color: "#1677ff" }} />
+                  <IconFileText style={{ color: "#059669" }} />
                   <Text strong style={{ fontSize: 13 }}>
                     {uploadFile.name}
                   </Text>
@@ -1573,7 +1556,7 @@ export function DocsManager() {
               type="info"
               showIcon
               style={{ borderRadius: 8 }}
-              message="该文档为上传类文件，正文不支持在线文本编辑"
+              title="该文档为上传类文件，正文不支持在线文本编辑"
               description="如需修改正文内容，请点击底部「用 OnlyOffice 编辑正文」按钮。此处仅可修改元信息（标题、作者、描述等）。"
             />
           ) : (
@@ -1621,7 +1604,7 @@ export function DocsManager() {
               padding: 12,
               border: "1px solid #EDEEEF",
               borderRadius: 10,
-              backgroundColor: "#F7F8FA",
+              backgroundColor: "#FAFAFA",
             }}
           >
             <div
@@ -1633,7 +1616,7 @@ export function DocsManager() {
               }}
             >
               <Space size={6}>
-                <IconPaperclip style={{ color: "#1677ff" }} />
+                <IconPaperclip style={{ color: "#059669" }} />
                 <Text strong style={{ fontSize: 13 }}>
                   附件
                 </Text>
@@ -1643,7 +1626,7 @@ export function DocsManager() {
                       style={{
                         margin: 0,
                         fontSize: 11,
-                        color: "#1677ff",
+                        color: "#059669",
                         background: "#E8F1FF",
                         border: "none",
                       }}
@@ -1692,7 +1675,7 @@ export function DocsManager() {
                 {editingDoc.attachments.map((att) => {
                   const extMeta = ATTACHMENT_EXT_META[att.ext] || {
                     label: att.ext.toUpperCase().slice(0, 4),
-                    color: "#86909c",
+                    color: "#8f959e",
                   }
                   return (
                     <div

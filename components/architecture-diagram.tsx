@@ -31,7 +31,7 @@ const CustomNode = ({ data }: any) => {
   const IconComponent = icons[data.icon as keyof typeof icons] || IconLayers;
 
   return (
-    <div className={`group relative flex items-center gap-4 rounded-xl border bg-white/95 p-3 pr-5 shadow-sm backdrop-blur-xl transition-all hover:shadow-md min-w-[210px] ${data.highlight ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-slate-200'}`}>
+    <div className={`group relative flex items-center gap-4 rounded-xl border bg-white/95 p-3 pr-5 shadow-sm backdrop-blur-xl transition-all hover:shadow-sm min-w-[210px] ${data.highlight ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-zinc-200'}`}>
       <Handle id="target-top" type="target" position={Position.Top} className="!w-2 !h-2 !bg-indigo-500 opacity-0 group-hover:opacity-100" />
       <Handle id="target-left" type="target" position={Position.Left} className="!w-2 !h-2 !bg-indigo-500 opacity-0 group-hover:opacity-100" />
       <Handle id="target-right" type="target" position={Position.Right} className="!w-2 !h-2 !bg-indigo-500 opacity-0 group-hover:opacity-100" />
@@ -47,10 +47,10 @@ const CustomNode = ({ data }: any) => {
       </div>
 
       <div className="flex flex-col justify-center">
-        <span className="text-[14px] font-bold tracking-wide text-slate-800">
+        <span className="text-[14px] font-bold tracking-wide text-zinc-800">
           {data.label}
         </span>
-        <span className="text-[12px] font-medium text-slate-500 mt-0.5">
+        <span className="text-[12px] font-medium text-zinc-500 mt-0.5">
           {data.sublabel}
         </span>
       </div>
@@ -60,10 +60,10 @@ const CustomNode = ({ data }: any) => {
 
 const GroupNode = ({ data }: any) => {
   return (
-    <div className={`relative h-full w-full rounded-2xl border-2 border-dashed ${data.borderColor || 'border-slate-300'} ${data.bgColor || 'bg-slate-50/30'} backdrop-blur-sm transition-colors`}>
-      <div className="absolute -left-4 -top-4 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 shadow-sm">
-        <div className={`h-2.5 w-2.5 rounded-full ${data.dotColor || 'bg-slate-500'}`} />
-        <span className="text-[14px] font-bold text-slate-700">
+    <div className={`relative h-full w-full rounded-2xl border-2 border-dashed ${data.borderColor || 'border-zinc-300'} ${data.bgColor || 'bg-zinc-50/30'} backdrop-blur-sm transition-colors`}>
+      <div className="absolute -left-4 -top-4 flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1.5 shadow-sm">
+        <div className={`h-2.5 w-2.5 rounded-full ${data.dotColor || 'bg-zinc-500'}`} />
+        <span className="text-[14px] font-bold text-zinc-700">
           {data.label}
         </span>
       </div>
@@ -81,7 +81,7 @@ const sysNodes = [
   { id: 'user', type: 'customNode', position: { x: 50, y: 320 }, data: { label: '农场主 / 管理员', sublabel: '设备监管 & 语音下达', icon: 'User', highlight: true } },
   
   // 1. Frontend layer
-  { id: 'parent-frontend', type: 'customGroup', position: { x: 340, y: 150 }, data: { label: '前端展示交互层 (Next.js UI)', borderColor: 'border-blue-400', bgColor: 'bg-blue-50/20', dotColor: 'bg-blue-500' }, style: { width: 320, height: 350 }, zIndex: -1 },
+  { id: 'parent-frontend', type: 'customGroup', position: { x: 340, y: 150 }, data: { label: '前端展示交互层 (Next.js UI)', borderColor: 'border-emerald-400', bgColor: 'bg-emerald-50/20', dotColor: 'bg-emerald-500' }, style: { width: 320, height: 350 }, zIndex: -1 },
   { id: 'web-dashboard', type: 'customNode', position: { x: 40, y: 60 }, parentId: 'parent-frontend', extent: 'parent', data: { label: '大屏控制台UI', sublabel: '设备卡片 / 仪表盘', icon: 'MonitorPlay' } },
   { id: 'webrtc-voice', type: 'customNode', position: { x: 40, y: 160 }, parentId: 'parent-frontend', extent: 'parent', data: { label: 'Pipecat 语音组件', sublabel: 'Daily.co 实时语音流', icon: 'Mic', iconColor: 'bg-rose-50 text-rose-500' } },
   { id: 'video-player', type: 'customNode', position: { x: 40, y: 260 }, parentId: 'parent-frontend', extent: 'parent', data: { label: 'HLS/FLV 播放器', sublabel: '前端监控视频流拉取', icon: 'Video' } },
@@ -112,10 +112,10 @@ const sysNodes = [
   { id: 'relays', type: 'customNode', position: { x: 35, y: 360 }, parentId: 'parent-iot', extent: 'parent', data: { label: '各路继电器', sublabel: 'GPIO高低电平控制', icon: 'Zap' } },
 ];
 
-const edgeProps = { type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' } };
-const dataEdge = { ...edgeProps, style: { stroke: '#3b82f6', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' } };
-const voiceEdge = { ...edgeProps, style: { stroke: '#f43f5e', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f43f5e' } };
-const iotEdge = { ...edgeProps, style: { stroke: '#10b981', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } };
+const edgeProps = { type: 'smoothstep', animated: true, style: { stroke: '#a1a1aa', strokeWidth: 1.5 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a1a1aa' } };
+const dataEdge = { ...edgeProps, style: { stroke: '#059669', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } };
+const voiceEdge = { ...edgeProps, style: { stroke: '#71717a', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#71717a' } };
+const iotEdge = { ...edgeProps, style: { stroke: '#059669', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' } };
 
 const sysEdges = [
   // User to UI
@@ -154,7 +154,7 @@ const sysEdges = [
   { id: 'ese17', source: 'broker', sourceHandle: 'source-right', target: 'relays', targetHandle: 'target-left', ...iotEdge },
 
   // Camera to Player & VLM
-  { id: 'ese18', source: 'camera', sourceHandle: 'source-left', target: 'video-player', targetHandle: 'target-right', ...edgeProps, style: { stroke: '#64748b', strokeDasharray: '4 4' }, label: 'HLS拉流' },
+  { id: 'ese18', source: 'camera', sourceHandle: 'source-left', target: 'video-player', targetHandle: 'target-right', ...edgeProps, style: { stroke: '#71717a', strokeDasharray: '4 4' }, label: 'HLS拉流' },
   { id: 'ese19', source: 'camera', sourceHandle: 'source-left', target: 'vlm', targetHandle: 'target-bottom', ...edgeProps, style: { stroke: '#d946ef', strokeDasharray: '5 5' }, label: '抽帧视觉巡检' },
 ];
 
@@ -197,8 +197,8 @@ const agentEdges = [
   { 
     id: 'eae11', source: 'act-verify', sourceHandle: 'source-left', target: 'perc-sensor', targetHandle: 'target-bottom', 
     type: 'smoothstep', animated: true, 
-    style: { stroke: '#10b981', strokeWidth: 2, strokeDasharray: '4 4' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
-    label: '回流重新感知', labelStyle: { fill: '#10b981', fontWeight: 600, fontSize: 12 }, labelBgStyle: { fill: 'white', fillOpacity: 0.9, rx: 4 }
+    style: { stroke: '#059669', strokeWidth: 2, strokeDasharray: '4 4' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
+    label: '回流重新感知', labelStyle: { fill: '#059669', fontWeight: 600, fontSize: 12 }, labelBgStyle: { fill: 'white', fillOpacity: 0.9, rx: 4 }
   },
 ];
 
@@ -245,19 +245,19 @@ function DiagramContent() {
         nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.15 }} minZoom={0.1} maxZoom={2} proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={28} size={2} color="#cbd5e1" />
-        <Controls className="!rounded-xl border border-slate-200 !bg-white/90 shadow-sm backdrop-blur-md" />
+        <Background variant={BackgroundVariant.Dots} gap={28} size={2} color="#d4d4d8" />
+        <Controls className="!rounded-xl border border-zinc-200 !bg-white/90 shadow-sm backdrop-blur-md" />
         
         <Panel position="top-center" className="mt-5 z-50">
-          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-xl p-2 rounded-2xl shadow-lg border border-slate-200/50">
-            <button onClick={() => switchTab('system')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'system' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
+          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-xl p-2 rounded-2xl shadow-lg border border-zinc-200/50">
+            <button onClick={() => switchTab('system')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'system' ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}>
               <IconLayoutTwo size={18} /> 主系统架构
             </button>
-            <button onClick={() => switchTab('agent')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'agent' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
+            <button onClick={() => switchTab('agent')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === 'agent' ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'}`}>
               <IconBrain size={18} /> 莓小智 Agent 架构
             </button>
-            <div className="w-px h-8 bg-slate-200 mx-2"></div>
-            <button onClick={handleExport} className="flex items-center justify-center gap-2 px-5 py-2.5 text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm ml-1 group">
+            <div className="w-px h-8 bg-zinc-200 mx-2"></div>
+            <button onClick={handleExport} className="flex items-center justify-center gap-2 px-5 py-2.5 text-zinc-700 bg-white border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors shadow-sm ml-1 group">
               <IconDownload size={18} className="text-indigo-500 group-hover:-translate-y-0.5 transition-transform" />
               <span className="font-medium text-[14px]">导出高清图</span>
             </button>

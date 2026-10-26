@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import Image from "next/image"
 import { toPng } from "html-to-image"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconDownload, IconLayers, IconLightning, IconTrendingUp } from "@/components/icon";
 
 export default function PlatformBannerPage() {
@@ -56,18 +56,18 @@ export default function PlatformBannerPage() {
       <div 
         ref={bannerRef}
         style={{ width: '1065px', height: '360px' }}
-        className="relative bg-black overflow-hidden shadow-2xl flex-shrink-0 border-y-4 border-primary"
+        className="relative bg-black overflow-hidden shadow-lg flex-shrink-0 border-y-4 border-primary"
       >
         {/* --- Background Elements --- */}
         
         {/* 1. Dynamic Grid Floor */}
         <div className="absolute inset-0 z-0 opacity-40">
-           <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.2)_1px,transparent_1px)] bg-[size:60px_60px] [transform:perspective(500px)_rotateX(60deg)_scale(2)] origin-top" />
+           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,148,86,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,148,86,0.2)_1px,transparent_1px)] bg-[size:60px_60px] [transform:perspective(500px)_rotateX(60deg)_scale(2)] origin-top" />
         </div>
 
         {/* 2. Radical Gradients */}
         <div className="absolute top-[-100px] left-[-100px] w-[600px] h-[600px] bg-primary/20 blur-[120px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-100px] right-[-100px] w-[500px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-100px] right-[-100px] w-[500px] h-[500px] bg-emerald-600/20 blur-[120px] rounded-full mix-blend-screen" />
         
         {/* 3. Speed Lines Overlay */}
         <div className="absolute inset-0 z-[1] opacity-20 bg-[url('/images/noise.svg')] mix-blend-overlay" />
@@ -91,11 +91,11 @@ export default function PlatformBannerPage() {
 
              {/* Main Title - Stacked & Glitched */}
              <div className="relative leading-[0.85]">
-               <h1 className="text-8xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 z-10 relative">
+               <h1 className="text-8xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-500 z-10 relative">
                  STRAVISION
                </h1>
                {/* Outline Echo */}
-               <h1 className="absolute top-1 left-1 text-8xl font-black italic tracking-tighter text-transparent z-0 opacity-30 select-none" style={{ WebkitTextStroke: '2px #10b981' }}>
+               <h1 className="absolute top-1 left-1 text-8xl font-black italic tracking-tighter text-transparent z-0 opacity-30 select-none" style={{ WebkitTextStroke: '2px #059669' }}>
                  STRAVISION
                </h1>
              </div>
@@ -145,13 +145,13 @@ export default function PlatformBannerPage() {
                   src="/ip/草莓头IP-奔跑姿势.png" 
                   alt="Stravision Action" 
                   fill
-                  className="object-contain drop-shadow-[0_0_50px_rgba(16,185,129,0.4)] transform scale-x-[-1]" // Flip horizontally to run towards text
+                  className="object-contain drop-shadow-[0_0_50px_rgba(0,148,86,0.4)] transform scale-x-[-1]" // Flip horizontally to run towards text
                   priority
                 />
              </div>
 
              {/* 3. Floating HUD Card (Foreground) */}
-             <div className="absolute bottom-12 right-12 bg-black/80 backdrop-blur-xl border-l-4 border-primary p-4 z-30 shadow-2xl max-w-[200px]">
+             <div className="absolute bottom-12 right-12 bg-black/80 backdrop-blur-xl border-l-4 border-primary p-4 z-30 shadow-lg max-w-[200px]">
                <div className="flex items-center gap-2 mb-2">
                  <IconLightning className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                  <span className="text-white font-bold text-sm italic">ENERGY SAVING</span>
@@ -159,7 +159,7 @@ export default function PlatformBannerPage() {
                <div className="text-3xl font-black text-white leading-none">
                  35<span className="text-sm text-muted-foreground font-normal">%</span>
                </div>
-               <p className="text-[10px] text-muted-foreground mt-1">Efficiency Boost</p>
+               <p className="text-[11px] text-muted-foreground mt-1">Efficiency Boost</p>
              </div>
 
           </div>
@@ -178,7 +178,7 @@ function StatItem({ value, label }: { value: string, label: string }) {
   return (
     <div>
       <div className="text-2xl font-black text-white italic leading-none mb-1">{value}</div>
-      <div className="text-[10px] font-bold text-primary tracking-widest">{label}</div>
+      <div className="text-[11px] font-bold text-primary tracking-widest">{label}</div>
     </div>
   )
 }

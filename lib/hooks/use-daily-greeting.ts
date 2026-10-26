@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useSpeechSynthesis } from '@/lib/hooks/use-speech-synthesis'
-import { toast } from 'sonner'
+import { toast } from '@/lib/ui/feedback'
 import React from 'react'
 import { IconMagic } from "@/components/icon";
 

@@ -25,7 +25,7 @@ const LanyardScene = dynamic(() => import("./lanyard"), { ssr: false });
 
 const CARD = "relative overflow-hidden rounded-[20px]";
 const CARD_TITLE = "font-bold leading-[1.35] tracking-tight text-[clamp(1.5rem,1.98vw,2rem)]";
-const CARD_DESC = "mt-2 text-[17px] leading-[1.6]";
+const CARD_DESC = "mt-2 text-[16px] leading-[1.6]";
 
 const CONTAINER =
   "mx-auto w-[min(100%-2rem,80rem)] md:w-[min(100%-5rem,80rem)] xl:w-[min(100%-10rem,80rem)]";
@@ -106,7 +106,7 @@ export function Bento() {
               {STEPS.map((n, i) => (
                 <div key={n} className="flex items-center gap-2 py-[5px]">
                   <span
-                    className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+                    className="flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
                     style={{
                       background: i === 1 ? L.brandPrimary : "color-mix(in srgb, var(--lg-ink) 6%, transparent)",
                       color: i === 1 ? "#0B3B26" : L.muted,
@@ -115,7 +115,7 @@ export function Bento() {
                     {i === 1 ? <IconShield className="size-3" /> : i + 1}
                   </span>
                   <span
-                    className="text-[12.5px] font-medium"
+                    className="text-[13px] font-medium"
                     style={{ color: i === 1 ? L.ink : L.muted }}
                   >
                     {n}
@@ -155,7 +155,7 @@ export function Bento() {
                     />
                   </div>
                   <span
-                    className="w-full truncate text-center text-[10.5px] font-semibold"
+                    className="w-full truncate text-center text-[11px] font-semibold"
                     style={{ color: L.ink }}
                   >
                     {p.label}

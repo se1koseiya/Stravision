@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Empty, Spin } from "antd"
-import { toast } from "sonner"
+import { Spin } from "antd"
+import { toast } from "@/lib/ui/feedback"
 import { cn } from "@/lib/utils"
+import { EmptyState } from "@/components/illustration"
 import { IconArrowRight, IconArrowRightUp, IconBookOpen, IconBookshelf, IconCalendar, IconChartHistogram, IconCheck, IconClose, IconCompass, IconFileSearch, IconFileText, IconHeart, IconLayers, IconLightning, IconMagic, IconPlus, IconPreviewOpen, IconRight, IconSearch, IconShield, IconTag, IconTime, IconUser } from "@/components/icon";
 
 interface MarketItem {
@@ -43,11 +44,11 @@ export interface MarketCollection {
 }
 
 const PALETTE = [
-  { bg: "rgba(22,119,255,0.10)", text: "#1677ff", border: "rgba(22,119,255,0.22)" },
+  { bg: "rgba(0,148,86,0.10)", text: "#059669", border: "rgba(0,148,86,0.22)" },
   { bg: "rgba(82,196,26,0.10)", text: "#389e0d", border: "rgba(82,196,26,0.22)" },
   { bg: "rgba(250,140,22,0.10)", text: "#d46b08", border: "rgba(250,140,22,0.22)" },
-  { bg: "rgba(124,58,237,0.10)", text: "#7c3aed", border: "rgba(124,58,237,0.22)" },
-  { bg: "rgba(19,194,194,0.10)", text: "#08979c", border: "rgba(19,194,194,0.22)" },
+  { bg: "rgba(124,58,237,0.10)", text: "#3f3f46", border: "rgba(124,58,237,0.22)" },
+  { bg: "rgba(19,194,194,0.10)", text: "#52525B", border: "rgba(19,194,194,0.22)" },
   { bg: "rgba(235,47,150,0.10)", text: "#c41d7f", border: "rgba(235,47,150,0.22)" },
 ]
 
@@ -72,29 +73,29 @@ const KbIllustration = ({ className }: { className?: string }) => (
   >
     <path
       d="M5 85 C 35 35, 75 25, 110 50 S 175 70, 195 45"
-      stroke="#1677ff"
+      stroke="#059669"
       strokeWidth="1.4"
       strokeLinecap="round"
       fill="none"
       opacity="0.85"
     />
-    <circle cx="60" cy="48" r="22" fill="rgba(22,119,255,0.10)" />
+    <circle cx="60" cy="48" r="22" fill="rgba(0,148,86,0.10)" />
     {[42, 48, 54, 60, 66, 72, 78].map(x => (
-      <line key={x} x1={x} y1={28} x2={x} y2={68} stroke="#1677ff" strokeWidth="1" opacity="0.55" />
+      <line key={x} x1={x} y1={28} x2={x} y2={68} stroke="#059669" strokeWidth="1" opacity="0.55" />
     ))}
-    <circle cx="115" cy="58" r="24" fill="rgba(22,119,255,0.18)" />
-    <circle cx="108" cy="22" r="4" fill="#1677ff" />
-    <text x="98" y="55" fontSize="11" fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#1677ff" fontWeight="600">{`KB`}</text>
+    <circle cx="115" cy="58" r="24" fill="rgba(0,148,86,0.18)" />
+    <circle cx="108" cy="22" r="4" fill="#059669" />
+    <text x="98" y="55" fontSize="11" fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#059669" fontWeight="600">{`KB`}</text>
     <g transform="translate(165, 22)">
-      <line x1="0" y1="-9" x2="0" y2="9" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="-9" y1="0" x2="9" y2="0" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="-6.5" y1="-6.5" x2="6.5" y2="6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="-6.5" y1="6.5" x2="6.5" y2="-6.5" stroke="#1677ff" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="-6.5" x2="6.5" y2="6.5" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="-6.5" y1="6.5" x2="6.5" y2="-6.5" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
     </g>
-    <circle cx="20" cy="20" r="1.6" fill="#1677ff" />
-    <circle cx="180" cy="60" r="1.6" fill="#1677ff" />
-    <circle cx="195" cy="80" r="1" fill="#1677ff" opacity="0.6" />
-    <circle cx="40" cy="95" r="1.2" fill="#1677ff" opacity="0.5" />
+    <circle cx="20" cy="20" r="1.6" fill="#059669" />
+    <circle cx="180" cy="60" r="1.6" fill="#059669" />
+    <circle cx="195" cy="80" r="1" fill="#059669" opacity="0.6" />
+    <circle cx="40" cy="95" r="1.2" fill="#059669" opacity="0.5" />
   </svg>
 )
 
@@ -113,8 +114,8 @@ const CollectionIcon = ({
   const dim =
     size === "lg" ? "size-12 text-[18px]" :
       size === "sm" ? "size-8 text-[13px]" :
-        "size-10 text-[15px]"
-  const radius = shape === "square" ? "rounded-md" : "rounded-full"
+        "size-10 text-[14px]"
+  const radius = shape === "square" ? "rounded-lg" : "rounded-full"
 
   const [imgFailed, setImgFailed] = useState(false)
 
@@ -137,7 +138,7 @@ const CollectionIcon = ({
     <div
       className={cn(
         dim, radius,
-        "flex items-center justify-center shrink-0 select-none bg-white border border-gray-200"
+        "flex items-center justify-center shrink-0 select-none bg-white border border-zinc-200"
       )}
     >
       <img
@@ -268,7 +269,9 @@ function CollectionDetailView({
     >
       <motion.div
         onClick={handleClose}
-        className="absolute inset-0 bg-black/50 backdrop-blur-[3px]"
+        /* 遮罩的模糊也接全站「材质厚度」档位（.dc-gblur × --dc-mat-scale） */
+        style={{ "--gblur": "3px" } as React.CSSProperties}
+        className="absolute inset-0 bg-black/50 dc-gblur"
         aria-hidden
       />
 
@@ -277,7 +280,7 @@ function CollectionDetailView({
         animate={{ opacity: open ? 1 : 0, y: open ? 0 : 20, scale: open ? 1 : 0.98 }}
         exit={{ opacity: 0, y: 20, scale: 0.98 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full sm:max-w-3xl lg:max-w-4xl max-h-[92vh] bg-white shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full sm:max-w-3xl lg:max-w-4xl max-h-[92vh] bg-white shadow-lg flex flex-col overflow-hidden"
         style={{ borderRadius: 12 }}
       >
         {/* ====== 1. 标题区域 / Hero ====== */}
@@ -298,7 +301,7 @@ function CollectionDetailView({
           {/* Close button */}
           <button
             onClick={handleClose}
-            className="absolute top-3 right-3 z-20 size-8 flex items-center justify-center text-gray-500 bg-white/80 hover:bg-white hover:text-gray-900 backdrop-blur-sm border border-gray-200/60 transition-all"
+            className="absolute top-3 right-3 z-20 size-8 flex items-center justify-center text-zinc-500 bg-white/80 hover:bg-white hover:text-zinc-900 backdrop-blur-sm border border-zinc-200/60 transition-all"
             style={{ borderRadius: 8 }}
             title="关闭 (Esc)"
             aria-label="关闭"
@@ -312,15 +315,15 @@ function CollectionDetailView({
               <CollectionIcon collection={collection} size="lg" shape="square" />
               <div className="flex-1 min-w-0">
                 {/* Badges row — 取消外框，仅用文字+图标区分 */}
-                <div className="flex items-center gap-3 mb-1.5 flex-wrap text-[11.5px]">
+                <div className="flex items-center gap-3 mb-1.5 flex-wrap text-[12px]">
                   {isOfficial && (
-                    <span className="inline-flex items-center gap-1 text-blue-600 font-medium">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
                       <IconShield size={11} strokeWidth={2.5} />
                       官方认证
                     </span>
                   )}
                   {collection.category && (
-                    <span className="inline-flex items-center gap-1 text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-zinc-500">
                       <IconTag size={11} />
                       {collection.category}
                     </span>
@@ -333,11 +336,11 @@ function CollectionDetailView({
                   )}
                 </div>
 
-                <h2 className="text-[22px] sm:text-[24px] font-semibold leading-tight text-gray-900 tracking-tight">
+                <h2 className="text-[20px] sm:text-[24px] font-semibold leading-tight text-zinc-900 tracking-tight">
                   {collection.name}
                 </h2>
                 {collection.description && (
-                  <p className="text-[13px] text-gray-500 leading-relaxed mt-1.5 pr-4 line-clamp-2">
+                  <p className="text-[13px] text-zinc-500 leading-relaxed mt-1.5 pr-4 line-clamp-2">
                     {collection.description}
                   </p>
                 )}
@@ -348,7 +351,7 @@ function CollectionDetailView({
                 {isSubscribed ? (
                   <Button
                     onClick={() => onOpen(collection)}
-                    className="!h-8 !px-3.5 text-[12.5px] font-medium gap-1.5 !bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600 shadow-sm"
+                    className="!h-8 !px-3.5 text-[13px] font-medium gap-1.5 !bg-emerald-600 hover:!bg-emerald-700 !text-white !border-emerald-600 shadow-sm"
                     style={{ borderRadius: 8 }}
                   >
                     <IconArrowRightUp size={13} strokeWidth={2.5} />
@@ -358,10 +361,10 @@ function CollectionDetailView({
                 <Button
                   onClick={() => isSubscribed ? onUnsubscribe(collection) : onSubscribe(collection)}
                   className={cn(
-                    "!h-8 !px-3.5 text-[12.5px] font-medium gap-1.5",
+                    "!h-8 !px-3.5 text-[13px] font-medium gap-1.5",
                     isSubscribed
                       ? "!bg-white !text-red-500 !border !border-red-200 hover:!bg-red-50 hover:!border-red-300"
-                      : "!bg-gray-900 hover:!bg-gray-800 !text-white !border-gray-900"
+                      : "!bg-zinc-900 hover:!bg-zinc-800 !text-white !border-zinc-900"
                   )}
                   style={{ borderRadius: 8 }}
                 >
@@ -378,26 +381,26 @@ function CollectionDetailView({
 
         {/* ====== 1.5 关键指标——纯文本行 + 竖线分隔，无外框 ====== */}
         <div
-          className="shrink-0 flex items-center divide-x divide-gray-200 px-6 sm:px-8 py-3 border-y border-gray-200/80 text-[12px]"
+          className="shrink-0 flex items-center divide-x divide-zinc-200 px-6 sm:px-8 py-3 border-y border-zinc-200/80 text-[12px]"
         >
           <InlineStat
-            icon={<IconFileText size={12} className="text-gray-400" />}
+            icon={<IconFileText size={12} className="text-zinc-400" />}
             label="文档"
             value={collection.item_count_real ?? 0}
           />
           <InlineStat
-            icon={<IconHeart size={12} className="text-gray-400" />}
+            icon={<IconHeart size={12} className="text-zinc-400" />}
             label="订阅"
             value={collection.subscriber_count ?? 0}
           />
           <InlineStat
-            icon={<IconUser size={12} className="text-gray-400" />}
+            icon={<IconUser size={12} className="text-zinc-400" />}
             label="发布者"
             value={collection.publisher_name || "匿名"}
             isText
           />
           <InlineStat
-            icon={<IconCalendar size={12} className="text-gray-400" />}
+            icon={<IconCalendar size={12} className="text-zinc-400" />}
             label="更新"
             value={formatDate(collection.published_at)}
             isText
@@ -405,7 +408,7 @@ function CollectionDetailView({
         </div>
 
         {/* ====== 2. 内容导航 / Tabs ====== */}
-        <div className="shrink-0 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200/80 px-6 sm:px-8">
+        <div className="shrink-0 sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-zinc-200/80 px-6 sm:px-8">
           <div className="flex items-center gap-1 -mb-px overflow-x-auto scrollbar-hide">
             {([
               { key: "overview", label: "概览", icon: <IconCompass size={13} /> },
@@ -417,25 +420,25 @@ function CollectionDetailView({
                 onClick={() => setTab(t.key)}
                 className={cn(
                   "relative flex items-center gap-1.5 px-3 py-3 text-[13px] font-medium transition-colors whitespace-nowrap",
-                  tab === t.key ? "text-blue-600" : "text-gray-500 hover:text-gray-800"
+                  tab === t.key ? "text-emerald-600" : "text-zinc-500 hover:text-zinc-800"
                 )}
               >
                 <span className={cn(
                   "transition-colors",
-                  tab === t.key ? "text-blue-600" : "text-gray-400"
+                  tab === t.key ? "text-emerald-600" : "text-zinc-400"
                 )}>
                   {t.icon}
                 </span>
                 <span>{t.label}</span>
                 {typeof t.badge === "number" && t.badge > 0 && (
-                  <span className="ml-0.5 text-[10.5px] tabular-nums text-gray-400">
+                  <span className="ml-0.5 text-[11px] tabular-nums text-zinc-400">
                     {t.badge}
                   </span>
                 )}
                 {tab === t.key && (
                   <motion.span
                     layoutId="kb-detail-tab-underline"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-blue-600 pointer-events-none"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-emerald-600 pointer-events-none"
                     transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   />
                 )}
@@ -500,10 +503,10 @@ function InlineStat({
   return (
     <div className="flex items-center gap-1.5 px-4 first:pl-0 last:pr-0 min-w-0">
       {icon}
-      <span className="text-gray-500">{label}</span>
+      <span className="text-zinc-500">{label}</span>
       <span
         className={cn(
-          "text-gray-900 truncate",
+          "text-zinc-900 truncate",
           isText ? "font-medium" : "font-semibold tabular-nums"
         )}
         title={String(value)}
@@ -525,7 +528,7 @@ function OverviewTab({
   const isOfficial = collection.official === 1
 
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-zinc-100">
       {/* 推荐用法 —— 无外框，纯文字+内联 code */}
       <section className="pb-6">
         <SectionHeader
@@ -533,15 +536,15 @@ function OverviewTab({
           title="推荐用法"
           subtitle="如何让 AI 在回答时自动检索此知识库"
         />
-        <p className="text-[13px] text-gray-700 leading-relaxed">
+        <p className="text-[13px] text-zinc-700 leading-relaxed">
           在 AI 助手对话中输入
-          <code className="mx-1.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 font-mono text-[12.5px] font-medium">
+          <code className="mx-1.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[13px] font-medium">
             /{collection.name}
           </code>
           即可让 AI 在回答时自动检索本知识库。
         </p>
         {!isSubscribed && (
-          <p className="text-[11.5px] text-gray-400 mt-2">
+          <p className="text-[12px] text-zinc-400 mt-2">
             订阅后即可在对话中启用该知识库
           </p>
         )}
@@ -562,7 +565,7 @@ function OverviewTab({
       {collection.description && (
         <section className="py-6">
           <SectionHeader icon={<IconFileText size={13} />} title="知识库简介" />
-          <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
             {collection.description}
           </p>
         </section>
@@ -570,7 +573,7 @@ function OverviewTab({
 
       {/* 元信息底栏 —— 无外框，纯图标+文字 */}
       <section className="pt-5">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11.5px] text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-zinc-500">
           <MetaItem icon={<IconBookshelf size={11} />} text="知识库" />
           {isOfficial && (
             <MetaItem icon={<IconShield size={11} />} text="官方认证" accent />
@@ -592,10 +595,10 @@ function InfoItem({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11.5px] text-gray-500 mb-1">{label}</dt>
+      <dt className="text-[12px] text-zinc-500 mb-1">{label}</dt>
       <dd
         className={cn(
-          "text-gray-900 truncate",
+          "text-zinc-900 truncate",
           isText ? "text-[13px] font-medium" : "text-[20px] font-semibold tabular-nums leading-none"
         )}
         title={value}
@@ -614,7 +617,7 @@ function MetaItem({
   accent?: boolean
 }) {
   return (
-    <span className={cn("flex items-center gap-1", accent && "text-blue-600")}>
+    <span className={cn("flex items-center gap-1", accent && "text-emerald-600")}>
       {icon}
       {text}
     </span>
@@ -631,11 +634,11 @@ function SectionHeader({
   return (
     <div className="mb-3">
       <div className="flex items-center gap-1.5">
-        <span className="text-blue-500">{icon}</span>
-        <h3 className="text-[13px] font-semibold text-gray-900 tracking-tight">{title}</h3>
+        <span className="text-emerald-500">{icon}</span>
+        <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight">{title}</h3>
       </div>
       {subtitle && (
-        <p className="text-[11.5px] text-gray-500 mt-0.5 pl-5">{subtitle}</p>
+        <p className="text-[12px] text-zinc-500 mt-0.5 pl-5">{subtitle}</p>
       )}
     </div>
   )
@@ -654,23 +657,22 @@ function DocumentsTab({
 }) {
   if (!isSubscribed) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <IconFileSearch size={28} className="text-gray-300 mb-3" strokeWidth={1.4} />
-        <h3 className="text-[14px] font-medium text-gray-700 mb-1">
-          订阅后查看文档列表
-        </h3>
-        <p className="text-[12.5px] text-gray-400 max-w-sm leading-relaxed mb-5">
-          「{collection.name}」共 {collection.item_count_real ?? 0} 个文档，订阅后即可浏览并基于文档与 AI 对话。
-        </p>
-        <Button
-          onClick={() => onOpen(collection)}
-          className="!h-8 !px-3.5 !text-[12.5px] !font-medium !bg-gray-900 hover:!bg-gray-800 !text-white !border-gray-900 gap-1.5"
-          style={{ borderRadius: 8 }}
-        >
-          <IconArrowRightUp size={13} strokeWidth={2.5} />
-          订阅并查看
-        </Button>
-      </div>
+      <EmptyState
+        illustration="search"
+        illustrationWidth={170}
+        title="订阅后查看文档列表"
+        description={`「${collection.name}」共 ${collection.item_count_real ?? 0} 个文档，订阅后即可浏览并基于文档与 AI 对话。`}
+        action={
+          <Button
+            onClick={() => onOpen(collection)}
+            className="!h-8 !px-3.5 !text-[13px] !font-medium !bg-zinc-900 hover:!bg-zinc-800 !text-white !border-zinc-900 gap-1.5"
+            style={{ borderRadius: 8 }}
+          >
+            <IconArrowRightUp size={13} strokeWidth={2.5} />
+            订阅并查看
+          </Button>
+        }
+      />
     )
   }
 
@@ -684,11 +686,11 @@ function DocumentsTab({
 
   if (items.length === 0) {
     return (
-      <Empty
-        description={
-          <span className="text-[12.5px] text-gray-500">该知识库暂无文档</span>
-        }
-        className="py-12"
+      <EmptyState
+        illustration="empty-list"
+        illustrationWidth={170}
+        title="该知识库暂无文档"
+        description="等发布者补充内容后，再来看看吧。"
       />
     )
   }
@@ -697,14 +699,14 @@ function DocumentsTab({
     <div className="space-y-5">
       {/* 文档统计概览 —— 无外框，纯 inline pills */}
       {typeDistribution.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap text-[11.5px] text-gray-500">
-          <IconLayers size={12} className="text-gray-400" />
+        <div className="flex items-center gap-2 flex-wrap text-[12px] text-zinc-500">
+          <IconLayers size={12} className="text-zinc-400" />
           <span>类型分布</span>
           {typeDistribution.map(([type, count], i) => (
             <span key={type} className="flex items-center gap-1">
-              {i > 0 && <span className="text-gray-300">·</span>}
-              <span className="text-gray-700">{type}</span>
-              <span className="text-gray-400 tabular-nums">{count}</span>
+              {i > 0 && <span className="text-zinc-300">·</span>}
+              <span className="text-zinc-700">{type}</span>
+              <span className="text-zinc-400 tabular-nums">{count}</span>
             </span>
           ))}
         </div>
@@ -717,7 +719,7 @@ function DocumentsTab({
           title="文档列表"
           subtitle={`共 ${items.length} 个文档，按更新时间排序`}
         />
-        <ul className="divide-y divide-gray-100 -mx-2">
+        <ul className="divide-y divide-zinc-100 -mx-2">
           {items.map((item, i) => (
             <motion.li
               key={item.id}
@@ -736,23 +738,23 @@ function DocumentsTab({
 
 function DocumentRow({ item }: { item: MarketItem }) {
   return (
-    <div className="group flex items-start gap-3 px-2 py-3 -mx-2 hover:bg-gray-50 transition-colors cursor-default">
-      <IconFileText size={15} className="text-gray-400 mt-0.5 shrink-0" strokeWidth={1.6} />
+    <div className="group flex items-start gap-3 px-2 py-3 -mx-2 hover:bg-zinc-50 transition-colors cursor-default">
+      <IconFileText size={15} className="text-zinc-400 mt-0.5 shrink-0" strokeWidth={1.6} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <h4 className="text-[13px] font-medium text-gray-900 truncate group-hover:text-blue-700 transition-colors">
+          <h4 className="text-[13px] font-medium text-zinc-900 truncate group-hover:text-emerald-700 transition-colors">
             {item.title}
           </h4>
-          <span className="shrink-0 text-[11px] text-gray-400">
+          <span className="shrink-0 text-[11px] text-zinc-400">
             {TYPE_LABELS[item.content_type] || item.content_type}
           </span>
         </div>
         {item.summary && (
-          <p className="text-[12px] text-gray-500 leading-relaxed line-clamp-1">
+          <p className="text-[12px] text-zinc-500 leading-relaxed line-clamp-1">
             {item.summary}
           </p>
         )}
-        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+        <div className="flex items-center gap-3 mt-1 text-[11px] text-zinc-400">
           {item.file_size > 0 && (
             <span>{formatSize(item.file_size)}</span>
           )}
@@ -779,15 +781,12 @@ function RelatedTab({
 }) {
   if (related.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <IconCompass size={28} className="text-gray-300 mb-3" strokeWidth={1.4} />
-        <h3 className="text-[14px] font-medium text-gray-700 mb-1">
-          暂无相关推荐
-        </h3>
-        <p className="text-[12.5px] text-gray-400 max-w-sm">
-          稍后再来看看，或者去知识库市场探索更多领域。
-        </p>
-      </div>
+      <EmptyState
+        illustration="obtain-information"
+        illustrationWidth={170}
+        title="暂无相关推荐"
+        description="稍后再来看看，或者去知识库市场探索更多领域。"
+      />
     )
   }
 
@@ -798,7 +797,7 @@ function RelatedTab({
         title="相关推荐"
         subtitle="同分类或同标签的优质知识库"
       />
-      <ul className="divide-y divide-gray-100 -mx-2">
+      <ul className="divide-y divide-zinc-100 -mx-2">
         {related.map((c, i) => (
           <motion.li
             key={c.id}
@@ -809,27 +808,27 @@ function RelatedTab({
             <button
               type="button"
               onClick={() => onSelect(c)}
-              className="group w-full text-left flex items-center gap-3 px-2 py-3 -mx-2 hover:bg-gray-50 transition-colors"
+              className="group w-full text-left flex items-center gap-3 px-2 py-3 -mx-2 hover:bg-zinc-50 transition-colors"
             >
               <CollectionIcon collection={c} size="sm" shape="square" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-[13.5px] font-medium text-gray-900 truncate group-hover:text-blue-700 transition-colors">
+                  <h4 className="text-[13px] font-medium text-zinc-900 truncate group-hover:text-emerald-700 transition-colors">
                     {c.name}
                   </h4>
                   {c.official === 1 && (
-                    <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+                    <IconShield size={11} className="text-emerald-500 shrink-0" strokeWidth={2.5} />
                   )}
                   {subscribedIds.has(c.id) && (
                     <span className="text-[11px] text-emerald-600 font-medium">已订阅</span>
                   )}
                 </div>
                 {c.description && (
-                  <p className="text-[12px] text-gray-500 leading-relaxed line-clamp-1 mt-0.5">
+                  <p className="text-[12px] text-zinc-500 leading-relaxed line-clamp-1 mt-0.5">
                     {c.description}
                   </p>
                 )}
-                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-gray-400">
+                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-zinc-400">
                   {c.category && <span>{c.category}</span>}
                   <span className="flex items-center gap-0.5">
                     <IconFileText size={10} />
@@ -843,7 +842,7 @@ function RelatedTab({
               </div>
               <IconArrowRight
                 size={14}
-                className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0"
+                className="text-zinc-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0"
                 strokeWidth={2}
               />
             </button>
@@ -872,39 +871,39 @@ const CollectionCard = ({
   return (
     <div
       onClick={onClick}
-      className="group relative flex flex-col gap-2.5 px-4 pt-4 pb-3.5 bg-white border border-gray-200/80 hover:border-blue-300 transition-colors cursor-pointer"
+      className="group relative flex flex-col gap-2.5 px-4 pt-4 pb-3.5 bg-white border border-zinc-200/80 hover:border-emerald-300 transition-colors cursor-pointer"
       style={{ borderRadius: 12 }}
     >
       <div className="flex items-start gap-3">
         <CollectionIcon collection={collection} size="md" shape="circle" />
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-center gap-1.5">
-            <h3 className="text-[14px] font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
+            <h3 className="text-[14px] font-semibold text-zinc-900 truncate group-hover:text-emerald-700 transition-colors">
               {collection.name}
             </h3>
             {isOfficial && (
-              <IconShield size={11} className="text-blue-500 shrink-0" strokeWidth={2.5} />
+              <IconShield size={11} className="text-emerald-500 shrink-0" strokeWidth={2.5} />
             )}
           </div>
           {collection.category && (
-            <span className="text-[11px] text-gray-400 mt-0.5 inline-block">· {collection.category}</span>
+            <span className="text-[11px] text-zinc-400 mt-0.5 inline-block">· {collection.category}</span>
           )}
         </div>
       </div>
-      <p className="text-[12.5px] text-gray-500 leading-relaxed line-clamp-3 min-h-[3.6em]">
+      <p className="text-[13px] text-zinc-500 leading-relaxed line-clamp-3 min-h-[3.6em]">
         {collection.description || "暂无描述"}
       </p>
       <div className="mt-auto flex items-center justify-between pt-1">
         <Space stats={collection} />
         {subscribed ? (
-          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+          <span className="text-[11px] text-zinc-400 flex items-center gap-1">
             <IconCheck size={11} strokeWidth={3} />
             已订阅
           </span>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); onSubscribe(e) }}
-            className="size-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="size-6 flex items-center justify-center text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
             style={{ borderRadius: 6 }}
             title="订阅"
           >
@@ -918,7 +917,7 @@ const CollectionCard = ({
 
 function Space({ stats }: { stats: MarketCollection }) {
   return (
-    <span className="text-[11.5px] text-gray-400 flex items-center gap-2.5">
+    <span className="text-[12px] text-zinc-400 flex items-center gap-2.5">
       <span className="flex items-center gap-1">
         <IconFileText size={11} />
         {stats.item_count_real ?? 0}
@@ -1095,10 +1094,10 @@ export function KBStoreContent({
       {/* 标题区 */}
       <div className="flex items-center justify-between gap-6 mb-7">
         <div>
-          <h1 className="text-[32px] font-bold text-gray-900 leading-none tracking-tight" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+          <h1 className="text-[32px] font-bold text-zinc-900 leading-none tracking-tight" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
             Knowledge Base
           </h1>
-          <p className="text-[13px] text-gray-500 mt-2.5 flex items-center gap-1">
+          <p className="text-[13px] text-zinc-500 mt-2.5 flex items-center gap-1">
             <span>探索精选知识库，让 AI 助手更懂你的领域</span>
           </p>
         </div>
@@ -1107,7 +1106,7 @@ export function KBStoreContent({
 
       {/* 主标签 + 搜索 + 排序 */}
       <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
-        <div className="flex items-center gap-1 bg-gray-100/70 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-zinc-100/70 p-1 rounded-xl">
           {mainTabs.map(t => (
             <button
               key={t.key}
@@ -1115,8 +1114,8 @@ export function KBStoreContent({
               className={cn(
                 "px-4 py-1.5 text-[13px] font-medium transition-all rounded-lg",
                 mainTab === t.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               {t.label}
@@ -1127,7 +1126,7 @@ export function KBStoreContent({
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as any)}
-            className="h-8 px-2 text-[12.5px] bg-white border border-gray-200 text-gray-700 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="h-8 px-2 text-[13px] bg-white border border-zinc-200 text-zinc-700 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             style={{ borderRadius: 8 }}
           >
             <option value="published_at">最新发布</option>
@@ -1135,13 +1134,13 @@ export function KBStoreContent({
             <option value="created_at">最新创建</option>
           </select>
           <div className="relative w-56">
-            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
             <input
               type="text"
               placeholder="搜索知识库"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-gray-200 text-gray-700 placeholder-gray-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors"
+              className="w-full pl-9 pr-3 py-2 text-[13px] bg-white border border-zinc-200 text-zinc-700 placeholder-zinc-400 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-colors"
               style={{ borderRadius: 10 }}
             />
           </div>
@@ -1149,7 +1148,7 @@ export function KBStoreContent({
       </div>
 
       {/* 子标签 */}
-      <div className="flex items-center gap-6 mb-5 border-b border-gray-200/80">
+      <div className="flex items-center gap-6 mb-5 border-b border-zinc-200/80">
         {subTabs.map((t, i) => (
           <button
             key={t.key}
@@ -1157,15 +1156,15 @@ export function KBStoreContent({
             className={cn(
               "relative pb-2.5 text-[13px] font-medium transition-colors",
               subTab === t.key
-                ? "text-gray-900"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-zinc-900"
+                : "text-zinc-500 hover:text-zinc-700"
             )}
           >
             <span className="inline-flex items-center gap-1">
               {t.label}
               <span className={cn(
                 "text-[11px] tabular-nums",
-                subTab === t.key ? "text-gray-500" : "text-gray-400"
+                subTab === t.key ? "text-zinc-500" : "text-zinc-400"
               )}>
                 {i === 0 ? `(${subCounts.all})` : subCounts[t.key as keyof typeof subCounts]}
               </span>
@@ -1173,7 +1172,7 @@ export function KBStoreContent({
             {subTab === t.key && (
               <motion.span
                 layoutId="kb-subtab-underline"
-                className="absolute -bottom-px left-0 right-0 h-0.5 bg-blue-600 pointer-events-none"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-emerald-600 pointer-events-none"
                 transition={{ duration: 0.2 }}
               />
             )}
@@ -1183,15 +1182,13 @@ export function KBStoreContent({
 
       {/* 卡片网格 */}
       {filtered.length === 0 ? (
-        <div className="py-20 flex flex-col items-center justify-center text-center">
-          <Empty
-            description={
-              <span className="text-[13px] text-gray-500">
-                {localSearch ? `未搜索到 "${localSearch}" 相关知识库` : "暂无可显示的知识库"}
-              </span>
-            }
-          />
-        </div>
+        <EmptyState
+          className="py-20"
+          illustration={localSearch ? "search" : "empty-list"}
+          illustrationWidth={190}
+          title={localSearch ? `未搜索到「${localSearch}」相关知识库` : "暂无可显示的知识库"}
+          description={localSearch ? "换个关键词试试，或浏览推荐知识库。" : "等知识库上架后，这里会展示可订阅的内容。"}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(c => {

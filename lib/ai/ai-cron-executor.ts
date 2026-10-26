@@ -285,22 +285,22 @@ function buildAnalysisReportHtml(result: any, deviceData: any, taskDescription: 
     : []
 
   return [
-    `<div class="berry-report" style="font-family:-apple-system,'Segoe UI',sans-serif;line-height:1.7;color:#1f2937">`,
+    `<div class="berry-report" style="font-family:-apple-system,'Segoe UI',sans-serif;line-height:1.7;color:#27272a">`,
     `  <h2 style="margin:0 0 8px 0;font-size:18px;color:#0a0a0c">${escape(taskDescription)}</h2>`,
-    `  <div style="color:#6b7280;font-size:12px;margin-bottom:16px">生成时间：${escape(ts)}</div>`,
-    `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#374151">📊 设备数据快照</h3>`,
+    `  <div style="color:#71717A;font-size:12px;margin-bottom:16px">生成时间：${escape(ts)}</div>`,
+    `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#3F3F46">📊 设备数据快照</h3>`,
     `  <table style="width:100%;border-collapse:collapse;font-size:13px">`,
-    `    <tr><td style="padding:6px 12px;background:#f9fafb;width:120px">温度</td><td style="padding:6px 12px">${fmt(deviceData?.temperature)} ℃</td></tr>`,
-    `    <tr><td style="padding:6px 12px;background:#f9fafb">湿度</td><td style="padding:6px 12px">${fmt(deviceData?.humidity)} %</td></tr>`,
-    `    <tr><td style="padding:6px 12px;background:#f9fafb">光照</td><td style="padding:6px 12px">${fmt(deviceData?.light)} lx</td></tr>`,
-    `    <tr><td style="padding:6px 12px;background:#f9fafb">CO₂</td><td style="padding:6px 12px">${fmt(deviceData?.co2)} ppm</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#fafafa;width:120px">温度</td><td style="padding:6px 12px">${fmt(deviceData?.temperature)} ℃</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#fafafa">湿度</td><td style="padding:6px 12px">${fmt(deviceData?.humidity)} %</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#fafafa">光照</td><td style="padding:6px 12px">${fmt(deviceData?.light)} lx</td></tr>`,
+    `    <tr><td style="padding:6px 12px;background:#fafafa">CO₂</td><td style="padding:6px 12px">${fmt(deviceData?.co2)} ppm</td></tr>`,
     `  </table>`,
     analysisText
-      ? `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#374151">🧠 AI 分析</h3>
-  <div style="white-space:pre-wrap;font-size:13px;background:#f9fafb;padding:12px;border-radius:6px">${escape(analysisText)}</div>`
+      ? `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#3F3F46">🧠 AI 分析</h3>
+  <div style="white-space:pre-wrap;font-size:13px;background:#fafafa;padding:12px;border-radius:6px">${escape(analysisText)}</div>`
       : '',
     recommendations.length
-      ? `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#374151">✅ 建议</h3>
+      ? `  <h3 style="font-size:14px;margin:16px 0 8px 0;color:#3F3F46">✅ 建议</h3>
   <ul style="margin:0;padding-left:20px;font-size:13px">${recommendations
     .map((r) => `    <li>${escape(r)}</li>`)
     .join('\n')}</ul>`

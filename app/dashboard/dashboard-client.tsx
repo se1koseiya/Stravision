@@ -19,6 +19,7 @@ import {
 import { useDeviceData, type DeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { simulatedHistoryMap, useSimulatedValues } from "@/lib/demo/simulated-metrics"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -35,6 +36,7 @@ import "react-resizable/css/styles.css"
 import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
 import { MembershipCard } from "@/components/dashboard/membership-card"
+import { AiInsightCard } from "@/components/dashboard/ai-insight-card"
 import {
   TemperatureWidget,
   HumidityWidget,
@@ -43,7 +45,7 @@ import {
   SoilWidget,
   WeatherWidget,
   WeatherForecastWidget,
-  AIInsightWidget,
+  HeatmapWidget,
   NutrientWidget,
   IOSWidgetCard,
   WidgetLabel,
@@ -52,14 +54,22 @@ import {
   TopBanner
 } from "@/components/dashboard/ios-style"
 import { LAYOUT_PRESETS, getWidgetSize } from "@/lib/dashboard-layouts"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useElderFriendly } from "@/lib/contexts/elder-friendly-context"
 import { ElderFriendlyToggle } from "@/components/elder-friendly-toggle"
 import { PageHeader } from "@/components/page-header"
 import { PageHeaderRight } from "@/components/page-header-right"
+// 沉浸光感材质（HDS 组件材质）：**唯一来源**，档位 + 材质本体 + 自适应等级都在这里。
+// dashboard 只做「把变量接到小组件卡上」+ 自己那层氛围光，不复制任何材质数值。
+import { MATERIAL_CSS } from "@/components/device/material-css"
+import { useAdaptiveMaterialLevel } from "@/components/device/use-material-level"
+// dashboard 侧的氛围层 + 小组件卡补充（材质数值仍只在 material-css.ts，此处不含 --mat-* 数值）
+import { DASHBOARD_MATERIAL_CSS } from "@/components/dashboard/ios-style/widget-material"
 import { WidgetLibraryDialog } from "@/components/dashboard/widget-library-dialog"
 import { DailyBriefingIsland } from "@/components/daily-briefing-island"
+// 删除小组件的「消散成粒子」（HDS/华为删除动效）：先收 + 迸散，300ms 后才摘出 layout 让网格回流
+import { dissolveWidget } from "@/components/dashboard/widget-dissolve"
 
 // ─── 设备状态条带组件（动态展示设备注册表中的所有设备） ───
 
@@ -92,18 +102,18 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
   if (enabledDevices.length === 0) return null
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto mb-6">
+    <div className="w-full max-w-[1400px] mx-auto mb-6">
       <div className="flex items-center gap-2 mb-3 px-1">
-        <IconGridFour className="h-4 w-4 text-[#1677ff]" strokeWidth={1.75} />
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">设备状态</h3>
-        <span className="text-xs text-slate-400">{enabledDevices.length}</span>
+        <IconGridFour className="h-4 w-4 text-[#059669]" strokeWidth={2} />
+        <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">设备状态</h3>
+        <span className="text-xs text-zinc-400">{enabledDevices.length}</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {enabledDevices.map((d) => {
           const IconCmp = getDashDeviceIcon(d.icon)
-          const hex = d.color || '#1677ff'
+          const hex = d.color || '#059669'
           let statusText = '离线'
-          let statusColor = '#8c8c8c'
+          let statusColor = '#8f959e'
           let primaryValue = ''
 
           if (d.type === 'relay') {
@@ -112,7 +122,7 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
               ? deviceData?.[`relay${relayNum}`] === 1
               : false
             statusText = on ? '开启' : '关闭'
-            statusColor = on ? '#52c41a' : '#8c8c8c'
+            statusColor = on ? '#059669' : '#8f959e'
             primaryValue = on ? 'ON' : 'OFF'
           } else if (d.type === 'sensor') {
             const data = customDeviceData[d.id] || {}
@@ -126,15 +136,15 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
               }
             }
             statusText = hasData ? '实时' : '等待'
-            statusColor = hasData ? '#52c41a' : '#faad14'
+            statusColor = hasData ? '#059669' : '#52525B'
           } else if (d.type === 'camera') {
             statusText = '在线'
-            statusColor = '#52c41a'
+            statusColor = '#059669'
             primaryValue = d.config?.camera_id || 'CAM'
           } else if (d.type === 'stepper') {
             const pos = deviceData?.stepper_position
             statusText = '就绪'
-            statusColor = '#1677ff'
+            statusColor = '#059669'
             primaryValue = pos !== undefined ? `${pos}p` : ''
           }
 
@@ -159,11 +169,11 @@ function DeviceStatusStrip({ devices, deviceData, customDeviceData }: DeviceStat
                     boxShadow: BERRY_THEME.apple.shadow.inner,
                   }}
                 >
-                  <IconCmp className="h-4 w-4" strokeWidth={1.75} />
+                  <IconCmp className="h-4 w-4" strokeWidth={2} />
                 </div>
                 <div className="flex items-center gap-1">
                   <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: statusColor }} />
-                  <span className="text-[10px] font-medium" style={{ color: statusColor }}>{statusText}</span>
+                  <span className="text-[11px] font-medium" style={{ color: statusColor }}>{statusText}</span>
                 </div>
               </div>
               <div className="text-xs font-bold truncate mb-0.5" style={{ color: BERRY_THEME.apple.label }}>{d.name}</div>
@@ -183,6 +193,9 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const { isElderFriendlyMode, toggleElderFriendlyMode } = useElderFriendly()
+  // 自适应材质等级（HDS MaterialLevel）：写 <html data-mat-level>，低配设备自动降模糊半径。
+  // 与设备控制页同一套机制 —— 等级只缩放 blur()，saturate/brightness 这两个「光感本体」任何档位都保留。
+  useAdaptiveMaterialLevel()
 
   // User authentication state
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
@@ -200,17 +213,25 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
   // Batched history data fetching for optimization
   const [historyDataMap, setHistoryDataMap] = useState<Record<string, any[]>>({})
 
+  /** 模拟数值（仅非安装产物）：真机没历史表，走势图会全空，这里整份替换 */
+  const simulatedValues = useSimulatedValues()
+
   useEffect(() => {
+    // List of all types used in the dashboard
+    const types = [
+      'humidity', 'temperature', 'light', 'co2',
+      'soilMoisture', 'fertility', 'nitrogen',
+      'phosphorus', 'potassium', 'rainfall'
+    ]
+
+    if (simulatedValues) {
+      setHistoryDataMap(simulatedHistoryMap(types, '1h'))
+      return
+    }
+
     const fetchAllHistory = async () => {
       try {
-        // List of all types used in the dashboard
-        const types = [
-          'humidity', 'temperature', 'light', 'co2',
-          'soilMoisture', 'fertility', 'nitrogen',
-          'phosphorus', 'potassium', 'rainfall'
-        ].join(',')
-
-        const res = await fetch(`/api/device-history?types=${types}&range=1h`)
+        const res = await fetch(`/api/device-history?types=${types.join(',')}&range=1h`)
         const data = await res.json()
         if (data.success) {
           setHistoryDataMap(data.data)
@@ -220,7 +241,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
       }
     }
     fetchAllHistory()
-  }, [])
+  }, [simulatedValues])
 
   const defaultLayout = LAYOUT_PRESETS.default.layout
   const compactLayout = LAYOUT_PRESETS.compact.layout
@@ -282,7 +303,13 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
     }
     if (savedLayout) {
       try {
-        setLayout(JSON.parse(savedLayout))
+        const parsed = JSON.parse(savedLayout)
+        if (Array.isArray(parsed)) {
+          /* 小组件更名迁移：`ai-insight`（AI 洞察）已改为顶栏 hero 横幅，
+             原网格位改用「环境时段热力图」。老用户 localStorage 里的键必须一起改名，
+             否则该位置变成一个空槽（空格子不会自动回流）。 */
+          setLayout(parsed.map((l: any) => (l?.i === 'ai-insight' ? { ...l, i: 'heatmap' } : l)))
+        }
       } catch (e) {
         console.error('Failed to load layout:', e)
       }
@@ -291,22 +318,29 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
   const handleRemoveWidget = (id: string) => {
     toast.custom((t) => (
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-white/60 dark:border-white/10 p-5 flex flex-col gap-4 min-w-[320px] max-w-[360px] pointer-events-auto">
+      <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-2xl rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] border border-white/60 dark:border-white/10 p-5 flex flex-col gap-4 min-w-[320px] max-w-[360px] pointer-events-auto">
         <div className="flex flex-col gap-1">
-          <div className="font-bold text-slate-900 dark:text-white text-lg">移除组件</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">确定要隐藏这个小组件吗？</div>
+          <div className="font-bold text-zinc-900 dark:text-white text-lg">移除组件</div>
+          <div className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">确定要隐藏这个小组件吗？</div>
         </div>
         <div className="flex justify-end gap-3 mt-2">
-          <Button variant="ghost" className="rounded-full font-semibold hover:bg-slate-100 dark:hover:bg-slate-700" onClick={() => toast.dismiss(t)}>取消</Button>
-          <Button className="rounded-full bg-red-500 hover:bg-red-600 text-white font-semibold shadow-md shadow-red-500/20" onClick={() => {
-            setLayout(prev => {
-              const newLayout = prev.filter(l => l.i !== id)
-              localStorage.setItem('dashboard-layout', JSON.stringify(newLayout))
-              return newLayout
-            })
+          <Button variant="ghost" className="rounded-full font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => toast.dismiss(t)}>取消</Button>
+          <Button className="rounded-full bg-red-500 hover:bg-red-600 text-white font-semibold shadow-sm shadow-red-500/20" onClick={() => {
+            /* 真正的移除：只改 layout + 落库。
+               ⚠️ 它**不能**直接调 —— 必须先播「收 + 粒子飘散」（dissolveWidget），
+                  300ms 后再执行这个回调。一上来就 remove，卡片会「瞬间消失 + 网格跳一下」，
+                  既看不出材质被解离，也看不出其余卡片回流补位（这正是华为那套动效的两段节奏）。 */
+            const commitRemoval = () => {
+              setLayout(prev => {
+                const newLayout = prev.filter(l => l.i !== id)
+                localStorage.setItem('dashboard-layout', JSON.stringify(newLayout))
+                return newLayout
+              })
+            }
+            dissolveWidget(id, commitRemoval)
             toast.dismiss(t)
             toast.success("已移除小组件", {
-              className: "rounded-full backdrop-blur-md bg-white/90 dark:bg-slate-800/90 border-white/60 dark:border-white/10 shadow-lg"
+              className: "rounded-full backdrop-blur-md bg-white/90 dark:bg-zinc-800/90 border-white/60 dark:border-white/10 shadow-lg"
             })
           }}>确定移除</Button>
         </div>
@@ -438,21 +472,21 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
   // Show loading state while checking authentication
   if (isLoadingUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <div className="animate-in fade-in duration-500">
-          <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50" />
+          <div className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50" />
           <div className="p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="h-12 w-80 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
-              <div className="h-4 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-8" />
+            <div className="max-w-[1400px] mx-auto">
+              <div className="h-12 w-80 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse mb-2" />
+              <div className="h-4 w-96 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-8" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                  <div key={i} className="h-32 bg-zinc-200 dark:bg-zinc-800 rounded-2xl animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
                 ))}
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
-                <div className="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                <div className="h-72 bg-zinc-200 dark:bg-zinc-800 rounded-2xl animate-pulse" />
+                <div className="h-72 bg-zinc-200 dark:bg-zinc-800 rounded-2xl animate-pulse" />
               </div>
             </div>
           </div>
@@ -477,6 +511,10 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
       }}
     >
     <>
+      {/* 沉浸光感材质（唯一来源）+ 本页的氛围层与小组件卡补充
+          ⚠️ 必须用**普通 <style>**（不是 styled-jsx）：styled-jsx 的模板串不接受运行时插值，
+             而 MATERIAL_CSS 是从 material-css.ts 引入的共享常量。 */}
+      <style>{MATERIAL_CSS + DASHBOARD_MATERIAL_CSS}</style>
       <style jsx global>{`
         @keyframes rain-dashboard {
           0% { transform: translateY(-100%); opacity: 0; }
@@ -497,8 +535,18 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
         .animate-grow-bar { animation: grow-bar 0.8s ease-out; }
       `}</style>
       <div className="relative min-h-screen w-screen h-screen overflow-hidden text-foreground">
-        <div className="absolute inset-0" style={{ background: BERRY_THEME.apple.canvasGradient }} />
-        <div className="absolute inset-0 hidden dark:block dark:bg-[#0B1220]" />
+        {/* 画布底。⚠️ 这两层是**不透明**的：桌面端玻璃壳打开时它们会把窗口背后那层
+            acrylic 挡死，卡片因此没有东西可透 —— 表现就是用户说的「深色模式下没有磨砂透明」。
+            所以给它们挂了 dash-canvas-layer 类，由 globals.css 在 html[data-glass-shell="on"]
+            下强制让位（第一层透明、第二层 display:none），浏览器部署下行为不变。 */}
+        <div className="absolute inset-0 dash-canvas-layer" style={{ background: BERRY_THEME.apple.canvasGradient }} />
+        <div className="absolute inset-0 hidden dark:block dark:bg-zinc-950 dash-canvas-layer dash-canvas-layer--dark" />
+        {/* 沉浸光感 · 氛围层 —— 2026-10-22 已按用户要求**从这里移除**。
+            原因不是"这层做得不好"，而是判据：氛围光只为「让玻璃有东西可透」而存在。
+            数据看板是 iOS 小组件风、底色接近纯白、卡又密，铺一层彩色光带之后
+            整页读起来是"彩色页面"而不是"看数据的页面"（用户原话：好丑）。
+            移除后本页走「无景」分支：卡片由 material-css.ts 的场景轴自动退成实色表面。
+            ⚠️ 不要单独把它加回来 —— 没有氛围光的页面挂玻璃材质 = 一块没有光的淡白板。 */}
 
         {/* Daily Briefing Dynamic Island */}
         <DailyBriefingIsland
@@ -511,12 +559,13 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
         {/* Global click to close context menu */}
         {contextMenuState && (
           <div
-            className="fixed inset-0 z-40 bg-black/5 backdrop-blur-[1px]"
+            className="fixed inset-0 z-40 bg-black/5 dc-gblur"
+            style={{ "--gblur": "1px" } as React.CSSProperties}
             onClick={() => setContextMenuState(null)}
           />
         )}
 
-        <div className="relative grid grid-rows-[72px_1fr] h-full w-full">
+        <div className="relative grid grid-rows-[var(--header-h,72px)_1fr] h-full w-full">
           {/* Header */}
           <PageHeader user={currentUser}>
             <PageHeaderRight
@@ -603,7 +652,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
             className="relative px-8 pb-8 pt-6 overflow-y-auto h-full w-full custom-scrollbar"
             data-lenis-prevent
           >
-            <div className="w-full max-w-[1600px] mx-auto mb-6">
+            <div className="w-full max-w-[1400px] mx-auto mb-6">
               <TopBanner
                 userName={currentUser.username || currentUser.email || "用户"}
                 deviceData={deviceData}
@@ -627,6 +676,14 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
               />
             </div>
 
+            {/* AI 每日洞察 —— 顶栏 hero 横幅。
+                原先这份洞察被塞在网格的 4×4 槽位里（且存在第二份重复实现）；
+                现在网格槽位让给「环境时段热力图」，AI 洞察改为宽幅横幅，
+                顺带把 public/ip 的 3D 图标（实物感资产）用起来。 */}
+            <div className="w-full max-w-[1400px] mx-auto mb-6">
+              <AiInsightCard className="h-full" />
+            </div>
+
             <div id="dashboard-charts" className="w-full min-h-full">
               <GridLayout
                 className="layout"
@@ -642,13 +699,13 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                 preventCollision={true}
                 margin={[16, 16]}
               >
-                {layout.find(l => l.i === 'ai-insight') && (
-                  <div key="ai-insight">
-                    <AIInsightWidget
-                      size={getCurrentWidgetSize('ai-insight')}
+                {layout.find(l => l.i === 'heatmap') && (
+                  <div key="heatmap" data-widget-id="heatmap">
+                    <HeatmapWidget
+                      size={getCurrentWidgetSize('heatmap')}
                       className="h-full"
                       isEditing={isEditMode}
-                      widgetId="ai-insight"
+                      widgetId="heatmap"
                       onRemove={handleRemoveWidget}
                       onContextMenu={handleWidgetContextMenu}
                       onLongPress={handleWidgetLongPress}
@@ -656,7 +713,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                   </div>
                 )}
                 {layout.find(l => l.i === 'humidity') && (
-                  <div key="humidity">
+                  <div key="humidity" data-widget-id="humidity">
                     <HumidityWidget
                       value={deviceData ? deviceData.humidity : 0}
                       size={getCurrentWidgetSize('humidity')}
@@ -672,7 +729,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 会员卡片 */}
                 {layout.find(l => l.i === 'membership') && (
-                  <div key="membership">
+                  <div key="membership" data-widget-id="membership">
                     <MembershipCard
                       size={getCurrentWidgetSize('membership')}
                       className="h-full"
@@ -687,7 +744,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 温度 */}
                 {layout.find(l => l.i === 'temperature') && (
-                  <div key="temperature">
+                  <div key="temperature" data-widget-id="temperature">
                     <TemperatureWidget
                       value={deviceData ? deviceData.temperature : 0}
                       trend={deviceData ? 'stable' : 'stable'}
@@ -704,7 +761,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 光照 */}
                 {layout.find(l => l.i === 'light') && (
-                  <div key="light">
+                  <div key="light" data-widget-id="light">
                     <LightWidget
                       value={deviceData ? deviceData.light : 0}
                       size={getCurrentWidgetSize('light')}
@@ -720,7 +777,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* CO2 */}
                 {layout.find(l => l.i === 'co2') && (
-                  <div key="co2">
+                  <div key="co2" data-widget-id="co2">
                     <CO2Widget
                       value={deviceData ? deviceData.co2 : 400}
                       size={getCurrentWidgetSize('co2')}
@@ -736,7 +793,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 土壤湿度 */}
                 {layout.find(l => l.i === 'soil') && (
-                  <div key="soil">
+                  <div key="soil" data-widget-id="soil">
                     <SoilWidget
                       moisture={deviceData ? deviceData.earth_water : 0}
                       fertility={(() => {
@@ -760,7 +817,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 土壤肥力 */}
                 {layout.find(l => l.i === 'fertility') && (
-                  <div key="fertility">
+                  <div key="fertility" data-widget-id="fertility">
                     {(() => {
                       const fertSize = getCurrentWidgetSize('fertility')
                       const fertilityValue = (() => {
@@ -834,7 +891,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 氮含量 */}
                 {layout.find(l => l.i === 'nitrogen') && (
-                  <div key="nitrogen">
+                  <div key="nitrogen" data-widget-id="nitrogen">
                     <NutrientWidget
                       type="N"
                       value={deviceData ? deviceData.earth_n : '--'}
@@ -851,7 +908,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 磷含量 */}
                 {layout.find(l => l.i === 'phosphorus') && (
-                  <div key="phosphorus">
+                  <div key="phosphorus" data-widget-id="phosphorus">
                     <NutrientWidget
                       type="P"
                       value={deviceData ? deviceData.earth_p : '--'}
@@ -868,7 +925,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 钾含量 */}
                 {layout.find(l => l.i === 'potassium') && (
-                  <div key="potassium">
+                  <div key="potassium" data-widget-id="potassium">
                     <NutrientWidget
                       type="K"
                       value={deviceData ? deviceData.earth_k : '--'}
@@ -885,7 +942,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 光谱分析 (Only show in full version) */}
                 {version === 'full' && layout.find(l => l.i === 'spectral') && (
-                  <div key="spectral">
+                  <div key="spectral" data-widget-id="spectral">
                     <SpectralCard
                       data={deviceData}
                       isEditing={isEditMode}
@@ -899,7 +956,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 天气信息 */}
                 {layout.find(l => l.i === 'weather') && (
-                  <div key="weather">
+                  <div key="weather" data-widget-id="weather">
                     <WeatherWidget
                       temperature={deviceData?.temperature || weatherData?.current?.temp_c || 0}
                       condition={weatherData?.current?.condition?.text || '晴朗'}
@@ -922,7 +979,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
                 {/* 天气预报 */}
                 {layout.find(l => l.i === 'weather-forecast') && (
-                  <div key="weather-forecast">
+                  <div key="weather-forecast" data-widget-id="weather-forecast">
                     <WeatherForecastWidget
                       temperature={deviceData?.temperature || weatherData?.current?.temp_c || 0}
                       condition={weatherData?.current?.condition?.text || '晴朗'}
@@ -942,7 +999,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
 
               </GridLayout>
 
-              {/* Context Menu Overlay */}
+              {/* Context Menu Overlay —— 小组件右键菜单（HDS ULTRA 档：弹层/菜单，模糊最重、底最实） */}
               {contextMenuState && (
                 <div
                   className="fixed z-50 animate-in fade-in zoom-in-95 duration-200"
@@ -952,72 +1009,75 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                     transform: 'translate(0, 10px)'
                   }}
                 >
-                  <div style={{
-                    background: 'var(--berry-popover)',
-                    borderRadius: BERRY_THEME.radius.md,
-                    boxShadow: BERRY_THEME.shadow.lg,
-                    border: '1px solid var(--berry-popover-border)',
-                    padding: 8,
-                    minWidth: 220,
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}>
-                    {/* Size Selector */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
+                  {/* ⚠️ 材质必须写进 className，**不能**留在内联 style：
+                      内联的 background / border / boxShadow 优先级高于任何 CSS 类，
+                      留着内联实色底 = 沉浸光感永远不生效（改了等于没改）。
+                      内联只保留几何（圆角 / 内边距 / 最小宽度）。 */}
+                  <div
+                    className="dc-mat dc-mat--ultra"
+                    style={{
+                      borderRadius: BERRY_THEME.radius.md,
                       padding: 8,
-                      background: 'var(--berry-popover-hover)',
-                      borderRadius: BERRY_THEME.radius.sm,
-                      marginBottom: 8,
-                    }}>
-                      <button
-                        className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
-                        style={{
-                          padding: 12,
-                          borderRadius: BERRY_THEME.radius.sm,
-                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? 'var(--berry-popover)' : 'transparent',
-                          boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'small' ? BERRY_THEME.shadow.sm : 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => handleResizeWidget(contextMenuState.widgetId, 'small')}
-                      >
-                        <div style={{ width: 20, height: 20, border: '1.5px solid var(--berry-label-quaternary)', borderRadius: 6 }} />
-                      </button>
-                      <button
-                        className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
-                        style={{
-                          padding: 12,
-                          borderRadius: BERRY_THEME.radius.sm,
-                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? 'var(--berry-popover)' : 'transparent',
-                          boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'medium' ? BERRY_THEME.shadow.sm : 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => handleResizeWidget(contextMenuState.widgetId, 'medium')}
-                      >
-                        <div style={{ width: 32, height: 20, border: '1.5px solid var(--berry-label-quaternary)', borderRadius: 6 }} />
-                      </button>
-                      <button
-                        className={`flex flex-col items-center justify-center transition-all ${getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}
-                        style={{
-                          padding: 12,
-                          borderRadius: BERRY_THEME.radius.sm,
-                          background: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? 'var(--berry-popover)' : 'transparent',
-                          boxShadow: getCurrentWidgetSize(contextMenuState.widgetId) === 'large' ? BERRY_THEME.shadow.sm : 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => handleResizeWidget(contextMenuState.widgetId, 'large')}
-                      >
-                        <div style={{ width: 32, height: 32, border: '1.5px solid var(--berry-label-quaternary)', borderRadius: 8 }} />
-                      </button>
+                      minWidth: 220,
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    {/* Size Selector —— HDS 分段控件：滑槽（--track.dc-seg）承托、选中滑块（--thumb）浮起。
+                        原来用 var(--berry-popover) 当"选中底"，那是**实色板**；
+                        换成材质滑块（自带模糊 + 内缘光）之后才真的读得出"浮起"。
+                        ⚠️ 必须带 .dc-seg：裸 .dc-ctrl--track 的底是中性灰 rgba(120,120,128,.26)，
+                           它同时兼着 antd Switch 关态（不能染绿），所以**滑槽的品牌色由 .dc-seg 提供**。
+                           实测不带 .dc-seg 时，这块滑槽合成出彩度只有 5 的死灰，
+                           而周围菜单/画布彩度 18~24（都吸到了背后的绿色环境光）→ 视觉上唯一的灰板。 */}
+                    <div
+                      className="dc-seg dc-ctrl--track flex items-center justify-between"
+                      style={{
+                        padding: 8,
+                        borderRadius: BERRY_THEME.radius.sm,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {([
+                        ['small', 20, 20, 6],
+                        ['medium', 32, 20, 6],
+                        ['large', 32, 32, 8],
+                      ] as const).map(([sz, w, h, r]) => {
+                        const active = getCurrentWidgetSize(contextMenuState.widgetId) === sz
+                        return (
+                          <button
+                            key={sz}
+                            className={cn(
+                              "dc-ctrl--press flex flex-col items-center justify-center",
+                              active ? "dc-ctrl--thumb" : "opacity-60 hover:opacity-100"
+                            )}
+                            style={{
+                              padding: 12,
+                              borderRadius: BERRY_THEME.radius.sm,
+                              border: 'none',
+                              cursor: 'pointer',
+                            }}
+                            onClick={() => handleResizeWidget(contextMenuState.widgetId, sz)}
+                          >
+                            {/* 尺寸预览方框的描边 = 选中态的唯一强调色。
+                                原来一律用 --berry-label-quaternary(#AEAEB2)：那是 iOS systemGray3，
+                                **零色相**，于是"选中"和"未选中"只差一个亮度台阶 —— 既不显眼，
+                                也和全站「唯一强调色 = 品牌绿」的约定（设备控制页同一控件用品牌墨绿文字）不一致。
+                                现在：选中 → 品牌墨绿(--br-brand-ink，浅底 3.6:1 / 深底为亮薄荷)，
+                                      未选中 → 三级中性灰（比四级深一档，不再像幽灵）。 */}
+                            <div style={{
+                              width: w,
+                              height: h,
+                              border: `1.5px solid ${active ? 'var(--br-brand-ink)' : 'var(--berry-label-tertiary)'}`,
+                              borderRadius: r,
+                            }} />
+                          </button>
+                        )
+                      })}
                     </div>
 
                     <button
-                      className="flex items-center gap-3 transition-colors text-left w-full"
+                      className="dc-ctrl--press flex items-center gap-3 text-left w-full"
                       style={{
                         padding: '10px 16px',
                         borderRadius: BERRY_THEME.radius.sm,
@@ -1035,14 +1095,14 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                         setContextMenuState(null)
                       }}
                     >
-                      <IconApplicationOne size={14} strokeWidth={1.75} color="var(--berry-label-quaternary)" />
+                      <IconApplicationOne size={14} strokeWidth={2} color="var(--berry-label-quaternary)" />
                       编辑主屏幕
                     </button>
 
                     <div style={{ height: 1, background: 'var(--berry-popover-border)', margin: '4px 0' }} />
 
                     <button
-                      className="flex items-center gap-3 transition-colors text-left w-full"
+                      className="dc-ctrl--press flex items-center gap-3 text-left w-full"
                       style={{
                         padding: '10px 16px',
                         borderRadius: BERRY_THEME.radius.sm,
@@ -1060,7 +1120,7 @@ export default function DashboardClient({ version = 'full' }: { version?: 'full'
                         setContextMenuState(null)
                       }}
                     >
-                      <IconMinus size={14} strokeWidth={1.75} />
+                      <IconMinus size={14} strokeWidth={2} />
                       移除小组件
                     </button>
                   </div>

@@ -29,13 +29,15 @@ export const DEVICE_CONTROL_INSTRUCTION_COMPACT = `
 4. \`reset_camera\` — 复位云台到原点
    - 无参数，工具会阻塞等待复位完成
 
-5. \`take_camera_snapshot\` — 摄像头抓帧截图（返回多模态图片）
+5. \`take_camera_snapshot\` — 摄像头抓帧截图
    - 参数：\`camera_id\` ("a" 或 "b"，默认 "a")
-   - 返回图片数据，你可以在下一轮基于图片内容推理
+   - **用户说"给我看看""拍张照""现在长什么样""截个图""长势怎么样"就等于点名要用它 —— 直接调用**
+   - 抓到的画面由系统**自动发送给用户**：不要粘贴图片/base64，也不要回答"我无法发图片"
+   - 拿到图后（若你是视觉模型）用一两句话说明画面内容与建议即可
 
-6. \`move_camera_and_look\` — 移动云台+截图组合（最常用视觉巡检入口）
+6. \`move_camera_and_look\` — 移动云台+抓帧组合（"看看左边那株""转过去拍一张"用这个）
    - 参数：\`direction\`，\`distance_mm\`，\`camera_id\`，\`query\` (本次观察目的)
-   - 返回移动信息和截图，可基于图片回答用户问题
+   - 一次调用完成"移动+稳定+截图"，画面同样由系统自动发送给用户
 
 ### 调用规则
 - **必须使用 Function Calling 接口调用上述工具，严禁输出 JSON 代码块**
@@ -52,6 +54,7 @@ export const TOOL_USAGE_INSTRUCTION_COMPACT = `
 - 严禁编造数据、链接或引用
 - 工具调用由系统自动处理和显示
 - **工具调用后必须输出最终回答**：获取到工具结果后，必须基于结果生成完整的文字回复给用户，禁止只调用工具不回答
+- **严禁在正文里"宣布"工具调用**：禁止在回复文本中单独写出工具名（如 automation_strategy_list、toggle_relay）来宣称"我将调用 xxx"。要调用就通过 function calling 真正发起 tool_call；如果当前没有对应工具可用，直接用自然语言告知用户该功能暂不可用，不要在正文里提工具名。工具名只允许出现在 tool_call 的 function.name 字段里，出现在正文里会被用户直接看到，非常难看。
 `;
 
 export const CITATION_INSTRUCTION_COMPACT = `
@@ -125,7 +128,7 @@ export const SVG_ILLU_INSTRUCTION_COMPACT = `
 <svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="680" height="420" fill="#ffffff"/>
   <g><!-- 大棚轮廓 -->
-    <path d="M60 300 L340 120 L620 300 Z" fill="#E3F2FD" stroke="#42A5F5" stroke-width="2"/>
+    <path d="M60 300 L340 120 L620 300 Z" fill="#F4F4F5" stroke="#42A5F5" stroke-width="2"/>
   </g>
   <g><!-- 草莓植株 -->
     <circle cx="340" cy="260" r="12" fill="#4CAF50"/>
@@ -182,16 +185,55 @@ export const NO_REASONING_INSTRUCTION_COMPACT = `
 用户未开启深度思考模式，请直接给出答案，不要展示中间推理步骤。
 `;
 
-export const MCP_TOOLS_INSTRUCTION_COMPACT = (toolNames: string[]) => `
-## 可用工具
-${toolNames.map(name => `- ${name}`).join('\n')}
+/**
+ * 可用工具清单（只给"名字 + 一句话用途"，不含参数结构）
+ *
+ * 为什么要这样：完整 schema 每请求约 38 个工具 / 35KB / 约 10k token，
+ * 而绝大多数对话用不到工具。改为清单 + load_tool_schema 按需加载后，
+ * 模型仍知道"自己有哪些能力"，但不必为每个请求背上全部参数定义。
+ *
+ * 兼容：入参允许 string[]（旧调用方式）或 {name,summary}[]。
+ */
+export const MCP_TOOLS_INSTRUCTION_COMPACT = (
+  tools: Array<string | { name: string; summary: string }>
+) => {
+  const entries = (tools || []).map(t =>
+    typeof t === 'string' ? { name: t, summary: '' } : t
+  )
+  const list = entries
+    .map(t => (t.summary ? `- \`${t.name}\` — ${t.summary}` : `- \`${t.name}\``))
+    .join('\n')
+  return `## 可用工具（共 ${entries.length} 个）
+以下是你可用的全部工具，**只列了用途、没有参数结构**：
 
-**调用规则**:
-1. 使用 Native Function Calling
-2. 搜索类请求必须调用工具，严禁凭记忆回答
-3. 严禁编造链接或数据
-4. 优先使用工具数据而非猜测
-`;
+${list}
+
+**使用规则**:
+1. **参数定义不在上面，直接调用会缺参数**：要调用某个工具时，先调用 load_tool_schema（传 tool_names 数组，例如 ["automation_strategy_list"]）取回它的完整参数定义，下一轮即可正常调用；
+2. 一次可加载多个；已经加载过的（参数定义已出现在可用工具列表里）无需重复加载；
+3. 先判断这件事需不需要工具：不需要就直接用自己的知识回答，不要为了用工具而用工具；
+4. 使用 Native Function Calling 发起调用；严禁在正文里写出工具名或 JSON 来"假装调用"；
+5. 搜索类请求必须调用工具，严禁凭记忆回答；严禁编造链接或数据；
+6. **植株/叶片/果实的图片诊断一律走 \`diagnose_plant_image\`**：
+   - 用户发了照片并问"怎么了/是不是病/打什么药" → 必须先调用它（图片由系统自动交给工具，你不需要传 base64），严禁凭肉眼印象下结论，也严禁自己手写 <DIAGNOSIS> 标签；
+   - 用户**之前发过**照片、现在追问"病害部位图 / 遮罩图 / 把病的地方标出来 / 圈一下哪里病了" → **同样必须再调用它**（系统会自动沿用那张原图），由它的定位结果在用户本人照片上生成遮罩图；
+   - ⛔ 严禁用 ILLU / SVG 手绘"病害分布示意图"来替代 —— 用户要的是在自己那张照片上标注，不是一张新插画。
+7. **用户问「自己的」病害历史与处置进展时，一律先查病历，不要凭记忆答**：
+   - 平台会把每一次图像诊断自动沉淀成「病历」（含病名、严重度、状态、复诊疗效）。涉及这类问题必须先调工具：
+     例「我这茬草莓得过几次病」「有什么还没处理的」「上次那个灰霉病后来好了吗」「我一共治好了几例」「治愈率多少」；
+   - 先 \`query_medical_records\` 拿列表与总览统计，需要展开某一例时再用 \`get_medical_record\` 取它的诊断与复诊时间轴；
+   - 如果查到 0 条，就**如实说"还没有病历"**，并告诉用户拍一张植株照片做一次诊断即可自动入档 ——
+     严禁把教科书知识伪装成"你的历史记录"，也严禁编造日期、次数或疗效。
+8. **改 / 删病历是写操作，必须守住三条**：
+   - **先定位再动手**：先用 \`query_medical_records\` 锁定**唯一**那一条（必要时 \`get_medical_record\` 看详情），
+     拿不准就先问"你说的是 #几（病名 · 首诊日期）吗"。严禁在没锁定 id 时擅自改删。
+   - **删除默认归档**：用户说"删掉 / 清掉 / 移除 / 不要了" → 调 \`delete_medical_record\` 且**不传 permanent**
+     （= 归档：数据不丢、可恢复），回复里要讲明"已归档，可以恢复"。**只有**用户明确说"永久删除 / 彻底删掉 /
+     从数据库里删"时才传 \`permanent: true\`。含糊表述一律按归档处理。
+   - **改病名是纠错不是修饰**：只有用户明确指出"判错了 / 其实是 X 病"才改 \`disease_name\`，且要先复述"原来是 A，改成 B"；
+     只是"加个备注 / 标记已打药 / 标记已解决"就只动 \`note\` 或 \`status\`，别顺手改写诊断结论。
+`
+};
 
 export const CONTEXT_INSTRUCTION_COMPACT = `
 ## 当前上下文
@@ -753,15 +795,37 @@ export const CLARIFY_INSTRUCTION_COMPACT = `
   - \`required\`：是否必填
   - \`help\`：可选帮助文字
 - \`options\`：可选，快速选项让用户一键选择（无需填表），2-4 个
+- \`questions\`：🔥 **推荐（分步提问）** — 一次调用最多 4 个问题，前端渲染成「‹ 1/N › + 跳过所有」的分步卡片，用户逐题点选，每题都能「补充其他内容」
+  - \`title\`：该问题正文（≤20 字）
+  - \`options\`：该问题的 2-5 个选项 \`[{id,label}]\`
+  - \`context\` / \`multiple\` / \`fields\`：同顶层语义（可选）
+  - ⚠️ 用了 \`questions\` 就不要再传顶层 \`title\`/\`options\`/\`fields\`
 
-### 🎯 fields vs options 选择策略
-- **有明确选项**（如选棚号、选症状类型）→ 优先用 \`options\`，用户一键点击
+### 🎯 fields vs options vs questions 选择策略
+- **有明确选项**（如选棚号、选症状类型）→ 用 \`options\`，用户一键点击
 - **需要输入具体值**（如温度目标值、时长）→ 用 \`fields\` 表单
+- **要一次性确定多个维度**（如"研究方向 / 侧重场景 / 成果形式"）→ 用 \`questions\` 分步提问，**不要来回追问 3 轮**
 - **混合场景** → 同时提供 \`options\`（快速选择）和 \`fields\`（补充细节）
-- **禁止纯文字提问**：不要只输出 \`questions\` 让用户打字，必须提供 \`fields\` 或 \`options\`
+- **禁止纯文字提问**：不要只输出文字让用户打字，必须提供 \`fields\`、\`options\` 或 \`questions\`（每题都要有 options）
+
+### ⭐ 推荐方案规范（重要）
+- 当某选项是**你建议的最优解**时，把它放在**选项列表第一位**，并在 label 末尾标注「（推荐）」
+  - 例：\`[{id:"sensor",label:"传感器阈值触发（推荐）"},{id:"schedule",label:"定时触发"}]\`
+- **不要新增字段**来表达推荐（无需 \`recommended:true\`）—— 靠"置顶 + 文案标注"即可，前端零解析成本
+- 每个问题**最多标注一个推荐项**；若无明显最优解，不要硬凑推荐
+
+### 🔀 多选规范
+- \`multiple\` **默认关闭（单选）**，仅在多选确实成立时才置 \`true\`
+- 开启多选时，确保选项之间**互不冲突**（不能让用户选出互相矛盾的组合）
+
+### 🚫 绝对禁止的提问
+- **禁止确认类提问**：不要拿它问"这个方案行不行？""我可以继续吗？"——这属于计划审批，应用 \`exit_plan_mode\`；用户看不到完整方案时的"确认"毫无意义
+- **禁止明知故问**：能读取代码/设备数据/上下文推断出的信息，直接推断，不要反问用户
+- **禁止连续轰炸**：同一轮对话不要反复弹澄清卡（用户已回答的问题不再问）
 
 ### ✅ 好的澄清设计
 - options: \[{id:"gh1",label:"1号棚"},{id:"gh2",label:"2号棚"}\] + context:"不同大棚环境数据不同"
+- options: \[{id:"auto",label:"自动灌溉（推荐）"},{id:"manual",label:"手动确认后灌溉"}\]
 - fields: \[{key:"symptom",label:"症状",type:"select",options:\[{label:"叶片变色",value:"leaf"},{label:"果实异常",value:"fruit"}\],required:true}\]
 - fields: \[{key:"target_temp",label:"目标温度",type:"number",unit:"°C",min:10,max:35,step:0.5,default:22,required:true,help:"草莓适宜 18-25°C"}\]
 
@@ -769,13 +833,14 @@ export const CLARIFY_INSTRUCTION_COMPACT = `
 - 只输出文字问题让用户打字（必须提供 fields 或 options）
 - 5 个以上表单字段（用户压力大，最多 3 个）
 - 笼统的 options 如 \[{id:"a",label:"是"},{id:"b",label:"否"}\]（无信息量）
+- 无意义地标注多个推荐项，或没有依据地乱标「（推荐）」
 
 ### 🔄 行为规范
 1. **调用 ask_user_question 后立即停止**，不要继续执行任何操作，等待用户回复
 2. **不要同时使用 ask_user_question 和 <CHECKPOINT>**：意图不明确时用 ask_user_question，参数缺失时用 CHECKPOINT
 3. **用户回答后不要重复提问**：除非回答仍然模糊
 4. **结合已知信息**：如果能从设备数据/上下文推断，直接推断而非提问
-5. **一次只问一轮**：不要在同一回复中多次调用 ask_user_question
+5. **一轮一调用，但可分步**：不要在同一回复中多次调用 ask_user_question；若确实需要确认多个维度，用**一次** \`questions\`（≤4 题）问完
 `;
 
 
@@ -808,7 +873,8 @@ export const PLAN_MODE_INSTRUCTION_COMPACT = `
    - 搜索资料：\`mcp_brave_search\` / \`mcp_exa_search\`
    - 抓取网页：\`mcp_firecrawl_scrape\`
    - 查询已有任务：\`cron_list\` / \`task_list\`
-   - **禁止使用**：设备控制、cron_create、task_create 等有副作用的工具
+   - 查询已有自动化策略：\`automation_strategy_list\` / \`automation_strategy_detail\`
+   - **禁止使用**：设备控制、cron_create、task_create、automation_strategy_update、automation_strategy_delete 等有副作用的工具
 3. **提交计划**：完成调研后调用 \`exit_plan_mode\` 工具，参数：
    - \`title\`：≤20 字，计划标题（如"本周草莓环境管理方案"）
    - \`summary\`：≤150 字，简述计划目标和依据
@@ -979,7 +1045,7 @@ ${disabledDescriptions.join('\n')}
  */
 function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): string {
   if (!aiFeatures) {
-    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\n```json\n{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" }\n  ]\n}\n```\n</AUTOMATION_STRATEGY>\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。\n- <CHART>{"type":"line|bar|area|pie","data":[{"name":"...","value":0}],"xField":"name","yField":"value"}</CHART> - 图表（type: line/bar/area/pie，xField/yField 默认 name/value）\n- <ILLU>…完整 <svg>…</svg>…</ILLU> - 创意插画（画面型图示：病虫害症状/植株结构/场景示意，扁平科普插画风，详见插画绘制能力章节）'
+    return TASK_LIST_INSTRUCTION_COMPACT + '\n\n## 可用的 UI 标签\n- <TASK_LIST></TASK_LIST> - 任务规划器\n- <DEVICE_BENTO></DEVICE_BENTO> - 设备状态卡片\n- <CONTROL_BENTO></CONTROL_BENTO> - 设备控制面板\n- <MONITOR></MONITOR> - 监控画面\n- <SCHEDULED_TASKS></SCHEDULED_TASKS> - 自动化定时任务列表\n- <AUTOMATION_STRATEGY description="策略简述">\n```json\n{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "触发条件1", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断条件" } },\n    { "id": "A1", "type": "actionNode",  "data": { "label": "执行动作" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" }\n  ]\n}\n```\n</AUTOMATION_STRATEGY>\n**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须调用 automation_strategy_create 工具落库（<AUTOMATION_STRATEGY> 标签仅用于展示，不会保存）。**禁止**只输出 JSON 标签而不调工具，**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON。description ≤30 字。节点 type 必须为 triggerNode/logicNode/actionNode 之一。创建新策略请改调用 automation_strategy_create 工具直接落库，此标签仅用于在对话中展示策略图；查看/修改/删除已有策略用 automation_strategy_list / automation_strategy_detail / automation_strategy_update / automation_strategy_delete 工具（修改先取原图再提交完整图，更新成功后不要再输出策略 JSON，删除前需向用户确认目标）。\n- <CHART>{"type":"line|bar|area|pie","data":[{"name":"...","value":0}],"xField":"name","yField":"value"}</CHART> - 图表（type: line/bar/area/pie，xField/yField 默认 name/value）\n- <ILLU>…完整 <svg>…</svg>…</ILLU> - 创意插画（画面型图示：病虫害症状/植株结构/场景示意，扁平科普插画风，详见插画绘制能力章节）'
   }
 
   const enabledTags: string[] = []
@@ -1007,7 +1073,7 @@ function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): strin
     const strategyJsonExample = '{\n  "nodes": [\n    { "id": "T1", "type": "triggerNode", "data": { "label": "温度超过30℃", "type": "sensor" } },\n    { "id": "L1", "type": "logicNode",   "data": { "label": "判断温度阈值", "type": "compare" } },\n    { "id": "A1", "type": "aiNode",       "data": { "label": "AI 诊断原因", "type": "llm" } },\n    { "id": "A2", "type": "actionNode",  "data": { "label": "打开通风设备", "type": "device" } }\n  ],\n  "edges": [\n    { "id": "e1", "source": "T1", "target": "L1" },\n    { "id": "e2", "source": "L1", "target": "A1" },\n    { "id": "e3", "source": "A1", "target": "A2" }\n  ]\n}'
     const strategyTag = '- <AUTOMATION_STRATEGY description="策略简述">\n```json\n' + strategyJsonExample + '\n```\n</AUTOMATION_STRATEGY>'
     const strategyRequirements = [
-      '**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须且只能输出此标签包裹的 JSON。**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON，**禁止**在标签外写多余的解释文字。description 属性值必须是 ≤30 字的简短描述（如"草莓黄叶智能诊断与干预策略"）。',
+      '**⚠️ 强制要求**：当用户要求"生成/创建/做一个自动化策略"时，必须调用 automation_strategy_create 工具落库（<AUTOMATION_STRATEGY> 标签仅用于展示，不会保存）。**禁止**只输出 JSON 标签而不调工具，**禁止**用"策略说明/触发条件/诊断逻辑"等纯文本章节代替 JSON，**禁止**在标签外写多余的解释文字。description 属性值必须是 ≤30 字的简短描述（如"草莓黄叶智能诊断与干预策略"）。',
       '',
       '**节点 type 必须是以下 4 种之一**（不支持其他类型）：',
       '- `triggerNode`（触发器）：data.type ∈ {sensor(传感器) | schedule(定时) | device(设备状态) | manual(手动)}',
@@ -1015,7 +1081,15 @@ function generateEnabledFeaturesInstruction(aiFeatures?: AIFeatureConfig): strin
       '- `aiNode`（AI 智能节点）：data.type ∈ {llm(LLM 分析) | trend(趋势预测) | diagnose(智能诊断) | recommend(智能推荐)}',
       '- `actionNode`（执行动作）：data.type ∈ {device(设备控制) | notification(发送通知) | record(记录日志)}',
       '',
-      'edges 的 source/target 必须对应 nodes 数组中已定义的 id。节点 id 推荐用 T1/T2、AN1/AN2、L1/L2、A1/A2 前缀便于阅读。'
+      'edges 的 source/target 必须对应 nodes 数组中已定义的 id。节点 id 推荐用 T1/T2、AN1/AN2、L1/L2、A1/A2 前缀便于阅读。',
+      '',
+      '**策略管理（automation_strategy_* 工具，AI 可直接新建/修改/删除，无需用户再手动保存）**：<AUTOMATION_STRATEGY> 标签仅用于**在对话中展示策略图**；策略的创建/查看/修改/删除必须走工具：',
+      '- 新建策略 → `automation_strategy_create`（传 name + graph_data 直接写入数据库并返回 rule_id；想在对话里展示这张图可再输出 <AUTOMATION_STRATEGY> 标签）',
+      '- 查看已有策略 → `automation_strategy_list`（返回 rule_id 与摘要）',
+      '- 修改策略内容（调阈值/增删节点）→ `automation_strategy_detail` 取完整原图 → 基于原图修改（保留节点 position 等原有字段）→ `automation_strategy_update` 提交**完整** {nodes, edges}',
+      '- 重命名/改描述/停用/启用 → `automation_strategy_update` 只传 name / description / is_active，无需图数据',
+      '- 删除策略 → `automation_strategy_list` 确认目标，用户未明确指定时先用 ask_user_question 确认 → `automation_strategy_delete`（不可恢复）',
+      '- ⚠️ `automation_strategy_update` 成功后，**禁止**在正文中再输出策略 JSON 或 <AUTOMATION_STRATEGY> 标签（会被渲染成"保存新策略"卡片导致重复创建），用文字总结修改点即可。'
     ].join('\n')
     enabledTags.push(strategyTag + '\n' + strategyRequirements)
   }
@@ -1037,7 +1111,12 @@ export function generateCompactSystemPrompt(options: {
   basePrompt: string;
   enableDeviceControl: boolean;
   enableReasoning: boolean;
-  mcpToolNames: string[];
+  /**
+   * 工具清单：支持纯名字或 {name, summary}。
+   * 实现里 MCP_TOOLS_INSTRUCTION_COMPACT 两种都能渲染 —— 这里把签名对齐实现，
+   * 否则 route.ts 传 toolIndexEntries（{name,summary}[]）会报 TS2322（历史遗留的签名缺口）。
+   */
+  mcpToolNames: Array<string | { name: string; summary: string }>;
   contextCompressed: boolean;
   aiFeatures?: AIFeatureConfig;
   includeScheduleTaskDetail?: boolean;

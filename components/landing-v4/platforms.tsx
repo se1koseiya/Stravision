@@ -8,15 +8,15 @@ import { IconArrowRightUp, IconTime } from "@/components/icon";
 
 /* ------------------------------------------------------------
    平台区 —— 对齐 loomy.xunfei.cn 的 `PlatformSection`（浅色实测值）
-     section     padding 112px 0 128px，底色 #7DE9AC
+     section     padding 112px 0 128px，底色 #6EE7B7
      heading     max-width 640px，h2 45px/700/1.3333/+0.7515px
      grid        4 列 × 308px，gap 16px，上边距 56px
-     card        308×432，padding 32px，圆角 28px，底色 #E6FDEE
+     card        308×432，padding 32px，圆角 28px，底色 #ECFDF5
      artwork     112×112（在流内，非绝对定位）
      copy        上内边距 46px
      h3          31.68px/700/1.25/+0.3168px
      eyebrow     15.2px/700/22.8px，上边距 10.4px，色 #444444
-     desc        15px/400/26.25px，上下外边距 24 / 32，色 #696969
+     desc        15px/400/26.25px，上下外边距 24 / 32，色 #646A73
      action      244×56 满宽胶囊，白底墨字 16px/700，gap 10.4px + 18px 图标
                  不可用态同款胶囊 opacity .62
    ------------------------------------------------------------ */
@@ -69,7 +69,7 @@ const PLATFORMS: Platform[] = [
 export function Platforms() {
   return (
     <section
-      className="relative z-[2] overflow-hidden bg-[#7DE9AC] pb-32 pt-28 dark:bg-[#53BD83]"
+      className="relative z-[2] overflow-hidden bg-[#6EE7B7] pb-32 pt-28 dark:bg-[#53BD83]"
     >
       {/* 装饰空心圆（Loomy PlatformSection 的伪元素） */}
       <span
@@ -97,7 +97,7 @@ export function Platforms() {
               key={p.title}
               {...fadeUp(0.07 * i)}
               className="flex min-h-[27rem] flex-col rounded-[1.75rem] p-8 transition-[transform,box-shadow] duration-200 hover:-translate-y-1.5 hover:shadow-[0_1.5rem_3.5rem_rgba(34,34,34,0.14)]"
-              style={{ background: "#E6FDEE", color: "#222222" }}
+              style={{ background: "#ECFDF5", color: "#222222" }}
             >
               {/* 美术资源：流内 112×112（Loomy PlatformSection_artwork） */}
               <div className="flex size-28 shrink-0 items-center justify-center">
@@ -137,7 +137,7 @@ export function Platforms() {
                   {p.sub}
                 </p>
 
-                <p className="mb-8 mt-6 text-[0.9375rem] leading-[1.75]" style={{ color: "#696969" }}>
+                <p className="mb-8 mt-6 text-[0.9375rem] leading-[1.75]" style={{ color: "#646A73" }}>
                   {p.desc}
                 </p>
 

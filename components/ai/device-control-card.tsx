@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DEVICE_IDS, STEPPER } from '@/lib/constants';
 import { motion } from 'framer-motion';
-import { IconArrowRight, IconCheckOne, IconCloseOne, IconFan, IconLight, IconLoading, IconPower, IconUndo, IconWater } from "@/components/icon";
+import { IconCloseOne, IconFan, IconLight, IconLoading, IconPower, IconUndo, IconWater } from "@/components/icon";
+import { ToastConfirm } from "@/components/ui/toast-confirm";
 
 interface DeviceControlCardProps {
   command: any;
@@ -12,9 +14,13 @@ interface DeviceControlCardProps {
   className?: string;
   onExecute?: (command: any) => void;
   onRetry?: () => void; // 重试回调
+  /** 用户忽略（放弃执行）时的回调；不传则仅本卡隐藏执行入口 */
+  onCancel?: (command: any) => void;
 }
 
-export function DeviceControlCard({ command, status = 'executed', error, className, onExecute, onRetry }: DeviceControlCardProps) {
+export function DeviceControlCard({ command, status = 'executed', error, className, onExecute, onRetry, onCancel }: DeviceControlCardProps) {
+  /** 用户点「忽略」后本地落定，避免再次误触执行（不改动父级状态机） */
+  const [ignored, setIgnored] = useState(false);
   // 设备映射与元数据
   const getDeviceMeta = () => {
     const deviceId = command.device;
@@ -47,9 +53,9 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         label: "流体动力",
         desc: isOn ? "启动水利循环" : "切断水源供应",
         icon: IconWater,
-        color: "text-blue-500 dark:text-blue-400",
-        bgGradient: "from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/5",
-        accentColor: "bg-blue-500",
+        color: "text-emerald-500 dark:text-emerald-400",
+        bgGradient: "from-emerald-500/5 to-cyan-500/5 dark:from-emerald-500/10 dark:to-cyan-500/5",
+        accentColor: "bg-emerald-500",
         isOn
       };
     }
@@ -61,7 +67,7 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         desc: isOn ? "启动大气循环" : "关闭通风系统",
         icon: IconFan,
         color: "text-cyan-500 dark:text-cyan-400",
-        bgGradient: "from-cyan-500/5 to-blue-500/5 dark:from-cyan-500/10 dark:to-blue-500/5",
+        bgGradient: "from-cyan-500/5 to-emerald-500/5 dark:from-cyan-500/10 dark:to-emerald-500/5",
         accentColor: "bg-cyan-500",
         isOn
       };
@@ -139,13 +145,19 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
                           meta.name.includes('云台') ||
                           meta.name.includes('视觉巡检');
 
+  /** 用户点了「忽略」且仍停在待确认态 → 整卡弱化；状态一旦推进（loading/executed）即恢复正常 */
+  const dimmed = ignored && status === 'pending';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      /* 🚨 弱化必须走 motion 的 animate，**不能**只加 `opacity-60` 类：
+         framer-motion 会把 animate 里的 opacity 写成 inline style，
+         优先级高于 class → 用类做弱化会被静默盖掉（探针实测 cardOpacity 恒为 1）。 */
+      animate={{ opacity: dimmed ? 0.6 : 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "relative rounded-3xl overflow-hidden w-full",
+        "relative rounded-2xl overflow-hidden w-full",
         "bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-950",
         "border border-zinc-200/50 dark:border-white/5",
         "shadow-lg shadow-black/5 dark:shadow-black/10",
@@ -158,13 +170,14 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
       {/* Status Indicator Bar - 左侧彩色条 */}
       <div className={cn(
         "absolute left-0 top-0 bottom-0 w-1",
+        dimmed ? "bg-zinc-300 dark:bg-zinc-700" :
         status === 'loading' ? "bg-amber-500" :
-        status === 'pending' ? "bg-blue-500" :
+        status === 'pending' ? "bg-emerald-500" :
         status === 'executed' ? (meta.isOn ? "bg-primary" : "bg-zinc-400 dark:bg-zinc-600") : 
         "bg-red-500"
       )} />
 
-      <div className="relative p-5 flex items-center gap-4">
+      <div className="relative p-5 flex flex-wrap items-center gap-4">
         {/* Left Icon Area */}
         <div className="relative shrink-0">
           <div className={cn(
@@ -191,21 +204,21 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         </div>
 
         {/* Middle Content Area */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 basis-[160px]">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               {meta.label}
             </span>
             {status === 'loading' && (
               <div className="flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">执行中</span>
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">执行中</span>
               </div>
             )}
-            {status === 'pending' && (
+            {!dimmed && status === 'pending' && (
               <div className="flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">等待确认</span>
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">等待确认</span>
               </div>
             )}
           </div>
@@ -220,88 +233,40 @@ export function DeviceControlCard({ command, status = 'executed', error, classNa
         </div>
 
         {/* Right Status/Action Area */}
-        <div className="shrink-0">
-          {status === 'loading' ? (
-            <div className="flex flex-col items-center gap-1.5">
-              <div className="size-14 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center">
-                <IconLoading size={24} className="text-amber-600 dark:text-amber-400 animate-spin" strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                执行中
-              </span>
-            </div>
-          ) : status === 'pending' ? (
-            <button 
-              onClick={() => onExecute && onExecute(command)}
-              className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
-            >
-              执行
-              <IconArrowRight size={14} />
-            </button>
+        <div className="ml-auto shrink-0">
+          {dimmed ? (
+            <span className="flex items-center gap-1.5 rounded-full border border-zinc-200 px-3.5 py-2 text-[12px] text-zinc-400 dark:border-white/10 dark:text-zinc-500">
+              <IconCloseOne size={13} />
+              已忽略
+            </span>
+          ) : status === 'loading' ? (
+            <ToastConfirm state="loading" loadingText="执行中" />
           ) : status === 'executed' ? (
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="flex flex-col items-center gap-1.5"
-            >
-              {/* ON/OFF 状态显示 - 超级明显 */}
-              {command.action === 'set_led' ? (
-                <div className="flex flex-col items-center">
-                  <div className="size-14 rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <IconCheckOne size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
-                  </div>
-                  <span className="text-[10px] font-bold text-primary dark:text-emerald-400 uppercase tracking-wider mt-1">
-                    已设置
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center">
-                  {meta.isOn ? (
-                    // ON 状态 - 绿色高亮
-                    <>
-                      <div className="size-14 rounded-2xl bg-primary/15 dark:bg-primary/25 border-2 border-primary/40 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                        <IconCheckOne size={26} className="text-primary dark:text-emerald-400" strokeWidth={2.5} />
-                      </div>
-                      <div className="mt-1.5 px-3 py-1 rounded-full bg-primary/20 dark:bg-primary/30 border border-primary/40">
-                        <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                          ON
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    // OFF 状态 - 灰色暗淡
-                    <>
-                      <div className="size-14 rounded-2xl bg-zinc-200/80 dark:bg-zinc-800/80 border-2 border-zinc-300/60 dark:border-zinc-700/60 flex items-center justify-center opacity-70">
-                        <IconPower size={26} className="text-zinc-500 dark:text-zinc-400" strokeWidth={2.5} />
-                      </div>
-                      <div className="mt-1.5 px-3 py-1 rounded-full bg-zinc-200/80 dark:bg-zinc-800/80 border border-zinc-300/60 dark:border-zinc-700/60">
-                        <span className="text-[11px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
-                          OFF
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </motion.div>
+            <ToastConfirm
+              state="success"
+              successText={command.action === 'set_led' ? '已设置' : meta.isOn ? '已开启' : '已关闭'}
+            />
           ) : status === 'failed' ? (
             <div className="flex flex-col items-center gap-1.5">
               <div className="size-14 rounded-2xl border-2 border-red-500/40 bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center shadow-lg shadow-red-500/20">
                 <IconCloseOne size={26} className="text-red-600 dark:text-red-400" strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
                 失败
               </span>
             </div>
           ) : (
-            <button 
-              onClick={() => onExecute && onExecute(command)}
-              className="px-5 py-2.5 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
-            >
-              执行
-              <IconArrowRight size={14} />
-            </button>
+            <ToastConfirm
+              state="initial"
+              initialText="待确认"
+              resetText="忽略"
+              saveText="执行"
+              onSave={() => onExecute && onExecute(command)}
+              onReset={() => {
+                setIgnored(true)
+                onCancel?.(command)
+              }}
+            />
           )}
         </div>
       </div>

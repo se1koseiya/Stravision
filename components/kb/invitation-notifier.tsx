@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { Badge, Popover, ConfigProvider } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import InvitationList from "./invitation-list"
 import { IconClose, IconRemind } from "@/components/icon";
 
@@ -28,13 +28,13 @@ interface IncomingInvitation {
 }
 
 const COLOR = {
-  primary: "#1677ff",
+  primary: "#059669",
   text: "rgba(0,0,0,0.88)",
   secondary: "rgba(0,0,0,0.65)",
   tertiary: "rgba(0,0,0,0.45)",
-  divider: "#f0f0f0",
+  divider: "#F4F4F5",
   fillHover: "#fafafa",
-  error: "#ff4d4f"
+  error: "#DC2626"
 }
 
 export function InvitationNotifier() {

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { sanitizeHtml } from "@/lib/security/sanitize-html"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { IconDownload, IconFullScreen, IconLinkOut, IconLoading } from "@/components/icon";
 
 interface ReportRendererProps {

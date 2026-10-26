@@ -39,7 +39,7 @@ export const MessageContent = memo(function MessageContent({
       <video
         controls
         src={message.file_url || message.content}
-        className="max-w-full rounded-[6px] border border-black/[0.06] dark:border-white/[0.08]"
+        className="max-w-full rounded-[6px] border border-br-line"
         preload="metadata"
       />
     )

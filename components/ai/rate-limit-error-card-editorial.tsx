@@ -70,7 +70,7 @@ export function RateLimitErrorCard({
       className={className}
       style={{
         ...style,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", system-ui, sans-serif',
+        fontFamily: 'var(--font-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", system-ui, sans-serif',
       }}
     >
       <article

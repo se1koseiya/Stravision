@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
  */
 export function PageSkeleton() {
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white font-sans text-[#222222] dark:bg-[#0C110E] dark:text-slate-100">
+    <main className="relative min-h-screen overflow-x-clip bg-white font-sans text-[#222222] dark:bg-[#09090B] dark:text-zinc-100">
       {/* 悬浮胶囊导航 */}
       <header className="fixed left-0 right-0 top-0 z-[100] flex items-center justify-between px-6 py-4 md:px-8">
         <div className="flex items-center gap-3">
@@ -39,20 +39,20 @@ export function PageSkeleton() {
           <Skeleton className="h-12 w-36 rounded-full" />
         </div>
         {/* App 窗口占位：交通灯 + 侧栏 + 对话区 */}
-        <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-100 shadow-[0_32px_80px_-20px_rgba(15,23,42,0.15)] dark:border-white/[0.06]">
+        <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-zinc-100 shadow-[0_32px_80px_-20px_rgba(15,23,42,0.15)] dark:border-white/[0.06]">
           <div className="flex h-10 items-center gap-2 px-4">
             <Skeleton className="size-2.5 rounded-full" />
             <Skeleton className="size-2.5 rounded-full" />
             <Skeleton className="size-2.5 rounded-full" />
           </div>
           <div className="grid h-[26rem] grid-cols-[10rem_1fr] gap-3 p-4">
-            <div className="space-y-2 rounded-xl bg-slate-50 p-2.5 dark:bg-white/[0.04]">
+            <div className="space-y-2 rounded-xl bg-zinc-50 p-2.5 dark:bg-white/[0.04]">
               <Skeleton className="h-8 w-full rounded-lg" />
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-6 w-full rounded-lg opacity-80" />
               ))}
             </div>
-            <div className="space-y-4 rounded-xl border border-slate-100 p-4 dark:border-white/[0.05]">
+            <div className="space-y-4 rounded-xl border border-zinc-100 p-4 dark:border-white/[0.05]">
               <div className="flex items-center justify-end gap-2">
                 <Skeleton className="h-8 w-[46%] rounded-[18px]" />
                 <Skeleton className="size-8 rounded-full" />
@@ -83,8 +83,8 @@ export function PageSkeleton() {
       </section>
 
       {/* 后续 section 简单占位（与页面同底色，不闪块） */}
-      <div className="h-[40rem] bg-white dark:bg-[#0C110E]" />
-      <div className="h-[40rem] bg-slate-50/60 dark:bg-white/[0.02]" />
+      <div className="h-[40rem] bg-white dark:bg-[#09090B]" />
+      <div className="h-[40rem] bg-zinc-50/60 dark:bg-white/[0.02]" />
     </main>
   )
 }

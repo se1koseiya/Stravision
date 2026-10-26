@@ -5,10 +5,12 @@ import { AnimatePresence } from "framer-motion"
 import { Bubble, Actions } from "@ant-design/x"
 import type { ActionsFeedbackProps, ActionsProps } from "@ant-design/x"
 import type { BubbleListProps } from "@ant-design/x"
-import { Modal, message } from "antd"
+import { Modal } from "antd"
+
+import { toast } from "@/lib/ui/feedback"
 import XMarkdown from "@ant-design/x-markdown"
-import BerryOrb from "@/components/smoothui/berry-orb"
-import { detectOrbExpression, type OrbExpression } from "@/lib/ai/orb-expression"
+import BerryOrb, { EMERALD_ORB_PALETTE } from "@/components/smoothui/berry-orb"
+import { detectOrbExpression, parseOrbExpressionTag, stripOrbExpressionTag, type OrbExpression } from "@/lib/ai/orb-expression"
 import { IS_DESKTOP_APP } from "@/lib/desktop-mode"
 import type { Message } from "@/app/ai-assistant/types"
 import { ChatMessageRenderer } from "@/app/ai-assistant/_components/chat-message-renderer"
@@ -20,9 +22,9 @@ import { MemorySummaryCard } from "@/app/ai-assistant/_components/memory-summary
 import { DynamicTaskPlanner } from "@/app/ai-assistant/_components/dynamic-task-planner"
 import { DecisionCard, parseDecisionTags, stripDecisionTags } from "@/components/ai/decision-card"
 import { WorkingIndicator } from "@/app/ai-assistant/_components/working-indicator"
+import { DocumentCardList } from "@/app/ai-assistant/_components/document-card"
 import {
   MessageNavDots,
-  useMessageAnchors,
   extractPreview,
   type MessageNavItem,
 } from "@/app/ai-assistant/_components/message-nav-dots"
@@ -37,7 +39,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * 气泡时间戳：显示在 BerryOrb 旁边，自动每分钟刷新
+ * 气泡时间戳：显示在 AI 消息上方（hover 整条气泡时），自动每分钟刷新
  * - 用于 AI 消息的 header 插槽
  */
 function BubbleTime({ darkMode = false }: { darkMode?: boolean }) {
@@ -93,13 +95,13 @@ function BubbleActions({
   const writeClipboard = (text: string, okMsg: string) => {
     const done = () => {
       setCopied(true)
-      message.success(okMsg)
+      toast.success(okMsg)
       setTimeout(() => setCopied(false), 1600)
     }
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(done, () => message.error("复制失败"))
+      navigator.clipboard.writeText(text).then(done, () => toast.error("复制失败"))
     } else {
-      message.error("当前环境不支持复制")
+      toast.error("当前环境不支持复制")
     }
   }
 
@@ -112,7 +114,7 @@ function BubbleActions({
       cancelText: "取消",
       onOk: () => {
         onDelete?.()
-        message.success("已删除")
+        toast.success("已删除")
       },
     })
   }
@@ -124,7 +126,7 @@ function BubbleActions({
       icon: <IconVolumeNotice size={14} />,
       onItemClick: () => {
         if (!onSpeak) {
-          message.info("当前未开启语音播报")
+          toast.info("当前未开启语音播报")
           return
         }
         onSpeak(content)
@@ -171,7 +173,7 @@ function BubbleActions({
           styles={{ liked: { color: "#f759ab" } }}
           onChange={(val) => {
             setFeedbackStatus(val)
-            message.success(`反馈: ${val}`)
+            toast.success(`反馈: ${val}`)
           }}
         />
       ),
@@ -275,7 +277,7 @@ function CheckpointReceiptCard({ content }: { content: string }) {
   return (
     <div className="text-[13px] leading-relaxed min-w-[200px]">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <IconCheckOne size={13} strokeWidth={1.75} className="text-[#1677ff] shrink-0" />
+        <IconCheckOne size={13} strokeWidth={2} className="text-[#059669] shrink-0" />
         <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
           {RECEIPT_STATUS[receipt.type] || "已确认"}
         </span>
@@ -384,9 +386,9 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
       {/* 状态条 */}
       <div className="flex items-center gap-1.5 mb-2">
         {isApproved ? (
-          <IconCheckOne size={13} strokeWidth={ICON_STROKE} className="text-[#1677ff] shrink-0" />
+          <IconCheckOne size={13} strokeWidth={ICON_STROKE} className="text-[#059669] shrink-0" />
         ) : (
-          <IconCloseOne size={13} strokeWidth={ICON_STROKE} className="text-[#ff4d4f] shrink-0" />
+          <IconCloseOne size={13} strokeWidth={ICON_STROKE} className="text-[#DC2626] shrink-0" />
         )}
         <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
           {isApproved ? "已批准计划" : "已拒绝计划"}
@@ -396,7 +398,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
       {/* 标题 */}
       <div className="flex items-start gap-1.5 mb-2">
         <IconListCheckbox size={13} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-[2px]" />
-        <div className="text-[13.5px] text-zinc-800 dark:text-zinc-100 break-words" style={{ fontWeight: 500 }}>
+        <div className="text-[13px] text-zinc-800 dark:text-zinc-100 break-words" style={{ fontWeight: 500 }}>
           {receipt.title}
         </div>
       </div>
@@ -413,7 +415,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
         <>
           {receipt.summary && (
             <div className="mb-2.5 pl-[19px]">
-              <div className="text-[10.5px] text-zinc-400 dark:text-zinc-500 mb-0.5">计划摘要</div>
+              <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-0.5">计划摘要</div>
               <div className="text-[12px] text-zinc-600 dark:text-zinc-300 leading-[1.6] break-words">
                 {receipt.summary}
               </div>
@@ -421,11 +423,11 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
           )}
           {receipt.steps && receipt.steps.length > 0 && (
             <div className="pl-[19px] space-y-1.5">
-              <div className="text-[10.5px] text-zinc-400 dark:text-zinc-500 mb-0.5">执行步骤</div>
+              <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mb-0.5">执行步骤</div>
               {receipt.steps.map((step, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span
-                    className="flex items-center justify-center shrink-0 w-[16px] h-[16px] rounded-full bg-[#1677ff] text-white text-[9.5px] mt-[2px]"
+                    className="flex items-center justify-center shrink-0 w-[16px] h-[16px] rounded-full bg-[#059669] text-white text-[11px] mt-[2px]"
                     style={{ fontWeight: 500 }}
                   >
                     {i + 1}
@@ -437,7 +439,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
                     {step.tool && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <IconTool size={9.5} strokeWidth={ICON_STROKE} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
-                        <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500">{step.tool}</span>
+                        <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{step.tool}</span>
                       </div>
                     )}
                   </div>
@@ -447,8 +449,8 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
           )}
           {receipt.modified && (
             <div className="mt-2.5 pl-[19px] flex items-start gap-1.5">
-              <IconAttention size={11} strokeWidth={ICON_STROKE} className="text-[#fa8c16] shrink-0 mt-[2px]" />
-              <span className="text-[11px] text-[#fa8c16] leading-[1.5]">
+              <IconAttention size={11} strokeWidth={ICON_STROKE} className="text-[#52525B] shrink-0 mt-[2px]" />
+              <span className="text-[11px] text-[#52525B] leading-[1.5]">
                 计划已修改，将按修改后执行
               </span>
             </div>
@@ -461,7 +463,7 @@ function PlanApprovalReceiptCard({ content }: { content: string }) {
 
 // ---------------------------------------------------------------------------
 // 新消息分隔线 — 区分历史消息和本次会话新增的消息
-// 样式：Ant Design 主色 #1677ff，lucide-react ArrowDown 图标 strokeWidth 1.75
+// 样式：Ant Design 主色 #059669，lucide-react ArrowDown 图标 strokeWidth 1.75
 // ---------------------------------------------------------------------------
 
 function NewMessageDivider() {
@@ -471,15 +473,15 @@ function NewMessageDivider() {
       role="separator"
       aria-label="新消息"
     >
-      <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
+      <div className="flex-1 h-px" style={{ background: "rgba(0,148,86, 0.18)" }} />
       <div
         className="flex items-center gap-1 text-[11px] select-none"
-        style={{ color: "#1677ff", fontWeight: 400 }}
+        style={{ color: "#059669", fontWeight: 400 }}
       >
-        <IconArrowDown size={12} strokeWidth={1.75} />
+        <IconArrowDown size={12} strokeWidth={2} />
         <span>新消息</span>
       </div>
-      <div className="flex-1 h-px" style={{ background: "rgba(22, 119, 255, 0.18)" }} />
+      <div className="flex-1 h-px" style={{ background: "rgba(0,148,86, 0.18)" }} />
     </div>
   )
 }
@@ -572,10 +574,21 @@ export function ChatBubbleList({
 
   const filteredMessages = messages.filter((m) => !m.isSilent)
 
-  // 🔥 Berry Orb 表情：根据对话状态 + AI 回复内容推断
-  // - 加载中且正在执行工具/Agent 步骤 → working
-  // - 加载中（等待/流式输出）→ 有内容时按内容检测（兜底 speaking），无内容时 thinking
-  // - 加载完成 → 按最后一条 AI 消息内容检测（兜底 idle）
+  /* 2026-10-18：AI 气泡头像改回 **Grok Orb**（`variant="orb"`，纯 SVG + rAF 的蓝白球体）。
+     2026-10-16 曾按外部参考稿换成吉祥物短片，用户否决两次后回退；
+     本次按用户要求「回退使用 grokbot」恢复 Grok Orb 形态。
+     选它的关键原因：吉祥物短片有 `clipTooSmall` 尺寸门槛，32/36px 头像位只会显示
+     静态海报（用户原话「根本不是动态的」）；而 GrokOrbBody 是 SVG + requestAnimationFrame，
+     **没有任何尺寸门控**，36px 下照样眨眼 / 身体起伏 / 光晕呼吸。
+     OrbExpression / detectOrbExpression 同时服务于其它看板（Copilot 悬浮球、landing 演示台），
+     不要因为某处不用了就从 lib 里删。 */
+
+  // 🔥 Grok Orb 表情：**AI 显式标签优先**，没有标签才回落到文本推断
+  // - 2026-10-27：改成「AI 自己报表情」—— 回复开头带 `<EMO:id/>`（协议见 lib/ai/orb-expression.ts）
+  //   命中白名单 id 就直接切，正则推断只作为老消息 / 模型忘写标签时的兜底
+  // - 加载中且正在执行工具/Agent 步骤 → working（执行态压过表情，代表"在干活"）
+  // - 加载中（等待/流式输出）→ 有内容且有标签用标签；无标签按内容检测（兜底 speaking）；无内容 thinking
+  // - 加载完成 → 标签 > 内容检测（兜底 idle）
   const orbExpression: OrbExpression = useMemo(() => {
     let lastAiText = ""
     for (let i = filteredMessages.length - 1; i >= 0; i--) {
@@ -585,11 +598,12 @@ export function ChatBubbleList({
         break
       }
     }
+    const explicit = parseOrbExpressionTag(lastAiText).expression
     if (isLoading) {
       if (agentStatus) return "working"
-      return lastAiText ? detectOrbExpression(lastAiText, "speaking") : "thinking"
+      return explicit ?? (lastAiText ? detectOrbExpression(lastAiText, "speaking") : "thinking")
     }
-    return detectOrbExpression(lastAiText, "idle")
+    return explicit ?? detectOrbExpression(lastAiText, "idle")
   }, [filteredMessages, isLoading, agentStatus])
 
   // 🔥 历史记忆摘要（PAST_MEMORY）消息：单独抽出，用卡片组件渲染（不进入 Bubble.List）
@@ -628,14 +642,46 @@ export function ChatBubbleList({
     ai: {
       placement: "start" as const,
       variant: "outlined",
-      className: "!max-w-[85%]",
+      /* 2026-10-14 用户：「AI 文本区域太窄」→ 由 85% 放开到满宽。
+         AI 是裸文本（无外框、无头像），本来就没有「气泡感」要保留，
+         85% 只是沿用 antd 的默认缩进；配合上面清掉的 15% 内衬，
+         文本区从 750px 涨到 1072px（+43%）。
+         ⚠️ 用户气泡的 75% 不动 —— 那是「右对齐短消息」的版式语言。 */
+      className: "!max-w-full",
       // 🔥 给整条 AI 气泡加 group 标识，用于触发 BubbleTime 的 hover 显示
-      rootClassName: "group/ai-bubble",
-      avatar: <BerryOrb size="36px" theme={darkMode ? 'dark' : 'light'} isActive={isLoading} expression={orbExpression} />,
-      // 🔥 气泡时间：hover 整条 AI 气泡时才显示
+      /* 2026-10-18 恢复 Grok Orb 头像（`variant="orb"`）。2026-10-16 曾换成吉祥物短片，
+         因 32px 尺寸门槛退化成静态海报被用户否决；GrokOrbBody 是 SVG + rAF，无尺寸门控。
+         保留的部分：antd X 的 variant:"outlined" 默认会给内容加一圈边 + 白底 + 内距，
+         这里靠 ai-bubble-bare 全部抹平（见下方内联 <style>）—— AI 回复直接贴在
+         对话底色上，没有气泡外框，只有左侧一枚 36px 球体头像和底部操作条。 */
+      rootClassName: "group/ai-bubble ai-bubble-bare",
+      /* ── Grok Orb 头像（2026-10-18 按用户要求恢复）──────────────────────
+         `variant="orb"` 必须显式写：吉祥物短片已是 BerryOrb 的默认形态，
+         不传就会拿到有 `clipTooSmall` 门槛的短片，36px 下退化成静态海报。
+         ⚠️ `alignSelf: "flex-start"` 不能省：flex 默认 stretch，长消息里头像会被
+            拉到垂直居中，贴顶对齐才和正文首行齐平。
+         🎨 配色必须显式传 `EMERALD_ORB_PALETTE`：不传会用 `GROK_PALETTES` 默认的
+            **白/浅蓝身体 + 蓝光晕**，和 matechat 招呼语那枚绿球不是一套色
+            （2026-10-18 用户：「这里也要换成跟 matechat 一样的颜色」）。 */
+      avatar: (
+        <BerryOrb
+          variant="orb"
+          size="36px"
+          theme={darkMode ? "dark" : "light"}
+          isActive={isLoading}
+          expression={orbExpression}
+          palette={EMERALD_ORB_PALETTE}
+        />
+      ),
+      styles: {
+        avatar: { alignSelf: "flex-start" },
+      },
+      // 🔥 气泡时间：hover 整条 AI 气泡时才显示（Message 上没有真实发送时间字段，
+      //    BubbleTime 取的是当前时刻，常显会对历史消息显示错的时间）
       header: <BubbleTime darkMode={!!darkMode} />,
       footer: (content: unknown, info: any) => {
-        const text = typeof content === "string" ? content : ""
+        // 🍓 剥离 `<EMO:id/>`：复制 / 朗读 / 重试都得拿到干净正文，标签不外泄
+        const text = stripOrbExpressionTag(typeof content === "string" ? content : "")
         const idx = (info?.extraInfo?.index as number | undefined) ?? -1
         const origIdx = info?.extraInfo?.origIdx as number | undefined
         // 重试 = 重发本条 AI 消息之前最近的一条用户消息
@@ -670,12 +716,17 @@ export function ChatBubbleList({
       contentRender: (_content: unknown, info: any) => {
         const msg = info?.extraInfo?.message as Message | undefined
         const msgIndex = info?.extraInfo?.index as number | undefined
+        const msgOrigIdx = info?.extraInfo?.origIdx as number | undefined
         const isLastItem = info?.extraInfo?.isLast as boolean | undefined
         if (!msg) return null
 
-        // 🔥 加载态：最后一条 AI 消息且无内容时，用动态图标 + 「正在工作」取代默认三点
+        // 🔥 加载态：最后一条 AI 消息且无内容时，用动态图标 + 「正在工作」取代默认三点。
+        // 🚨 有思考内容时必须**放行**给 ChatMessageRenderer：思考期间正文按设计还没上屏
+        //    （content 可能是空串），若这里短路成「正在工作」，思考面板永远不挂载
+        //    → 用户看到的是「没有思考、直接出正文」（2026-10-22 修复）。
         const isWorkingBubble =
           isLastItem && msg.role === "assistant" && isLoading && !msg.content
+          && !msg.reasoning?.text && !msg.reasoningStreaming
         if (isWorkingBubble) {
           // 🔥 修复：工具调用/多轮 Agent 执行期间 content 一直为空，
           // 之前直接 return WorkingIndicator（笼统的「正在工作」），把思维链和
@@ -696,8 +747,8 @@ export function ChatBubbleList({
               )}
               {!hasChainSteps && <WorkingIndicator darkMode={!!darkMode} />}
               {agentStatus && (
-                <div className="flex items-center gap-1.5 text-[12.5px] text-slate-500 dark:text-zinc-400 mt-1.5 px-0.5">
-                  <IconLoading size={12} className="animate-spin shrink-0 text-[#1677ff]" />
+                <div className="flex items-center gap-1.5 text-[13px] text-zinc-500 dark:text-zinc-400 mt-1.5 px-0.5">
+                  <IconLoading size={12} className="animate-spin shrink-0 text-[#059669]" />
                   <span className="truncate">{agentStatus}</span>
                 </div>
               )}
@@ -730,9 +781,12 @@ export function ChatBubbleList({
         // - 流式过程中（未闭合 <DECISION>）：从 <DECISION> 标签处截断，避免显示半成品 JSON
         const isStreamingThis = isLastItem && isLoading
         const rawMsgContent = typeof msg.content === "string" ? msg.content : ""
+        // 🍓 表情标签 `<EMO:id/>` 只用来驱动 GrokBot 头像，属于"协议层"内容，对用户不可见。
+        // 流式中还要掐掉文末未闭合的 `<EMO:hap` —— 否则用户会看到半截标签闪一下。
+        const orbStrippedContent = stripOrbExpressionTag(rawMsgContent, { streaming: isStreamingThis })
         const decisions = isStreamingThis ? [] : parseDecisionTags(rawMsgContent)
         const hasDecisions = decisions.length > 0
-        let cleanedContent = rawMsgContent
+        let cleanedContent = orbStrippedContent
         if (isStreamingThis) {
           // 流式中：剥离完整闭合的 + 未闭合的 <DECISION> 开标签及之后内容
           const openIdx = cleanedContent.indexOf('<DECISION>')
@@ -742,7 +796,7 @@ export function ChatBubbleList({
             cleanedContent = stripDecisionTags(cleanedContent)
           }
         } else if (hasDecisions) {
-          cleanedContent = stripDecisionTags(rawMsgContent)
+          cleanedContent = stripDecisionTags(orbStrippedContent)
         }
         const cleanedMsg = cleanedContent !== rawMsgContent
           ? { ...msg, content: cleanedContent }
@@ -775,6 +829,22 @@ export function ChatBubbleList({
               isStreaming={isLastItem && isLoading}
               hasThinkingInChain={hasThinkingInChain}
               suppressTaskPlanner={isLastItem && !!latestTaskListContent}
+              /* 只有这条消息里真的含诊断结论时才回溯原图 ——
+                 其余消息的 props 保持逐字稳定，不破坏 React.memo。
+                 ⚠️ 必须传 origIdx（原始 messages 下标），不能传 items 的 index ——
+                 两者在存在 PAST_MEMORY 消息时会错位，详见 nearestUserImageBefore 注释。 */
+              diagnosisImageSrc={
+                typeof rawMsgContent === "string" && rawMsgContent.includes("<DIAGNOSIS")
+                  ? nearestUserImageBefore(msgOrigIdx ?? msgIndex ?? 0)
+                  : undefined
+              }
+              /* 病历归档的消息键：Message 本身没有 id，用「原始数组下标」当稳定标识
+                 （和 anchorId 同源，但刻意用 origIdx —— items 下标在含 PAST_MEMORY 时会错位）。 */
+              diagnosisMessageKey={
+                typeof rawMsgContent === "string" && rawMsgContent.includes("<DIAGNOSIS")
+                  ? String(msgOrigIdx ?? msgIndex ?? 0)
+                  : undefined
+              }
             />
             {hasDecisions && (
               <div className="mt-2 space-y-2">
@@ -797,7 +867,7 @@ export function ChatBubbleList({
                 : `本次消耗 ${display} 积分`
               return (
                 <div
-                  className="mt-1.5 flex items-center justify-end gap-1 text-[10.5px] text-slate-300 dark:text-slate-600 select-none"
+                  className="mt-1.5 flex items-center justify-end gap-1 text-[11px] text-zinc-300 dark:text-zinc-600 select-none"
                   title={tip}
                 >
                   <IconLightning className="w-3 h-3" />
@@ -851,7 +921,7 @@ export function ChatBubbleList({
               <div id={anchorId} data-msg-anchor={anchorId}>
                 <div className="text-[13px] leading-relaxed min-w-[120px]">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <IconCheckOne size={13} strokeWidth={1.75} className="text-[#1677ff] shrink-0" />
+                    <IconCheckOne size={13} strokeWidth={2} className="text-[#059669] shrink-0" />
                     <span className="text-[11px] text-zinc-500 dark:text-zinc-400">澄清回复</span>
                   </div>
                   {params.length > 0 ? (
@@ -877,6 +947,11 @@ export function ChatBubbleList({
           const { cleanText, toolName } = parseToolTag(msg.content)
           return (
             <div id={anchorId} data-msg-anchor={anchorId}>
+              {/* 📎 用户上传的文档：放在正文之上，作为「这条消息的对象」先亮出来。
+                  没有它，用户只会看到一句「帮我改一下这份报告」，却看不到自己到底传了哪份。 */}
+              {msg.documents?.length ? (
+                <DocumentCardList documents={msg.documents} className="mb-2" variant="onFilled" />
+              ) : null}
               {toolName && <ToolSkillTag toolName={toolName} />}
               <XMarkdown paragraphTag="div">{cleanText || msg.content}</XMarkdown>
             </div>
@@ -894,16 +969,48 @@ export function ChatBubbleList({
   // 抽取所有历史记忆摘要消息（按原始顺序）
   const memorySummaries = filteredMessages.filter(isMemorySummary)
 
-  // 构造导航点：每条消息一个点（包含用户 + AI）
+  /**
+   * 回溯「本条 AI 消息之前最近的一条带图用户消息」，取它的第一张图。
+   *
+   * 用途：`<DIAGNOSIS>` 诊断卡要拿这张原图当底图，才能在病害部位上画检测框与遮罩。
+   * 之前卡片拿不到图，于是只有文字结论 —— 用户看不出病在哪，等于没标。
+   *
+   * 🚨 索引口径（2026-10-04 修）：入参必须是 **原始 messages 数组的下标**（origIdx），
+   *    不能传 `items`/`extraInfo.index`。后者是按 `indexedFiltered`（剔除 isSilent +
+   *    PAST_MEMORY）重新编号的，而这里原先拿 `filteredMessages`（只剔除 isSilent）去索引 ——
+   *    只要会话里存在一条历史记忆摘要消息，两边就错位：轻则取到别的图，
+   *    重则整个找不到 → `DiagnosisCard` 的 `imageSrc` 为 undefined →
+   *    卡片里的 `DetectionOverlay` 整块不渲染 → **用户只看到文字结论，一张图都没有**。
+   */
+  const nearestUserImageBefore = React.useCallback(
+    (fromOrigIndex: number): string | undefined => {
+      for (let i = fromOrigIndex - 1; i >= 0; i--) {
+        const m = messages[i]
+        if (!m || m.role !== "user") continue
+        const c: any = m.content
+        if (Array.isArray(c)) {
+          const hit = c.find(
+            (p: any) => p?.type === "image_url" && typeof p?.image_url?.url === "string",
+          )
+          if (hit) return hit.image_url.url as string
+        } else if (typeof c === "string") {
+          // 兜底：少数路径把整条多模态内容 JSON 化塞进了字符串
+          const matched = c.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/)
+          if (matched) return matched[0]
+        }
+      }
+      return undefined
+    },
+    [messages],
+  )
+
+  // 构造导航项：每条消息一项（包含用户 + AI）
   const navItems: MessageNavItem[] = filteredMessages
     .filter((m) => !isMemorySummary(m))
     .map((m, i) => ({
       id: `msg-${i}`,
       preview: extractPreview(m.content, 50),
     }))
-
-  // 当前可见消息 id
-  const activeId = useMessageAnchors(listRef, navItems.map((n) => n.id))
 
   return (
     <div
@@ -915,27 +1022,38 @@ export function ChatBubbleList({
         position: "relative",
       }}
     >
-      {/* 🔥 消息节点导航：固定在左侧、不随内容滚动（flex 垂直居中） */}
-      {navItems.length > 0 && (
-        <div
-          style={{
-            alignSelf: "stretch",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            paddingLeft: 6,
-            paddingRight: 6,
-            flexShrink: 0,
-            zIndex: 5,
-          }}
-        >
-          <MessageNavDots
-            items={navItems}
-            activeId={activeId}
-            scrollContainerRef={listRef}
-            darkMode={darkMode}
-          />
-        </div>
+      {/* AI 回复「裸文本」化（2026-10-01）：抹掉 outlined 变体的边框 / 底色 /
+          阴影 / 内距 / 圆角。作用域锁在 .ai-bubble-bare 上，不影响用户气泡
+          （用户侧是 filled，另一套类名）也不影响落地页里其他 Bubble.List。 */}
+      <style>{`
+        .ai-bubble-bare .ant-bubble-content-outlined {
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          border-radius: 0 !important;
+        }
+        /* 🔥 2026-10-14 用户：「AI 文本区域太窄，容纳不了多少字」——
+           元凶不是容器宽度，是 antd X Bubble.List 内置给 start/end 气泡预留的
+           15% 内侧留白（见 @ant-design/x/es/bubble/style/list.js）：
+           它在 AI 气泡右侧白扔了约 161px（1072 × 15%），
+           于是 AI 气泡看着有 911px，真正能落字的只有 750px。
+           只清 AI 侧（start）；用户气泡（end）的左侧留白是「右对齐短气泡」的
+           设计感来源，保留不动。 */
+        .ant-bubble-list .ant-bubble-start:not(.ant-bubble-divider):not(.ant-bubble-system) {
+          padding-inline-end: 0 !important;
+        }
+      `}</style>
+      {/* 🔥 消息节点导轨（重做 2026-10-22）：贴对话区右缘的绝对定位浮层。
+          之所以不再是 flex item —— 旧版是左侧一列会被 active 宽度撑开的圆点，
+          每次切换节点整列宽度就变，对话区被推来推去导致文字重排（用户报的「抖动」）。
+          现在是浮层：收起时只有一缕短横线，悬停向左展开成预览卡片，不占布局。 */}
+      {navItems.length > 1 && (
+        <MessageNavDots
+          items={navItems}
+          scrollContainerRef={listRef}
+          darkMode={darkMode}
+        />
       )}
       {/* 可滚动消息列表 */}
       <div
@@ -943,7 +1061,13 @@ export function ChatBubbleList({
         data-lenis-prevent
         style={{ flex: 1, overflow: "auto", minHeight: 0 }}
       >
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px 90px" }}>
+        {/* 2026-10-14 用户：「把对话区域拉宽一点，这样可以容纳更多文字，
+            就不用频繁上下滑」。960 → 1120（+17% 行容量）：
+            960 是旧参考稿的卡宽基准，但宽屏（≥1440，侧栏 260）下主区实测还有
+            ~820px 白白空着，纯属浪费。1120 在 1280 视口仍受父容器自然约束，
+            不会溢出；窄视口下 maxWidth 只是上限，自动回退，无副作用。
+            ⚠️ 与 ChatSenderInput 的 1120 必须保持一致（两处同源，改一处必改另一处）。 */}
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "24px 16px 90px" }}>
           {/* 🔥 历史记忆摘要卡片（紧凑放在最前，区分于普通对话气泡） */}
           {memorySummaries.length > 0 && (
             <div className="mb-4 space-y-2">

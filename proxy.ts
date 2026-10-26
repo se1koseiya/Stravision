@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, NextFetchEvent } from "next/server"
 import { rateLimit, getClientIp, unbanIp } from "@/lib/rate-limit"
+import { isDesktopApp } from "@/lib/desktop-mode"
 import { getInternalApiSecret } from "@/lib/constants"
 import { verifyToken } from "@/lib/token"
 
@@ -66,6 +67,9 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
     const isAllowedPath =
       pathname.startsWith("/api/internal") ||
       pathname.startsWith("/api/auth") ||
+      // 桌面端授权校验：客户端是独立运行的桌面应用，服务端维护不应让它"掉授权"。
+      // 放行后 POST 不会被 302 重定向成 GET（否则心跳拿到的是 HTML，解析必然失败）。
+      pathname.startsWith("/api/license") ||
       pathname === "/login" ||
       pathname === "/maintenance" ||
       pathname.startsWith("/_next") ||
@@ -130,13 +134,13 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
 
   // 1. Auth Protection (New)
   // Protected Routes
+  // 注：/settings 已于 2026-10-05 删除（账号资料并入设置弹窗「个人资料」分区），不再列为受保护路由
   const protectedRoutes = [
     "/dashboard",
     "/monitor",
     "/device-control",
     "/ai-assistant",
     "/chat",
-    "/settings",
     "/profile"
   ]
   
@@ -159,6 +163,7 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
   // 0. Global Rate Limiting & Auto-Ban (API & Auth routes)
   // Protect sensitive endpoints from brute force / DoS
   // 豁免聊天相关 API（消息收发频繁，SSE 长连接）
+  // 豁免桌面端整体：本地回环 + 单用户，所有请求同源同 IP，限流只会误伤自己（见 lib/desktop-mode.ts）
   const isChatApi = pathname.startsWith("/api/direct-messages") ||
                     pathname.startsWith("/api/groups/messages") ||
                     pathname.startsWith("/api/messages") ||
@@ -166,7 +171,7 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
                     pathname.startsWith("/api/friends") ||
                     pathname.startsWith("/api/groups") ||
                     pathname.startsWith("/api/events")
-  if ((pathname.startsWith("/api") || pathname.startsWith("/login") || pathname.startsWith("/register")) && !isChatApi) {
+  if (!isDesktopApp() && (pathname.startsWith("/api") || pathname.startsWith("/login") || pathname.startsWith("/register")) && !isChatApi) {
     // Exempt /api/auth/me from strict limits as it's a frequent session check
     const isStrictAuthApi = pathname.startsWith("/api/auth") && !pathname.startsWith("/api/auth/me");
     
@@ -226,13 +231,12 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
   }
 
   // 2. Authentication Check (Security)
-  // 检查是否访问受保护的路由
+  // 检查是否访问受保护的路由（/settings 已删除，见上）
   const protectedPaths = [
     "/dashboard", 
     "/monitor",
     "/home",
     "/device-control", 
-    "/settings", 
     "/profile",
     "/ai-assistant",
     "/super-secure-admin"
@@ -292,7 +296,6 @@ export const config = {
     "/monitor/:path*", 
     "/home/:path*",
     "/device-control/:path*", 
-    "/settings/:path*",
     "/profile/:path*",
     "/ai-assistant/:path*",
     "/admin/:path*",

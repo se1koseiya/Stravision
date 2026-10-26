@@ -9,7 +9,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-primary/30 font-sans">
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px]" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
       </div>
 

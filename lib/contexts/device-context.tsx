@@ -1,6 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
+import {
+  SIMULATED_TICK_MS,
+  simulatedCustomDeviceData,
+  simulatedDeviceData,
+  useSimulatedValues,
+} from '@/lib/demo/simulated-metrics'
 
 // ─── 设备注册表类型（与 lib/db/device-registry-service.ts 保持一致） ───
 
@@ -88,12 +94,19 @@ export interface ConnectionStatus {
   lastUpdate: Date | null
 }
 
-interface DeviceContextType {
+export interface DeviceContextType {
   // 旧版实时数据（向后兼容，温室环境传感器 + 继电器状态）
   deviceData: DeviceData | null
   connectionStatus: ConnectionStatus
-  // 设备注册表（所有启用的设备）
+  // 设备注册表（仅启用的设备 —— 设备控制页 / 设备分组 / AI 助手消费这一份）
   devices: RegistryDevice[]
+  /**
+   * 完整设备注册表（含已禁用设备，仅设备管理界面消费）。
+   * 🚨 设备管理里的开关语义是「临时禁用」而不是删除：禁用的设备必须继续留在列表里、
+   * 变灰、并且能原地重新启用。因此管理界面读的是这一份，而不是 `devices`。
+   * 普通用户（非 admin）拿到的与 `devices` 相同 —— 服务端只对管理员放开禁用设备。
+   */
+  allDevices: RegistryDevice[]
   devicesLoading: boolean
   // 自定义设备实时数据（device_id → metrics）
   customDeviceData: Record<number, Record<string, any>>
@@ -111,6 +124,7 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     lastUpdate: null
   })
   const [devices, setDevices] = useState<RegistryDevice[]>([])
+  const [allDevices, setAllDevices] = useState<RegistryDevice[]>([])
   const [devicesLoading, setDevicesLoading] = useState(true)
   const [customDeviceData, setCustomDeviceData] = useState<Record<number, Record<string, any>>>({})
 
@@ -119,16 +133,40 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const reconnectAttemptsRef = useRef(0)
   const timeoutCheckRef = useRef<NodeJS.Timeout | null>(null)
 
+  /**
+   * 「模拟数值」开关（仅非安装产物可用，见 lib/demo/simulated-metrics.ts）。
+   *
+   * 它是**全局唯一的数据源开关**：在这一层接管，dashboard / device-control /
+   * monitor / AI 助手 / 移动端都会自动拿到同一份数据 —— 各业务页零改动，
+   * 也就不可能出现「设备控制页有值、监控页还是 0」的割裂。
+   */
+  const simulated = useSimulatedValues()
+  /** SSE 回调是闭包，读不到最新的 simulated —— 用 ref 让它俩不打架 */
+  const simulatedRef = useRef(simulated)
+  /** 自定义设备的模拟数据要按注册表生成，注册表异步到达，同样走 ref */
+  const devicesRef = useRef<RegistryDevice[]>([])
+
   const TIMEOUT_DURATION = 10000
 
   // ─── 设备注册表拉取 ───
+  /**
+   * 🚨 必须带 `includeDisabled=true`：设备管理里的开关是「临时禁用」，不是删除。
+   * 此前这里只拉 `/api/devices`（服务端默认 `WHERE is_enabled = TRUE`），
+   * 于是关掉开关 → 设备直接从这个列表里消失 → 看起来像被删掉了，
+   * 而且再也无法在原地重新启用（只能去 /admin 后台）。
+   * 服务端仍然只对 admin/super_admin 放开禁用设备，普通用户拿到的还是启用列表。
+   * 对外语义保持不变：`devices` = 启用中的设备（控制页 / AI 助手消费），
+   * `allDevices` = 完整注册表（仅设备管理界面消费）。
+   */
   const refreshDevices = useCallback(async () => {
     setDevicesLoading(true)
     try {
-      const res = await fetch('/api/devices')
+      const res = await fetch('/api/devices?includeDisabled=true')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      setDevices(Array.isArray(data.devices) ? data.devices : [])
+      const list: RegistryDevice[] = Array.isArray(data.devices) ? data.devices : []
+      setAllDevices(list)
+      setDevices(list.filter((d) => !!d.is_enabled))
     } catch (e) {
       console.error('[DeviceContext] fetch devices failed:', e)
     } finally {
@@ -152,6 +190,8 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timeoutCheckRef.current)
     }
     timeoutCheckRef.current = setTimeout(() => {
+      // 模拟数值接管时 onmessage 不再刷新这个定时器，10s 后必然超时 —— 直接跳过
+      if (simulatedRef.current) return
       console.warn('[SSE] Timeout: No data received for', TIMEOUT_DURATION / 1000, 'seconds')
       setConnectionStatus(prev => ({
         ...prev,
@@ -201,6 +241,9 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       }
 
       eventSource.onmessage = (event) => {
+        // 模拟数值接管期间丢弃真实推送：两路数据都在写 deviceData，
+        // 会形成「2s 模拟 → 2s 真实」的来回抖动（表现为数字闪烁）。
+        if (simulatedRef.current) return
         try {
           const message = JSON.parse(event.data)
 
@@ -269,11 +312,14 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         eventSource.close()
         eventSourceRef.current = null
         stopTimeoutCheck()
-        setConnectionStatus(prev => ({
-          ...prev,
-          connected: false,
-          error: 'Connection lost'
-        }))
+        // 模拟数值接管时不要报「断线」：否则设备卡的在线态会在断线/恢复之间闪
+        if (!simulatedRef.current) {
+          setConnectionStatus(prev => ({
+            ...prev,
+            connected: false,
+            error: 'Connection lost'
+          }))
+        }
 
         const timeout = Math.min(1000 * Math.pow(1.5, reconnectAttemptsRef.current), 30000)
         console.log(`[SSE] Reconnecting in ${timeout}ms...`)
@@ -308,11 +354,49 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [connect])
 
+  // simulated 的最新值同步给 SSE 回调（见上面 onmessage 的丢弃分支）
+  useEffect(() => {
+    simulatedRef.current = simulated
+  }, [simulated])
+
+  // 注册表快照：模拟数据要按传感器列表逐台生成指标
+  useEffect(() => {
+    devicesRef.current = devices
+  }, [devices])
+
+  /**
+   * 模拟数值的推送节拍。
+   *
+   * 🚨 不清理 deviceData：关掉开关的瞬间如果把数据清成 null，整页会先闪一下
+   *    「0.0 / --」再等真实链路补上。真实 SSE 一直在连，下一拍（≤2s）就会把
+   *    真实值覆盖进来 —— 保持现状的观感最干净。
+   */
+  useEffect(() => {
+    if (!simulated) return
+    const push = () => {
+      const now = Date.now()
+      setDeviceData((prev) => ({
+        ...(prev ?? ({} as DeviceData)),
+        ...simulatedDeviceData(now),
+      }) as DeviceData)
+      setCustomDeviceData((prev) => ({
+        ...prev,
+        ...simulatedCustomDeviceData(devicesRef.current, now),
+      }))
+      // 有数据 = 在线，否则设备卡全是灰点（截图最忌讳的那条）
+      setConnectionStatus({ connected: true, error: null, lastUpdate: new Date(now) })
+    }
+    push()
+    const timer = setInterval(push, SIMULATED_TICK_MS)
+    return () => clearInterval(timer)
+  }, [simulated])
+
   return (
     <DeviceContext.Provider value={{
       deviceData,
       connectionStatus,
       devices,
+      allDevices,
       devicesLoading,
       customDeviceData,
       refreshDevices
@@ -328,4 +412,15 @@ export function useDeviceContext() {
     throw new Error('useDeviceContext must be used within a DeviceProvider')
   }
   return context
+}
+
+/**
+ * 非抛出式读取（可挂在 Provider 之外）。
+ *
+ * 用于 CopilotSidebar 这类「通用组件」：它们会被各种页面复用，
+ * 有 Provider 时注入设备注册表快照，没有时静默降级为不带设备上下文，
+ * 不应因为缺 Provider 直接抛错炸掉整个页面。
+ */
+export function useOptionalDeviceContext(): DeviceContextType | undefined {
+  return useContext(DeviceContext)
 }

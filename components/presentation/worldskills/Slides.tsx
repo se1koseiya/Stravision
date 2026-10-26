@@ -22,7 +22,7 @@ export const SubTitle = ({ children, className }: { children: React.ReactNode, c
 )
 
 export const Highlight = ({ children, color = "text-emerald-400" }: { children: React.ReactNode, color?: string }) => (
-  <span className={cn("font-medium text-white", className)}>
+  <span className={cn("font-medium", color)}>
     {children}
   </span>
 )
@@ -31,7 +31,7 @@ export const Highlight = ({ children, color = "text-emerald-400" }: { children: 
 
 const BentoCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <div className={cn(
-    "relative overflow-hidden rounded-3xl bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-8",
+    "relative overflow-hidden rounded-2xl bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-8",
     "shadow-[0_8px_30px_rgb(0,0,0,0.12)]", 
     className
   )}>
@@ -130,7 +130,7 @@ export const CoverSlide = () => (
 export const ContextSlide = () => (
   <div className="h-full flex items-center justify-center relative px-20">
     <StoryBackground mode="crisis" />
-    <div className="grid grid-cols-2 gap-20 w-full items-center z-10 max-w-7xl">
+    <div className="grid grid-cols-2 gap-20 w-full items-center z-10 max-w-[1400px]">
       <div className="space-y-8">
         <Tag className="bg-red-500/10 text-red-400 border-red-500/20">Challenge</Tag>
         <BigTitle>
@@ -143,7 +143,7 @@ export const ContextSlide = () => (
         </SubTitle>
       </div>
       <div className="relative h-[500px] flex items-center justify-center">
-        <div className="absolute top-0 right-0 bg-red-500/10 p-8 rounded-3xl border border-red-500/10 backdrop-blur-md">
+        <div className="absolute top-0 right-0 bg-red-500/10 p-8 rounded-2xl border border-red-500/10 backdrop-blur-md">
            <div className="text-6xl font-medium text-white mb-2">45%</div>
            <div className="text-red-400 uppercase text-sm tracking-wider">Labor Shortage</div>
         </div>
@@ -176,7 +176,7 @@ export const ConceptSlide = () => (
   <div className="h-full flex items-center justify-center relative text-center">
     <StoryBackground mode="hope" />
     <div className="relative z-10 max-w-4xl flex flex-col items-center">
-       <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mb-12 shadow-[0_0_60px_rgba(16,185,129,0.3)]">
+       <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mb-12 shadow-[0_0_60px_rgba(0,148,86,0.3)]">
           <IconMagic className="w-10 h-10 text-white" />
        </div>
        <h2 className="text-7xl font-medium text-white mb-8">
@@ -197,7 +197,7 @@ export const SolutionMapSlide = () => (
     <StoryBackground mode="tech" />
     
     <div className="mb-16 z-10">
-       <Tag className="mb-4 bg-blue-500/10 text-blue-400 border-blue-500/20">Solution Architecture</Tag>
+       <Tag className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Solution Architecture</Tag>
        <h2 className="text-6xl font-medium text-white">全栈技能生态</h2>
     </div>
 
@@ -217,13 +217,13 @@ export const SolutionMapSlide = () => (
        </BentoCard>
 
        {/* Thinking - Center Top */}
-       <BentoCard className="col-span-4 flex flex-col items-center text-center justify-center bg-zinc-800/20 border-blue-500/20">
+       <BentoCard className="col-span-4 flex flex-col items-center text-center justify-center bg-zinc-800/20 border-emerald-500/20">
           <div className="relative w-32 h-32 mb-6">
-             <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full" />
+             <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full" />
              <IPAvatar pose="tech" scale={0.6} animate={false} />
           </div>
           <h3 className="text-2xl font-medium text-white mb-2">思考 Thinking</h3>
-          <p className="text-blue-400/80 text-sm uppercase tracking-wider">AI & Big Data Core</p>
+          <p className="text-emerald-400/80 text-sm uppercase tracking-wider">AI & Big Data Core</p>
        </BentoCard>
 
        {/* Acting - Large Right */}
@@ -310,13 +310,13 @@ export const ControlLayerSlide = () => (
      {/* Speed Lines Background */}
      <div className="absolute inset-0 overflow-hidden opacity-20 pointer-events-none">
         {[...Array(20)].map((_, i) => (
-          <div key={i} className="absolute h-px bg-blue-500 w-full" style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100 - 50}%`, opacity: Math.random() }} />
+          <div key={i} className="absolute h-px bg-emerald-500 w-full" style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100 - 50}%`, opacity: Math.random() }} />
         ))}
      </div>
 
-     <div className="max-w-7xl w-full grid grid-cols-2 gap-20 items-center z-10">
+     <div className="max-w-[1400px] w-full grid grid-cols-2 gap-20 items-center z-10">
         <div>
-           <Tag className="mb-6 bg-blue-500/10 text-blue-400 border-blue-500/20">Layer 02: Control</Tag>
+           <Tag className="mb-6 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Layer 02: Control</Tag>
            <h2 className="text-8xl font-medium text-white mb-8 tracking-tighter">
              10ms<br/>
              <span className="text-zinc-600 text-6xl">Latency</span>
@@ -328,7 +328,7 @@ export const ControlLayerSlide = () => (
            
            <div className="flex gap-4">
               <div className="flex-1 bg-zinc-900/50 border border-white/10 p-6 rounded-2xl flex items-center gap-4">
-                 <IconWind className="text-blue-500 w-8 h-8" />
+                 <IconWind className="text-emerald-500 w-8 h-8" />
                  <div>
                    <div className="text-white font-medium">智能通风</div>
                    <div className="text-zinc-500 text-xs">Auto Ventilation</div>
@@ -345,7 +345,7 @@ export const ControlLayerSlide = () => (
         </div>
 
         <div className="relative flex justify-center">
-           <div className="absolute inset-0 bg-blue-500/10 blur-[80px] rounded-full" />
+           <div className="absolute inset-0 bg-emerald-500/10 blur-[80px] rounded-full" />
            <IPAvatar pose="run" scale={1.5} />
         </div>
      </div>
@@ -365,10 +365,10 @@ export const EdgeComputingSlide = () => (
 
      <div className="relative w-[600px] h-[400px] z-10 flex items-center justify-center">
         {/* Central Hub Visualization */}
-        <div className="w-64 h-64 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center relative shadow-2xl z-20">
+        <div className="w-64 h-64 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center relative shadow-lg z-20">
            <IconServer className="w-24 h-24 text-purple-500" />
            {/* Status Light */}
-           <div className="absolute top-6 right-6 w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]" />
+           <div className="absolute top-6 right-6 w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#059669]" />
         </div>
 
         {/* Orbiting Satellites */}
@@ -467,7 +467,7 @@ export const VoiceInteractionSlide = () => (
              whileInView={{ opacity: 1, y: 0 }}
              className="flex justify-end"
            >
-              <div className="bg-blue-600 text-white px-6 py-4 rounded-2xl rounded-tr-none text-lg shadow-lg max-w-md">
+              <div className="bg-emerald-600 text-white px-6 py-4 rounded-2xl rounded-tr-none text-lg shadow-lg max-w-md">
                  "二号大棚现在的温度是多少？适合浇水吗？"
               </div>
            </motion.div>
@@ -580,7 +580,7 @@ export const MobileAppSlide = () => (
            <motion.div 
              initial={{ y: 50, opacity: 0 }}
              whileInView={{ y: 0, opacity: 1 }}
-             className="relative w-[300px] h-[600px] bg-zinc-900 rounded-[3rem] border-4 border-zinc-800 shadow-2xl overflow-hidden ring-1 ring-white/10"
+             className="relative w-[300px] h-[600px] bg-zinc-900 rounded-[3rem] border-4 border-zinc-800 shadow-lg overflow-hidden ring-1 ring-white/10"
            >
               <Image src="/ui/dashboard-mobile.png" alt="App" fill className="object-cover" />
               {/* Notch */}
@@ -605,7 +605,7 @@ export const VisualMonitorSlide = () => (
         <p className="text-zinc-500">Real-time Simulation</p>
      </div>
      
-     <div className="relative w-[900px] h-[500px] rounded-2xl border border-white/10 bg-zinc-900/50 backdrop-blur overflow-hidden shadow-2xl z-10">
+     <div className="relative w-[900px] h-[500px] rounded-2xl border border-white/10 bg-zinc-900/50 backdrop-blur overflow-hidden shadow-lg z-10">
         <div className="absolute inset-0 flex items-center justify-center">
            <IconBox className="w-32 h-32 text-primary/20 animate-spin-slow" />
            <div className="absolute text-primary font-mono text-xs tracking-widest mt-40">RENDERING...</div>
@@ -672,7 +672,7 @@ export const MarketSlide = () => (
         <div className="space-y-6">
            {[
               { title: "硬件销售", val: "30%", color: "bg-primary" },
-              { title: "SaaS 订阅", val: "45%", color: "bg-blue-500" },
+              { title: "SaaS 订阅", val: "45%", color: "bg-emerald-500" },
               { title: "数据增值服务", val: "25%", color: "bg-purple-500" },
            ].map((item, i) => (
               <div key={i} className="bg-zinc-900/50 border border-white/5 p-6 rounded-2xl flex items-center justify-between">
@@ -697,14 +697,14 @@ export const TeamSlide = () => (
         <p className="text-zinc-500">Multidisciplinary Experts</p>
      </div>
      
-     <div className="flex gap-8 px-20 w-full max-w-[1600px] justify-center">
+     <div className="flex gap-8 px-20 w-full max-w-[1400px] justify-center">
         {[
-           { name: "Tech Lead", role: "Full Stack", color: "bg-blue-500" },
+           { name: "Tech Lead", role: "Full Stack", color: "bg-emerald-500" },
            { name: "AI Lead", role: "Algorithm", color: "bg-purple-500" },
            { name: "IoT Lead", role: "Hardware", color: "bg-orange-500" },
            { name: "Design Lead", role: "Product", color: "bg-pink-500" },
         ].map((member, i) => (
-           <div key={i} className="w-64 bg-zinc-900/50 border border-white/5 rounded-3xl p-6 flex flex-col items-center hover:translate-y-[-10px] transition-transform duration-300">
+           <div key={i} className="w-64 bg-zinc-900/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center hover:translate-y-[-10px] transition-transform duration-300">
               <div className="w-24 h-24 rounded-full bg-zinc-800 mb-6 overflow-hidden relative">
                  <Image src={`/images/sticker/sticker (${i+1}).png`} alt="Member" fill className="object-cover" />
               </div>

@@ -10,7 +10,7 @@ import { IconArrowRightUp, IconBookOpen } from "@/components/icon";
      DownloadCta  content 居中、padding 112px 0
                   h2 flex 基线对齐 gap 5.4px，45px/700/-1.575px
                      第二段用 100deg 蓝→绿渐变裁字
-                  副文案 19.44px/500/31.104px #696969，上边距 20px
+                  副文案 19.44px/500/31.104px #646A73，上边距 20px
                   actions gap 32px，上边距 44px
                      深色组 337×64 胶囊（主按钮 285×64 + 52×64 右段，1px 白/18 分隔）
                      次要 208×64 #5EE9B5 胶囊墨字
@@ -110,7 +110,7 @@ export function DownloadCta() {
               className="flex h-16 items-center justify-center gap-[0.9rem] py-[0.55rem] pl-10 pr-8 transition-opacity duration-200 hover:opacity-90"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" className="size-[1.4rem] rounded-md" />
+              <img src="/logo.png" alt="" className="size-[1.4rem] rounded-lg" />
               <span className="flex flex-col items-start">
                 <strong className="text-[1.05rem] font-extrabold leading-[1.2]">
                   进入网页控制台
@@ -150,7 +150,7 @@ export function DownloadCta() {
 
 export function LandingFooter() {
   return (
-    <footer className="bg-white dark:bg-[#0C110E]">
+    <footer className="bg-white dark:bg-[#09090B]">
       <div className="pt-[3.75rem] pb-[4.7rem]">
         <div className="mx-auto w-[min(100%-2rem,63rem)]">
           <div className="grid gap-y-8 sm:grid-cols-2 lg:grid-cols-[repeat(4,auto)_1fr] lg:gap-x-[7rem]">

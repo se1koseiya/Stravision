@@ -1,21 +1,8 @@
 "use client"
 
+import { useFeedback } from "@/lib/ui/feedback"
 import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Space,
-  Avatar,
-  Tag,
-  Statistic,
-  Tooltip,
-  Switch,
-  Descriptions,
-  Typography as AntTypography,
-  App
-} from "antd"
+import { Card, Table, Button, Input, Space, Avatar, Tag, Statistic, Tooltip, Switch, Descriptions, Typography as AntTypography } from "antd"
 import type { TableColumnsType } from "antd"
 import { formatDistanceToNowStrict } from "date-fns"
 import { zhCN } from "date-fns/locale"
@@ -90,7 +77,7 @@ const roleMap: Record<string, { color: string; label: string }> = {
 }
 
 export function OnlineUsersPanel() {
-  const { message } = App.useApp()
+  const { message } = useFeedback()
   const [snapshot, setSnapshot] = useState<OnlineSnapshot | null>(null)
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
@@ -154,7 +141,7 @@ export function OnlineUsersPanel() {
       key: "user",
       render: (_: unknown, record: OnlineUser) => (
         <Space size={8}>
-          <Avatar size={32} src={record.avatar_url} style={{ background: "#1677ff", flexShrink: 0, fontSize: 13 }}>
+          <Avatar size={32} src={record.avatar_url} style={{ background: "#059669", flexShrink: 0, fontSize: 13 }}>
             {record.username?.[0]?.toUpperCase()}
           </Avatar>
           <div>
@@ -291,20 +278,20 @@ export function OnlineUsersPanel() {
           <Statistic
             title="在线用户"
             value={onlineCount}
-            prefix={<IconPeoples style={{ color: "#1677ff" }} />}
-            styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+            prefix={<IconPeoples style={{ color: "#059669" }} />}
+            styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
           />
           <Statistic
             title="访客 IP"
             value={guestCount}
-            prefix={<IconUnlink style={{ color: "#1677ff" }} />}
-            styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+            prefix={<IconUnlink style={{ color: "#059669" }} />}
+            styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
           />
           <Statistic
             title={`窗口内请求（${snapshot?.window_minutes ?? 5} 分钟）`}
             value={totalRequests}
-            prefix={<IconApi style={{ color: "#1677ff" }} />}
-            styles={{ content: { color: "#1F2329", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
+            prefix={<IconApi style={{ color: "#059669" }} />}
+            styles={{ content: { color: "#18181B", fontSize: 22 }, title: { fontSize: 12, color: "#8F959E" } }}
           />
         </div>
         <Text type="secondary" style={{ fontSize: 12 }}>

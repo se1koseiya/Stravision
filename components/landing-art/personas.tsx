@@ -38,17 +38,17 @@ const PERSONAS: Persona[] = [
     icon: IconSeedling,
     structure: ["专业判断", "数据依据", "操作方案", "风险预判"],
     response: (
-      <div className="space-y-5 text-[15px] leading-[1.75]">
+      <div className="space-y-5 text-[14px] leading-[1.75]">
         <div>
-          <span className="text-[#1677ff] font-medium">【专业判断】</span>
+          <span className="text-[#059669] font-medium">【专业判断】</span>
           <span className="text-white/85">温度 32°C 已超出草莓适宜上限 25°C，处于热胁迫状态，需立即降温。</span>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">【数据依据】</span>
+          <span className="text-[#059669] font-medium">【数据依据】</span>
           <span className="text-white/85">草莓光合作用最适温 20-25°C，&gt;30°C 光合速率下降 40%，&gt;35°C 出现日烧。当前 32°C 持续将导致花粉活力下降、坐果率降低。</span>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">【操作方案】</span>
+          <span className="text-[#059669] font-medium">【操作方案】</span>
           <ul className="mt-2 space-y-1.5 text-white/75">
             <li>· 方案A（推荐）：开启风扇强制通风 + 外遮阳网 50% 遮光，预计 15 分钟降温 3-4°C</li>
             <li>· 方案B：仅开风扇通风，降温慢但能耗低</li>
@@ -56,7 +56,7 @@ const PERSONAS: Persona[] = [
           </ul>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">【风险预判】</span>
+          <span className="text-[#059669] font-medium">【风险预判】</span>
           <span className="text-white/85">若 1 小时内温度未降至 28°C 以下，今日开花坐果率预计下降 15-20%；持续 3 天 &gt;30°C 将触发休眠打破失败。</span>
         </div>
       </div>
@@ -70,10 +70,10 @@ const PERSONAS: Persona[] = [
     icon: IconDegreeHat,
     structure: ["情况说明", "建议这样做", "怎么判断成功", "新手常见误区"],
     response: (
-      <div className="space-y-5 text-[15px] leading-[1.8]">
+      <div className="space-y-5 text-[14px] leading-[1.8]">
         <p className="text-white/85">咱们先看看现在的情况——温度 32°C 有点偏高啦，草莓会觉得热，需要注意一下。</p>
         <div>
-          <span className="text-[#1677ff] font-medium">建议这样做：</span>
+          <span className="text-[#059669] font-medium">建议这样做：</span>
           <ul className="mt-2 space-y-2 text-white/75">
             <li>· 第1步：打开风扇通风（因为草莓最舒服的温度是 20-25°C，现在太热了，风扇能帮它降温）</li>
             <li>· 第2步：如果有遮阳网，拉上一半（因为阳光直射会让温度更高，遮一半就像给草莓撑了把伞）</li>
@@ -81,11 +81,11 @@ const PERSONAS: Persona[] = [
           </ul>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">怎么判断成功了：</span>
+          <span className="text-[#059669] font-medium">怎么判断成功了：</span>
           <span className="text-white/75">看到温度降到 28°C 以下就 OK 啦，草莓会重新精神起来。</span>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">新手常见误区：</span>
+          <span className="text-[#059669] font-medium">新手常见误区：</span>
           <span className="text-white/75">别急着喷雾降温哦——现在湿度已经不低了，喷雾会让灰霉病（一种让果子发霉的病）更容易发生。</span>
         </div>
       </div>
@@ -99,9 +99,9 @@ const PERSONAS: Persona[] = [
     icon: IconSetting,
     structure: ["系统状态", "根因分析", "自动化方案", "执行链路"],
     response: (
-      <div className="space-y-5 text-[15px] leading-[1.75]">
+      <div className="space-y-5 text-[14px] leading-[1.75]">
         <div>
-          <span className="text-[#1677ff] font-medium">[系统状态]</span>
+          <span className="text-[#059669] font-medium">[系统状态]</span>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full text-[13px] text-white/75 border-collapse">
               <thead>
@@ -127,11 +127,11 @@ const PERSONAS: Persona[] = [
           </div>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">[根因分析]</span>
+          <span className="text-[#059669] font-medium">[根因分析]</span>
           <span className="text-white/85">温度越界（置信度 92%）：外遮阳网未展开 + 风扇继电器处于关闭状态。传感器数据可信。</span>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">[自动化方案]</span>
+          <span className="text-[#059669] font-medium">[自动化方案]</span>
           <p className="text-white/75 mt-1">推荐设置自动化规则，避免人工干预：</p>
           <pre className="mt-2 p-3 bg-white/5 text-[12px] text-white/70 overflow-x-auto"><code>{`{
   "trigger": "temperature > 28",
@@ -143,7 +143,7 @@ const PERSONAS: Persona[] = [
 }`}</code></pre>
         </div>
         <div>
-          <span className="text-[#1677ff] font-medium">[执行链路]</span>
+          <span className="text-[#059669] font-medium">[执行链路]</span>
           <span className="text-white/85">传感器 → 规则引擎评估 → 风扇(ON) + 遮阳网 → 温度反馈闭环（每 60s 复查）</span>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function Personas() {
     <section className="relative bg-[#08080A] overflow-hidden">
       {/* 顶部章节标记（克制版）*/}
       <div className="pt-32">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-10 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="font-mono text-[11px] tracking-[0.25em] text-white/40 uppercase">
               03 / 三重人格
@@ -175,7 +175,7 @@ export function Personas() {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-10 py-20 sm:py-28">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-20 sm:py-28">
         {/* 标题区 —— 左对齐破坏网格 */}
         <div className="grid lg:grid-cols-12 gap-8 mb-16 sm:mb-24">
           <motion.div
@@ -185,7 +185,7 @@ export function Personas() {
             transition={{ duration: 0.9, ease: EASE as any }}
             className="lg:col-span-8"
           >
-            <span className="block font-mono text-[12px] tracking-[0.3em] text-[#1677ff] uppercase mb-6">
+            <span className="block font-mono text-[12px] tracking-[0.3em] text-[#059669] uppercase mb-6">
               一个助理，三种性格
             </span>
             <h2
@@ -194,7 +194,7 @@ export function Personas() {
             >
               同一个问题，
               <br />
-              三种<span style={{ color: "#1677ff" }}>思考方式</span>。
+              三种<span style={{ color: "#059669" }}>思考方式</span>。
             </h2>
           </motion.div>
           <motion.p
@@ -202,7 +202,7 @@ export function Personas() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="lg:col-span-4 lg:col-start-9 self-end text-[15px] sm:text-[16px] text-white/50 leading-[1.7] max-w-[360px]"
+            className="lg:col-span-4 lg:col-start-9 self-end text-[14px] sm:text-[16px] text-white/50 leading-[1.7] max-w-[360px]"
           >
             莓小智会根据你切换的角色，给出结构完全不同的回答——不是语气的变化，而是思考方式的切换。
           </motion.p>
@@ -222,7 +222,7 @@ export function Personas() {
               <span className="font-mono text-[11px] tracking-[0.25em] text-white/40 uppercase">
                 选择人格
               </span>
-              <span className="font-mono text-[10px] tracking-[0.2em] text-white/25 uppercase">
+              <span className="font-mono text-[11px] tracking-[0.2em] text-white/25 uppercase">
                 3 / 3
               </span>
             </div>
@@ -240,7 +240,7 @@ export function Personas() {
                   >
                     {/* 选中态：左边缘竖线 */}
                     <span
-                      className={`absolute left-0 top-0 bottom-0 w-[2px] bg-[#1677ff] transition-transform duration-300 origin-top ${
+                      className={`absolute left-0 top-0 bottom-0 w-[2px] bg-[#059669] transition-transform duration-300 origin-top ${
                         isActive ? "scale-y-100" : "scale-y-0"
                       }`}
                     />
@@ -250,20 +250,20 @@ export function Personas() {
                         style={{
                           fontSize: "32px",
                           letterSpacing: "-0.05em",
-                          color: isActive ? "#1677ff" : "rgba(255,255,255,0.18)",
+                          color: isActive ? "#059669" : "rgba(255,255,255,0.18)",
                         }}
                       >
                         {p.no}
                       </span>
                       <p.icon
                         className={`w-4 h-4 transition-colors duration-300 ${
-                          isActive ? "text-[#1677ff]" : "text-white/30"
+                          isActive ? "text-[#059669]" : "text-white/30"
                         }`}
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                       />
                     </div>
                     <div
-                      className={`text-[15px] font-alimama font-medium transition-colors duration-300 ${
+                      className={`text-[14px] font-alimama font-medium transition-colors duration-300 ${
                         isActive ? "text-white" : "text-white/60"
                       }`}
                     >
@@ -278,8 +278,8 @@ export function Personas() {
             </div>
             {/* 侧栏落款 */}
             <div className="mt-auto px-5 py-4 border-t border-white/10 hidden lg:flex items-center gap-2">
-              <span className="block w-1.5 h-1.5 bg-[#1677ff] animate-pulse" />
-              <span className="font-mono text-[10px] tracking-[0.2em] text-white/30 uppercase">
+              <span className="block w-1.5 h-1.5 bg-[#059669] animate-pulse" />
+              <span className="font-mono text-[11px] tracking-[0.2em] text-white/30 uppercase">
                 berry · ai · live
               </span>
             </div>
@@ -290,17 +290,17 @@ export function Personas() {
             {/* 对话头 */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 border border-[#1677ff]/40 bg-[#1677ff]/10 flex items-center justify-center">
-                  <current.icon className="w-4 h-4 text-[#1677ff]" strokeWidth={1.75} />
+                <div className="w-7 h-7 border border-[#059669]/40 bg-[#059669]/10 flex items-center justify-center">
+                  <current.icon className="w-4 h-4 text-[#059669]" strokeWidth={2} />
                 </div>
                 <div className="leading-tight">
                   <div className="text-[13px] text-white font-medium">莓小智</div>
-                  <div className="font-mono text-[10px] tracking-[0.15em] text-white/35 uppercase">
+                  <div className="font-mono text-[11px] tracking-[0.15em] text-white/35 uppercase">
                     {current.name}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] text-white/30 uppercase">
+              <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] text-white/30 uppercase">
                 <span className="block w-1.5 h-1.5 bg-emerald-400" />
                 online
               </div>
@@ -312,14 +312,14 @@ export function Personas() {
               <div className="flex justify-end">
                 <div className="max-w-[78%]">
                   <div className="flex items-center justify-end gap-2 mb-1.5">
-                    <span className="font-mono text-[10px] tracking-[0.15em] text-white/30 uppercase">
+                    <span className="font-mono text-[11px] tracking-[0.15em] text-white/30 uppercase">
                       14:32
                     </span>
-                    <span className="font-mono text-[10px] tracking-[0.2em] text-white/45 uppercase">
+                    <span className="font-mono text-[11px] tracking-[0.2em] text-white/45 uppercase">
                       你
                     </span>
                   </div>
-                  <div className="bg-white text-black px-4 py-3 text-[15px] leading-[1.55]">
+                  <div className="bg-white text-black px-4 py-3 text-[14px] leading-[1.55]">
                     {QUESTION}
                   </div>
                 </div>
@@ -337,10 +337,10 @@ export function Personas() {
                 >
                   <div className="max-w-[88%]">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="font-mono text-[10px] tracking-[0.2em] text-[#1677ff] uppercase">
+                      <span className="font-mono text-[11px] tracking-[0.2em] text-[#059669] uppercase">
                         莓小智
                       </span>
-                      <span className="font-mono text-[10px] tracking-[0.15em] text-white/30 uppercase">
+                      <span className="font-mono text-[11px] tracking-[0.15em] text-white/30 uppercase">
                         14:32
                       </span>
                     </div>
@@ -349,7 +349,7 @@ export function Personas() {
                       {current.structure.map((s, i) => (
                         <span
                           key={s}
-                          className="font-mono text-[10px] tracking-[0.15em] text-white/40 uppercase"
+                          className="font-mono text-[11px] tracking-[0.15em] text-white/40 uppercase"
                         >
                           {String(i + 1).padStart(2, "0")} · {s}
                         </span>
@@ -368,7 +368,7 @@ export function Personas() {
               <span className="font-mono text-[11px] text-white/25 flex-1 truncate">
                 再问一个问题…
               </span>
-              <span className="font-mono text-[10px] tracking-[0.15em] text-white/25 uppercase border border-white/10 px-2 py-1">
+              <span className="font-mono text-[11px] tracking-[0.15em] text-white/25 uppercase border border-white/10 px-2 py-1">
                 ↵ send
               </span>
             </div>

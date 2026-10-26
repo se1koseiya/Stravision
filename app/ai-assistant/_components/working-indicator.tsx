@@ -1,43 +1,31 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { WorkingLoader } from "@/app/ai-assistant/_components/working-loader"
 
 /**
- * AI 正在工作指示器
- * - 双球绕中心旋转，传达"AI 正在思考/工作"的状态
- * - 主球使用 Ant Design 主色蓝 (#1677ff)，副球淡色形成拖尾感
+ * AI 「工作状态」指示器
+ *
+ * 2026-10-01 改版（用户：工作状态用 Uiverse 那个飘星 loader，改成绿色）：
+ * 原来是一对小球绕中心旋转 —— 语义偏「加载中」，且视觉上和项目里其他 spin
+ * 图标撞车。现在换成三瓣星星自上而下连续飘落（见 working-loader），
+ * 主色走全站晨雾松 emerald（亮 #059669 / 暗 #34D399）。
+ *
+ * 与「输出状态」的分工（见 chat-bubble-list.tsx 的 isWorkingBubble）：
+ *   · 工作状态 = 已发出请求、首字节还没到（或工具链执行中）→ 本组件
+ *   · 输出状态 = 正文开始流式输出 → 直接渲染正文，本组件随即卸载
  */
-export function WorkingIndicator({ darkMode = false }: { darkMode?: boolean }) {
-  const primary = "#1677ff"
-  const secondary = darkMode ? "rgba(22,119,255,0.32)" : "rgba(22,119,255,0.42)"
+export interface WorkingIndicatorProps {
+  darkMode?: boolean
+  /** 状态文案，默认「正在工作」 */
+  label?: string
+  /** 飘星尺寸，默认 20 */
+  size?: number
+}
 
+export function WorkingIndicator({ darkMode = false, label = "正在工作", size = 20 }: WorkingIndicatorProps) {
   return (
-    <div className="inline-flex items-center gap-2">
-      {/* 双球旋转动效 */}
-      <span className="relative inline-flex items-center justify-center w-5 h-5 shrink-0">
-        <motion.span
-          aria-hidden
-          className="relative block w-5 h-5"
-          animate={{ rotate: 360 }}
-          transition={{
-            duration: 0.9,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        >
-          {/* 主球 */}
-          <span
-            className="absolute left-1/2 top-0 -translate-x-1/2 w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: primary }}
-          />
-          {/* 副球（对侧，较淡，形成拖尾） */}
-          <span
-            className="absolute left-1/2 bottom-0 -translate-x-1/2 w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: secondary }}
-          />
-        </motion.span>
-      </span>
-      {/* 固定文案：「正在工作」 */}
+    <div className="inline-flex items-center gap-1.5">
+      <WorkingLoader size={size} darkMode={darkMode} />
       <span
         className={[
           "text-[14px] leading-none",
@@ -45,8 +33,10 @@ export function WorkingIndicator({ darkMode = false }: { darkMode?: boolean }) {
         ].join(" ")}
         style={{ fontWeight: 400 }}
       >
-        正在工作
+        {label}
       </span>
     </div>
   )
 }
+
+export default WorkingIndicator

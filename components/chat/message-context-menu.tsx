@@ -2,7 +2,7 @@
 
 import { Dropdown } from "antd"
 import type { MenuProps } from "antd"
-import { toast } from "sonner"
+import { toast } from "@/lib/ui/feedback"
 import { useMemo, type ReactNode } from "react"
 import { IconCopy, IconDelete } from "@/components/icon";
 

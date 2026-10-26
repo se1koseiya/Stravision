@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server'
+import { adaptChatRequestBody } from '@/lib/ai/provider-body-adapter'
 
 export const runtime = 'nodejs'
 
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
     const response = await fetch(targetUrl, {
         method: "POST",
         headers,
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(adaptChatRequestBody(requestBody, { baseUrl: targetUrl, model }))
     })
 
     if (!response.ok) {

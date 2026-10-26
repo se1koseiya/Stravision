@@ -1,29 +1,32 @@
 /**
  * 🍓 Berry Realm 统一设计系统
  *
- * 与 AI 助手页面（app/ai-assistant/page.tsx ConfigProvider）保持一致：
- * 主色 = Ant Design 默认蓝 #1677ff
+ * ⛔ 全站色彩体系 = WorkBuddy（2026-09-26）：
+ *   · 中性阶 = c-gray 暖灰（#F4F4F5 → #27272A）
+ *   · 强调   = c-teal 青绿（亮 #059669 / 暗 #34D399）
+ *   · 语义   = c-green / c-amber / c-blue / c-red 全彩
+ *   · 原「黑白灰 + 宝石绿」体系已退役；新代码请直接用本文件 token 或 br-* CSS 变量。
  *
  * 所有业务卡片必须使用本文件定义的 token，保证视觉一致性。
  */
 
 export const BERRY_THEME = {
-  // ===== 品牌主色（Ant Design 默认蓝，与 AI 助手页一致）=====
-  primary: '#1677ff',
-  primaryHover: '#4096ff',
-  primaryActive: '#0958d9',
-  primaryLight: '#e6f4ff',     // blue-1
-  primaryBg: '#f0f7ff',        // blue-0 浅背景
-  primaryBorder: '#91caff',    // blue-3
-  primaryText: '#002c8c',      // blue-9
+  // ===== 强调主色（WorkBuddy c-teal）=====
+  primary: '#059669',          // teal-600：亮色主按钮/链接
+  primaryHover: '#10B981',     // teal-400：渐变另一端 / hover
+  primaryActive: '#047857',    // teal 加深档
+  primaryLight: '#ECFDF5',     // teal-50 淡铺底
+  primaryBg: 'rgba(5,150,105,0.06)',
+  primaryBorder: '#6EE7B7',    // teal-100
+  primaryText: '#047857',      // 白底可读的强调文字
 
-  // ===== 状态色（沿用 antd 算法）=====
+  // ===== 状态色（WorkBuddy 全彩语义）=====
   status: {
-    success: '#52c41a',
-    processing: '#1677ff',
-    warning: '#faad14',
-    error: '#ff4d4f',
-    pending: '#9ca3af',
+    success: '#16A34A',        // c-green 600
+    processing: '#059669',     // 进行中/活跃 → 强调 teal
+    warning: '#F59E0B',        // c-amber 400
+    error: '#EF4444',          // c-red 400
+    pending: '#A1A1AA',        // c-gray 400
   },
 
   // ===== Editorial 设计系统（保留兼容）=====
@@ -49,7 +52,7 @@ export const BERRY_THEME = {
 
   // ===== Apple Material 设计系统（iOS 级别细腻度）=====
   // ⚠️ 深色模式：中性色/阴影均为 CSS 变量（定义于 app/globals.css 的 :root 与 .dark），
-  // 内联 style 引用即可自动适配深浅两态；accents/widgetColors 为主题无关的饱和色，保持原值。
+  // 内联 style 引用即可自动适配深浅两态；accents/widgetColors 已按 WorkBuddy 九色阶重映射。
   apple: {
     // 背景 — iOS systemGroupedBackground
     canvas: 'var(--berry-canvas)',
@@ -73,36 +76,39 @@ export const BERRY_THEME = {
     track: 'var(--berry-track)',
     trackStrong: 'var(--berry-track-strong)',
 
-    // iOS 系统色 — 鲜活但克制
+    // 重映射到 WorkBuddy 九色阶。
+    // ⚠️ key 名保留是为了不炸历史调用点（几十处 A.accents.xxx）。
+    // ⚠️ 必须是**真实 hex**——代码里有 `${A.accents.green}40` 这类拼 alpha 的写法，
+    //    换成 var(--x) 会生成 `var(--x)40` 这种无效值导致描边静默消失。
     accents: {
-      blue: '#0A84FF',       // iOS systemBlue
-      green: '#30D158',      // iOS systemGreen
-      indigo: '#5856D6',     // iOS systemIndigo
-      orange: '#FF9500',     // iOS systemOrange
-      pink: '#FF375F',       // iOS systemPink
-      purple: '#BF5AF2',     // iOS systemPurple
-      teal: '#40C8E0',       // iOS systemTeal
-      yellow: '#FFD60A',     // iOS systemYellow
-      red: '#FF453A',        // iOS systemRed
-      mint: '#66D4CF',       // iOS systemMint
-      cyan: '#64D2FF',       // iOS systemCyan
-      brown: '#AC8E68',      // iOS systemBrown
+      blue: '#0EA5E9',       // c-blue 600 · 数据主系列
+      cyan: '#06B6D4',       // c-blue 400
+      green: '#16A34A',      // c-green 600 · 健康/达标
+      mint: '#10B981',       // c-teal 400
+      teal: '#10B981',
+      red: '#EF4444',        // c-red 400 · 危险
+      orange: '#F97316',     // c-coral 400
+      yellow: '#F59E0B',     // c-amber 400
+      indigo: '#4F46E5',     // c-purple 600
+      purple: '#8B5CF6',     // c-purple 400
+      pink: '#EC4899',       // c-pink 400
+      brown: '#78716C',      // c-gray 400
     },
 
-    // 每个组件的色彩身份 — accent + 背景着色
+    // 每个组件的色彩身份 —— WorkBuddy 九色阶分配
     widgetColors: {
-      temperature: { accent: '#FF9500', bgTint: 'rgba(255, 149, 0, 0.04)' },
-      humidity:    { accent: '#0A84FF', bgTint: 'rgba(10, 132, 255, 0.04)' },
-      light:       { accent: '#FFD60A', bgTint: 'rgba(255, 214, 10, 0.04)' },
-      co2:         { accent: '#40C8E0', bgTint: 'rgba(64, 200, 224, 0.04)' },
-      soil:        { accent: '#30D158', bgTint: 'rgba(48, 209, 88, 0.04)' },
-      fertility:   { accent: '#30D158', bgTint: 'rgba(48, 209, 88, 0.04)' },
-      nitrogen:    { accent: '#5856D6', bgTint: 'rgba(88, 86, 214, 0.04)' },
-      phosphorus:  { accent: '#BF5AF2', bgTint: 'rgba(191, 90, 242, 0.04)' },
-      potassium:   { accent: '#FF375F', bgTint: 'rgba(255, 55, 95, 0.04)' },
-      weather:     { accent: '#0A84FF', bgTint: 'rgba(10, 132, 255, 0.04)' },
-      ai:          { accent: '#5856D6', bgTint: 'rgba(88, 86, 214, 0.04)' },
-      membership:  { accent: '#5856D6', bgTint: 'rgba(88, 86, 214, 0.04)' },
+      temperature: { accent: '#F97316', bgTint: 'rgba(249,115,22,0.05)' },   // coral
+      humidity:    { accent: '#0EA5E9', bgTint: 'rgba(24,95,165,0.05)' },   // blue
+      light:       { accent: '#F59E0B', bgTint: 'rgba(186,117,23,0.05)' },  // amber
+      co2:         { accent: '#10B981', bgTint: 'rgba(29,158,117,0.05)' },  // teal
+      soil:        { accent: '#16A34A', bgTint: 'rgba(59,109,17,0.05)' },   // green
+      fertility:   { accent: '#16A34A', bgTint: 'rgba(59,109,17,0.05)' },   // green
+      nitrogen:    { accent: '#4F46E5', bgTint: 'rgba(79,70,229,0.05)' },   // purple 600
+      phosphorus:  { accent: '#8B5CF6', bgTint: 'rgba(139,92,246,0.05)' }, // purple 400
+      potassium:   { accent: '#EC4899', bgTint: 'rgba(236,72,153,0.05)' },  // pink
+      weather:     { accent: '#0EA5E9', bgTint: 'rgba(24,95,165,0.05)' },   // blue
+      ai:          { accent: '#059669', bgTint: 'rgba(5,150,105,0.05)' },   // teal（强调）
+      membership:  { accent: '#4F46E5', bgTint: 'rgba(79,70,229,0.05)' },   // purple
     },
 
     // 圆角 — Apple generous
@@ -126,8 +132,9 @@ export const BERRY_THEME = {
     // 内高光 — 模拟材质顶部光线反射
     innerHighlight: 'var(--berry-inner-highlight)',
 
-    // SF Pro 风格字体
-    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif',
+    // 全站字体唯一源（app/globals.css 的 --font-ui = HarmonyOS 鸿蒙黑体；
+    // 落地页作用域内会回退成思源黑体）
+    fontFamily: 'var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif)',
 
     // SF Pro 风格类型阶
     type: {
@@ -145,14 +152,15 @@ export const BERRY_THEME = {
   },
 
   // ===== 统一渐变（卡片背景）=====
+  // 状态渐变 = WorkBuddy 色阶（50 → 100/200）
   gradients: {
-    cardHeader: (primary: string = '#1677ff') =>
+    cardHeader: (primary: string = '#059669') =>
       `linear-gradient(135deg, ${primary}15 0%, transparent 60%)`,
-    cardHero: (primary: string = '#1677ff') =>
+    cardHero: (primary: string = '#059669') =>
       `linear-gradient(135deg, ${primary}08 0%, ${primary}03 100%)`,
-    success: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)',
-    processing: 'linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%)',
-    warning: 'linear-gradient(135deg, #fffbe6 0%, #ffe58f 100%)',
+    success: 'linear-gradient(135deg, #EAF3DE 0%, #86EFAC 100%)',
+    processing: 'linear-gradient(135deg, #ECFDF5 0%, #6EE7B7 100%)',
+    warning: 'linear-gradient(135deg, #FAEEDA 0%, #FCD34D 100%)',
   },
 
   // ===== 统一圆角 =====

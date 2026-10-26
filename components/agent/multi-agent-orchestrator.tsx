@@ -31,7 +31,7 @@ interface AgentFlow {
 }
 
 const AGENT_COLORS = {
-  planner: 'bg-blue-500',
+  planner: 'bg-emerald-500',
   executor: 'bg-green-500',
   validator: 'bg-purple-500',
   coordinator: 'bg-orange-500',
@@ -178,7 +178,7 @@ export function MultiAgentOrchestrator() {
         return <IconTime className="h-4 w-4 text-muted-foreground" />;
       case 'thinking':
       case 'executing':
-        return <IconLoading className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <IconLoading className="h-4 w-4 text-emerald-500 animate-spin" />;
       case 'completed':
         return <IconCheckOne className="h-4 w-4 text-green-500" />;
       case 'failed':
@@ -191,9 +191,9 @@ export function MultiAgentOrchestrator() {
       case 'idle':
         return 'bg-muted text-muted-foreground';
       case 'thinking':
-        return 'bg-blue-100 text-blue-600';
+        return 'bg-emerald-100 text-emerald-600';
       case 'executing':
-        return 'bg-blue-100 text-blue-600';
+        return 'bg-emerald-100 text-emerald-600';
       case 'completed':
         return 'bg-green-100 text-green-600';
       case 'failed':
@@ -272,11 +272,11 @@ export function MultiAgentOrchestrator() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className={`relative overflow-hidden ${isActive ? 'ring-2 ring-blue-500' : ''}`}>
+                <Card className={`relative overflow-hidden ${isActive ? 'ring-2 ring-emerald-500' : ''}`}>
                   {/* 背景动画 */}
                   {isActive && (
                     <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10"
+                      className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-purple-500/10"
                       animate={{
                         opacity: [0.3, 0.6, 0.3],
                       }}
@@ -361,7 +361,7 @@ export function MultiAgentOrchestrator() {
                   {index < flow.agents.length - 1 && (
                     <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
                       <IconArrowRight className={`h-6 w-6 ${
-                        agent.status === 'completed' ? 'text-green-500' : 'text-gray-300'
+                        agent.status === 'completed' ? 'text-green-500' : 'text-zinc-300'
                       }`} />
                     </div>
                   )}
@@ -387,7 +387,7 @@ export function MultiAgentOrchestrator() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className="flex items-start gap-2 text-sm p-2 rounded hover:bg-gray-50"
+                    className="flex items-start gap-2 text-sm p-2 rounded hover:bg-zinc-50"
                   >
                     <span className="text-muted-foreground min-w-[60px]">
                       {agent.startTime && new Date(agent.startTime).toLocaleTimeString('zh-CN')}

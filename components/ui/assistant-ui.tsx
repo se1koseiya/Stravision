@@ -380,12 +380,12 @@ export const InlineCitationCardTrigger = React.forwardRef<HTMLButtonElement, Inl
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button ref={ref} variant="ghost" size="sm" className={cn("px-2 h-6 rounded-md text-xs", className)} {...props}>
+            <Button ref={ref} variant="ghost" size="sm" className={cn("px-2 h-6 rounded-lg text-xs", className)} {...props}>
               {label}
             </Button>
           </TooltipTrigger>
           <TooltipContent className="p-0">
-            <div className="w-[320px] rounded-md border bg-background">
+            <div className="w-[320px] rounded-lg border bg-background">
               <div className="p-3 text-xs text-muted-foreground">参考来源</div>
               {children}
             </div>
@@ -458,7 +458,7 @@ InlineCitationSource.displayName = "InlineCitationSource"
 
 export const InlineCitationQuote = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("rounded-md bg-muted p-2 text-xs", className)} {...props} />
+    <div ref={ref} className={cn("rounded-lg bg-muted p-2 text-xs", className)} {...props} />
   )
 )
 InlineCitationQuote.displayName = "InlineCitationQuote"
@@ -650,7 +650,7 @@ export const MessageAvatar = React.forwardRef<HTMLDivElement, MessageAvatarProps
     {src ? (
       <Image src={src} alt={name ?? "Avatar"} width={32} height={32} className="rounded-full object-cover" />
     ) : name ? (
-      <span className="text-[10px] font-medium uppercase leading-none">{name.slice(0, 2)}</span>
+      <span className="text-[11px] font-medium uppercase leading-none">{name.slice(0, 2)}</span>
     ) : from === "user" ? (
       <User className="size-4" />
     ) : null}
@@ -902,7 +902,7 @@ export const SourcesTrigger = React.forwardRef<HTMLButtonElement, SourcesTrigger
         variant="ghost"
         size="sm"
         className={cn(
-          "h-6 px-2 rounded-md text-xs font-medium transition-all",
+          "h-6 px-2 rounded-lg text-xs font-medium transition-all",
           "bg-zinc-100 hover:bg-zinc-200",
           "dark:bg-zinc-800 dark:hover:bg-zinc-700",
           "text-zinc-600 dark:text-zinc-400",
@@ -1215,7 +1215,7 @@ TaskItem.displayName = "TaskItem"
 
 export const TaskItemFile = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   ({ className, children, ...props }, ref) => (
-    <span ref={ref} className={cn("inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5", className)} {...props}>
+    <span ref={ref} className={cn("inline-flex items-center gap-1 rounded-lg border border-border bg-muted/50 px-1.5 py-0.5", className)} {...props}>
       <IconFileText className="size-3" />
       <span className="text-foreground/90">{children}</span>
     </span>

@@ -88,9 +88,16 @@ beforeEach(() => {
 })
 
 describe('工具注册表 - 内置能力基线', () => {
-  it('未启用任何外部服务时仍注入 33 个内置工具', () => {
+  it('未启用任何外部服务时仍注入 47 个内置工具（2026-10-21 新增文档三件套后）', () => {
     const tools = getMCPToolDefinitions([])
-    expect(tools).toHaveLength(33)
+    expect(tools).toHaveLength(47)
+  })
+
+  it('文档处理三件套始终可用', () => {
+    const names = getMCPToolDefinitions([]).map(t => t.function.name)
+    for (const docTool of ['document_read', 'document_create', 'document_edit']) {
+      expect(names).toContain(docTool)
+    }
   })
 
   it('注册表不含已下架的空壳工具', () => {

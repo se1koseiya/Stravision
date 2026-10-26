@@ -28,10 +28,10 @@ function ToolButton({ active, onClick, tip, children }: ToolButtonProps) {
         type="button"
         onClick={onClick}
         className={cn(
-          "nodrag group relative flex h-10 w-10 items-center justify-center rounded-md transition-all duration-150",
+          "nodrag group relative flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200",
           active
-            ? "bg-[#1677ff] text-white shadow-[0_2px_6px_rgba(22,119,255,0.25)]"
-            : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            ? "bg-[#059669] text-white shadow-[0_2px_6px_rgba(0,148,86,0.25)]"
+            : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
         )}
       >
         {children}
@@ -52,13 +52,13 @@ export function CanvasLeftToolbar({
   canRedo,
 }: CanvasLeftToolbarProps) {
   return (
-    <div className="nodrag pointer-events-auto flex w-[52px] flex-col items-center gap-1 rounded-xl border border-slate-200/80 bg-white py-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="nodrag pointer-events-auto flex w-[52px] flex-col items-center gap-1 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
       {/* Logo 占位 */}
-      <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-md bg-gradient-to-br from-[#1677ff] to-[#4096ff] text-white text-[15px] font-semibold">
+      <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#059669] to-[#10B981] text-white text-[14px] font-semibold">
         S
       </div>
 
-      <div className="h-px w-7 bg-slate-200" />
+      <div className="h-px w-7 bg-zinc-200 dark:bg-zinc-700" />
 
       <ToolButton
         tip="选择 (V)"
@@ -81,7 +81,7 @@ export function CanvasLeftToolbar({
       </ToolButton>
 
       <div className="mt-auto flex flex-col gap-1">
-        <div className="h-px w-7 bg-slate-200 mb-1" />
+        <div className="h-px w-7 bg-zinc-200 dark:bg-zinc-700 mb-1" />
         <ToolButton
           tip="撤销 (⌘Z)"
           active={false}

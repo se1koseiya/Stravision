@@ -6,7 +6,12 @@
  * 页面差异只体现在欢迎词与推荐问题上 —— 在这里集中配置。
  */
 
-export type CopilotPageKey = "monitor" | "dashboard" | "automation" | "device-control"
+export type CopilotPageKey =
+  | "monitor"
+  | "dashboard"
+  | "automation"
+  | "automation-editor"
+  | "device-control"
 
 export interface CopilotPageConfig {
   /** 侧栏标题（跟随页面名） */
@@ -43,6 +48,17 @@ export const COPILOT_PAGE_CONFIGS: Record<CopilotPageKey, CopilotPageConfig> = {
       "我这些规则有没有冲突或冗余？",
       "帮我梳理现有策略的覆盖场景",
       "帮我加一条夜间低温自动加热的规则",
+    ],
+  },
+  /** 画布编辑器：这里是唯一能「直接改画布」的页面（挂了 automation_canvas_apply 的前端执行器） */
+  "automation-editor": {
+    title: "画布助手 · 莓小智",
+    greeting:
+      "这张流程图我能直接改 —— 加节点、连线、改判断条件和设备动作都会实时落到画布上，你可以随时撤销。",
+    suggestions: [
+      "帮我把这条流程补完整：传感器触发 → 判断 → 设备控制",
+      "末端加一个异常时发通知的节点",
+      "检查一下这条流程缺了哪个环节",
     ],
   },
   "device-control": {

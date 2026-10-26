@@ -103,9 +103,9 @@ function ChatSidebarInner(props: ChatSidebarProps) {
   }
 
   return (
-    <div className="flex h-full bg-white dark:bg-[#1a1a1f]">
+    <div className="flex h-full bg-br-canvas">
       {/* ========== 最左 64px 一级导航 ========== */}
-      <div className="w-16 shrink-0 flex flex-col items-center py-4 border-r border-black/[0.04] dark:border-white/[0.04]">
+      <div className="w-16 shrink-0 flex flex-col items-center py-4">
         {/* Logo：蓝色聊天气泡 */}
         <div className="shrink-0 mb-5">
           <LogoIcon />
@@ -122,7 +122,7 @@ function ChatSidebarInner(props: ChatSidebarProps) {
             badge={totalUnread > 0 ? totalUnread : undefined}
             label="消息"
           >
-            <IconComments size={22} strokeWidth={1.75} />
+            <IconComments size={22} strokeWidth={2} />
           </NavIconButton>
 
           <NavIconButton
@@ -133,14 +133,14 @@ function ChatSidebarInner(props: ChatSidebarProps) {
             }}
             label="通讯录"
           >
-            <IconUser size={22} strokeWidth={1.75} />
+            <IconUser size={22} strokeWidth={2} />
           </NavIconButton>
         </div>
 
         {/* 底部：应用/更多 */}
         <div className="mt-auto">
           <NavIconButton onClick={() => {}} label="应用">
-            <IconGridFour size={22} strokeWidth={1.75} />
+            <IconGridFour size={22} strokeWidth={2} />
           </NavIconButton>
         </div>
       </div>
@@ -148,16 +148,16 @@ function ChatSidebarInner(props: ChatSidebarProps) {
       {/* ========== 中间内容区 ========== */}
       {primaryTab === "messages" ? (
         /* 消息 Tab：280px 会话列表 */
-        <div className="w-[280px] shrink-0 flex flex-col border-r border-black/[0.06] dark:border-white/[0.06]">
+        <div className="w-[280px] shrink-0 flex flex-col border-r border-br-line">
           {/* 搜索框 */}
           <div className="shrink-0 px-3 pt-3 pb-2">
             <Input
-              prefix={<IconSearch size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+              prefix={<IconSearch size={14} strokeWidth={2} className="text-br-text-3" />}
               placeholder="搜索"
               size="middle"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="!rounded-lg !bg-[#f2f3f5] dark:!bg-white/[0.06] !border-0 hover:!bg-[#ececec] dark:hover:!bg-white/[0.08]"
+              className="!rounded-lg !bg-br-surface-3 !border-0 hover:!bg-br-surface-4"
               allowClear
             />
           </div>
@@ -177,16 +177,16 @@ function ChatSidebarInner(props: ChatSidebarProps) {
         /* 通讯录 Tab：180px 二级菜单 + 260px 列表 */
         <>
           {/* 二级菜单列 */}
-          <div className="w-[180px] shrink-0 flex flex-col border-r border-black/[0.06] dark:border-white/[0.06]">
+          <div className="w-[180px] shrink-0 flex flex-col">
             {/* 搜索框 */}
             <div className="shrink-0 px-3 pt-3 pb-2">
               <Input
-                prefix={<IconSearch size={14} strokeWidth={1.75} className="text-[rgba(0,0,0,0.3)]" />}
+                prefix={<IconSearch size={14} strokeWidth={2} className="text-br-text-3" />}
                 placeholder="搜索"
                 size="middle"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="!rounded-lg !bg-[#f2f3f5] dark:!bg-white/[0.06] !border-0 hover:!bg-[#ececec] dark:hover:!bg-white/[0.08]"
+                className="!rounded-lg !bg-br-surface-3 !border-0 hover:!bg-br-surface-4"
                 allowClear
               />
             </div>
@@ -198,8 +198,8 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   setContactSubTab("all")
                   onSelectOrg?.(null)
                 }}
-                color="#1677ff"
-                icon={<IconUser size={18} strokeWidth={1.75} />}
+                color="var(--br-brand)"
+                icon={<IconUser size={18} strokeWidth={2} />}
                 label="联系人"
               />
               <SubMenuItem
@@ -208,8 +208,8 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   setContactSubTab("requests")
                   onSelectOrg?.(null)
                 }}
-                color="#52c41a"
-                icon={<IconAddUser size={18} strokeWidth={1.75} />}
+                color="var(--br-brand)"
+                icon={<IconAddUser size={18} strokeWidth={2} />}
                 label="新朋友"
                 badge={requests.length || undefined}
               />
@@ -219,8 +219,8 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   setContactSubTab("groups")
                   onSelectOrg?.(null)
                 }}
-                color="#fa8c16"
-                icon={<IconComments size={18} strokeWidth={1.75} />}
+                color="var(--br-text-2)"
+                icon={<IconComments size={18} strokeWidth={2} />}
                 label="群聊"
               />
               <SubMenuItem
@@ -229,22 +229,22 @@ function ChatSidebarInner(props: ChatSidebarProps) {
                   setContactSubTab("org")
                   onSelectContact(null)
                 }}
-                color="#2f54eb"
-                icon={<IconNetworkTree size={18} strokeWidth={1.75} />}
+                color="var(--br-brand)"
+                icon={<IconNetworkTree size={18} strokeWidth={2} />}
                 label="组织架构"
               />
             </div>
           </div>
 
           {/* 列表列 260px */}
-          <div className="w-[260px] shrink-0 flex flex-col border-r border-black/[0.06] dark:border-white/[0.06]">
+          <div className="w-[260px] shrink-0 flex flex-col border-r border-br-line">
             {/* 顶部：添加好友按钮（仅在联系人Tab） */}
             {contactSubTab === "all" && (
               <div className="shrink-0 px-3 pt-3 pb-2">
                 <Button
                   block
                   size="middle"
-                  className="!rounded-lg !text-[#1677ff] !border-[#1677ff] !bg-white hover:!bg-[#e6f4ff] !font-normal"
+                  className="!rounded-lg !text-br-brand-ink !border-0 !bg-br-brand-soft hover:!bg-br-brand-soft !font-normal !shadow-none"
                   onClick={onOpenAddFriend}
                 >
                   添加好友
@@ -295,15 +295,15 @@ function ChatSidebarInner(props: ChatSidebarProps) {
 
 function LogoIcon() {
   return (
-    <div className="size-10 rounded-2xl bg-gradient-to-br from-[#1677ff] to-[#4c9cff] flex items-center justify-center shadow-sm">
+    <div className="size-10 rounded-2xl bg-br-brand flex items-center justify-center shadow-br-sm">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M12 3C6.48 3 2 6.86 2 11.5c0 2.52 1.36 4.78 3.5 6.3V21l3.5-2.1c.96.26 1.97.4 3 .4 5.52 0 10-3.86 10-8.5S17.52 3 12 3z"
           fill="white"
         />
-        <circle cx="8.5" cy="10.5" r="1" fill="#1677ff" />
-        <circle cx="12" cy="10.5" r="1" fill="#1677ff" />
-        <circle cx="15.5" cy="10.5" r="1" fill="#1677ff" />
+        <circle cx="8.5" cy="10.5" r="1" fill="var(--br-brand)" />
+        <circle cx="12" cy="10.5" r="1" fill="var(--br-brand)" />
+        <circle cx="15.5" cy="10.5" r="1" fill="var(--br-brand)" />
       </svg>
     </div>
   )
@@ -331,13 +331,13 @@ function NavIconButton({
         className={cn(
           "relative size-11 flex items-center justify-center rounded-xl transition-colors",
           active
-            ? "text-[#1677ff]"
-            : "text-[rgba(0,0,0,0.45)] dark:text-slate-400 hover:text-[rgba(0,0,0,0.7)] dark:hover:text-slate-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+            ? "text-br-brand-ink"
+            : "text-br-text-3 hover:text-br-text-1 hover:bg-br-surface-3"
         )}
       >
         {children}
         {badge !== undefined && badge > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#ff4d4f] text-[10px] text-white flex items-center justify-center" style={{ fontWeight: 500, lineHeight: 1 }}>
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-br-danger text-[11px] text-white flex items-center justify-center" style={{ fontWeight: 500, lineHeight: 1 }}>
             {badge > 99 ? "99+" : badge}
           </span>
         )}
@@ -375,8 +375,8 @@ function MessagesListContent({
           lastMessage={g.last_message}
           unreadCount={g.unread_count}
           isActive={activeGroupId === g.id}
-          avatarColor="#fff7e6"
-          avatarTextColor="#fa8c16"
+          avatarColor="var(--br-surface-3)"
+          avatarTextColor="var(--br-text-2)"
           onClick={() => onSwitchGroup(g)}
         />
       ))}
@@ -388,8 +388,8 @@ function MessagesListContent({
           lastMessage={f.last_message}
           unreadCount={f.unread_count}
           isActive={activeFriendId === f.id}
-          avatarColor="#e6f4ff"
-          avatarTextColor="#1677ff"
+          avatarColor="var(--br-brand-soft)"
+          avatarTextColor="var(--br-brand-ink)"
           onClick={() => onSwitchFriend(f)}
         />
       ))}
@@ -414,7 +414,7 @@ function SubMenuItem({
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-3 px-3 py-2.5 transition-colors",
-        active ? "bg-black/[0.04] dark:bg-white/[0.06]" : "hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+        active ? "bg-br-surface-3" : "hover:bg-br-surface-3"
       )}
     >
       <span
@@ -427,15 +427,15 @@ function SubMenuItem({
         className={cn(
           "text-[14px] flex-1 text-left",
           active
-            ? "text-[rgba(0,0,0,0.88)] dark:text-white"
-            : "text-[rgba(0,0,0,0.75)] dark:text-slate-200"
+            ? "text-br-text-1"
+            : "text-br-text-1"
         )}
         style={{ fontWeight: active ? 500 : 400 }}
       >
         {label}
       </span>
       {badge !== undefined && badge > 0 && (
-        <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#ff4d4f] text-[10px] text-white flex items-center justify-center" style={{ fontWeight: 500 }}>
+        <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-br-danger text-[11px] text-white flex items-center justify-center" style={{ fontWeight: 500 }}>
           {badge}
         </span>
       )}
@@ -463,21 +463,21 @@ function ConversationRow({
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors",
         isActive
-          ? "bg-[#f0f2f5] dark:bg-white/[0.06]"
-          : "hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+          ? "bg-br-brand-soft"
+          : "hover:bg-br-surface-3"
       )}
     >
       <Badge
         count={unreadCount && unreadCount > 0 ? unreadCount : 0}
         size="small"
-        color="#ff4d4f"
+        color="var(--br-danger)"
         offset={[-4, 4]}
         className="shrink-0"
       >
         <Avatar
           size={40}
           src={avatarUrl || undefined}
-          className="shrink-0 ring-1 ring-black/[0.04]"
+          className="shrink-0"
           style={{ backgroundColor: avatarColor, color: avatarTextColor, fontWeight: 500 }}
         >
           {name[0]?.toUpperCase()}
@@ -488,17 +488,17 @@ function ConversationRow({
           <span
             className={cn(
               "text-[14px] truncate",
-              "text-[rgba(0,0,0,0.88)] dark:text-white"
+              "text-br-text-1"
             )}
             style={{ fontWeight: 500 }}
           >
             {name}
           </span>
-          <span className="text-[11px] text-[rgba(0,0,0,0.35)] dark:text-slate-500 shrink-0 leading-none">
+          <span className="text-[11px] text-br-text-3 shrink-0 leading-none">
             {lastMessage ? formatChatTime(lastMessage.created_at) : ""}
           </span>
         </div>
-        <div className="text-[12px] text-[rgba(0,0,0,0.4)] dark:text-slate-500 truncate mt-0.5 leading-snug">
+        <div className="text-[12px] text-br-text-3 truncate mt-0.5 leading-snug">
           {lastMessage?.content || ""}
         </div>
       </div>
@@ -532,7 +532,7 @@ function ContactsList({
     <div>
       {grouped.map(([letter, list]) => (
         <div key={letter}>
-          <div className="px-4 pt-3 pb-1 text-[12px] text-[rgba(0,0,0,0.35)] dark:text-slate-500">
+          <div className="px-4 pt-3 pb-1 text-[12px] text-br-text-3">
             {letter}
           </div>
           {list.map(f => (
@@ -542,20 +542,20 @@ function ContactsList({
               className={cn(
                 "flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
                 selectedContactId === f.id
-                  ? "bg-[#f0f2f5] dark:bg-white/[0.06]"
-                  : "hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                  ? "bg-br-brand-soft"
+                  : "hover:bg-br-surface-3"
               )}
             >
               <Avatar
                 size={36}
                 src={f.avatar_url || undefined}
-                className="shrink-0 ring-1 ring-black/[0.04]"
-                style={{ backgroundColor: "#e6f4ff", color: "#1677ff", fontWeight: 500 }}
+                className="shrink-0"
+                style={{ backgroundColor: "var(--br-brand-soft)", color: "var(--br-brand-ink)", fontWeight: 500 }}
               >
                 {f.username[0]?.toUpperCase()}
               </Avatar>
               <span
-                className="text-[14px] text-[rgba(0,0,0,0.88)] dark:text-white truncate"
+                className="text-[14px] text-br-text-1 truncate"
                 style={{ fontWeight: 400 }}
               >
                 {f.username}
@@ -585,15 +585,15 @@ function RequestsList({
             size={36}
             src={r.requester.avatar_url || undefined}
             className="shrink-0"
-            style={{ backgroundColor: "#e6f4ff", color: "#1677ff" }}
+            style={{ backgroundColor: "var(--br-brand-soft)", color: "var(--br-brand-ink)" }}
           >
             {r.requester.username[0]}
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] text-[rgba(0,0,0,0.88)] dark:text-white truncate" style={{ fontWeight: 500 }}>
+            <div className="text-[14px] text-br-text-1 truncate" style={{ fontWeight: 500 }}>
               {r.requester.username}
             </div>
-            <div className="text-[12px] text-[rgba(0,0,0,0.4)] dark:text-slate-500 truncate">
+            <div className="text-[12px] text-br-text-3 truncate">
               请求添加你为好友
             </div>
           </div>
@@ -601,7 +601,7 @@ function RequestsList({
             type="primary"
             size="small"
             shape="circle"
-            className="!bg-[#52c41a] !shadow-none"
+            className="!bg-br-brand !shadow-none"
             icon={<IconCheck size={14} strokeWidth={ICON_STROKE} />}
             onClick={() => onRespond(r.id, "accept")}
           />
@@ -625,12 +625,12 @@ function GroupsList({
       {/* 新建群聊入口 */}
       <button
         onClick={onCreateGroup}
-        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors"
+        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-br-surface-3 transition-colors"
       >
-        <span className="size-9 rounded-full bg-[#f2f3f5] dark:bg-white/[0.06] flex items-center justify-center text-[rgba(0,0,0,0.45)]">
+        <span className="size-9 rounded-full bg-br-surface-3 flex items-center justify-center text-br-text-3">
           <IconPlus size={18} strokeWidth={ICON_STROKE} />
         </span>
-        <span className="text-[14px] text-[rgba(0,0,0,0.7)] dark:text-slate-300">发起群聊</span>
+        <span className="text-[14px] text-br-text-2">发起群聊</span>
       </button>
 
       {groups.length === 0 && <EmptyHint text="暂无群聊" />}
@@ -638,17 +638,17 @@ function GroupsList({
         <div
           key={g.id}
           onClick={() => onSwitchGroup(g)}
-          className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-br-surface-3 transition-colors"
         >
           <Avatar
             size={36}
             src={g.avatar_url || undefined}
-            className="shrink-0 ring-1 ring-black/[0.04]"
-            style={{ backgroundColor: "#fff7e6", color: "#fa8c16", fontWeight: 500 }}
+            className="shrink-0"
+            style={{ backgroundColor: "var(--br-surface-3)", color: "var(--br-text-2)", fontWeight: 500 }}
           >
             {g.name[0]?.toUpperCase()}
           </Avatar>
-          <span className="text-[14px] text-[rgba(0,0,0,0.88)] dark:text-white truncate" style={{ fontWeight: 400 }}>
+          <span className="text-[14px] text-br-text-1 truncate" style={{ fontWeight: 400 }}>
             {g.name}
           </span>
         </div>
@@ -661,7 +661,7 @@ function GroupsList({
 
 function EmptyHint({ text }: { text: string }) {
   return (
-    <div className="flex items-center justify-center text-[13px] text-[rgba(0,0,0,0.3)] dark:text-slate-600 py-16">
+    <div className="flex items-center justify-center text-[13px] text-br-text-3 py-16">
       {text}
     </div>
   )

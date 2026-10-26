@@ -17,7 +17,7 @@ export function AnytimeControlSection() {
 
   return (
     <section ref={containerRef} className="py-32 px-4 relative z-10 overflow-hidden bg-gradient-to-b from-transparent to-[#050a15]">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         
         {/* Interactive Visual - Map/Connection */}
         <div className="order-2 lg:order-1 relative flex justify-center">
@@ -26,7 +26,7 @@ export function AnytimeControlSection() {
             className="relative"
           >
              {/* Phone Frame - Titanium Style */}
-             <div className="relative w-[300px] h-[600px] bg-black rounded-[3.5rem] p-[5px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-[4px] border-[#3a3a3c] ring-1 ring-[#1a1a1c] mx-auto transform rotate-[-5deg] hover:rotate-0 transition-all duration-700 ease-out">
+             <div className="relative w-[300px] h-[600px] bg-black rounded-[3.5rem] p-[5px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-[4px] border-[#3a3a3c] ring-1 ring-[#1a1a1c] mx-auto transform rotate-[-5deg] hover:rotate-0 transition-all duration-500 ease-out">
                 
                 {/* Inner Bezel */}
                 <div className="relative w-full h-full bg-black rounded-[3.2rem] border-[6px] border-black overflow-hidden ring-1 ring-white/10">
@@ -38,7 +38,7 @@ export function AnytimeControlSection() {
                       {/* Dynamic Island */}
                       <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[90px] h-[26px] bg-black rounded-full z-50 flex items-center justify-between px-3">
                           <div className="size-2 bg-[#1a1a1a] rounded-full opacity-60"></div>
-                          <div className="size-1.5 bg-[#0a0a0a] rounded-full opacity-60"></div>
+                          <div className="size-1.5 bg-[#0A0A0A] rounded-full opacity-60"></div>
                       </div>
                       
                       {/* Screen Reflections */}
@@ -61,14 +61,14 @@ export function AnytimeControlSection() {
           style={{ opacity, x: useTransform(scrollYProgress, [0, 0.5], [50, 0]) }}
           className="order-1 lg:order-2 space-y-8"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
             <IconPhone className="w-4 h-4" />
             <span>随时随地</span>
           </div>
           
           <h2 className="text-4xl md:text-5xl font-bold leading-tight">
             哪怕远在千里之外，<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
               农场尽在掌握
             </span>
           </h2>
@@ -79,12 +79,12 @@ export function AnytimeControlSection() {
           </p>
 
           <div className="grid grid-cols-2 gap-4">
-             <div className="p-4 rounded-2xl bg-background/50 border border-gray-800">
-                <IconShield className="w-8 h-8 text-blue-400 mb-2" />
+             <div className="p-4 rounded-2xl bg-background/50 border border-zinc-800">
+                <IconShield className="w-8 h-8 text-emerald-400 mb-2" />
                 <h3 className="font-semibold text-white">安全加密</h3>
                 <p className="text-sm text-muted-foreground">银行级数据传输加密</p>
              </div>
-             <div className="p-4 rounded-2xl bg-background/50 border border-gray-800">
+             <div className="p-4 rounded-2xl bg-background/50 border border-zinc-800">
                 <IconWifi className="w-8 h-8 text-green-400 mb-2" />
                 <h3 className="font-semibold text-white">极速连接</h3>
                 <p className="text-sm text-muted-foreground">全球节点加速网络</p>

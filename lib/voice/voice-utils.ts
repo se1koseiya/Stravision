@@ -555,6 +555,11 @@ export function stripCardTagsForTts(text: string): string {
   // 3. 移除方括号报告标签 [REPORT:标题]...[/REPORT]
   s = s.replace(/\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)/gi, "");
 
+  // 3.5 移除 GrokBot 表情标签 <EMO:happy/>（纯控制指令，朗读出来毫无意义）
+  //     含流式未闭合形态 <EMO:hap
+  s = s.replace(/<\s*EMO\s*[:：]\s*[a-zA-Z_]*\s*\/?\s*>/gi, "");
+  s = s.replace(/<\s*EMO\s*(?:[:：][a-zA-Z_]*)?\s*$/i, "");
+
   // 4. 移除流式输入中未完整的标签名前缀
   s = s.replace(new RegExp(`</?(?:${TAG_TYPING_PREFIXES})$`, "i"), "");
 

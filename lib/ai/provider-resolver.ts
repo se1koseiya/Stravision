@@ -38,13 +38,15 @@ export interface EmbeddingConfig {
  *   选其他 provider 时按其 baseUrl 调 /web_search（兼容端点同样可用）。
  * protocol = 'exa'：走 Exa Search 官方 API（https://api.exa.ai/search，x-api-key 鉴权，有免费额度），
  *   provider 的 apiKey 即 Exa API Key，baseUrl 可留空或指向代理端点。
+ * protocol = 'local'：内置本地引擎，进程内聚合 Bing / 360 / DuckDuckGo，**不需要 provider、不需要 Key**。
+ *   桌面端开箱默认走这条，用户无需任何配置即可用联网搜索。
  */
-export type WebSearchProtocol = 'zhipu' | 'exa' | 'anysearch'
+export type WebSearchProtocol = 'zhipu' | 'exa' | 'anysearch' | 'local'
 
 export interface WebSearchConfig {
   enabled: boolean
   providerId: string
-  /** 搜索协议：zhipu = 智谱 Web Search（自研引擎+搜狗/夸克，国内直连）；exa = Exa Search（api.exa.ai，有免费额度）；anysearch = AnySearch MCP（api.anysearch.com，免 Key 匿名可用） */
+  /** 搜索协议：zhipu = 智谱 Web Search（自研引擎+搜狗/夸克，国内直连）；exa = Exa Search（api.exa.ai，有免费额度）；anysearch = AnySearch MCP（api.anysearch.com，免 Key 匿名可用）；local = 内置本地引擎（进程内聚合，零 Key 零外部服务） */
   protocol?: WebSearchProtocol
   /** 直存 API Key（Exa / AnySearch 等免 provider 协议直接粘贴；anysearch 可不填走匿名）。exaApiKey 为旧字段，兼容读取 */
   apiKey?: string
@@ -395,6 +397,19 @@ export async function resolveWebSearchProvider(): Promise<{
   if (wsc?.enabled) {
     const directKey = wsc.apiKey || wsc.exaApiKey || ''
 
+    // 内置本地引擎：完全不需要 provider / Key，进程内聚合上游搜索引擎。
+    // 必须放在最前面，否则会被下面的「找 provider」逻辑挡掉（本地引擎没有 provider）。
+    if (wsc.protocol === 'local') {
+      return {
+        providerId: 'builtin-local',
+        baseUrl: 'local',
+        apiKey: '',
+        protocol: 'local',
+        engine: wsc.engine,
+        defaultCount: wsc.defaultCount
+      }
+    }
+
     // Exa 协议：直存 Key 优先（固定走官方端点），否则借所选 provider
     if (wsc.protocol === 'exa' && directKey) {
       return {
@@ -694,6 +709,8 @@ export function normalizeOpenAIChatCompletionsUrl(value: unknown): string {
 function detectTypeFromUrl(url: string): AIProvider['type'] {
   if (url.includes('dashscope.aliyuncs.com')) return 'dashscope'
   if (/open\.bigmodel\.cn\/api\/(?:paas|coding\/paas)/.test(url)) return 'glm'
+  // Kimi 月之暗面：OpenAI 完全兼容，但请求体参数约束不同（见 provider-body-adapter）
+  if (/moonshot\.(?:cn|ai)/.test(url) || url.includes('/moonshot')) return 'moonshot'
   return 'openai'
 }
 

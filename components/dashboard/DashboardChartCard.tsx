@@ -86,7 +86,7 @@ export function DashboardChartCard({
             case 'warning':
                 return "border-amber-500 bg-amber-500/10 dark:bg-amber-900/20 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
             default:
-                return "border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-slate-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
+                return "border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.06)] dark:bg-zinc-900/45 dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
         }
     }
 

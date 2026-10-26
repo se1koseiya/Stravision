@@ -8,13 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton"
  */
 export function AIAssistantSkeleton() {
   return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden flex font-sans bg-gray-50 dark:bg-slate-950 text-zinc-900 dark:text-slate-100">
+    <div className="fixed inset-0 w-full h-full overflow-hidden flex font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       {/* ===== Sidebar (260px) ===== */}
       <div
-        className="dark:bg-slate-900"
+        className="dark:bg-zinc-900"
         style={{
           width: 260,
-          background: "#f7f8fa",
+          background: "#fafafa",
           display: "flex",
           flexDirection: "column",
           height: "100%",
@@ -43,7 +43,7 @@ export function AIAssistantSkeleton() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="dark:bg-slate-800/50"
+              className="dark:bg-zinc-800/50"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -53,7 +53,7 @@ export function AIAssistantSkeleton() {
                 marginBottom: 2,
               }}
             >
-              <Skeleton className="size-4 rounded-sm" />
+              <Skeleton className="size-4 rounded-lg" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Skeleton className="h-3.5 w-full" />
               </div>
@@ -68,7 +68,7 @@ export function AIAssistantSkeleton() {
           {[4, 5, 6, 7].map((i) => (
             <div
               key={i}
-              className="dark:bg-slate-800/50"
+              className="dark:bg-zinc-800/50"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -78,7 +78,7 @@ export function AIAssistantSkeleton() {
                 marginBottom: 2,
               }}
             >
-              <Skeleton className="size-4 rounded-sm" />
+              <Skeleton className="size-4 rounded-lg" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Skeleton className="h-3.5 w-4/5" />
               </div>
@@ -89,10 +89,10 @@ export function AIAssistantSkeleton() {
 
         {/* 底部用户区域 */}
         <div
-          className="dark:border-slate-700"
+          className="dark:border-zinc-700"
           style={{
             padding: "12px 12px 16px",
-            borderTop: "1px solid #f0f0f0",
+            borderTop: "1px solid #F4F4F5",
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -108,16 +108,16 @@ export function AIAssistantSkeleton() {
       </div>
 
       {/* ===== Main Content ===== */}
-      <div className="dark:bg-slate-950" style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", background: "#f7f8fa" }}>
+      <div className="dark:bg-zinc-950" style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", background: "#fafafa" }}>
         {/* Top Bar (h-12) */}
-        <div className="h-12 flex items-center gap-3 px-4 shrink-0 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
+        <div className="h-12 flex items-center gap-3 px-4 shrink-0 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
           <Skeleton className="h-8 w-36 rounded-lg" />
           <div className="flex-1" />
         </div>
 
         {/* Chat Area — MateChatHome 首页 */}
         <div
-          className="dark:bg-slate-900"
+          className="dark:bg-zinc-900"
           style={{
             flex: 1,
             display: "flex",
@@ -141,14 +141,14 @@ export function AIAssistantSkeleton() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="dark:border-slate-700 dark:bg-slate-800/50"
+                  className="dark:border-zinc-700 dark:bg-zinc-800/50"
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
                     padding: 12,
                     borderRadius: 12,
-                    border: "1px solid #f0f0f0",
+                    border: "1px solid #F4F4F5",
                   }}
                 >
                   <Skeleton className="size-9 rounded-lg" />
@@ -162,17 +162,17 @@ export function AIAssistantSkeleton() {
           </div>
 
           {/* ChatSenderInput 底部输入框 */}
-          <div className="dark:border-slate-700" style={{ padding: "12px 16px 16px", borderTop: "1px solid #f5f5f5" }}>
+          <div className="dark:border-zinc-700" style={{ padding: "12px 16px 16px", borderTop: "1px solid #f4f4f5" }}>
             <div
-              className="dark:bg-slate-800 dark:border-slate-700"
+              className="dark:bg-zinc-800 dark:border-zinc-700"
               style={{
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#f9fafb",
+                background: "#fafafa",
                 borderRadius: 16,
                 padding: "10px 12px",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #e4e4e7",
               }}
             >
               {/* 附件按钮 */}

@@ -79,10 +79,10 @@ export function MembershipCard({
   const isSmall = size === 'small'
 
   const config = isPlus
-    ? { icon: IconCrown, color: '#9333ea', title: 'PLUS 会员', label: 'PLUS' }
+    ? { icon: IconCrown, color: '#52525b', title: 'PLUS 会员', label: 'PLUS' }
     : isPro
-      ? { icon: IconMagic, color: '#d97706', title: 'PRO 会员', label: 'PRO' }
-      : { icon: IconLightning, color: '#8c8c8c', title: '免费计划', label: '基础' }
+      ? { icon: IconMagic, color: '#52525b', title: 'PRO 会员', label: 'PRO' }
+      : { icon: IconLightning, color: '#8f959e', title: '免费计划', label: '基础' }
 
   const Icon = config.icon
 
@@ -116,7 +116,7 @@ export function MembershipCard({
       {/* Small Size — giant label */}
       {isSmall && (
         <Flex vertical justify="space-between" style={{ height: '100%' }}>
-          <Icon size={20} strokeWidth={1.5} color={config.color} style={{ opacity: 0.6 }} />
+          <Icon size={20} strokeWidth={2} color={config.color} style={{ opacity: 0.6 }} />
           <Flex vertical gap={2}>
             <span style={{ fontSize: 22, fontWeight: 200, color: A.label, lineHeight: 0.9, letterSpacing: '-0.02em' }}>{config.label}</span>
             <span style={{ ...E.type.caption, color: A.labelTertiary, fontSize: 9 }}>
@@ -139,7 +139,7 @@ export function MembershipCard({
             {!isPlus ? (
               <Progress
                 percent={Math.min(100, quota?.daily_limit ? (quota.daily_usage / quota.daily_limit) * 100 : 0)}
-                strokeColor={isPro ? '#d97706' : BERRY_THEME.primary}
+                strokeColor={isPro ? '#52525b' : BERRY_THEME.primary}
                 showInfo={false}
                 size="small"
                 style={{ margin: 0 }}

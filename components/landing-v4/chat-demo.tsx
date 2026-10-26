@@ -24,7 +24,7 @@ const HeroChat = dynamic(
 
 export function ChatDemo() {
   return (
-    <section className="bg-white py-28 dark:bg-[#0C110E]">
+    <section className="bg-white py-28 dark:bg-[#09090B]">
       <div className={CONTAINER}>
         <motion.div {...fadeUp()} className="max-w-[40rem]">
           <p style={EYEBROW}>适用于&nbsp;&nbsp;智能对话</p>

@@ -27,12 +27,12 @@ export function Metrics() {
 
       <StrawberrySprig
         className="pointer-events-none absolute bottom-10 right-[6%] w-24 opacity-[0.12]"
-        stroke="#F4EFE3"
+        stroke="#F4F4F5"
       />
 
       <div className="mx-auto max-w-[1400px] px-6 py-24 md:px-10 md:py-32">
         <p
-          className="mb-14 flex items-baseline justify-center gap-3 text-[14px] text-[#F4EFE3]/50"
+          className="mb-14 flex items-baseline justify-center gap-3 text-[14px] text-[#F4F4F5]/50"
           style={{ fontFamily: KAI }}
         >
           <span className="text-[#D89A8A]">几个数字</span>
@@ -51,7 +51,7 @@ export function Metrics() {
               className="relative text-center"
             >
               <p
-                className="relative inline-block text-[clamp(2rem,4.2vw,3.2rem)] leading-none tracking-tight text-[#F4EFE3]"
+                className="relative inline-block text-[clamp(2rem,4.2vw,3.2rem)] leading-none tracking-tight text-[#F4F4F5]"
                 style={{ fontFamily: SERIF }}
               >
                 <span className={m.circled ? "italic" : ""}>{m.value}</span>
@@ -62,11 +62,11 @@ export function Metrics() {
                   />
                 )}
               </p>
-              <p className="mt-4 text-[15px] text-[#F4EFE3]/80" style={{ fontFamily: SERIF }}>
+              <p className="mt-4 text-[14px] text-[#F4F4F5]/80" style={{ fontFamily: SERIF }}>
                 {m.label}
               </p>
               <p
-                className="mt-1.5 text-[13px] text-[#F4EFE3]/40"
+                className="mt-1.5 text-[13px] text-[#F4F4F5]/40"
                 style={{ fontFamily: KAI }}
               >
                 {m.note}
@@ -76,7 +76,7 @@ export function Metrics() {
         </div>
       </div>
 
-      <TornEdge className="block h-8 w-full md:h-11" fill="#F4EFE3" />
+      <TornEdge className="block h-8 w-full md:h-11" fill="#F4F4F5" />
     </section>
   );
 }

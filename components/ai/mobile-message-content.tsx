@@ -10,6 +10,8 @@ import { SvgCard } from "@/components/ai/svg-card"
 import { DeviceForgeCard, DeviceForgeSkeleton } from "@/components/ai/device-forge-card"
 import { parseDeviceForgeCardData } from "@/lib/state/device-forge-store"
 import { IconBrain, IconCalendar, IconCamera, IconChartHistogram, IconChartLine, IconFileText, IconLightning, IconSearch } from "@/components/icon";
+// 🍓 `<EMO:id/>` 是 GrokBot 头像的表情指令，不属于正文
+import { stripOrbExpressionTag } from "@/lib/ai/orb-expression";
 
 import type { Message } from "@/app/ai-assistant/types"
 import { DeviceControlCard } from "@/components/ai/device-control-card"
@@ -17,8 +19,15 @@ import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
 import { SpectralCard } from "@/components/ai/spectral-card"
 import { AutomationStrategyCard } from "@/components/automation-strategy-card"
 import { PremiumReportLoader } from "@/app/ai-assistant/_components/premium-report-loader"
-import { CheckpointConfirm, parseCheckpointContent } from "@/components/ai/checkpoint-confirm"
+import { CheckpointConfirm, parseCheckpointContent, tryParseJsonWithRepair } from "@/components/ai/checkpoint-confirm"
 import { SkillForgeCard, parseSkillForgeCardData } from "@/components/ai/skill-forge-card"
+import { DiagnosisCard } from "@/components/ai/diagnosis-card"
+import { isDiagnosisResult, type DiagnosisResult } from "@/lib/types/vision-diagnosis"
+import { parseCompressionStats } from "@/lib/ai/context"
+import { ClarifyCard, type ClarifyData } from "@/components/ai/clarify-card"
+import { DecisionCard, type DecisionData } from "@/components/ai/decision-card"
+import { PlanApprovalCard, type PlanData } from "@/components/ai/plan-approval-card"
+import { VisionInspectionCard } from "@/components/ai/vision-inspection-card"
 
 const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
   ssr: false,
@@ -45,6 +54,15 @@ export interface MobileMessageContentProps {
   onSendMessage: (text: string) => void
   onSetInput: (text: string) => void
   onOpenStudio?: (title: string, html: string) => void
+  /**
+   * `<DIAGNOSIS>` 诊断卡的底图 = 用户刚发上来的那张原图。
+   * 不传则卡片只有文字结论，`DetectionOverlay` 整块不渲染（用户看不出病在哪）。
+   */
+  diagnosisImageSrc?: string
+  /** 会话 id。临时会话（`__temp__` 前缀）不传，否则病历会落进脏数据 */
+  diagnosisSessionId?: string
+  /** 本条消息在原始 messages 数组里的下标（当稳定消息键），与 PC 端同口径 */
+  diagnosisMessageKey?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -52,7 +70,7 @@ export interface MobileMessageContentProps {
 // ---------------------------------------------------------------------------
 
 const TAG_REGEX =
-  /(<\s*DEVICE_FORGE\s*>[\s\S]*?(?:<\/\s*DEVICE_FORGE\s*>|$)|<\s*ILLU[^>]*>[\s\S]*?(?:<\/\s*ILLU\s*>|$)|<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SKILL_FORGE\s*(?:>[\s\S]*?(?:<\/\s*SKILL_FORGE\s*>|$)|(?:\/>))|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*\/?>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*AUTOMATION_STRATEGY\s*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```mermaid\s*[\s\S]*?```|```json\s*[\s\S]*?```)/g
+  /(<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*?<\/\s*AUTOMATION_STRATEGY\s*>|<[^>]*AUTOMATION_STRATEGY[^>]*>[\s\S]*$|<\s*CLARIFY\s*>[\s\S]*?(?:<\/\s*CLARIFY\s*>|$)|<\s*DECISION\s*>[\s\S]*?(?:<\/\s*DECISION\s*>|$)|<\s*DIAGNOSIS\s*>[\s\S]*?(?:<\/\s*DIAGNOSIS\s*>|$)|<\s*PLAN\s*>[\s\S]*?(?:<\/\s*PLAN\s*>|$)|<\s*VISION_INSPECTION\s*\/?>|<\s*DEVICE_FORGE\s*>[\s\S]*?(?:<\/\s*DEVICE_FORGE\s*>|$)|<\s*ILLU[^>]*>[\s\S]*?(?:<\/\s*ILLU\s*>|$)|<\s*CHART(?:\s+type="[^"]*")?\s*>[\s\S]*?<\/\s*CHART\s*>|<\s*SPECTRAL\s*>[\s\S]*?(?:<\/\s*SPECTRAL\s*>|$)|<\s*MONITOR\s*>[\s\S]*?(?:<\/\s*MONITOR\s*>|$)|<\s*SKILL_FORGE\s*(?:>[\s\S]*?(?:<\/\s*SKILL_FORGE\s*>|$)|(?:\/>))|<\s*SCHEDULED_TASKS\s*(?:>[\s\S]*?(?:<\/\s*SCHEDULED_TASKS\s*>|$)|(?:\/>))|<\s*DEVICE_BENTO\s*(?:>[\s\S]*?(?:<\/\s*DEVICE_BENTO\s*>|$)|(?:\/>))|<\s*CONTROL_BENTO\s*(?:>[\s\S]*?(?:<\/\s*CONTROL_BENTO\s*>|$)|(?:\/>))|<\s*TOOL_USED\s+[^>]*(?:\/>|>[\s\S]*?<\/\s*TOOL_USED\s*>)|<\s*ACTION_PROMPT\s*>[\s\S]*?<\/\s*ACTION_PROMPT\s*>|<\s*CONTEXT_COMPRESSED\s*>[\s\S]*?(?:<\/\s*CONTEXT_COMPRESSED\s*>|$)|<\s*CONTEXT_COMPRESSED\s*\/>|<\s*CAPABILITIES\s*\/?>|<\s*PAST_MEMORY\s*>[\s\S]*?<\/\s*PAST_MEMORY\s*>|<\s*REPORT_GENERATING\s*>[\s\S]*?<\/\s*REPORT_GENERATING\s*>|<\s*CHECKPOINT\s*>[\s\S]*?(?:<\/\s*CHECKPOINT\s*>|$)|\[REPORT:[^\]]+\][\s\S]*?(?:\[\/REPORT\]|$)|```mermaid\s*[\s\S]*?```|```json\s*[\s\S]*?```)/g
 
 // ---------------------------------------------------------------------------
 // 手机端能力卡片（精简版）
@@ -60,13 +78,13 @@ const TAG_REGEX =
 
 function MobileCapabilitiesCard({ onExampleClick }: { onExampleClick: (ex: string) => void }) {
   const caps = [
-    { icon: IconLightning, title: "设备控制", color: "#1677ff", example: "打开水泵" },
-    { icon: IconChartLine, title: "环境监测", color: "#52c41a", example: "当前环境如何" },
-    { icon: IconChartHistogram, title: "光谱分析", color: "#722ed1", example: "获取光谱数据" },
-    { icon: IconCamera, title: "视觉巡检", color: "#fa8c16", example: "巡检温室" },
+    { icon: IconLightning, title: "设备控制", color: "#059669", example: "打开水泵" },
+    { icon: IconChartLine, title: "环境监测", color: "#059669", example: "当前环境如何" },
+    { icon: IconChartHistogram, title: "光谱分析", color: "#059669", example: "获取光谱数据" },
+    { icon: IconCamera, title: "视觉巡检", color: "#52525B", example: "巡检温室" },
     { icon: IconCalendar, title: "定时任务", color: "#eb2f96", example: "每天8点开灯" },
-    { icon: IconFileText, title: "报告生成", color: "#13c2c2", example: "生成环境报告" },
-    { icon: IconSearch, title: "知识搜索", color: "#f5222d", example: "白粉病怎么防治" },
+    { icon: IconFileText, title: "报告生成", color: "#52525B", example: "生成环境报告" },
+    { icon: IconSearch, title: "知识搜索", color: "#DC2626", example: "白粉病怎么防治" },
     { icon: IconBrain, title: "智能分析", color: "#fa541c", example: "分析生长状态" },
   ]
   return (
@@ -87,7 +105,7 @@ function MobileCapabilitiesCard({ onExampleClick }: { onExampleClick: (ex: strin
               >
                 <Icon size={16} style={{ color: c.color }} />
               </div>
-              <span className="text-[10px] text-zinc-600 dark:text-zinc-400 leading-tight text-center">{c.title}</span>
+              <span className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-tight text-center">{c.title}</span>
             </button>
           )
         })}
@@ -127,7 +145,8 @@ function renderTaggedContent(
     onOpenStudio,
   } = props
 
-  const parts = content.split(TAG_REGEX)
+  // 🍓 兜底剥离表情标签（与 PC 端 chat-message-renderer 同口径）
+  const parts = stripOrbExpressionTag(content).split(TAG_REGEX)
 
   // 🔥 DEVICE_FORGE 去重：同一条消息只渲染第一张设备接入卡（前端直推注入 + 模型复述可能并存）
   let forgeCardRendered = false
@@ -283,14 +302,20 @@ function renderTaggedContent(
           } catch { return null }
         }
 
-        // CONTEXT_COMPRESSED
-        if (part.match(/^<\s*CONTEXT_COMPRESSED/))
+        // CONTEXT_COMPRESSED —— 与服务端下发的计量对齐（手机端只做一行摘要，详情在 PC 端）
+        if (part.match(/^<\s*CONTEXT_COMPRESSED/)) {
+          const compression = parseCompressionStats(part)
           return (
             <div key={index} className="my-2 flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
               <IconChartLine size={12} className="text-emerald-500 shrink-0" />
-              <span>较早的对话历史已自动提炼并压缩</span>
+              <span>
+                {compression
+                  ? `已自动整理上下文：较早的 ${compression.foldedMessages} 条折叠为摘要，保留最近 ${compression.keptMessages} 条原文`
+                  : "较早的对话历史已自动提炼并压缩"}
+              </span>
             </div>
           )
+        }
 
         // CAPABILITIES — 手机端精简能力卡片
         if (part.match(/^<\s*CAPABILITIES/))
@@ -323,7 +348,7 @@ function renderTaggedContent(
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="group relative bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-500/10 dark:to-zinc-800 rounded-2xl p-3.5 cursor-pointer hover:shadow-md transition-all border border-zinc-200 dark:border-zinc-700"
+                  className="group relative bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-500/10 dark:to-zinc-800 rounded-2xl p-3.5 cursor-pointer hover:shadow-sm transition-all border border-zinc-200 dark:border-zinc-700"
                   onClick={() => onOpenStudio?.(title, html)}
                 >
                   <div className="flex items-center gap-3">
@@ -375,6 +400,121 @@ function renderTaggedContent(
             return <div key={index}><AutomationStrategyCard strategy={JSON.parse(jsonMatch[1])} description={desc} /></div>
           } catch { return null }
         }
+
+        // DIAGNOSIS — 病虫害诊断卡片（与 PC 端同构）
+        // 模型按 components/ai/farm-skills.tsx 的契约输出 <DIAGNOSIS>{...}</DIAGNOSIS>。
+        // 🚨 移动端此前完全没有这个分支：PC 端能看到诊断卡，手机上只有一坨裸 JSON 或干脆空白。
+        // 流式未闭合 / 解析失败时静默留空 + console.warn（高频出现属正常中间态）。
+        if (part.match(/^<\s*DIAGNOSIS/)) {
+          const jsonText = part
+            .replace(/^<\s*DIAGNOSIS\s*>/, "")
+            .replace(/<\/\s*DIAGNOSIS\s*>\s*$/, "")
+            .trim()
+          if (!jsonText) return null
+          const diagData = tryParseJsonWithRepair<DiagnosisResult>(jsonText)
+          if (!diagData || !isDiagnosisResult(diagData)) {
+            // 不静默吞掉：否则排障时只能靠猜「后端发了标签前端为什么没卡」
+            console.warn(
+              '[DiagnosisCard:mobile] 标签已到达但解析/校验失败，卡片不渲染：',
+              diagData ? 'structure-invalid' : 'json-parse-failed',
+              'len=' + jsonText.length,
+              'head=' + jsonText.slice(0, 60),
+            )
+            return null
+          }
+          return (
+            <DiagnosisCard
+              key={index}
+              result={diagData}
+              imageSrc={props.diagnosisImageSrc}
+              /* 病历自动入档的幂等种子。三者缺一则不入档（无会话上下文的场景）。 */
+              archiveKey={
+                props.diagnosisSessionId && props.diagnosisMessageKey
+                  ? `${props.diagnosisSessionId}:${props.diagnosisMessageKey}:${index}`
+                  : undefined
+              }
+              className="my-3"
+            />
+          )
+        }
+
+        // CLARIFY — 主动澄清（用户必须回话，否则 AI 只能停在那儿）
+        if (part.match(/^<\s*CLARIFY/)) {
+          const clarifyData = tryParseJsonWithRepair<ClarifyData>(
+            part.replace(/^<\s*CLARIFY\s*>/, "").replace(/<\/\s*CLARIFY\s*>/, "").trim()
+          )
+          if (!clarifyData) return null
+          return (
+            <div key={index} className="my-3">
+              <ClarifyCard data={clarifyData} onReply={(reply) => onSendMessage(`【澄清回复】${reply}`)} />
+            </div>
+          )
+        }
+
+        // DECISION — 可解释 AI 决策卡片
+        if (part.match(/^<\s*DECISION/)) {
+          const decisionData = tryParseJsonWithRepair<DecisionData>(
+            part.replace(/^<\s*DECISION\s*>/, "").replace(/<\/\s*DECISION\s*>/, "").trim()
+          )
+          if (!decisionData) return null
+          return (
+            <div key={index} className="my-3">
+              <DecisionCard data={decisionData} />
+            </div>
+          )
+        }
+
+        // PLAN — 计划审批（手机端也必须能批准/拒绝，否则 AI 会自己往下跑）
+        if (part.match(/^<\s*PLAN/)) {
+          const planData = tryParseJsonWithRepair<PlanData>(
+            part.replace(/^<\s*PLAN\s*>/, "").replace(/<\/\s*PLAN\s*>/, "").trim()
+          )
+          if (!planData) return null
+          return (
+            <div key={index} className="my-3">
+              <PlanApprovalCard
+                data={planData}
+                onApprove={(modified) => {
+                  // 用户改过步骤就把改后的明细回灌，否则 AI 照原计划跑 = 白审批
+                  const stepsText = (modified.steps || [])
+                    .map((s, i) => `${i + 1}. ${s.content}${s.tool ? `（工具：${s.tool}）` : ""}`)
+                    .join("\n")
+                  const edited =
+                    modified.title !== planData.title ||
+                    modified.summary !== planData.summary ||
+                    JSON.stringify(modified.steps) !== JSON.stringify(planData.steps)
+                  onSendMessage(
+                    `【计划批准】${modified.title || "执行计划"}\n\n计划摘要：${modified.summary || "（无）"}\n\n执行步骤：\n${stepsText}\n\n请按以上步骤逐步执行。${
+                      edited ? "\n\n注意：用户已对计划进行修改，请严格按照修改后的步骤执行。" : ""
+                    }`
+                  )
+                }}
+                onReject={() => onSendMessage(`【计划拒绝】${planData.title || "执行计划"}\n请停止当前任务，不要执行。`)}
+              />
+            </div>
+          )
+        }
+
+        // VISION_INSPECTION — 视觉巡检取景器
+        // 手机上这块反而比 PC 更该有（摄像头就是随身设备），所以同构接过来。
+        if (part.match(/^<\s*VISION_INSPECTION/))
+          return (
+            <div key={index} className="flex justify-center my-3">
+              <VisionInspectionCard
+                onCaptureAndAnalyze={(imageBase64, query) => {
+                  onSendMessage(
+                    JSON.stringify([
+                      { type: "image_url", image_url: { url: imageBase64 } },
+                      { type: "text", text: `【视觉巡检截图】${query || "请分析画面内容"}` },
+                    ])
+                  )
+                }}
+                onCameraControl={async (direction) => {
+                  await onExecuteCommand({ action: "control_camera", direction, pulses: 1600 })
+                }}
+              />
+            </div>
+          )
 
         // CHART — 图表（手机端自适应宽度）
         if (part.match(/^<\s*CHART/)) {
@@ -511,6 +651,12 @@ export function MobileMessageContent(props: MobileMessageContentProps) {
     .replace(/```json\s*\{[\s\S]*?"function_call"[\s\S]*?\}\s*```/g, "")
     .replace(/```json\s*\{[\s\S]*?"arguments":\s*\{[\s\S]*?\}[\s\S]*?\}\s*```/g, "")
     .replace(/^\s*\{\s*"(?:action|function|name)":\s*"mcp_[^"]*"[\s\S]*?\}\s*$/gm, "")
+    // 🔥 兜底：模型偶发在正文里"宣布"工具调用（单独一行写工具名，如 automation_strategy_list）。
+    // 真正的调用由「调用 xxx」卡片展示，正文里的裸工具名对用户毫无意义，整行剥离。
+    .replace(
+      /^\s*(?:automation_strategy_\w+|cron_\w+|task_\w+|user_memory_\w+|toggle_relay|set_led|control_camera|reset_camera|list_devices|delete_device|take_camera_snapshot|move_camera_and_look|get_sensor_history|get_all_spectrum|remember_user_info|recall_user_info|update_task|load_skill|deep_research|web_search|ask_user_question|enter_plan_mode|exit_plan_mode|create_skill_from_doc|refine_skill)\s*$/gm,
+      ""
+    )
     .trim()
 
   // 提取 TASK_LIST
@@ -528,10 +674,16 @@ export function MobileMessageContent(props: MobileMessageContentProps) {
 
   return (
     <div className="space-y-2">
-      {/* 用户上传的图片 */}
+      {/* 用户上传的图片 —— 手机屏幕更窄，封顶 132px；整张照片可见，不裁切 */}
       {imageParts.map((part: any, i: number) => (
-        <div key={`img-${i}`} className="relative w-full max-w-[240px] rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 my-2">
-          <Image src={part.image_url.url} alt="用户上传" width={240} height={180} className="object-cover w-full h-auto" />
+        <div key={`img-${i}`} className="relative my-2 inline-block max-w-[132px] overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+          <Image
+            src={part.image_url.url}
+            alt="用户上传"
+            width={132}
+            height={132}
+            className="block h-auto max-h-[132px] w-auto max-w-[132px]"
+          />
         </div>
       ))}
 

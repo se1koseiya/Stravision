@@ -1,16 +1,42 @@
 "use client"
 
-import React, { useMemo } from "react"
-import { ThoughtChain } from "@ant-design/x"
-import type { ThoughtChainProps } from "@ant-design/x"
-import { Flex, Typography } from "antd"
-import { cn } from "@/lib/utils"
-import { IconAttention, IconBrain, IconChartLine, IconCheckOne, IconCode, IconEdit, IconFileText, IconGlobe, IconHistory, IconLoading, IconLocalPin, IconSearch, IconSeedling, IconSunny, IconTool, IconWater } from "@/components/icon";
+/* ------------------------------------------------------------
+   AgentThoughtChain —— AI 助手的「工具调用链」
+   ─────────────────────────────────────────────────────────────
+   2026-10-14 改版：视觉从 antd-x `ThoughtChain` 切换到
+   `components/ui/tool-calls-section`（外部参考实现的原生移植版）——
+   折叠头「分类图标斜叠 + 调用了 N 个工具 + 箭头」，展开后是竖向链路：
+   图标列（含连接线） + 工具名 / 分类名 / 可点开的参数与结果面板。
 
-const { Text } = Typography
+   数据契约**完全不变**（`AgentStep[]` + `isActive` + `defaultCollapsed`），
+   page.tsx / copilot / landing-v4 演示三处调用方零改动。
+
+   与旧实现的行为差异（有意为之）：
+     · 每个 step 都成为链路上一行（旧的 narrative 会被塞进"下一个任务"的
+       折叠内容里或聚合成"执行总结"，看不见要展开才知道）；
+       现在 narrative 自己就是一行，文案 = 原文，滚动即可读到。
+     · 不再有按钮式的「自动折叠」开关（旧实现里那个开关与链本身无关）。
+     · 进行中的步骤**首次进入 active 时自动展开**（旧的 defaultExpandedKeys 行为）。
+   ------------------------------------------------------------ */
+
+import { useCallback, useMemo } from "react"
+
+import { IconLoading } from "@/components/icon"
+import { cn } from "@/lib/utils"
+import {
+  ToolCallsSection,
+  type ToolCallEntry,
+  type ToolCallStatus,
+} from "@/components/ui/tool-calls-section"
+import {
+  getCategoryMeta,
+  resolveToolCategory,
+  type ToolCategoryMeta,
+  type ToolCategoryId,
+} from "@/components/ui/tool-calls-section-utils/tool-icons"
 
 // ---------------------------------------------------------------------------
-// 数据模型（向后兼容 page.tsx 中已有的 setAgentSteps 写法）
+// 数据模型（向后兼容 page.tsx 中已有的 setAgentSteps 写法 —— 勿改名勿删字段）
 // ---------------------------------------------------------------------------
 
 export type AgentStepKind =
@@ -69,239 +95,197 @@ function getStepDuration(s: AgentStep): number {
   return 0
 }
 
-// AgentStepStatus → ThoughtChain item status
-// ThoughtChain 仅支持 'loading' | 'success' | 'error' | 'abort'，没有 'pending'
-// pending 视为 "未开始"，不展示状态色 → 返回 undefined
-function mapStatus(
-  status: AgentStepStatus
-): ThoughtChainProps["items"][number]["status"] {
+/** 毫秒 → 链路右侧的耗时文本（< 1s 也给一位小数，与旧版一致） */
+function formatDuration(ms: number): string | undefined {
+  if (!ms || ms <= 0) return undefined
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
+function mapStatus(status: AgentStepStatus): ToolCallStatus {
   switch (status) {
     case "active":
-      return "loading"
+      return "active"
     case "completed":
-      return "success"
+      return "completed"
     case "error":
       return "error"
     default:
-      return undefined
+      return "pending"
   }
 }
 
-function mapChildStatus(
-  status: AgentChildItem["status"]
-): ThoughtChainProps["items"][number]["status"] {
-  switch (status) {
-    case "completed":
-      return "success"
-    case "error":
-      return "error"
-    case "active":
-      return "loading"
-    default:
-      return undefined
-  }
+/** 子步骤类型 → 分类（标题里能识别出工具名时优先用工具名） */
+const CHILD_TYPE_CATEGORY: Record<AgentChildItem["type"], ToolCategoryId> = {
+  search: "search",
+  scrape: "scrape",
+  read: "history",
+  command: "code",
+  edit: "code",
+  thinking: "thinking",
+  tool: "general",
 }
 
-// 根据工具名挑选 lucide-react 线性图标（strokeWidth 1.75，Trae Work 风格）
-function getIconForTool(toolName?: string): React.ReactNode {
-  const STROKE = 1.75
-  if (!toolName) return <IconTool size={14} strokeWidth={STROKE} />
-  const n = toolName.toLowerCase()
-  if (n.includes("search")) return <IconSearch size={14} strokeWidth={STROKE} />
-  if (n.includes("scrape") || n.includes("firecrawl") || n.includes("crawl") || n.includes("fetch"))
-    return <IconGlobe size={14} strokeWidth={STROKE} />
-  if (n.includes("weather")) return <IconSunny size={14} strokeWidth={STROKE} />
-  if (n.includes("spectrum")) return <IconChartLine size={14} strokeWidth={STROKE} />
-  if (n.includes("sensor_history") || n.includes("history"))
-    return <IconHistory size={14} strokeWidth={STROKE} />
-  if (n.includes("route") || n.includes("amap")) return <IconLocalPin size={14} strokeWidth={STROKE} />
-  if (n.includes("soil")) return <IconSeedling size={14} strokeWidth={STROKE} />
-  if (n.includes("irrigation")) return <IconWater size={14} strokeWidth={STROKE} />
-  return <IconTool size={14} strokeWidth={STROKE} />
-}
-
-function getIconForChildType(type: AgentChildItem["type"]): React.ReactNode {
-  const STROKE = 1.75
-  switch (type) {
-    case "edit":
-      return <IconEdit size={14} strokeWidth={STROKE} />
-    case "read":
-      return <IconFileText size={14} strokeWidth={STROKE} />
-    case "command":
-      return <IconCode size={14} strokeWidth={STROKE} />
-    case "search":
-      return <IconSearch size={14} strokeWidth={STROKE} />
-    case "scrape":
-      return <IconGlobe size={14} strokeWidth={STROKE} />
-    case "thinking":
-      return <IconBrain size={14} strokeWidth={STROKE} />
-    default:
-      return <IconTool size={14} strokeWidth={STROKE} />
-  }
+function resolveChildCategory(child: AgentChildItem): ToolCategoryMeta {
+  const byTitle = resolveToolCategory(child.title)
+  if (byTitle.id !== "general") return byTitle
+  return getCategoryMeta(CHILD_TYPE_CATEGORY[child.type] ?? "general")
 }
 
 // ---------------------------------------------------------------------------
-// 折叠内容区样式（对齐官方示例 contentStyles：浅色背景 + 圆角 + 细边框）
+// 子组件
 // ---------------------------------------------------------------------------
-const itemContentStyles: ThoughtChainProps['styles'] = {
-  itemContent: {
-    // 中性灰：浅色下是浅灰面板、深色下是微亮面板，两种主题都可读
-    backgroundColor: 'rgba(128,128,128,.08)',
-    borderRadius: 8,
-    padding: 10,
-    marginBlockStart: 8,
-    border: '1px solid rgba(128,128,128,.16)',
-  },
+
+/** 结果面板里的一行子步骤（工具名 + 附加说明 + 耗时） */
+function ChildRow({ child }: { child: AgentChildItem }) {
+  const meta = resolveChildCategory(child)
+  const Icon = meta.Icon
+  const isError = child.status === "error"
+  const isActive = child.status === "active"
+
+  return (
+    <div className="flex w-full items-center gap-2">
+      <Icon
+        size={13}
+        className={cn(
+          "shrink-0",
+          isError
+            ? "text-red-500 dark:text-red-400"
+            : isActive
+              ? "text-[#059669] dark:text-emerald-400"
+              : "text-zinc-400 dark:text-zinc-500",
+        )}
+      />
+      <span
+        className={cn(
+          "text-[11px] break-words",
+          isError
+            ? "text-red-600 dark:text-red-400"
+            : "text-zinc-600 dark:text-zinc-300",
+        )}
+      >
+        {child.title}
+      </span>
+      {child.detail && (
+        <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+          {child.detail}
+        </span>
+      )}
+      {child.badge && (
+        <span className="rounded-md bg-zinc-200/70 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-white/10 dark:text-zinc-400">
+          {child.badge}
+        </span>
+      )}
+      {child.meta && (
+        <span className="ml-auto shrink-0 pl-2 font-mono text-[10px] text-zinc-400 tabular-nums dark:text-zinc-500">
+          {child.meta}
+        </span>
+      )}
+    </div>
+  )
+}
+
+interface ChainEntry {
+  id: string
+  /** 是否计入折叠头的「N 个工具」（narrative / 思考段不计） */
+  isTool: boolean
+  call: ToolCallEntry
+  /** 挂在展开面板顶部的说明段（旧版是 narrative，现在 narrative 自己成行，这里只留补充信息） */
+  notes: string[]
+  detailText?: string
+  children: AgentChildItem[]
+}
+
+/** 展开面板：说明 + 参数 + 结果 */
+function ChainDetail({ entry }: { entry: ChainEntry }) {
+  const hasNotes = entry.notes.length > 0
+  const hasChildren = entry.children.length > 0
+  return (
+    <>
+      {hasNotes && (
+        <div className="flex flex-col gap-1">
+          {entry.notes.map((note, i) => (
+            <p
+              key={`${entry.id}-note-${i}`}
+              className="m-0 text-[12px] leading-relaxed break-words text-zinc-500 dark:text-zinc-400"
+            >
+              {note}
+            </p>
+          ))}
+        </div>
+      )}
+      {entry.detailText && (
+        <div className="flex flex-col">
+          <span className="mb-1 font-medium text-zinc-400 dark:text-zinc-500">
+            参数
+          </span>
+          <p className="m-0 text-[11px] leading-relaxed break-words text-zinc-600 dark:text-zinc-300">
+            {entry.detailText}
+          </p>
+        </div>
+      )}
+      {hasChildren && (
+        <div className="flex flex-col">
+          <span className="mb-1 font-medium text-zinc-400 dark:text-zinc-500">
+            结果
+          </span>
+          <div className="flex flex-col gap-1.5">
+            {entry.children.map((child) => (
+              <ChildRow key={child.id} child={child} />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 // ---------------------------------------------------------------------------
-// 将 AgentStep[] 转换为 ThoughtChain items
-// 分组策略：
-//   - 每个 task 步骤作为一个顶层 item（collapsible）
-//   - task 之前的 narrative/thinking 步骤作为该 task 内容里的 <Text type="secondary">
-//   - task 的 children（工具结果）作为内容里的 ThoughtChain.Item
-//   - microStep / tool_result 归入最近一个 task 的内容
-//   - 末尾若还有未归类的 narrative，单独形成一个"执行总结" item
+// AgentStep[] → ChainEntry[]
 // ---------------------------------------------------------------------------
 
-function buildItems(
-  steps: AgentStep[],
-  isWorking: boolean
-): { items: ThoughtChainProps["items"]; activeKeys: string[] } {
-  const items: ThoughtChainProps["items"] = []
-  const activeKeys: string[] = []
-
-  let pendingTexts: string[] = []
-  let pendingMicro: AgentStep[] = []
-
-  const flushPending = (contentParts: React.ReactNode[]) => {
-    for (const t of pendingTexts) {
-      contentParts.push(
-        <Text key={`text-${contentParts.length}`} type="secondary" style={{ fontSize: 12.5 }}>
-          {t}
-        </Text>
-      )
-    }
-    pendingTexts = []
-    for (const ms of pendingMicro) {
-      const msStatus = mapStatus(ms.status)
-      const msDuration = getStepDuration(ms)
-      contentParts.push(
-        <ThoughtChain.Item
-          key={ms.id}
-          variant="solid"
-          icon={
-            ms.status === "error" ? (
-              <IconAttention size={14} strokeWidth={1.75} />
-            ) : (
-              <IconCheckOne size={14} strokeWidth={1.75} />
-            )
-          }
-          title={getStepText(ms) || "工具结果"}
-          description={ms.detail || (msDuration > 0 ? `${(msDuration / 1000).toFixed(1)}s` : undefined)}
-          status={msStatus}
-        />
-      )
-    }
-    pendingMicro = []
-  }
+function buildEntries(steps: AgentStep[]): ChainEntry[] {
+  const entries: ChainEntry[] = []
 
   for (const step of steps) {
     const kind = step.kind || "narrative"
+    const text = getStepText(step)
+    if (!text && !step.toolName) continue
 
-    if (kind === "narrative" || kind === "thinking") {
-      const text = getStepText(step)
-      if (text) pendingTexts.push(text)
-      continue
+    const isTask = kind === "task"
+    const duration = getStepDuration(step)
+    const category = isTask
+      ? resolveToolCategory(step.toolName || text)
+      : kind === "microStep" || kind === "tool_result"
+        ? resolveToolCategory(text || step.toolName)
+        : getCategoryMeta("thinking")
+
+    const call: ToolCallEntry = {
+      tool_call_id: step.id,
+      tool_name: step.toolName || (isTask ? "tool" : kind),
+      tool_category: category.id,
+      message: text || step.toolName || category.label,
+      // narrative / 思考段的语义不是"工具分类"，不显示第二行
+      show_category: isTask || kind === "microStep" || kind === "tool_result",
+      integration_name: isTask ? undefined : category.label,
+      status: mapStatus(step.status),
+      meta: step.status === "active" ? undefined : formatDuration(duration),
     }
 
-    if (kind === "microStep" || kind === "tool_result") {
-      pendingMicro.push(step)
-      continue
-    }
-
-    if (kind === "task") {
-      const contentParts: React.ReactNode[] = []
-      flushPending(contentParts)
-
-      // 工具结果子项
-      if (step.children && step.children.length > 0) {
-        for (const child of step.children) {
-          contentParts.push(
-            <ThoughtChain.Item
-              key={child.id}
-              variant="solid"
-              icon={getIconForChildType(child.type)}
-              title={child.title}
-              description={
-                child.detail ||
-                child.meta ||
-                (child.badge ? `· ${child.badge}` : undefined)
-              }
-              status={mapChildStatus(child.status)}
-            />
-          )
-        }
-      }
-
-      const taskStatus = mapStatus(step.status)
-      const duration = getStepDuration(step)
-      // 描述：优先 subnote，其次 detail，最后加上耗时
-      const description =
-        step.subnote ||
-        step.detail ||
-        step.meta ||
-        (duration > 0 && step.status !== "active"
-          ? `耗时 ${(duration / 1000).toFixed(1)}s`
-          : undefined)
-
-      items.push({
-        key: step.id,
-        icon: getIconForTool(step.toolName),
-        title: getStepText(step) || step.toolName || "调用工具",
-        description,
-        collapsible: true,
-        content: (
-          <Flex gap="small" vertical>
-            {contentParts}
-          </Flex>
-        ),
-        status: taskStatus,
-      })
-
-      if (step.status === "active") {
-        activeKeys.push(step.id)
-      }
-    }
-  }
-
-  // 末尾剩余的 narrative / microStep 没有归属 task：单独形成一个总结 item
-  if (pendingTexts.length > 0 || pendingMicro.length > 0) {
-    const contentParts: React.ReactNode[] = []
-    flushPending(contentParts)
-    const summaryKey = `summary-${items.length}`
-    // 🔥 标题语义：出现过 task → 工作状态是"整理结果中"；
-    // 只有 narrative（LLM 首字节前的初始思考阶段）→ 显示"思考中"更贴切
-    const hasTask = steps.some((s) => (s.kind || "narrative") === "task")
-    items.push({
-      key: summaryKey,
-      title: isWorking ? (hasTask ? "整理结果中" : "思考中") : "执行总结",
-      collapsible: true,
-      content: (
-        <Flex gap="small" vertical>
-          {contentParts}
-        </Flex>
-      ),
-      status: isWorking ? "loading" : "success",
+    entries.push({
+      id: step.id,
+      isTool: isTask || kind === "microStep" || kind === "tool_result",
+      call,
+      notes: [],
+      detailText: isTask ? step.subnote || step.detail || step.meta : step.detail,
+      children: step.children ? [...step.children] : [],
     })
-    if (isWorking) activeKeys.push(summaryKey)
   }
 
-  return { items, activeKeys }
+  return entries
 }
 
 // ---------------------------------------------------------------------------
-// 主组件（使用 @ant-design/x 官方 ThoughtChain）
+// 主组件
 // ---------------------------------------------------------------------------
 
 export interface AgentThoughtChainProps {
@@ -312,6 +296,11 @@ export interface AgentThoughtChainProps {
    * 当有"任务规划"卡片同时展示时，思考链默认折叠。
    */
   defaultCollapsed?: boolean
+  /**
+   * 本轮执行结束后自动折叠整条链（默认 true）。
+   * landing-v4 的演示台要"完整展示执行全过程" → 传 false 保持常开。
+   */
+  autoCollapse?: boolean
 }
 
 export function AgentThoughtChain({
@@ -319,41 +308,59 @@ export function AgentThoughtChain({
   isActive,
   className,
   defaultCollapsed = false,
+  autoCollapse = true,
 }: AgentThoughtChainProps) {
-  const isWorking = !!isActive && steps.some((s) => s.status === "active")
+  const entries = useMemo(() => buildEntries(steps), [steps])
 
-  const { items, activeKeys } = useMemo(() => buildItems(steps, isWorking), [steps, isWorking])
+  const isWorking = useMemo(
+    () => !!isActive && steps.some((s) => s.status === "active"),
+    [isActive, steps],
+  )
 
-  // 默认展开：工作状态下展开所有 active 任务；非工作状态下展开第一个 task（若有）
-  // 使用 uncontrolled 模式（defaultExpandedKeys），由 ThoughtChain 内部管理展开状态，
-  // 避免受控 expandedKeys + setState 在流式更新时触发 Maximum update depth 循环。
-  const defaultExpanded = useMemo(() => {
-    if (defaultCollapsed) return [] as string[]
-    if (isWorking && activeKeys.length > 0) return activeKeys
-    // 默认展开第一个 task，让用户能看到细节
-    const firstTaskKey = items.find((it) => it.collapsible)?.key
-    return firstTaskKey ? [firstTaskKey] : []
-  }, [defaultCollapsed, isWorking, activeKeys, items])
+  const toolCount = useMemo(
+    () => entries.filter((e) => e.isTool).length,
+    [entries],
+  )
 
-  if (items.length === 0) return null
+  const calls = useMemo(() => entries.map((e) => e.call), [entries])
+
+  const detailSlot = useCallback(
+    (_call: ToolCallEntry, index: number) => {
+      const entry = entries[index]
+      if (!entry) return null
+      const hasContent =
+        entry.notes.length > 0 || !!entry.detailText || entry.children.length > 0
+      if (!hasContent) return null
+      return <ChainDetail entry={entry} />
+    },
+    [entries],
+  )
+
+  const label = isWorking ? (
+    <span className="flex items-center gap-1.5">
+      <IconLoading size={11} className="animate-spin text-[#059669]" />
+      {toolCount > 0 ? `正在调用 ${toolCount} 个工具` : "思考中"}
+    </span>
+  ) : toolCount > 0 ? (
+    `调用了 ${toolCount} 个工具`
+  ) : (
+    "执行总结"
+  )
+
+  if (entries.length === 0) return null
 
   return (
-    <div className={cn("my-1.5", className)}>
-      {isWorking && (
-        <div className="flex items-center gap-1 text-[12px] text-[#1677ff] mb-1.5 px-0.5">
-          <IconLoading size={11} className="animate-spin" />
-          <span style={{ fontWeight: 400 }}>
-            任务执行中{items.length > 0 && ` · ${items.length} 步`}
-          </span>
-        </div>
-      )}
-      <ThoughtChain
-        items={items}
-        defaultExpandedKeys={defaultExpanded}
-        collapsible
-        styles={itemContentStyles}
-      />
-    </div>
+    <ToolCallsSection
+      toolCalls={calls}
+      defaultExpanded={!defaultCollapsed}
+      /* 🔥 本轮执行结束（isWorking 转 false）→ 延迟一会儿自动折叠整条链，
+         把版面让给正文；新一轮工具调用（isWorking 转 true / 内容变化）会自动展开 */
+      autoCollapseWhen={autoCollapse && !isWorking}
+      detailSlot={detailSlot}
+      label={label}
+      iconSize={18}
+      className={cn("my-1.5", className)}
+    />
   )
 }
 

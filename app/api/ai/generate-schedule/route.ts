@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { getCreditsConfig, checkCreditAllowance } from '@/lib/db/credit-service'
 import { getUserAiQuota, incrementAiUsage } from '@/lib/db/ai-quota-service'
 import { DEVICE_NAMES } from '@/lib/constants'
+import { adaptChatRequestBody } from '@/lib/ai/provider-body-adapter'
 
 export const runtime = 'nodejs'
 
@@ -134,12 +135,12 @@ ${Object.entries(DEVICE_NAMES).map(([id, name]) => `- ${id}: ${name}`).join('\n'
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${apiKey}`
             },
-            body: JSON.stringify({
+            body: JSON.stringify(adaptChatRequestBody({
                 model: model || "qwen-plus",
                 messages: messages,
                 temperature: 0.7,
                 stream: false
-            })
+            }, { baseUrl: finalUrl, model: model || "qwen-plus" }))
         })
 
         if (!response.ok) {

@@ -1,9 +1,51 @@
+/* 2026-10-22 聊天页改造：新增 --br-bubble / --br-bubble-ink 两个 token（见 :root / .dark）。
+   改本文件也会顺带触发 Tailwind v4 对 components/chat/* 的全量重扫 —— 新增 br-* 工具类
+   若只在聊天组件里首次出现，不重扫会「类在、但没样式」（本文件末尾有同样提醒）。 */
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* 禁止 Tailwind v4 自动内容扫描进入根目录的巨型垃圾目录（旧依赖备份/构建产物）：
+   几十万文件在 Windows + 杀软实时扫描下会拖爆 PostCSS worker，
+   导致 Turbopack loader 超时（构建期间歇性崩溃） */
+/* 🚨 新增组件目录（如 components/device-access/）后若类名「挂着但样式不生效」，
+      说明 Tailwind watcher 漏文件 —— 改一行本文件触发全量重扫即可，别去改组件写法。 */
+@source not "../node_modules.old";
+@source not "../node_modules.old2";
+@source not "../release";
+@source not "../release-sim";
+@source not "../output";
+@source not "../tmp";
+@source not "../tmp-desktop-shots";
+@source not "../tmp-verify";
+/* 宣传片构建产物（.spike / .promo-build / .promo-rebuild）：影片 frame PNG 与
+   探针脚本共上千个文件，扫进去会拖爆 PostCSS worker */
+@source not "../.spike";
+@source not "../.promo-build";
+@source not "../.promo-rebuild";
+@source not "../.promo-film";
+@source not "../.motion-ui-promo";
+/* 🚨 装机验证 / 便携包解包产物。release-sim/resources/app-server/{data,docs} 是指向
+   %APPDATA%\stravision-desktop-runtime\server-data\* 的目录联接（junction）。
+   Tailwind 自动扫描会跟着联接跑出项目根，Turbopack 随后把该路径算成
+   ../../../../AppData/... 并拼到空根上 → "leaves the filesystem root"
+   → 全站每个页面 500（2026-10-25 实际踩过，仅靠 .gitignore 不够保险，双重排除）。 */
+@source not "../release-sim";
+@source not "../release-build";
+@source not "../release-win";
+
 @custom-variant dark (&:is(.dark *));
 
-/* 阿里妈妈数黑体 - 支持所有粗体权重 */
+/* ============================================================
+   字体唯一源（全站）
+   ── 全站（除落地页）：鸿蒙黑体 HarmonyOS Sans / HarmonyOS Sans SC
+      · 可变字重 wght 40–900 → 常规与粗体共用同一份资源，粗体是真字重不再借用 Alimama
+      · 西文走小体积的 HarmonyOS Sans（342KB），中文落到 SC（首屏不被大文件阻塞）
+   ── 落地页 /（landing-v4）：保持原「思源黑体 + 阿里妈妈数黑体」不变
+      · 由 app/page.tsx 根节点 .landing-legacy-font 作用域覆盖 --font-* 变量实现，
+        字体规则全部写成 var(--font-ui*) 形式，所以作用域一覆盖即可整页回退
+   ============================================================ */
+
+/* 阿里妈妈数黑体 —— 现仅落地页品牌标题使用（其余位置已由鸿蒙黑体接管） */
 @font-face {
   font-family: 'AlimamaShuHeiTi';
   src: url('/fonts/AlimamaShuHeiTi-Bold.ttf') format('truetype');
@@ -12,13 +54,89 @@
   font-display: swap;
 }
 
+/* 鸿蒙黑体 SC —— 全站基准字体（中文正文 + 中文粗体），可变字重
+   子集/限轴产物：覆盖 GB2312 + 常用符号 + CJK 基本区（2.2 万字形），wght 轴裁到 400–900
+   生成脚本：pyftsubset → fonttools varLib.instancer wght=400:900 → woff2（6.0MB） */
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('/font/HarmonyOS_Sans_SC.web.woff2') format('woff2');
+  font-weight: 400 900; /* 可变字重轴 wght 400–900（<400 由浏览器收敛到 400） */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 鸿蒙黑体（拉丁/西文）—— 小体积（105KB），先在栈顶命中，西文无需等中文字库 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('/font/HarmonyOS_Sans.web.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-024F, U+0292, U+02B0-02FF, U+0300-036F, U+1E00-1EFF,
+    U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F, U+2190-21FF,
+    U+2200-22FF, U+2460-24FF, U+25A0-25FF, U+2600-27BF, U+2C60-2C7F,
+    U+A720-A7FF, U+FB00-FB06;
+}
+
+/* 思源黑体 SC Regular —— 现仅落地页使用（冻结） */
+@font-face {
+  font-family: 'SourceHanSansSC';
+  src: url('/font/SourceHanSansSC-Regular-2.web.woff2') format('woff2');
+  font-weight: 400; /* 仅常规字重 */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 完整字集兜底（原 OTF，4.4 万字）：只在「子集未覆盖、且思源确实有」的区段生效——
+   用 unicode-range 圈定，避免页面出现个别生僻字就白下 15MB（如 CJK 扩展 B 思源本身就没有） */
+@font-face {
+  font-family: 'SourceHanSansSC-Full';
+  src: url('/font/SourceHanSansSC-Regular-2.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-01DC, U+0391-03C9, U+0410-044F, U+1EA0-1EF9,
+    U+2160-217B, U+2E80-2FFB, U+31C0-31E3, U+3400-4DB5, U+FB00-FB04,
+    U+FE54-FE6B, U+1F100-1F1AC;
+}
+
+/* ------------------------------------------------------------
+   字体栈变量层（唯一开关）
+   所有字体规则都引用 var(--font-ui*)，因此：
+     · 全站 = 鸿蒙黑体
+     · 落地页 = 在 .landing-legacy-font 作用域内把这三个变量换回思源/阿里妈妈即可整页回退
+   ------------------------------------------------------------ */
+:root {
+  /* 全站基准栈：鸿蒙黑体（西文 → 简中 → 繁体 → 系统中文兜底） */
+  --font-ui: 'HarmonyOS Sans', 'HarmonyOS Sans SC', 'HarmonyOS Sans TC',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC',
+    system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* 粗体 / 标题 / 强调栈：鸿蒙黑体自带 40–900 可变字重，不再切字体 */
+  --font-ui-strong: 'HarmonyOS Sans', 'HarmonyOS Sans SC', 'HarmonyOS Sans TC',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC',
+    system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* 落地页冻结用的旧栈（只被 .landing-legacy-font 消费） */
+  --font-legacy-ui: 'SourceHanSansSC', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', 'SourceHanSansSC-Full', system-ui,
+    -apple-system, 'Segoe UI', sans-serif;
+  --font-legacy-strong: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif;
+}
+
+/* 落地页 / —— 字体冻结：本页仍是「思源黑体（常规）+ 阿里妈妈数黑体（粗体）」 */
+.landing-legacy-font {
+  --font-ui: var(--font-legacy-ui);
+  --font-ui-strong: var(--font-legacy-strong);
+  font-family: var(--font-legacy-ui);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-ui);
   --font-mono: var(--font-geist-mono);
-  --font-jinbuti: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
-  --font-alimama: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif;
+  --font-jinbuti: var(--font-ui);
+  --font-alimama: var(--font-ui-strong);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -52,6 +170,136 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /*
+   * 设备控制页（/device-control）语义 token 的 Tailwind 映射。
+   * ⚠️ 本项目的 Tailwind 不生成 `bg-[var(--x)]` 这类 var() 任意值，必须在此登记成主题键，
+   *    才能拿到 `bg-dc-surface` / `text-dc-label` / `rounded-dc-card` 等原生工具类。
+   * 变量本身由页面根节点的 `.dc-scope`（app/device-control/device-control-client.tsx）定义，
+   * 亮暗两态随 .dark 自动切换，故这里只做「名字 → 变量」的转发（inline 才不会把值烤死）。
+   */
+  --color-dc-canvas: var(--dc-canvas);
+  --color-dc-surface: var(--dc-surface);
+  --color-dc-surface-2: var(--dc-surface-2);
+  --color-dc-surface-3: var(--dc-surface-3);
+  --color-dc-surface-4: var(--dc-surface-4);
+  --color-dc-line: var(--dc-line);
+  --color-dc-line-strong: var(--dc-line-strong);
+  --color-dc-label: var(--dc-label);
+  --color-dc-label-2: var(--dc-label-2);
+  --color-dc-label-3: var(--dc-label-3);
+  --color-dc-brand: var(--dc-brand);
+  --color-dc-brand-strong: var(--dc-brand-strong);
+  --color-dc-brand-ink: var(--dc-brand-ink);
+  --color-dc-brand-soft: var(--dc-brand-soft);
+  --color-dc-ok-ink: var(--dc-ok-ink);
+  --color-dc-ok-soft: var(--dc-ok-soft);
+  --color-dc-ok-fill: var(--dc-ok-fill);
+  --color-dc-warn-ink: var(--dc-warn-ink);
+  --color-dc-warn-soft: var(--dc-warn-soft);
+  --color-dc-bad-ink: var(--dc-bad-ink);
+  --color-dc-bad-soft: var(--dc-bad-soft);
+  --color-dc-bad-fill: var(--dc-bad-fill);
+  /* 度量身份四色（--color-dc-m-*）已于 2026-09-25 退役：
+     物理量统一用品牌绿区分，见 device-control-client.tsx 的 --dc-* 注释。不要再加回来。 */
+  --color-dc-video: var(--dc-video);
+  --color-dc-fs-bg: var(--dc-fs-bg);
+  --color-dc-fs-panel: var(--dc-fs-panel);
+  --radius-dc-xs: var(--dc-r-xs);
+  --radius-dc-inner: var(--dc-r-inner);
+  --radius-dc-card: var(--dc-r-card);
+  --radius-dc-shell: var(--dc-r-shell);
+  --radius-dc-btn: var(--dc-r-btn);
+  --radius-dc-modal: var(--dc-r-modal);
+  --text-dc-title: var(--dc-fs-title);
+  --text-dc-body: var(--dc-fs-body);
+  --text-dc-body-s: var(--dc-fs-body-s);
+  --text-dc-caption: var(--dc-fs-caption);
+  --shadow-dc-card: var(--dc-shadow-card);
+  --shadow-dc-card-hover: var(--dc-shadow-hover);
+  --shadow-dc-inner: var(--dc-shadow-inner);
+
+  /* ============================================================
+     同心圆角（Concentric Radius）—— 全站硬规则（2026-10-24 定）
+     外层半径 = 内层半径 + 内边距；已知外层时反向成立：内层 = 外层 − 内边距。
+
+     为什么：两条圆弧只有**圆心重合**时才平行。内层半径不跟着外层减，
+     内角就会比外角「更弯」，看上去像盒子歪了一点 —— 用户说不出原因，只觉得廉价。
+
+     圆角阶梯按此规则设计，每一档的差就是它的间距：
+       32（壳） −16 → 16（卡） −8 → 8（卡内图块） −4 → 4（角标/标签）
+     所以「卡片内距 16 放一张卡」→ 内层必须是 0（16−16）；放 8 半径的图块 → 内距 8。
+
+     ⚠️ 只约束**面套面**：卡片里的卡片、卡片里的图块、弹窗里的面板。
+        按钮 / 胶囊 / 开关这类**控件**不受约束 —— 它们的半径由自身高度决定（pill = h/2）。
+     ⚠️ 浮层（贴在卡边但四周不贴齐的）同样按「圆心重合」调：浮层距边 12 就配 20 半径（32−12）。
+     检查：node scripts/design/radius-audit.cjs /monitor /dashboard /device-control
+     ============================================================ */
+  --r-nest-shell: 32px;
+  --r-nest-card: 16px;
+  --r-nest-inner: 8px;
+  --r-nest-part: 4px;
+
+  /* ============================================================
+     BR — BerryRealm 统一设计系统（全站唯一真相源）
+     任何页面都必须走这套 token，禁止再写 slate/zinc/gray 组合
+     ============================================================ */
+  --color-br-50: var(--br-50);
+  --color-br-100: var(--br-100);
+  --color-br-200: var(--br-200);
+  --color-br-300: var(--br-300);
+  --color-br-400: var(--br-400);
+  --color-br-500: var(--br-500);
+  --color-br-600: var(--br-600);
+  --color-br-700: var(--br-700);
+  --color-br-800: var(--br-800);
+  --color-br-900: var(--br-900);
+  --color-br-950: var(--br-950);
+
+  --color-br-canvas: var(--br-canvas);
+  --color-br-surface: var(--br-surface);
+  --color-br-surface-2: var(--br-surface-2);
+  --color-br-surface-3: var(--br-surface-3);
+  --color-br-surface-4: var(--br-surface-4);
+  --color-br-line: var(--br-line);
+  --color-br-line-strong: var(--br-line-strong);
+  --color-br-text-1: var(--br-text-1);
+  --color-br-text-2: var(--br-text-2);
+  --color-br-text-3: var(--br-text-3);
+
+  --color-br-brand: var(--br-brand);
+  --color-br-brand-hover: var(--br-brand-hover);
+  --color-br-brand-ink: var(--br-brand-ink);
+  --color-br-brand-soft: var(--br-brand-soft);
+
+  --color-br-success: var(--br-success);
+  --color-br-success-ink: var(--br-success-ink);
+  --color-br-success-soft: var(--br-success-soft);
+  --color-br-warning: var(--br-warning);
+  --color-br-warning-ink: var(--br-warning-ink);
+  --color-br-warning-soft: var(--br-warning-soft);
+  --color-br-danger: var(--br-danger);
+  --color-br-danger-ink: var(--br-danger-ink);
+  --color-br-danger-soft: var(--br-danger-soft);
+  --color-br-info: var(--br-info);
+  --color-br-info-ink: var(--br-info-ink);
+  --color-br-info-soft: var(--br-info-soft);
+  --color-br-berry: var(--br-berry);
+  /* 聊天气泡（实色，非渐变） */
+  --color-br-bubble: var(--br-bubble);
+  --color-br-bubble-ink: var(--br-bubble-ink);
+
+  --radius-br-control: var(--br-r-control);
+  --radius-br-card: var(--br-r-card);
+  --radius-br-shell: var(--br-r-shell);
+
+  --shadow-br-sm: var(--br-shadow-sm);
+  --shadow-br-md: var(--br-shadow-md);
+  --shadow-br-lg: var(--br-shadow-lg);
+  --shadow-br-inner: var(--br-shadow-inner);
+
+  --container-br: var(--br-container);
+  --container-br-narrow: var(--br-container-narrow);
 
   /* Custom Animations */
   --animate-float: float 6s ease-in-out infinite;
@@ -151,52 +399,60 @@
 
 :root {
   --radius: 0.625rem;
-  /* Light Mode - Soft, airy, nature-inspired */
-  --background: oklch(0.98 0.01 240);
-  /* Very light cool grey/blue */
-  --foreground: oklch(0.2 0.02 240);
+  /* ============================================================
+     ⛔ 全站色彩铁律（2026-09-26 · WorkBuddy 体系版）
+     · 中性阶 = WorkBuddy c-gray 暖灰（#F4F4F5 → #27272A），零冷蓝、零 zinc。
+     · 唯一强调色 = WorkBuddy 青绿 c-teal（亮 #059669 / 暗 #34D399）。
+     · 语义色全彩：success=#16A34A、warning=#F59E0B、info=#0EA5E9、danger=#EF4444。
+     · 图表 = emerald 主系列 + zinc 四档。
+     ============================================================ */
+  --background: #FAFAFA;
+  /* 晨雾松 · 纯净冷白画布 */
+  --foreground: oklch(0.21 0 0);
 
   --card: oklch(1 0 0 / 0.7);
   /* Glassy white */
-  --card-foreground: oklch(0.2 0.02 240);
+  --card-foreground: oklch(0.21 0 0);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 240);
+  --popover-foreground: oklch(0.21 0 0);
 
-  --primary: oklch(0.59 0.16 163);
-  /* Emerald Green */
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: #059669;
+  /* Emerald 晨雾松 — 全站唯一强调色 */
+  --primary-foreground: #FFFFFF;
 
-  --secondary: oklch(0.95 0.03 240);
-  --secondary-foreground: oklch(0.3 0.05 240);
+  --secondary: #F4F4F5;
+  --secondary-foreground: #3F3F46;
 
-  --muted: oklch(0.96 0.01 240);
-  --muted-foreground: oklch(0.5 0.02 240);
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;
 
-  --accent: oklch(0.94 0.04 240);
-  --accent-foreground: oklch(0.3 0.05 240);
+  --accent: oklch(0.945 0 0);
+  --accent-foreground: #3F3F46;
 
-  --destructive: oklch(0.6 0.2 20);
+  /* 唯一功能彩色 —— WorkBuddy 危险红 */
+  --destructive: #EF4444;
   --destructive-foreground: oklch(0.98 0 0);
 
-  --border: oklch(0.9 0.02 240);
-  --input: oklch(0.9 0.02 240);
-  --ring: oklch(0.59 0.16 163);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: #059669;
 
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* 图表色阶：第 1 系列 = teal（强调），2–5 = 暖灰四档（深→浅） */
+  --chart-1: #059669;
+  --chart-2: #3F3F46;
+  --chart-3: #71717A;
+  --chart-4: #A1A1AA;
+  --chart-5: #D4D4D8;
 
-  --sidebar: oklch(0.98 0.01 240);
-  --sidebar-foreground: oklch(0.2 0.02 240);
-  --sidebar-primary: oklch(0.59 0.16 163);
+  --sidebar: #F7F7F8;
+  --sidebar-foreground: oklch(0.21 0 0);
+  --sidebar-primary: #059669;
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.95 0.03 240);
-  --sidebar-accent-foreground: oklch(0.3 0.05 240);
-  --sidebar-border: oklch(0.9 0.02 240);
-  --sidebar-ring: oklch(0.58 0.20 264);
+  --sidebar-accent: #F4F4F5;
+  --sidebar-accent-foreground: #3F3F46;
+  --sidebar-border: #DEDCD3;
+  --sidebar-ring: #059669;
 
   /* Glass Card Variables - Light */
   --glass-start: rgba(255, 255, 255, 0.95);
@@ -205,14 +461,14 @@
   --glass-border-end: rgba(255, 255, 255, 0.2);
 
   /* Berry widget (iOS Material) tokens — light */
-  --berry-canvas: #F2F2F7;
-  --berry-canvas-gradient: linear-gradient(180deg, #ECECEF 0%, #F2F2F7 30%, #F5F5F7 100%);
+  --berry-canvas: #F7F7F8;
+  --berry-canvas-gradient: linear-gradient(180deg, #F4F4F5 0%, #F7F7F8 30%, #FAFAFA 100%);
   --berry-surface: #FFFFFF;
   --berry-card-border: rgba(0, 0, 0, 0.04);
   --berry-label: #1C1C1E;
   --berry-label-secondary: #3C3C43;
   --berry-label-tertiary: #8E8E93;
-  --berry-label-quaternary: #AEAEB2;
+  --berry-label-quaternary: #B4B2A9;
   --berry-separator: rgba(60, 60, 67, 0.08);
   --berry-separator-opaque: rgba(60, 60, 67, 0.12);
   --berry-track: rgba(60, 60, 67, 0.08);
@@ -228,66 +484,139 @@
   --berry-popover: #FFFFFF;
   --berry-popover-hover: #FAFAFA;
   --berry-popover-border: #F0F0F0;
+
+  /* ===== BR 统一设计系统 · 亮色 =====
+     中性阶梯 = WorkBuddy c-gray 暖灰（唯一灰阶，取代 zinc） */
+  --br-50: #FAFAFA;
+  --br-100: #F4F4F5;
+  --br-200: #E4E4E7;
+  --br-300: #D4D4D8;
+  --br-400: #A1A1AA;
+  --br-500: #71717A;
+  --br-600: #52525B;
+  --br-700: #3F3F46;
+  --br-800: #27272A;
+  --br-900: #18181B;
+  --br-950: #09090B;
+
+  /* 表面/线条/文字 */
+  --br-canvas: #FAFAFA;
+  --br-surface: #FFFFFF;
+  --br-surface-2: #FAFAFA;
+  --br-surface-3: #F4F4F5;
+  --br-surface-4: #E4E4E7;
+  --br-line: rgba(24, 24, 27, 0.08);
+  --br-line-strong: rgba(24, 24, 27, 0.16);
+  --br-text-1: #27272A;
+  --br-text-2: #52525B;
+  --br-text-3: #71717A;
+
+  /* 强调主色 · Emerald 晨雾松 */
+  --br-brand: #059669;
+  --br-brand-hover: #047857;
+  --br-brand-ink: #047857;
+  --br-brand-soft: rgba(5, 150, 105, 0.10);
+
+  /* 语义色 —— 标准档：success 绿 / warning 琥珀 / info 天蓝 / danger 红 */
+  --br-success: #16A34A;
+  --br-success-ink: #15803D;
+  --br-success-soft: rgba(22, 163, 74, 0.10);
+  --br-warning: #F59E0B;
+  --br-warning-ink: #B45309;
+  --br-warning-soft: rgba(245, 158, 11, 0.10);
+  --br-danger: #EF4444;
+  --br-danger-ink: #B91C1C;
+  --br-danger-soft: rgba(239, 68, 68, 0.10);
+  --br-info: #0EA5E9;
+  --br-info-ink: #0369A1;
+  --br-info-soft: rgba(14, 165, 233, 0.10);
+
+  /* 草莓红 —— 仅品牌层：Logo / IP / 营销页，禁止进 UI 组件 */
+  --br-berry: #E5384A;
+
+  /* ===== 聊天「自己」气泡（2026-10-22）=====
+     原先气泡是 #059669 → #4cabff 的斜向渐变，用户要求「聊天页去掉所有渐变」，
+     于是收成一个实色。但不能直接把 --br-brand 拿来用：它在暗色下是 #34D399（浅绿），
+     白字压上去只有 2:1，彻底不可读。所以气泡底色/字色单独成对，亮暗各一套：
+       亮：#059669 + 白字（4.9:1，AA）
+       暗：#0B7A5B + 近白字（5.2:1，AA）—— 比亮色略沉，避免暗底上「发光的绿块」 */
+  --br-bubble: #059669;
+  --br-bubble-ink: #FFFFFF;
+
+  /* 圆角三档 + 胶囊 */
+  --br-r-control: 8px;
+  --br-r-card: 12px;
+  --br-r-shell: 16px;
+
+  /* 阴影三档 */
+  --br-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  --br-shadow-md: 0 1px 3px rgba(0, 0, 0, 0.05), 0 6px 16px -4px rgba(0, 0, 0, 0.06), 0 12px 32px -8px rgba(0, 0, 0, 0.05);
+  --br-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.07), 0 12px 28px -6px rgba(0, 0, 0, 0.10), 0 24px 48px -12px rgba(0, 0, 0, 0.09);
+  --br-shadow-inner: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+
+  /* 容器宽度 */
+  --br-container: 1400px;
+  --br-container-narrow: 800px;
 }
 
 .dark {
-  /* Dark Mode - User Specified Palette */
-  --background: #111827;
-  /* Main Accent - Dark Blue-Grey */
-  --foreground: oklch(0.985 0 0);
+  /* Dark Mode · zinc 暗阶 */
+  --background: #18181B;
+  --foreground: oklch(0.905 0 0);
 
-  --card: #1F2937;
-  /* Secondary Accent - Lighter Blue-Grey */
-  --card-foreground: oklch(0.985 0 0);
+  --card: #27272A;
+  --card-foreground: oklch(0.905 0 0);
 
-  --popover: #1F2937;
-  --popover-foreground: oklch(0.985 0 0);
+  --popover: #27272A;
+  --popover-foreground: oklch(0.905 0 0);
 
-  --primary: oklch(0.65 0.15 163);
-  /* Emerald Green for Dark Mode */
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #34D399;
+  /* Emerald — dark */
+  --primary-foreground: #08131A;
 
-  --secondary: #1F2937;
-  --secondary-foreground: oklch(0.985 0 0);
+  --secondary: #27272A;
+  --secondary-foreground: oklch(0.905 0 0);
 
-  --muted: #1F2937;
-  --muted-foreground: oklch(0.708 0 0);
+  --muted: #27272A;
+  --muted-foreground: #A1A1AA;
 
   /* Glass Card Variables - Dark */
-  --glass-start: rgba(30, 41, 59, 0.95); /* Slate 800 */
-  --glass-end: rgba(30, 41, 59, 0.6);
+  --glass-start: rgba(39, 39, 42, 0.95); /* Slate 800 */
+  --glass-end: rgba(39, 39, 42, 0.6);
   --glass-border-start: rgba(255, 255, 255, 0.2);
   --glass-border-end: rgba(255, 255, 255, 0.05);
 
-  --accent: #1F2937;
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: #27272A;
+  --accent-foreground: oklch(0.905 0 0);
 
-  --destructive: oklch(0.704 0.191 22.216);
+  /* 唯一功能彩色 —— 功能红（暗） */
+  --destructive: #F87171;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.70 0.18 264);
+  --ring: #34D399;
 
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  /* 图表色阶（暗）：第 1 系列 = teal，2–5 = 暖灰四档（浅→深） */
+  --chart-1: #34D399;
+  --chart-2: #D4D4D8;
+  --chart-3: #A1A1AA;
+  --chart-4: #71717A;
+  --chart-5: #52525B;
 
-  --sidebar: #111827;
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.65 0.15 163);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #1F2937;
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar: #18181B;
+  --sidebar-foreground: oklch(0.905 0 0);
+  --sidebar-primary: #34D399;
+  --sidebar-primary-foreground: oklch(0.905 0 0);
+  --sidebar-accent: #27272A;
+  --sidebar-accent-foreground: oklch(0.905 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.65 0.15 163);
+  --sidebar-ring: #34D399;
 
-  /* Berry widget (iOS Material) tokens — dark（卡片底用 slate-800，对齐全站深色语言） */
-  --berry-canvas: #0F172A;
-  --berry-canvas-gradient: linear-gradient(180deg, #0B1220 0%, #0F172A 30%, #111827 100%);
-  --berry-surface: #1E293B;
+  /* Berry widget (iOS Material) tokens — dark */
+  --berry-canvas: #09090B;
+  --berry-canvas-gradient: linear-gradient(180deg, #09090B 0%, #171716 30%, #18181B 100%);
+  --berry-surface: #27272A;
   --berry-card-border: rgba(255, 255, 255, 0.07);
-  --berry-label: #F5F5F7;
+  --berry-label: #E1E1E6;
   --berry-label-secondary: rgba(235, 235, 245, 0.72);
   --berry-label-tertiary: rgba(235, 235, 245, 0.55);
   --berry-label-quaternary: rgba(235, 235, 245, 0.35);
@@ -303,9 +632,66 @@
   --berry-shadow-sm: 0 1px 2px rgba(0,0,0,0.30);
   --berry-shadow-md: 0 1px 3px rgba(0,0,0,0.30), 0 6px 16px -4px rgba(0,0,0,0.35);
   --berry-shadow-lg: 0 2px 6px rgba(0,0,0,0.40), 0 12px 28px -6px rgba(0,0,0,0.50);
-  --berry-popover: #1F2937;
+  --berry-popover: #27272A;
   --berry-popover-hover: rgba(255, 255, 255, 0.06);
   --berry-popover-border: rgba(255, 255, 255, 0.10);
+
+  /* ===== BR 统一设计系统 · 暗色 ===== */
+  --br-canvas: #08080A;
+  --br-surface: #171716;
+  --br-surface-2: #18181B;
+  --br-surface-3: #222220;
+  --br-surface-4: #27272A;
+  --br-line: rgba(255, 255, 255, 0.10);
+  --br-line-strong: rgba(255, 255, 255, 0.18);
+  --br-text-1: #DFDFE4;
+  --br-text-2: #B4B2A9;
+  --br-text-3: #8F959E;
+
+  --br-brand: #34D399;
+  --br-brand-hover: #6EE7B7;
+  --br-brand-ink: #6EE7B7;
+  --br-brand-soft: rgba(52, 211, 153, 0.16);
+
+  /* 语义色（暗） */
+  --br-success: #4ADE80;
+  --br-success-ink: #86EFAC;
+  --br-success-soft: rgba(74, 222, 128, 0.16);
+  --br-warning: #FBBF24;
+  --br-warning-ink: #FCD34D;
+  --br-warning-soft: rgba(251, 191, 36, 0.16);
+  --br-danger: #F87171;
+  --br-danger-ink: #FCA5A5;
+  --br-danger-soft: rgba(248, 113, 113, 0.16);
+  --br-info: #38BDF8;
+  --br-info-ink: #7DD3FC;
+  --br-info-soft: rgba(56, 189, 248, 0.16);
+
+  --br-berry: #FF8095;
+
+  /* 聊天「自己」气泡 · 暗色（见 :root 同名注释） */
+  --br-bubble: #0B7A5B;
+  --br-bubble-ink: #ECFDF5;
+
+  --br-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30), 0 2px 8px -2px rgba(0, 0, 0, 0.40);
+  --br-shadow-md: 0 1px 3px rgba(0, 0, 0, 0.35), 0 6px 16px -4px rgba(0, 0, 0, 0.45), 0 12px 32px -8px rgba(0, 0, 0, 0.40);
+  --br-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.40), 0 12px 28px -6px rgba(0, 0, 0, 0.50), 0 24px 48px -12px rgba(0, 0, 0, 0.45);
+  --br-shadow-inner: 0 1px 2px rgba(0, 0, 0, 0.30);
+
+  /* ===== 暗色「刺眼白」压制（2026-10-22 用户：「暗色模式字特别刺眼」）=====
+     暗底 #18181B 上压 #FAFAFA 的对比度约 16.5:1 —— 远超舒适区（AAA 只需 7:1），
+     在 OLED / 高亮度屏上会出现「发光晕」，读久眼睛酸。正文压到 #E7E7EB 后约
+     13:1，仍是 AAA，但不再烧眼。
+
+     全站 392 处 `dark:text-zinc-50/100/200` 与 68 处 `dark:text-white` 是近白字
+     的主要来源。前者逐个改不可能，于是**在暗色作用域内重写 zinc 近白 token**
+     （Tailwind v4 的 text-zinc-* 全部消费 var(--color-zinc-*)）—— 一条规则覆盖全部，
+     亮色侧（:root 里的原值）完全不受影响。
+     ⚠️ 别把 zinc-300/400 一起压：那两档是次要文字，再压会掉到不可读。
+     ⚠️ 这里的值只影响 `.dark` 子树；`.dark` 自身的消费方（body 等）同样命中。 */
+  --color-zinc-50: #DFDFE4;
+  --color-zinc-100: #D6D6DC;
+  --color-zinc-200: #C6C6CD;
 }
 
 @layer base {
@@ -329,7 +715,8 @@
   }
 }
 
-/* 全局加粗字体使用 AlimamaShuHeiTi — 放在 @layer 外确保最高优先级 */
+/* 全局加粗（>=500）：改成鸿蒙黑体粗体字重 — 放在 @layer 外确保最高优先级
+   ⚠️ 用 var(--font-ui-strong)，落地页作用域内会自动回退成 AlimamaShuHeiTi */
 .font-bold,
 .font-semibold,
 .font-extrabold,
@@ -343,21 +730,254 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif !important;
+  font-family: var(--font-ui-strong) !important;
 }
 
-/* 强调字体使用 AlimamaShuHeiTi */
+/* 强调字体：默认跟随粗体栈（鸿蒙）；落地页作用域内 = AlimamaShuHeiTi */
 .font-alimama {
-  font-family: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif !important;
+  font-family: var(--font-ui-strong) !important;
 }
 
-/* 强制所有 font-weight >= 500 使用阿里妈妈数黑体 */
+/* 强制所有 font-weight >= 500 使用强调栈 */
 [style*="font-weight: 500"],
 [style*="font-weight: 600"],
 [style*="font-weight: 700"],
 [style*="font-weight: 800"],
 [style*="font-weight: 900"] {
-  font-family: 'AlimamaShuHeiTi', system-ui, -apple-system, sans-serif !important;
+  font-family: var(--font-ui-strong) !important;
+}
+
+/* ============================================================================
+   antd / sonner 字体宿主 · 拉回全站字体栈（2026-10-11）
+   ----------------------------------------------------------------------------
+   起因（用户原话）：「setting 的文本字体给我统一好吗」——设置弹窗里一片系统字体，
+   与弹窗外的鸿蒙黑体两副面孔（实测：42 个可见文本节点里 41 个是 -apple-system/Segoe UI，
+   只有「助理设置」标题 1 个是鸿蒙）。
+
+   机制：antd v6 把字体做成 CSS 变量 —— 在它的 CSS 变量宿主
+   `.css-var-root` / `.css-var-<hash>`（每个 ConfigProvider 生成一个）上定义
+   `--ant-font-family`（默认 = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, …` 系统栈），
+   各组件再 `:where(...).ant-btn { font-family: var(--ant-font-family) }` 消费。
+   宿主是 portal 弹窗/下拉的挂载点且**位于 body 之内** → 「从宿主往下」的一切
+   （含设置弹窗自己的左栏 / 标题 / 描述这类非 antd 元素）全被系统栈接管。
+
+   修法：把宿主的 `--ant-font-family` 指回全站唯一源 `var(--font-ui)`。
+   ⚠️ 这条是**全局兜底**（覆盖所有没显式声明 fontFamily 的自建 ConfigProvider —— 全站有 20+ 处，
+      仅 5 处走了 `lib/theme/antd-scope-theme.ts` 收口）。**字体显式声明的唯一源**仍是
+      `lib/theme/antd-scope-theme.ts` 的 `ANTD_FONT_FAMILY` 常量 —— 新写 ConfigProvider 用它，
+      别在这里堆第二套值。
+   特异性 `(0,2,0)` > antd 的 `.css-var-*` `(0,1,0)`，且**不依赖样式表顺序**
+   （antd 是运行时注入 <style>，先后顺序不可控，靠顺序必失效）。
+   ⛔ `--ant-font-family-code`（等宽）刻意不动：技术标识（API Key / IP / 日志 / 快捷键）
+      沿用项目既有惯例，不属于本问题。
+   ⛔ 别把这条改写成 `.css-var-root` —— 那是 (0,1,0)，会被 antd 自己的规则按顺序反超。
+   ⛔ 导出物料（report-renderer 的离屏容器）自带内联系统字体、且不是 antd 宿主 → 不受本规则影响，
+      它「有意保持系统栈」的约定仍然有效。
+   ============================================================================ */
+:root .css-var-root,
+:root [class*="css-var-"] {
+  --ant-font-family: var(--font-ui);
+}
+
+/* sonner（toast）自带一套 ui-sans-serif/system-ui 栈，同样与全站两副面孔 → 一并拉回 */
+:root [data-sonner-toaster] {
+  font-family: var(--font-ui);
+}
+
+/* ============================================================================
+   Unified Scrollbar · 全站统一滚动条（唯一来源，2026-10-11）
+   ----------------------------------------------------------------------------
+   观感：细胶囊（视觉 4px / 槽 10px，胶囊居中内缩）、透明轨道、中性灰，随亮暗主题切换。
+   行为：**只有该容器正在滚动时才出现** —— components/scroll-activity.tsx 给它打
+        [data-scrolling]，滚动停止后约 0.55s 摘掉，滑块立刻消失。
+   🚨 不要再引入任何「悬停即常驻显示」的规则（曾写成 *:not(html):not(body):hover，
+      结果鼠标只要落在页面上，每根滚动条都亮着一条灰边 —— 观感就是「一条丑边」）。
+      根滚动条（html/body）尤其不能认悬停。
+   实现：Chromium / WebKit 走 ::-webkit-scrollbar 伪元素（下面这段）；
+        Firefox 不支持该伪元素，走文件末尾 @supports not selector(...) 分支；
+        radix ScrollArea 的自绘滑块是真实 DOM，用 [data-sb-thumb] 属性对齐同一套规则
+        （见下方，或 components/ui/scroll-area.tsx）。
+   🚨 组件里不要再写任何 ::-webkit-scrollbar 规则：那些选择器特异性从 (0,1,0) 起，
+      会盖过这里的 (0,0,0) 通配规则，于是又回到「这页 3px、那页 8px、颜色还两套」。
+      要调整就改下面这几个变量（--sb-size / --sb-gap / --sb-thumb）。
+   🚨 **根滚动条 (<html>) 是唯一例外**：它不用经典滚动条，走「不占位 overlay
+      胶囊」（见本文件后面的「Root Scrollbar」段 + components/root-scrollbar.tsx）。
+      原因是经典滚动条的槽会露出画布底色，与满幅氛围层形成一条硬边（2026-10-11
+      用户报的「dashboard 旁边一条很明显的」）。这条例外只针对根滚动条，
+      内层容器一律保持本段的经典滚动条。
+   ========================================================================== */
+:root {
+  --sb-size: 10px;   /* 滚动条槽宽（含两侧留白，保证好抓） */
+  --sb-gap: 3px;     /* 槽内单侧留白 → 胶囊视觉宽度 = size - gap*2 = 4px */
+  --sb-thumb: rgba(9, 9, 11, 0.20);
+  --sb-thumb-active: rgba(9, 9, 11, 0.34);
+}
+
+.dark {
+  --sb-thumb: rgba(250, 250, 250, 0.22);
+  --sb-thumb-active: rgba(250, 250, 250, 0.36);
+}
+
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 去掉 Windows 原生样式遗留的两端箭头按钮 */
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: var(--sb-gap) solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+/* —— 唯一出现条件：正在滚动 —— */
+[data-scrolling]::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+}
+
+[data-scrolling]::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sb-thumb-active);
+}
+
+/* —— radix ScrollArea（components/ui/scroll-area.tsx）——
+   ① Viewport 上必须彻底压掉**原生**滚动条：否则同一侧会同时出现
+      「原生槽 + 自绘滑块」两条灰边（2026-10-11 用户报的「明显的一条边」）。 */
+[data-sb-viewport] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-sb-viewport]::-webkit-scrollbar {
+  display: none;
+}
+
+/* ② 自绘滑块是真实 DOM（不是伪元素），走属性选择器，规则同上「不滚动就隐藏」。
+   ⚠️ Viewport 与 Scrollbar 是**兄弟**（Root > Viewport / Scrollbar / Corner），
+      [data-scrolling] 打在 Viewport 上 → 只有用兄弟组合符 ~ 才够得着 Scrollbar；
+      写成后代（[data-scrolling] [data-sb-thumb]）永远不命中。
+   ⚠️ [data-sb-track]:hover 是唯一例外，只在鼠标真的压到右侧那条 10px 窄带才命中
+      —— 不压上去永远看不见，但「想拖滑块」时还能拖。 */
+[data-sb-thumb] {
+  background-color: transparent;
+  transition: background-color 0.18s ease;
+}
+
+[data-scrolling] ~ [data-sb-track] [data-sb-thumb],
+[data-sb-track]:hover [data-sb-thumb] {
+  background-color: var(--sb-thumb);
+}
+
+[data-scrolling] ~ [data-sb-track] [data-sb-thumb]:hover,
+[data-sb-track]:hover [data-sb-thumb]:hover {
+  background-color: var(--sb-thumb-active);
+}
+
+/* ============================================================================
+   Root Scrollbar · 根滚动条走「不占位」的 overlay 胶囊（2026-10-11）
+   ----------------------------------------------------------------------------
+   起因（用户原话）：「dashboard 页面旁边还是有一条很明显的。」
+
+   机制：上面的 ::-webkit-scrollbar 是**经典（占位式）**滚动条 —— 它把根滚动
+   容器 <html> 的内容盒右侧切掉 --sb-size(10px)。这条槽区显示的是**画布底色**
+   （html 无背景 → 由 body 的 --background #FAFAFA 上提），于是只要页面内容里
+   有一层「满幅氛围层」（.dash-atmos / .dc-backdrop 这类铺满视口的浅色渐变），
+   右侧就出现一条 **内容色 → #FAFAFA 的硬边**。
+     像素取证（合成页，DPR1）：x=786..789 = 205,231,171 → x=790..799 = 250,250,250
+     用户截图同一模式（截图为 DPR≈1.8，同一模式即 18px 的 250,250,250 竖条）。
+   页面元素**画不进**这条槽（根滚动容器的内容裁在 padding box 内 ——
+   实测内容层 width:100vw 无效；overflow-y:overlay 在 Chrome 114+ 已等价 auto），
+   所以唯一解是**让这条槽根本不存在**。
+
+   做法：html 的原生条彻底隐藏，改由 components/root-scrollbar.tsx 画一根
+   fixed overlay 胶囊（观感/出现条件/颜色全部沿用上面那几个 --sb-* 变量与
+   html[data-scrolling] 打点 ⇒ 不产生"第二套滚动条"）。
+
+   ⚠️ 为什么**只**改根滚动条：内层容器的槽显示的是**容器自己的背景**，
+      与紧邻内容同色，不会出现这条硬边；把内层也改成 overlay 会让
+      antd / radix / 未来新增的每个滚动容器都要各画一根，回归面完全不值。
+   ⚠️ 注意特异性：`html::-webkit-scrollbar` 是 (0,0,1)，压过上面那条
+      `*::-webkit-scrollbar` (0,0,0) —— 不靠样式表顺序。
+   ⚠️ 隐藏根条后 `100vw == clientWidth`：`w-screen` 不再横向溢出，
+      居中容器不再被 10px 顶偏，body 锁滚动开弹窗时也不再跳 10px（顺带收益）。
+   ========================================================================== */
+html {
+  scrollbar-width: none;      /* Firefox（特异性 (0,0,1) > 文件末 @supports 里的 * ） */
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+[data-root-scrollbar] {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  /* 命中区宽度由组件内联（与旧槽同宽），这里不写死 */
+  z-index: 9999;              /* 原生条永远画在所有内容之上，overlay 要等价 */
+  pointer-events: none;       /* 空闲时对鼠标完全透明（桌面端 − □ ✕ 就在右上角） */
+}
+
+[data-root-thumb] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  background-color: var(--sb-thumb);
+  background-clip: content-box;
+  border-radius: 999px;
+  opacity: 0;
+  /* 视觉专用，**永不接 pointer-events**：胶囊在 scrollTop=0 时会落到 y=0 附近，
+     正好压住桌面端自绘标题栏的 − □ ✕。可点区域一律是下面的 [data-root-hit]。 */
+  pointer-events: none;
+  will-change: transform;
+  transition: opacity 0.18s ease, background-color 0.18s ease;
+}
+
+/* 交互条：上边界由组件内联（HOVER_TOP，让开标题栏），下到视口底 */
+[data-root-hit] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+/* 出现条件一：根容器正在滚动（scroll-activity.tsx 打的点，落在 html 上）
+   出现条件二：贴右边悬停（JS 判定的 data-hover）
+   出现条件三：拖拽中（别在拖到一半时淡掉） */
+html[data-scrolling] [data-root-thumb],
+[data-root-scrollbar][data-hover] [data-root-thumb],
+[data-root-scrollbar][data-dragging] [data-root-thumb] {
+  opacity: 1;
+}
+
+/* 只有「贴边悬停 / 拖拽中」才让那 10px 可点（点空白 = 跳到该位置；抓胶囊 = 拖）；
+   空闲态永远 pointer-events:none —— 不挡标题栏与页面右上角任何元素 */
+[data-root-scrollbar][data-hover] [data-root-hit],
+[data-root-scrollbar][data-dragging] [data-root-hit] {
+  pointer-events: auto;
+}
+
+[data-root-scrollbar][data-hover] [data-root-thumb],
+[data-root-scrollbar][data-dragging] [data-root-thumb] {
+  background-color: var(--sb-thumb-active);
 }
 
 @layer utilities {
@@ -369,42 +989,10 @@ h6 {
     display: none;
   }
 
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0.5);
-    border-radius: 4px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(156, 163, 175, 0.7);
-  }
-
-  .dark .custom-scrollbar {
-    scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
-  }
-
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(75, 85, 99, 0.5);
-  }
-
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(75, 85, 99, 0.7);
-  }
+  /* custom-scrollbar —— 已并入上方「Unified Scrollbar」统一段（2026-10-11）。
+     这个类名还留在 ~15 个页面的 className 里当语义标记，但**不再声明任何样式**：
+     一旦在这里写回 ::-webkit-scrollbar，那几处就又变回独立一套（宽窄/颜色都跟别处不一样）。
+     真正要「完全不出滚动条」的容器请用 .scrollbar-hide。 */
 
   .glass {
     @apply bg-card/60 backdrop-blur-md border border-border shadow-xl;
@@ -477,9 +1065,9 @@ h6 {
 /* 蓝 (blue / processing) —— 极浅蓝底 */
 .ant-tag-blue,
 .ant-tag-processing {
-  background: #e6f4ff !important;
-  color: #0958d9 !important;
-  border-color: #91caff !important;
+  background: #E6F7F0 !important;
+  color: #007A47 !important;
+  border-color: #6EE7B7 !important;
 }
 
 /* 青 (cyan) —— 极浅青底 */
@@ -529,9 +1117,9 @@ h6 {
 }
 .dark .ant-tag-blue,
 .dark .ant-tag-processing {
-  background: rgba(22, 119, 255, 0.12) !important;
-  color: #91caff !important;
-  border-color: rgba(22, 119, 255, 0.3) !important;
+  background: rgba(0,148,86, 0.12) !important;
+  color: #6EE7B7 !important;
+  border-color: rgba(0,148,86, 0.3) !important;
 }
 .dark .ant-tag-cyan {
   background: rgba(19, 194, 194, 0.12) !important;
@@ -713,7 +1301,7 @@ h6 {
   .berry-report-content h1 { font-size: 18px; }
   .berry-report-content h2 { font-size: 16px; }
   .berry-report-content h3 { font-size: 14px; }
-  .berry-report-content h4 { font-size: 13px; color: #1677ff; }
+  .berry-report-content h4 { font-size: 13px; color: #059669; }
   .berry-report-content h1:first-child,
   .berry-report-content h2:first-child,
   .berry-report-content h3:first-child { margin-top: 0; }
@@ -726,14 +1314,14 @@ h6 {
     margin: 0 0 0.85em;
   }
   .berry-report-content li { margin-bottom: 0.25em; }
-  .berry-report-content li::marker { color: #1677ff; }
+  .berry-report-content li::marker { color: #059669; }
 
   .berry-report-content strong { font-weight: 600; color: inherit; }
 
   .berry-report-content code {
     font-size: 12px;
-    background: rgba(22, 119, 255, 0.08);
-    color: #1677ff;
+    background: rgba(0,148,86, 0.08);
+    color: #059669;
     padding: 1px 5px;
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -752,8 +1340,8 @@ h6 {
   .berry-report-content blockquote {
     margin: 0 0 0.85em;
     padding: 6px 12px;
-    border-left: 2px solid #1677ff;
-    background: rgba(22, 119, 255, 0.04);
+    border-left: 2px solid #059669;
+    background: rgba(0,148,86, 0.04);
     color: rgba(0, 0, 0, 0.7);
     border-radius: 0 4px 4px 0;
   }
@@ -783,7 +1371,7 @@ h6 {
 
   /* 暗色模式适配 */
   .dark .berry-report-content blockquote {
-    background: rgba(22, 119, 255, 0.08);
+    background: rgba(0,148,86, 0.08);
     color: rgba(255, 255, 255, 0.7);
   }
   .dark .berry-report-content pre {
@@ -800,7 +1388,7 @@ h6 {
     border-top-color: rgba(255, 255, 255, 0.08);
   }
   .dark .berry-report-content code {
-    background: rgba(22, 119, 255, 0.15);
+    background: rgba(0,148,86, 0.15);
   }
 
   /* Sources 引用区 — 比正文更淡，弱化视觉权重 */
@@ -829,11 +1417,11 @@ h6 {
     border-color: rgba(0, 0, 0, 0.04) !important;
   }
   .berry-sources-footer .ant-sources-item:hover {
-    background: rgba(22, 119, 255, 0.04) !important;
+    background: rgba(0,148,86, 0.04) !important;
   }
   .berry-sources-footer .ant-sources-item:hover a,
   .berry-sources-footer .ant-sources-item:hover .ant-sources-item-title {
-    color: #1677ff !important;
+    color: #059669 !important;
   }
   .berry-sources-footer .ant-sources-item-icon,
   .berry-sources-footer .ant-sources-item-icon * {
@@ -861,11 +1449,11 @@ h6 {
     border-color: rgba(255, 255, 255, 0.05) !important;
   }
   .dark .berry-sources-footer .ant-sources-item:hover {
-    background: rgba(22, 119, 255, 0.08) !important;
+    background: rgba(0,148,86, 0.08) !important;
   }
   .dark .berry-sources-footer .ant-sources-item:hover a,
   .dark .berry-sources-footer .ant-sources-item:hover .ant-sources-item-title {
-    color: #4096ff !important;
+    color: #10B981 !important;
   }
   .dark .berry-sources-footer .ant-sources-item-icon,
   .dark .berry-sources-footer .ant-sources-item-icon * {
@@ -921,14 +1509,15 @@ h6 {
      --------------------------------------------------------------------- */
   .berry-think-panel {
     border-left: 1px solid #e4e4e7;
-    scrollbar-width: thin;
-    scrollbar-color: #d4d4d8 transparent;
+    /* 滚动条交回全站统一段（原 scrollbar-width/color + 4px 私有定义已删，2026-10-11）：
+       Chromium 121+ 认这两个属性，留着会把统一段在思考面板里整体顶掉 */
   }
   /* 思考正文统一灰色：XMarkdown / antd 的 styles.body 会被内部元素自身颜色覆盖，
-     这里用 !important 兜底，确保正文、加粗、列表、标题全部落在同一灰阶 */
+     这里用 !important 兜底，确保正文、加粗、列表、标题全部落在同一灰阶
+     （2026-09-25：由 #8c8c8c 调深到 #52525b，对齐参考稿的可读灰） */
   .berry-think-panel,
   .berry-think-panel :where(p, div, span, li, ul, ol, strong, b, em, h1, h2, h3, h4, h5, h6, td, th, blockquote, code, pre) {
-    color: #8c8c8c !important;
+    color: #52525b !important;
   }
   /* 思考内容一律不加粗：strong/b/标题全部压回 400，保持整段同一字重 */
   .berry-think-panel,
@@ -946,19 +1535,7 @@ h6 {
     text-decoration: underline;
     text-underline-offset: 2px;
   }
-  .berry-think-panel::-webkit-scrollbar {
-    width: 4px;
-  }
-  .berry-think-panel::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .berry-think-panel::-webkit-scrollbar-thumb {
-    background: #d4d4d8;
-    border-radius: 999px;
-  }
-  .berry-think-panel::-webkit-scrollbar-thumb:hover {
-    background: #a1a1aa;
-  }
+  /* 滚动条交给全站统一段（原 4px / #d4d4d8 私有定义已删，2026-10-11） */
   /* 内容超出可视高度时，上下边缘渐隐（与滚动条同时出现） */
   .berry-think-panel--faded {
     -webkit-mask-image: linear-gradient(
@@ -978,7 +1555,6 @@ h6 {
   }
   .dark .berry-think-panel {
     border-left-color: #3f3f46;
-    scrollbar-color: #52525b transparent;
   }
   .dark .berry-think-panel,
   .dark .berry-think-panel :where(p, div, span, li, ul, ol, strong, b, em, h1, h2, h3, h4, h5, h6, td, th, blockquote, code, pre) {
@@ -987,12 +1563,6 @@ h6 {
   .dark .berry-think-panel a,
   .dark .berry-think-panel a * {
     color: #d4d4d8 !important;
-  }
-  .dark .berry-think-panel::-webkit-scrollbar-thumb {
-    background: #52525b;
-  }
-  .dark .berry-think-panel::-webkit-scrollbar-thumb:hover {
-    background: #71717a;
   }
 
   .elder-friendly-text .text-xl {
@@ -1183,7 +1753,7 @@ h6 {
   --lg-surface: #FFFFFF;
   --lg-accent: #7DE9AC;
   --lg-accent-strong: #4ED18F;
-  --lg-nav-hover: #009456;
+  --lg-nav-hover: #059669;
   --lg-mint: #DAFBE6;
   --lg-hero-mint: #CCF8E3;
   --lg-cyan: #E2FCFF;
@@ -1299,7 +1869,7 @@ h6 {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: #1677ff;
+  background: #059669;
   animation: conv-running-pulse 1.4s ease-in-out infinite;
 }
 .dark .conv-running-dot { background: #4d9bff; }
@@ -1311,3 +1881,376 @@ h6 {
   .conv-running-dot { animation: none; }
 }
 
+/* ==========================================================================
+   图标 × 文字 对齐（见 components/icon.tsx 的 verticalAlign: middle）
+   --------------------------------------------------------------------------
+   全局给图标 wrapper 加了 vertical-align: middle，修正「行内图标被压在文字基线上、
+   视觉偏高 3px」的问题。但 antd 少数组件已自带基线补偿，再叠加 middle 会反向偏移，
+   这里对它们单独还原。
+
+   1) Statistic 的前缀图标：antd 让前缀（inline-block）与数值按基线对齐，
+      数值字号远大于图标（~24px vs 16px），基线对齐本身就是光学正确的；
+      叠加 middle 会多推约 2px（实测 0 → 1.95px）。
+   ========================================================================== */
+/* 注意：icon.tsx 的 vertical-align 写在 wrapper 的 inline style 上，
+   普通选择器无法覆盖，这里必须 !important（作用域仅限 Statistic 前缀图标）。 */
+.ant-statistic-content-prefix > span {
+  vertical-align: baseline !important;
+}
+
+/* ==========================================================================
+   全站排版三连矫正（2026-10-22 · 用户原话：「视网膜欺骗术」）
+   ① 图标中心与文字严丝合缝 —— 实测后结论：**不加位移**（见下）
+   ② 计数器强制等宽锁死
+   ③ 暗色模式近白字压制（变量层在 .dark 里的 --color-zinc-*）
+   ========================================================================== */
+
+/* ① 图标 × 文字 光学对齐 —— 🚨 2026-10-22 **实测后撤销**，别再照 1/8 加回来
+   --------------------------------------------------------------------------
+   用户诉求「图标往下挪 1/8 高，让图标中心与文字严丝合缝」。按 icon-text-alignment-audit
+   的口径（Range rect.top + fontBoundingBoxAscent 定基线，墨迹中心与大写高中心双参照）
+   在 /ai-assistant · /dashboard · /activity · /device-control 四页量了 51 组「图标紧邻文字」：
+
+     · 不加任何位移（现状 = verticalAlign:middle + flex items-center）→ |Δ| 均值 0.14px，
+       p90 0.32px，**最大 0.9px，超 1px 的 0 组** —— 本来就已经严丝合缝。
+     · 加 1/8 自身高度（14px→1.75 / 20px→2.5）→ 均值 1.86px，p50 2.25，最大 3.15，
+       **41/50 组被推到 1px 以上** —— 补偿过头 2~2.5px，反而制造了全场新的不一致。
+
+   根因：这里不存在「几何中心 vs 视觉中心」的缺口。汉字的墨迹中心本来就比行盒中心低
+   约 1px，而 flex 居中 + middle 的组合把它抵消掉了；再叠 translate 就是双重补偿。
+   ⇒ 全站对齐**不靠位移**，改成「谁漂了就修谁」。剩下的最大残差 0.9px（sender 的
+     「连接器 / 请求批准」chip，中文墨迹所致，属正常），已在阈值内，不需要动。
+   ② 计数器等宽、③ 暗色字压制 两项保留。 */
+
+/* ② 计数器等宽锁死 ------------------------------------------------------
+   HarmonyOS Sans 的数字 advance 本来全是 570（等宽），但这里仍显式锁定：
+     a. 将来换字体 / 换字重时不会退回比例数字（9 比 1 窄 → 数字一进位就跳）；
+     b. 角标、百分比、耗时、token 数、表格数字全站同一个节奏。
+   font-variant-numeric 是继承属性，挂在 html 上即全站生效。 */
+html {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* ③ 暗色 `dark:text-white` 压制 ----------------------------------------
+   变量改不到 Tailwind 的 white（那是写死的 #fff），只能按生成的工具类覆盖。
+   非 @layer 规则优先于 @layer utilities，无需 !important。 */
+.dark .dark\:text-white {
+  color: #E3E3E8;
+}
+
+/* ==========================================================================
+   Unified Scrollbar · Firefox 分支
+   --------------------------------------------------------------------------
+   Firefox 不支持 ::-webkit-scrollbar 伪元素，只能走标准属性。
+   ⚠️ 必须**只**在这个门里写 scrollbar-width / scrollbar-color：
+      Chromium 121+ 也认这两个属性，而一旦命中它们，
+      同元素的 ::-webkit-scrollbar 定制就会被忽略（胶囊圆角/内缩全失效）
+      —— 也就是为什么上面那套通配规则里一个 scrollbar-width 都没有。
+   ========================================================================== */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  /* 出现条件与 WebKit 分支保持一致：只有正在滚动（不要加悬停，见上方警告） */
+  [data-scrolling] {
+    scrollbar-color: var(--sb-thumb) transparent;
+  }
+}
+
+
+/* ==========================================================================
+   桌面端 · 窗口玻璃壳（GLASS SHELL）—— 2026-10-22
+   ── 用户要求 ──
+     「桌面端的沉浸光感：这种外层的容器就用沉浸光感，然后透传桌面的」
+     也就是说：窗口那一圈（页面画布 = 最外层容器）要像一块玻璃，能看见桌面壁纸；
+     里面的卡片、面板仍然是可读的实体，不该一起变成半透明。
+   ── 为什么必须靠系统材质，而不是 backdrop-filter ──
+     Web 的 backdrop-filter 只能采样**页面内部**的绘制结果，永远糊不到窗口外面的桌面。
+     所以「透传桌面」在 Electron 里只有一条路：窗口用系统材质
+     （Windows 11 acrylic / macOS vibrancy，见 desktop/main.js 的 openMainWindow），
+     页面再把**画布**让出来 —— 即 body 透明 + 画布 token 半透明，系统那层模糊才透得上来。
+   ── 为什么只改 token，不给页面加类 ──
+     全站画布都读 --background / --berry-canvas / --sidebar 这三个 token。
+     只改 token ⇒ 一处生效、所有页面一致；给页面逐个加类必然漏、且会和新页面漂移。
+     硬编码 bg-white 的**卡片**不受影响（本来就应该保持实色，那是内容层）。
+   ── 四个值怎么定的 ──
+     亮 .80 / 暗 .68：既不把壁纸糊成一块死板（<.5 时文字会跟壁纸花纹打架），
+     又能保证正文压在画布上仍然清晰。实测判据：文字覆盖率下 4.5:1 对比度不破。
+   ── 不可用时完全无害 ──
+     Windows 10 / Linux / 浏览器部署不写这个 attribute —— 整节规则一条都不生效，
+     页面与现在逐像素一致。这就是它必须是"白名单式"而不是"默认透明"的原因。
+   ========================================================================== */
+html[data-glass-shell="on"] body {
+  background-color: transparent;
+}
+/* 🚨 只让「画布」透，**不要**把 --background 设成 transparent（2026-10-23 回滚）。
+   ── 为什么曾经的写法是错的 ──
+     --background 不是画布 token，它是 `bg-background` 这个**表面**工具类的取值：
+     Dialog / Sheet / Select / Input / Textarea / outline Button 全靠它拿底色。
+     把它改成 transparent，等于把「内容层」一起挖空 —— 表现就是：
+     管理环境控制设备的弹窗变成一层玻璃纸，文字直接压在背景照片上，几乎读不出来。
+   ── 现在怎么让 body 透 ──
+     下一条 `html[data-glass-shell="on"] body` 已经显式把 body 的 background-color 归零，
+     那是**唯一**需要透明的一层；画布交给 --berry-canvas 的半透明值。 */
+html[data-glass-shell="on"] {
+  /* 窗口不透明度（用户可在 设置 ▸ 外观 ▸ 沉浸光感 ▸ 桌面透视 里拖）：
+     默认值按主题给，用户拖过之后由 <html> 上的内联 --glass-a 覆盖（见 lib/ui/glass-alpha.ts）。
+     ⚠️ 默认值不能给太高：背后那层是系统的 acrylic（带白/黑 tint 的真模糊），
+        画布 alpha 一高就把磨砂糊死，看起来又变回一块纯色板 —— .58 是"看得出糊、也读得清字"的平衡点。 */
+  --glass-a: .58;
+  /* 亮色玻璃画布走**冷白**（249,250,252）而不是中性灰白（247,247,248）：
+     中性白压在 Windows 的白 tint 磨砂上会糊成一块没有颜色的纸，
+     带一点点蓝的冷白才有玻璃的色感，也更贴近大厂亮色材质的做法。 */
+  --berry-canvas: rgba(249, 250, 252, var(--glass-a));
+  --berry-canvas-gradient: linear-gradient(
+    180deg,
+    rgba(246, 248, 251, var(--glass-a)) 0%,
+    rgba(249, 250, 252, var(--glass-a)) 30%,
+    rgba(252, 252, 253, var(--glass-a)) 100%
+  );
+  --sidebar: rgba(249, 250, 252, var(--glass-a));
+}
+html.dark[data-glass-shell="on"] {
+  --glass-a: .60;
+  --berry-canvas: rgba(9, 9, 11, var(--glass-a));
+  --berry-canvas-gradient: linear-gradient(
+    180deg,
+    rgba(9, 9, 11, var(--glass-a)) 0%,
+    rgba(23, 23, 22, var(--glass-a)) 30%,
+    rgba(24, 24, 27, var(--glass-a)) 100%
+  );
+  --sidebar: rgba(24, 24, 27, var(--glass-a));
+}
+
+/* AI 对话页的画布 token 在玻璃壳下同样让位。
+   ── 为什么单独处理 --br-canvas ──
+     AI 页的侧栏写的是 `darkMode ? transparent : #f7f7f9`：暗色本来就透（所以暗色那页有磨砂），
+     浅色却是一块不透明的灰白 —— 同一套材质只有一半成立，这正是「浅色磨砂不像深色」的根因。
+     侧栏改成透明之后，底色由 --br-canvas 给；这里让它也吃 --glass-a。 */
+html[data-glass-shell="on"] {
+  --br-canvas: rgba(250, 250, 252, var(--glass-a));
+}
+html.dark[data-glass-shell="on"] {
+  --br-canvas: rgba(8, 8, 10, var(--glass-a));
+}
+
+/* ==========================================================================
+   间隔参数（HDS · interval-parameter · 2026-10-23）
+   规则原文四条：
+     ① 间距一律取固定基数的倍数（4vp / 8vp 体系），不要随手写数字；
+     ② **层级越高、独立性越强，间距越大**；同级元素间距保持一致，上下级逐级区分；
+     ③ 同类元素（按钮组 / 列表 / 卡片）间距统一；
+     ④ 屏幕四边留固定安全边距。
+   Token 对齐 HarmonyOS 的 Padding_levelN（2vp 步进），本端只落用得到的档。
+   ========================================================================== */
+:root {
+  --sp-1: 2px;
+  --sp-2: 4px;
+  --sp-3: 6px;
+  --sp-4: 8px;
+  --sp-5: 12px;
+  --sp-6: 16px;
+  --sp-7: 24px;
+  --sp-8: 32px;
+  /* PC 屏幕边缘：24（平板/手机那套 16 在桌面上偏挤） */
+  --screen-edge: var(--sp-7);
+  /* 不同层级之间（工具行 → 主行 → 内容）：8 */
+  --gap-level: var(--sp-4);
+  /* 同一层级内（按钮组 / 导航项）：6 */
+  --gap-sibling: var(--sp-3);
+}
+
+/* 玻璃壳下，设备控制页的氛围光让位给桌面壁纸。
+   ── 为什么必须让位 ──
+     氛围光的存在意义是「让玻璃背后有东西可透」。窗口已经透出真实的桌面壁纸时，
+     它就成了第二层人造景：色带 + 壁纸花纹叠在一起，颜色会发脏（实测青绿叠暖壁纸 = 灰绿）。
+     有真景就用真景 —— 这也是「什么时候该用沉浸光感套件」那条判据的最后一步。 */
+html[data-glass-shell="on"] .dc-backdrop::before,
+html[data-glass-shell="on"] .dc-backdrop::after {
+  display: none;
+}
+
+/* 数据看板的两层不透明底 —— 玻璃壳下必须让位，否则桌面看不见、卡片的 backdrop-filter
+   采到的也是这层渐变（这就是「深色模式下没有磨砂透明」的真正原因）。 */
+html[data-glass-shell="on"] .dash-canvas-layer {
+  background: transparent !important;
+}
+html[data-glass-shell="on"] .dash-canvas-layer--dark {
+  display: none !important;
+}
+
+/* 数据看板的小组件是「内容」不是「交互浮层」—— 按 2026-10-23 场景规范走实色表面：
+   空间感由「半透明画布（透桌面）× 实色卡（易读）」的落差给，不再让卡片自己半透明。
+   以前这里是玻璃，深色下卡片与画布都灰扑扑一片，用户读到的就是没有层次。 */
+html[data-imv-scene="on"] .ios-widget {
+  background-color: #FFFFFF;
+  border: 1px solid rgba(15, 23, 42, .06);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.dark[data-imv-scene="on"] .ios-widget {
+  background-color: #1A1A1E;
+  border-color: rgba(255, 255, 255, .06);
+}
+
+
+/* ═══════ 语音输入（AI 助手 sender 的麦克风钮）═══════
+   录音中的"在听"反馈：外圈一圈极缓扩散 + 三根声波竖条错峰起伏。
+   🚨 只做动效，颜色由组件 inline 给（亮/暗两套不一致，写死会串味）。 */
+@keyframes voice-input-ring {
+  0%   { transform: scale(0.82); opacity: 0.5; }
+  70%  { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+@keyframes voice-input-bar {
+  0%, 100% { transform: scaleY(0.32); }
+  50%      { transform: scaleY(1); }
+}
+
+/* 转写中（录音已停、等服务端吐字）：缺口圆环自转 */
+@keyframes voice-input-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   果冻开关 Jelly Toggle（全站唯一开关动效源，2026-10-24）
+   ── 交互语义 ──
+     按下瞬间：旋钮朝目标端滑，途中先横向拉长成胶囊（纵向略压），
+     贴近终点时收窄、撞到轨道内壁后轻微回弹，最后恢复正圆。
+     轨道同时由中性灰过渡到平台主 token（--primary = emerald）。
+   ── 两套实现共用本段 ──
+     · antd  `<Switch>`     → `.ant-switch` / `.ant-switch-handle`
+     · radix `<Switch>`     → `[data-slot="switch"]` / `[data-slot="switch-thumb"]`
+     （components/ui/switch.tsx 是 radix 版，别在那边重复写动效）
+   ── 分工（⛔ 别混着改）──
+     · 位移 = 各自框架的定位属性过渡（inset-inline-start / translate），
+       只接管时长与曲线 —— antd 的 inset 是自适配尺寸的，绝不要改成 translate 固定像素，
+       否则 size="small" 与本项目 22px 轨道会错位。
+     · 拉伸 = `data-jelly` 上的 keyframes（transform: scale），与位移并行、互不覆盖。
+       `data-jelly="on|off"` 由 components/ui/jelly-switch-motion.tsx 在 pointerdown 时打上，
+       为什么不用 `:active` / `.ant-switch-checked` 触发：前者松手即断、后者在首屏会
+       让全部开关齐刷刷抖一遍（初始渲染也匹配规则）。
+   ── 为什么颜色与位移用两条曲线 ──
+     回弹曲线（cubic-bezier 输出 > 1）作用在颜色上会越过目标色再拉回，暗色下能看出
+     一闪的过饱和；所以颜色走无 overshoot 的强缓出，位移/形变才走弹簧。
+   ============================================================ */
+:root {
+  --jelly-dur: 440ms;
+  /* 弹簧：约 +9% 的过冲，恰好撞到轨道内壁（轨道 padding 2px × 16px 位移）后回落 */
+  --jelly-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --jelly-ease-color: cubic-bezier(0.4, 0, 0.18, 1);
+  --jelly-track-off: rgba(24, 24, 27, 0.17);
+  --jelly-track-off-hover: rgba(24, 24, 27, 0.27);
+  --jelly-track-on: var(--primary);
+}
+
+.dark {
+  --jelly-track-off: rgba(255, 255, 255, 0.2);
+  --jelly-track-off-hover: rgba(255, 255, 255, 0.3);
+  --jelly-track-on: var(--primary);
+}
+
+/* —— 形变：向前滑（关→开）向后滑（开→关）共用一套关键帧，
+      只有 transform-origin 不同（固定在「来路」那一侧，才像被推着走） —— */
+@keyframes jelly-thumb-squash {
+  0%   { transform: scale(1, 1); }
+  /* 起手最快的一段：横向拉到 ~1.45 倍、纵向压到 0.9 → 圆变胶囊 */
+  30%  { transform: scale(1.45, 0.9); }
+  /* 接近终点：开始收窄，仍略长 */
+  60%  { transform: scale(1.18, 1.03); }
+  /* 撞壁回弹：轻微扁回 */
+  82%  { transform: scale(0.93, 1.06); }
+  100% { transform: scale(1, 1); }
+}
+
+/* —— antd Switch —— */
+/* ⚠️ 刻意**不用 !important**：设备控制页的 `.dc-scope .ant-switch`（材质化开关，
+   玻璃底 + 自定义绿）全部带 !important，那些必须继续赢。这里靠叠加类名提特异性
+   压过 antd CSS-in-JS（运行时注入、位于本文件之后）。 */
+.ant-switch.ant-switch {
+  background-color: var(--jelly-track-off);
+  transition:
+    background-color var(--jelly-dur) var(--jelly-ease-color),
+    border-color var(--jelly-dur) var(--jelly-ease-color),
+    box-shadow var(--jelly-dur) var(--jelly-ease-color);
+}
+.ant-switch.ant-switch:hover:not(.ant-switch-disabled):not(.ant-switch-checked) {
+  background-color: var(--jelly-track-off-hover);
+}
+.ant-switch.ant-switch.ant-switch-checked {
+  background-color: var(--jelly-track-on);
+}
+/* 旋钮位移：只换时长与曲线（antd 默认 motionDurationMid 0.2s + ease-in-out） */
+.ant-switch.ant-switch .ant-switch-handle {
+  transition:
+    inset-inline-start var(--jelly-dur) var(--jelly-ease),
+    width var(--jelly-dur) var(--jelly-ease),
+    height var(--jelly-dur) var(--jelly-ease);
+}
+/* 关掉 antd 自带的「按住拉宽 30%」—— 会和果冻的形变叠加成两段拉伸 */
+.ant-switch.ant-switch:not(.ant-switch-disabled):active .ant-switch-handle::before {
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+}
+/* 带 checkedChildren 文字时，内层文字位移也要同一节奏 */
+.ant-switch.ant-switch .ant-switch-inner,
+.ant-switch.ant-switch .ant-switch-inner-checked,
+.ant-switch.ant-switch .ant-switch-inner-unchecked {
+  transition-duration: var(--jelly-dur);
+  transition-timing-function: var(--jelly-ease);
+}
+
+/* 果冻形变（JS 打标；两套开关同一组规则） */
+.ant-switch[data-jelly="on"] .ant-switch-handle,
+[data-slot="switch"][data-jelly="on"] [data-slot="switch-thumb"] {
+  transform-origin: left center;
+  animation: jelly-thumb-squash var(--jelly-dur) var(--jelly-ease) both;
+}
+.ant-switch[data-jelly="off"] .ant-switch-handle,
+[data-slot="switch"][data-jelly="off"] [data-slot="switch-thumb"] {
+  transform-origin: right center;
+  animation: jelly-thumb-squash var(--jelly-dur) var(--jelly-ease) both;
+}
+
+/* —— radix Switch（components/ui/switch.tsx）——
+   轨道底色/时长统一到这里，组件里只留尺寸与布局类。
+   Tailwind 的 `transition-transform` / `bg-primary` 位于 @layer utilities，
+   本文件的不分层规则恒胜，无需 !important。 */
+[data-slot="switch"] {
+  transition:
+    background-color var(--jelly-dur) var(--jelly-ease-color),
+    box-shadow var(--jelly-dur) var(--jelly-ease-color);
+}
+[data-slot="switch"][data-state="unchecked"] {
+  background-color: var(--jelly-track-off);
+}
+[data-slot="switch"][data-state="unchecked"]:hover {
+  background-color: var(--jelly-track-off-hover);
+}
+[data-slot="switch"][data-state="checked"] {
+  background-color: var(--jelly-track-on);
+}
+[data-slot="switch"] [data-slot="switch-thumb"] {
+  transition:
+    translate var(--jelly-dur) var(--jelly-ease),
+    transform var(--jelly-dur) var(--jelly-ease);
+}
+
+/* 无障碍：系统要求减弱动效时保留状态切换，只把形变与回弹收掉 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --jelly-dur: 1ms;
+  }
+  .ant-switch[data-jelly] .ant-switch-handle,
+  [data-slot="switch"][data-jelly] [data-slot="switch-thumb"] {
+    animation: none;
+  }
+  .ant-switch.ant-switch .ant-switch-handle {
+    transition-duration: 1ms;
+  }
+}
